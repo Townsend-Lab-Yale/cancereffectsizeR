@@ -1,0 +1,5 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+data/all_gene_trinuc_data.RData
