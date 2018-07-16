@@ -1,0 +1,122 @@
+---
+title: "cancereffectsizeR user guide"
+author: "Vincent L. Cannataro"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+library(cancereffectsizeR)
+```
+
+# Introduction
+
+`cancereffectsizeR` is an `R` package that may be used to calculate the effect size of single nucleotide variants (SNV) in cancer exome data[^1]. It was designed for use with datasets in [MAF format](https://docs.gdc.cancer.gov/Data/File_Formats/MAF_Format/) and works well with data from a large number of tumors, each with a large number of detected varaints. A previous version of `cancereffectsizeR` depended on output from `MutSigCV` (which runs in MATLAB) and can be found [here](https://github.com/Townsend-Lab-Yale/SNV_selection_intensity).  
+
+This vignette is broken into several sections detailing installation, usage, and a suite of `R` functions provided with this package that are useful for analyzing cancer exome data. 
+
+[^1]: Cannataro, V. L., Gaffney, S. G., Townsend, J. P., “Effect sizes of somatic mutations in cancer" Preprint: <https://doi.org/10.1101/229724> 
+
+* [Installing](#install) 
+* [Calculating effect size](#effectsizecalc)
+    + [Preprocessing](#preprocess)
+    + [Calculating effect size](#effectsizecalc)
+
+# Installing {#install}
+
+`cancereffectsizeR` utilizes a few bioinformatic `R` packages, and thus requires the installation of some dependencies. If you already use `R` to bioinformatics, you likely already have these packages installed and you can directly install `cancereffectsizeR` in two lines.  
+
+```{r install without depends, eval=F}
+install.packages("devtools",repos = "https://cloud.r-project.org")
+devtools::install_github("Townsend-Lab-Yale/cancereffectsizeR")
+```
+
+However, if you just downloaded `R` today, you will need to install the dependencies.
+
+```{r install depends, eval=F}
+source("https://bioconductor.org/biocLite.R")
+biocLite("rtracklayer")
+biocLite("GenomicRanges")
+biocLite("BSgenome")
+biocLite("BSgenome.Hsapiens.UCSC.hg19")
+install.packages("deconstructSigs",repos = "https://cloud.r-project.org")
+install.packages("devtools",repos = "https://cloud.r-project.org")
+devtools::install_github("im3sanger/dndscv")
+devtools::install_github("Townsend-Lab-Yale/cancereffectsizeR")
+```
+
+# Calculating effect size {#effectsizecalc}
+
+In this example, we will calculate the effect size of SNV within LGG (low grade glioma) using the TCGA LGG dataset provided at the [National Cancer Institute Genomic Data Common](https://portal.gdc.cancer.gov/). Specifically using the MAF generated with mutect variant calling (NCI UUID 2c0dab06-7af9-4380-bc83-13148298da19). Download and read the MAF into memory. 
+
+```{r read MAF}
+# MAF files are tab delim and contain 5 rows of header to skip
+LGG_MAF <- read.delim(
+  file = "TCGA.LGG.mutect.2c0dab06-7af9-4380-bc83-13148298da19.DR-7.0.somatic.maf",
+  header = T,skip = 5,stringsAsFactors = F)
+```
+
+## Preprocessing {#preprocess}
+
+### Converting hg38 to hg19
+
+The latest TCGA data release has genomic variants in hg38 coordinates, so we need to convert these to hg19 so that the data is compatable with other packages utilized within `cancereffectsizeR`. `hg_converter` uses the [hg38ToHg19.over.chain](http://hgdownload.cse.ucsc.edu/gbdb/hg38/liftOver/hg38ToHg19.over.chain.gz) file and the `rtracklayer::liftOver` function to perform the conversion. Note that this function can convert between other builds with other *.over.chain files.
+
+```{r convert to hg19}
+# provide the path to the over.chain file. 
+# I downloaded the file from 
+# <http://hgdownload.cse.ucsc.edu/gbdb/hg38/liftOver/hg38ToHg19.over.chain.gz>
+LGG_MAF <- hg_converter(chain = "~/Downloads/hg38ToHg19.over.chain",
+                        maf_to_convert = LGG_MAF)
+```
+
+
+### Adding columns with tumor sample identifier data and tumor allele data. 
+
+The TCGA does a great job documenting their data in a consistent fashion, so this step is optional if just using TCGA data. However, other sources may be less reliable, so these functions are provided in an attempt to get consistent tumor names and tumor allele nucleotides. 
+
+```{r adding unique tumor samples}
+LGG_MAF <- unique_tumor_addition_function(MAF.file = LGG_MAF)
+```
+
+
+```{r adding tumor allele}
+LGG_MAF <- tumor_allele_adder(MAF = LGG_MAF)
+```
+
+### Removing DNV and TNV
+
+We only want true single-nucleotide variant events in our data so we can get the best estimate of SNV mutation rate. Variant calling algorithms may mislabel di-nucleotide events as "SNV" and thus we need to remove these data before calculating mutation rate and effect size. 
+
+```{r DNP remover}
+LGG_MAF <- DNP_TNP_remover(MAF = LGG_MAF)
+```
+
+# Calculating cancer effect size {#effectsizecalc}
+
+```{r effect size calculation,warning=F}
+LGG_selection_output <- effect_size_SNV(MAF_file = LGG_MAF,
+                                        covariate_file = "lgg_pca",
+                                        genes_for_effect_size_analysis =
+                                          c("IDH1","EGFR","TP53","BRAF"))
+
+```
+
+
+```{r explore selection output}
+print(head(
+  LGG_selection_output$selection_output$all_mutations[
+    order(
+      LGG_selection_output$selection_output$all_mutations$selection_intensity,decreasing = T),],
+  10),
+  digits = 2)
+
+```

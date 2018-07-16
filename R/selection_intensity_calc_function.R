@@ -102,36 +102,15 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
   # gr_genes
   gene_list  <- sapply(RefCDS, function(x) x$gene_name)
 
-  # all_gene_list <- sapply(all_genes$trinuc.comp, function(x) x$gene)
-  # all_gene_list[sapply(all_gene_list, is.null)] <- NA
-  # all_gene_trinuc_gene_list <- unlist(all_gene_list)
 
-
-  # all_genes$trinuc.comp[sapply(all_genes$trinuc.comp,function(x) is.null(x$gene))] <- NA
-  # all_gene_trinuc_gene_list <- unlist(sapply(all_genes$trinuc.comp, function(x) x$gene))
-  # File containing isoform choices from a previous run to keep consistent variant calling. If not present ("NULL"), then make one to fill in.
-  # if(is.null(isoform.file)){
-  #   isoform.list <- as.data.frame(matrix(data=NA,ncol=3,nrow=length(unique(MAF_for_analysis$Gene_name))))
-  #   colnames(isoform.list) <- c("Gene","Isoform","LabReference_location")
-  #   isoform.list$Gene <- unique(MAF_for_analysis$Gene_name)
-  # }else{
-  #   isoform.list <- isoform.file
-  # }
   #
   # Loading data into the environment now so it is only called once per function.
-  # LabReference <- LabReference
+
   if(length(which(MAF_for_analysis[,gene_ID_column]=="WI2-3308P17.2"))>0){
     MAF_for_analysis <- MAF_for_analysis[-which(MAF_for_analysis[,gene_ID_column]=="WI2-3308P17.2"),]
   }
 
-  # known trouble indels
-  # if(length(which(MAF_for_analysis$Start_Position==150713902))>0){
-  #   MAF <- MAF[-which(MAF$Start_Position==150713902),]
-  # }
-  # if(length(which(MAF_for_analysis$Start_Position==41123095))>0){
-  #   MAF <- MAF[-which(MAF$Start_Position==41123095),]
-  # }
-  # MAF <- MAF[-which(MAF$Start_Position==41123095),]
+
 
   MAF_for_analysis$End_Position <- MAF_for_analysis[,pos_column]
 
@@ -233,25 +212,9 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
     }
 
 
-    ### finding isoform----
-    # (If the choice isn't designated already)
-    #
-    #
-    # #If there is no reference for this gene name in our LabReference file, tell us!
-    # if(length(which(LabReference$geneName==this.gene))==0){
-    #   print(paste("There is no reference for isoforms of gene ",this.gene," !"))
-    #   next
-    # }
-    #
-    #
-    #
-    #
-    # this.gene.ref.loc <- which(LabReference$geneName==this.gene) # get locations in LabReference for this gene name
-    # this.gene.isoforms <- LabReference$name[this.gene.ref.loc] # get isoform names for this gene
 
-
-    # should all be SNP already by this point
-
+    # assume MAF is just SNV at this point but you can uncomment this block
+    # if not.
     this.gene_MAF <- MAF_for_analysis[which(MAF_for_analysis[,gene_ID_column]==this.gene #& MAF_for_analysis$Variant_Type=="SNP"
                                             #                                         # (
                                             #                                         #   MAF_for_analysis$Variant_Classification=="Nonsense_Mutation" |
@@ -262,191 +225,14 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
     ),] #get a gene-specific MAF file with just the SNPs we want to analyze
 
 
-    # # deleting potential mismapped reads, two SNP that are two nucleotide positions apart ...
-    #
-    # rows.to.delete <- NULL
-    #
-    # for(tumor in 1:length(unique(this.gene_MAF$Unique_patient_identifier))){
-    #
-    #   this.tumor.maf <- this.gene_MAF[which(this.gene_MAF$Unique_patient_identifier==unique(this.gene_MAF$Unique_patient_identifier)[tumor]),]
-    #
-    #   for(tumor.rows in 1:nrow(this.tumor.maf)){
-    #     this.row <- rownames(this.tumor.maf)[tumor.rows]
-    #     diff.vec <- abs(this.tumor.maf$Start_Position- this.tumor.maf$Start_Position[tumor.rows])
-    #
-    #     if(length(which(diff.vec == 2))>0){
-    #       rows.to.delete <- c(rows.to.delete,rownames(this.tumor.maf[which(diff.vec == 2),]))
-    #
-    #     }
-    #
-    #   }
-    #
-    #
-    # }
-    #
-    # this.gene_MAF <- this.gene_MAF[-which(rownames(this.gene_MAF) %in% rows.to.delete),]
+
 
     #Make sure this gene is in the MAF file, and then...
     if(nrow(this.gene_MAF)>0){
 
 
       if(is.null(output_from_mainMAF)){
-        # if(is.na(isoform.list[which(isoform.list[,"Gene"]==this.gene),"Isoform"])){ #if the isoform choice does not exist, pick it
-        #
-        #   length.vec <- rep(NA,length=length(this.gene.ref.loc)) #A vector that holds information on how long each isoform is
-        #   mut.count.vec <- rep(0,length=length(this.gene.ref.loc)) #A vector that holds information on how many mutations fall within each isoform.
-        #
-        #
-        #   ###Looping through isoforms to find best choice ----
-        #   ##Loop to iterate through each isoform to find the one with
-        #   ##the most mutations and longest length
-        #   for(i in 1:length(this.gene.ref.loc)){
-        #
-        #     #For each isoform we need to construct the sequence, and place the mutations
-        #     ##
-        #     ###
-        #
-        #
-        #     this.gene.ref.loc.choice <- this.gene.ref.loc[i] #get the location within the reference file for this specific isoform choice
-        #
-        #     this.strand <- LabReference$strand[this.gene.ref.loc.choice] #which strand is this isoform on?
-        #
-        #     #Pull cds information
-        #     cds.start <- LabReference$cdsStart[this.gene.ref.loc.choice]
-        #     cds.end <- LabReference$cdsEnd[this.gene.ref.loc.choice]
-        #
-        #
-        #     #Sometimes the cds.start == the cds.end?? If so, we do not have any information on this isoform, skip it.
-        #     if(cds.start==cds.end){
-        #       print(paste("The cds.start equals the cds.end for gene: ",this.gene))
-        #       next
-        #     }
-        #
-        #     #Pull information about all the exon start and end locations for this isoform
-        #     exon.starts <- as.numeric(unlist(strsplit(LabReference$exonStarts[this.gene.ref.loc.choice],split=",")))
-        #     exon.ends <- as.numeric(unlist(strsplit(LabReference$exonEnds[this.gene.ref.loc.choice],split=",")))
-        #
-        #
-        #     start.pos <- which(exon.ends>cds.start)[1] #exon with cds start in it
-        #     end.pos <- which(exon.starts<cds.end)[length(which(exon.starts<cds.end))] #exon with cds end in it.
-        #     seq.exon.start.vec <- rep(NA,length=length(start.pos:end.pos)) #vector to hold all the information about where exons start
-        #     seq.exon.end.vec <- rep(NA,length=length(start.pos:end.pos)) #vector to hold all the information about where exons end
-        #
-        #     seq.exon.start.vec[1] <- cds.start #first exon starts at the cds.start location
-        #     seq.exon.end.vec[length(seq.exon.end.vec)] <- cds.end #and last exon ends there
-        #
-        #     #fill in the rest of the information if there is more than one exon
-        #     if(length(seq.exon.start.vec)>1){
-        #       seq.exon.start.vec[2:length(seq.exon.start.vec)] <- exon.starts[(start.pos+1):end.pos]
-        #       seq.exon.end.vec[1:(length(seq.exon.end.vec)-1)] <- exon.ends[start.pos:(end.pos-1)]
-        #     }
-        #
-        #     # print(paste("This isoform:", LabReference$name[this.gene.ref.loc.choice], "This isoform length:",sum(seq.exon.end.vec-seq.exon.start.vec),sep=" "))
-        #
-        #     length.vec[i] <- sum(seq.exon.end.vec-seq.exon.start.vec) #total length of this isoform
-        #
-        #     #Loop through all mutations
-        #     this.count <- 0
-        #     for(ii in 1:nrow(this.gene_MAF)){
-        #       #for each mutation, this position is...
-        #       this.mut.pos <- this.gene_MAF$Start_Position[ii]
-        #       #Is this location within an exon? then add a count!
-        #       for(iii in 1:length(seq.exon.start.vec)){
-        #         if(this.mut.pos>seq.exon.start.vec[iii] & this.mut.pos<seq.exon.end.vec[iii]){this.count <- this.count+1}
-        #       }
-        #     }
-        #
-        #     mut.count.vec[i] <- this.count #Record total number of mutations within the isoform
-        #     # print(paste("Mutations in this isoform:",this.count,sep=" "))
-        #   }
-        #   if(cds.start==cds.end){
-        #     print(paste("The cds.start equals the cds.end for gene: ",this.gene))
-        #     # next
-        #   }
-        #
-        #
-        #   if(mean(mut.count.vec)==0){
-        #     print("Mutations given in the MAF do not fall into any of the isoforms we reference!")
-        #     # next
-        #
-        #     # if all the lengths of all the isoforms are zero, we need to skip.
-        #     if(all(is.na(length.vec))){
-        #       next
-        #     }
-        #
-        #     # No mutations within the coding sequence, but mutations within the gene. Need to pick isoform to inform mutation rate. Pick the largest isoform.
-        #     if(length.vec[which.max(length.vec)[1]]>1){
-        #       this.isoform <- LabReference$name[which(LabReference$geneName==this.gene)[which.max(length.vec)[1]]]
-        #       this.gene.ref.loc.choice <- this.gene.ref.loc[[which.max(length.vec)[1]]]
-        #     }else{
-        #       next # The length is 1 or less, not a transcript we can use.
-        #     }
-        #
-        #
-        #   }else{
-        #
-        #     #If there is one isoform that has the most mutations within it, we have a winner.
-        #     if(length(which(mut.count.vec==max(mut.count.vec)))==1){
-        #       this.isoform <- LabReference$name[this.gene.ref.loc[which(mut.count.vec==max(mut.count.vec))]] #this is the isoform name
-        #       pick <- which(mut.count.vec==max(mut.count.vec)) #and the location within our LabReference locations we pulled
-        #     }else{
-        #       #if there is a tie for most mutations, pick largest isoform. If there is a tie for this as well, pick first
-        #       if(length(which(mut.count.vec==max(mut.count.vec)))>1){
-        #         max.mut.vec <- which(mut.count.vec==max(mut.count.vec))
-        #         pick <- max.mut.vec[which(length.vec[max.mut.vec]==max(length.vec[max.mut.vec]))[1]]
-        #         this.isoform <- LabReference$name[this.gene.ref.loc[[pick]]]
-        #
-        #       }
-        #     }
-        #     this.gene.ref.loc.choice <- this.gene.ref.loc[pick] #get the location within the reference file for this specific gene choice
-        #     isoform.list[which(isoform.list[,"Gene"]==this.gene),"Isoform"] <- this.isoform
-        #     isoform.list[which(isoform.list[,"Gene"]==this.gene),"LabReference_location"] <- this.gene.ref.loc.choice
-        #   }
-        # }else{
-        #   #If the isoform choice exists already, pick that one
-        #   this.isoform <- isoform.list[which(isoform.list[,"Gene"]==this.gene),"Isoform"]
-        #   this.gene.ref.loc.choice <- isoform.list[which(isoform.list[,"Gene"]==this.gene),"LabReference_location"]
-        # }
-        #
-        #
-        # print(paste("Isoform choice: ",this.isoform," Gene: ",this.gene,sep="")) #Tell us what we picked
 
-        # this.gene.ref.loc.choice <- this.gene.ref.loc[pick] #get the location within the reference file for this specific gene choice.
-
-        # this.strand <- LabReference$strand[this.gene.ref.loc.choice] #get which strand this isoform information is on
-        #
-        # #Isoform position data
-        # cds.start <- LabReference$cdsStart[this.gene.ref.loc.choice]
-        # cds.end <- LabReference$cdsEnd[this.gene.ref.loc.choice]
-        #
-        # exon.starts <- as.numeric(unlist(strsplit(LabReference$exonStarts[this.gene.ref.loc.choice],split=",")))
-        # exon.ends <- as.numeric(unlist(strsplit(LabReference$exonEnds[this.gene.ref.loc.choice],split=",")))
-        #
-        # start.pos <- which(exon.ends>cds.start)[1] #exon with cds start in it
-        # end.pos <- which(exon.starts<cds.end)[length(which(exon.starts<cds.end))] #exon with cds end in it.
-        # seq.exon.start.vec <- rep(NA,length=length(start.pos:end.pos))
-        # seq.exon.end.vec <- rep(NA,length=length(start.pos:end.pos))
-        #
-        # seq.exon.start.vec[1] <- cds.start
-        # seq.exon.end.vec[length(seq.exon.end.vec)] <- cds.end
-        # if(length(seq.exon.start.vec)>1){
-        #   seq.exon.start.vec[2:length(seq.exon.start.vec)] <- exon.starts[(start.pos+1):end.pos]
-        #   seq.exon.end.vec[1:(length(seq.exon.end.vec)-1)] <- exon.ends[start.pos:(end.pos-1)]
-        # }
-        #
-        #
-        # ###Getting isoform sequence data ----
-        # if(this.strand=="+"){
-        #   myseq <- paste(as.character(getSeq(Hsapiens,LabReference$chrom[this.gene.ref.loc.choice],start=seq.exon.start.vec+1,end=seq.exon.end.vec,strand="+")),collapse = "")
-        #
-        #
-        #   #If this isoform strand is "-", we need to flip the positions and strand to make it "+"
-        # }else{
-        #
-        #   myseq <- paste(rev(as.character(getSeq(Hsapiens,LabReference$chrom[this.gene.ref.loc.choice],start=seq.exon.start.vec+1,end=seq.exon.end.vec,strand="-"))),collapse = "")
-        #
-        #
-        # }
 
         this.strand <- RefCDS[[which(gene_list==this.gene)]]$strand
         if(this.strand==-1){this.strand <- "-"}
@@ -640,11 +426,7 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
 
             #counting the number of times this trinuc was mutated in this
 
-            # trinuc.data.this.gene$total_count[which(trinuc.data.this.gene$mutated_from==this.trinuc.split[2]
-            #       & trinuc.data.this.gene$Upstream==this.trinuc.split[1] &
-            #         trinuc.data.this.gene$Downstream==this.trinuc.split[3])] <- trinuc.data.this.gene$total_count[which(trinuc.data.this.gene$mutated_from==this.trinuc.split[2]
-            #                                                                                                             & trinuc.data.this.gene$Upstream==this.trinuc.split[1] &
-            #                                                                                                               trinuc.data.this.gene$Downstream==this.trinuc.split[3])]+1
+
 
             mut.matrix[this.trinuc.split[2],i] <- 0
             if(this.trinuc.split[2]=="C"){
@@ -685,11 +467,7 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
             }
           }else{
 
-            # trinuc.data.this.gene$total_count[which(trinuc.data.this.gene$mutated_from==flip.function(this.trinuc.split[2])
-            #                                         & trinuc.data.this.gene$Downstream==flip.function(this.trinuc.split[1]) &
-            #                                           trinuc.data.this.gene$Upstream==flip.function(this.trinuc.split[3]))] <- trinuc.data.this.gene$total_count[which(trinuc.data.this.gene$mutated_from==flip.function(this.trinuc.split[2])
-            #                                                                                                                                                            & trinuc.data.this.gene$Downstream==flip.function(this.trinuc.split[1]) &
-            #                                                                                                                                                              trinuc.data.this.gene$Upstream==flip.function(this.trinuc.split[3]))]+1
+
 
             mut.matrix[this.trinuc.split[2],i] <- 0
 
@@ -801,11 +579,7 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
         }
 
         ##Matrix of the total rates of amino acid mutations
-        # AA.rates <- rep(NA,length=length(AA.code))
-        # for(i in 1:length(AA.rates)){
-        #   AA.rates[i] <- sum(AA.mut.matrix[,i])
-        # }
-        #
+
 
         #matrix that stores info on the complimentary strand
         strand.switch <- as.data.frame(matrix(data=c("A","T","G","C"),ncol=1,nrow=4),stringsAsFactors = FALSE)
@@ -833,8 +607,7 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
         Nuc.tally.matrix <- matrix(nrow=4,
                                    ncol=length(myseq.split),
                                    data=0)
-        # rownames(Nuc.tally.matrix) <- c("A","T","G","C")
-        # colnames(Nuc.tally.matrix) <- paste("Pos. ",seq(1,length(myseq.split),by=1)," Ref: ",myseq.split,sep="")
+
         rownames(Nuc.tally.matrix) <- rownames(mut.matrix)
         colnames(Nuc.tally.matrix) <- colnames(mut.matrix)
 
@@ -896,14 +669,11 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
         for(i in 1:nrow(this.gene_MAF)){
 
           #get the position within the gene and the amino acid code
-          # if(this.gene_MAF$strand[i]==-1){
+
           this.pos <- gene.pos[which(chrom.gene.pos==this.gene_MAF[i,pos_column])]
-          # this.pos <- gene.pos.matrix[start.position.vec[i],]
+
           this.AA.pos <- codon.numbers[this.pos]
-          # }else{
-          # this.pos <- gene.pos[which(chrom.gene.pos==this.gene_MAF$Start_Position[i])]
-          # this.AA.pos <- codon.numbers[this.pos]
-          # }
+
 
 
 
@@ -1042,8 +812,8 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
           print("No mutations to tally!")
           next
         }
-        # as.numeric(mut.spots[1,][2])
-        #####different combinations of Nuc.gamma.matrix might add up to the same AA.gamma.matrix!!
+
+
 
         #tallying up the changes!
         if(nrow(mut.spots)>0){
@@ -1062,10 +832,7 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
             # mutation.data.to.add$trinucs[these.pos] <- AA.matrix.trinuc[mut.spots[i,1],mut.spots[i,2]]
 
 
-            # p = AA.tally.matrix[mut.spots[i,1],mut.spots[i,2]]
-            # n = tumor.number
-            # n.0 <- n-p
-            # n.1 <- p
+
 
             if(AA.mut.matrix[mut.spots[i,1],mut.spots[i,2]]==0){message(paste("The mutation rate for this mutation is listed as ZERO"));print(mut.spots[i,])
             }else{
@@ -1136,9 +903,7 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
 
         # print(added.rows)
         all.muts <- rbind(all.muts,added.rows)
-        # if(length(which(is.na(mutation.data.to.add$Gamma)))>0){
-        #   mutation.data.to.add <- mutation.data.to.add[-which(is.na(mutation.data.to.add$Gamma)),] #deleting the rows that have NA information because the mutation fell outside of the isoform we chose
-        # }
+
         mutation.data <- rbind(mutation.data,mutation.data.to.add)
       }else{
         #This is what happens if you already have the mutation data (isoform, trinucleotide distribution per gene, trinucleotide context per substitution)
@@ -1186,7 +951,7 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
         }
 
 
-        # synonymous.mutation_rate <- mut_rates$r_x_X[which(mut_rates$gene==this.gene)]
+
         synonymous.mutation_rate <- mut_rates[this.gene]
 
 
@@ -1212,12 +977,10 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
               #if the this.gene_MAF file has these as well, to tally up!
               added.rows$AA_Change[this.row] <- this.AA.change
 
-              # added.rows$mutation_rate[this.row] <- (main_MAF.this.gene$Amino_acid_mutation_rate[which(main_MAF.this.gene$Nucleotide_chromosome_position==this.gene_MAF$Start_Position[mafRow] & main_MAF.this.gene$Alternative_Nucleotide == this.gene_MAF$Tumor_allele[mafRow])[1]]*synonymous.mutation_rate)/main_MAF.this.gene$synonymous.mutation_rate[which(main_MAF.this.gene$Nucleotide_chromosome_position==this.gene_MAF$Start_Position[mafRow] & main_MAF.this.gene$Alternative_Nucleotide == this.gene_MAF$Tumor_allele[mafRow])[1]] #this wasn't correct.
 
               nuc.changes <- unlist(strsplit(main_MAF.this.gene$trinucs[which(main_MAF.this.gene$Nucleotide_chromosome_position==this.gene_MAF[mafRow,pos_column] & main_MAF.this.gene$Alternative_Nucleotide == this.gene_MAF[mafRow,alt_column])[1]],split=":"))
 
 
-              # (trinuc.mutation_data.num.this.gene[paste0(outside.sequence[2],outside.sequence[1],outside.nucs$change[open.spot],outside.sequence[3],collapse = ""),"proportion"]/mean.nuc.rate.for.this.gene)*synonymous.mutation_rate
 
 
               added.rows$mutation_rate[this.row] <- sum(trinuc.mutation_data.num.this.gene[nuc.changes,"proportion"])/mean.nuc.rate.for.this.gene*synonymous.mutation_rate
@@ -1268,46 +1031,6 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
           }
 
 
-          #
-          #
-          # if(length(which(main_MAF.this.gene$Nucleotide_position==this.gene_MAF$Start_Position[i]))>0){ #Check to see if this position is outside the isoform we chose
-          #   #Outside an exon, need to use the nucleotide position
-          #   length(which(
-          #
-          #
-          # }else{ #Position is within an exon, need to look at the amino acid
-          #
-          # }
-
-
-          #generate the amino acid mutation rate per codon of interest, if it is a codon. ... we need the trinucleotide rate of the corner positions...
-          #should store the sum of the rates at every codon position that give the amino acid that was the substitution...
-
-          #if(length(which(added.rows$==this.gene_MAF$
-          # this.codon <- myseq.codons[codon.numbers[i]] #What is this codon?
-          # #see which position in the codon we are looking at
-          # if(i%%3==1){pos <- 1};if(i%%3==2){pos <- 2};if(i%%3==0){pos <- 3} #gives back position within the codon
-          # this.codon.expanded <- unlist(strsplit(this.codon,split="")) #breaks this codon into individual nucleotides
-          # # if(this.codon.expanded[2]=="G" | this.codon.expanded[2]=="A"){
-          # #
-          # # }
-          # mutations <- nuc.list[which(nuc.list!=this.codon.expanded[pos])] #possible mutations at this location within the codon
-          #
-          # #Loop to go through all the possible mutations at this position in the codon and add up rates
-          # for(j in 1:3){
-          #   this.mutation <- mutations[j] #This specific mutation is...
-          #   this.codon.expanded[pos] <- this.mutation #Making this codon...
-          #   this.codon.collapsed <- paste0(this.codon.expanded,collapse="") #which we collapse...
-          #   new.aa <- AA_translations[this.codon.collapsed,3] #resulting in this new amino acid...
-          #   AA.mut.matrix[new.aa,codon.numbers[i]] <- AA.mut.matrix[new.aa,codon.numbers[i]] + normalized.mut.matrix[this.mutation,i] #adding the rate this happens to total rates matrix
-          # }
-
-          # if(outside.nucs$ref[open.spot]== "C" | outside.nucs$ref[open.spot]== "T"){
-          #   outside.nucs$mutation_rate[open.spot] <- (trinuc.mutation_data.num.this.gene[paste0(outside.sequence[2],outside.sequence[1],outside.nucs$change[open.spot],outside.sequence[3],collapse = ""),"proportion"]/mean.nuc.rate.for.this.gene)*synonymous.mutation_rate
-          # }else{
-          #   outside.nucs$mutation_rate[open.spot] <- (trinuc.mutation_data.num.this.gene[paste0(flip.function(outside.sequence[2]),flip.function(outside.sequence[3]),flip.function(outside.nucs$change[open.spot]),flip.function(outside.sequence[1]),collapse = ""),"proportion"]/mean.nuc.rate.for.this.gene)*synonymous.mutation_rate
-          # }
-          # mutation.data.to.add$Nucleotide_mutation_rate[i] <- outside.nucs$mutation_rate[open.spot]
 
         }
         added.rows <- added.rows[which(!is.na(added.rows$mutation_rate)),]

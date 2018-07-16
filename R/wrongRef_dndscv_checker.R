@@ -17,7 +17,7 @@ wrongRef_dndscv_checker = function(mutations, gene_list = NULL, refdb = "hg19", 
 
   original_mutation_input <- mutations
   ## 1. Environment
-  message("[1] Loading the environment...")
+  # message("[1] Loading the environment...")
 
   mutations[,c(1,2,4,5)] = lapply(mutations[,c(1,2,4,5)], as.character) # Factors to character
 
@@ -74,7 +74,7 @@ wrongRef_dndscv_checker = function(mutations, gene_list = NULL, refdb = "hg19", 
 
 
   ## 2. Mutation annotation
-  message("[2] Annotating the mutations...")
+  # message("[2] Annotating the mutations...")
 
   colnames(mutations) = c("sampleID","chr","pos","ref","mut")
   nt = c("A","C","G","T")
@@ -111,7 +111,7 @@ wrongRef_dndscv_checker = function(mutations, gene_list = NULL, refdb = "hg19", 
   nsampl = sort(table(mutations$sampleID))
   exclsamples = NULL
   if (any(nsampl>max_coding_muts_per_sample)) {
-    message(sprintf('    Note: %0.0f samples excluded for exceeding the limit of mutations per sample',sum(nsampl>max_coding_muts_per_sample)))
+    # message(sprintf('    Note: %0.0f samples excluded for exceeding the limit of mutations per sample',sum(nsampl>max_coding_muts_per_sample)))
     exclsamples = names(nsampl[nsampl>max_coding_muts_per_sample])
     mutations = mutations[!(mutations$sampleID %in% names(nsampl[nsampl>max_coding_muts_per_sample])),]
   }
@@ -204,7 +204,9 @@ wrongRef_dndscv_checker = function(mutations, gene_list = NULL, refdb = "hg19", 
       RefCDS[[geneind]]$N[trisub,impind] = RefCDS[[geneind]]$N[trisub,impind] + 1 # Adding the mutation to the N matrices
     }
 
-    if (round(j/1e4)==(j/1e4)) { message(sprintf('    %0.3g %%...', round(j/nrow(mutations),2)*100)) }
+    if (round(j/1e4)==(j/1e4)) {
+      # message(sprintf('    %0.3g %%...', round(j/nrow(mutations),2)*100))
+      }
   }
 
   mutations$ref3_cod = ref3_cod

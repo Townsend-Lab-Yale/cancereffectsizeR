@@ -94,6 +94,9 @@ trinuc_profile_function_with_weights <-
     #Finding unique tumors
 
     message("Finding the number of mutations per tumor")
+
+    input.MAF <- input.MAF[which(input.MAF[, ref.column] %in% c('A', 'T', 'C', 'G') & input.MAF[, alt.column] %in% c('A', 'T', 'C', 'G')),]
+
     unique.patients <- unique(input.MAF[,sample.ID.column])
     tumor.mutation.number <- NULL
     for(i in 1:length(unique.patients)){
