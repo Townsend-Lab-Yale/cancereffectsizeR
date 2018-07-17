@@ -3,6 +3,16 @@ cancereffectsizeR user guide
 Vincent Cannataro
 2018-07-17
 
+-   [Introduction](#introduction)
+-   [Installing](#installing)
+-   [Calculating effect size](#calculating-effect-size)
+    -   [Preprocessing](#preprocessing)
+        -   [Converting hg38 to hg19](#converting-hg38-to-hg19)
+        -   [Adding columns with tumor sample identifier data and tumor allele data.](#adding-columns-with-tumor-sample-identifier-data-and-tumor-allele-data.)
+        -   [Removing DNV and TNV](#removing-dnv-and-tnv)
+    -   [Calculating cancer effect size](#calculating-cancer-effect-size)
+    -   [Interpreting results](#interpreting-results)
+
 Introduction
 ============
 
@@ -10,11 +20,10 @@ Introduction
 
 This vignette is broken into several sections detailing installation, usage, and a suite of `R` functions provided with this package that are useful for analyzing cancer exome data.
 
--   [Installing](#install)
--   [Calculating effect size](#effectsizecalc)
-    -   [Preprocessing](#preprocess)
-    -   [Calculating effect size](#effectsizecalc)
-
+<!-- * [Installing](#install)  -->
+<!-- * [Calculating effect size](#effectsizecalc) -->
+<!--     + [Preprocessing](#preprocess) -->
+<!--     + [Calculating effect size](#effectsizecalc) -->
 Installing
 ==========
 
@@ -59,13 +68,15 @@ Preprocessing
 The latest TCGA data release has genomic variants in hg38 coordinates, so we need to convert these to hg19 so that the data is compatable with other packages utilized within `cancereffectsizeR`. `hg_converter` uses the [hg38ToHg19.over.chain](http://hgdownload.cse.ucsc.edu/gbdb/hg38/liftOver/hg38ToHg19.over.chain.gz) file and the `rtracklayer::liftOver` function to perform the conversion. Note that this function can convert between other builds with other \*.over.chain files.
 
 ``` r
+library(cancereffectsizeR) # load in the package 
+
 # provide the path to the over.chain file. 
 # I downloaded the file from 
 # <http://hgdownload.cse.ucsc.edu/gbdb/hg38/liftOver/hg38ToHg19.over.chain.gz>
 LGG_MAF <- hg_converter(chain = "~/Downloads/hg38ToHg19.over.chain",
                         maf_to_convert = LGG_MAF)
-#> Loading in specified MAF...
 #> Warning: closing unused connection 5 (~/Downloads/hg38ToHg19.over.chain)
+#> Loading in specified MAF...
 #> Number of rows in the MAF that failed to convert:  4
 ```
 
@@ -96,7 +107,9 @@ LGG_MAF <- DNP_TNP_remover(MAF = LGG_MAF)
 ```
 
 Calculating cancer effect size
-==============================
+------------------------------
+
+The `effect_size_SNV()` function contains the entire pipeline necessary to calculate effect sizes, assuming your data is correctly preprocessed (in hg19 coordinates, no DNP, etc.). The function utilizes `deconstructSigs`[2] and `dndscv`[3], among other freely available `R` packages, to first determine the intrinsic mutation rate at all sites in each gene analyzed, and then the effect size given the detected prevalence of the mutation among sequenced tumors.
 
 ``` r
 LGG_selection_output <- effect_size_SNV(MAF_file = LGG_MAF,
@@ -129,7 +142,19 @@ LGG_selection_output <- effect_size_SNV(MAF_file = LGG_MAF,
 #> Calculating selection intensity...
 ```
 
+Interpreting results
+--------------------
+
+Output is grouped into four main sections.
+
+-   Selection intensity / effect size information `LGG_selection_output$selection_output`
+-   Gene-level mutation rate data `LGG_selection_output$mutation_rates`
+-   Trinucleotide mutational signatures (from deconstructSigs) `LGG_selection_output$trinuc_data`
+-   And, dndscv data (from dndscv) `LGG_selection_output$dndscvout`
+
 ``` r
+# selection intensity data
+
 print(head(
   LGG_selection_output$selection_output$all_mutations[
     order(
@@ -147,28 +172,28 @@ print(head(
 #> 93  TP53    230                  NA    <NA>       <NA>      T         P
 #> 16  EGFR    324                  NA    <NA>       <NA>      R         L
 #> 80  TP53    196                  NA    <NA>       <NA>      R         P
-#>       gamma selection_intensity freq mutation_rate gene_AA_size dndscv_p
-#> 4   5337133             2.2e+07   10       3.7e-09          415    0e+00
-#> 1   1415599             5.8e+06    9       1.3e-08          415    0e+00
-#> 3   3064357             3.6e+06  354       3.9e-07          415    0e+00
-#> 9   2668101             2.8e+06    2       1.5e-09         1211    1e-14
-#> 66   749607             1.3e+06    1       2.6e-09          394    0e+00
-#> 120  491807             8.3e+05    4       1.6e-08          394    0e+00
-#> 2    178880             7.1e+05   17       1.9e-07          415    0e+00
-#> 93   314687             5.4e+05    1       6.3e-09          394    0e+00
-#> 16   469748             5.0e+05    2       8.4e-09         1211    1e-14
-#> 80   287301             4.9e+05    1       6.9e-09          394    0e+00
-#>     dndscv_q Prop_tumors_with_specific_mut
-#> 4    0.0e+00                        0.0197
-#> 1    0.0e+00                        0.0177
-#> 3    0.0e+00                        0.6969
-#> 9    2.9e-11                        0.0039
-#> 66   0.0e+00                        0.0020
-#> 120  0.0e+00                        0.0079
-#> 2    0.0e+00                        0.0335
-#> 93   0.0e+00                        0.0020
-#> 16   2.9e-11                        0.0039
-#> 80   0.0e+00                        0.0020
+#>       gamma selection_intensity prevalence_among_tumors mutation_rate
+#> 4   5337133             2.2e+07                      10       3.7e-09
+#> 1   1415599             5.8e+06                       9       1.3e-08
+#> 3   3064357             3.6e+06                     354       3.9e-07
+#> 9   2668101             2.8e+06                       2       1.5e-09
+#> 66   749607             1.3e+06                       1       2.6e-09
+#> 120  491807             8.3e+05                       4       1.6e-08
+#> 2    178880             7.1e+05                      17       1.9e-07
+#> 93   314687             5.4e+05                       1       6.3e-09
+#> 16   469748             5.0e+05                       2       8.4e-09
+#> 80   287301             4.9e+05                       1       6.9e-09
+#>     gene_AA_size dndscv_p dndscv_q Prop_tumors_with_specific_mut
+#> 4            415    0e+00  0.0e+00                        0.0197
+#> 1            415    0e+00  0.0e+00                        0.0177
+#> 3            415    0e+00  0.0e+00                        0.6969
+#> 9           1211    1e-14  2.9e-11                        0.0039
+#> 66           394    0e+00  0.0e+00                        0.0020
+#> 120          394    0e+00  0.0e+00                        0.0079
+#> 2            415    0e+00  0.0e+00                        0.0335
+#> 93           394    0e+00  0.0e+00                        0.0020
+#> 16          1211    1e-14  2.9e-11                        0.0039
+#> 80           394    0e+00  0.0e+00                        0.0020
 #>     Prop_of_tumors_with_this_gene_mutated
 #> 4                                   0.768
 #> 1                                   0.768
@@ -183,3 +208,7 @@ print(head(
 ```
 
 [1] Cannataro, V. L., Gaffney, S. G., Townsend, J. P., “Effect sizes of somatic mutations in cancer" Preprint: <https://doi.org/10.1101/229724>
+
+[2] Rosenthal, R., McGranahan, N., Herrero, J., Taylor, B. S., & Swanton, C. (2016). deconstructSigs: delineating mutational processes in single tumors distinguishes DNA repair deficiencies and patterns of carcinoma evolution. Genome Biology, 17(1), 31. <https://doi.org/10.1186/s13059-016-0893-4>
+
+[3] Martincorena, I., Raine, K. M., Gerstung, M., Dawson, K. J., Haase, K., Van Loo, P., … Campbell, P. J. (2017). Universal Patterns of Selection in Cancer and Somatic Tissues. Cell. <https://doi.org/10.1016/j.cell.2017.09.042>

@@ -144,7 +144,7 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
                           "AA_Change",
                           "gamma",
                           "selection_intensity",
-                          "freq",
+                          "prevalence_among_tumors",
                           "mutation_rate",
                           "gene_AA_size",
                           "dndscv_p",
@@ -386,7 +386,7 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
 
 
         ##Nucleotide matrix----
-        #Constructing a matrix to hold all the mutation frequency data
+        #Constructing a matrix to hold all the mutation prevalence data
         mut.matrix <- matrix(nrow=4,
                              ncol=length(myseq.split),
                              data=NA)
@@ -885,17 +885,17 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
             added.rows$AA_Change[e] <- AA_translations[which(AA_translations[,"AA_short"]==rownames(AA.gamma.matrix)[this.gene.gamma[e,1]])[1],"AA_letter"]
             added.rows$gamma[e] <- AA.gamma.matrix[this.gene.gamma[e,1],this.gene.gamma[e,2]]
             added.rows$mutation_rate[e] <- AA.mut.matrix[this.gene.gamma[e,1],this.gene.gamma[e,2]]
-            added.rows$freq[e] <- AA.tally.matrix[this.gene.gamma[e,1],this.gene.gamma[e,2]]
+            added.rows$prevalence_among_tumors[e] <- AA.tally.matrix[this.gene.gamma[e,1],this.gene.gamma[e,2]]
             added.rows$Prop_tumors_with_specific_mut[e] <- AA.tally.matrix[this.gene.gamma[e,1],this.gene.gamma[e,2]]/tumor.number
-            added.rows$selection_intensity[e] <- lambda.calc(n.one = added.rows$freq[e],n.zero = (tumor.number - length(unique(this.gene_MAF[,sample_ID_column]))))/added.rows$mutation_rate[e]
+            added.rows$selection_intensity[e] <- lambda.calc(n.one = added.rows$prevalence_among_tumors[e],n.zero = (tumor.number - length(unique(this.gene_MAF[,sample_ID_column]))))/added.rows$mutation_rate[e]
             counter <- counter + 1
           }
         }
         if(nrow(outside.nucs)>0){
           for(i in 1:nrow(outside.nucs)){
-            added.rows[counter,c("Nucleotide_position","Nuc_Ref","Nuc_Change","freq","mutation_rate","selection_intensity","gamma")] <-
+            added.rows[counter,c("Nucleotide_position","Nuc_Ref","Nuc_Change","prevalence_among_tumors","mutation_rate","selection_intensity","gamma")] <-
               outside.nucs[i,c("nuc_pos","ref","change","tally","mutation_rate","selection_intensity","selection_no_epistasis")]
-            added.rows[counter,"Prop_tumors_with_specific_mut"] <- added.rows[counter,"freq"]/tumor.number
+            added.rows[counter,"Prop_tumors_with_specific_mut"] <- added.rows[counter,"prevalence_among_tumors"]/tumor.number
             counter <- counter + 1
           }
         }
@@ -998,10 +998,10 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
               this.gene_MAF.nucs <- which(this.gene_MAF[,pos_column] %in% these.nuc.pos)
               this.gene_MAF.change <- which(this.gene_MAF[,alt_column] %in% these.nuc.change)
 
-              added.rows$freq[this.row] <- length(intersect(this.gene_MAF.nucs,this.gene_MAF.change))
+              added.rows$prevalence_among_tumors[this.row] <- length(intersect(this.gene_MAF.nucs,this.gene_MAF.change))
 
-              added.rows$selection_intensity[this.row] <- lambda.calc(n.one = added.rows$freq[this.row],n.zero = (tumor.number-length(unique(this.gene_MAF[,sample_ID_column]))))/added.rows$mutation_rate[this.row]
-              added.rows$gamma[this.row] <- lambda.calc(n.one = added.rows$freq[this.row],n.zero = (tumor.number-added.rows$freq[this.row]))/added.rows$mutation_rate[this.row]
+              added.rows$selection_intensity[this.row] <- lambda.calc(n.one = added.rows$prevalence_among_tumors[this.row],n.zero = (tumor.number-length(unique(this.gene_MAF[,sample_ID_column]))))/added.rows$mutation_rate[this.row]
+              added.rows$gamma[this.row] <- lambda.calc(n.one = added.rows$prevalence_among_tumors[this.row],n.zero = (tumor.number-added.rows$prevalence_among_tumors[this.row]))/added.rows$mutation_rate[this.row]
 
             } #if it is, just skip it. Should have stored all the information on previous loops
 
@@ -1021,11 +1021,11 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
               nuc.changes <- unlist(strsplit(main_MAF.this.gene$trinucs[which(main_MAF.this.gene$Nucleotide_chromosome_position==this.gene_MAF[mafRow,pos_column] & main_MAF.this.gene$Alternative_Nucleotide == this.gene_MAF[mafRow,alt_column])[1]],split=":"))
               added.rows$mutation_rate[this.row] <- sum(trinuc.mutation_data.num.this.gene[nuc.changes,"proportion"])/mean.nuc.rate.for.this.gene*synonymous.mutation_rate
 
-              added.rows$freq[this.row] <- length(which(this.gene_MAF[,pos_column]==added.rows$Nucleotide_position[this.row] & this.gene_MAF[,alt_column]==added.rows$Nuc_Change[this.row]))
+              added.rows$prevalence_among_tumors[this.row] <- length(which(this.gene_MAF[,pos_column]==added.rows$Nucleotide_position[this.row] & this.gene_MAF[,alt_column]==added.rows$Nuc_Change[this.row]))
 
-              added.rows$selection_intensity[this.row] <- lambda.calc(n.one = added.rows$freq[this.row],n.zero = (tumor.number-length(unique(this.gene_MAF[,sample_ID_column]))))/added.rows$mutation_rate[this.row]
+              added.rows$selection_intensity[this.row] <- lambda.calc(n.one = added.rows$prevalence_among_tumors[this.row],n.zero = (tumor.number-length(unique(this.gene_MAF[,sample_ID_column]))))/added.rows$mutation_rate[this.row]
 
-              added.rows$gamma[this.row] <- lambda.calc(n.one = added.rows$freq[this.row],n.zero = (tumor.number-added.rows$freq[this.row]))/added.rows$mutation_rate[this.row]
+              added.rows$gamma[this.row] <- lambda.calc(n.one = added.rows$prevalence_among_tumors[this.row],n.zero = (tumor.number-added.rows$prevalence_among_tumors[this.row]))/added.rows$mutation_rate[this.row]
 
             }
           }
@@ -1034,7 +1034,7 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
 
         }
         added.rows <- added.rows[which(!is.na(added.rows$mutation_rate)),]
-        added.rows$Prop_tumors_with_specific_mut <- added.rows$freq/tumor.number
+        added.rows$Prop_tumors_with_specific_mut <- added.rows$prevalence_among_tumors/tumor.number
         all.muts <- rbind(all.muts,added.rows)
       }
     }else{
