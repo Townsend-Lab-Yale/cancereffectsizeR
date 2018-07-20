@@ -126,14 +126,49 @@ Output is grouped into four main sections.
 - Trinucleotide mutational signatures (from deconstructSigs) `LGG_selection_output$trinuc_data`
 - And, dndscv data (from dndscv) `LGG_selection_output$dndscvout`
 
-```{r explore selection output}
+
+### Selection intensity summary 
+
+The main output regarding effect size calculations is found within `LGG_selection_output$selection_output$all_mutations`. This dataframe contains useful information for each unique molecular variant in the analysis, included selection intensity, mutation rate, frequency of occurrence within the dataset (along with proportion of tumors with the specific variant (`Prop_tumors_with_specific_mut`) and proportion of tumors with a mutation in this gene (`Prop_of_tumors_with_this_gene_mutated`). 
+
+```{r explore selection output all_mutations}
 # selection intensity data
 
 print(head(
   LGG_selection_output$selection_output$all_mutations[
     order(
       LGG_selection_output$selection_output$all_mutations$selection_intensity,decreasing = T),],
-  10),
+  6),
   digits = 2)
 
 ```
+
+A more detailed output is found within  `LGG_selection_output$selection_output$complete_mutation_data`, which breaks down each molecular variants into the individual tumors it was found within. 
+
+```{r explore selection complete}
+
+print(head(LGG_selection_output$selection_output$complete_mutation_data),digits = 2)
+
+
+```
+
+`$selection_output` also contains information about the last gene analyzed, such as the nucleotide mutation rates at every position...
+
+```{r nuc mut rates}
+LGG_selection_output$selection_output$nucleotide_mutation_rates[,1:5]
+```
+
+... and the amino acid mutations at every position.
+
+```{r amino acid rates}
+LGG_selection_output$selection_output$amino_acid_mutation_rates[,1:5]
+```
+
+
+
+
+
+
+
+
+

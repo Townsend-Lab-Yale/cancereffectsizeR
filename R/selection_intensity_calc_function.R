@@ -182,7 +182,7 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
                                "Gamma",
                                "MAF_location",
                                "Nucleotide_trinuc_context",
-                               "synonymous.mutation_rate",
+                               "gene_level_synonymous_mutation_rate",
                                "strand",
                                "trinucs")
 
@@ -289,8 +289,8 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
 
         #Get the synonymous mutation rate from the dndscv output.
 
-        # synonymous.mutation_rate <- mut_rates$r_x_X[which(mut_rates$gene==this.gene)]
-        synonymous.mutation_rate <- mut_rates[this.gene]
+        # gene_level_synonymous_mutation_rate <- mut_rates$r_x_X[which(mut_rates$gene==this.gene)]
+        gene_level_synonymous_mutation_rate <- mut_rates[this.gene]
 
 
         #What proportion of all the mutation rates is each specific mutation
@@ -527,7 +527,7 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
         }
 
         #matrix that has all the synonymous mutation rates
-        normalized.mut.matrix <-  (mut.matrix/mean(nuc.mutation.rate.vec))*synonymous.mutation_rate
+        normalized.mut.matrix <-  (mut.matrix/mean(nuc.mutation.rate.vec))*gene_level_synonymous_mutation_rate
 
         ##Amino acid matrix----
         #Matrix that stores rates for each amino acid mutation
@@ -647,7 +647,7 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
                                             "Gamma",
                                             "MAF_location",
                                             "Nucleotide_trinuc_context",
-                                            "synonymous.mutation_rate",
+                                            "gene_level_synonymous_mutation_rate",
                                             "strand",
                                             "trinucs")
 
@@ -659,7 +659,7 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
         mutation.data.to.add$Percent_G <- length(which(myseq.split=="G"))/length(myseq.split)
         mutation.data.to.add$Percent_C <- length(which(myseq.split=="C"))/length(myseq.split)
         mutation.data.to.add$Chromosome <- this.gene_MAF[1,chr_column]
-        mutation.data.to.add$synonymous.mutation_rate <- synonymous.mutation_rate
+        mutation.data.to.add$gene_level_synonymous_mutation_rate <- gene_level_synonymous_mutation_rate
         mutation.data.to.add$strand <- this.strand
 
         mismatched.with.ref.genome <- NULL
@@ -752,7 +752,7 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
               #calculating the mutation rate for this gene
               if(outside.nucs$ref[open.spot]== "C" | outside.nucs$ref[open.spot]== "T"){
                 if(outside.sequence[2]==outside.nucs$ref[open.spot]){
-                  outside.nucs$mutation_rate[open.spot] <- (trinuc.mutation_data.num.this.gene[paste0(outside.sequence[2],outside.sequence[1],outside.nucs$change[open.spot],outside.sequence[3],collapse = ""),"proportion"]/mean.nuc.rate.for.this.gene)*synonymous.mutation_rate
+                  outside.nucs$mutation_rate[open.spot] <- (trinuc.mutation_data.num.this.gene[paste0(outside.sequence[2],outside.sequence[1],outside.nucs$change[open.spot],outside.sequence[3],collapse = ""),"proportion"]/mean.nuc.rate.for.this.gene)*gene_level_synonymous_mutation_rate
                   mutation.data.to.add$trinucs[i] <- paste0(outside.sequence[2],outside.sequence[1],outside.nucs$change[open.spot],outside.sequence[3],collapse = "")
                 }else{
                   #This means that the reference nucleotide in the MAF does not match the reference genome position.
@@ -761,7 +761,7 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
                 }
               }else{
                 if(outside.sequence[2]==outside.nucs$ref[open.spot]){
-                  outside.nucs$mutation_rate[open.spot] <- (trinuc.mutation_data.num.this.gene[paste0(flip.function(outside.sequence[2]),flip.function(outside.sequence[3]),flip.function(outside.nucs$change[open.spot]),flip.function(outside.sequence[1]),collapse = ""),"proportion"]/mean.nuc.rate.for.this.gene)*synonymous.mutation_rate
+                  outside.nucs$mutation_rate[open.spot] <- (trinuc.mutation_data.num.this.gene[paste0(flip.function(outside.sequence[2]),flip.function(outside.sequence[3]),flip.function(outside.nucs$change[open.spot]),flip.function(outside.sequence[1]),collapse = ""),"proportion"]/mean.nuc.rate.for.this.gene)*gene_level_synonymous_mutation_rate
                   mutation.data.to.add$trinucs[i] <- paste0(flip.function(outside.sequence[2]),flip.function(outside.sequence[3]),flip.function(outside.nucs$change[open.spot]),flip.function(outside.sequence[1]),collapse = "")
                 }else{
                   #This means that the reference nucleotide in the MAF does not match the reference genome position.
@@ -857,13 +857,13 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
         }
 
         #Add the gamma assuming complete epistasis calculation to the complete_mutation_data dataframe
-        mutation.data.to.add$Gamma_epistasis <- NA
+        mutation.data.to.add$selection_intensity <- NA
 
         for(i in 1:nrow(mutation.data.to.add)){
           if(is.na(mutation.data.to.add$Amino_acid_position[i])){
-            mutation.data.to.add$Gamma_epistasis[i] <- lambda.calc(n.one = mutation.data.to.add$Nucleotide_change_tally[i],n.zero = (tumor.number - length(unique(this.gene_MAF[,sample_ID_column]))))/mutation.data.to.add$Nucleotide_mutation_rate[i]
+            mutation.data.to.add$selection_intensity[i] <- lambda.calc(n.one = mutation.data.to.add$Nucleotide_change_tally[i],n.zero = (tumor.number - length(unique(this.gene_MAF[,sample_ID_column]))))/mutation.data.to.add$Nucleotide_mutation_rate[i]
           }else{
-            mutation.data.to.add$Gamma_epistasis[i] <- lambda.calc(n.one = mutation.data.to.add$Amino_acid_change_tally[i],n.zero = (tumor.number - length(unique(this.gene_MAF[,sample_ID_column]))))/mutation.data.to.add$Amino_acid_mutation_rate[i]
+            mutation.data.to.add$selection_intensity[i] <- lambda.calc(n.one = mutation.data.to.add$Amino_acid_change_tally[i],n.zero = (tumor.number - length(unique(this.gene_MAF[,sample_ID_column]))))/mutation.data.to.add$Amino_acid_mutation_rate[i]
           }
         }
 
@@ -952,7 +952,7 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
 
 
 
-        synonymous.mutation_rate <- mut_rates[this.gene]
+        gene_level_synonymous_mutation_rate <- mut_rates[this.gene]
 
 
 
@@ -983,7 +983,7 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
 
 
 
-              added.rows$mutation_rate[this.row] <- sum(trinuc.mutation_data.num.this.gene[nuc.changes,"proportion"])/mean.nuc.rate.for.this.gene*synonymous.mutation_rate
+              added.rows$mutation_rate[this.row] <- sum(trinuc.mutation_data.num.this.gene[nuc.changes,"proportion"])/mean.nuc.rate.for.this.gene*gene_level_synonymous_mutation_rate
 
 
               #now, need to find all spots in the this.geneMAF that correspond to this AA change.
@@ -1017,9 +1017,9 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
               added.rows$Nuc_Ref[this.row] <- this.gene_MAF[mafRow,ref_column]
               added.rows$Nuc_Change[this.row] <- this.gene_MAF[mafRow,alt_column]
 
-              # added.rows$mutation_rate[this.row] <- (main_MAF.this.gene$Nucleotide_mutation_rate[which(main_MAF.this.gene$Nucleotide_chromosome_position==added.rows$Nucleotide_position[this.row] & main_MAF.this.gene$Alternative_Nucleotide==added.rows$Nuc_Change[this.row])[1]]*synonymous.mutation_rate)/(main_MAF.this.gene$synonymous.mutation_rate[1])
+              # added.rows$mutation_rate[this.row] <- (main_MAF.this.gene$Nucleotide_mutation_rate[which(main_MAF.this.gene$Nucleotide_chromosome_position==added.rows$Nucleotide_position[this.row] & main_MAF.this.gene$Alternative_Nucleotide==added.rows$Nuc_Change[this.row])[1]]*gene_level_synonymous_mutation_rate)/(main_MAF.this.gene$gene_level_synonymous_mutation_rate[1])
               nuc.changes <- unlist(strsplit(main_MAF.this.gene$trinucs[which(main_MAF.this.gene$Nucleotide_chromosome_position==this.gene_MAF[mafRow,pos_column] & main_MAF.this.gene$Alternative_Nucleotide == this.gene_MAF[mafRow,alt_column])[1]],split=":"))
-              added.rows$mutation_rate[this.row] <- sum(trinuc.mutation_data.num.this.gene[nuc.changes,"proportion"])/mean.nuc.rate.for.this.gene*synonymous.mutation_rate
+              added.rows$mutation_rate[this.row] <- sum(trinuc.mutation_data.num.this.gene[nuc.changes,"proportion"])/mean.nuc.rate.for.this.gene*gene_level_synonymous_mutation_rate
 
               added.rows$prevalence_among_tumors[this.row] <- length(which(this.gene_MAF[,pos_column]==added.rows$Nucleotide_position[this.row] & this.gene_MAF[,alt_column]==added.rows$Nuc_Change[this.row]))
 
@@ -1047,11 +1047,11 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
   if(exists('nuc.mutation.rate.vec')){ #this catch means the function generated the gene sequence. If not, just store what we have
     output.list <- list(all_mutations=all.muts,
                         complete_mutation_data=mutation.data,
-                        nucleotide_mutation_rates=nuc.mutation.rate.vec,
+                        nucleotide_mutation_vec=nuc.mutation.rate.vec,
                         nucleotide_tally=Nuc.tally.matrix,
                         amino_acid_tally=AA.tally.matrix,
                         amino_acid_mutation_rates=AA.mut.matrix,
-                        norm_mut=normalized.mut.matrix,
+                        nucleotide_mutation_rates=normalized.mut.matrix,
                         myseqsplit=myseq.split,
                         # isoform.list=isoform.list,
                         trinuc_counts=trinuc.count.matrix,

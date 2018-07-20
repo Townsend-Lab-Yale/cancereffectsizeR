@@ -100,7 +100,14 @@ We only want true single-nucleotide variant events in our data so we can get the
 LGG_MAF <- DNP_TNP_remover(MAF = LGG_MAF)
 ```
 
-# Calculating cancer effect size {#effectsizecalc}
+## Calculating cancer effect size {#effectsizecalc}
+
+
+The `effect_size_SNV()` function contains the entire pipeline necessary to calculate effect sizes, assuming your data is correctly preprocessed (in hg19 coordinates, no DNP, etc.). The function utilizes `deconstructSigs`[^2] and `dndscv`[^3], among other freely available `R` packages, to first determine the intrinsic mutation rate at all sites in each gene analyzed, and then the effect size given the detected prevalence of the mutation among sequenced tumors. 
+
+[^2]: Rosenthal, R., McGranahan, N., Herrero, J., Taylor, B. S., & Swanton, C. (2016). deconstructSigs: delineating mutational processes in single tumors distinguishes DNA repair deficiencies and patterns of carcinoma evolution. Genome Biology, 17(1), 31. https://doi.org/10.1186/s13059-016-0893-4
+
+[^3]: Martincorena, I., Raine, K. M., Gerstung, M., Dawson, K. J., Haase, K., Van Loo, P., … Campbell, P. J. (2017). Universal Patterns of Selection in Cancer and Somatic Tissues. Cell. https://doi.org/10.1016/j.cell.2017.09.042
 
 ```{r effect size calculation,warning=F}
 LGG_selection_output <- effect_size_SNV(MAF_file = LGG_MAF,
@@ -111,12 +118,51 @@ LGG_selection_output <- effect_size_SNV(MAF_file = LGG_MAF,
 ```
 
 
-```{r explore selection output}
+## Interpreting results
+
+Output is grouped into four main sections.
+
+- Selection intensity / effect size information `LGG_selection_output$selection_output`
+- Gene-level mutation rate data `LGG_selection_output$mutation_rates`
+- Trinucleotide mutational signatures (from deconstructSigs) `LGG_selection_output$trinuc_data`
+- And, dndscv data (from dndscv) `LGG_selection_output$dndscvout`
+
+
+### Selection intensity summary 
+
+The main output regarding effect size calculations is found within `LGG_selection_output$selection_output$all_mutations`. This dataframe contains useful information for each unique molecular variant in the analysis, included selection intensity, mutation rate, frequency of occurrence within the dataset (along with proportion of tumors with the specific variant (`Prop_tumors_with_specific_mut`) and proportion of tumors with a mutation in this gene (`Prop_of_tumors_with_this_gene_mutated`). 
+
+```{r explore selection output all_mutations}
+# selection intensity data
+
 print(head(
   LGG_selection_output$selection_output$all_mutations[
     order(
       LGG_selection_output$selection_output$all_mutations$selection_intensity,decreasing = T),],
-  10),
+  6),
   digits = 2)
 
 ```
+
+A more detailed output is found within  `LGG_selection_output$selection_output$complete_mutation_data`, which breaks down each molecular variants into the individual tumors it was found within. 
+
+```{r explore selection complete}
+
+print(head(LGG_selection_output$selection_output$complete_mutation_data),digits = 2)
+
+
+```
+
+`$selection_output` also contains information about the last gene analyzed, such as the nucleotide mutation rates at every position...
+
+```{r nuc mut rates}
+LGG_selection_output$selection_output$nucleotide_mutation_rates[,1:5]
+```
+
+... and the amino acid mutations at every position.
+
+```{r amino acid rates}
+LGG_selection_output$selection_output$amino_acid_mutation_rates[,1:5]
+```
+
+
