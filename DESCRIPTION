@@ -4,13 +4,17 @@ Title: Calculate Cancer Effect Size
 Version: 0.1.0
 Author: Vincent L. Cannataro
 Maintainer: Vincent L. Cannataro <vincent.cannataro@yale.edu>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
+Description: cancereffectsizeR is an R package that may be used to calculate the effect size of single nucleotide variants (SNV) in cancer exome data. A user guide is available here: https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/user_guide/cancereffectsizeR_user_guide.md 
 Depends:
     GenomicRanges,
     deconstructSigs
 Imports:
     rtracklayer,
+    BSgenome,
+    BSgenome.Hsapiens.UCSC.hg19,
+    Biostrings,
+    MASS,
+    seqinr,
     dndscv,
     reshape2,
     S4Vectors,
