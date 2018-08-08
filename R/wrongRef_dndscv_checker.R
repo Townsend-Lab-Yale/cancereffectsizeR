@@ -219,6 +219,7 @@ wrongRef_dndscv_checker = function(mutations, gene_list = NULL, refdb = "hg19", 
   # return(mutations[which(wrong_ref==1),])
 
   if(nrow(mutations[which(wrong_ref==1),])>0){
+    wrong_refs <- mutations[which(wrong_ref==1),]
     message(paste(nrow(wrong_refs),"mismatched mutations, removing them and returning remaining mutations."))
     for(i in 1:nrow(wrong_refs)){
       if(length(which(original_mutation_input$Chromosome==wrong_refs$chr[i] & original_mutation_input$Start_Position==wrong_refs$pos[i] &
