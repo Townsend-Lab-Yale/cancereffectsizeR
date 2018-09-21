@@ -40,6 +40,10 @@ tumor_allele_adder <- function(MAF){
     if(ref!=alt1 & ref!=alt2 & alt1==alt2){
       return(alt2) # If there wasn't an alt2, we added based on alt1, so now they are the same but not the reference.
     }
+    if(ref==alt1 & ref==alt2){
+      #everything is equal, return and then delete later
+      return(ref)
+    }
     if(ref==alt1 & ref!=alt2){
       return(alt2)
     }else{
@@ -62,5 +66,12 @@ tumor_allele_adder <- function(MAF){
   MAF_allele_list <- split(x = MAF[,c("Reference_Allele","Tumor_Seq_Allele1","Tumor_Seq_Allele2")],f = rep(1:nrow(MAF),each=1))
   MAF$Tumor_allele <- unlist(lapply(X = MAF_allele_list,FUN = tumor.allele.function))
 
+  if(length(which(MAF$Tumor_allele == MAF$Reference_Allele))>0){
+   message(paste(length(which(MAF$Tumor_allele == MAF$Reference_Allele)),
+                 " variants have the same reference and tumor allele, \n
+                 deleting from the analysis"))
+    MAF[-which(MAF$Tumor_allele == MAF$Reference_Allele),]
+
+  }
   return(MAF)
 }

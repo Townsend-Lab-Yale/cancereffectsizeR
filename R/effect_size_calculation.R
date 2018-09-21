@@ -101,13 +101,16 @@ effect_size_SNV <- function(MAF_file,
     genes_in_pca <- rownames(this_cov_pca$rotation)
   }
 
+  path_to_library <- dir(.libPaths(),full.names=T)[grep(dir(.libPaths(),full.names=T),pattern="cancereffectsizeR")][1] # find the path to this package
+
+
   data("RefCDS_TP53splice",package = "cancereffectsizeR")
 
   dndscvout <- dndscv::dndscv(
     mutations = MAF,
     gene_list = genes_in_pca,
     cv = if(is.null(covariate_file)){ "hg19"}else{ this_cov_pca$rotation},
-    refdb = paste(.Library,"/cancereffectsizeR/data/RefCDS_TP53splice.RData",sep=""))
+    refdb = paste(path_to_library,"/data/RefCDS_TP53splice.RData",sep=""))
 
 
 
