@@ -1,7 +1,7 @@
 cancereffectsizeR user guide
 ================
 Vincent Cannataro
-2018-07-20
+2018-11-15
 
 -   [Introduction](#introduction)
 -   [Installing](#installing)
@@ -19,7 +19,7 @@ Introduction
 
 `cancereffectsizeR` is an `R` package that may be used to calculate the effect size of single nucleotide variants (SNV) in cancer exome data[1]. It was designed for use with datasets in [MAF format](https://docs.gdc.cancer.gov/Data/File_Formats/MAF_Format/) and works well with data from a large number of tumors, each with a large number of detected varaints. A previous version of `cancereffectsizeR` depended on output from `MutSigCV` (which runs in MATLAB) and can be found [here](https://github.com/Townsend-Lab-Yale/SNV_selection_intensity).
 
-This vignette is broken into several sections detailing installation, usage, and a suite of `R` functions provided with this package that are useful for analyzing cancer exome data.
+This vignette is broken into several sections detailing installation, usage, and a suite of `R` functions provided with this package that are useful for analyzing cancer exome data. This user guide covers the version of `cancereffectsizeR` used in [2] (v0.1.0).
 
 <!-- * [Installing](#install)  -->
 <!-- * [Calculating effect size](#effectsizecalc) -->
@@ -32,7 +32,7 @@ Installing
 
 ``` r
 install.packages("devtools",repos = "https://cloud.r-project.org")
-devtools::install_github("Townsend-Lab-Yale/cancereffectsizeR")
+devtools::install_github("Townsend-Lab-Yale/cancereffectsizeR@0.1.0")
 ```
 
 However, if you just downloaded `R` today, you will need to install the dependencies.
@@ -46,7 +46,7 @@ biocLite("BSgenome.Hsapiens.UCSC.hg19")
 install.packages("deconstructSigs",repos = "https://cloud.r-project.org")
 install.packages("devtools",repos = "https://cloud.r-project.org")
 devtools::install_github("im3sanger/dndscv")
-devtools::install_github("Townsend-Lab-Yale/cancereffectsizeR")
+devtools::install_github("Townsend-Lab-Yale/cancereffectsizeR@0.1.0")
 ```
 
 Calculating effect size
@@ -76,8 +76,6 @@ library(cancereffectsizeR) # load in the package
 # <http://hgdownload.cse.ucsc.edu/gbdb/hg38/liftOver/hg38ToHg19.over.chain.gz>
 LGG_MAF <- hg_converter(chain = "~/Downloads/hg38ToHg19.over.chain",
                         maf_to_convert = LGG_MAF)
-#> Warning in if (is.null(value)) {: closing unused connection 5 (~/Downloads/
-#> hg38ToHg19.over.chain)
 #> Loading in specified MAF...
 #> Number of rows in the MAF that failed to convert:  4
 ```
@@ -111,7 +109,7 @@ LGG_MAF <- DNP_TNP_remover(MAF = LGG_MAF)
 Calculating cancer effect size
 ------------------------------
 
-The `effect_size_SNV()` function contains the entire pipeline necessary to calculate effect sizes, assuming your data is correctly preprocessed (in hg19 coordinates, no DNP, etc.). The function utilizes `deconstructSigs`[2] and `dndscv`[3], among other freely available `R` packages, to first determine the intrinsic mutation rate at all sites in each gene analyzed, and then the effect size given the detected prevalence of the mutation among sequenced tumors.
+The `effect_size_SNV()` function contains the entire pipeline necessary to calculate effect sizes, assuming your data is correctly preprocessed (in hg19 coordinates, no DNP, etc.). The function utilizes `deconstructSigs`[3] and `dndscv`[4], among other freely available `R` packages, to first determine the intrinsic mutation rate at all sites in each gene analyzed, and then the effect size given the detected prevalence of the mutation among sequenced tumors.
 
 ``` r
 LGG_selection_output <- effect_size_SNV(MAF_file = LGG_MAF,
@@ -328,8 +326,10 @@ LGG_selection_output$selection_output$amino_acid_mutation_rates[,1:5]
 #> STOP    0.000000e+00
 ```
 
-[1] Cannataro, V. L., Gaffney, S. G., Townsend, J. P., “Effect sizes of somatic mutations in cancer" Preprint: <https://doi.org/10.1101/229724>
+[1] Cannataro, V. L., Gaffney, S. G., Townsend, J. P., “Effect sizes of somatic mutations in cancer" JNCI, (2018): <https://doi.org/10.1093/jnci/djy168>
 
-[2] Rosenthal, R., McGranahan, N., Herrero, J., Taylor, B. S., & Swanton, C. (2016). deconstructSigs: delineating mutational processes in single tumors distinguishes DNA repair deficiencies and patterns of carcinoma evolution. Genome Biology, 17(1), 31. <https://doi.org/10.1186/s13059-016-0893-4>
+[2] Cannataro, V. L., Gaffney, S. G., Townsend, J. P., “Effect sizes of somatic mutations in cancer" JNCI, (2018): <https://doi.org/10.1093/jnci/djy168>
 
-[3] Martincorena, I., Raine, K. M., Gerstung, M., Dawson, K. J., Haase, K., Van Loo, P., … Campbell, P. J. (2017). Universal Patterns of Selection in Cancer and Somatic Tissues. Cell. <https://doi.org/10.1016/j.cell.2017.09.042>
+[3] Rosenthal, R., McGranahan, N., Herrero, J., Taylor, B. S., & Swanton, C. (2016). deconstructSigs: delineating mutational processes in single tumors distinguishes DNA repair deficiencies and patterns of carcinoma evolution. Genome Biology, 17(1), 31. <https://doi.org/10.1186/s13059-016-0893-4>
+
+[4] Martincorena, I., Raine, K. M., Gerstung, M., Dawson, K. J., Haase, K., Van Loo, P., … Campbell, P. J. (2017). Universal Patterns of Selection in Cancer and Somatic Tissues. Cell. <https://doi.org/10.1016/j.cell.2017.09.042>
