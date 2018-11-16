@@ -41,6 +41,7 @@ source("R/DNP_TNP_remover.R")
 
 MAF_input <- DNP_TNP_remover(MAF = MAF_input,delete_recur = T)
 
+MAF_input <- MAF_input[,c("Unique_patient_identifier","Chromosome","Start_Position","Reference_Allele","Tumor_allele")]
 ## save for easy recall -----
 save(MAF_input, file = "~/Box Sync/ML_cancereffectsizeR_data/LUAD/LUAD_MAF_for_analysis.RData")
 
@@ -50,6 +51,15 @@ save(MAF_input, file = "~/Box Sync/ML_cancereffectsizeR_data/LUAD/LUAD_MAF_for_a
 # load("~/Box Sync/ML_cancereffectsizeR_data/LUAD/LUAD_MAF_for_analysis.RData")
 
 # Start of analysis ----
+
+# These values will be included in the main function header:
+sample_ID_column = "Unique_patient_identifier"
+chr_column = "Chromosome"
+pos_column = "Start_Position"
+ref_column = "Reference_Allele"
+alt_column = "Tumor_allele"
+covariate_file = "lung_pca"
+
 
 # will use functions and sub-functions to complete each step
 # have clean and consistent inputs/outputs at each step
@@ -65,20 +75,20 @@ source("R/deconstructSigs_input_preprocess.R")
 MAF_input_deconstructSigs_preprocessed <- deconstructSigs_input_preprocess(MAF = MAF_input)
 
 # find tumors with more than or = to 50 variants
-substitution_counts <- table(MAF_input_deconstructSigs_preprocessed[,"Unique_patient_identifier"])
+substitution_counts <- table(MAF_input_deconstructSigs_preprocessed[,sample_ID_column])
 tumors_with_50_or_more <- names(which(substitution_counts>=50))
-tumors_with_less_than_50 <- setdiff(MAF_input_deconstructSigs_preprocessed[,"Unique_patient_identifier"],tumors_with_50_or_more)
+tumors_with_less_than_50 <- setdiff(MAF_input_deconstructSigs_preprocessed[,sample_ID_column],tumors_with_50_or_more)
 
 # This provides us with the number of each trinucleotide in each tumor
 # Even the ones with less than 50 variants
 # Useful for the nearest neighbor calculation
 trinuc_breakdown_per_tumor <- deconstructSigs::mut.to.sigs.input(mut.ref =
                                                                    MAF_input_deconstructSigs_preprocessed,
-                                                                 sample.id = "Unique_patient_identifier",
-                                                                 chr = "Chromosome",
-                                                                 pos = "Start_Position",
-                                                                 ref = "Reference_Allele",
-                                                                 alt = "Tumor_allele")
+                                                                 sample.id = sample_ID_column,
+                                                                 chr = chr_column,
+                                                                 pos = pos_column,
+                                                                 ref = ref_column,
+                                                                 alt = alt_column)
 
 # df to store relative proportions of all trinucs in all tumors
 
@@ -99,6 +109,8 @@ for(tumor_name in 1:length(tumors_with_50_or_more)){
   trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],] <- signatures_output$product/sum( signatures_output$product) #need it to sum to 1.
 }
 
+# 2. Find nearest neighbor to tumors with < 50 mutations, assign identical weights as neighbor ----
+
 distance_matrix <- as.matrix(dist(trinuc_breakdown_per_tumor))
 
 for(tumor_name in 1:length(tumors_with_less_than_50)){
@@ -111,13 +123,87 @@ for(tumor_name in 1:length(tumors_with_less_than_50)){
 
 # now, trinuc_proportion_matrix has the proportion of all trinucs in every tumor.
 
+# 3. Calculate mutation rates at gene-level (dndscv) ----
 
-# 2. Find nearest neighbor to tumors with < 50 mutations, assign identical weights as neighbor ----
+MAF_input <- cancereffectsizeR::wrongRef_dndscv_checker(mutations = MAF_input[,c(sample_ID_column,chr_column,pos_column,ref_column,alt_column)])
 
-# 3. Assign genes to MAF_input ----
+if(is.null(covariate_file)){
+  data("covariates_hg19",package = "dndscv")
+  genes_in_pca <- rownames(covs)
+}else{
+  this_cov_pca <- get(data(list=covariate_file, package="cancereffectsizeR"))
+  genes_in_pca <- rownames(this_cov_pca$rotation)
+}
+
+path_to_library <- dir(.libPaths(),full.names=T)[grep(dir(.libPaths(),full.names=T),pattern="cancereffectsizeR")][1] # find the path to this package
 
 
-# 4. Calculate mutation rates at gene-level (dndscv) ----
+data("RefCDS_TP53splice",package = "cancereffectsizeR")
+
+dndscvout <- dndscv::dndscv(
+  mutations = MAF_input,
+  gene_list = genes_in_pca,
+  cv = if(is.null(covariate_file)){ "hg19"}else{ this_cov_pca$rotation},
+  refdb = paste(path_to_library,"/data/RefCDS_TP53splice.RData",sep=""))
+
+
+
+data("refcds_hg19", package="dndscv")
+
+RefCDS.our.genes <- RefCDS[which(sapply(RefCDS, function(x) x$gene_name) %in% dndscvout$genemuts$gene_name)]
+
+
+if(dndscvout$nbreg$theta>1){
+  mutrates <- ((dndscvout$genemuts$n_syn + dndscvout$nbreg$theta - 1)/(1+(dndscvout$nbreg$theta/dndscvout$genemuts$exp_syn_cv))/sapply(RefCDS.our.genes, function(x) colSums(x$L)[1]))/length(unique(MAF_input[,sample_ID_column]))
+}else{
+  mutrates <- rep(NA,length(dndscvout$genemuts$exp_syn_cv))
+
+  syn.sites <- sapply(RefCDS.our.genes, function(x) colSums(x$L)[1])
+
+  for(i in 1:length(mutrates)){
+    if( dndscvout$genemuts$exp_syn_cv[i] >  ((dndscvout$genemuts$n_syn[i] + dndscvout$nbreg$theta - 1)/(1+(dndscvout$nbreg$theta/dndscvout$genemuts$exp_syn_cv[i])))){
+      mutrates[i] <- (dndscvout$genemuts$exp_syn_cv[i]/syn.sites[i])/length(unique(MAF_input[,sample_ID_column]))
+    }else{
+      mutrates[i] <- (((dndscvout$genemuts$n_syn[i] + dndscvout$nbreg$theta - 1)/(1+(dndscvout$nbreg$theta/dndscvout$genemuts$exp_syn_cv[i])))/syn.sites[i])/length(unique(MAF[,sample_ID_column]))
+    }
+
+  }
+}
+names(mutrates) <- dndscvout$genemuts$gene_name
+
+
+
+# 4. Assign genes to MAF_input ----
+
+MAF_ranges <- GenomicRanges::GRanges(seqnames = MAF_input[,chr_column], ranges = IRanges::IRanges(start=MAF_input[,pos_column],end = MAF_input[,pos_column]))
+
+data("refcds_hg19", package="dndscv") # load in gr_genes data
+gene_name_matches <- GenomicRanges::nearest(x = MAF_ranges, subject = gr_genes,select=c("all"))
+
+MAF_input$Gene_name <- NA
+
+# take care of single hits
+single.choice <- as.numeric(names(table(S4Vectors::queryHits(gene_name_matches)))[which(table(S4Vectors::queryHits(gene_name_matches))==1)])
+
+MAF_input$Gene_name[single.choice] <- gr_genes$names[S4Vectors::subjectHits(gene_name_matches)[which(S4Vectors::queryHits(gene_name_matches) %in% single.choice)]]
+
+
+multi.choice <- as.numeric(names(table(S4Vectors::queryHits(gene_name_matches)))[which(table(S4Vectors::queryHits(gene_name_matches))>1)])
+
+all.possible.names <- gr_genes$names[S4Vectors::subjectHits(gene_name_matches)]
+query.spots <- S4Vectors::queryHits(gene_name_matches)
+
+for(i in 1:length(multi.choice)){
+  genes.for.this.choice <- all.possible.names[which(query.spots==multi.choice[i])]
+  if(length(which( genes.for.this.choice %in% names(mutrates) ))>0){
+    MAF_input$Gene_name[multi.choice[i]] <- genes.for.this.choice[which( genes.for.this.choice %in% names(mutrates) )[1]]
+  }else{
+    MAF_input$Gene_name[multi.choice[i]] <- "Indeterminate"
+  }
+}
+
+
+
 
 # 5. For each substitution, calculate the gene- and tumor- and mutation-specific mutation rate----
 
