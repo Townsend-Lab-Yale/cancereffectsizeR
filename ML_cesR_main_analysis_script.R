@@ -56,7 +56,7 @@ save(MAF_input, file = "~/Box Sync/ML_cancereffectsizeR_data/LUAD/LUAD_MAF_for_a
 # will eventually wrap this all in a single function, that takes preprocessed MAF and outputs selection results.
 
 # 1. Find trinucleotide signature weights ----
-## Use deconstructSigs
+## Use deconstructSigs (https://github.com/raerose01/deconstructSigs)
 ### Keep formatting consistent (i.e. A[A>T]G) with deconstructSigs output (not original cancereffectsizeR
 ###
 
@@ -64,17 +64,52 @@ source("R/deconstructSigs_input_preprocess.R")
 
 MAF_input_deconstructSigs_preprocessed <- deconstructSigs_input_preprocess(MAF = MAF_input)
 
+# find tumors with more than or = to 50 variants
+substitution_counts <- table(MAF_input_deconstructSigs_preprocessed[,"Unique_patient_identifier"])
+tumors_with_50_or_more <- names(which(substitution_counts>=50))
+tumors_with_less_than_50 <- setdiff(MAF_input_deconstructSigs_preprocessed[,"Unique_patient_identifier"],tumors_with_50_or_more)
+
 # This provides us with the number of each trinucleotide in each tumor
 # Even the ones with less than 50 variants
 # Useful for the nearest neighbor calculation
 trinuc_breakdown_per_tumor <- deconstructSigs::mut.to.sigs.input(mut.ref =
-                                                         MAF_input_deconstructSigs_preprocessed,
-                                                       sample.id = "Unique_patient_identifier",
-                                                       chr = "Chromosome",
-                                                       pos = "Start_Position",
-                                                       ref = "Reference_Allele",
-                                                       alt = "Tumor_allele")
+                                                                   MAF_input_deconstructSigs_preprocessed,
+                                                                 sample.id = "Unique_patient_identifier",
+                                                                 chr = "Chromosome",
+                                                                 pos = "Start_Position",
+                                                                 ref = "Reference_Allele",
+                                                                 alt = "Tumor_allele")
 
+# df to store relative proportions of all trinucs in all tumors
+
+trinuc_proportion_matrix <- matrix(data = NA,
+                                   nrow = nrow(trinuc_breakdown_per_tumor),
+                                   ncol = ncol(trinuc_breakdown_per_tumor))
+rownames(trinuc_proportion_matrix) <- rownames(trinuc_breakdown_per_tumor)
+colnames(trinuc_proportion_matrix) <- colnames(trinuc_breakdown_per_tumor)
+
+
+
+for(tumor_name in 1:length(tumors_with_50_or_more)){
+  signatures_output <- deconstructSigs::whichSignatures(tumor.ref = trinuc_breakdown_per_tumor,
+                                                        signatures.ref = signatures.cosmic,
+                                                        sample.id = tumors_with_50_or_more[tumor_name],
+                                                        contexts.needed = TRUE,
+                                                        tri.counts.method = 'exome2genome')
+  trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],] <- signatures_output$product/sum( signatures_output$product) #need it to sum to 1.
+}
+
+distance_matrix <- as.matrix(dist(trinuc_breakdown_per_tumor))
+
+for(tumor_name in 1:length(tumors_with_less_than_50)){
+  #find closest tumor that have over 50 mutations
+  closest_tumor <- names(sort(distance_matrix[tumors_with_less_than_50[tumor_name],tumors_with_50_or_more]))[1]
+
+  trinuc_proportion_matrix[tumors_with_less_than_50[tumor_name],] <- trinuc_proportion_matrix[closest_tumor,]
+
+}
+
+# now, trinuc_proportion_matrix has the proportion of all trinucs in every tumor.
 
 
 # 2. Find nearest neighbor to tumors with < 50 mutations, assign identical weights as neighbor ----
