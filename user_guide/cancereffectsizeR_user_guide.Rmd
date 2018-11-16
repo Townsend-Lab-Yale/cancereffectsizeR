@@ -19,7 +19,7 @@ library(cancereffectsizeR)
 
 `cancereffectsizeR` is an `R` package that may be used to calculate the effect size of single nucleotide variants (SNV) in cancer exome data[^1]. It was designed for use with datasets in [MAF format](https://docs.gdc.cancer.gov/Data/File_Formats/MAF_Format/) and works well with data from a large number of tumors, each with a large number of detected varaints. A previous version of `cancereffectsizeR` depended on output from `MutSigCV` (which runs in MATLAB) and can be found [here](https://github.com/Townsend-Lab-Yale/SNV_selection_intensity).  
 
-This vignette is broken into several sections detailing installation, usage, and a suite of `R` functions provided with this package that are useful for analyzing cancer exome data. This user guide covers the version of `cancereffectsizeR` used in [^1] (v0.1.0). 
+This vignette is broken into several sections detailing installation, usage, and a suite of `R` functions provided with this package that are useful for analyzing cancer exome data. This user guide covers the version of `cancereffectsizeR` used in our *JNCI* manuscript <https://doi.org/10.1093/jnci/djy168> (v0.1.0). 
 
 [^1]: Cannataro, V. L., Gaffney, S. G., Townsend, J. P., “Effect sizes of somatic mutations in cancer" JNCI, (2018): <https://doi.org/10.1093/jnci/djy168> 
 
