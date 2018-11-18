@@ -90,6 +90,9 @@ trinuc_breakdown_per_tumor <- deconstructSigs::mut.to.sigs.input(mut.ref =
                                                                  ref = ref_column,
                                                                  alt = alt_column)
 
+deconstructSigs_trinuc_string <- colnames(trinuc_breakdown_per_tumor)
+save(deconstructSigs_trinuc_string,file = "data/deconstructSigs_trinuc_string.RData")
+
 # df to store relative proportions of all trinucs in all tumors
 
 trinuc_proportion_matrix <- matrix(data = NA,
@@ -206,6 +209,17 @@ for(i in 1:length(multi.choice)){
 
 
 # 5. For each substitution, calculate the gene- and tumor- and mutation-specific mutation rate----
+
+# TODO
+# MAF_input$unique_sub <- paste(MAF_input$Chromosome, MAF_input$Start_Position, MAF_input$Tumor_allele)
+# mutation_matrix <- matrix(data = NA,nrow = length(unique(MAF_input$unique_sub)),ncol=length(unique(MAF_input$Unique_patient_identifier)))
+# very large matrix... need a better way
+
+
+
+
+
+
 
 
 # 6. Maximum-likelihood framework
