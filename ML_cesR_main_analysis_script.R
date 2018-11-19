@@ -233,7 +233,7 @@ strReverse <- function(x)
 
 MAF_input$triseq <- as.character(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens, paste("chr",MAF_input$Chromosome,sep=""), strand=MAF_input$strand, start=MAF_input$Start_Position-1, end=MAF_input$Start_Position+1))
 
-MAF_input[which(MAF_input$strand=="-"),"triseq"] <- strReverse(MAF_input[which(MAF_input$strand=="-"),"triseq"])
+# MAF_input[which(MAF_input$strand=="-"),"triseq"] <- strReverse(MAF_input[which(MAF_input$strand=="-"),"triseq"])
 
 
 MAF_input$unique_variant_ID <- paste(MAF_input$Chromosome,MAF_input$Start_Position, MAF_input$Tumor_allele)
@@ -267,7 +267,7 @@ MAF_input$codon_pos[which(MAF_input$codon_pos==0)] <- 3
 
 MAF_input$amino_acid_context <- as.character(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens, paste("chr",MAF_input$Chromosome,sep=""), strand=MAF_input$strand, start=MAF_input$Start_Position-3, end=MAF_input$Start_Position+3))
 
-MAF_input[which(MAF_input$strand=="-"),"amino_acid_context"] <- strReverse(MAF_input[which(MAF_input$strand=="-"),"amino_acid_context"])
+# MAF_input[which(MAF_input$strand=="-"),"amino_acid_context"] <- strReverse(MAF_input[which(MAF_input$strand=="-"),"amino_acid_context"])
 
 MAF_input$amino_acid_context[which(MAF_input$codon_pos==1)] <- substr(MAF_input$amino_acid_context[which(MAF_input$codon_pos==1)],3,7)
 
@@ -280,9 +280,29 @@ MAF_input$amino_acid_context[which(MAF_input$codon_pos==3)] <- substr(MAF_input$
 
 names(gene_trinuc_comp) <- sapply(RefCDS, function(x) x$gene_name)
 
+MAF_input$unique_variant_ID_AA <- NA
+
+MAF_input[which(MAF_input$is_coding==T),"unique_variant_ID_AA"] <- MAF_input[which(MAF_input$is_coding==T),"coding_variant"]
+MAF_input[which(MAF_input$is_coding==F),"unique_variant_ID_AA"] <- MAF_input[which(MAF_input$is_coding==F),"unique_variant_ID"]
+
+substrRight <- function(x, n){
+  substr(x, nchar(x)-n+1, nchar(x))
+}
+
+MAF_input$coding_variant_AA_mut <-  substrRight(x = MAF_input$coding_variant,n=1)
+
+data("AA_translations") # from cancereffectsizeR
+
+AA_translations_unique <- AA_translations[!duplicated(AA_translations$AA_letter),]
+rownames(AA_translations_unique) <- as.character(AA_translations_unique$AA_letter)
+
+MAF_input$coding_variant_AA_mut <- as.character(AA_translations_unique[MAF_input$coding_variant_AA_mut,"AA_short"])
 
 # Now time for the function that calculates gene- and tumor- and trinuc- specific rate.
 
+source("R/mutation_rate_calc.R")
+
+KRAS_muts <- mutation_rate_calc(MAF = MAF_input,gene = "KRAS",gene_mut_rate = mutrates,tumor_trinucs = trinuc_proportion_matrix)
 
 
 # 6. Maximum-likelihood framework

@@ -4,7 +4,7 @@ library(tidyverse)
 library(cancereffectsizeR)
 
 load("data/deconstructSigs_trinuc_string.RData")
-
+data("AA_translations")
 all.nucs <- expand.grid(c("A","T","G","C"),c("A","T","G","C"),c("A","T","G","C"),c("A","T","G","C"),c("A","T","G","C"),stringsAsFactors = F)
 
 all.nucs$combination <- apply(all.nucs,1,function(x)paste(x,collapse=""))
