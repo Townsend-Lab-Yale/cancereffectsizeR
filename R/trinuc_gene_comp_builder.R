@@ -5,7 +5,7 @@ data("RefCDS_TP53splice", package="cancereffectsizeR")
 
 gene_list <- sapply(RefCDS, function(x) x$gene_name)
 
-
+load("data/deconstructSigs_trinuc_string.RData")
 
 gene_trinuc_comp <- vector("list",length(RefCDS))
 
@@ -73,7 +73,7 @@ for(i in 1:length(gene_trinuc_comp)){
 }
 
 
-
+save(gene_trinuc_comp,file = "data/gene_trinuc_comp.RData")
 
 
 
