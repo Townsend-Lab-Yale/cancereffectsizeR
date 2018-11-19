@@ -210,15 +210,78 @@ for(i in 1:length(multi.choice)){
 
 # 5. For each substitution, calculate the gene- and tumor- and mutation-specific mutation rate----
 
-# TODO
-# MAF_input$unique_sub <- paste(MAF_input$Chromosome, MAF_input$Start_Position, MAF_input$Tumor_allele)
-# mutation_matrix <- matrix(data = NA,nrow = length(unique(MAF_input$unique_sub)),ncol=length(unique(MAF_input$Unique_patient_identifier)))
-# very large matrix... need a better way
+
+load("data/gene_trinuc_comp.RData")
+load("data/AA_mutation_list.RData")
+
+# save.image(file = "~/Box Sync/ML_cancereffectsizeR_data/LUAD/before_step_5.RData")
+# load("~/Box Sync/ML_cancereffectsizeR_data/LUAD/before_step_5.RData")
+
+MAF_input <- MAF_input[which(MAF_input$Gene_name %in% names(mutrates)),]
+MAF_input <- MAF_input[which(MAF_input$Reference_Allele %in% c("A","T","C","G") & MAF_input$Tumor_allele %in% c("A","T","C","G")),]
+
+# assign strand data
+strand_data <- sapply(RefCDS, function(x) x$strand)
+names(strand_data) <- sapply(RefCDS, function(x) x$gene_name)
+strand_data[which(strand_data==-1)] <- "-"
+strand_data[which(strand_data==1)] <- "+"
+
+MAF_input$strand <- strand_data[MAF_input$Gene_name]
+
+strReverse <- function(x)
+  sapply(lapply(strsplit(x, NULL), rev), paste, collapse="") #found in ?strsplit
+
+MAF_input$triseq <- as.character(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens, paste("chr",MAF_input$Chromosome,sep=""), strand=MAF_input$strand, start=MAF_input$Start_Position-1, end=MAF_input$Start_Position+1))
+
+MAF_input[which(MAF_input$strand=="-"),"triseq"] <- strReverse(MAF_input[which(MAF_input$strand=="-"),"triseq"])
+
+
+MAF_input$unique_variant_ID <- paste(MAF_input$Chromosome,MAF_input$Start_Position, MAF_input$Tumor_allele)
+dndscvout$annotmuts$unique_variant_ID <- paste(dndscvout$annotmuts$chr, dndscvout$annotmuts$pos, dndscvout$annotmuts$mut)
+
+MAF_input$is_coding <- MAF_input$unique_variant_ID %in% dndscvout$annotmuts$unique_variant_ID[which(dndscvout$annotmuts$impact != "Essential_Splice")]
+
+# Assign trinucleotide context data (for use with non-coding variants)
+MAF_input$Tumor_allele_correct_strand <- MAF_input$Tumor_allele
+MAF_input$Tumor_allele_correct_strand[which(MAF_input$strand=="-")] <- toupper(seqinr::comp(MAF_input$Tumor_allele_correct_strand[which(MAF_input$strand=="-")]))
+
+load("data/trinuc_translator.RData")
+
+MAF_input$trinuc_dcS <- trinuc_translator[paste(MAF_input$triseq,":",MAF_input$Tumor_allele_correct_strand,sep=""),"deconstructSigs_format"]
+
+# Assign coding variant data
+
+dndscv_coding_unique <- dndscvout$annotmuts[!duplicated(dndscvout$annotmuts$unique_variant_ID),]
+
+rownames(dndscv_coding_unique) <- dndscv_coding_unique$unique_variant_ID
+MAF_input$nuc_variant <- NA
+MAF_input$coding_variant <- NA
+MAF_input[,c("nuc_variant","coding_variant")] <- dndscv_coding_unique[MAF_input$unique_variant_ID,c("ntchange","aachange")]
+MAF_input[which(MAF_input$coding_variant=="-"),"coding_variant"] <- NA
+MAF_input[which(MAF_input$nuc_variant=="-"),"nuc_variant"] <- NA
+
+MAF_input$nuc_position  <- as.numeric(gsub("\\D", "", MAF_input$nuc_variant))
+MAF_input$codon_pos <- (MAF_input$nuc_position %% 3)
+MAF_input$codon_pos[which(MAF_input$codon_pos==0)] <- 3
+
+
+MAF_input$amino_acid_context <- as.character(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens, paste("chr",MAF_input$Chromosome,sep=""), strand=MAF_input$strand, start=MAF_input$Start_Position-3, end=MAF_input$Start_Position+3))
+
+MAF_input[which(MAF_input$strand=="-"),"amino_acid_context"] <- strReverse(MAF_input[which(MAF_input$strand=="-"),"amino_acid_context"])
+
+MAF_input$amino_acid_context[which(MAF_input$codon_pos==1)] <- substr(MAF_input$amino_acid_context[which(MAF_input$codon_pos==1)],3,7)
+
+MAF_input$amino_acid_context[which(MAF_input$codon_pos==2)] <- substr(MAF_input$amino_acid_context[which(MAF_input$codon_pos==2)],2,6)
+
+MAF_input$amino_acid_context[which(MAF_input$codon_pos==3)] <- substr(MAF_input$amino_acid_context[which(MAF_input$codon_pos==3)],1,5)
 
 
 
 
+names(gene_trinuc_comp) <- sapply(RefCDS, function(x) x$gene_name)
 
+
+# Now time for the function that calculates gene- and tumor- and trinuc- specific rate.
 
 
 
