@@ -307,18 +307,11 @@ KRAS_muts <- mutation_rate_calc(MAF = MAF_input,gene = "KRAS",gene_mut_rate = mu
 
 # 6. Maximum-likelihood framework
 
+tumors <- unique(MAF_input$Unique_patient_identifier)
 
+source("R/selection_intensity_calc_function_ML.R")
 
-
-
-
-
-
-
-
-
-
-
+optimize_gamma(MAF_input=MAF_input, all_tumors=tumors, gene="KRAS", variant="G12C", specific_mut_rates=KRAS_muts)
 
 
 
