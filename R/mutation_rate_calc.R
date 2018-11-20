@@ -6,7 +6,7 @@
 # requires "data/"data/AA_mutation_list.RData"
 
 # MAF <- MAF_input
-# gene <- "KRAS"
+# gene <- "HIST2H3PS2"
 # gene_mut_rate<- mutrates
 # tumor_trinucs <- trinuc_proportion_matrix
 
@@ -14,6 +14,10 @@ mutation_rate_calc <- function(MAF, gene, gene_mut_rate, tumor_trinucs){
 
   mutation_rate_nucs <- matrix(nrow=nrow(trinuc_proportion_matrix),ncol=ncol(trinuc_proportion_matrix),data = NA)
   rownames(mutation_rate_nucs) <- rownames(trinuc_proportion_matrix); colnames(mutation_rate_nucs) <- colnames(trinuc_proportion_matrix)
+
+  if(0 %in% gene_trinuc_comp[[gene]]$gene_trinuc$count){
+    gene_trinuc_comp[[gene]]$gene_trinuc$count <- gene_trinuc_comp[[gene]]$gene_trinuc$count + 1
+  }
 
   for(i in 1:nrow(mutation_rate_nucs)){
     mutation_rate_nucs[i,] <- ((gene_trinuc_comp[[gene]]$gene_trinuc$count * trinuc_proportion_matrix[i,] / mean(gene_trinuc_comp[[gene]]$gene_trinuc$count * trinuc_proportion_matrix[i,]))) * gene_mut_rate[gene]
