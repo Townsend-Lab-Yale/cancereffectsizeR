@@ -19,10 +19,10 @@ ml_objective <- function(gamma, MAF_input, all_tumors, gene, variant, specific_m
   
   sum_log_lik <- 0
   for (tumor in tumors_without_gene_mutated) {
-    sum_log_lik <- sum_log_lik + log(exp(-gamma * KRAS_muts[tumor, variant]))
+    sum_log_lik <- sum_log_lik + log(exp(-gamma * specific_mut_rates[tumor, variant]))
   }
   for (tumor in tumors_with_pos_mutated) {
-    sum_log_lik <- sum_log_lik + log(1-exp(-gamma * KRAS_muts[tumor, variant]))
+    sum_log_lik <- sum_log_lik + log(1-exp(-gamma * specific_mut_rates[tumor, variant]))
   }
   
   return(sum_log_lik)
