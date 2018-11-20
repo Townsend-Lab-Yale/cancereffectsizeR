@@ -19,7 +19,7 @@ ml_objective <- function(gamma, MAF_input, all_tumors, gene, variant, specific_m
   
   sum_log_lik <- 0
   for (tumor in tumors_without_gene_mutated) {
-    sum_log_lik <- sum_log_lik + log(exp(-gamma * specific_mut_rates[tumor, variant]))
+    sum_log_lik <- sum_log_lik + (-gamma * specific_mut_rates[tumor, variant])
   }
   for (tumor in tumors_with_pos_mutated) {
     sum_log_lik <- sum_log_lik + log(1-exp(-gamma * specific_mut_rates[tumor, variant]))
@@ -41,5 +41,5 @@ ml_objective <- function(gamma, MAF_input, all_tumors, gene, variant, specific_m
 
 optimize_gamma <- function(MAF_input, all_tumors, gene, variant, specific_mut_rates) {
   return(optim(par=1000, fn=ml_objective, MAF_input=MAF_input, all_tumors=all_tumors, gene=gene, variant=variant, specific_mut_rates=specific_mut_rates, 
-               method="Brent", lower=1, upper=1000000, control=list(fnscale=-1))$par)
+               method="Brent", lower=1, upper=1000000000, control=list(fnscale=-1))$par)
 }
