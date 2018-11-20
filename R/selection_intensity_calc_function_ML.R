@@ -41,5 +41,5 @@ ml_objective <- function(gamma, MAF_input, all_tumors, gene, variant, specific_m
 
 optimize_gamma <- function(MAF_input, all_tumors, gene, variant, specific_mut_rates) {
   return(optim(par=1000, fn=ml_objective, MAF_input=MAF_input, all_tumors=all_tumors, gene=gene, variant=variant, specific_mut_rates=specific_mut_rates, 
-               method="Brent", lower=0, upper=100000000, control=list(fnscale=-1))$par)
+               method="Brent", lower=1, upper=1000000, control=list(fnscale=-1))$par)
 }
