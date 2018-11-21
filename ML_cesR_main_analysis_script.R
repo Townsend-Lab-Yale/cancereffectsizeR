@@ -242,6 +242,8 @@ load("data/AA_mutation_list.RData")
 MAF_input <- MAF_input[which(MAF_input$Gene_name %in% names(mutrates)),]
 MAF_input <- MAF_input[which(MAF_input$Reference_Allele %in% c("A","T","C","G") & MAF_input$Tumor_allele %in% c("A","T","C","G")),]
 
+dndscvout_annotref <- dndscvout$annotmuts[which(dndscvout$annotmuts$ref %in% c("A","T","G","C") & dndscvout$annotmuts$mut %in% c("A","T","C","G")),]
+
 # assign strand data
 strand_data <- sapply(RefCDS, function(x) x$strand)
 names(strand_data) <- sapply(RefCDS, function(x) x$gene_name)
@@ -259,9 +261,9 @@ MAF_input$triseq <- as.character(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::H
 
 
 MAF_input$unique_variant_ID <- paste(MAF_input$Chromosome,MAF_input$Start_Position, MAF_input$Tumor_allele)
-dndscvout$annotmuts$unique_variant_ID <- paste(dndscvout$annotmuts$chr, dndscvout$annotmuts$pos, dndscvout$annotmuts$mut)
+dndscvout_annotref$unique_variant_ID <- paste(dndscvout_annotref$chr, dndscvout_annotref$pos, dndscvout_annotref$mut)
 
-MAF_input$is_coding <- MAF_input$unique_variant_ID %in% dndscvout$annotmuts$unique_variant_ID[which(dndscvout$annotmuts$impact != "Essential_Splice")]
+MAF_input$is_coding <- MAF_input$unique_variant_ID %in% dndscvout_annotref$unique_variant_ID[which(dndscvout_annotref$impact != "Essential_Splice")]
 
 # Assign trinucleotide context data (for use with non-coding variants)
 MAF_input$Tumor_allele_correct_strand <- MAF_input$Tumor_allele
@@ -273,7 +275,7 @@ MAF_input$trinuc_dcS <- trinuc_translator[paste(MAF_input$triseq,":",MAF_input$T
 
 # Assign coding variant data
 
-dndscv_coding_unique <- dndscvout$annotmuts[!duplicated(dndscvout$annotmuts$unique_variant_ID),]
+dndscv_coding_unique <- dndscvout_annotref[!duplicated(dndscvout_annotref$unique_variant_ID),]
 
 rownames(dndscv_coding_unique) <- dndscv_coding_unique$unique_variant_ID
 MAF_input$nuc_variant <- NA
@@ -293,11 +295,25 @@ ref_cds_genes <- sapply(RefCDS, function(x) x$gene_name)
 names(RefCDS) <- ref_cds_genes
 
 # need to take CDS into account.
+
+# issue: if the variant is at the end of the gene then a shorter sequence is produced.
+
 for(i in 1:nrow(MAF_input)){
  if(MAF_input$is_coding[i]){
   MAF_input$amino_acid_context[i] <- substr(as.character(RefCDS[[MAF_input$Gene_name[i]]]$seq_cds),MAF_input$nuc_position[i]-3,MAF_input$nuc_position[i]+3)
+  if(MAF_input$nuc_position[i] == RefCDS[[MAF_input$Gene_name[i]]]$CDS_length){
+    MAF_input$amino_acid_context[i] <- paste(MAF_input$amino_acid_context[i],substr(as.character(RefCDS[[MAF_input$Gene_name[i]]]$seq_cds1down),RefCDS[[MAF_input$Gene_name[i]]]$CDS_length,RefCDS[[MAF_input$Gene_name[i]]]$CDS_length),collapse = "",sep="")
+  }
+
+  if(MAF_input$nuc_position[i] <= 3){
+    MAF_input$amino_acid_context[i] <- paste(substr(as.character(RefCDS[[MAF_input$Gene_name[i]]]$seq_cds1up),1,1),substr(MAF_input$amino_acid_context[i],1,4) ,collapse = "",sep="")
+  }
  }
+
 }
+
+
+
 
 # MAF_input[which(MAF_input$strand=="-"),"amino_acid_context"] <- strReverse(MAF_input[which(MAF_input$strand=="-"),"amino_acid_context"])
 
