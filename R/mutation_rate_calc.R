@@ -6,7 +6,7 @@
 # requires "data/"data/AA_mutation_list.RData"
 
 # MAF <- MAF_input
-# gene <- "TNR"
+# gene <- "FASLG"
 # gene_mut_rate<- mutrates
 # tumor_trinucs <- trinuc_proportion_matrix
 

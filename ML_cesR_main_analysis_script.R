@@ -109,7 +109,29 @@ for(tumor_name in 1:length(tumors_with_50_or_more)){
                                                         sample.id = tumors_with_50_or_more[tumor_name],
                                                         contexts.needed = TRUE,
                                                         tri.counts.method = 'exome2genome')
+
   trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],] <- signatures_output$product/sum( signatures_output$product) #need it to sum to 1.
+
+  # Not all trinuc weights in the cosmic dataset are nonzero for certain signatures
+  # This leads to the rare occasion where a certain combination of signatues leads to ZERO
+  # rate for particular trinucleotide contexts.
+  # True rate is nonzero, as we do see those variants in those tumors, so renormalizing
+  # the rates by adding the lowest nonzero rate to all the rates and renormalizing
+
+
+  if(0 %in% trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],]){
+    # finding the lowest nonzero rate
+    lowest_rate <- min(trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],
+                                 -which(trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],]==0)])
+
+    # adding it to the rates
+    trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],] <- trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],] + lowest_rate
+
+    # renormalizing to 1
+    trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],] <-
+      trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],] / sum(trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],])
+  }
+
 }
 
 # 2. Find nearest neighbor to tumors with < 50 mutations, assign identical weights as neighbor ----
