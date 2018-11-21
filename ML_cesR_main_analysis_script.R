@@ -267,6 +267,16 @@ MAF_input$codon_pos[which(MAF_input$codon_pos==0)] <- 3
 
 MAF_input$amino_acid_context <- as.character(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens, paste("chr",MAF_input$Chromosome,sep=""), strand=MAF_input$strand, start=MAF_input$Start_Position-3, end=MAF_input$Start_Position+3))
 
+ref_cds_genes <- sapply(RefCDS, function(x) x$gene_name)
+names(RefCDS) <- ref_cds_genes
+
+# need to take CDS into account.
+for(i in 1:nrow(MAF_input)){
+ if(MAF_input$is_coding[i]){
+  MAF_input$amino_acid_context[i] <- substr(as.character(RefCDS[[MAF_input$Gene_name[i]]]$seq_cds),MAF_input$nuc_position[i]-3,MAF_input$nuc_position[i]+3)
+ }
+}
+
 # MAF_input[which(MAF_input$strand=="-"),"amino_acid_context"] <- strReverse(MAF_input[which(MAF_input$strand=="-"),"amino_acid_context"])
 
 MAF_input$amino_acid_context[which(MAF_input$codon_pos==1)] <- substr(MAF_input$amino_acid_context[which(MAF_input$codon_pos==1)],3,7)
@@ -313,7 +323,7 @@ source("R/selection_intensity_calc_function_ML.R")
 
 optimize_gamma(MAF_input=MAF_input, all_tumors=tumors, gene="KRAS", variant="G12C", specific_mut_rates=KRAS_muts)
 
-
+save.image("~/Box Sync/ML_cancereffectsizeR_data/LUAD/after_step_6.RData")
 
 
 # test <- cancereffectsizeR::trinuc_profile_function_with_weights(input.MAF = MAF_input)
