@@ -57,7 +57,7 @@ mutation_rate_calc <- function(MAF, gene, gene_mut_rate, tumor_trinucs){
 
       if(this_MAF$next_to_splice[j]){
 
-        mutation_rate_matrix[i,j] <- sum(mutation_rate_nucs[i,mutation_finder(RefCDS_instance = RefCDS[[gene]],MAF_input_row = this_MAF[j,])])
+        mutation_rate_matrix[i,j] <- ifelse(this_MAF$is_coding[j], sum(mutation_rate_nucs[i,mutation_finder(RefCDS_instance = RefCDS[[gene]],MAF_input_row = this_MAF[j,])]),mutation_rate_nucs[i,this_MAF$trinuc_dcS[j]])
 
       }else{
 
