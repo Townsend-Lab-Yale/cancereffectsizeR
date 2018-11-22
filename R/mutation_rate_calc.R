@@ -6,9 +6,11 @@
 # requires "data/"data/AA_mutation_list.RData"
 
 # MAF <- MAF_input
-# gene <- "BRINP3"
+# gene <- "OR2L13"
 # gene_mut_rate<- mutrates
 # tumor_trinucs <- trinuc_proportion_matrix
+
+source("R/mutation_finder.R")
 
 mutation_rate_calc <- function(MAF, gene, gene_mut_rate, tumor_trinucs){
 
@@ -52,7 +54,16 @@ mutation_rate_calc <- function(MAF, gene, gene_mut_rate, tumor_trinucs){
 
   for(i in 1:nrow(mutation_rate_matrix)){
     for(j in 1:ncol(mutation_rate_matrix)){
+
+      if(this_MAF$next_to_splice[j]){
+
+        mutation_rate_matrix[i,j] <- sum(mutation_rate_nucs[i,mutation_finder(RefCDS_instance = RefCDS[[gene]],MAF_input_row = this_MAF[j,])])
+
+      }else{
+
       mutation_rate_matrix[i,j] <- ifelse(this_MAF$is_coding[j],sum(mutation_rate_nucs[i,as.character(unlist(AA_mutation_list[[this_MAF$amino_acid_context[j]]][this_MAF$coding_variant_AA_mut[j]]))]),mutation_rate_nucs[i,this_MAF$trinuc_dcS[j]])
+
+      }
     }
   }
 

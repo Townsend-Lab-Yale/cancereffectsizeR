@@ -252,8 +252,8 @@ strand_data[which(strand_data==1)] <- "+"
 
 MAF_input$strand <- strand_data[MAF_input$Gene_name]
 
-strReverse <- function(x)
-  sapply(lapply(strsplit(x, NULL), rev), paste, collapse="") #found in ?strsplit
+# strReverse <- function(x)
+#   sapply(lapply(strsplit(x, NULL), rev), paste, collapse="") #found in ?strsplit
 
 MAF_input$triseq <- as.character(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens, paste("chr",MAF_input$Chromosome,sep=""), strand=MAF_input$strand, start=MAF_input$Start_Position-1, end=MAF_input$Start_Position+1))
 
@@ -288,6 +288,13 @@ MAF_input$nuc_position  <- as.numeric(gsub("\\D", "", MAF_input$nuc_variant))
 MAF_input$codon_pos <- (MAF_input$nuc_position %% 3)
 MAF_input$codon_pos[which(MAF_input$codon_pos==0)] <- 3
 
+# TODO: problem with the way I generate the sequence to find all
+# possible trinucleotides responsible for AA change observed. If codon lies within
+# or adjacent to exon start/stop, then trinucleotides responsible for that
+# variant is different than seen in neighbors considered
+
+
+
 
 MAF_input$amino_acid_context <- as.character(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens, paste("chr",MAF_input$Chromosome,sep=""), strand=MAF_input$strand, start=MAF_input$Start_Position-3, end=MAF_input$Start_Position+3))
 
@@ -298,19 +305,19 @@ names(RefCDS) <- ref_cds_genes
 
 # issue: if the variant is at the end of the gene then a shorter sequence is produced.
 
-for(i in 1:nrow(MAF_input)){
- if(MAF_input$is_coding[i]){
-  MAF_input$amino_acid_context[i] <- substr(as.character(RefCDS[[MAF_input$Gene_name[i]]]$seq_cds),MAF_input$nuc_position[i]-3,MAF_input$nuc_position[i]+3)
-  if(MAF_input$nuc_position[i] == RefCDS[[MAF_input$Gene_name[i]]]$CDS_length){
-    MAF_input$amino_acid_context[i] <- paste(MAF_input$amino_acid_context[i],substr(as.character(RefCDS[[MAF_input$Gene_name[i]]]$seq_cds1down),RefCDS[[MAF_input$Gene_name[i]]]$CDS_length,RefCDS[[MAF_input$Gene_name[i]]]$CDS_length),collapse = "",sep="")
-  }
-
-  if(MAF_input$nuc_position[i] <= 3){
-    MAF_input$amino_acid_context[i] <- paste(substr(as.character(RefCDS[[MAF_input$Gene_name[i]]]$seq_cds1up),1,1),substr(MAF_input$amino_acid_context[i],1,4) ,collapse = "",sep="")
-  }
- }
-
-}
+# for(i in 1:nrow(MAF_input)){
+#  if(MAF_input$is_coding[i]){
+#   MAF_input$amino_acid_context[i] <- substr(as.character(RefCDS[[MAF_input$Gene_name[i]]]$seq_cds),MAF_input$nuc_position[i]-3,MAF_input$nuc_position[i]+3)
+#   if(MAF_input$nuc_position[i] == RefCDS[[MAF_input$Gene_name[i]]]$CDS_length){
+#     MAF_input$amino_acid_context[i] <- paste(MAF_input$amino_acid_context[i],substr(as.character(RefCDS[[MAF_input$Gene_name[i]]]$seq_cds1down),RefCDS[[MAF_input$Gene_name[i]]]$CDS_length,RefCDS[[MAF_input$Gene_name[i]]]$CDS_length),collapse = "",sep="")
+#   }
+#
+#   if(MAF_input$nuc_position[i] <= 3){
+#     MAF_input$amino_acid_context[i] <- paste(substr(as.character(RefCDS[[MAF_input$Gene_name[i]]]$seq_cds1up),1,1),substr(MAF_input$amino_acid_context[i],1,4) ,collapse = "",sep="")
+#   }
+#  }
+#
+# }
 
 
 
@@ -323,7 +330,14 @@ MAF_input$amino_acid_context[which(MAF_input$codon_pos==2)] <- substr(MAF_input$
 
 MAF_input$amino_acid_context[which(MAF_input$codon_pos==3)] <- substr(MAF_input$amino_acid_context[which(MAF_input$codon_pos==3)],1,5)
 
+MAF_input$next_to_splice <- F
+for(i in 1:nrow(MAF_input)){
+  if(any(abs(MAF_input$Start_Position[i] - RefCDS[[MAF_input$Gene_name[i]]]$intervals_cds) <= 3)){
 
+    MAF_input$next_to_splice[i] <- T
+
+  }
+}
 
 
 names(gene_trinuc_comp) <- sapply(RefCDS, function(x) x$gene_name)
