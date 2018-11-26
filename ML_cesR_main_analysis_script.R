@@ -200,10 +200,6 @@ names(mutrates) <- dndscvout$genemuts$gene_name
 
 # 4. Assign genes to MAF_input ----
 
-# TODO: position 135341025 is being assigned by dndscv to CYP2E1 but by us
-# to AL161645.2, causing a discrepency in nucleotides when defining $amino_acid_context.
-# why?
-
 MAF_ranges <- GenomicRanges::GRanges(seqnames = MAF_input[,chr_column], ranges = IRanges::IRanges(start=MAF_input[,pos_column],end = MAF_input[,pos_column]))
 
 data("refcds_hg19", package="dndscv") # load in gr_genes data

@@ -15,7 +15,7 @@
 # 128852            TCATGGA                  M1T                   Thr
 
 # MAF_input_row <- MAF_input[118273,]
-# RefCDS_instance <- RefCDS[["OR2L13"]]
+# RefCDS_instance <- RefCDS[["AL161645.2"]]
 
 AA_translations$Nucs <- as.character(AA_translations$Nucs)
 

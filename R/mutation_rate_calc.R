@@ -6,7 +6,7 @@
 # requires "data/"data/AA_mutation_list.RData"
 
 # MAF <- MAF_input
-# gene <- "OR2L13"
+# gene <- "CYP2E1"
 # gene_mut_rate<- mutrates
 # tumor_trinucs <- trinuc_proportion_matrix
 
