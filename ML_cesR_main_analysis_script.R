@@ -122,7 +122,7 @@ for(tumor_name in 1:length(tumors_with_50_or_more)){
   if(0 %in% trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],]){
     # finding the lowest nonzero rate
     lowest_rate <- min(trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],
-                                 -which(trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],]==0)])
+                                                -which(trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],]==0)])
 
     # adding it to the rates
     trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],] <- trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],] + lowest_rate
@@ -207,6 +207,11 @@ names(mutrates) <- dndscvout$genemuts$gene_name
 MAF_ranges <- GenomicRanges::GRanges(seqnames = MAF_input[,chr_column], ranges = IRanges::IRanges(start=MAF_input[,pos_column],end = MAF_input[,pos_column]))
 
 data("refcds_hg19", package="dndscv") # load in gr_genes data
+
+# first, find overlaps
+
+gene_name_overlaps <- GenomicRanges::findOverlaps(query = MAF_ranges,subject = gr_genes, type="any", select="all")
+
 gene_name_matches <- GenomicRanges::nearest(x = MAF_ranges, subject = gr_genes,select=c("all"))
 
 MAF_input$Gene_name <- NA
@@ -217,17 +222,32 @@ single.choice <- as.numeric(names(table(S4Vectors::queryHits(gene_name_matches))
 MAF_input$Gene_name[single.choice] <- gr_genes$names[S4Vectors::subjectHits(gene_name_matches)[which(S4Vectors::queryHits(gene_name_matches) %in% single.choice)]]
 
 
+
+multi.choice <- as.numeric(names(table(S4Vectors::queryHits(gene_name_matches)))[which(table(S4Vectors::queryHits(gene_name_matches))>1)])
+
+
+# Then, assign rest to the closest gene
+
 multi.choice <- as.numeric(names(table(S4Vectors::queryHits(gene_name_matches)))[which(table(S4Vectors::queryHits(gene_name_matches))>1)])
 
 all.possible.names <- gr_genes$names[S4Vectors::subjectHits(gene_name_matches)]
 query.spots <- S4Vectors::queryHits(gene_name_matches)
 
 for(i in 1:length(multi.choice)){
-  genes.for.this.choice <- all.possible.names[which(query.spots==multi.choice[i])]
-  if(length(which( genes.for.this.choice %in% names(mutrates) ))>0){
-    MAF_input$Gene_name[multi.choice[i]] <- genes.for.this.choice[which( genes.for.this.choice %in% names(mutrates) )[1]]
+  # first, assign if the nearest happened to be within the GenomicRanges::findOverlaps() and applicable to one gene
+  if(length(which(queryHits(gene_name_overlaps) == multi.choice[i])) == 1){
+
+    MAF_input[multi.choice[i],"Gene_name"] <- gr_genes$names[subjectHits(gene_name_overlaps)[which(queryHits(gene_name_overlaps) == multi.choice[i])]]
+
   }else{
-    MAF_input$Gene_name[multi.choice[i]] <- "Indeterminate"
+
+    genes.for.this.choice <- all.possible.names[which(query.spots==multi.choice[i])]
+
+    if(length(which( genes.for.this.choice %in% names(mutrates) ))>0){
+      MAF_input$Gene_name[multi.choice[i]] <- genes.for.this.choice[which( genes.for.this.choice %in% names(mutrates) )[1]]
+    }else{
+      MAF_input$Gene_name[multi.choice[i]] <- "Indeterminate"
+    }
   }
 }
 
