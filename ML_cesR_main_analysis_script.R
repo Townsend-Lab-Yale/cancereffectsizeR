@@ -4,9 +4,11 @@ library(cancereffectsizeR)
 
 # Load in mutation data ----
 
-NCI_data <- read.delim(file = "~/Box Sync/ML_cancereffectsizeR_data/LUAD/TCGA.LUAD.mutect.0458c57f-316c-4a7c-9294-ccd11c97c2f9.DR-10.0.somatic.maf",stringsAsFactors = F,skip = 5,header = T)
+NCI_data <- read.delim(file = "~/Box Sync/ML_cancereffectsizeR_data/LUAD/TCGA.LUAD.mutect.0458c57f-316c-4a7c-9294-ccd11c97c2f9.DR-10.0.somatic.maf",
+                       stringsAsFactors = F,skip = 5,header = T)
 
-YG_data <- read.delim(file = "~/Box Sync/ML_cancereffectsizeR_data/LUAD/mutationsTN_62_Lung_Adenocarcinoma_(Yale___MD_Anderson).maf",header = T,stringsAsFactors = F)
+YG_data <- read.delim(file = "~/Box Sync/ML_cancereffectsizeR_data/LUAD/mutationsTN_62_Lung_Adenocarcinoma_(Yale___MD_Anderson).maf",
+                      header = T,stringsAsFactors = F)
 
 # Preprocess for analysis ----
 # These functions will be automatically loaded into the package space,

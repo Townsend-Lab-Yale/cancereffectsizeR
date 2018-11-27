@@ -34,16 +34,16 @@ hg_converter <- function(chain,maf_to_convert,chrom_col_name = "Chromosome",new_
     if(nucleotide=="A"){
       return("T")
     }
-    if(nucleotide=="T"){
+    else if(nucleotide=="T"){
       return("A")
     }
-    if(nucleotide=="C"){
+    else if(nucleotide=="C"){
       return("G")
     }
-    if(nucleotide=="G"){
+    else if(nucleotide=="G"){
       return("C")
     }
-    if(nucleotide=="N"){
+    else if(nucleotide=="N"){
       return("N")
     }
   }
@@ -55,10 +55,8 @@ hg_converter <- function(chain,maf_to_convert,chrom_col_name = "Chromosome",new_
   # Keeping the convention of the original hg38 --> hg19 conversion
   # although this has now been updated for any conversion.
 
-
-
-
-  hg38.Grange <- makeGRangesFromDataFrame(df = maf_to_convert,keep.extra.columns = T,
+  hg38.Grange <- makeGRangesFromDataFrame(df = maf_to_convert,
+                                          keep.extra.columns = T,
                                           ignore.strand = F,
                                           seqinfo = NULL,
                                           seqnames.field = chrom_col_name,
@@ -67,8 +65,6 @@ hg_converter <- function(chain,maf_to_convert,chrom_col_name = "Chromosome",new_
                                           strand.field = "Strand",
                                           starts.in.df.are.0based = F)
   GenomeInfoDb::genome(hg38.Grange) <- "GRCh38"
-
-
 
   GenomeInfoDb::seqlevelsStyle(hg38.Grange) = "UCSC"
 
@@ -79,25 +75,16 @@ hg_converter <- function(chain,maf_to_convert,chrom_col_name = "Chromosome",new_
 
   message(paste("Number of rows in the MAF that failed to convert: ", length(hg38.Grange) - length(hg19.Grange)))
 
-
-
-
   hg19.df <- as.data.frame(hg19.Grange)
-
 
   colnames(hg19.df)[which(colnames(hg19.df)=="seqnames")] <- "Chromosome"
   colnames(hg19.df)[which(colnames(hg19.df)=="start")] <- "Start_Position"
   colnames(hg19.df)[which(colnames(hg19.df)=="end")] <- "End_Position"
 
-
   hg19.df$NCBI_Build <- new_build_name
 
   #reduce chromosome column to just numbers/letters
-  remove.3 <- function(string_to_3){
-    return(paste(unlist(strsplit(as.character(string_to_3),split = ""))[4:length(unlist(strsplit(as.character(string_to_3),split = "")))],collapse = ""))
-  }
-
-  hg19.df[,"Chromosome"] <- unlist(lapply(X = hg19.df[,"Chromosome"],FUN = remove.3))
+  hg19.df[,"Chromosome"] <- unlist(lapply(X = as.character(hg19.df[,"Chromosome"]),function(X) substr(X, start=4, stop=nchar(X))))
 
   #To keep things consistent with always being on the "+" strand, we need to flip the genes that were just flipped.
   to.flip <- which(hg19.df$strand=="-" & hg19.df$Variant_Type=="SNP")
