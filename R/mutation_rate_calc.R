@@ -68,8 +68,9 @@ mutation_rate_calc <- function(MAF, gene, gene_mut_rate, tumor_trinucs){
     }
   }
 
-
- return(mutation_rate_matrix)
+  unsure_genes_vec <- this_MAF$unsure_gene_name
+ return(list(mutation_rate_matrix=mutation_rate_matrix,
+             unsure_genes_vec=unsure_genes_vec))
 
 }
 
@@ -80,5 +81,6 @@ mutation_rate_calc <- function(MAF, gene, gene_mut_rate, tumor_trinucs){
 # head(dndscvout$annotmuts)
 #
 #
-
+# 12 121868273 T
+# KDM2B
 

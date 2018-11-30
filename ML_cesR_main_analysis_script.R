@@ -203,6 +203,7 @@ names(mutrates) <- dndscvout$genemuts$gene_name
 # keeping assignments consistent with dndscv, where possible
 
 MAF_input$Gene_name <- NA
+MAF_input$unsure_gene_name <- F
 
 MAF_ranges <- GenomicRanges::GRanges(seqnames = MAF_input[,chr_column], ranges = IRanges::IRanges(start=MAF_input[,pos_column],end = MAF_input[,pos_column]))
 
@@ -276,6 +277,7 @@ for(i in 1:length(multi.choice)){
   }
 }
 
+MAF_input_unmatched$unsure_gene_name <- T
 
 MAF_input <- rbind(MAF_input_matched,MAF_input_unmatched)
 
