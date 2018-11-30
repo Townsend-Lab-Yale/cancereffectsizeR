@@ -349,7 +349,7 @@ rownames(AA_translations_unique) <- as.character(AA_translations_unique$AA_lette
 MAF_input$coding_variant_AA_mut <- as.character(AA_translations_unique[MAF_input$coding_variant_AA_mut,"AA_short"])
 
 # Now time for the function that calculates gene- and tumor- and trinuc- specific rate.
-
+source("R/mutation_finder.R")
 source("R/mutation_rate_calc.R")
 
 KRAS_muts <- mutation_rate_calc(MAF = MAF_input,gene = "KRAS",gene_mut_rate = mutrates,tumor_trinucs = trinuc_proportion_matrix)

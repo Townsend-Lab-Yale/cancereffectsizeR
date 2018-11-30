@@ -10,7 +10,7 @@
 # gene_mut_rate<- mutrates
 # tumor_trinucs <- trinuc_proportion_matrix
 
-source("R/mutation_finder.R")
+# source("R/mutation_finder.R")
 
 mutation_rate_calc <- function(MAF, gene, gene_mut_rate, tumor_trinucs){
 
