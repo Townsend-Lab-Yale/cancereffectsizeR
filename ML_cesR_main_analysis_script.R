@@ -60,7 +60,7 @@ chr_column = "Chromosome"
 pos_column = "Start_Position"
 ref_column = "Reference_Allele"
 alt_column = "Tumor_allele"
-covariate_file = "lung_pca"
+covariate_file = "bladder_pca"
 
 
 # will use functions and sub-functions to complete each step
@@ -199,8 +199,10 @@ if(dndscvout$nbreg$theta>1){
 names(mutrates) <- dndscvout$genemuts$gene_name
 
 
-
 # 4. Assign genes to MAF_input ----
+# keeping assignments consistent with dndscv, where possible
+
+MAF_input$Gene_name <- NA
 
 MAF_ranges <- GenomicRanges::GRanges(seqnames = MAF_input[,chr_column], ranges = IRanges::IRanges(start=MAF_input[,pos_column],end = MAF_input[,pos_column]))
 
@@ -210,14 +212,39 @@ data("refcds_hg19", package="dndscv") # load in gr_genes data
 
 gene_name_overlaps <- GenomicRanges::findOverlaps(query = MAF_ranges,subject = gr_genes, type="any", select="all")
 
+# duplicate any substitutions that matched two genes
+overlaps <- as.matrix(gene_name_overlaps)
+
+matched_ol <- which(1:nrow(MAF_input) %in% overlaps[,1])
+unmatched_ol <- setdiff(1:nrow(MAF_input), matched_ol)
+
+MAF_input_matched <- MAF_input[matched_ol,]
+
+MAF_ranges <- GenomicRanges::GRanges(seqnames = MAF_input_matched[,chr_column], ranges = IRanges::IRanges(start=MAF_input_matched[,pos_column],end = MAF_input_matched[,pos_column]))
+
+gene_name_overlaps <- as.matrix(GenomicRanges::findOverlaps(query = MAF_ranges,subject = gr_genes, type="any", select="all"))
+
+MAF_input_matched <- MAF_input_matched[gene_name_overlaps[,1],] #expand the multi-matches
+MAF_input_matched$Gene_name <- gr_genes$names[gene_name_overlaps[,2]]# assign the multi-matches
+
+
+MAF_input_unmatched <- MAF_input[unmatched_ol,]
+
+
+
+# MAF_input_expanded <- MAF_input[overlaps[,1],] #this gets rid of unmatched subs, though...
+
+# search out the unmatched remainder
+
+MAF_ranges <- GenomicRanges::GRanges(seqnames = MAF_input_unmatched[,chr_column], ranges = IRanges::IRanges(start=MAF_input_unmatched[,pos_column],end = MAF_input_unmatched[,pos_column]))
+
 gene_name_matches <- GenomicRanges::nearest(x = MAF_ranges, subject = gr_genes,select=c("all"))
 
-MAF_input$Gene_name <- NA
 
 # take care of single hits
 single.choice <- as.numeric(names(table(S4Vectors::queryHits(gene_name_matches)))[which(table(S4Vectors::queryHits(gene_name_matches))==1)])
 
-MAF_input$Gene_name[single.choice] <- gr_genes$names[S4Vectors::subjectHits(gene_name_matches)[which(S4Vectors::queryHits(gene_name_matches) %in% single.choice)]]
+MAF_input_unmatched$Gene_name[single.choice] <- gr_genes$names[S4Vectors::subjectHits(gene_name_matches)[which(S4Vectors::queryHits(gene_name_matches) %in% single.choice)]]
 
 
 
@@ -233,24 +260,24 @@ query.spots <- S4Vectors::queryHits(gene_name_matches)
 
 for(i in 1:length(multi.choice)){
   # first, assign if the nearest happened to be within the GenomicRanges::findOverlaps() and applicable to one gene
-  if(length(which(queryHits(gene_name_overlaps) == multi.choice[i])) == 1){
+  if(length(which(queryHits(gene_name_matches) == multi.choice[i])) == 1){
 
-    MAF_input[multi.choice[i],"Gene_name"] <- gr_genes$names[subjectHits(gene_name_overlaps)[which(queryHits(gene_name_overlaps) == multi.choice[i])]]
+    MAF_input_unmatched[multi.choice[i],"Gene_name"] <- gr_genes$names[subjectHits(gene_name_matches)[which(queryHits(gene_name_matches) == multi.choice[i])]]
 
   }else{
 
     genes.for.this.choice <- all.possible.names[which(query.spots==multi.choice[i])]
 
     if(length(which( genes.for.this.choice %in% names(mutrates) ))>0){
-      MAF_input$Gene_name[multi.choice[i]] <- genes.for.this.choice[which( genes.for.this.choice %in% names(mutrates) )[1]]
+      MAF_input_unmatched$Gene_name[multi.choice[i]] <- genes.for.this.choice[which( genes.for.this.choice %in% names(mutrates) )[1]]
     }else{
-      MAF_input$Gene_name[multi.choice[i]] <- "Indeterminate"
+      MAF_input_unmatched$Gene_name[multi.choice[i]] <- "Indeterminate"
     }
   }
 }
 
 
-
+MAF_input <- rbind(MAF_input_matched,MAF_input_unmatched)
 
 # 5. For each substitution, calculate the gene- and tumor- and mutation-specific mutation rate----
 
@@ -278,24 +305,9 @@ MAF_input$strand <- strand_data[MAF_input$Gene_name]
 
 MAF_input$triseq <- as.character(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens, paste("chr",MAF_input$Chromosome,sep=""), strand=MAF_input$strand, start=MAF_input$Start_Position-1, end=MAF_input$Start_Position+1))
 
-MAF_input$unique_variant_ID <- paste(MAF_input$Chromosome,MAF_input$Start_Position, MAF_input$Tumor_allele)
-dndscvout_annotref$unique_variant_ID <- paste(dndscvout_annotref$chr, dndscvout_annotref$pos, dndscvout_annotref$mut)
+MAF_input$unique_variant_ID <- paste(MAF_input$Gene_name,MAF_input$Chromosome,MAF_input$Start_Position, MAF_input$Tumor_allele)
+dndscvout_annotref$unique_variant_ID <- paste(dndscvout_annotref$gene,dndscvout_annotref$chr, dndscvout_annotref$pos, dndscvout_annotref$mut)
 
-# TODO: within BLCA data, 12 121868273 T is found in dndscvout_annotref[which(dndscvout_annotref$unique_variant_ID=="12 121868273 T"),] to be in two different genes at the same position on different strands. What is going on here?
-
-# > dndscvout_annotref[which(dndscvout_annotref$unique_variant_ID=="12 121868273 T"),]
-# sampleID chr       pos ref mut geneind  gene ref_cod
-# 77605   TCGA-4Z-AA84  12 121868273   C   T    8592 KDM2B       G
-# 77605.1 TCGA-4Z-AA84  12 121868273   C   T   14233 RNF34       C
-# mut_cod strand ref3_cod mut3_cod aachange ntchange
-# 77605         A     -1      AGA      AAA        -        -
-#   77605.1       T      1      TCT      TTT    V500V   C1500T
-# codonsub           impact             pid
-# 77605       <NA> Essential_Splice ENSP00000366271
-# 77605.1  GTC>GTT       Synonymous ENSP00000376257
-# unique_variant_ID
-# 77605      12 121868273 T
-# 77605.1    12 121868273
 
 MAF_input$is_coding <- MAF_input$unique_variant_ID %in% dndscvout_annotref$unique_variant_ID[which(dndscvout_annotref$impact != "Essential_Splice")]
 
