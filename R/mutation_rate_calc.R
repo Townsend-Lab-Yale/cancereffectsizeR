@@ -57,11 +57,12 @@ mutation_rate_calc <- function(MAF, gene, gene_mut_rate, tumor_trinucs){
 
       if(this_MAF$next_to_splice[j]){
 
-        mutation_rate_matrix[i,j] <- ifelse(this_MAF$is_coding[j], sum(mutation_rate_nucs[i,mutation_finder(RefCDS_instance = RefCDS[[gene]],MAF_input_row = this_MAF[j,])]),mutation_rate_nucs[i,this_MAF$trinuc_dcS[j]])
+        mutation_rate_matrix[i,j] <- if(this_MAF$is_coding[j]){
+          sum(mutation_rate_nucs[i,mutation_finder(RefCDS_instance = RefCDS[[gene]],MAF_input_row = this_MAF[j,])])}else{mutation_rate_nucs[i,this_MAF$trinuc_dcS[j]]}
 
       }else{
 
-      mutation_rate_matrix[i,j] <- ifelse(this_MAF$is_coding[j],sum(mutation_rate_nucs[i,as.character(unlist(AA_mutation_list[[this_MAF$amino_acid_context[j]]][this_MAF$coding_variant_AA_mut[j]]))]),mutation_rate_nucs[i,this_MAF$trinuc_dcS[j]])
+      mutation_rate_matrix[i,j] <- if(this_MAF$is_coding[j]){sum(mutation_rate_nucs[i,as.character(unlist(AA_mutation_list[[this_MAF$amino_acid_context[j]]][this_MAF$coding_variant_AA_mut[j]]))])}else{mutation_rate_nucs[i,this_MAF$trinuc_dcS[j]]}
 
       }
     }
