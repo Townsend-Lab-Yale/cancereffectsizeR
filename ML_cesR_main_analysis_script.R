@@ -281,6 +281,22 @@ MAF_input$triseq <- as.character(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::H
 MAF_input$unique_variant_ID <- paste(MAF_input$Chromosome,MAF_input$Start_Position, MAF_input$Tumor_allele)
 dndscvout_annotref$unique_variant_ID <- paste(dndscvout_annotref$chr, dndscvout_annotref$pos, dndscvout_annotref$mut)
 
+# TODO: within BLCA data, 12 121868273 T is found in dndscvout_annotref[which(dndscvout_annotref$unique_variant_ID=="12 121868273 T"),] to be in two different genes at the same position on different strands. What is going on here?
+
+# > dndscvout_annotref[which(dndscvout_annotref$unique_variant_ID=="12 121868273 T"),]
+# sampleID chr       pos ref mut geneind  gene ref_cod
+# 77605   TCGA-4Z-AA84  12 121868273   C   T    8592 KDM2B       G
+# 77605.1 TCGA-4Z-AA84  12 121868273   C   T   14233 RNF34       C
+# mut_cod strand ref3_cod mut3_cod aachange ntchange
+# 77605         A     -1      AGA      AAA        -        -
+#   77605.1       T      1      TCT      TTT    V500V   C1500T
+# codonsub           impact             pid
+# 77605       <NA> Essential_Splice ENSP00000366271
+# 77605.1  GTC>GTT       Synonymous ENSP00000376257
+# unique_variant_ID
+# 77605      12 121868273 T
+# 77605.1    12 121868273
+
 MAF_input$is_coding <- MAF_input$unique_variant_ID %in% dndscvout_annotref$unique_variant_ID[which(dndscvout_annotref$impact != "Essential_Splice")]
 
 # Assign trinucleotide context data (for use with non-coding variants)
