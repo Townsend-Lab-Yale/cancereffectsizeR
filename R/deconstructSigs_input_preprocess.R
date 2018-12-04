@@ -3,22 +3,22 @@
 #' Gathers all SNV and removes recurrent variants
 #'
 #' @param MAF
-#' @param sample.ID.column
-#' @param chr.column
-#' @param pos.column
-#' @param ref.column
-#' @param alt.column
+#' @param sample_ID_column
+#' @param chr_column
+#' @param pos_column
+#' @param ref_column
+#' @param alt_column
 #'
 #' @return
 #' @export
 #'
 #' @examples
 deconstructSigs_input_preprocess <- function(MAF,
-                                             sample.ID.column="Unique_patient_identifier",
-                                             chr.column = "Chromosome",
-                                             pos.column = "Start_Position",
-                                             ref.column = "Reference_Allele",
-                                             alt.column = "Tumor_allele"){
+                                             sample_ID_column="Unique_patient_identifier",
+                                             chr_column = "Chromosome",
+                                             pos_column = "Start_Position",
+                                             ref_column = "Reference_Allele",
+                                             alt_column = "Tumor_allele") {
 
 # function to prepare for deconstructSigs
 
@@ -29,21 +29,17 @@ deconstructSigs_input_preprocess <- function(MAF,
 
   # keeping just single nucleotide variants
 
-  MAF <- MAF[which(MAF[, ref.column] %in% c('A', 'T', 'C', 'G') & MAF[, alt.column] %in% c('A', 'T', 'C', 'G')),]
+  MAF <- MAF[which(MAF[, ref_column] %in% c('A', 'T', 'C', 'G') & MAF[, alt_column] %in% c('A', 'T', 'C', 'G')),]
 
   # removing recurrent variants
 
+  duplicated_vec_first <- duplicated(MAF[,c(pos_column,chr_column,alt_column)])
+  duplicated_vec_last <- duplicated(MAF[,c(pos_column,chr_column,alt_column)],fromLast=T)
+  duplicated_vec_pos <- which(duplicated_vec_first | duplicated_vec_last)
 
-  duplicated.vec.first <- duplicated(MAF[,c(pos.column,chr.column,alt.column)])
-  duplicated.vec.last <- duplicated(MAF[,c(pos.column,chr.column,alt.column)],fromLast=T)
+  MAF <- MAF[-duplicated_vec_pos,]
 
-  duplicated.vec.pos <- which(duplicated.vec.first | duplicated.vec.last)
-
-
-  MAF <- MAF[-duplicated.vec.pos,]
-
-  MAF[,chr.column] <- paste("chr",trimws(MAF[,chr.column]),sep="")
+  MAF[,chr_column] <- paste("chr",trimws(MAF[,chr_column]),sep="")
 
   return(MAF)
-
 }

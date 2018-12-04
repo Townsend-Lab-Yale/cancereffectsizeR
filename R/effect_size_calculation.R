@@ -84,12 +84,12 @@ effect_size_SNV <- function(MAF_file,
   MAF <- cancereffectsizeR::wrongRef_dndscv_checker(mutations = MAF)
 
   trinuc_data <- cancereffectsizeR::trinuc_profile_function_with_weights(
-    input.MAF = MAF,
-    sample.ID.column = sample_ID_column,
-    chr.column = chr_column,
-    pos.column = pos_column,
-    ref.column = ref_column,
-    alt.column = alt_column)
+    input_MAF = MAF,
+    sample_ID_column = sample_ID_column,
+    chr_column = chr_column,
+    pos_column = pos_column,
+    ref_column = ref_column,
+    alt_column = alt_column)
 
   # this_cov_pca <- get(load(covariate_file))
 
@@ -116,21 +116,21 @@ effect_size_SNV <- function(MAF_file,
 
   data("refcds_hg19", package="dndscv")
 
-  RefCDS.our.genes <- RefCDS[which(sapply(RefCDS, function(x) x$gene_name) %in% dndscvout$genemuts$gene_name)]
+  RefCDS_our_genes <- RefCDS[which(sapply(RefCDS, function(x) x$gene_name) %in% dndscvout$genemuts$gene_name)]
 
 
   if(dndscvout$nbreg$theta>1){
-    mutrates <- ((dndscvout$genemuts$n_syn + dndscvout$nbreg$theta - 1)/(1+(dndscvout$nbreg$theta/dndscvout$genemuts$exp_syn_cv))/sapply(RefCDS.our.genes, function(x) colSums(x$L)[1]))/length(unique(MAF[,sample_ID_column]))
+    mutrates <- ((dndscvout$genemuts$n_syn + dndscvout$nbreg$theta - 1)/(1+(dndscvout$nbreg$theta/dndscvout$genemuts$exp_syn_cv))/sapply(RefCDS_our_genes, function(x) colSums(x$L)[1]))/length(unique(MAF[,sample_ID_column]))
   }else{
     mutrates <- rep(NA,length(dndscvout$genemuts$exp_syn_cv))
 
-    syn.sites <- sapply(RefCDS.our.genes, function(x) colSums(x$L)[1])
+    syn_sites <- sapply(RefCDS_our_genes, function(x) colSums(x$L)[1])
 
     for(i in 1:length(mutrates)){
       if( dndscvout$genemuts$exp_syn_cv[i] >  ((dndscvout$genemuts$n_syn[i] + dndscvout$nbreg$theta - 1)/(1+(dndscvout$nbreg$theta/dndscvout$genemuts$exp_syn_cv[i])))){
-        mutrates[i] <- (dndscvout$genemuts$exp_syn_cv[i]/syn.sites[i])/length(unique(MAF[,sample_ID_column]))
+        mutrates[i] <- (dndscvout$genemuts$exp_syn_cv[i]/syn_sites[i])/length(unique(MAF[,sample_ID_column]))
       }else{
-        mutrates[i] <- (((dndscvout$genemuts$n_syn[i] + dndscvout$nbreg$theta - 1)/(1+(dndscvout$nbreg$theta/dndscvout$genemuts$exp_syn_cv[i])))/syn.sites[i])/length(unique(MAF[,sample_ID_column]))
+        mutrates[i] <- (((dndscvout$genemuts$n_syn[i] + dndscvout$nbreg$theta - 1)/(1+(dndscvout$nbreg$theta/dndscvout$genemuts$exp_syn_cv[i])))/syn_sites[i])/length(unique(MAF[,sample_ID_column]))
       }
 
     }
@@ -139,10 +139,10 @@ effect_size_SNV <- function(MAF_file,
 
 
 
-  dndscv.pq <- dndscvout$sel_cv
-  dndscv.pq$gene <- dndscv.pq$gene_name
-  dndscv.pq$p <- dndscv.pq$pallsubs_cv
-  dndscv.pq$q <- dndscv.pq$qallsubs_cv
+  dndscv_pq <- dndscvout$sel_cv
+  dndscv_pq$gene <- dndscv_pq$gene_name
+  dndscv_pq$p <- dndscv_pq$pallsubs_cv
+  dndscv_pq$q <- dndscv_pq$qallsubs_cv
 
 
 
@@ -154,25 +154,25 @@ effect_size_SNV <- function(MAF_file,
   MAF$Gene_name <- NA
 
   # take care of single hits
-  single.choice <- as.numeric(names(table(S4Vectors::queryHits(gene_name_matches)))[which(table(S4Vectors::queryHits(gene_name_matches))==1)])
+  single_choice <- as.numeric(names(table(S4Vectors::queryHits(gene_name_matches)))[which(table(S4Vectors::queryHits(gene_name_matches))==1)])
 
-  MAF$Gene_name[single.choice] <- gr_genes$names[S4Vectors::subjectHits(gene_name_matches)[which(S4Vectors::queryHits(gene_name_matches) %in% single.choice)]]
+  MAF$Gene_name[single_choice] <- gr_genes$names[S4Vectors::subjectHits(gene_name_matches)[which(S4Vectors::queryHits(gene_name_matches) %in% single_choice)]]
 
 
-  multi.choice <- as.numeric(names(table(S4Vectors::queryHits(gene_name_matches)))[which(table(S4Vectors::queryHits(gene_name_matches))>1)])
+  multi_choice <- as.numeric(names(table(S4Vectors::queryHits(gene_name_matches)))[which(table(S4Vectors::queryHits(gene_name_matches))>1)])
 
   # MAF[which(MAF$Start_Position==55118815),]
 
-  all.possible.names <- gr_genes$names[S4Vectors::subjectHits(gene_name_matches)]
-  query.spots <- S4Vectors::queryHits(gene_name_matches)
+  all_possible_names <- gr_genes$names[S4Vectors::subjectHits(gene_name_matches)]
+  query_spots <- S4Vectors::queryHits(gene_name_matches)
 
-  for(i in 1:length(multi.choice)){
+  for(i in 1:length(multi_choice)){
     # genes.for.this.choice <- gr_genes$names[subjectHits(gene_name_matches[which(queryHits(gene_name_matches)==multi.choice[i])])]
-    genes.for.this.choice <- all.possible.names[which(query.spots==multi.choice[i])]
-    if(length(which( genes.for.this.choice %in% names(mutrates) ))>0){
-      MAF$Gene_name[multi.choice[i]] <- genes.for.this.choice[which( genes.for.this.choice %in% names(mutrates) )[1]]
+    genes_for_this_choice <- all_possible_names[which(query_spots==multi_choice[i])]
+    if(length(which( genes_for_this_choice %in% names(mutrates) ))>0){
+      MAF$Gene_name[multi_choice[i]] <- genes_for_this_choice[which( genes_for_this_choice %in% names(mutrates) )[1]]
     }else{
-      MAF$Gene_name[multi.choice[i]] <- "Indeterminate"
+      MAF$Gene_name[multi_choice[i]] <- "Indeterminate"
     }
   }
 
@@ -184,8 +184,8 @@ effect_size_SNV <- function(MAF_file,
     MAF_for_analysis = MAF,
     genes_for_analysis = genes_for_effect_size_analysis,
     mut_rates = mutrates,
-    trinuc.mutation_data = trinuc_data$trinuc.mutation_data,
-    dndscv_siggenes=dndscv.pq,
+    trinuc_mutation_data = trinuc_data$trinuc.mutation_data,
+    dndscv_siggenes=dndscv_pq,
     output_from_mainMAF = output_from_mainMAF)
 
   return(list(selection_output=selection_output,

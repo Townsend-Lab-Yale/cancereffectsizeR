@@ -31,15 +31,15 @@
 # calculates the average trinucleotide context among tumors
 
 trinuc_profile_function_with_weights <-
-  function(input.MAF,
-           signature.choice="signatures.cosmic",
-           minimum.mutations.per.tumor=50,
-           save.figs=F,tumor.name="[Tumor name here]",
-           sample.ID.column="Unique_patient_identifier",
-           chr.column = "Chromosome",
-           pos.column = "Start_Position",
-           ref.column = "Reference_Allele",
-           alt.column = "Tumor_allele"){
+  function(input_MAF,
+           signature_choice="signatures.cosmic",
+           minimum_mutations_per_tumor=50,
+           save_figs=F,tumor.name="[Tumor name here]",
+           sample_ID_column="Unique_patient_identifier",
+           chr_column = "Chromosome",
+           pos_column = "Start_Position",
+           ref_column = "Reference_Allele",
+           alt_column = "Tumor_allele"){
 
     # ip <- as.data.frame(installed.packages()[,c(1,3:4)])
     # if (!require("deconstructSigs")) {
@@ -48,12 +48,12 @@ trinuc_profile_function_with_weights <-
     # }
     # library(deconstructSigs)
 
-    if(length(which(colnames(input.MAF)==sample.ID.column))==0){
+    if(length(which(colnames(input_MAF)==sample_ID_column))==0){
       warning("You require a column named \'Unique_patient_identifier\' or you need to specify the column with unique IDs for all tumors.\nReturning NULL")
       return(NULL)
     }
 
-    input.MAF[,chr.column] <- paste("chr",trimws(input.MAF[,chr.column]),sep="")
+    input_MAF[,chr_column] <- paste("chr",trimws(input_MAF[,chr_column]),sep="")
     # should all be SNP already
     # input.MAF <- input.MAF[which(input.MAF$Variant_Type=="SNP"),]
 
@@ -62,10 +62,10 @@ trinuc_profile_function_with_weights <-
     # duplicated.vec.first <- duplicated(input.MAF$Start_Position)
     # duplicated.vec.last <- duplicated(input.MAF$Start_Position,fromLast=T)
 
-    duplicated.vec.first <- duplicated(input.MAF[,c(pos.column,chr.column,alt.column)])
-    duplicated.vec.last <- duplicated(input.MAF[,c(pos.column,chr.column,alt.column)],fromLast=T)
+    duplicated_vec_first <- duplicated(input_MAF[,c(pos_column,chr_column,alt_column)])
+    duplicated_vec_last <- duplicated(input_MAF[,c(pos_column,chr_column,alt_column)],fromLast=T)
 
-    duplicated.vec.pos <- which(duplicated.vec.first | duplicated.vec.last)
+    duplicated_vec_pos <- which(duplicated_vec_first | duplicated_vec_last)
     # duplicated.vec.start <- input.MAF$Start_Position[duplicated.vec.pos]
 
 
@@ -88,26 +88,26 @@ trinuc_profile_function_with_weights <-
     #   duplicated.vec.pos <- duplicated.vec.pos[-remove.from.eee]
     # }
     #
-    input.MAF <- input.MAF[-duplicated.vec.pos,]
+    input_MAF <- input_MAF[-duplicated_vec_pos,]
     # no.recur.MAF <- MAF_for_analysis[include.vec,]
 
     #Finding unique tumors
 
     message("Finding the number of mutations per tumor")
 
-    input.MAF <- input.MAF[which(input.MAF[, ref.column] %in% c('A', 'T', 'C', 'G') & input.MAF[, alt.column] %in% c('A', 'T', 'C', 'G')),]
+    input_MAF <- input_MAF[which(input_MAF[, ref_column] %in% c('A', 'T', 'C', 'G') & input_MAF[, alt_column] %in% c('A', 'T', 'C', 'G')),]
 
-    unique.patients <- unique(input.MAF[,sample.ID.column])
-    tumor.mutation.number <- NULL
-    for(i in 1:length(unique.patients)){
-      tumor.mutation.number[i] <- nrow(input.MAF[which(input.MAF[,sample.ID.column]==unique.patients[i]),])
+    unique_patients <- unique(input_MAF[,sample_ID_column])
+    tumor_mutation_number <- NULL
+    for(i in 1:length(unique_patients)){
+      tumor_mutation_number[i] <- nrow(input_MAF[which(input_MAF[,sample_ID_column]==unique_patients[i]),])
 
     }
 
 
-    patients.over.mut.minimum <- unique.patients[which(tumor.mutation.number>minimum.mutations.per.tumor)]
+    patients_over_mut_minimum <- unique_patients[which(tumor_mutation_number>minimum_mutations_per_tumor)]
 
-    message(paste("Number of tumors over specified minimum mutation number of ",minimum.mutations.per.tumor,": ",length(patients.over.mut.minimum),sep=""))
+    message(paste("Number of tumors over specified minimum mutation number of ",minimum_mutations_per_tumor,": ",length(patients_over_mut_minimum),sep=""))
 
     message("Cleaning input to only contain tumors above the minimum...")
 
@@ -116,17 +116,17 @@ trinuc_profile_function_with_weights <-
     # for(i in 1:nrow(input.MAF)){
     #   if(input.MAF[i,sample.ID.column] %in% patients.over.mut.minimum){keep <- c(keep,i)}
     # }
-    keep <- which(input.MAF[,sample.ID.column] %in% patients.over.mut.minimum)
-    input.MAF <- input.MAF[keep,]
+    keep <- which(input_MAF[,sample_ID_column] %in% patients_over_mut_minimum)
+    input_MAF <- input_MAF[keep,]
 
 
     message("Calculating trinucleotide mutation counts...")
-    sigs.input <- deconstructSigs::mut.to.sigs.input(mut.ref = input.MAF,
-                                    sample.id = sample.ID.column,
-                                    chr = chr.column,
-                                    pos = pos.column,
-                                    ref = ref.column,
-                                    alt = alt.column)
+    sigs_input <- deconstructSigs::mut.to.sigs.input(mut.ref = input_MAF,
+                                    sample.id = sample_ID_column,
+                                    chr = chr_column,
+                                    pos = pos_column,
+                                    ref = ref_column,
+                                    alt = alt_column)
 
     # data("tri.counts.genome", package = "deconstructSigs")
     # data("tri.counts.exome",package = "deconstructSigs")
@@ -137,22 +137,22 @@ trinuc_profile_function_with_weights <-
 
     message("Calculating individual tumor mutational signatures...")
 
-    if(signature.choice=="signatures.cosmic"){
-      signatures.output <- list()
-      for(i in 1:nrow(sigs.input)){
-        signatures.output[[i]] <- deconstructSigs::whichSignatures(tumor.ref = sigs.input,
+    if(signature_choice=="signatures.cosmic"){
+      signatures_output <- list()
+      for(i in 1:nrow(sigs_input)){
+        signatures_output[[i]] <- deconstructSigs::whichSignatures(tumor.ref = sigs_input,
                                                   signatures.ref = signatures.cosmic,
-                                                  sample.id = rownames(sigs.input)[i],
+                                                  sample.id = rownames(sigs_input)[i],
                                                   contexts.needed = TRUE,
                                                   tri.counts.method = 'exome2genome')
       }
     }
-    if(signature.choice=="signatures.nature2013"){
-      signatures.output <- list()
-      for(i in 1:nrow(sigs.input)){
-        signatures.output[[i]] <- deconstructSigs::whichSignatures(tumor.ref = sigs.input,
+    if(signature_choice=="signatures.nature2013"){
+      signatures_output <- list()
+      for(i in 1:nrow(sigs_input)){
+        signatures_output[[i]] <- deconstructSigs::whichSignatures(tumor.ref = sigs_input,
                                                   signatures.ref = signatures.nature2013,
-                                                  sample.id = rownames(sigs.input)[i],
+                                                  sample.id = rownames(sigs_input)[i],
                                                   contexts.needed = TRUE,
                                                   tri.counts.method = 'exome2genome')
       }
@@ -162,17 +162,17 @@ trinuc_profile_function_with_weights <-
 
     # melt(rbind(signatures.output[[1]]$weights,signatures.output[[2]]$weights))
 
-    if(length(signatures.output)>1){
+    if(length(signatures_output)>1){
       dir.create(path = "Figures", showWarnings = FALSE)
-      weights.df <- signatures.output[[1]]$weights
-      for(i in 2:length(signatures.output)){
-        weights.df <- rbind(weights.df,signatures.output[[i]]$weights)
+      weights_df <- signatures_output[[1]]$weights
+      for(i in 2:length(signatures_output)){
+        weights_df <- rbind(weights_df,signatures_output[[i]]$weights)
       }
 
-      weights.df.melt <- reshape2::melt(weights.df)
+      weights_df_melt <- reshape2::melt(weights_df)
 
-      if(save.figs){
-        viol <- ggplot2::ggplot(data=weights.df.melt,aes(x=variable,y=value)) + geom_violin() + theme_bw() +
+      if(save_figs){
+        viol <- ggplot2::ggplot(data=weights_df_melt,aes(x=variable,y=value)) + geom_violin() + theme_bw() +
           theme(axis.text.x = element_text(angle=90,hjust = 1)) +
           geom_jitter(width=0.25,aes(x=variable,y=value),alpha=0.2) +
           labs(x="Cosmic signature") + labs(y="Signature weight") + ggtitle(paste("Signatures in ",tumor.name,sep="")) +
@@ -187,56 +187,56 @@ trinuc_profile_function_with_weights <-
     }else{
       message("Only one signature calculated!")
       dir.create(path = "Figures", showWarnings = FALSE)
-      weights.df <- signatures.output[[1]]$weights
-      weights.df.melt <- reshape2::melt(weights.df)
+      weights_df <- signatures_output[[1]]$weights
+      weights_df_melt <- reshape2::melt(weights_df)
     }
 
 
 
 
-    unknown.list <- rep(NA,length(signatures.output))
-    for(i in 1:length(signatures.output)){
-      unknown.list[i] <- signatures.output[[i]]$unknown
+    unknown_list <- rep(NA,length(signatures_output))
+    for(i in 1:length(signatures_output)){
+      unknown_list[i] <- signatures_output[[i]]$unknown
     }
     message("Statistical summary of the proportion of the mutational signature in each tumor sample that is \'unknown\'")
-    print(summary(unknown.list))
+    print(summary(unknown_list))
 
-    averaged.product <- signatures.output[[1]]$product
-    for(i in 2:length(signatures.output)){
-      averaged.product <- averaged.product + signatures.output[[i]]$product
+    averaged_product <- signatures_output[[1]]$product
+    for(i in 2:length(signatures_output)){
+      averaged_product <- averaged_product + signatures_output[[i]]$product
     }
-    averaged.product <- averaged.product/length(signatures.output)
-    averaged.product <- averaged.product/sum(averaged.product)
+    averaged_product <- averaged_product/length(signatures_output)
+    averaged_product <- averaged_product/sum(averaged_product)
     # sum(averaged.product)
 
     ###
     #Create trinucleotide data frame
     ###
-    trinuc.mutation_data <- expand.grid(mutation=c("CtoA","CtoG","CtoT","TtoA","TtoC","TtoG"),Upstream=c("A","C","G","T"),Downstream=c("A","C","G","T"))
-    trinuc.mutation_data$mutated_from <- rep(NA,nrow(trinuc.mutation_data))
-    trinuc.mutation_data$mutated_to <- rep(NA,nrow(trinuc.mutation_data))
-    for(i in 1:nrow(trinuc.mutation_data)){
-      trinuc.mutation_data$mutated_from[i] <- strsplit(as.character(trinuc.mutation_data$mutation[i]),split = "")[[1]][1]
+    trinuc_mutation_data <- expand.grid(mutation=c("CtoA","CtoG","CtoT","TtoA","TtoC","TtoG"),Upstream=c("A","C","G","T"),Downstream=c("A","C","G","T"))
+    trinuc_mutation_data$mutated_from <- rep(NA,nrow(trinuc_mutation_data))
+    trinuc_mutation_data$mutated_to <- rep(NA,nrow(trinuc_mutation_data))
+    for(i in 1:nrow(trinuc_mutation_data)){
+      trinuc_mutation_data$mutated_from[i] <- strsplit(as.character(trinuc_mutation_data$mutation[i]),split = "")[[1]][1]
     }
-    for(i in 1:nrow(trinuc.mutation_data)){
-      trinuc.mutation_data$mutated_to[i] <- strsplit(as.character(trinuc.mutation_data$mutation[i]),split = "")[[1]][4]
+    for(i in 1:nrow(trinuc_mutation_data)){
+      trinuc_mutation_data$mutated_to[i] <- strsplit(as.character(trinuc_mutation_data$mutation[i]),split = "")[[1]][4]
     }
-    trinuc.mutation_data$total_count <- rep(0,nrow(trinuc.mutation_data)) ##
-    trinuc.mutation_data$proportion <- rep(0,nrow(trinuc.mutation_data)) ##
-    trinuc.mutation_data$section_labels <- factor(trinuc.mutation_data$mutation, labels = c("C%->%A", "C%->%G", "C%->%T","T%->%A", "T%->%C", "T%->%G"))
+    trinuc_mutation_data$total_count <- rep(0,nrow(trinuc_mutation_data)) ##
+    trinuc_mutation_data$proportion <- rep(0,nrow(trinuc_mutation_data)) ##
+    trinuc_mutation_data$section_labels <- factor(trinuc_mutation_data$mutation, labels = c("C%->%A", "C%->%G", "C%->%T","T%->%A", "T%->%C", "T%->%G"))
 
 
 
-    for(i in 1:length(averaged.product)){
-      splitname <- strsplit(colnames(averaged.product)[i],split="")[[1]]
+    for(i in 1:length(averaged_product)){
+      splitname <- strsplit(colnames(averaged_product)[i],split="")[[1]]
 
-      trinuc.mutation_data$proportion[which(trinuc.mutation_data$Upstream==splitname[1] &
-                                              trinuc.mutation_data$Downstream==splitname[7] &
-                                              trinuc.mutation_data$mutated_from==splitname[3] &
-                                              trinuc.mutation_data$mutated_to==splitname[5])] <- averaged.product[i]
+      trinuc_mutation_data$proportion[which(trinuc_mutation_data$Upstream==splitname[1] &
+                                              trinuc_mutation_data$Downstream==splitname[7] &
+                                              trinuc_mutation_data$mutated_from==splitname[3] &
+                                              trinuc_mutation_data$mutated_to==splitname[5])] <- averaged_product[i]
     }
-    if(save.figs){
-      p <- ggplot2::ggplot(data=trinuc.mutation_data, aes(Downstream, Upstream)) +
+    if(save_figs){
+      p <- ggplot2::ggplot(data=trinuc_mutation_data, aes(Downstream, Upstream)) +
         geom_tile(aes(fill = proportion*100), colour = "white") + scale_fill_gradient(low = "white", high = "steelblue", name="Percent")
       p <- p + facet_grid(.~section_labels, labeller = label_parsed)
       p <- p +  geom_text(aes(label = round(proportion, 4)*100),size=3)
@@ -255,8 +255,8 @@ trinuc_profile_function_with_weights <-
       ggsave(paste("Figures/",tumor.name,"_trinuc_heatmap.pdf",sep=""),height = 2.5,width = 10)
     }
 
-    trinuc.output <- list(trinuc.mutation_data=trinuc.mutation_data,
-                          signature.weights=signatures.output)
-    return(trinuc.output)
+    trinuc_output <- list(trinuc_mutation_data=trinuc_mutation_data,
+                          signature_weights=signatures_output)
+    return(trinuc_output)
   }
 

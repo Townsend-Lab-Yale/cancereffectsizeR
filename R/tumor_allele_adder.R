@@ -23,17 +23,17 @@ tumor_allele_adder <- function(MAF){
   MAF$Reference_Allele <- toupper(MAF$Reference_Allele)
 
   #Delete rows with no information in either Tumor Seq columns.
-  if(length(which(MAF$Tumor_Seq_Allele1=="" & MAF$Tumor_Seq_Allele2==""))>0){
+  if(any(MAF$Tumor_Seq_Allele1=="" & MAF$Tumor_Seq_Allele2=="", na.rm=TRUE)){
     MAF <- MAF[-which(MAF$Tumor_Seq_Allele1=="" & MAF$Tumor_Seq_Allele2==""),]
   }
 
   #Delete rows with no information in either Tumor Seq columns.
-  if(length(which(MAF$Tumor_Seq_Allele1=="NA" & MAF$Tumor_Seq_Allele2=="NA"))>0){
+  if(any(MAF$Tumor_Seq_Allele1=="NA" & MAF$Tumor_Seq_Allele2=="NA", na.rm=TRUE)){
     MAF <- MAF[-which(MAF$Tumor_Seq_Allele1=="NA" & MAF$Tumor_Seq_Allele2=="NA"),]
   }
 
   #Need to determine which column contains the tumor allele.
-  tumor.allele.function <- function(MAF_input){
+  tumor_allele_function <- function(MAF_input){
     ref <- MAF_input[,"Reference_Allele"]
     alt1 <- MAF_input[,"Tumor_Seq_Allele1"]
     alt2 <- MAF_input[,"Tumor_Seq_Allele2"]
@@ -64,10 +64,10 @@ tumor_allele_adder <- function(MAF){
   }
 
   MAF_allele_list <- split(x = MAF[,c("Reference_Allele","Tumor_Seq_Allele1","Tumor_Seq_Allele2")],f = rep(1:nrow(MAF),each=1))
-  MAF$Tumor_allele <- unlist(lapply(X = MAF_allele_list,FUN = tumor.allele.function))
+  MAF$Tumor_allele <- unlist(lapply(X = MAF_allele_list,FUN = tumor_allele_function))
 
-  if(length(which(MAF$Tumor_allele == MAF$Reference_Allele))>0){
-   message(paste(length(which(MAF$Tumor_allele == MAF$Reference_Allele)),
+  if(any(MAF$Tumor_allele == MAF$Reference_Allele, na.rm=TRUE)){
+   message(paste(sum(MAF$Tumor_allele == MAF$Reference_Allele),
                  " variants have the same reference and tumor allele, \n
                  deleting from the analysis"))
     MAF[-which(MAF$Tumor_allele == MAF$Reference_Allele),]

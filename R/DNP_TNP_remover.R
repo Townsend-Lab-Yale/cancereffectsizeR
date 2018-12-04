@@ -25,37 +25,31 @@ DNP_TNP_remover <- function(MAF,delete_recur=F){
   message("Removing possible DNP")
   remove_it <- MAF
   final_MAF <- NULL
-  tumor.list <- unique(remove_it$Unique_patient_identifier)
+  tumor_list <- unique(remove_it$Unique_patient_identifier)
   counter <- 0
-  possible.DNP <- NULL
-  for(i in 1:length(tumor.list)){
-    to.delete <- NULL
-    this.tumor_full <- remove_it[which(remove_it$Unique_patient_identifier==tumor.list[i] & remove_it$Variant_Type!="SNP"),]
-    this.tumor <- remove_it[which(remove_it$Unique_patient_identifier==tumor.list[i] & remove_it$Variant_Type=="SNP"),]
-    for(j in 1:nrow(this.tumor)){
-      if(length(which(this.tumor$Chromosome==this.tumor$Chromosome[j] &
-                      (this.tumor$Start_Position==this.tumor$Start_Position[j]+1 |
-                       this.tumor$Start_Position==this.tumor$Start_Position[j]-1 )))>0){
+  possible_DNP <- NULL
+  for(i in 1:length(tumor_list)){
+    to_delete <- NULL
+    this_tumor_full <- remove_it[which(remove_it$Unique_patient_identifier==tumor_list[i] & remove_it$Variant_Type!="SNP"),]
+    this_tumor <- remove_it[which(remove_it$Unique_patient_identifier==tumor_list[i] & remove_it$Variant_Type=="SNP"),]
+    for(j in 1:nrow(this_tumor)){
+      if(any(this_tumor$Chromosome==this_tumor$Chromosome[j] &
+                      (this_tumor$Start_Position==this_tumor$Start_Position[j]+1 |
+                       this_tumor$Start_Position==this_tumor$Start_Position[j]-1 |
+                       this_tumor$Start_Position==this_tumor$Start_Position[j]+2 |
+                       this_tumor$Start_Position==this_tumor$Start_Position[j]-2 ), na.rm=TRUE)){
 
-        to.delete <- c(to.delete,j)
+        to_delete <- c(to_delete,j)
         counter <- counter+1
       }
     }
-    for(j in 1:nrow(this.tumor)){
-      if(length(which(this.tumor$Chromosome==this.tumor$Chromosome[j] &
-                      (this.tumor$Start_Position==this.tumor$Start_Position[j]+2 |
-                       this.tumor$Start_Position==this.tumor$Start_Position[j]-2 )))>0){
-
-        to.delete <- c(to.delete,j)
-        counter <- counter+1
-      }
-    }
-    if(length(to.delete)>0){
-      this.tumor_full <- rbind(this.tumor[-to.delete,],this.tumor_full)
-      final_MAF <- rbind(final_MAF,this.tumor_full)
+    
+    if(length(to_delete)>0){
+      this_tumor_full <- rbind(this_tumor[-to_delete,],this_tumor_full)
+      final_MAF <- rbind(final_MAF,this_tumor_full)
     }else{
-      this.tumor_full <- rbind(this.tumor,this.tumor_full)
-      final_MAF <- rbind(final_MAF,this.tumor_full)
+      this_tumor_full <- rbind(this_tumor,this_tumor_full)
+      final_MAF <- rbind(final_MAF,this_tumor_full)
     }
   }
   message(paste("Total count of potential DNP removed: ", counter))
@@ -66,28 +60,20 @@ DNP_TNP_remover <- function(MAF,delete_recur=F){
     message("Deleting any mutations detected in TCGA recurrent tumors")
 
     if("Tumor_Sample_Barcode" %in% colnames(final_MAF)){
-      tumors.unique <- unique(final_MAF$Tumor_Sample_Barcode) # get all the tumor names
-      if(length(which(startsWith(x = tumors.unique,prefix = "TCGA")))>1){
+      tumors_unique <- unique(final_MAF$Tumor_Sample_Barcode) # get all the tumor names
+      if(sum(startsWith(x = tumors_unique,prefix = "TCGA"))>1){
 
-        tumors.unique <- tumors.unique[startsWith(x = tumors.unique,prefix = "TCGA")] # get all the tumor names that start with "TCGA"
+        tumors_unique <- tumors_unique[startsWith(x = tumors_unique,prefix = "TCGA")] # get all the tumor names that start with "TCGA"
 
-        tumors.split <- strsplit(tumors.unique,split = "")
-        holder.vec <- rep(NA,length(tumors.split))
-        for(i in 1:length(tumors.split)){
-          holder.vec[i] <- paste(tumors.split[[i]][14:15],sep="",collapse = "")
-        }
+        holder_vec <- substr(tumors_unique, 14, 15)
 
-        if(any(unique(holder.vec)!="01")){ #If any do not equal 01, primary tumor
+        if(any(unique(holder_vec)!="01")){ #If any do not equal 01, primary tumor
           warning(paste("Tumor sample barcode sample types exist in these TCGA data besides 01! Removing all 02 "))
 
-
-          if(length(which(holder.vec=="02"))>0){
-            final_MAF <- final_MAF[-which(final_MAF$Tumor_Sample_Barcode %in%  tumors.unique[which(holder.vec=="02")]),]
+          if(any(holder_vec=="02", na.rm=TRUE)){
+            final_MAF <- final_MAF[!(final_MAF$Tumor_Sample_Barcode %in% tumors_unique[which(holder_vec=="02")]),]
           }
         }
-
-
-
       }
     }
   }

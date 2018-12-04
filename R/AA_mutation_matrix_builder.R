@@ -5,12 +5,12 @@ library(cancereffectsizeR)
 
 load("data/deconstructSigs_trinuc_string.RData")
 data("AA_translations")
-all.nucs <- expand.grid(c("A","T","G","C"),c("A","T","G","C"),c("A","T","G","C"),c("A","T","G","C"),c("A","T","G","C"),stringsAsFactors = F)
+all_nucs <- expand.grid(c("A","T","G","C"),c("A","T","G","C"),c("A","T","G","C"),c("A","T","G","C"),c("A","T","G","C"),stringsAsFactors = F)
 
-all.nucs$combination <- apply(all.nucs,1,function(x)paste(x,collapse=""))
+all_nucs$combination <- apply(all_nucs,1,function(x)paste(x,collapse=""))
 
-AA_mutation_list <- vector("list",nrow(all.nucs))
-names(AA_mutation_list) <- all.nucs$combination
+AA_mutation_list <- vector("list",nrow(all_nucs))
+names(AA_mutation_list) <- all_nucs$combination
 
 AA_translations$AA_short <- as.character(AA_translations$AA_short)
 AA_translations$Nucs <- as.character(AA_translations$Nucs)
@@ -21,9 +21,9 @@ rownames(AA_translations) <- AA_translations$Nucs
 nucs <- c("A","T","G","C")
 
 
-for(i in 1:nrow(all.nucs)){
-  this_codon <- as.character(all.nucs[i,c("Var2","Var3","Var4")])
-  this_5seq <- as.character(all.nucs[i,c("Var1","Var2","Var3","Var4","Var5")])
+for(i in 1:nrow(all_nucs)){
+  this_codon <- as.character(all_nucs[i,c("Var2","Var3","Var4")])
+  this_5seq <- as.character(all_nucs[i,c("Var1","Var2","Var3","Var4","Var5")])
   this_amino_acid <- AA_translations[paste(this_codon,collapse = ""),"AA_short"]
   alt_AA=list(Phe= NULL,
               Leu= NULL,

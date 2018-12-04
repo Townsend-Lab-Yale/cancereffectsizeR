@@ -30,7 +30,7 @@ merging_TCGA_and_local_MAFdata_function <- function(NCI_data,
                                                     check_for_same_tumor=T){
   
   #headers necessary for analyses
-  important.headers <- c("Hugo_Symbol",
+  important_headers <- c("Hugo_Symbol",
                          "Chromosome",
                          "Tumor_Seq_Allele2",
                          "Variant_Classification",
@@ -44,10 +44,12 @@ merging_TCGA_and_local_MAFdata_function <- function(NCI_data,
                          "t_ref_count",
                          "t_alt_count")
   
-  message("These are the important headers that need to be contained in both files: ");print(important.headers,sep="")
-  
-  message("Important headers not in NCI_data: ");print(important.headers[which(!(important.headers %in% colnames(NCI_data)))])
-  message("Important headers not in Local_data: ");print(important.headers[which(!(important.headers %in% colnames(Local_data)))])
+  message("These are the important headers that need to be contained in both files: ")
+  print(important_headers,sep="")
+  message("Important headers not in NCI_data: ")
+  print(important_headers[which(!(important_headers %in% colnames(NCI_data)))])
+  message("Important headers not in Local_data: ")
+  print(important_headers[which(!(important_headers %in% colnames(Local_data)))])
   
   
   ### 
@@ -59,9 +61,9 @@ merging_TCGA_and_local_MAFdata_function <- function(NCI_data,
   rename <- function(oldname, newname, dataframe){
     if(dataframe=="Local_data"){cols <- colnames(Local_data)}
     if(dataframe=="NCI_data"){cols <- colnames(NCI_data)}
-    if(length(which(cols==newname))==0){
+    if(!newname %in% cols){
       print(paste(dataframe,"is missing column name header", newname))
-      if(length(which(cols==oldname))>0){
+      if(oldname %in% cols){
         cols[which(cols==oldname)] <- newname
         print(paste(dataframe,"had column name header", oldname,". That was automatically changed to", newname)) 
       }else{
@@ -80,8 +82,10 @@ merging_TCGA_and_local_MAFdata_function <- function(NCI_data,
   colnames(NCI_data) <- rename(oldname = "Start_position",newname = "Start_Position",dataframe = "NCI_data")
   
   message("Still a problem and need to be fixed manually: ") 
-  message("Important headers not in NCI_data: ");print(important.headers[which(!(important.headers %in% colnames(NCI_data)))])
-  message("Important headers not in Local_data: ");print(important.headers[which(!(important.headers %in% colnames(Local_data)))])
+  message("Important headers not in NCI_data: ")
+  print(important_headers[which(!(important_headers %in% colnames(NCI_data)))])
+  message("Important headers not in Local_data: ")
+  print(important_headers[which(!(important_headers %in% colnames(Local_data)))])
   
   
   ### 
@@ -106,12 +110,12 @@ merging_TCGA_and_local_MAFdata_function <- function(NCI_data,
       percent_for_each_tcga <- rep(NA,length=length(unique_tcga_tumors))
       names(percent_for_each_tcga) <- unique_tcga_tumors
       for(tcga_tumor in 1:length(unique_tcga_tumors)){
-        percent_for_each_tcga[tcga_tumor] <- sum(Local_data$mutation_name[Local_data$Tumor_Sample_Barcode == unique_local_tumors[local_tumor]] %in% NCI_data$mutation_name[NCI_data$Tumor_Sample_Barcode == unique_tcga_tumors[tcga_tumor]]) 
+        percent_for_each_tcga[tcga_tumor] <- sum(Local_data$mutation_name[Local_data$Tumor_Sample_Barcode == unique_local_tumors[local_tumor]] %in% NCI_data$mutation_name[which(NCI_data$Tumor_Sample_Barcode == unique_tcga_tumors[tcga_tumor])]) 
       }
       
-      if(length(which(percent_for_each_tcga>0))>0){
+      if(any(percent_for_each_tcga>0, na.rm=TRUE)){
         percent_same[local_tumor,c("number_of_same_mutations","percent","TCGA_tumor")] <- c(percent_for_each_tcga[which.max(percent_for_each_tcga)],
-                                                                                            percent_for_each_tcga[which.max(percent_for_each_tcga)]/sum(Local_data$Tumor_Sample_Barcode==unique_local_tumors[local_tumor]),
+                                                                                            percent_for_each_tcga[which.max(percent_for_each_tcga)] / length(which(Local_data$Tumor_Sample_Barcode==unique_local_tumors[local_tumor])),
                                                                                             names(percent_for_each_tcga)[which.max(percent_for_each_tcga)])
       }
       print(rownames(percent_same)[local_tumor])
@@ -120,7 +124,7 @@ merging_TCGA_and_local_MAFdata_function <- function(NCI_data,
     
     rm(unique_local_tumors, unique_tcga_tumors)
     
-    if(length(which(percent_same[,"percent"]>.1))>0){
+    if(any(percent_same[,"percent"]>.1, na.rm=TRUE)){
       warning("Some of the local files share more than 10% of mutations with NCI files,
             see `potential_duplicates.RData` in the working directory for more information.")
       save(percent_same,file = "potential_duplicates.RData")
@@ -130,15 +134,15 @@ merging_TCGA_and_local_MAFdata_function <- function(NCI_data,
   message("Merging the data frames along their common headers...")
   
   #What are the common headers among the data frames to be merged? 
-  common.headers <- colnames(NCI_data)[which(colnames(NCI_data) %in% colnames(Local_data))]
+  common_headers <- colnames(NCI_data)[which(colnames(NCI_data) %in% colnames(Local_data))]
   
-  NCI_and_Local_data <- as.data.frame(matrix(nrow=(nrow(NCI_data)+nrow(Local_data)),ncol = length(common.headers),data=NA))
-  colnames(NCI_and_Local_data) <- common.headers
+  NCI_and_Local_data <- as.data.frame(matrix(nrow=(nrow(NCI_data)+nrow(Local_data)),ncol = length(common_headers),data=NA))
+  colnames(NCI_and_Local_data) <- common_headers
   head(NCI_and_Local_data)
   
-  for(i in 1:length(common.headers)){
-    NCI_and_Local_data[1:nrow(NCI_data),common.headers[i]] <- NCI_data[,common.headers[i]] 
-    NCI_and_Local_data[(nrow(NCI_data)+1):nrow(NCI_and_Local_data),common.headers[i]] <- Local_data[,common.headers[i]]
+  for(i in 1:length(common_headers)){
+    NCI_and_Local_data[1:nrow(NCI_data),common_headers[i]] <- NCI_data[,common_headers[i]] 
+    NCI_and_Local_data[(nrow(NCI_data)+1):nrow(NCI_and_Local_data),common_headers[i]] <- Local_data[,common_headers[i]]
   }
   
   message("Merging Completed") 
@@ -147,11 +151,7 @@ merging_TCGA_and_local_MAFdata_function <- function(NCI_data,
 }
 
 
-combining_MAFs_function <- function(MAF_directory,sum.stats=T){
-  
-  first.12 <- function(string_to_12){
-    return(substr(string_to_12, start=1, stop=12))
-  }
+combining_MAFs_function <- function(MAF_directory,sum_stats=T){
   
   #Names of the files in the tumor list directory
   MAF_files <- dir(MAF_directory,pattern="*.maf*") #only includes files with .maf in the name
@@ -168,7 +168,6 @@ combining_MAFs_function <- function(MAF_directory,sum.stats=T){
   #First 16 characters of tumor_sample_barcode 
   
   
-  
   ###
   #Sometimes, the MAFs have different column names, so we cannot just combine directly by rows.
   #COADREAD downloaded from firebrowse.org is an example of this-- some have 294 columns, some have 300. 
@@ -177,23 +176,10 @@ combining_MAFs_function <- function(MAF_directory,sum.stats=T){
   ###
   
   
-  
-  
-  
   #initialize the main MAF dataframe with the first row of the first MAF file
-  main_MAF.holder <- read.csv(paste(MAF_directory,MAF_files[1],sep=""),skip = 3,header=T,sep="\t",stringsAsFactors = F,nrows = 1)
-  # main_MAF <- main_MAF[-1,] #And then get rid of the data (will replace soon)-- just want the column names 
-  
-  #Finding column numbers for the analysis (loop is faster when data frame is converted into a matrix, and calls are column numbers instead of names)
-  #now including this in the loop, in case some headers are in a different order or if they are a different size. 
-  # Hugo <- which(colnames(main_MAF.holder)=="Hugo_Symbol")
-  # Start <- which(colnames(main_MAF.holder)=="Start_position")
-  # Variant <- which(colnames(main_MAF.holder)=="Variant_Type")
-  # Tumor_Allele2 <- which(colnames(main_MAF.holder)=="Tumor_Seq_Allele2")
-  # Tumor_Barcode <- which(colnames(main_MAF.holder)=="Tumor_Sample_Barcode")
-  # chrom <- which(colnames(main_MAF.holder)=="Chromosome")
-  
-  important.headers <- c("Hugo_Symbol",
+  main_MAF_holder <- read.csv(paste(MAF_directory,MAF_files[1],sep=""),skip = 3,header=T,sep="\t",stringsAsFactors = F,nrows = 1)
+
+  important_headers <- c("Hugo_Symbol",
                          "Chromosome",
                          "Tumor_Seq_Allele2",
                          "Variant_Classification",
@@ -207,27 +193,16 @@ combining_MAFs_function <- function(MAF_directory,sum.stats=T){
                          "t_ref_count",
                          "t_alt_count")
   
-  
-  #placeholder matrix to store the data
-  #Is initialized with a lot of rows, to be filled in, and then chopped down later, because added rows as needed is very time consuming
-  # main_MAF <- matrix(nrow=1e6,ncol=ncol(main_MAF.holder),data=NA)
-  # colnames(main_MAF) <- colnames(main_MAF.holder)[c(1:42,341,342)]
   main_MAF <- NULL
   
-  # start_list <- NULL
-  # tumor_list <- NULL
-  
-  # rows_to_combine <- matrix(data=NA,nrow=1e6,ncol=2)
-  # counter <- 1
-  # size <- length(start_list)
   #For each MAF, add their rows, while checking that the same mutation is not already present for the same tumor
-  # profvis( #This is for checking speed and optimizing the loop
+
   for(i in 1:length(MAF_files)){
     
     this_MAF <- read.csv(paste(MAF_directory,MAF_files[i],sep=""),skip = 3,header=T,sep="\t",stringsAsFactors = F)
     
     
-    #Finding column numbers for the analysis (loop is faster when data frame is converted into a matrix, and calls are column numbers instead of nmaes)
+    #Finding column numbers for the analysis (loop is faster when data frame is converted into a matrix, and calls are column numbers instead of names)
     Hugo <- which(colnames(this_MAF)=="Hugo_Symbol")
     Start <- which(colnames(this_MAF)=="Start_position")
     End <- which(colnames(this_MAF)=="End_position")
@@ -269,42 +244,39 @@ combining_MAFs_function <- function(MAF_directory,sum.stats=T){
     column_names <- colnames(this_MAF[,combining_columns])
     
     this_MAF <- as.matrix(this_MAF)
-    # to_delete <- NULL
     
     main_MAF <- rbind(main_MAF,this_MAF[,combining_columns])
-    # }
+    
     message(paste("Percent of MAFs merged: ",round(i/length(MAF_files),4)*100,"%",sep=""))
-    # print(paste("Number of mutations merged: ",length(start_list),sep=""))
-    # size <- length(start_list)
   }
   
   main_MAF[,"Tumor_Seq_Allele2"] <- toupper(main_MAF[,"Tumor_Seq_Allele2"])
   main_MAF[,"Reference_Allele"] <- toupper(main_MAF[,"Reference_Allele"])
   message("Determining unique tumors...")
-  main_MAF <- cbind(main_MAF,unlist(lapply(main_MAF[,"Tumor_Sample_Barcode"],first.12)))
+  main_MAF <- cbind(main_MAF,substr(main_MAF[,"Tumor_Sample_Barcode"],1,12))
   
   colnames(main_MAF)[length(colnames(main_MAF))] <- "Unique_patient_identifier"
   
-  unique.patients <- unique(main_MAF[,"Unique_patient_identifier"])
+  unique_patients <- unique(main_MAF[,"Unique_patient_identifier"])
   
   
   message("Deleting duplicated mutations...")
-  start.positions <- as.numeric(main_MAF[,"Start_position"])
-  for(i in 1:length(unique.patients)){
+  start_positions <- as.numeric(main_MAF[,"Start_position"])
+  for(i in 1:length(unique_patients)){
     to_delete <- NULL
-    this_MAF <- which(main_MAF[,"Unique_patient_identifier"]==unique.patients[i])
+    this_MAF <- which(main_MAF[,"Unique_patient_identifier"]==unique_patients[i])
     for(j in 1:length(this_MAF)){
       
-      if(sum(start.positions[this_MAF]==start.positions[this_MAF[j]])>1){
+      if(sum(start_positions[this_MAF]==start_positions[this_MAF[j]])>1){
         
-        if(sum(start.positions[this_MAF]==start.positions[this_MAF[j]] & 
+        if(sum(start_positions[this_MAF]==start_positions[this_MAF[j]] & 
                         trimws(main_MAF[this_MAF,"Chromosome"])==trimws(main_MAF[this_MAF[j],"Chromosome"]) &
                         trimws(main_MAF[this_MAF,"Tumor_Seq_Allele2"])==main_MAF[this_MAF[j],"Tumor_Seq_Allele2"])>1){
           
-          matches <- which(start.positions[this_MAF]==start.positions[this_MAF[j]] & 
+          matches <- which(start_positions[this_MAF]==start_positions[this_MAF[j]] & 
                              trimws(main_MAF[this_MAF,"Chromosome"])==trimws(main_MAF[this_MAF[j],"Chromosome"]) &
                              trimws(main_MAF[this_MAF,"Tumor_Seq_Allele2"])==main_MAF[this_MAF[j],"Tumor_Seq_Allele2"])
-          matches <- matches[matches>j]
+          matches <- matches[which(matches>j)]
           
           if(length(matches)>0){
             for(jj in 1:length(matches)){
@@ -319,47 +291,34 @@ combining_MAFs_function <- function(MAF_directory,sum.stats=T){
     }
     
     if(length(to_delete)>0){
-      # break
-      # print(paste(i," tumor"));print(to_delete)
       main_MAF <- main_MAF[-this_MAF[to_delete],]
-      start.positions <- start.positions[-this_MAF[to_delete]]
+      start_positions <- start_positions[-this_MAF[to_delete]]
     }
     
-    message(paste("Percent of MAFs deduplicated: ",round(i/length(unique.patients),4)*100,"%",sep=""))
+    message(paste("Percent of MAFs deduplicated: ",round(i/length(unique_patients),4)*100,"%",sep=""))
     
   }
   
-  
-  
-  
-  
-  # )
-  
   ##Cut the main MAF matrix down to just where the data is stored, make it a data frame, and save it
   
-  # nrow(main_MAF)
   message("Cleaning data...") 
   main_MAF_DF <- data.frame(main_MAF,stringsAsFactors = F)
   
-  # colnames(main_MAF_DF) <- column_names
-  # main_MAF_DF <- droplevels(main_MAF_DF)
   main_MAF_DF$Start_position <- as.numeric(main_MAF_DF$Start_position)
   
   
-  if(sum.stats){
-    unique.patients <- unique(main_MAF_DF$Unique_patient_identifier)
+  if(sum_stats){
+    unique_patients <- unique(main_MAF_DF$Unique_patient_identifier)
     
-    tumor.mutation.number <- NULL
-    for(i in 1:length(unique.patients)){
-      tumor.mutation.number[i] <- sum(main_MAF_DF$Unique_patient_identifier==unique.patients[i])
-      
+    tumor_mutation_number <- NULL
+    for(i in 1:length(unique_patients)){
+      tumor_mutation_number[i] <- length(which(main_MAF_DF$Unique_patient_identifier==unique_patients[i]))
     }
     
-    
-    hist(tumor.mutation.number,breaks=100,xlab="Number of mutations per tumor",main="Histogram of the number of mutations in each tumor")
+    hist(tumor_mutation_number,breaks=100,xlab="Number of mutations per tumor",main="Histogram of the number of mutations in each tumor")
     
     message("Summary statistics of the number of mutations per unique tumor:")
-    print(summary(tumor.mutation.number))
+    print(summary(tumor_mutation_number))
     
   }
   return(main_MAF_DF)

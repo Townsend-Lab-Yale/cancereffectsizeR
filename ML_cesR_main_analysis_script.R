@@ -31,7 +31,7 @@ MAF_input <- merging_TCGA_and_local_MAFdata_function(NCI_data = NCI_data,Local_d
 # is this necessary anymore? Want to remove superfluous functions and code.
 source("R/unique_tumor_addition.R")
 
-MAF_input <- unique_tumor_addition_function(MAF.file = MAF_input,non.TCGA.characters.to.keep = "all")
+MAF_input <- unique_tumor_addition_function(MAF_file = MAF_input,non_TCGA_characters_to_keep = "all")
 
 ## tumor allele adder ----
 source("R/tumor_allele_adder.R")
@@ -60,7 +60,7 @@ chr_column = "Chromosome"
 pos_column = "Start_Position"
 ref_column = "Reference_Allele"
 alt_column = "Tumor_allele"
-covariate_file = "bladder_pca"
+covariate_file = "lung_pca"
 
 
 # will use functions and sub-functions to complete each step
@@ -111,29 +111,29 @@ for(tumor_name in 1:length(tumors_with_50_or_more)){
                                                         sample.id = tumors_with_50_or_more[tumor_name],
                                                         contexts.needed = TRUE,
                                                         tri.counts.method = 'exome2genome')
-
+  
   trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],] <- signatures_output$product/sum( signatures_output$product) #need it to sum to 1.
-
+  
   # Not all trinuc weights in the cosmic dataset are nonzero for certain signatures
   # This leads to the rare occasion where a certain combination of signatues leads to ZERO
   # rate for particular trinucleotide contexts.
   # True rate is nonzero, as we do see those variants in those tumors, so renormalizing
   # the rates by adding the lowest nonzero rate to all the rates and renormalizing
-
-
+  
+  
   if(0 %in% trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],]){
     # finding the lowest nonzero rate
     lowest_rate <- min(trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],
                                                 -which(trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],]==0)])
-
+    
     # adding it to the rates
     trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],] <- trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],] + lowest_rate
-
+    
     # renormalizing to 1
     trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],] <-
       trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],] / sum(trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],])
   }
-
+  
 }
 
 # 2. Find nearest neighbor to tumors with < 50 mutations, assign identical weights as neighbor ----
@@ -143,16 +143,18 @@ distance_matrix <- as.matrix(dist(trinuc_breakdown_per_tumor))
 for(tumor_name in 1:length(tumors_with_less_than_50)){
   #find closest tumor that have over 50 mutations
   closest_tumor <- names(sort(distance_matrix[tumors_with_less_than_50[tumor_name],tumors_with_50_or_more]))[1]
-
+  
   trinuc_proportion_matrix[tumors_with_less_than_50[tumor_name],] <- trinuc_proportion_matrix[closest_tumor,]
-
+  
 }
 
 # now, trinuc_proportion_matrix has the proportion of all trinucs in every tumor.
 
 # 3. Calculate mutation rates at gene-level (dndscv) ----
 
-MAF_input <- cancereffectsizeR::wrongRef_dndscv_checker(mutations = MAF_input[,c(sample_ID_column,chr_column,pos_column,ref_column,alt_column)])
+source("R/wrongRef_dndscv_checker.R")
+
+MAF_input <- wrongRef_dndscv_checker(mutations = MAF_input[,c(sample_ID_column,chr_column,pos_column,ref_column,alt_column)])
 
 if(is.null(covariate_file)){
   data("covariates_hg19",package = "dndscv")
@@ -177,23 +179,23 @@ dndscvout <- dndscv::dndscv(
 
 data("refcds_hg19", package="dndscv")
 
-RefCDS.our.genes <- RefCDS[which(sapply(RefCDS, function(x) x$gene_name) %in% dndscvout$genemuts$gene_name)]
+RefCDS_our_genes <- RefCDS[which(sapply(RefCDS, function(x) x$gene_name) %in% dndscvout$genemuts$gene_name)]
 
 
 if(dndscvout$nbreg$theta>1){
-  mutrates <- ((dndscvout$genemuts$n_syn + dndscvout$nbreg$theta - 1)/(1+(dndscvout$nbreg$theta/dndscvout$genemuts$exp_syn_cv))/sapply(RefCDS.our.genes, function(x) colSums(x$L)[1]))/length(unique(MAF_input[,sample_ID_column]))
+  mutrates <- ( (dndscvout$genemuts$n_syn + dndscvout$nbreg$theta - 1) / (1+(dndscvout$nbreg$theta / dndscvout$genemuts$exp_syn_cv)) / sapply(RefCDS_our_genes, function(x) colSums(x$L)[1]) ) / length(unique(MAF_input[,sample_ID_column]))
 }else{
   mutrates <- rep(NA,length(dndscvout$genemuts$exp_syn_cv))
-
-  syn.sites <- sapply(RefCDS.our.genes, function(x) colSums(x$L)[1])
-
+  
+  syn_sites <- sapply(RefCDS_our_genes, function(x) colSums(x$L)[1])
+  
   for(i in 1:length(mutrates)){
     if( dndscvout$genemuts$exp_syn_cv[i] >  ((dndscvout$genemuts$n_syn[i] + dndscvout$nbreg$theta - 1)/(1+(dndscvout$nbreg$theta/dndscvout$genemuts$exp_syn_cv[i])))){
-      mutrates[i] <- (dndscvout$genemuts$exp_syn_cv[i]/syn.sites[i])/length(unique(MAF_input[,sample_ID_column]))
+      mutrates[i] <- (dndscvout$genemuts$exp_syn_cv[i]/syn_sites[i])/length(unique(MAF_input[,sample_ID_column]))
     }else{
-      mutrates[i] <- (((dndscvout$genemuts$n_syn[i] + dndscvout$nbreg$theta - 1)/(1+(dndscvout$nbreg$theta/dndscvout$genemuts$exp_syn_cv[i])))/syn.sites[i])/length(unique(MAF[,sample_ID_column]))
+      mutrates[i] <- (((dndscvout$genemuts$n_syn[i] + dndscvout$nbreg$theta - 1)/(1+(dndscvout$nbreg$theta/dndscvout$genemuts$exp_syn_cv[i])))/syn_sites[i])/length(unique(MAF[,sample_ID_column]))
     }
-
+    
   }
 }
 names(mutrates) <- dndscvout$genemuts$gene_name
@@ -243,36 +245,36 @@ gene_name_matches <- GenomicRanges::nearest(x = MAF_ranges, subject = gr_genes,s
 
 
 # take care of single hits
-single.choice <- as.numeric(names(table(S4Vectors::queryHits(gene_name_matches)))[which(table(S4Vectors::queryHits(gene_name_matches))==1)])
+single_choice <- as.numeric(names(table(S4Vectors::queryHits(gene_name_matches)))[which(table(S4Vectors::queryHits(gene_name_matches))==1)])
 
-MAF_input_unmatched$Gene_name[single.choice] <- gr_genes$names[S4Vectors::subjectHits(gene_name_matches)[which(S4Vectors::queryHits(gene_name_matches) %in% single.choice)]]
+MAF_input_unmatched$Gene_name[single_choice] <- gr_genes$names[S4Vectors::subjectHits(gene_name_matches)[which(S4Vectors::queryHits(gene_name_matches) %in% single_choice)]]
 
 
 
-multi.choice <- as.numeric(names(table(S4Vectors::queryHits(gene_name_matches)))[which(table(S4Vectors::queryHits(gene_name_matches))>1)])
+multi_choice <- as.numeric(names(table(S4Vectors::queryHits(gene_name_matches)))[which(table(S4Vectors::queryHits(gene_name_matches))>1)])
 
 
 # Then, assign rest to the closest gene
 
-multi.choice <- as.numeric(names(table(S4Vectors::queryHits(gene_name_matches)))[which(table(S4Vectors::queryHits(gene_name_matches))>1)])
+multi_choice <- as.numeric(names(table(S4Vectors::queryHits(gene_name_matches)))[which(table(S4Vectors::queryHits(gene_name_matches))>1)])
 
-all.possible.names <- gr_genes$names[S4Vectors::subjectHits(gene_name_matches)]
-query.spots <- S4Vectors::queryHits(gene_name_matches)
+all_possible_names <- gr_genes$names[S4Vectors::subjectHits(gene_name_matches)]
+query_spots <- S4Vectors::queryHits(gene_name_matches)
 
-for(i in 1:length(multi.choice)){
+for(i in 1:length(multi_choice)){
   # first, assign if the nearest happened to be within the GenomicRanges::findOverlaps() and applicable to one gene
-  if(length(which(queryHits(gene_name_matches) == multi.choice[i])) == 1){
-
-    MAF_input_unmatched[multi.choice[i],"Gene_name"] <- gr_genes$names[subjectHits(gene_name_matches)[which(queryHits(gene_name_matches) == multi.choice[i])]]
-
+  if(length(which(queryHits(gene_name_matches) == multi_choice[i])) == 1){
+    
+    MAF_input_unmatched[multi_choice[i],"Gene_name"] <- gr_genes$names[subjectHits(gene_name_matches)[which(queryHits(gene_name_matches) == multi_choice[i])]]
+    
   }else{
-
-    genes.for.this.choice <- all.possible.names[which(query.spots==multi.choice[i])]
-
-    if(length(which( genes.for.this.choice %in% names(mutrates) ))>0){
-      MAF_input_unmatched$Gene_name[multi.choice[i]] <- genes.for.this.choice[which( genes.for.this.choice %in% names(mutrates) )[1]]
+    
+    genes_for_this_choice <- all_possible_names[which(query_spots==multi_choice[i])]
+    
+    if(any( genes_for_this_choice %in% names(mutrates), na.rm=TRUE )){
+      MAF_input_unmatched$Gene_name[multi_choice[i]] <- genes_for_this_choice[which( genes_for_this_choice %in% names(mutrates) )[1]]
     }else{
-      MAF_input_unmatched$Gene_name[multi.choice[i]] <- "Indeterminate"
+      MAF_input_unmatched$Gene_name[multi_choice[i]] <- "Indeterminate"
     }
   }
 }
@@ -305,7 +307,8 @@ MAF_input$strand <- strand_data[MAF_input$Gene_name]
 
 
 
-MAF_input$triseq <- as.character(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens, paste("chr",MAF_input$Chromosome,sep=""), strand=MAF_input$strand, start=MAF_input$Start_Position-1, end=MAF_input$Start_Position+1))
+MAF_input$triseq <- as.character(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens, paste("chr",MAF_input$Chromosome,sep=""), 
+                                                  strand=MAF_input$strand, start=MAF_input$Start_Position-1, end=MAF_input$Start_Position+1))
 
 MAF_input$unique_variant_ID <- paste(MAF_input$Gene_name,MAF_input$Chromosome,MAF_input$Start_Position, MAF_input$Tumor_allele)
 dndscvout_annotref$unique_variant_ID <- paste(dndscvout_annotref$gene,dndscvout_annotref$chr, dndscvout_annotref$pos, dndscvout_annotref$mut)
@@ -337,7 +340,8 @@ MAF_input$codon_pos <- (MAF_input$nuc_position %% 3)
 MAF_input$codon_pos[which(MAF_input$codon_pos==0)] <- 3
 
 
-MAF_input$amino_acid_context <- as.character(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens, paste("chr",MAF_input$Chromosome,sep=""), strand=MAF_input$strand, start=MAF_input$Start_Position-3, end=MAF_input$Start_Position+3))
+MAF_input$amino_acid_context <- as.character(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens, paste("chr",MAF_input$Chromosome,sep=""), 
+                                                              strand=MAF_input$strand, start=MAF_input$Start_Position-3, end=MAF_input$Start_Position+3))
 
 ref_cds_genes <- sapply(RefCDS, function(x) x$gene_name)
 names(RefCDS) <- ref_cds_genes
@@ -351,14 +355,14 @@ MAF_input$amino_acid_context[which(MAF_input$codon_pos==3)] <- substr(MAF_input$
 MAF_input$next_to_splice <- F
 for(i in 1:nrow(MAF_input)){
   if(any(abs(MAF_input$Start_Position[i] - RefCDS[[MAF_input$Gene_name[i]]]$intervals_cds) <= 3)){
-
+    
     MAF_input$next_to_splice[i] <- T
-
+    
   }
 }
 
 
-names(gene_trinuc_comp) <- sapply(RefCDS, function(x) x$gene_name)
+names(gene_trinuc_comp) <- ref_cds_genes
 
 MAF_input$unique_variant_ID_AA <- NA
 
@@ -391,7 +395,7 @@ tumors <- unique(MAF_input$Unique_patient_identifier)
 
 source("R/selection_intensity_calc_function_ML.R")
 
-optimize_gamma(MAF_input=MAF_input, all_tumors=tumors, gene="KRAS", variant="G12C", specific_mut_rates=KRAS_muts)
+optimize_gamma(MAF_input=MAF_input, all_tumors=tumors, gene="KRAS", variant="G12C", specific_mut_rates=KRAS_muts$mutation_rate_matrix)
 
 save.image("~/Box Sync/ML_cancereffectsizeR_data/LUAD/after_step_6.RData")
 
