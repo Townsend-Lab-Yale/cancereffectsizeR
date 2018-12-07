@@ -1,13 +1,16 @@
-# function to find trinucleotides for when a variant is up against an exon edge.
-
-
-AA_translations$Nucs <- as.character(AA_translations$Nucs)
-
-AA_translations$AA_short <- as.character(AA_translations$AA_short)
-
-
-
+#' mutation_finder
+#'
+#' @param RefCDS_instance
+#' @param MAF_input_row
+#'
+#' @return
+#' @export
+#'
+#' @examples
 mutation_finder <- function(RefCDS_instance,MAF_input_row){
+  AA_translations$Nucs <- as.character(AA_translations$Nucs)
+
+  AA_translations$AA_short <- as.character(AA_translations$AA_short)
 
   # data structure for the codon
 
@@ -18,11 +21,11 @@ mutation_finder <- function(RefCDS_instance,MAF_input_row){
   RefCDS_instance$seq_cds <- as.character(RefCDS_instance$seq_cds)
   RefCDS_instance$seq_cds1up <- as.character(RefCDS_instance$seq_cds1up)
   RefCDS_instance$seq_cds1down <- as.character(RefCDS_instance$seq_cds1down)
-  
+
   codon_matrix[c("pos1", "pos2", "pos3"),"main"] <- unlist(strsplit(RefCDS_instance$seq_cds, split=""))[(MAF_input_row$nuc_position-shift):(MAF_input_row$nuc_position-shift+2)]
   codon_matrix[c("pos1", "pos2", "pos3"),"upstream"] <- unlist(strsplit(RefCDS_instance$seq_cds1up, split=""))[(MAF_input_row$nuc_position-shift):(MAF_input_row$nuc_position-shift+2)]
   codon_matrix[c("pos1", "pos2", "pos3"),"downstream"] <- unlist(strsplit(RefCDS_instance$seq_cds1down, split=""))[(MAF_input_row$nuc_position-shift):(MAF_input_row$nuc_position-shift+2)]
-  
+
   nt <- c("A","T","G","C")
   trinucs_for_rate <- NULL
   original_codon <- codon_matrix[,2]
@@ -46,3 +49,4 @@ mutation_finder <- function(RefCDS_instance,MAF_input_row){
 return(trinucs_for_rate)
 }
 
+# function to find trinucleotides for when a variant is up against an exon edge.

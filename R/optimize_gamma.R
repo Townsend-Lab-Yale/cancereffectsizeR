@@ -1,3 +1,20 @@
+#' optimize_gamma
+#'
+#' @param MAF_input
+#' @param all_tumors
+#' @param gene
+#' @param variant
+#' @param specific_mut_rates
+#'
+#' @return
+#' @export
+#'
+#' @examples
+optimize_gamma <- function(MAF_input, all_tumors, gene, variant, specific_mut_rates) {
+  return(optim(par=1000, fn=cancereffectsizeR::ml_objective, MAF_input=MAF_input, all_tumors=all_tumors, gene=gene, variant=variant, specific_mut_rates=specific_mut_rates,
+               method="Brent", lower=1, upper=1000000000, control=list(fnscale=-1))$par)
+}
+
 
 # Actual function to find the site specific selection intensity that maximizes the likelihood of each tumor
 # being mutated or not. Uses site and tumor specific mutation rates. Uses Brent 1 dimensional optimization technique.
@@ -9,8 +26,3 @@
 
 # Outputs:
 # The optimal selection intensity for the gene and variant that maximizes the likelihood of the observations
-
-optimize_gamma <- function(MAF_input, all_tumors, gene, variant, specific_mut_rates) {
-  return(optim(par=1000, fn=cancereffectsizeR::ml_objective, MAF_input=MAF_input, all_tumors=all_tumors, gene=gene, variant=variant, specific_mut_rates=specific_mut_rates,
-               method="Brent", lower=1, upper=1000000000, control=list(fnscale=-1))$par)
-}

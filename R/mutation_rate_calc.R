@@ -1,17 +1,14 @@
-# function to calculate mutation rate
-# given inputMAF, gene, gene mutation rate, and trinucs of all tumors.
-# only thing specified is the gene
-
-# requires "data/gene_trinuc_comp.RData"
-# requires "data/"data/AA_mutation_list.RData"
-
-# MAF <- MAF_input
-# # gene <- "AGAP9"
-# gene_mut_rate<- mutrates
-# tumor_trinucs <- trinuc_proportion_matrix
-
-# source("R/mutation_finder.R")
-
+#' mutation_rate_calc
+#'
+#' @param MAF
+#' @param gene
+#' @param gene_mut_rate
+#' @param tumor_trinucs
+#'
+#' @return
+#' @export
+#'
+#' @examples
 mutation_rate_calc <- function(MAF, gene, gene_mut_rate, tumor_trinucs){
 
   mutation_rate_nucs <- matrix(nrow=nrow(trinuc_proportion_matrix),ncol=ncol(trinuc_proportion_matrix),data = NA)
@@ -82,13 +79,16 @@ mutation_rate_calc <- function(MAF, gene, gene_mut_rate, tumor_trinucs){
 
 }
 
-#
-# dndscvout$annotmuts$nuc_pos <- as.numeric(gsub("\\D", "", dndscvout$annotmuts$ntchange))
-# dndscvout$annotmuts$codon_pos <- (dndscvout$annotmuts$nuc_pos %% 3)
-#
-# head(dndscvout$annotmuts)
-#
-#
-# 12 121868273 T
-# KDM2B
+# function to calculate mutation rate
+# given inputMAF, gene, gene mutation rate, and trinucs of all tumors.
+# only thing specified is the gene
 
+# requires "data/gene_trinuc_comp.RData"
+# requires "data/"data/AA_mutation_list.RData"
+
+# MAF <- MAF_input
+# # gene <- "AGAP9"
+# gene_mut_rate<- mutrates
+# tumor_trinucs <- trinuc_proportion_matrix
+
+# source("R/mutation_finder.R")

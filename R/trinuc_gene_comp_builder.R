@@ -1,5 +1,5 @@
 # create list of all the trinuc numbers in every gene
-library(cancereffectsizeR)
+# library(cancereffectsizeR)
 library(dndscv)
 data("RefCDS_TP53splice", package="cancereffectsizeR")
 

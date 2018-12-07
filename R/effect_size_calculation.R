@@ -16,9 +16,6 @@
 #' @param covariate_file Either NULL and uses the \code{dndscv}
 #' default covariates, or one of these:  "bladder_pca"  "breast_pca"
 #' "cesc_pca" "colon_pca" "esca_pca" "gbm_pca" "hnsc_pca" "kidney_pca" "lihc_pca" "lung_pca" "ov_pca" "pancreas_pca" "prostate_pca" "rectum_pca" "skin_pca"  "stomach_pca"  "thca_pca" "ucec_pca"
-#' @param output_from_mainMAF the output from a previous selection run with all the
-#' mutation and selection data, useful for bootstrapping because it speeds up the
-#' analysis (no longer need to look up mutational context, etc.)
 #' @param genes_for_effect_size_analysis genes to calculate effect sizes within.
 #' @param sample_ID_column column in MAF with sample ID data
 #' @param ref_column column in MAF with reference allele data
@@ -29,12 +26,9 @@
 #'
 #' @export
 
-# load("~/Documents/Selection_analysis/UCEC/ML_work/UCEC_MAF_for_analysis_ML.RData")
 
 
-#### all in R
 
-# rm(list=ls())
 
 effect_size_SNV <- function(MAF,
                             covariate_file=NULL,
@@ -45,25 +39,15 @@ effect_size_SNV <- function(MAF,
                             alt_column = "Tumor_allele",
                             genes_for_effect_size_analysis="all"){
 
-  # library("seqinr")
-  # library("Biostrings")
-  # library("MASS")
-  # library("GenomicRanges")
-  # library("dndscv")
-  # library("reshape2")
-  # library("BSgenome.Hsapiens.UCSC.hg19")
-  # source("SNV_effect_size_functions")
-  # dndscv column names sampleID, chr, pos, ref, alt
-
   # for initial tests
-  MAF <- MAF_input
-  covariate_file <- "ucec_pca"
-  sample_ID_column="Unique_patient_identifier"
-  chr_column = "Chromosome"
-  pos_column = "Start_Position"
-  ref_column = "Reference_Allele"
-  alt_column = "Tumor_allele"
-  genes_for_effect_size_analysis="all"
+  # MAF <- MAF_input
+  # covariate_file <- "ucec_pca"
+  # sample_ID_column="Unique_patient_identifier"
+  # chr_column = "Chromosome"
+  # pos_column = "Start_Position"
+  # ref_column = "Reference_Allele"
+  # alt_column = "Tumor_allele"
+  # genes_for_effect_size_analysis="all"
 
   # source("../R/dndscv_wrongRef_checker.R")
   # source("../R/all_in_R_trinucleotide_profile.R")

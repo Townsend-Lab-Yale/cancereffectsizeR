@@ -1,7 +1,7 @@
 # making a list of all possible trinucleotides to call for each amino acid variant.
 
 library(tidyverse)
-library(cancereffectsizeR)
+# library(cancereffectsizeR)
 
 load("data/deconstructSigs_trinuc_string.RData")
 data("AA_translations")
