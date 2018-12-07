@@ -6,3 +6,8 @@ ML_cesR_main_analysis_script.R
 trinuc_gene_comp_builder.R
 AA_mutation_matrix_builder.R
 data/deconstructSigs_trinuc_string.RData
+R/AA_mutation_matrix_builder.R
+R/checking_*
+R/selection_intensity_calc_function_ML.R
+R/trinuc_gene_comp*
+R/trinuc_translator_b*
