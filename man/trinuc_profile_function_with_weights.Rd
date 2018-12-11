@@ -4,23 +4,26 @@
 \alias{trinuc_profile_function_with_weights}
 \title{Trinucleotide profiler}
 \usage{
-trinuc_profile_function_with_weights(input.MAF,
-  signature.choice = "signatures.cosmic", minimum.mutations.per.tumor = 50,
-  save.figs = F, tumor.name = "[Tumor name here]",
-  sample.ID.column = "Unique_patient_identifier", chr.column = "Chromosome",
-  pos.column = "Start_Position", ref.column = "Reference_Allele",
-  alt.column = "Tumor_allele")
+trinuc_profile_function_with_weights(input_MAF,
+  signature_choice = "signatures.cosmic",
+  minimum_mutations_per_tumor = 50, save_figs = F,
+  tumor.name = "[Tumor name here]",
+  sample_ID_column = "Unique_patient_identifier",
+  chr_column = "Chromosome", pos_column = "Start_Position",
+  ref_column = "Reference_Allele", alt_column = "Tumor_allele")
 }
 \arguments{
+\item{tumor.name}{If \code{save.figs = T} then you should have a character string
+here for the save file and plot title.}
+
 \item{input.MAF}{MAF with mutation data}
 
 \item{signature.choice}{Either "signatures.cosmic" or "signatures.nature2013".}
 
+\item{minimum.mutation.per.tumor}{Set to 50, as per Rosenthal et al. (see Details)}
+
 \item{save.figs}{Boolean, if T saves figures (requires \code{ggplot2})
 to "Figures/*tumor.name*.pdf"}
-
-\item{tumor.name}{If \code{save.figs = T} then you should have a character string
-here for the save file and plot title.}
 
 \item{sample.ID.column}{name of the column in \code{input.MAF} that contains unique
 sample identifiers.}
@@ -36,8 +39,6 @@ allele information.}
 
 \item{alt.column}{name of the column in \code{input.MAF} that contains alternative
 allele information.}
-
-\item{minimum.mutation.per.tumor}{Set to 50, as per Rosenthal et al. (see Details)}
 }
 \description{
 Creates a dataframe with the average trinucleotide product among tumors

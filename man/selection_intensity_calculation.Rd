@@ -4,9 +4,9 @@
 \alias{selection_intensity_calculation}
 \title{Selection intensity calculation (SNV)}
 \usage{
-selection_intensity_calculation(genes_for_analysis = "all", MAF_for_analysis,
-  this.substitution = c("fake_gene", 41, "T"), trinuc.mutation_data,
-  mut_rates, dndscv_siggenes, tumor.number = NULL,
+selection_intensity_calculation(genes_for_analysis = "all",
+  MAF_for_analysis, this.substitution = c("fake_gene", 41, "T"),
+  trinuc.mutation_data, mut_rates, dndscv_siggenes, tumor.number = NULL,
   trinuc_count_matrix = NULL, output_from_mainMAF = NULL,
   sample_ID_column = "Unique_patient_identifier",
   gene_ID_column = "Gene_name", ref_column = "Reference_Allele",

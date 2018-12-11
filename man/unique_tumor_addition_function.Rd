@@ -4,18 +4,18 @@
 \alias{unique_tumor_addition_function}
 \title{Unique tumor addition function}
 \usage{
-unique_tumor_addition_function(MAF.file, non.TCGA.characters.to.keep = "all",
-  sum.stats = T, figures = F)
+unique_tumor_addition_function(MAF_file,
+  non_TCGA_characters_to_keep = "all", sum_stats = T, figures = F)
 }
 \arguments{
-\item{MAF.file}{MAF file with "Tumor_Sample_Barcode" column}
+\item{MAF_file}{MAF file with "Tumor_Sample_Barcode" column}
 
-\item{non.TCGA.characters.to.keep}{numeric number of characters to keep
+\item{non_TCGA_characters_to_keep}{numeric number of characters to keep
 in "Tumor_Sample_Barcode" column for sample names that
 do not start with "TCGA". If non-numeric object then defaults to
 all characters}
 
-\item{sum.stats}{Boolean, T prints summary() of number of mutations per tumor}
+\item{sum_stats}{Boolean, T prints summary() of number of mutations per tumor}
 
 \item{figures}{Boolean, T saves histogram of sum.stats and saves as "Figures/mutations_per_tumor.pdf"}
 }
