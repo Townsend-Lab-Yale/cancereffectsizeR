@@ -418,10 +418,10 @@ effect_size_SNV <- function(MAF,
 
 
 
-  if(genes_for_effect_size_analysis=="all"){
+  if(all(genes_for_effect_size_analysis=="all")){
   genes_to_analyze <- unique(MAF$Gene_name)
   }else{
-    genes_to_analyze <- genes_for_effect_size_analysis
+    genes_to_analyze <- genes_for_effect_size_analysis[genes_for_effect_size_analysis %in% unique(MAF$Gene_name)]
   }
 
   selection_results <- vector("list",length = length(genes_to_analyze))
