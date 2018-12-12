@@ -415,34 +415,43 @@ effect_size_SNV <- function(MAF,
 
   tumors <- unique(MAF$Unique_patient_identifier)
 
-  selection_results <- vector("list",length = length(unique(MAF$Gene_name)))
-  names(selection_results) <- unique(MAF$Gene_name)
 
 
-  for(i in 1:length(unique(MAF$Gene_name))){
+
+  if(genes_for_effect_size_analysis=="all"){
+  genes_to_analyze <- unique(MAF$Gene_name)
+  }else{
+    genes_to_analyze <- genes_for_effect_size_analysis
+  }
+
+  selection_results <- vector("list",length = length(genes_to_analyze))
+  names(selection_results) <- genes_to_analyze
 
 
-    these_mutation_rates <-  cancereffectsizeR::mutation_rate_calc(MAF = MAF,gene = unique(MAF$Gene_name)[i],gene_mut_rate = mutrates,tumor_trinucs = trinuc_proportion_matrix)
+  for(i in 1:length(genes_to_analyze)){
+
+
+    these_mutation_rates <-  cancereffectsizeR::mutation_rate_calc(MAF = MAF,gene = genes_to_analyze[i],gene_mut_rate = mutrates,tumor_trinucs = trinuc_proportion_matrix)
 
     these_selection_results <- matrix(nrow=ncol(these_mutation_rates$mutation_rate_matrix), ncol=3,data=NA)
     rownames(these_selection_results) <- colnames(these_mutation_rates$mutation_rate_matrix); colnames(these_selection_results) <- c("variant","selection_intensity","unsure_gene_name")
 
     for(j in 1:nrow(these_selection_results)){
-      these_selection_results[j,c("variant","selection_intensity")] <- c(colnames(these_mutation_rates$mutation_rate_matrix)[j] , cancereffectsizeR::optimize_gamma(MAF=MAF, all_tumors=tumors, gene=unique(MAF$Gene_name)[i], variant=colnames(these_mutation_rates$mutation_rate_matrix)[j], specific_mut_rates=these_mutation_rates$mutation_rate_matrix))
+      these_selection_results[j,c("variant","selection_intensity")] <- c(colnames(these_mutation_rates$mutation_rate_matrix)[j] , cancereffectsizeR::optimize_gamma(MAF=MAF, all_tumors=tumors, gene=genes_to_analyze[i], variant=colnames(these_mutation_rates$mutation_rate_matrix)[j], specific_mut_rates=these_mutation_rates$mutation_rate_matrix))
     }
 
     these_selection_results[,"unsure_gene_name"] <- these_mutation_rates$unsure_genes_vec
 
-    selection_results[[i]] <- list(gene_name=unique(MAF$Gene_name)[i],selection_results=these_selection_results)
+    selection_results[[i]] <- list(gene_name=genes_to_analyze[i],selection_results=these_selection_results)
 
 
 
-    print(round(i/length(unique(MAF$Gene_name)),2))
-    print(unique(MAF$Gene_name)[i])
+    print(round(i/length(genes_to_analyze),2))
+    print(genes_to_analyze[i])
 
-    if(i %% 100 == 0){
-      save(selection_results, file=paste(inputs["-tumor_name",],"selection_results_initial_check_ML.RData",sep=""))
-    }
+    # if(i %% 100 == 0){
+    #   save(selection_results, file=paste(inputs["-tumor_name",],"selection_results_initial_check_ML.RData",sep=""))
+    # }
 
   }
   #

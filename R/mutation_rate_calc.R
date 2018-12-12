@@ -1,7 +1,9 @@
-#' mutation_rate_calc
+#' Mutation rate calculation
 #'
-#' @param MAF
-#' @param gene
+#' This function
+#'
+#' @param MAF The MAF file to extract mutational data from
+#' @param gene Gene name in question
 #' @param gene_mut_rate
 #' @param tumor_trinucs
 #'
@@ -29,8 +31,6 @@ mutation_rate_calc <- function(MAF, gene, gene_mut_rate, tumor_trinucs){
 
 
   this_MAF <- subset(MAF, Gene_name==gene & Reference_Allele %in% c("A","T","G","C") & Tumor_allele %in% c("A","T","G","C")) # subset the MAF into just this gene
-  # this_MAF <- this_MAF[!duplicated(this_MAF[,c("Start_Position","Tumor_allele")]),] # find all unique variants
-  # this_MAF$unique_mutation <- paste(this_MAF$Gene_name, this_MAF$Chromosome, this_MAF$Start_Position, this_MAF$Tumor_allele)
 
 
 
