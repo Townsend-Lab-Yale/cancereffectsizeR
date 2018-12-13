@@ -4,8 +4,10 @@
 #'
 #' @param MAF The MAF file to extract mutational data from
 #' @param gene Gene name in question
+#' @param trinuc_proportion_matrix
+#' @param gene_trinuc_comp
+#' @param RefCDS RefCDS loaded in from data("RefCDS_TP53splice",package = "cancereffectsizeR")
 #' @param gene_mut_rate
-#' @param tumor_trinucs
 #'
 #' @return
 #' @export

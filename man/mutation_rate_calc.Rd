@@ -4,14 +4,17 @@
 \alias{mutation_rate_calc}
 \title{Mutation rate calculation}
 \usage{
-mutation_rate_calc(MAF, gene, gene_mut_rate, tumor_trinucs)
+mutation_rate_calc(MAF, gene, gene_mut_rate, trinuc_proportion_matrix,
+  gene_trinuc_comp, RefCDS)
 }
 \arguments{
 \item{MAF}{The MAF file to extract mutational data from}
 
 \item{gene}{Gene name in question}
 
-\item{tumor_trinucs}{}
+\item{gene_mut_rate}{}
+
+\item{RefCDS}{RefCDS loaded in from data("RefCDS_TP53splice",package = "cancereffectsizeR")}
 }
 \description{
 This function
