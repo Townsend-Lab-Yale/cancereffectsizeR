@@ -11,7 +11,7 @@
 #' @export
 #'
 #' @examples
-mutation_rate_calc <- function(MAF, gene, gene_mut_rate, tumor_trinucs){
+mutation_rate_calc <- function(MAF, gene, gene_mut_rate, trinuc_proportion_matrix,gene_trinuc_comp, RefCDS){
 
   mutation_rate_nucs <- matrix(nrow=nrow(trinuc_proportion_matrix),ncol=ncol(trinuc_proportion_matrix),data = NA)
   rownames(mutation_rate_nucs) <- rownames(trinuc_proportion_matrix)

@@ -2,13 +2,17 @@
 % Please edit documentation in R/mutation_rate_calc.R
 \name{mutation_rate_calc}
 \alias{mutation_rate_calc}
-\title{mutation_rate_calc}
+\title{Mutation rate calculation}
 \usage{
 mutation_rate_calc(MAF, gene, gene_mut_rate, tumor_trinucs)
 }
 \arguments{
+\item{MAF}{The MAF file to extract mutational data from}
+
+\item{gene}{Gene name in question}
+
 \item{tumor_trinucs}{}
 }
 \description{
-mutation_rate_calc
+This function
 }

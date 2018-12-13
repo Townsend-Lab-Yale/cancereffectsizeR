@@ -114,14 +114,14 @@ effect_size_SNV <- function(MAF,
 
   deconstructSigs_trinuc_string <- colnames(trinuc_breakdown_per_tumor)
 
+  message("Building trinuc_proportion_matrix")
+
+
   trinuc_proportion_matrix <- matrix(data = NA,
                                      nrow = nrow(trinuc_breakdown_per_tumor),
                                      ncol = ncol(trinuc_breakdown_per_tumor))
   rownames(trinuc_proportion_matrix) <- rownames(trinuc_breakdown_per_tumor)
   colnames(trinuc_proportion_matrix) <- colnames(trinuc_breakdown_per_tumor)
-
-
-
 
 
 
@@ -157,6 +157,9 @@ effect_size_SNV <- function(MAF,
   }
 
   # 2. Find nearest neighbor to tumors with < 50 mutations, assign identical weights as neighbor ----
+  message(head(trinuc_proportion_matrix))
+
+  message("should have printed")
 
   distance_matrix <- as.matrix(dist(trinuc_breakdown_per_tumor))
 
@@ -194,7 +197,7 @@ effect_size_SNV <- function(MAF,
 
 
 
-  data("refcds_hg19", package="dndscv")
+  # data("refcds_hg19", package="dndscv")
 
   RefCDS_our_genes <- RefCDS[which(sapply(RefCDS, function(x) x$gene_name) %in% dndscvout$genemuts$gene_name)]
 
@@ -234,7 +237,7 @@ effect_size_SNV <- function(MAF,
 
   MAF_ranges <- GenomicRanges::GRanges(seqnames = MAF[,chr_column], ranges = IRanges::IRanges(start=MAF[,pos_column],end = MAF[,pos_column]))
 
-  data("refcds_hg19", package="dndscv") # load in gr_genes data
+  # data("refcds_hg19", package="dndscv") # load in gr_genes data
 
   # first, find overlaps
 
@@ -430,8 +433,9 @@ effect_size_SNV <- function(MAF,
 
   for(i in 1:length(genes_to_analyze)){
 
+    message(genes_to_analyze[i])
 
-    these_mutation_rates <-  cancereffectsizeR::mutation_rate_calc(MAF = MAF,gene = genes_to_analyze[i],gene_mut_rate = mutrates,tumor_trinucs = trinuc_proportion_matrix)
+    these_mutation_rates <-  cancereffectsizeR::mutation_rate_calc(MAF = MAF,gene = genes_to_analyze[i],gene_mut_rate = mutrates,trinuc_proportion_matrix = trinuc_proportion_matrix,gene_trinuc_comp = gene_trinuc_comp,RefCDS = RefCDS)
 
     these_selection_results <- matrix(nrow=ncol(these_mutation_rates$mutation_rate_matrix), ncol=3,data=NA)
     rownames(these_selection_results) <- colnames(these_mutation_rates$mutation_rate_matrix); colnames(these_selection_results) <- c("variant","selection_intensity","unsure_gene_name")
