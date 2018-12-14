@@ -2,7 +2,7 @@
 % Please edit documentation in R/deconstructSigs_input_preprocess.R
 \name{deconstructSigs_input_preprocess}
 \alias{deconstructSigs_input_preprocess}
-\title{deconstructSigs_input_preprocess}
+\title{Preprocess for deconstructSigs}
 \usage{
 deconstructSigs_input_preprocess(MAF,
   sample_ID_column = "Unique_patient_identifier",
@@ -10,8 +10,21 @@ deconstructSigs_input_preprocess(MAF,
   ref_column = "Reference_Allele", alt_column = "Tumor_allele")
 }
 \arguments{
-\item{alt_column}{}
+\item{MAF}{MAF file to have recurrent variants removed}
+
+\item{sample_ID_column}{column in MAF with sample ID data}
+
+\item{chr_column}{column in MAF with chromosome data}
+
+\item{pos_column}{column in MAF with chromosome nucleotide location data}
+
+\item{ref_column}{column in MAF with reference allele data}
+
+\item{alt_column}{column in MAF with alternative allele data}
+}
+\value{
+a MAF of non-recurrent variants
 }
 \description{
-Gathers all SNV and removes recurrent variants
+This function removes recurrent variants from the MAF file and returns a MAF of non-recurrent variants.
 }

@@ -16,7 +16,7 @@
 #' @param covariate_file Either NULL and uses the \code{dndscv}
 #' default covariates, or one of these:  "bladder_pca"  "breast_pca"
 #' "cesc_pca" "colon_pca" "esca_pca" "gbm_pca" "hnsc_pca" "kidney_pca" "lihc_pca" "lung_pca" "ov_pca" "pancreas_pca" "prostate_pca" "rectum_pca" "skin_pca"  "stomach_pca"  "thca_pca" "ucec_pca"
-#' @param genes_for_effect_size_analysis genes to calculate effect sizes within.
+#' @param genes_for_effect_size_analysis genes to calculate effect sizes within. If unspecified, defaults to "all".
 #' @param sample_ID_column column in MAF with sample ID data
 #' @param ref_column column in MAF with reference allele data
 #' @param alt_column column in MAF with alternative allele data

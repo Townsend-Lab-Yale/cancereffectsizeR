@@ -25,7 +25,7 @@ default covariates, or one of these:  "bladder_pca"  "breast_pca"
 
 \item{alt_column}{column in MAF with alternative allele data}
 
-\item{genes_for_effect_size_analysis}{genes to calculate effect sizes within.}
+\item{genes_for_effect_size_analysis}{genes to calculate effect sizes within. If unspecified, defaults to "all".}
 
 \item{MAF_file}{MAF file with substitution data}
 }

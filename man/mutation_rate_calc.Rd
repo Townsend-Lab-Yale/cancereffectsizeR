@@ -12,10 +12,14 @@ mutation_rate_calc(MAF, gene, gene_mut_rate, trinuc_proportion_matrix,
 
 \item{gene}{Gene name in question}
 
-\item{gene_mut_rate}{}
+\item{gene_mut_rate}{mutation rate at the gene-level}
+
+\item{trinuc_proportion_matrix}{matrix constructed from deconstructSigs output, containing proportion of each trinucleotide mutated in each tumor}
+
+\item{gene_trinuc_comp}{list containing matrices of counts of each trinuc in every gene}
 
 \item{RefCDS}{RefCDS loaded in from data("RefCDS_TP53splice",package = "cancereffectsizeR")}
 }
 \description{
-This function
+This function calculates the mutation rates of all the unique varaints within a gene given gene-level mutation rate and tumor-specific trinucleotide contexts.
 }

@@ -7,8 +7,10 @@
 mutation_finder(RefCDS_instance, MAF_input_row)
 }
 \arguments{
-\item{MAF_input_row}{}
+\item{RefCDS_instance}{Slice of the RefCDS list for this gene}
+
+\item{MAF_input_row}{Row from the MAF being analyzed with the mutation in question.}
 }
 \description{
-mutation_finder
+Finds original trinucleotides of variants near splice sites.
 }

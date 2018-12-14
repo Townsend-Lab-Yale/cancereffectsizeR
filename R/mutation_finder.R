@@ -1,7 +1,9 @@
 #' mutation_finder
 #'
-#' @param RefCDS_instance
-#' @param MAF_input_row
+#' Finds original trinucleotides of variants near splice sites.
+#'
+#' @param RefCDS_instance Slice of the RefCDS list for this gene
+#' @param MAF_input_row Row from the MAF being analyzed with the mutation in question.
 #'
 #' @return
 #' @export

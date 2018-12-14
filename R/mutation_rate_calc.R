@@ -1,13 +1,13 @@
 #' Mutation rate calculation
 #'
-#' This function
+#' This function calculates the mutation rates of all the unique varaints within a gene given gene-level mutation rate and tumor-specific trinucleotide contexts.
 #'
 #' @param MAF The MAF file to extract mutational data from
 #' @param gene Gene name in question
-#' @param trinuc_proportion_matrix
-#' @param gene_trinuc_comp
+#' @param trinuc_proportion_matrix matrix constructed from deconstructSigs output, containing proportion of each trinucleotide mutated in each tumor
+#' @param gene_trinuc_comp list containing matrices of counts of each trinuc in every gene
 #' @param RefCDS RefCDS loaded in from data("RefCDS_TP53splice",package = "cancereffectsizeR")
-#' @param gene_mut_rate
+#' @param gene_mut_rate mutation rate at the gene-level
 #'
 #' @return
 #' @export

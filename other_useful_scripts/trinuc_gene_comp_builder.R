@@ -1,5 +1,5 @@
 # create list of all the trinuc numbers in every gene
-# library(cancereffectsizeR)
+library(cancereffectsizeR)
 library(dndscv)
 data("RefCDS_TP53splice", package="cancereffectsizeR")
 
@@ -50,35 +50,35 @@ for(i in 1:length(gene_trinuc_comp)){
 
   }
 
+#
+#   if(RefCDS[[i]]$strand=="-1"){
+#     seq_cds2up <- paste(toupper(seqinr::comp(strsplit(as.character(rev(unlist(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens,paste("chr",RefCDS[[i]]$chr,sep=""),start=RefCDS[[i]]$intervals_cds[,1]+2,end = RefCDS[[i]]$intervals_cds[,2]+2,strand="+")))),split="")[[1]])),collapse = "")
+#
+#     seq_cds2down <- paste(toupper(seqinr::comp(strsplit(as.character(rev(unlist(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens,paste("chr",RefCDS[[i]]$chr,sep=""),start=RefCDS[[i]]$intervals_cds[,1]-2,end = RefCDS[[i]]$intervals_cds[,2]-2,strand="+")))),split="")[[1]])),collapse = "")
+#
+#     seq_cds3up <- paste(toupper(seqinr::comp(strsplit(as.character(rev(unlist(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens,paste("chr",RefCDS[[i]]$chr,sep=""),start=RefCDS[[i]]$intervals_cds[,1]+3,end = RefCDS[[i]]$intervals_cds[,2]+3,strand="+")))),split="")[[1]])),collapse = "")
+#
+#     seq_cds3down <- paste(toupper(seqinr::comp(strsplit(as.character(rev(unlist(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens,paste("chr",RefCDS[[i]]$chr,sep=""),start=RefCDS[[i]]$intervals_cds[,1]-3,end = RefCDS[[i]]$intervals_cds[,2]-3,strand="+")))),split="")[[1]])),collapse = "")
+#
+#   }
+#
+#
+#   if(RefCDS[[i]]$strand=="1"){
+#     seq_cds2up <- paste(strsplit(as.character(unlist(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens,paste("chr",RefCDS[[i]]$chr,sep=""),start=RefCDS[[i]]$intervals_cds[,1]-2,end = RefCDS[[i]]$intervals_cds[,2]-2,strand="+"))),split="")[[1]],collapse = "")
+#
+#     seq_cds2down <- paste(strsplit(as.character(unlist(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens,paste("chr",RefCDS[[i]]$chr,sep=""),start=RefCDS[[i]]$intervals_cds[,1]+2,end = RefCDS[[i]]$intervals_cds[,2]+2,strand="+"))),split="")[[1]],collapse = "")
+#
+#     seq_cds3up <- paste(strsplit(as.character(unlist(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens,paste("chr",RefCDS[[i]]$chr,sep=""),start=RefCDS[[i]]$intervals_cds[,1]-3,end = RefCDS[[i]]$intervals_cds[,2]-3,strand="+"))),split="")[[1]],collapse = "")
+#
+#     seq_cds3down <- paste(strsplit(as.character(unlist(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens,paste("chr",RefCDS[[i]]$chr,sep=""),start=RefCDS[[i]]$intervals_cds[,1]+3,end = RefCDS[[i]]$intervals_cds[,2]+3,strand="+"))),split="")[[1]],collapse = "")
+#
+#
+#   }
 
-  if(RefCDS[[i]]$strand=="-1"){
-    seq_cds2up <- paste(toupper(seqinr::comp(strsplit(as.character(rev(unlist(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens,paste("chr",RefCDS[[i]]$chr,sep=""),start=RefCDS[[i]]$intervals_cds[,1]+2,end = RefCDS[[i]]$intervals_cds[,2]+2,strand="+")))),split="")[[1]])),collapse = "")
 
-    seq_cds2down <- paste(toupper(seqinr::comp(strsplit(as.character(rev(unlist(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens,paste("chr",RefCDS[[i]]$chr,sep=""),start=RefCDS[[i]]$intervals_cds[,1]-2,end = RefCDS[[i]]$intervals_cds[,2]-2,strand="+")))),split="")[[1]])),collapse = "")
-
-    seq_cds3up <- paste(toupper(seqinr::comp(strsplit(as.character(rev(unlist(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens,paste("chr",RefCDS[[i]]$chr,sep=""),start=RefCDS[[i]]$intervals_cds[,1]+3,end = RefCDS[[i]]$intervals_cds[,2]+3,strand="+")))),split="")[[1]])),collapse = "")
-
-    seq_cds3down <- paste(toupper(seqinr::comp(strsplit(as.character(rev(unlist(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens,paste("chr",RefCDS[[i]]$chr,sep=""),start=RefCDS[[i]]$intervals_cds[,1]-3,end = RefCDS[[i]]$intervals_cds[,2]-3,strand="+")))),split="")[[1]])),collapse = "")
-
-  }
-
-
-  if(RefCDS[[i]]$strand=="1"){
-    seq_cds2up <- paste(strsplit(as.character(unlist(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens,paste("chr",RefCDS[[i]]$chr,sep=""),start=RefCDS[[i]]$intervals_cds[,1]-2,end = RefCDS[[i]]$intervals_cds[,2]-2,strand="+"))),split="")[[1]],collapse = "")
-
-    seq_cds2down <- paste(strsplit(as.character(unlist(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens,paste("chr",RefCDS[[i]]$chr,sep=""),start=RefCDS[[i]]$intervals_cds[,1]+2,end = RefCDS[[i]]$intervals_cds[,2]+2,strand="+"))),split="")[[1]],collapse = "")
-
-    seq_cds3up <- paste(strsplit(as.character(unlist(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens,paste("chr",RefCDS[[i]]$chr,sep=""),start=RefCDS[[i]]$intervals_cds[,1]-3,end = RefCDS[[i]]$intervals_cds[,2]-3,strand="+"))),split="")[[1]],collapse = "")
-
-    seq_cds3down <- paste(strsplit(as.character(unlist(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens,paste("chr",RefCDS[[i]]$chr,sep=""),start=RefCDS[[i]]$intervals_cds[,1]+3,end = RefCDS[[i]]$intervals_cds[,2]+3,strand="+"))),split="")[[1]],collapse = "")
-
-
-  }
-
-
-  gene_trinuc_comp[[i]] <- list(gene_name = gene_list[i],gene_trinuc=gene_trinuc,
-                                seq_cds2up=seq_cds2up, seq_cds2down=seq_cds2down,
-                                seq_cds3up=seq_cds3up, seq_cds3down=seq_cds3down)
+  gene_trinuc_comp[[i]] <- list(gene_name = gene_list[i],gene_trinuc=gene_trinuc)#,
+                                # seq_cds2up=seq_cds2up, seq_cds2down=seq_cds2down,
+                                # seq_cds3up=seq_cds3up, seq_cds3down=seq_cds3down)
 
 
   print(i)

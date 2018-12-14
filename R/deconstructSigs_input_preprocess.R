@@ -1,15 +1,15 @@
-#' deconstructSigs_input_preprocess
+#' Preprocess for deconstructSigs
 #'
-#' Gathers all SNV and removes recurrent variants
+#' This function removes recurrent variants from the MAF file and returns a MAF of non-recurrent variants.
 #'
-#' @param MAF
-#' @param sample_ID_column
-#' @param chr_column
-#' @param pos_column
-#' @param ref_column
-#' @param alt_column
+#' @param MAF MAF file to have recurrent variants removed
+#' @param sample_ID_column column in MAF with sample ID data
+#' @param ref_column column in MAF with reference allele data
+#' @param alt_column column in MAF with alternative allele data
+#' @param pos_column column in MAF with chromosome nucleotide location data
+#' @param chr_column column in MAF with chromosome data
 #'
-#' @return
+#' @return a MAF of non-recurrent variants
 #' @export
 #'
 #' @examples
