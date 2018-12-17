@@ -28,6 +28,8 @@ default covariates, or one of these:  "bladder_pca"  "breast_pca"
 \item{genes_for_effect_size_analysis}{genes to calculate effect sizes within. If unspecified, defaults to "all".}
 
 \item{MAF_file}{MAF file with substitution data}
+
+\item{cores}{number of cores to use}
 }
 \description{
 Function that determines mutation rate at the gene- and trinucleotide- level

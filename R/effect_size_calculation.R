@@ -22,6 +22,7 @@
 #' @param alt_column column in MAF with alternative allele data
 #' @param pos_column column in MAF with chromosome nucleotide location data
 #' @param chr_column column in MAF with chromosome data
+#' @param cores number of cores to use
 #'
 #'
 #' @export
@@ -430,43 +431,26 @@ effect_size_SNV <- function(MAF,
   selection_results <- vector("list",length = length(genes_to_analyze))
   names(selection_results) <- genes_to_analyze
 
-
-  for(i in 1:length(genes_to_analyze)){
-
-    # message(genes_to_analyze[i])
-
-    these_mutation_rates <-  cancereffectsizeR::mutation_rate_calc(MAF = MAF,gene = genes_to_analyze[i],gene_mut_rate = mutrates,trinuc_proportion_matrix = trinuc_proportion_matrix,gene_trinuc_comp = gene_trinuc_comp,RefCDS = RefCDS)
-
+  get_gene_results <- function(gene_to_analyze) {
+    
+    these_mutation_rates <-  cancereffectsizeR::mutation_rate_calc(MAF = MAF,gene = gene_to_analyze,gene_mut_rate = mutrates,trinuc_proportion_matrix = trinuc_proportion_matrix,gene_trinuc_comp = gene_trinuc_comp,RefCDS = RefCDS)
+    
     these_selection_results <- matrix(nrow=ncol(these_mutation_rates$mutation_rate_matrix), ncol=3,data=NA)
     rownames(these_selection_results) <- colnames(these_mutation_rates$mutation_rate_matrix); colnames(these_selection_results) <- c("variant","selection_intensity","unsure_gene_name")
-
+    
     for(j in 1:nrow(these_selection_results)){
-      these_selection_results[j,c("variant","selection_intensity")] <- c(colnames(these_mutation_rates$mutation_rate_matrix)[j] , cancereffectsizeR::optimize_gamma(MAF=MAF, all_tumors=tumors, gene=genes_to_analyze[i], variant=colnames(these_mutation_rates$mutation_rate_matrix)[j], specific_mut_rates=these_mutation_rates$mutation_rate_matrix))
+      these_selection_results[j,c("variant","selection_intensity")] <- c(colnames(these_mutation_rates$mutation_rate_matrix)[j] , cancereffectsizeR::optimize_gamma(MAF=MAF, all_tumors=tumors, gene=gene_to_analyze, variant=colnames(these_mutation_rates$mutation_rate_matrix)[j], specific_mut_rates=these_mutation_rates$mutation_rate_matrix))
     }
-
+    
     these_selection_results[,"unsure_gene_name"] <- these_mutation_rates$unsure_genes_vec
-
-    selection_results[[i]] <- list(gene_name=genes_to_analyze[i],RefCDS[[genes_to_analyze[i]]]$gene_id,selection_results=these_selection_results)
-
-
-
-    print(round(i/length(genes_to_analyze),2))
-    print(genes_to_analyze[i])
-
-    # if(i %% 100 == 0){
-    #   save(selection_results, file=paste(inputs["-tumor_name",],"selection_results_initial_check_ML.RData",sep=""))
-    # }
-
+    
+    print(gene_to_analyze)
+    
+    return(list(gene_name=gene_to_analyze,RefCDS[[gene_to_analyze]]$gene_id,selection_results=these_selection_results))
+    
   }
-  #
-  #
-  #   selection_output <- cancereffectsizeR::selection_intensity_calculation(
-  #     MAF_for_analysis = MAF,
-  #     genes_for_analysis = genes_for_effect_size_analysis,
-  #     mut_rates = mutrates,
-  #     trinuc_mutation_data = trinuc_data$trinuc.mutation_data,
-  #     dndscv_siggenes=dndscv_pq,
-  #     output_from_mainMAF = output_from_mainMAF)
+  
+  selection_results <- mclapply(genes_to_analyze, get_gene_results, mc.cores = cores)
 
   return(list(selection_output=selection_results,
               mutation_rates=mutrates,
