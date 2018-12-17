@@ -2,13 +2,24 @@
 % Please edit documentation in R/optimize_gamma.R
 \name{optimize_gamma}
 \alias{optimize_gamma}
-\title{optimize_gamma}
+\title{Calculate selection intensity}
 \usage{
 optimize_gamma(MAF_input, all_tumors, gene, variant, specific_mut_rates)
 }
 \arguments{
-\item{specific_mut_rates}{}
+\item{MAF_input}{A data frame that includes columns "Unique_patient_identifier", "Gene_name", and "unique_variant_ID_AA"}
+
+\item{all_tumors}{A list of all the tumors we are calculating the likelihood across}
+
+\item{gene}{The gene we want to look at}
+
+\item{variant}{The variant we want to look at}
+
+\item{specific_mut_rates}{A matrix of site and tumor specific mutation rates where the rows correspond to tumors and the columns to variants (produced by mutation_rate_calc)}
+}
+\value{
+The optimal selection intensity for the gene and variant that maximizes the likelihood of the observations
 }
 \description{
-optimize_gamma
+Actual function to find the site specific selection intensity that maximizes the likelihood of each tumor being mutated or not. Uses site and tumor specific mutation rates. Uses Brent 1 dimensional optimization technique.optimize_gamma
 }

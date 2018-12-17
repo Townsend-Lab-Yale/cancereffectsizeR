@@ -1,13 +1,15 @@
 #' ml_objective
 #'
-#' @param gamma
-#' @param MAF_input
-#' @param all_tumors
-#' @param gene
-#' @param variant
-#' @param specific_mut_rates
+#' Objective function that we will be optimizing in order to find the site specific selection intensity that maximizes the likelihood of each tumor having a mutation or not, where the mutation rates are site and tumor specific.
 #'
-#' @return
+#' @param gamma A selection intensity at which to calculate the likelihood
+#' @param MAF_input A data frame that includes columns "Unique_patient_identifier", "Gene_name", and "unique_variant_ID_AA"
+#' @param all_tumors A list of all the tumors we are calculating the likelihood across
+#' @param gene The gene we want to look at
+#' @param variant The variant we want to look at 
+#' @param specific_mut_rates A matrix of site and tumor specific mutation rates where the rows correspond to tumors and the columns to variants (produced by mutation_rate_calc)
+#'
+#' @return A log likelihood value
 #' @export
 #'
 #' @examples
@@ -25,16 +27,3 @@ ml_objective <- function(gamma, MAF_input, all_tumors, gene, variant, specific_m
 
   return(sum_log_lik)
 }
-# Objective function that we will be optimizing in order to find the site specific selection
-# intensity that maximizes the likelihood of each tumor having a mutation or not, where the
-# mutation rates are site and tumor specific.
-
-# Inputs:
-# gamma: a selection intensity at which to calculate the likelihood
-# MAF_input: a data frame that includes columns "Unique_patient_identifier", "Gene_name", and "unique_variant_ID_AA"
-# all_tumors: a list of all the tumors we are calculating the likelihood across
-# gene, variant: the gene and variant we want to look at
-# specific_mut_rates: a matrix of site and tumor specific mutation rates where the rows correspond to tumors and the columns to variants
-
-# Outputs:
-# A log likelihood value
