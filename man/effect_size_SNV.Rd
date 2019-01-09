@@ -8,7 +8,7 @@ effect_size_SNV(MAF, covariate_file = NULL,
   sample_ID_column = "Unique_patient_identifier",
   chr_column = "Chromosome", pos_column = "Start_Position",
   ref_column = "Reference_Allele", alt_column = "Tumor_allele",
-  genes_for_effect_size_analysis = "all")
+  genes_for_effect_size_analysis = "all", cores = 1)
 }
 \arguments{
 \item{covariate_file}{Either NULL and uses the \code{dndscv}
@@ -27,9 +27,9 @@ default covariates, or one of these:  "bladder_pca"  "breast_pca"
 
 \item{genes_for_effect_size_analysis}{genes to calculate effect sizes within. If unspecified, defaults to "all".}
 
-\item{MAF_file}{MAF file with substitution data}
-
 \item{cores}{number of cores to use}
+
+\item{MAF_file}{MAF file with substitution data}
 }
 \description{
 Function that determines mutation rate at the gene- and trinucleotide- level
