@@ -441,7 +441,7 @@ effect_size_SNV <- function(MAF,
 
   get_gene_results <- function(gene_to_analyze) {
 
-    these_mutation_rates <-  cancereffectsizeR::mutation_rate_calc(MAF = MAF,gene = gene_to_analyze,gene_mut_rate = mutrates,trinuc_proportion_matrix = trinuc_proportion_matrix,gene_trinuc_comp = gene_trinuc_comp,RefCDS = RefCDS)
+    these_mutation_rates <-  cancereffectsizeR::mutation_rate_calc(MAF = MAF,gene = gene_to_analyze,gene_mut_rate = mutrates,trinuc_proportion_matrix = trinuc_proportion_matrix,gene_trinuc_comp = gene_trinuc_comp,RefCDS = RefCDS,relative_substitution_rate=relative_substitution_rate)
 
     these_selection_results <- matrix(nrow=ncol(these_mutation_rates$mutation_rate_matrix), ncol=3,data=NA)
     rownames(these_selection_results) <- colnames(these_mutation_rates$mutation_rate_matrix); colnames(these_selection_results) <- c("variant","selection_intensity","unsure_gene_name")
