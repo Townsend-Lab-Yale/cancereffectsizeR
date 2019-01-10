@@ -465,7 +465,8 @@ effect_size_SNV <- function(MAF,
               mutation_rates=mutrates,
               trinuc_data=list(trinuc_proportion_matrix=trinuc_proportion_matrix,
                                signatures_output=signatures_output),
-              dndscvout=dndscvout))
+              dndscvout=dndscvout,
+              MAF=MAF))
 
 }
 
