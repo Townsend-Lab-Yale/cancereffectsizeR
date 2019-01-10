@@ -36,6 +36,7 @@ mutation_rate_calc <- function(MAF, gene, gene_mut_rate, trinuc_proportion_matri
 
 
 
+  variant_freq <- table(this_MAF$unique_variant_ID_AA)
 
 
   this_MAF <- this_MAF[!duplicated(this_MAF[,c("unique_variant_ID_AA")]),]
@@ -84,8 +85,12 @@ mutation_rate_calc <- function(MAF, gene, gene_mut_rate, trinuc_proportion_matri
   }
 
   unsure_genes_vec <- this_MAF$unsure_gene_name
+
+
+
   return(list(mutation_rate_matrix=mutation_rate_matrix,
-              unsure_genes_vec=unsure_genes_vec))
+              unsure_genes_vec=unsure_genes_vec,
+              variant_freq = variant_freq))
 
 }
 
