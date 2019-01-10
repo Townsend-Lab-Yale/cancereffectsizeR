@@ -5,7 +5,8 @@
 \title{Mutation rate calculation}
 \usage{
 mutation_rate_calc(MAF, gene, gene_mut_rate, trinuc_proportion_matrix,
-  gene_trinuc_comp, RefCDS)
+  gene_trinuc_comp, RefCDS,
+  relative_substitution_rate = relative_substitution_rate)
 }
 \arguments{
 \item{MAF}{The MAF file to extract mutational data from}

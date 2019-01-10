@@ -11,6 +11,7 @@
 #'
 #' @import deconstructSigs
 #' @import dndscv
+#' @import parallel
 #'
 #' @param MAF_file MAF file with substitution data
 #' @param covariate_file Either NULL and uses the \code{dndscv}
