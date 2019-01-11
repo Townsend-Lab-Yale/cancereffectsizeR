@@ -84,6 +84,8 @@ effect_size_SNV <- function(MAF,
 
   MAF <- MAF[-which(MAF[,"Reference_Allele"] != reference_alleles),]
 
+  rm(reference_alleles)
+
   MAF <- cancereffectsizeR::wrongRef_dndscv_checker(mutations = MAF)
 
   # trinuc_data <- cancereffectsizeR::trinuc_profile_function_with_weights(
@@ -94,7 +96,11 @@ effect_size_SNV <- function(MAF,
   #   ref_column = ref_column,
   #   alt_column = alt_column)
 
-
+  # collect the garbage, will do this periodically throughout script
+  # because memory tends to fill up with all the function calls
+  # important to keep memory usage down because we need low memory per CPU
+  # when doing parallelization on the cluster
+  gc()
 
   message("Calculating trinucleotide composition and signatures...")
 
@@ -123,6 +129,8 @@ effect_size_SNV <- function(MAF,
 
 
   deconstructSigs_trinuc_string <- colnames(trinuc_breakdown_per_tumor)
+
+  rm(MAF_input_deconstructSigs_preprocessed)
 
   # message("Building trinuc_proportion_matrix")
 
@@ -181,8 +189,11 @@ effect_size_SNV <- function(MAF,
 
   }
 
+  rm(distance_matrix)
   # now, trinuc_proportion_matrix has the proportion of all trinucs in every tumor.
 
+  # collect the garbage
+  gc()
 
   message("Calculating gene-level mutation rate...")
 
@@ -205,11 +216,15 @@ effect_size_SNV <- function(MAF,
     cv = if(is.null(covariate_file)){ "hg19"}else{ this_cov_pca$rotation},
     refdb = paste(path_to_library,"/data/RefCDS_TP53splice.RData",sep=""))
 
+  RefCDS_our_genes <- RefCDS[which(sapply(RefCDS, function(x) x$gene_name) %in% dndscvout$genemuts$gene_name)]
 
+  rm(RefCDS)
+
+  # collect the garbage
+  gc()
 
   # data("refcds_hg19", package="dndscv")
 
-  RefCDS_our_genes <- RefCDS[which(sapply(RefCDS, function(x) x$gene_name) %in% dndscvout$genemuts$gene_name)]
 
 
   if(dndscvout$nbreg$theta>1){
@@ -321,6 +336,8 @@ effect_size_SNV <- function(MAF,
 
   MAF <- rbind(MAF_matched,MAF_unmatched)
 
+  rm(MAF_unmatched);rm(MAF_matched);gc()
+
 
 
   # 5. For each substitution, calculate the gene- and tumor- and mutation-specific mutation rate----
@@ -335,8 +352,8 @@ effect_size_SNV <- function(MAF,
   dndscvout_annotref <- dndscvout$annotmuts[which(dndscvout$annotmuts$ref %in% c("A","T","G","C") & dndscvout$annotmuts$mut %in% c("A","T","C","G")),]
 
   # assign strand data
-  strand_data <- sapply(RefCDS, function(x) x$strand)
-  names(strand_data) <- sapply(RefCDS, function(x) x$gene_name)
+  strand_data <- sapply(RefCDS_our_genes, function(x) x$strand)
+  names(strand_data) <- sapply(RefCDS_our_genes, function(x) x$gene_name)
   strand_data[which(strand_data==-1)] <- "-"
   strand_data[which(strand_data==1)] <- "+"
 
@@ -380,8 +397,8 @@ effect_size_SNV <- function(MAF,
   MAF$amino_acid_context <- as.character(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens, paste("chr",MAF$Chromosome,sep=""),
                                                           strand=MAF$strand, start=MAF$Start_Position-3, end=MAF$Start_Position+3))
 
-  ref_cds_genes <- sapply(RefCDS, function(x) x$gene_name)
-  names(RefCDS) <- ref_cds_genes
+  ref_cds_genes <- sapply(RefCDS_our_genes, function(x) x$gene_name)
+  names(RefCDS_our_genes) <- ref_cds_genes
 
   MAF$amino_acid_context[which(MAF$codon_pos==1)] <- substr(MAF$amino_acid_context[which(MAF$codon_pos==1)],3,7)
 
@@ -391,7 +408,7 @@ effect_size_SNV <- function(MAF,
 
   MAF$next_to_splice <- F
   for(i in 1:nrow(MAF)){
-    if(any(abs(MAF$Start_Position[i] - RefCDS[[MAF$Gene_name[i]]]$intervals_cds) <= 3)){
+    if(any(abs(MAF$Start_Position[i] - RefCDS_our_genes[[MAF$Gene_name[i]]]$intervals_cds) <= 3)){
 
       MAF$next_to_splice[i] <- T
 
@@ -422,7 +439,7 @@ effect_size_SNV <- function(MAF,
   # source("R/mutation_finder.R")
   # source("R/mutation_rate_calc.R")
 
-
+  rm(dndscv_coding_unique);rm(dndscvout_annotref);gc()
 
   message("Calculating selection intensity...")
 
@@ -442,7 +459,7 @@ effect_size_SNV <- function(MAF,
 
   get_gene_results <- function(gene_to_analyze) {
 
-    these_mutation_rates <-  cancereffectsizeR::mutation_rate_calc(MAF = MAF,gene = gene_to_analyze,gene_mut_rate = mutrates,trinuc_proportion_matrix = trinuc_proportion_matrix,gene_trinuc_comp = gene_trinuc_comp,RefCDS = RefCDS,relative_substitution_rate=relative_substitution_rate)
+    these_mutation_rates <-  cancereffectsizeR::mutation_rate_calc(MAF = MAF,gene = gene_to_analyze,gene_mut_rate = mutrates,trinuc_proportion_matrix = trinuc_proportion_matrix,gene_trinuc_comp = gene_trinuc_comp,RefCDS = RefCDS_our_genes,relative_substitution_rate=relative_substitution_rate)
 
     these_selection_results <- matrix(nrow=ncol(these_mutation_rates$mutation_rate_matrix), ncol=4,data=NA)
     rownames(these_selection_results) <- colnames(these_mutation_rates$mutation_rate_matrix); colnames(these_selection_results) <- c("variant","selection_intensity","unsure_gene_name","variant_freq")
@@ -463,7 +480,7 @@ effect_size_SNV <- function(MAF,
 
     print(gene_to_analyze)
 
-    return(list(gene_name=gene_to_analyze,RefCDS[[gene_to_analyze]]$gene_id,selection_results=these_selection_results))
+    return(list(gene_name=gene_to_analyze,RefCDS_our_genes[[gene_to_analyze]]$gene_id,selection_results=these_selection_results))
 
   }
 
