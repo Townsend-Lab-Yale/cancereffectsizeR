@@ -2,7 +2,7 @@
 #'
 #' This function calculates the mutation rates of all the unique varaints within a gene given gene-level mutation rate and tumor-specific trinucleotide contexts.
 #'
-#' @param MAF The MAF file to extract mutational data from
+#' @param this_MAF The subset MAF (just the gene to be analyzed) file to extract mutational data from
 #' @param gene Gene name in question
 #' @param trinuc_proportion_matrix matrix constructed from deconstructSigs output, containing proportion of each trinucleotide mutated in each tumor
 #' @param gene_trinuc_comp list containing matrices of counts of each trinuc in every gene
@@ -13,7 +13,7 @@
 #' @export
 #'
 #' @examples
-mutation_rate_calc <- function(MAF, gene, gene_mut_rate, trinuc_proportion_matrix,gene_trinuc_comp, RefCDS,relative_substitution_rate=relative_substitution_rate){
+mutation_rate_calc <- function(this_MAF, gene, gene_mut_rate, trinuc_proportion_matrix,gene_trinuc_comp, RefCDS,relative_substitution_rate=relative_substitution_rate){
 
   mutation_rate_nucs <- matrix(nrow=nrow(trinuc_proportion_matrix),ncol=ncol(trinuc_proportion_matrix),data = NA)
   rownames(mutation_rate_nucs) <- rownames(trinuc_proportion_matrix)
@@ -32,7 +32,7 @@ mutation_rate_calc <- function(MAF, gene, gene_mut_rate, trinuc_proportion_matri
   # need to find unique variants and then rates
 
 
-  this_MAF <- subset(MAF, Gene_name==gene & Reference_Allele %in% c("A","T","G","C") & Tumor_allele %in% c("A","T","G","C")) # subset the MAF into just this gene
+  # this_MAF <- subset(MAF, Gene_name==gene & Reference_Allele %in% c("A","T","G","C") & Tumor_allele %in% c("A","T","G","C")) # subset the MAF into just this gene
 
 
 
