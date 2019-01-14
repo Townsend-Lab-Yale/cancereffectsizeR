@@ -108,6 +108,9 @@ effect_size_SNV <- function(MAF,
 
   MAF_input_deconstructSigs_preprocessed <- cancereffectsizeR::deconstructSigs_input_preprocess(MAF = MAF)
 
+  # Need to make sure we are only calculating the selection intensities from tumors in which we are able to calculate a mutation rate
+  MAF <- MAF[MAF$Unique_patient_identifier %in% MAF_input_deconstructSigs_preprocessed$Unique_patient_identifier,]
+
   substitution_counts <- table(MAF_input_deconstructSigs_preprocessed[,sample_ID_column])
   tumors_with_50_or_more <- names(which(substitution_counts>=50))
   tumors_with_less_than_50 <- setdiff(MAF_input_deconstructSigs_preprocessed[,sample_ID_column],tumors_with_50_or_more)
@@ -304,7 +307,7 @@ effect_size_SNV <- function(MAF,
 
 
 
-  multi_choice <- as.numeric(names(table(S4Vectors::queryHits(gene_name_matches)))[which(table(S4Vectors::queryHits(gene_name_matches))>1)])
+  # multi_choice <- as.numeric(names(table(S4Vectors::queryHits(gene_name_matches)))[which(table(S4Vectors::queryHits(gene_name_matches))>1)])
 
 
   # Then, assign rest to the closest gene
@@ -475,7 +478,10 @@ effect_size_SNV <- function(MAF,
     for(j in 1:nrow(these_selection_results)){
       these_selection_results[j,c("variant","selection_intensity")] <-
         c(colnames(these_mutation_rates$mutation_rate_matrix)[j] ,
-          cancereffectsizeR::optimize_gamma(MAF=MAF,
+          cancereffectsizeR::optimize_gamma(MAF_input=subset(MAF,
+                                                             Gene_name==gene_to_analyze &
+                                                               Reference_Allele %in% c("A","T","G","C") &
+                                                               Tumor_allele %in% c("A","T","G","C")),
                                             all_tumors=tumors,
                                             gene=gene_to_analyze,
                                             variant=colnames(these_mutation_rates$mutation_rate_matrix)[j],
