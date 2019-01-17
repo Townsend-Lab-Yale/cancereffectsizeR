@@ -44,13 +44,13 @@ effect_size_SNV <- function(MAF,
 
   # for initial tests
   # MAF <- MAF_input
-  # covariate_file <- "ucec_pca"
+  # covariate_file <- "lung_pca"
   # sample_ID_column="Unique_patient_identifier"
   # chr_column = "Chromosome"
   # pos_column = "Start_Position"
   # ref_column = "Reference_Allele"
   # alt_column = "Tumor_allele"
-  # genes_for_effect_size_analysis="all"
+  # genes_for_effect_size_analysis=c("OTP","KRAS","EGFR","BRAF")
 
   # source("../R/dndscv_wrongRef_checker.R")
   # source("../R/all_in_R_trinucleotide_profile.R")
@@ -86,7 +86,7 @@ effect_size_SNV <- function(MAF,
 
   rm(reference_alleles)
 
-  MAF <- cancereffectsizeR::wrongRef_dndscv_checker(mutations = MAF)
+  # MAF <- cancereffectsizeR::wrongRef_dndscv_checker(mutations = MAF) # no longer necessary because of the above step
 
   # trinuc_data <- cancereffectsizeR::trinuc_profile_function_with_weights(
   #   input_MAF = MAF,
@@ -397,17 +397,22 @@ effect_size_SNV <- function(MAF,
   MAF$codon_pos[which(MAF$codon_pos==0)] <- 3
 
 
-  MAF$amino_acid_context <- as.character(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens, paste("chr",MAF$Chromosome,sep=""),
-                                                          strand=MAF$strand, start=MAF$Start_Position-3, end=MAF$Start_Position+3))
+  MAF$amino_acid_context <- as.character(
+    BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens, paste(
+      "chr",MAF$Chromosome,sep=""),
+      strand=MAF$strand, start=MAF$Start_Position-3, end=MAF$Start_Position+3))
 
   ref_cds_genes <- sapply(RefCDS_our_genes, function(x) x$gene_name)
   names(RefCDS_our_genes) <- ref_cds_genes
 
-  MAF$amino_acid_context[which(MAF$codon_pos==1)] <- substr(MAF$amino_acid_context[which(MAF$codon_pos==1)],3,7)
+  MAF$amino_acid_context[which(MAF$codon_pos==1)] <-
+    substr(MAF$amino_acid_context[which(MAF$codon_pos==1)],3,7)
 
-  MAF$amino_acid_context[which(MAF$codon_pos==2)] <- substr(MAF$amino_acid_context[which(MAF$codon_pos==2)],2,6)
+  MAF$amino_acid_context[which(MAF$codon_pos==2)] <-
+    substr(MAF$amino_acid_context[which(MAF$codon_pos==2)],2,6)
 
-  MAF$amino_acid_context[which(MAF$codon_pos==3)] <- substr(MAF$amino_acid_context[which(MAF$codon_pos==3)],1,5)
+  MAF$amino_acid_context[which(MAF$codon_pos==3)] <-
+    substr(MAF$amino_acid_context[which(MAF$codon_pos==3)],1,5)
 
   MAF$next_to_splice <- F
   for(i in 1:nrow(MAF)){
@@ -454,7 +459,8 @@ effect_size_SNV <- function(MAF,
   if(all(genes_for_effect_size_analysis=="all")){
     genes_to_analyze <- unique(MAF$Gene_name)
   }else{
-    genes_to_analyze <- genes_for_effect_size_analysis[genes_for_effect_size_analysis %in% unique(MAF$Gene_name)]
+    genes_to_analyze <-
+      genes_for_effect_size_analysis[genes_for_effect_size_analysis %in% unique(MAF$Gene_name)]
   }
 
   selection_results <- vector("list",length = length(genes_to_analyze))
@@ -462,30 +468,36 @@ effect_size_SNV <- function(MAF,
 
   get_gene_results <- function(gene_to_analyze) {
 
-    these_mutation_rates <-  cancereffectsizeR::mutation_rate_calc(this_MAF = subset(MAF,
-                                                                                Gene_name==gene_to_analyze &
-                                                                                  Reference_Allele %in% c("A","T","G","C") &
-                                                                                  Tumor_allele %in% c("A","T","G","C")),
-                                                                   gene = gene_to_analyze,
-                                                                   gene_mut_rate = mutrates,
-                                                                   trinuc_proportion_matrix = trinuc_proportion_matrix,
-                                                                   gene_trinuc_comp = gene_trinuc_comp,RefCDS = RefCDS_our_genes,
-                                                                   relative_substitution_rate=relative_substitution_rate)
+    these_mutation_rates <-
+      cancereffectsizeR::mutation_rate_calc(
+        this_MAF = subset(MAF,
+                          Gene_name==gene_to_analyze &
+                            Reference_Allele %in% c("A","T","G","C") &
+                            Tumor_allele %in% c("A","T","G","C")),
+        gene = gene_to_analyze,
+        gene_mut_rate = mutrates,
+        trinuc_proportion_matrix = trinuc_proportion_matrix,
+        gene_trinuc_comp = gene_trinuc_comp,RefCDS = RefCDS_our_genes,
+        relative_substitution_rate=relative_substitution_rate)
 
-    these_selection_results <- matrix(nrow=ncol(these_mutation_rates$mutation_rate_matrix), ncol=4,data=NA)
-    rownames(these_selection_results) <- colnames(these_mutation_rates$mutation_rate_matrix); colnames(these_selection_results) <- c("variant","selection_intensity","unsure_gene_name","variant_freq")
+    these_selection_results <- matrix(
+      nrow=ncol(these_mutation_rates$mutation_rate_matrix), ncol=4,data=NA)
+    rownames(these_selection_results) <- colnames(these_mutation_rates$mutation_rate_matrix)
+    colnames(these_selection_results) <- c(
+      "variant","selection_intensity","unsure_gene_name","variant_freq")
 
     for(j in 1:nrow(these_selection_results)){
       these_selection_results[j,c("variant","selection_intensity")] <-
         c(colnames(these_mutation_rates$mutation_rate_matrix)[j] ,
-          cancereffectsizeR::optimize_gamma(MAF_input=subset(MAF,
-                                                             Gene_name==gene_to_analyze &
-                                                               Reference_Allele %in% c("A","T","G","C") &
-                                                               Tumor_allele %in% c("A","T","G","C")),
-                                            all_tumors=tumors,
-                                            gene=gene_to_analyze,
-                                            variant=colnames(these_mutation_rates$mutation_rate_matrix)[j],
-                                            specific_mut_rates=these_mutation_rates$mutation_rate_matrix))
+          cancereffectsizeR::optimize_gamma(
+            MAF_input=subset(MAF,
+                             Gene_name==gene_to_analyze &
+                               Reference_Allele %in% c("A","T","G","C") &
+                               Tumor_allele %in% c("A","T","G","C")),
+            all_tumors=tumors,
+            gene=gene_to_analyze,
+            variant=colnames(these_mutation_rates$mutation_rate_matrix)[j],
+            specific_mut_rates=these_mutation_rates$mutation_rate_matrix))
     }
 
     these_selection_results[,"unsure_gene_name"] <- these_mutation_rates$unsure_genes_vec
