@@ -221,7 +221,7 @@ effect_size_SNV <- function(MAF,
 
   RefCDS_our_genes <- RefCDS[which(sapply(RefCDS, function(x) x$gene_name) %in% dndscvout$genemuts$gene_name)]
 
-  rm(RefCDS)
+
 
   # collect the garbage
   gc()

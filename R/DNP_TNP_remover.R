@@ -26,12 +26,16 @@ DNP_TNP_remover <- function(MAF,delete_recur=F){
   # sort by Tumor, Chromosome, and then position
   MAF <- MAF[with(MAF, order(Unique_patient_identifier,Chromosome,Start_Position)),]
 
-  position_differences <- diff(MAF[,"Start_Position"])
+  MAF$difference <- c(NA,diff(MAF[,"Start_Position"]))
 
-  DNP_and_TNP <- which(position_differences %in% c(1,2))
-  DNP_and_TNP_prior_position <- DNP_and_TNP-1
+  MAF$same_tumor_chrom <- c(NA,((MAF[2:nrow(MAF),"Chromosome"]==MAF[1:(nrow(MAF)-1),"Chromosome"]) &
+                                  (MAF[2:nrow(MAF),"Unique_patient_identifier"]==MAF[1:(nrow(MAF)-1),"Unique_patient_identifier"])))
 
-  to_remove <- unique(c(DNP_and_TNP,DNP_and_TNP_prior_position))
+  DNP_and_TNP <- which(MAF$difference %in% c(1,2) & MAF$same_tumor_chrom==T)
+  DNP_and_TNP_prior <- DNP_and_TNP - 1
+
+
+  to_remove <- unique(c(DNP_and_TNP,DNP_and_TNP_prior))
 
   MAF <- MAF[-to_remove,]
   # remove_it <- MAF
