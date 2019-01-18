@@ -40,7 +40,7 @@ effect_size_SNV <- function(MAF,
                             ref_column = "Reference_Allele",
                             alt_column = "Tumor_allele",
                             genes_for_effect_size_analysis="all",
-                            cores=1){
+                            cores=1,tumor_specific_rate_choice=F){
 
   # for initial tests
   # MAF <- MAF_input
@@ -478,7 +478,8 @@ effect_size_SNV <- function(MAF,
         gene_mut_rate = mutrates,
         trinuc_proportion_matrix = trinuc_proportion_matrix,
         gene_trinuc_comp = gene_trinuc_comp,RefCDS = RefCDS_our_genes,
-        relative_substitution_rate=relative_substitution_rate)
+        relative_substitution_rate=relative_substitution_rate,
+        tumor_specific_rate=tumor_specific_rate_choice)
 
     these_selection_results <- matrix(
       nrow=ncol(these_mutation_rates$mutation_rate_matrix), ncol=4,data=NA)

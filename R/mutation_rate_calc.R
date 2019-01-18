@@ -13,7 +13,7 @@
 #' @export
 #'
 #' @examples
-mutation_rate_calc <- function(this_MAF, gene, gene_mut_rate, trinuc_proportion_matrix,gene_trinuc_comp, RefCDS,relative_substitution_rate=relative_substitution_rate){
+mutation_rate_calc <- function(this_MAF, gene, gene_mut_rate, trinuc_proportion_matrix,gene_trinuc_comp, RefCDS,relative_substitution_rate=relative_substitution_rate,tumor_specific_rate=F){
 
   mutation_rate_nucs <- matrix(nrow=nrow(trinuc_proportion_matrix),ncol=ncol(trinuc_proportion_matrix),data = NA)
   rownames(mutation_rate_nucs) <- rownames(trinuc_proportion_matrix)
@@ -79,11 +79,11 @@ mutation_rate_calc <- function(this_MAF, gene, gene_mut_rate, trinuc_proportion_
   # adjusting tumor-specific rate to reflect the tumor-specific non-recurrent substitution load
 
   # mutation_rate_matrix_rel <- (mutation_rate_matrix) * t(relative_substitution_rate[rownames(mutation_rate_matrix)])
-
-  for(this_row in 1:nrow(mutation_rate_matrix)){
-   mutation_rate_matrix[this_row,] <-  mutation_rate_matrix[this_row,] * relative_substitution_rate[rownames(mutation_rate_matrix)[this_row]]
+  if(tumor_specific_rate){
+    for(this_row in 1:nrow(mutation_rate_matrix)){
+      mutation_rate_matrix[this_row,] <-  mutation_rate_matrix[this_row,] * relative_substitution_rate[rownames(mutation_rate_matrix)[this_row]]
+    }
   }
-
   unsure_genes_vec <- this_MAF$unsure_gene_name
 
 
