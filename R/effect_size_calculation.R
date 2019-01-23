@@ -222,6 +222,10 @@ effect_size_SNV <- function(MAF,
   RefCDS_our_genes <- RefCDS[which(sapply(RefCDS, function(x) x$gene_name) %in% dndscvout$genemuts$gene_name)]
 
 
+  data("gene_trinuc_comp", package = "cancereffectsizeR")
+  names(gene_trinuc_comp) <- sapply(RefCDS, function(x) x$gene_name)
+
+
 
   # collect the garbage
   gc()
@@ -345,7 +349,7 @@ effect_size_SNV <- function(MAF,
 
   # 5. For each substitution, calculate the gene- and tumor- and mutation-specific mutation rate----
 
-  data("gene_trinuc_comp", package = "cancereffectsizeR")
+  # data("gene_trinuc_comp", package = "cancereffectsizeR")
   data("AA_mutation_list", package = "cancereffectsizeR")
 
 
@@ -424,7 +428,7 @@ effect_size_SNV <- function(MAF,
   }
 
 
-  names(gene_trinuc_comp) <- ref_cds_genes
+  # names(gene_trinuc_comp) <- ref_cds_genes
 
   MAF$unique_variant_ID_AA <- NA
 
