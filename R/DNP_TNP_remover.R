@@ -37,7 +37,9 @@ DNP_TNP_remover <- function(MAF,delete_recur=F){
 
   to_remove <- unique(c(DNP_and_TNP,DNP_and_TNP_prior))
 
-  MAF <- MAF[-to_remove,]
+  if(length(to_remove)>0){
+    MAF <- MAF[-to_remove,]
+  }
   # remove_it <- MAF
   # final_MAF <- NULL
   # tumor_list <- unique(remove_it$Unique_patient_identifier)
