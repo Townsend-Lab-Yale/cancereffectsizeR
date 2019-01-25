@@ -18,6 +18,15 @@
 # Adds column to the MAF that contains the unique tumor ID from the $Tumor_Sample_Barcode
 
 unique_tumor_addition_function <- function(MAF_file,non_TCGA_characters_to_keep="all",sum_stats=T,figures=F){
+
+  if("Unique_patient_identifier" %in% colnames(MAF_file)){
+    message("
+            It appears that you already ran this function because
+            Unique_patient_identifier is already a column. Returning
+            original MAF_file")
+    return(MAF_file)
+  }
+
   this_maf <- MAF_file
   TCGA_tumors <- grep(pattern = "TCGA",x = this_maf$Tumor_Sample_Barcode)
   other_tumors <- setdiff(1:nrow(this_maf),TCGA_tumors)

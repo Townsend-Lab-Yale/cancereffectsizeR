@@ -16,6 +16,14 @@
 
 tumor_allele_adder <- function(MAF){
 
+  if("Tumor_allele" %in% colnames(MAF)){
+    message("
+            It appears that you already ran this function because
+            Tumor_allele is already a column. Returning
+            original MAF_file")
+    return(MAF)
+  }
+
 
   #Make sure all the characters in these columns are uppercase for consistency.
   MAF$Tumor_Seq_Allele2 <- toupper(MAF$Tumor_Seq_Allele2)
