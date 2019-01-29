@@ -13,7 +13,7 @@
 #' @import dndscv
 #'
 #' @param MAF_file MAF file with substitution data
-#' @param covariate_file Either NULL and uses the \code{dndscv}
+#' @param covariate_file Either NULL, which runs dndscv without covariates, "dndscv_default" which uses the \code{dndscv}
 #' default covariates, or one of these:  "bladder_pca"  "breast_pca"
 #' "cesc_pca" "colon_pca" "esca_pca" "gbm_pca" "hnsc_pca" "kidney_pca" "lihc_pca" "lung_pca" "ov_pca" "pancreas_pca" "prostate_pca" "rectum_pca" "skin_pca"  "stomach_pca"  "thca_pca" "ucec_pca"
 #' @param output_from_mainMAF the output from a previous selection run with all the
@@ -131,13 +131,14 @@ effect_size_SNV <- function(MAF_file,
     bsg_for_deconstructSigs = custom_BSgenome)
 
   # this_cov_pca <- get(load(covariate_file))
-
-  if(is.null(covariate_file)){
-    data("covariates_hg19",package = "dndscv")
-    genes_in_pca <- rownames(covs)
-  }else{
-    this_cov_pca <- get(data(list=covariate_file, package="cancereffectsizeR"))
-    genes_in_pca <- rownames(this_cov_pca$rotation)
+  if(!is.null(covariate_file)){
+    if(covariate_file=="dndscv_default"){
+      data("covariates_hg19",package = "dndscv")
+      genes_in_pca <- rownames(covs)
+    }else{
+      this_cov_pca <- get(data(list=covariate_file, package="cancereffectsizeR"))
+      genes_in_pca <- rownames(this_cov_pca$rotation)
+    }
   }
 
   path_to_library <- dir(.libPaths(),full.names=T)[grep(dir(.libPaths(),full.names=T),pattern="cancereffectsizeR")][1] # find the path to this package
@@ -149,14 +150,14 @@ effect_size_SNV <- function(MAF_file,
     dndscvout <- dndscv::dndscv(
       mutations = MAF,
       gene_list = genes_in_pca,
-      cv = if(is.null(covariate_file)){ "hg19"}else{ this_cov_pca$rotation},
+      cv = if(is.null(covariate_file)){NULL}else{if(covariate_file=="dndscv_default"){"hg19"}else{ this_cov_pca$rotation}},
       refdb = custom_location_RefCDS)
     load(custom_location_RefCDS)
   }else{
     dndscvout <- dndscv::dndscv(
       mutations = MAF,
       gene_list = genes_in_pca,
-      cv = if(is.null(covariate_file)){ "hg19"}else{ this_cov_pca$rotation},
+      cv = if(is.null(covariate_file)){NULL}else{if(covariate_file=="dndscv_default"){"hg19"}else{ this_cov_pca$rotation}},
       refdb = paste(path_to_library,"/data/RefCDS_TP53splice.RData",sep=""))
     data("refcds_hg19", package="dndscv")
   }
