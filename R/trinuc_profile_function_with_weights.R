@@ -39,7 +39,8 @@ trinuc_profile_function_with_weights <-
            chr.column = "Chromosome",
            pos.column = "Start_Position",
            ref.column = "Reference_Allele",
-           alt.column = "Tumor_allele"){
+           alt.column = "Tumor_allele",
+           bsg_for_deconstructSigs=NULL){
 
     # ip <- as.data.frame(installed.packages()[,c(1,3:4)])
     # if (!require("deconstructSigs")) {
@@ -126,7 +127,7 @@ trinuc_profile_function_with_weights <-
                                     chr = chr.column,
                                     pos = pos.column,
                                     ref = ref.column,
-                                    alt = alt.column)
+                                    alt = alt.column,bsg = bsg_for_deconstructSigs)
 
     # data("tri.counts.genome", package = "deconstructSigs")
     # data("tri.counts.exome",package = "deconstructSigs")

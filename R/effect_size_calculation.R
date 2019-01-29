@@ -25,6 +25,9 @@
 #' @param alt_column column in MAF with alternative allele data
 #' @param pos_column column in MAF with chromosome nucleotide location data
 #' @param chr_column column in MAF with chromosome data
+#' @param custom_genome T if you are using a genome other than hg19
+#' @param custom_location_RefCDS location of RefCDS location of custom genome (see dndscv user guide for more information http://htmlpreview.github.io/?http://github.com/im3sanger/dndscv/blob/master/vignettes/buildref.html
+#' @param custom_BSgenome BSgenome you have installed and loaded prior to runnig the function
 #'
 #'
 #' @export
@@ -44,7 +47,8 @@ effect_size_SNV <- function(MAF_file,
                             pos_column = "Start_Position",
                             ref_column = "Reference_Allele",
                             alt_column = "Tumor_allele",
-                            genes_for_effect_size_analysis="all"){
+                            genes_for_effect_size_analysis="all",
+                            custom_genome=F,custom_location_RefCDS=NULL,custom_BSgenome=NULL){
 
   # library("seqinr")
   # library("Biostrings")
@@ -66,6 +70,15 @@ effect_size_SNV <- function(MAF_file,
   # load in MAF
 
   # MAF <- get(load(MAF_file))
+
+  if(custom_genome){
+    if(is.null(custom_location_RefCDS) | is.null(custom_BSgenome)){
+      stop("If you state that custom_genome = T, you need to provide custom_location_RefCDS AND custom_BSgenome")
+    }
+
+  }
+
+
   MAF <- MAF_file
   if(length(which(MAF[,pos_column]==150713902))>0){
     MAF <- MAF[-which(MAF[,pos_column]==150713902),]
@@ -78,10 +91,35 @@ effect_size_SNV <- function(MAF_file,
 
   MAF <- MAF[,c(sample_ID_column,chr_column,pos_column,ref_column,alt_column)]
 
-
-
   message("Checking if any reference alleles provided do not match reference genome...")
-  MAF <- cancereffectsizeR::wrongRef_dndscv_checker(mutations = MAF)
+
+  MAF <- MAF[,c(sample_ID_column,chr_column,pos_column,ref_column,alt_column)]
+
+
+
+  if(custom_genome){
+    reference_alleles <- as.character(BSgenome::getSeq(custom_BSgenome, paste("chr",MAF[,chr_column],sep=""),
+                                                       strand="+", start=MAF[,pos_column], end=MAF[,pos_column]))
+
+    if(length(which(MAF[,"Reference_Allele"] != reference_alleles))>0){
+      message(paste(length(which(MAF[,"Reference_Allele"] != reference_alleles))," positions do not match out of ", nrow(MAF), ", (",round(length(which(MAF[,"Reference_Allele"] != reference_alleles))*100/nrow(MAF),4),"%), removing them from the analysis",sep=""))
+
+      MAF <- MAF[-which(MAF[,"Reference_Allele"] != reference_alleles),]
+    }
+
+  }else{
+    reference_alleles <- as.character(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens, paste("chr",MAF[,chr_column],sep=""),
+                                                       strand="+", start=MAF[,pos_column], end=MAF[,pos_column]))
+
+    if(length(which(MAF[,"Reference_Allele"] != reference_alleles))>0){
+      message(paste(length(which(MAF[,"Reference_Allele"] != reference_alleles))," positions do not match out of ", nrow(MAF), ", (",round(length(which(MAF[,"Reference_Allele"] != reference_alleles))*100/nrow(MAF),4),"%), removing them from the analysis",sep=""))
+
+      MAF <- MAF[-which(MAF[,"Reference_Allele"] != reference_alleles),]
+    }
+  }
+
+  # message("Checking if any reference alleles provided do not match reference genome...")
+  # MAF <- cancereffectsizeR::wrongRef_dndscv_checker(mutations = MAF)
 
   trinuc_data <- cancereffectsizeR::trinuc_profile_function_with_weights(
     input.MAF = MAF,
@@ -89,7 +127,8 @@ effect_size_SNV <- function(MAF_file,
     chr.column = chr_column,
     pos.column = pos_column,
     ref.column = ref_column,
-    alt.column = alt_column)
+    alt.column = alt_column,
+    bsg_for_deconstructSigs = custom_BSgenome)
 
   # this_cov_pca <- get(load(covariate_file))
 
@@ -106,15 +145,24 @@ effect_size_SNV <- function(MAF_file,
 
   data("RefCDS_TP53splice",package = "cancereffectsizeR")
 
-  dndscvout <- dndscv::dndscv(
-    mutations = MAF,
-    gene_list = genes_in_pca,
-    cv = if(is.null(covariate_file)){ "hg19"}else{ this_cov_pca$rotation},
-    refdb = paste(path_to_library,"/data/RefCDS_TP53splice.RData",sep=""))
+  if(custom_genome){
+    dndscvout <- dndscv::dndscv(
+      mutations = MAF,
+      gene_list = genes_in_pca,
+      cv = if(is.null(covariate_file)){ "hg19"}else{ this_cov_pca$rotation},
+      refdb = custom_location_RefCDS)
+    load(custom_location_RefCDS)
+  }else{
+    dndscvout <- dndscv::dndscv(
+      mutations = MAF,
+      gene_list = genes_in_pca,
+      cv = if(is.null(covariate_file)){ "hg19"}else{ this_cov_pca$rotation},
+      refdb = paste(path_to_library,"/data/RefCDS_TP53splice.RData",sep=""))
+    data("refcds_hg19", package="dndscv")
+  }
 
 
 
-  data("refcds_hg19", package="dndscv")
 
   RefCDS.our.genes <- RefCDS[which(sapply(RefCDS, function(x) x$gene_name) %in% dndscvout$genemuts$gene_name)]
 
