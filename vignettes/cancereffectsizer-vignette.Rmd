@@ -19,6 +19,8 @@ library(cancereffectsizeR)
 
 # Introduction
 
+SEE https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/user_guide/cancereffectsizeR_user_guide.md FOR USER GUIDE
+
 `cancereffectsizeR` is an `R` package that may be used to calculate the effect size of single nucleotide variants (SNV) in cancer exome data[^1]. It was designed for use with datasets in [MAF format](https://docs.gdc.cancer.gov/Data/File_Formats/MAF_Format/) and works well with data from a large number of tumors, each with a large number of detected varaints. A previous version of `cancereffectsizeR` depended on output from `MutSigCV` (which runs in MATLAB) and can be found [here](https://github.com/Townsend-Lab-Yale/SNV_selection_intensity).  
 
 This vignette is broken into several sections detailing installation, usage, and a suite of `R` functions provided with this package that are useful for analyzing cancer exome data. 
@@ -57,7 +59,7 @@ devtools::install_github("Townsend-Lab-Yale/cancereffectsizeR")
 
 In this example, we will calculate the effect size of SNV within LGG (low grade glioma) using the TCGA LGG dataset provided at the [National Cancer Institute Genomic Data Common](https://portal.gdc.cancer.gov/). Specifically using the MAF generated with mutect variant calling (NCI UUID 2c0dab06-7af9-4380-bc83-13148298da19). Download and read the MAF into memory. 
 
-```{r read MAF}
+```{r read MAF, eval=FALSE}
 # MAF files are tab delim and contain 5 rows of header to skip
 LGG_MAF <- read.delim(
   file = "TCGA.LGG.mutect.2c0dab06-7af9-4380-bc83-13148298da19.DR-7.0.somatic.maf",
@@ -70,7 +72,7 @@ LGG_MAF <- read.delim(
 
 The latest TCGA data release has genomic variants in hg38 coordinates, so we need to convert these to hg19 so that the data is compatable with other packages utilized within `cancereffectsizeR`. `hg_converter` uses the [hg38ToHg19.over.chain](http://hgdownload.cse.ucsc.edu/gbdb/hg38/liftOver/hg38ToHg19.over.chain.gz) file and the `rtracklayer::liftOver` function to perform the conversion. Note that this function can convert between other builds with other *.over.chain files.
 
-```{r convert to hg19}
+```{r convert to hg19, eval=F}
 # provide the path to the over.chain file. 
 # I downloaded the file from 
 # <http://hgdownload.cse.ucsc.edu/gbdb/hg38/liftOver/hg38ToHg19.over.chain.gz>
@@ -83,12 +85,12 @@ LGG_MAF <- hg_converter(chain = "~/Downloads/hg38ToHg19.over.chain",
 
 The TCGA does a great job documenting their data in a consistent fashion, so this step is optional if just using TCGA data. However, other sources may be less reliable, so these functions are provided in an attempt to get consistent tumor names and tumor allele nucleotides. 
 
-```{r adding unique tumor samples}
+```{r adding unique tumor samples, eval=F}
 LGG_MAF <- unique_tumor_addition_function(MAF.file = LGG_MAF)
 ```
 
 
-```{r adding tumor allele}
+```{r adding tumor allele, eval=F}
 LGG_MAF <- tumor_allele_adder(MAF = LGG_MAF)
 ```
 
@@ -96,7 +98,7 @@ LGG_MAF <- tumor_allele_adder(MAF = LGG_MAF)
 
 We only want true single-nucleotide variant events in our data so we can get the best estimate of SNV mutation rate. Variant calling algorithms may mislabel di-nucleotide events as "SNV" and thus we need to remove these data before calculating mutation rate and effect size. 
 
-```{r DNP remover}
+```{r DNP remover, eval=F}
 LGG_MAF <- DNP_TNP_remover(MAF = LGG_MAF)
 ```
 
@@ -109,7 +111,7 @@ The `effect_size_SNV()` function contains the entire pipeline necessary to calcu
 
 [^3]: Martincorena, I., Raine, K. M., Gerstung, M., Dawson, K. J., Haase, K., Van Loo, P., … Campbell, P. J. (2017). Universal Patterns of Selection in Cancer and Somatic Tissues. Cell. https://doi.org/10.1016/j.cell.2017.09.042
 
-```{r effect size calculation,warning=F}
+```{r effect size calculation,warning=F, eval=F}
 LGG_selection_output <- effect_size_SNV(MAF_file = LGG_MAF,
                                         covariate_file = "lgg_pca",
                                         genes_for_effect_size_analysis =
@@ -132,7 +134,7 @@ Output is grouped into four main sections.
 
 The main output regarding effect size calculations is found within `LGG_selection_output$selection_output$all_mutations`. This dataframe contains useful information for each unique molecular variant in the analysis, included selection intensity, mutation rate, frequency of occurrence within the dataset (along with proportion of tumors with the specific variant (`Prop_tumors_with_specific_mut`) and proportion of tumors with a mutation in this gene (`Prop_of_tumors_with_this_gene_mutated`). 
 
-```{r explore selection output all_mutations}
+```{r explore selection output all_mutations, eval=F}
 # selection intensity data
 
 print(head(
@@ -146,7 +148,7 @@ print(head(
 
 A more detailed output is found within  `LGG_selection_output$selection_output$complete_mutation_data`, which breaks down each molecular variants into the individual tumors it was found within. 
 
-```{r explore selection complete}
+```{r explore selection complete, eval=F}
 
 print(head(LGG_selection_output$selection_output$complete_mutation_data),digits = 2)
 
@@ -155,13 +157,13 @@ print(head(LGG_selection_output$selection_output$complete_mutation_data),digits 
 
 `$selection_output` also contains information about the last gene analyzed, such as the nucleotide mutation rates at every position...
 
-```{r nuc mut rates}
+```{r nuc mut rates, eval=F}
 LGG_selection_output$selection_output$nucleotide_mutation_rates[,1:5]
 ```
 
 ... and the amino acid mutations at every position.
 
-```{r amino acid rates}
+```{r amino acid rates, eval=F}
 LGG_selection_output$selection_output$amino_acid_mutation_rates[,1:5]
 ```
 

@@ -4,21 +4,16 @@
 \alias{effect_size_SNV}
 \title{SNV effect size calculation function}
 \usage{
-effect_size_SNV(MAF_file, covariate_file = NULL, output_from_mainMAF = NULL,
-  sample_ID_column = "Unique_patient_identifier", chr_column = "Chromosome",
-  pos_column = "Start_Position", ref_column = "Reference_Allele",
-  alt_column = "Tumor_allele", genes_for_effect_size_analysis = "all")
+effect_size_SNV(MAF, covariate_file = NULL,
+  sample_ID_column = "Unique_patient_identifier",
+  chr_column = "Chromosome", pos_column = "Start_Position",
+  ref_column = "Reference_Allele", alt_column = "Tumor_allele",
+  genes_for_effect_size_analysis = "all", cores = 1)
 }
 \arguments{
-\item{MAF_file}{MAF file with substitution data}
-
 \item{covariate_file}{Either NULL and uses the \code{dndscv}
 default covariates, or one of these:  "bladder_pca"  "breast_pca"
 "cesc_pca" "colon_pca" "esca_pca" "gbm_pca" "hnsc_pca" "kidney_pca" "lihc_pca" "lung_pca" "ov_pca" "pancreas_pca" "prostate_pca" "rectum_pca" "skin_pca"  "stomach_pca"  "thca_pca" "ucec_pca"}
-
-\item{output_from_mainMAF}{the output from a previous selection run with all the
-mutation and selection data, useful for bootstrapping because it speeds up the
-analysis (no longer need to look up mutational context, etc.)}
 
 \item{sample_ID_column}{column in MAF with sample ID data}
 
@@ -30,7 +25,11 @@ analysis (no longer need to look up mutational context, etc.)}
 
 \item{alt_column}{column in MAF with alternative allele data}
 
-\item{genes_for_effect_size_analysis}{genes to calculate effect sizes within.}
+\item{genes_for_effect_size_analysis}{genes to calculate effect sizes within. If unspecified, defaults to "all".}
+
+\item{cores}{number of cores to use}
+
+\item{MAF_file}{MAF file with substitution data}
 }
 \description{
 Function that determines mutation rate at the gene- and trinucleotide- level

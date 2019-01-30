@@ -1,4 +1,6 @@
-^.*\.Rproj$
+^user_guide$
+^data/all_gene_trinuc_data\.RData$
+^\.Rproj$
+^builder$
+^AA_mutation_matrix_builder$
 ^\.Rproj\.user$
-vignettes\TCGA.LGG.mutect.2c0dab06-7af9-4380-bc83-13148298da19.DR-7.0.somatic.maf
-user_guide\*
