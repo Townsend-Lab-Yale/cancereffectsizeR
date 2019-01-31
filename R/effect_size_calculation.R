@@ -71,7 +71,7 @@ effect_size_SNV <- function(MAF,
   if(length(which(MAF[,pos_column]==41123095))>0){
     MAF <- MAF[-which(MAF[,pos_column]==41123095),]
   }
-  #
+
 
   message("Checking if any reference alleles provided do not match reference genome...")
 
@@ -486,10 +486,10 @@ effect_size_SNV <- function(MAF,
         tumor_specific_rate=tumor_specific_rate_choice)
 
     these_selection_results <- matrix(
-      nrow=ncol(these_mutation_rates$mutation_rate_matrix), ncol=4,data=NA)
+      nrow=ncol(these_mutation_rates$mutation_rate_matrix), ncol=5,data=NA)
     rownames(these_selection_results) <- colnames(these_mutation_rates$mutation_rate_matrix)
     colnames(these_selection_results) <- c(
-      "variant","selection_intensity","unsure_gene_name","variant_freq")
+      "variant","selection_intensity","unsure_gene_name","variant_freq","unique_variant_ID")
 
     for(j in 1:nrow(these_selection_results)){
       these_selection_results[j,c("variant","selection_intensity")] <-
@@ -509,6 +509,8 @@ effect_size_SNV <- function(MAF,
 
     these_selection_results[,"variant_freq"] <- these_mutation_rates$variant_freq[as.character(these_selection_results[,"variant"])]
 
+    these_selection_results[,"unique_variant_ID"] <- these_mutation_rates$unique_variant_ID
+
     print(gene_to_analyze)
 
     return(list(gene_name=gene_to_analyze,RefCDS_our_genes[[gene_to_analyze]]$gene_id,selection_results=these_selection_results))
@@ -516,6 +518,10 @@ effect_size_SNV <- function(MAF,
   }
 
   selection_results <- parallel::mclapply(genes_to_analyze, get_gene_results, mc.cores = cores)
+
+
+
+
 
   return(list(selection_output=selection_results,
               mutation_rates=mutrates,
