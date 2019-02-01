@@ -144,6 +144,8 @@ effect_size_SNV <- function(MAF,
   rownames(trinuc_proportion_matrix) <- rownames(trinuc_breakdown_per_tumor)
   colnames(trinuc_proportion_matrix) <- colnames(trinuc_breakdown_per_tumor)
 
+  signatures_output_list <- vector(mode = "list",length = length(unique(MAF[,sample_ID_column])))
+  names(signatures_output_list) <- unique(MAF[,sample_ID_column])
 
 
   for(tumor_name in 1:length(tumors_with_50_or_more)){
@@ -152,6 +154,10 @@ effect_size_SNV <- function(MAF,
                                                           sample.id = tumors_with_50_or_more[tumor_name],
                                                           contexts.needed = TRUE,
                                                           tri.counts.method = 'exome2genome')
+
+    signatures_output_list[[tumors_with_50_or_more[tumor_name]]] <- list(signatures_output = signatures_output,
+                                                                         substitution_count = length(which(MAF[,sample_ID_column] == tumors_with_50_or_more[tumor_name])))
+
 
     trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],] <- signatures_output$product/sum( signatures_output$product) #need it to sum to 1.
 
@@ -189,6 +195,9 @@ effect_size_SNV <- function(MAF,
     closest_tumor <- names(sort(distance_matrix[tumors_with_less_than_50[tumor_name],tumors_with_50_or_more]))[1]
 
     trinuc_proportion_matrix[tumors_with_less_than_50[tumor_name],] <- trinuc_proportion_matrix[closest_tumor,]
+
+    signatures_output_list[[tumors_with_less_than_50[tumor_name]]] <- list(signature_output = signatures_output_list[[closest_tumor]]$signatures_output, substitution_count = length(which(MAF[,sample_ID_column] == tumors_with_less_than_50[tumor_name])))
+
 
   }
 
@@ -526,7 +535,7 @@ effect_size_SNV <- function(MAF,
   return(list(selection_output=selection_results,
               mutation_rates=mutrates,
               trinuc_data=list(trinuc_proportion_matrix=trinuc_proportion_matrix,
-                               signatures_output=signatures_output),
+                               signatures_output=signatures_output_list),
               dndscvout=dndscvout,
               MAF=MAF))
 
