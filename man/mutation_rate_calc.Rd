@@ -4,12 +4,13 @@
 \alias{mutation_rate_calc}
 \title{Mutation rate calculation}
 \usage{
-mutation_rate_calc(MAF, gene, gene_mut_rate, trinuc_proportion_matrix,
+mutation_rate_calc(this_MAF, gene, gene_mut_rate, trinuc_proportion_matrix,
   gene_trinuc_comp, RefCDS,
-  relative_substitution_rate = relative_substitution_rate)
+  relative_substitution_rate = relative_substitution_rate,
+  tumor_specific_rate = F)
 }
 \arguments{
-\item{MAF}{The MAF file to extract mutational data from}
+\item{this_MAF}{The subset MAF (just the gene to be analyzed) file to extract mutational data from}
 
 \item{gene}{Gene name in question}
 
