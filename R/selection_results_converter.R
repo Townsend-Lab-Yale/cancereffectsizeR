@@ -35,8 +35,8 @@ selection_results_converter <- function(results_input, subset_greater_than_freq=
 
   selection_data_df$dndscv_q  <- dndscv_results[selection_data_df$V6,"qallsubs_cv"]
 
-  results_output <- selection_data_df %>%
-    arrange(desc(selection_intensity))
+  results_output <- selection_data_df[order(selection_data_df$selection_intensity,decreasing = T),]
+
 
   colnames(results_output)[6] <- "Gene"
 
