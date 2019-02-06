@@ -149,7 +149,7 @@ effect_size_SNV <- function(MAF_file,
   if(custom_genome){
     dndscvout <- dndscv::dndscv(
       mutations = MAF,
-      gene_list = genes_in_pca,
+      gene_list = if(is.null(covariate_file)){NULL}else{genes_in_pca},
       cv = if(is.null(covariate_file)){NULL}else{if(covariate_file=="dndscv_default"){"hg19"}else{ this_cov_pca$rotation}},
       refdb = custom_location_RefCDS)
     load(custom_location_RefCDS)
