@@ -50,7 +50,8 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
                                             alt_column="Tumor_allele",
                                             chr_column="Chromosome",
                                             pos_column="Start_Position",
-                                            every_gene_verbose=F){
+                                            every_gene_verbose=F,
+                                            ref_cds_object=NULL){
 
   # data("all_gene_trinuc_data",package = "cancereffectsizeR")
   data("AA_translations", package = "cancereffectsizeR")
@@ -97,7 +98,8 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
     tumor.number <- tumor.number
   }
 
-  data("refcds_hg19", package="dndscv")
+  # data("refcds_hg19", package="dndscv")
+  RefCDS <- ref_cds_object
   # RefCDS[[1]]
   # gr_genes
   gene_list  <- sapply(RefCDS, function(x) x$gene_name)

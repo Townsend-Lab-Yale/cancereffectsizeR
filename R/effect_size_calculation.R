@@ -235,7 +235,7 @@ effect_size_SNV <- function(MAF_file,
     mut_rates = mutrates,
     trinuc.mutation_data = trinuc_data$trinuc.mutation_data,
     dndscv_siggenes=dndscv.pq,
-    output_from_mainMAF = output_from_mainMAF)
+    output_from_mainMAF = output_from_mainMAF,ref_cds_object=RefCDS.our.genes)
 
   return(list(selection_output=selection_output,
               mutation_rates=mutrates,
