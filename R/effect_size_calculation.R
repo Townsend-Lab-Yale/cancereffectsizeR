@@ -40,7 +40,8 @@ effect_size_SNV <- function(MAF,
                             ref_column = "Reference_Allele",
                             alt_column = "Tumor_allele",
                             genes_for_effect_size_analysis="all",
-                            cores=1,tumor_specific_rate_choice=F){
+                            cores=1,tumor_specific_rate_choice=F,
+                            trinuc_all_tumors=F){
 
   # for initial tests
   # MAF <- MAF_input
@@ -147,66 +148,127 @@ effect_size_SNV <- function(MAF,
   signatures_output_list <- vector(mode = "list",length = length(unique(MAF[,sample_ID_column])))
   names(signatures_output_list) <- unique(MAF[,sample_ID_column])
 
+  if(trinuc_all_tumors==F){
+    for(tumor_name in 1:length(tumors_with_50_or_more)){
+      signatures_output <- deconstructSigs::whichSignatures(tumor.ref = trinuc_breakdown_per_tumor,
+                                                            signatures.ref = signatures.cosmic,
+                                                            sample.id = tumors_with_50_or_more[tumor_name],
+                                                            contexts.needed = TRUE,
+                                                            tri.counts.method = 'exome2genome')
 
-  for(tumor_name in 1:length(tumors_with_50_or_more)){
-    signatures_output <- deconstructSigs::whichSignatures(tumor.ref = trinuc_breakdown_per_tumor,
-                                                          signatures.ref = signatures.cosmic,
-                                                          sample.id = tumors_with_50_or_more[tumor_name],
-                                                          contexts.needed = TRUE,
-                                                          tri.counts.method = 'exome2genome')
-
-    signatures_output_list[[tumors_with_50_or_more[tumor_name]]] <- list(signatures_output = signatures_output,
-                                                                         substitution_count = length(which(MAF[,sample_ID_column] == tumors_with_50_or_more[tumor_name])))
-
-
-    trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],] <- signatures_output$product/sum( signatures_output$product) #need it to sum to 1.
-
-    # Not all trinuc weights in the cosmic dataset are nonzero for certain signatures
-    # This leads to the rare occasion where a certain combination of signatues leads to ZERO
-    # rate for particular trinucleotide contexts.
-    # True rate is nonzero, as we do see those variants in those tumors, so renormalizing
-    # the rates by adding the lowest nonzero rate to all the rates and renormalizing
+      signatures_output_list[[tumors_with_50_or_more[tumor_name]]] <- list(signatures_output = signatures_output,
+                                                                           substitution_count = length(which(MAF[,sample_ID_column] == tumors_with_50_or_more[tumor_name])))
 
 
-    if(0 %in% trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],]){
-      # finding the lowest nonzero rate
-      lowest_rate <- min(trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],
-                                                  -which(trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],]==0)])
+      trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],] <- signatures_output$product/sum( signatures_output$product) #need it to sum to 1.
 
-      # adding it to the rates
-      trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],] <- trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],] + lowest_rate
+      # Not all trinuc weights in the cosmic dataset are nonzero for certain signatures
+      # This leads to the rare occasion where a certain combination of signatues leads to ZERO
+      # rate for particular trinucleotide contexts.
+      # True rate is nonzero, as we do see those variants in those tumors, so renormalizing
+      # the rates by adding the lowest nonzero rate to all the rates and renormalizing
 
-      # renormalizing to 1
-      trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],] <-
-        trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],] / sum(trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],])
+
+      if(0 %in% trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],]){
+        # finding the lowest nonzero rate
+        lowest_rate <- min(trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],
+                                                    -which(trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],]==0)])
+
+        # adding it to the rates
+        trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],] <- trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],] + lowest_rate
+
+        # renormalizing to 1
+        trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],] <-
+          trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],] / sum(trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],])
+      }
+
     }
 
+    # 2. Find nearest neighbor to tumors with < 50 mutations, assign identical weights as neighbor ----
+    # message(head(trinuc_proportion_matrix))
+
+    # message("should have printed")
+
+    distance_matrix <- as.matrix(dist(trinuc_breakdown_per_tumor))
+
+    for(tumor_name in 1:length(tumors_with_less_than_50)){
+      #find closest tumor that have over 50 mutations
+      closest_tumor <- names(sort(distance_matrix[tumors_with_less_than_50[tumor_name],tumors_with_50_or_more]))[1]
+
+      trinuc_proportion_matrix[tumors_with_less_than_50[tumor_name],] <- trinuc_proportion_matrix[closest_tumor,]
+
+      signatures_output_list[[tumors_with_less_than_50[tumor_name]]] <- list(signatures_output = signatures_output_list[[closest_tumor]]$signatures_output, substitution_count = length(which(MAF[,sample_ID_column] == tumors_with_less_than_50[tumor_name])), tumor_signatures_used = closest_tumor)
+
+
+    }
+
+    rm(distance_matrix)
+    # now, trinuc_proportion_matrix has the proportion of all trinucs in every tumor.
+
+    # collect the garbage
+    gc()
+  }else{
+    for(tumor_name in 1:nrow(trinuc_breakdown_per_tumor)){
+
+      signatures_output <- deconstructSigs::whichSignatures(tumor.ref = trinuc_breakdown_per_tumor,
+                                                            signatures.ref = signatures.cosmic,
+                                                            sample.id = rownames(trinuc_breakdown_per_tumor)[tumor_name],
+                                                            contexts.needed = TRUE,
+                                                            tri.counts.method = 'exome2genome')
+
+      signatures_output_list[[tumor_name]] <- list(signatures_output = signatures_output,
+                                                                           substitution_count = length(which(MAF[,sample_ID_column] == rownames(trinuc_breakdown_per_tumor)[tumor_name])))
+
+
+      trinuc_proportion_matrix[rownames(trinuc_breakdown_per_tumor)[tumor_name],] <- signatures_output$product/sum( signatures_output$product) #need it to sum to 1.
+
+      # Not all trinuc weights in the cosmic dataset are nonzero for certain signatures
+      # This leads to the rare occasion where a certain combination of signatues leads to ZERO
+      # rate for particular trinucleotide contexts.
+      # True rate is nonzero, as we do see those variants in those tumors, so renormalizing
+      # the rates by adding the lowest nonzero rate to all the rates and renormalizing
+
+
+      if(0 %in% trinuc_proportion_matrix[tumor_name,]){
+        # finding the lowest nonzero rate
+        lowest_rate <- min(trinuc_proportion_matrix[tumor_name,
+                                                    -which(trinuc_proportion_matrix[tumor_name,]==0)])
+
+        # adding it to the rates
+        trinuc_proportion_matrix[tumor_name,] <- trinuc_proportion_matrix[tumor_name,] + lowest_rate
+
+        # renormalizing to 1
+        trinuc_proportion_matrix[tumor_name,] <-
+          trinuc_proportion_matrix[tumor_name,] / sum(trinuc_proportion_matrix[tumor_name,])
+      }
+
+    }
+
+    # 2. Find nearest neighbor to tumors with < 50 mutations, assign identical weights as neighbor ----
+    # message(head(trinuc_proportion_matrix))
+
+    # message("should have printed")
+    #
+    # distance_matrix <- as.matrix(dist(trinuc_breakdown_per_tumor))
+    #
+    # for(tumor_name in 1:length(tumors_with_less_than_50)){
+    #   #find closest tumor that have over 50 mutations
+    #   closest_tumor <- names(sort(distance_matrix[tumors_with_less_than_50[tumor_name],tumors_with_50_or_more]))[1]
+    #
+    #   trinuc_proportion_matrix[tumors_with_less_than_50[tumor_name],] <- trinuc_proportion_matrix[closest_tumor,]
+    #
+    #   signatures_output_list[[tumors_with_less_than_50[tumor_name]]] <- list(signatures_output = signatures_output_list[[closest_tumor]]$signatures_output, substitution_count = length(which(MAF[,sample_ID_column] == tumors_with_less_than_50[tumor_name])), tumor_signatures_used = closest_tumor)
+    #
+    #
+    # }
+    #
+    # rm(distance_matrix)
+    # now, trinuc_proportion_matrix has the proportion of all trinucs in every tumor.
+
+    # collect the garbage
+    gc()
+
   }
-
-  # 2. Find nearest neighbor to tumors with < 50 mutations, assign identical weights as neighbor ----
-  # message(head(trinuc_proportion_matrix))
-
-  # message("should have printed")
-
-  distance_matrix <- as.matrix(dist(trinuc_breakdown_per_tumor))
-
-  for(tumor_name in 1:length(tumors_with_less_than_50)){
-    #find closest tumor that have over 50 mutations
-    closest_tumor <- names(sort(distance_matrix[tumors_with_less_than_50[tumor_name],tumors_with_50_or_more]))[1]
-
-    trinuc_proportion_matrix[tumors_with_less_than_50[tumor_name],] <- trinuc_proportion_matrix[closest_tumor,]
-
-    signatures_output_list[[tumors_with_less_than_50[tumor_name]]] <- list(signatures_output = signatures_output_list[[closest_tumor]]$signatures_output, substitution_count = length(which(MAF[,sample_ID_column] == tumors_with_less_than_50[tumor_name])), tumor_signatures_used = closest_tumor)
-
-
-  }
-
-  rm(distance_matrix)
-  # now, trinuc_proportion_matrix has the proportion of all trinucs in every tumor.
-
-  # collect the garbage
-  gc()
-
   message("Calculating gene-level mutation rate...")
 
   if(is.null(covariate_file)){
