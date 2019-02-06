@@ -25,6 +25,8 @@ selection_results_converter <- function(results_input, subset_greater_than_freq=
   }
   selection_data <- do.call(rbind,selection_data)
 
+  colnames(selection_data)[ncol(selection_data)] <- "Gene"
+
   selection_data_df <- as.data.frame(selection_data,stringsAsFactors =F)
   selection_data_df$variant_freq <- as.numeric(selection_data_df$variant_freq)
   selection_data_df <- selection_data_df[selection_data_df$variant_freq>subset_greater_than_freq,]
@@ -33,12 +35,12 @@ selection_results_converter <- function(results_input, subset_greater_than_freq=
   dndscv_results <- selection_output$dndscvout$sel_cv
   rownames(dndscv_results) <- dndscv_results$gene_name
 
-  selection_data_df$dndscv_q  <- dndscv_results[selection_data_df$V6,"qallsubs_cv"]
+  selection_data_df$dndscv_q  <- dndscv_results[selection_data_df[,"Gene"],"qallsubs_cv"]
 
   results_output <- selection_data_df[order(selection_data_df$selection_intensity,decreasing = T),]
 
 
-  colnames(results_output)[6] <- "Gene"
+
 
   return(results_output)
 }
