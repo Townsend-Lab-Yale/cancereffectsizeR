@@ -50,7 +50,7 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
                                             alt_column="Tumor_allele",
                                             chr_column="Chromosome",
                                             pos_column="Start_Position",
-                                            every_gene_verbose=F,
+                                            every_gene_verbose=T,
                                             ref_cds_object=NULL){
 
   # data("all_gene_trinuc_data",package = "cancereffectsizeR")

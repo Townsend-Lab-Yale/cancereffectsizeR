@@ -227,19 +227,24 @@ effect_size_SNV <- function(MAF_file,
 
   message("Calculating selection intensity...")
 
+  return(list(MAF_for_analysis = MAF,
+              genes_for_analysis = genes_for_effect_size_analysis,
+              mut_rates = mutrates,
+              trinuc.mutation_data = trinuc_data$trinuc.mutation_data,
+              dndscv_siggenes=dndscv.pq,
+              output_from_mainMAF = output_from_mainMAF,ref_cds_object=RefCDS.our.genes))
 
-
-  selection_output <- cancereffectsizeR::selection_intensity_calculation(
-    MAF_for_analysis = MAF,
-    genes_for_analysis = genes_for_effect_size_analysis,
-    mut_rates = mutrates,
-    trinuc.mutation_data = trinuc_data$trinuc.mutation_data,
-    dndscv_siggenes=dndscv.pq,
-    output_from_mainMAF = output_from_mainMAF,ref_cds_object=RefCDS.our.genes)
-
-  return(list(selection_output=selection_output,
-              mutation_rates=mutrates,
-              trinuc_data=trinuc_data,dndscvout=dndscvout))
+  # selection_output <- cancereffectsizeR::selection_intensity_calculation(
+  #   MAF_for_analysis = MAF,
+  #   genes_for_analysis = genes_for_effect_size_analysis,
+  #   mut_rates = mutrates,
+  #   trinuc.mutation_data = trinuc_data$trinuc.mutation_data,
+  #   dndscv_siggenes=dndscv.pq,
+  #   output_from_mainMAF = output_from_mainMAF,ref_cds_object=RefCDS.our.genes)
+  #
+  # return(list(selection_output=selection_output,
+  #             mutation_rates=mutrates,
+  #             trinuc_data=trinuc_data,dndscvout=dndscvout))
 
 }
 
