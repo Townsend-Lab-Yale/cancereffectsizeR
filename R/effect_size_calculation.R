@@ -41,7 +41,7 @@ effect_size_SNV <- function(MAF,
                             alt_column = "Tumor_allele",
                             genes_for_effect_size_analysis="all",
                             cores=1,tumor_specific_rate_choice=F,
-                            trinuc_all_tumors=F){
+                            trinuc_all_tumors=T){
 
   # for initial tests
   # MAF <- MAF_input
