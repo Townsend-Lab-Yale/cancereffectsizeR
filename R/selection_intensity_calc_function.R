@@ -51,7 +51,7 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
                                             chr_column="Chromosome",
                                             pos_column="Start_Position",
                                             every_gene_verbose=T,
-                                            ref_cds_object=NULL,custom_BSgenome_selection_selection=NULL){
+                                            ref_cds_object=NULL,custom_BSgenome_selection=NULL){
 
   # data("all_gene_trinuc_data",package = "cancereffectsizeR")
   data("AA_translations", package = "cancereffectsizeR")
