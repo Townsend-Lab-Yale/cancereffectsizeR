@@ -51,7 +51,7 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
                                             chr_column="Chromosome",
                                             pos_column="Start_Position",
                                             every_gene_verbose=T,
-                                            ref_cds_object=NULL){
+                                            ref_cds_object=NULL,custom_BSgenome_selection_selection=NULL){
 
   # data("all_gene_trinuc_data",package = "cancereffectsizeR")
   data("AA_translations", package = "cancereffectsizeR")
@@ -246,13 +246,13 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
 
         ###Getting isoform sequence data ----
         if(this.strand=="+"){
-          myseq <- paste(as.character(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens,paste("chr",RefCDS[[which(gene_list==this.gene)]]$chr,sep=""),start=seq.exon.start.vec+1,end=seq.exon.end.vec,strand="+")),collapse = "")
+          myseq <- paste(as.character(BSgenome::getSeq(custom_BSgenome_selection,paste("chr",RefCDS[[which(gene_list==this.gene)]]$chr,sep=""),start=seq.exon.start.vec+1,end=seq.exon.end.vec,strand="+")),collapse = "")
 
 
           #If this isoform strand is "-", we need to flip the positions and strand to make it "+"
         }else{
 
-          myseq <- paste(rev(as.character(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens,paste("chr",RefCDS[[which(gene_list==this.gene)]]$chr,sep=""),start=seq.exon.start.vec+1,end=seq.exon.end.vec,strand="-"))),collapse = "")
+          myseq <- paste(rev(as.character(BSgenome::getSeq(custom_BSgenome_selection,paste("chr",RefCDS[[which(gene_list==this.gene)]]$chr,sep=""),start=seq.exon.start.vec+1,end=seq.exon.end.vec,strand="-"))),collapse = "")
 
 
         }
@@ -318,7 +318,7 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
         }
 
         # cutting out substitutions that do not match the reference genome
-        matcher.vec <- as.vector(this.gene_MAF[,ref_column] == as.character(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens,chromosome,start=this.gene_MAF[,pos_column],end=this.gene_MAF$End_Position,strand="+")))
+        matcher.vec <- as.vector(this.gene_MAF[,ref_column] == as.character(BSgenome::getSeq(custom_BSgenome_selection,chromosome,start=this.gene_MAF[,pos_column],end=this.gene_MAF$End_Position,strand="+")))
 
         if(length(which(matcher.vec==FALSE))>0){
           not.matching <- which(matcher.vec==F)
@@ -338,9 +338,9 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
 
         #Vector of the total sequence from start to end, including introns
         if(this.strand=="-"){
-          pos.sequence  <- rev(strsplit(as.character(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens,chromosome,start=seq.exon.start.vec[1],end=seq.exon.end.vec[length(seq.exon.end.vec)]+1,strand="-")),split="")[[1]])
+          pos.sequence  <- rev(strsplit(as.character(BSgenome::getSeq(custom_BSgenome_selection,chromosome,start=seq.exon.start.vec[1],end=seq.exon.end.vec[length(seq.exon.end.vec)]+1,strand="-")),split="")[[1]])
         }else{
-          pos.sequence  <- strsplit(as.character(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens,chromosome,start=seq.exon.start.vec[1],end=seq.exon.end.vec[length(seq.exon.end.vec)]+1,strand="+")),split="")[[1]]
+          pos.sequence  <- strsplit(as.character(BSgenome::getSeq(custom_BSgenome_selection,chromosome,start=seq.exon.start.vec[1],end=seq.exon.end.vec[length(seq.exon.end.vec)]+1,strand="+")),split="")[[1]]
         }
 
         #All the chromosome positions in the gene, including introns
@@ -744,9 +744,9 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
 
               #calculate the mutation rate at this sepecific site...
               if(this.strand=="-"){
-                outside.sequence  <- rev(strsplit(as.character(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens,chromosome,start=this.gene_MAF[i,pos_column]-1,end=this.gene_MAF[i,pos_column]+1,strand="-")),split="")[[1]])
+                outside.sequence  <- rev(strsplit(as.character(BSgenome::getSeq(custom_BSgenome_selection,chromosome,start=this.gene_MAF[i,pos_column]-1,end=this.gene_MAF[i,pos_column]+1,strand="-")),split="")[[1]])
               }else{
-                outside.sequence  <- strsplit(as.character(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens,chromosome,start=this.gene_MAF[i,pos_column]-1,end=this.gene_MAF[i,pos_column]+1,strand="+")),split="")[[1]]
+                outside.sequence  <- strsplit(as.character(BSgenome::getSeq(custom_BSgenome_selection,chromosome,start=this.gene_MAF[i,pos_column]-1,end=this.gene_MAF[i,pos_column]+1,strand="+")),split="")[[1]]
               }
 
               mutation.data.to.add$Nucleotide_trinuc_context[i] <- paste(outside.sequence,collapse = "")
