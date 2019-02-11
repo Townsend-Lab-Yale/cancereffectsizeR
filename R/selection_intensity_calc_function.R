@@ -385,7 +385,10 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
           trinuc.pos <- paste(plus.vec,pos.sequence,minus.vec,sep="")
         }
 
-
+        if("N" %in% c(minus.vec,pos.sequence,plus.vec)){
+         paste(this.gene, "contains 'N' within the nucleotides of the gene, according to positions specified in the RefCDS object and the customBSgenome sequence. Skipping this gene")
+          next
+        }
 
         ##Nucleotide matrix----
         #Constructing a matrix to hold all the mutation prevalence data
@@ -660,7 +663,7 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
         mutation.data.to.add$Percent_T <- length(which(myseq.split=="T"))/length(myseq.split)
         mutation.data.to.add$Percent_G <- length(which(myseq.split=="G"))/length(myseq.split)
         mutation.data.to.add$Percent_C <- length(which(myseq.split=="C"))/length(myseq.split)
-        mutation.data.to.add$Chromosome <- this.gene_MAF[1,chr_column]
+        mutation.data.to.add$Chromosome <- rep(this.gene_MAF[1,chr_column],length(mutation.data.to.add$Chromosome))
         mutation.data.to.add$gene_level_synonymous_mutation_rate <- gene_level_synonymous_mutation_rate
         mutation.data.to.add$strand <- this.strand
 
@@ -912,7 +915,7 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
         #output_from_mainMAF should have all possible mutations in the bootstrap MAFs
 
         if(length(which(output_from_mainMAF$complete_mutation_data$Gene==this.gene))==0){
-          print(paste("There is no previous selection data for ",this.gene))
+          message(paste("There is no previous selection data for ",this.gene))
           next
         }
 

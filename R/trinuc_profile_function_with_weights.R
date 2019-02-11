@@ -123,11 +123,11 @@ trinuc_profile_function_with_weights <-
 
     message("Calculating trinucleotide mutation counts...")
     sigs.input <- deconstructSigs::mut.to.sigs.input(mut.ref = input.MAF,
-                                    sample.id = sample.ID.column,
-                                    chr = chr.column,
-                                    pos = pos.column,
-                                    ref = ref.column,
-                                    alt = alt.column,bsg = bsg_for_deconstructSigs)
+                                                     sample.id = sample.ID.column,
+                                                     chr = chr.column,
+                                                     pos = pos.column,
+                                                     ref = ref.column,
+                                                     alt = alt.column,bsg = bsg_for_deconstructSigs)
 
     # data("tri.counts.genome", package = "deconstructSigs")
     # data("tri.counts.exome",package = "deconstructSigs")
@@ -142,20 +142,20 @@ trinuc_profile_function_with_weights <-
       signatures.output <- list()
       for(i in 1:nrow(sigs.input)){
         signatures.output[[i]] <- deconstructSigs::whichSignatures(tumor.ref = sigs.input,
-                                                  signatures.ref = signatures.cosmic,
-                                                  sample.id = rownames(sigs.input)[i],
-                                                  contexts.needed = TRUE,
-                                                  tri.counts.method = 'exome2genome')
+                                                                   signatures.ref = signatures.cosmic,
+                                                                   sample.id = rownames(sigs.input)[i],
+                                                                   contexts.needed = TRUE,
+                                                                   tri.counts.method = 'exome2genome')
       }
     }
     if(signature.choice=="signatures.nature2013"){
       signatures.output <- list()
       for(i in 1:nrow(sigs.input)){
         signatures.output[[i]] <- deconstructSigs::whichSignatures(tumor.ref = sigs.input,
-                                                  signatures.ref = signatures.nature2013,
-                                                  sample.id = rownames(sigs.input)[i],
-                                                  contexts.needed = TRUE,
-                                                  tri.counts.method = 'exome2genome')
+                                                                   signatures.ref = signatures.nature2013,
+                                                                   sample.id = rownames(sigs.input)[i],
+                                                                   contexts.needed = TRUE,
+                                                                   tri.counts.method = 'exome2genome')
       }
 
     }
@@ -203,8 +203,10 @@ trinuc_profile_function_with_weights <-
     print(summary(unknown.list))
 
     averaged.product <- signatures.output[[1]]$product
-    for(i in 2:length(signatures.output)){
-      averaged.product <- averaged.product + signatures.output[[i]]$product
+    if(length(signatures.output)>1){
+      for(i in 2:length(signatures.output)){
+        averaged.product <- averaged.product + signatures.output[[i]]$product
+      }
     }
     averaged.product <- averaged.product/length(signatures.output)
     averaged.product <- averaged.product/sum(averaged.product)
