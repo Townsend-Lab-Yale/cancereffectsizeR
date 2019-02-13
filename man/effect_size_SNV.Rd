@@ -9,7 +9,7 @@ effect_size_SNV(MAF, covariate_file = NULL,
   chr_column = "Chromosome", pos_column = "Start_Position",
   ref_column = "Reference_Allele", alt_column = "Tumor_allele",
   genes_for_effect_size_analysis = "all", cores = 1,
-  tumor_specific_rate_choice = F)
+  tumor_specific_rate_choice = F, trinuc_all_tumors = T)
 }
 \arguments{
 \item{covariate_file}{Either NULL and uses the \code{dndscv}
