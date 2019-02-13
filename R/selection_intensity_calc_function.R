@@ -386,7 +386,7 @@ selection_intensity_calculation <- function(genes_for_analysis="all",
         }
 
         if("N" %in% c(minus.vec,pos.sequence,plus.vec)){
-         paste(this.gene, "contains 'N' within the nucleotides of the gene, according to positions specified in the RefCDS object and the customBSgenome sequence. Skipping this gene")
+         message(paste(this.gene, "contains 'N' within the nucleotides of the gene, according to positions specified in the RefCDS object and the customBSgenome sequence. Skipping this gene"))
           next
         }
 
