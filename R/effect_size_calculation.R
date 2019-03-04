@@ -24,7 +24,8 @@
 #' @param pos_column column in MAF with chromosome nucleotide location data
 #' @param chr_column column in MAF with chromosome data
 #' @param cores number of cores to use
-#'
+#' @param tumor_specific_rate_choice weights tumor-specific rates by their relative proportional substitution count (not recommended)
+#' @param trinuc_all_tumors Calculates trinucleotide signatures within all tumors (even those with < 50 variants)
 #'
 #' @export
 
