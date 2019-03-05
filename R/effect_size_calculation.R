@@ -431,6 +431,9 @@ effect_size_SNV <- function(MAF,
   all_possible_names <- gr_genes$names[S4Vectors::subjectHits(gene_name_matches)]
   query_spots <- S4Vectors::queryHits(gene_name_matches)
 
+
+
+
   for(i in 1:length(multi_choice)){
     # first, assign if the nearest happened to be within the GenomicRanges::findOverlaps() and applicable to one gene
     if(length(which(queryHits(gene_name_matches) == multi_choice[i])) == 1){
@@ -441,8 +444,8 @@ effect_size_SNV <- function(MAF,
 
       genes_for_this_choice <- all_possible_names[which(query_spots==multi_choice[i])]
 
-      if(any( genes_for_this_choice %in% names(mutrates), na.rm=TRUE )){
-        MAF_unmatched$Gene_name[multi_choice[i]] <- genes_for_this_choice[which( genes_for_this_choice %in% names(mutrates) )[1]]
+      if(any( genes_for_this_choice %in% names(mutrates_list[[1]]), na.rm=TRUE )){
+        MAF_unmatched$Gene_name[multi_choice[i]] <- genes_for_this_choice[which( genes_for_this_choice %in% names(mutrates_list[[1]]) )[1]]
       }else{
         MAF_unmatched$Gene_name[multi_choice[i]] <- "Indeterminate"
       }
@@ -463,10 +466,15 @@ effect_size_SNV <- function(MAF,
   data("AA_mutation_list", package = "cancereffectsizeR")
 
 
-  MAF <- MAF[which(MAF$Gene_name %in% names(mutrates)),]
+  MAF <- MAF[which(MAF$Gene_name %in% names(mutrates_list[[1]])),]
   MAF <- MAF[which(MAF$Reference_Allele %in% c("A","T","C","G") & MAF$Tumor_allele %in% c("A","T","C","G")),]
 
-  dndscvout_annotref <- dndscvout$annotmuts[which(dndscvout$annotmuts$ref %in% c("A","T","G","C") & dndscvout$annotmuts$mut %in% c("A","T","C","G")),]
+  dndscvout_annotref <- NULL
+  for(this_subset in 1:length(dndscv_out_list)){
+    dndscvout_annotref <- rbind(dndscvout_annotref,dndscv_out_list[[this_subset]]$annotmuts)
+  }
+
+  dndscvout_annotref <- dndscvout_annotref[which(dndscvout_annotref$ref %in% c("A","T","G","C") & dndscvout_annotref$mut %in% c("A","T","C","G")),]
 
   # assign strand data
   strand_data <- sapply(RefCDS_our_genes, function(x) x$strand)
@@ -564,6 +572,11 @@ effect_size_SNV <- function(MAF,
   rm(dndscv_coding_unique);rm(dndscvout_annotref);gc()
 
   message("Calculating selection intensity...")
+
+
+  #TODO: resume here
+
+
 
   tumors <- unique(MAF$Unique_patient_identifier)
 
