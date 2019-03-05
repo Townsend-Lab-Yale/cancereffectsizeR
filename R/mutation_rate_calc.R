@@ -34,9 +34,26 @@ mutation_rate_calc <- function(this_MAF, gene, gene_mut_rate, trinuc_proportion_
 
   # this_MAF <- subset(MAF, Gene_name==gene & Reference_Allele %in% c("A","T","G","C") & Tumor_allele %in% c("A","T","G","C")) # subset the MAF into just this gene
 
+
+  # frequency of all variants in the different subsets.
   variant_freq_list <- vector(mode = "list", length = length(levels(this_MAF[,subset_col])))
+  names(variant_freq_list) <- levels(this_MAF[,subset_col])
   for(this_level in 1:length(levels(this_MAF[,subset_col]))){
-    variant_freq_list[[this_level]] <- table(this_MAF[this_MAF[,subset_col] == levels(this_MAF[,subset_col])[this_level],"unique_variant_ID_AA"])
+    variant_freq_list[[this_level]] <- c(
+      table(this_MAF[this_MAF[,subset_col] ==
+                       levels(this_MAF[,subset_col])[this_level],
+                     "unique_variant_ID_AA"]),
+      setNames(rep(0,length(base::setdiff(unique(this_MAF[,
+                                                          "unique_variant_ID_AA"]),
+                                          unique(this_MAF[this_MAF[,subset_col] ==
+                                                            levels(this_MAF[,subset_col])[this_level],
+                                                          "unique_variant_ID_AA"])))),
+               base::setdiff(unique(this_MAF[,
+                                             "unique_variant_ID_AA"]),
+                             unique(this_MAF[this_MAF[,subset_col] ==
+                                        levels(this_MAF[,subset_col])[this_level],
+                                      "unique_variant_ID_AA"])))
+      )
   }
 
   this_MAF <- this_MAF[!duplicated(this_MAF[,c("unique_variant_ID_AA")]),]

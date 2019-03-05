@@ -48,20 +48,20 @@ effect_size_SNV <- function(MAF,
                             subset_levels_order = NULL){
 
   # for auto_subset tests
-  # load("../local_work/auto_subset/skcm_maf_data.RData")
-  # MAF <- SKCM_maf
-  # covariate_file <- "skcm_pca"
-  # sample_ID_column="Unique_patient_identifier"
-  # chr_column = "Chromosome"
-  # pos_column = "Start_Position"
-  # ref_column = "Reference_Allele"
-  # alt_column = "Tumor_allele"
-  # genes_for_effect_size_analysis=c("OTP","KRAS","EGFR","BRAF")
-  # cores = 6
-  # tumor_specific_rate_choice = F
-  # trinuc_all_tumors = T
-  # subset_col = NULL
-  # subset_levels_order = NULL
+  load("../local_work/auto_subset/skcm_maf_data.RData")
+  MAF <- SKCM_maf
+  covariate_file <- "skcm_pca"
+  sample_ID_column="Unique_patient_identifier"
+  chr_column = "Chromosome"
+  pos_column = "Start_Position"
+  ref_column = "Reference_Allele"
+  alt_column = "Tumor_allele"
+  genes_for_effect_size_analysis=c("OTP","KRAS","EGFR","BRAF")
+  cores = 6
+  tumor_specific_rate_choice = F
+  trinuc_all_tumors = T
+  subset_col = "prim_or_met"
+  subset_levels_order = c("primary","metastatic")
 
 
   # source("../R/dndscv_wrongRef_checker.R")
@@ -306,8 +306,8 @@ effect_size_SNV <- function(MAF,
 
 
   # store dndscv data in a list, split by data subsets
-  dndscv_out_list <- vector(mode = "list",length = length(levels(MAF[,"subset_col"])))
-  names(dndscv_out_list) <- levels(MAF[,"subset_col"])
+  dndscv_out_list <- vector(mode = "list",length = length(levels(MAF[,subset_col])))
+  names(dndscv_out_list) <- levels(MAF[,subset_col])
 
 
   # dndscv output for each subset
@@ -333,10 +333,10 @@ effect_size_SNV <- function(MAF,
 
 
 
-  mutrates_list <- vector(mode = "list", length = length(levels(MAF[,"subset_col"])))
-  names(mutrates_list) <- levels(MAF[,"subset_col"])
-  dndscv_pq_list <- vector(mode="list", length = length(levels(MAF[,"subset_col"])))
-  names(dndscv_pq_list) <- levels(MAF[,"subset_col"])
+  mutrates_list <- vector(mode = "list", length = length(levels(MAF[,subset_col])))
+  names(mutrates_list) <- levels(MAF[,subset_col])
+  dndscv_pq_list <- vector(mode="list", length = length(levels(MAF[,subset_col])))
+  names(dndscv_pq_list) <- levels(MAF[,subset_col])
 
 
   for(this_subset in 1:length(mutrates_list)){
@@ -636,15 +636,15 @@ effect_size_SNV <- function(MAF,
 
 
       these_selection_results[j,c("selection_intensity")] <-
-        c(cancereffectsizeR::optimize_gamma(
+        cancereffectsizeR::optimize_gamma(
             MAF_input=subset(MAF,
                              Gene_name==gene_to_analyze &
                                Reference_Allele %in% c("A","T","G","C") &
                                Tumor_allele %in% c("A","T","G","C")),
-            all_tumors=tumor_subsets,
+            all_tumors=tumors,
             gene=gene_to_analyze,
             variant=colnames(these_mutation_rates$mutation_rate_matrix)[j],
-            specific_mut_rates=these_mutation_rates$mutation_rate_matrix))
+            specific_mut_rates=these_mutation_rates$mutation_rate_matrix)
 
       for(this_level in 1:length(these_mutation_rates$variant_freq)){
       these_selection_results[j,"variant_freq"][[1]] <- c(these_selection_results[j,"variant_freq"][[1]],these_mutation_rates$variant_freq[[this_level]][as.character(these_selection_results[,"variant"])[j]])
@@ -670,10 +670,10 @@ effect_size_SNV <- function(MAF,
 
 
   return(list(selection_output=selection_results,
-              mutation_rates=mutrates,
+              mutation_rates=mutrates_list,
               trinuc_data=list(trinuc_proportion_matrix=trinuc_proportion_matrix,
                                signatures_output=signatures_output_list),
-              dndscvout=dndscvout,
+              dndscvout=dndscv_out_list,
               MAF=MAF))
 
 }
