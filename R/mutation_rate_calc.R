@@ -13,7 +13,7 @@
 #' @export
 #'
 #' @examples
-mutation_rate_calc <- function(this_MAF, gene, gene_mut_rate, trinuc_proportion_matrix,gene_trinuc_comp, RefCDS,relative_substitution_rate=relative_substitution_rate,tumor_specific_rate=F){
+mutation_rate_calc <- function(this_MAF, gene, gene_mut_rate, trinuc_proportion_matrix,gene_trinuc_comp, RefCDS,relative_substitution_rate=relative_substitution_rate,tumor_specific_rate=F,tumor_subsets=tumors){
 
   mutation_rate_nucs <- matrix(nrow=nrow(trinuc_proportion_matrix),ncol=ncol(trinuc_proportion_matrix),data = NA)
   rownames(mutation_rate_nucs) <- rownames(trinuc_proportion_matrix)
@@ -24,7 +24,7 @@ mutation_rate_calc <- function(this_MAF, gene, gene_mut_rate, trinuc_proportion_
   }
 
   for(i in 1:nrow(mutation_rate_nucs)){
-    mutation_rate_nucs[i,] <- ((gene_trinuc_comp[[gene]]$gene_trinuc$count * trinuc_proportion_matrix[i,] / mean(gene_trinuc_comp[[gene]]$gene_trinuc$count * trinuc_proportion_matrix[i,]))) * gene_mut_rate[gene]
+    mutation_rate_nucs[i,] <- ((gene_trinuc_comp[[gene]]$gene_trinuc$count * trinuc_proportion_matrix[i,] / mean(gene_trinuc_comp[[gene]]$gene_trinuc$count * trinuc_proportion_matrix[i,]))) * gene_mut_rate[[tumor_subsets[rownames(mutation_rate_nucs)[i],"subset"]]][gene]
   }
 
   # mutation_rate_nucs is now the rate of each trinucleotide in each tumor for this gene
@@ -34,10 +34,10 @@ mutation_rate_calc <- function(this_MAF, gene, gene_mut_rate, trinuc_proportion_
 
   # this_MAF <- subset(MAF, Gene_name==gene & Reference_Allele %in% c("A","T","G","C") & Tumor_allele %in% c("A","T","G","C")) # subset the MAF into just this gene
 
-
-
-  variant_freq <- table(this_MAF$unique_variant_ID_AA)
-
+  variant_freq_list <- vector(mode = "list", length = length(levels(this_MAF[,subset_col])))
+  for(this_level in 1:length(levels(this_MAF[,subset_col]))){
+    variant_freq_list[[this_level]] <- table(this_MAF[this_MAF[,subset_col] == levels(this_MAF[,subset_col])[this_level],"unique_variant_ID_AA"])
+  }
 
   this_MAF <- this_MAF[!duplicated(this_MAF[,c("unique_variant_ID_AA")]),]
 
@@ -90,7 +90,7 @@ mutation_rate_calc <- function(this_MAF, gene, gene_mut_rate, trinuc_proportion_
 
   return(list(mutation_rate_matrix=mutation_rate_matrix,
               unsure_genes_vec=unsure_genes_vec,
-              variant_freq = variant_freq,
+              variant_freq = variant_freq_list,
               unique_variant_ID_vec = this_MAF$unique_variant_ID))
 
 }

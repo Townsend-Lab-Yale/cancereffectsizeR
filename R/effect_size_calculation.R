@@ -574,13 +574,18 @@ effect_size_SNV <- function(MAF,
   message("Calculating selection intensity...")
 
 
-  #TODO: resume here
+
+  # tumors <- unique(MAF$Unique_patient_identifier)
+
+  #TODO: revisit structure of "tumors"
 
 
-
-  tumors <- unique(MAF$Unique_patient_identifier)
-
-
+  tumors <- matrix(data = NA,nrow = length(unique(MAF[,sample_ID_column])),ncol=1)
+  colnames(tumors) <- c("subset")
+  rownames(tumors) <- unique(MAF[,sample_ID_column])
+  for(tumor in unique(MAF[,sample_ID_column])){
+   tumors[tumor,1] <- MAF[which(MAF[,sample_ID_column]==tumor)[1] ,subset_col]
+  }
 
 
   if(all(genes_for_effect_size_analysis=="all")){
@@ -602,37 +607,55 @@ effect_size_SNV <- function(MAF,
                             Reference_Allele %in% c("A","T","G","C") &
                             Tumor_allele %in% c("A","T","G","C")),
         gene = gene_to_analyze,
-        gene_mut_rate = mutrates,
+        gene_mut_rate = mutrates_list,
         trinuc_proportion_matrix = trinuc_proportion_matrix,
-        gene_trinuc_comp = gene_trinuc_comp,RefCDS = RefCDS_our_genes,
+        gene_trinuc_comp = gene_trinuc_comp,
+        RefCDS = RefCDS_our_genes,
         relative_substitution_rate=relative_substitution_rate,
-        tumor_specific_rate=tumor_specific_rate_choice)
+        tumor_specific_rate=tumor_specific_rate_choice,
+        tumor_subsets = tumors)
 
-    these_selection_results <- matrix(
-      nrow=ncol(these_mutation_rates$mutation_rate_matrix), ncol=5,data=NA)
+    # these_selection_results <- matrix(
+    #   nrow=ncol(these_mutation_rates$mutation_rate_matrix), ncol=5,data=NA)
+    # rownames(these_selection_results) <- colnames(these_mutation_rates$mutation_rate_matrix)
+    # colnames(these_selection_results) <- c(
+    #   "variant","selection_intensity","unsure_gene_name","variant_freq","unique_variant_ID")
+
+    # data frame with a list of selection results corresponding to subsets.
+    these_selection_results <- data.frame(variant = colnames(these_mutation_rates$mutation_rate_matrix),
+                                          selection_intensity = I(vector(mode = "list",
+                                                                         length = ncol(these_mutation_rates$mutation_rate_matrix))),
+                                          unsure_gene_name=NA,
+                                          variant_freq=I(vector(mode = "list",
+                                                                length = ncol(these_mutation_rates$mutation_rate_matrix))),
+                                          unique_variant_ID=NA)
     rownames(these_selection_results) <- colnames(these_mutation_rates$mutation_rate_matrix)
-    colnames(these_selection_results) <- c(
-      "variant","selection_intensity","unsure_gene_name","variant_freq","unique_variant_ID")
 
     for(j in 1:nrow(these_selection_results)){
-      these_selection_results[j,c("variant","selection_intensity")] <-
-        c(colnames(these_mutation_rates$mutation_rate_matrix)[j] ,
-          cancereffectsizeR::optimize_gamma(
+
+
+
+      these_selection_results[j,c("selection_intensity")] <-
+        c(cancereffectsizeR::optimize_gamma(
             MAF_input=subset(MAF,
                              Gene_name==gene_to_analyze &
                                Reference_Allele %in% c("A","T","G","C") &
                                Tumor_allele %in% c("A","T","G","C")),
-            all_tumors=tumors,
+            all_tumors=tumor_subsets,
             gene=gene_to_analyze,
             variant=colnames(these_mutation_rates$mutation_rate_matrix)[j],
             specific_mut_rates=these_mutation_rates$mutation_rate_matrix))
+
+      for(this_level in 1:length(these_mutation_rates$variant_freq)){
+      these_selection_results[j,"variant_freq"][[1]] <- c(these_selection_results[j,"variant_freq"][[1]],these_mutation_rates$variant_freq[[this_level]][as.character(these_selection_results[,"variant"])[j]])
+      }
     }
 
     these_selection_results[,"unsure_gene_name"] <- these_mutation_rates$unsure_genes_vec
 
-    these_selection_results[,"variant_freq"] <- these_mutation_rates$variant_freq[as.character(these_selection_results[,"variant"])]
-
     these_selection_results[,"unique_variant_ID"] <- these_mutation_rates$unique_variant_ID
+
+
 
     print(gene_to_analyze)
 
