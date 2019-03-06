@@ -57,7 +57,7 @@ effect_size_SNV <- function(MAF,
   # pos_column = "Start_Position"
   # ref_column = "Reference_Allele"
   # alt_column = "Tumor_allele"
-  # genes_for_effect_size_analysis=c("OTP","KRAS","EGFR","BRAF")
+  # genes_for_effect_size_analysis="all"#c("OTP","KRAS","EGFR","BRAF")
   # cores = 6
   # tumor_specific_rate_choice = F
   # trinuc_all_tumors = T
@@ -614,7 +614,7 @@ effect_size_SNV <- function(MAF,
         RefCDS = RefCDS_our_genes,
         relative_substitution_rate=relative_substitution_rate,
         tumor_specific_rate=tumor_specific_rate_choice,
-        tumor_subsets = tumors)
+        tumor_subsets = tumors,subset_col=subset_col)
 
     # these_selection_results <- matrix(
     #   nrow=ncol(these_mutation_rates$mutation_rate_matrix), ncol=5,data=NA)
