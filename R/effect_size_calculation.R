@@ -49,20 +49,20 @@ effect_size_SNV <- function(MAF,
                             subset_levels_order = NULL){
 
   # for auto_subset tests
-  load("../local_work/auto_subset/skcm_maf_data.RData")
-  MAF <- SKCM_maf
-  covariate_file <- "skcm_pca"
-  sample_ID_column="Unique_patient_identifier"
-  chr_column = "Chromosome"
-  pos_column = "Start_Position"
-  ref_column = "Reference_Allele"
-  alt_column = "Tumor_allele"
-  genes_for_effect_size_analysis=c("OTP","KRAS","EGFR","BRAF")
-  cores = 6
-  tumor_specific_rate_choice = F
-  trinuc_all_tumors = T
-  subset_col = "prim_or_met"
-  subset_levels_order = c("primary","metastatic")
+  # load("../local_work/auto_subset/skcm_maf_data.RData")
+  # MAF <- SKCM_maf
+  # covariate_file <- "skcm_pca"
+  # sample_ID_column="Unique_patient_identifier"
+  # chr_column = "Chromosome"
+  # pos_column = "Start_Position"
+  # ref_column = "Reference_Allele"
+  # alt_column = "Tumor_allele"
+  # genes_for_effect_size_analysis=c("OTP","KRAS","EGFR","BRAF")
+  # cores = 6
+  # tumor_specific_rate_choice = F
+  # trinuc_all_tumors = T
+  # subset_col = "prim_or_met"
+  # subset_levels_order = c("primary","metastatic")
 
 
   # source("../R/dndscv_wrongRef_checker.R")
