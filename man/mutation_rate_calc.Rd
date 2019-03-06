@@ -7,7 +7,7 @@
 mutation_rate_calc(this_MAF, gene, gene_mut_rate, trinuc_proportion_matrix,
   gene_trinuc_comp, RefCDS,
   relative_substitution_rate = relative_substitution_rate,
-  tumor_specific_rate = F)
+  tumor_specific_rate = F, tumor_subsets = tumors)
 }
 \arguments{
 \item{this_MAF}{The subset MAF (just the gene to be analyzed) file to extract mutational data from}

@@ -12,6 +12,7 @@
 #' @import deconstructSigs
 #' @import dndscv
 #' @import parallel
+#' @import dplyr
 #'
 #' @param MAF_file MAF file with substitution data
 #' @param covariate_file Either NULL and uses the \code{dndscv}
@@ -622,21 +623,24 @@ effect_size_SNV <- function(MAF,
     #   "variant","selection_intensity","unsure_gene_name","variant_freq","unique_variant_ID")
 
     # data frame with a list of selection results corresponding to subsets.
-    these_selection_results <- data.frame(variant = colnames(these_mutation_rates$mutation_rate_matrix),
-                                          selection_intensity = I(vector(mode = "list",
-                                                                         length = ncol(these_mutation_rates$mutation_rate_matrix))),
-                                          unsure_gene_name=NA,
-                                          variant_freq=I(vector(mode = "list",
-                                                                length = ncol(these_mutation_rates$mutation_rate_matrix))),
-                                          unique_variant_ID=NA)
-    rownames(these_selection_results) <- colnames(these_mutation_rates$mutation_rate_matrix)
 
+    these_selection_results <- dplyr::tibble(variant = colnames(these_mutation_rates$mutation_rate_matrix),
+                                          selection_intensity = vector(mode = "list",
+                                                                         length = ncol(these_mutation_rates$mutation_rate_matrix)),
+                                          unsure_gene_name=NA,
+                                          variant_freq=vector(mode = "list",
+                                                                length = ncol(these_mutation_rates$mutation_rate_matrix)),
+                                          unique_variant_ID=NA)
+    # rownames(these_selection_results) <- colnames(these_mutation_rates$mutation_rate_matrix)
+
+
+    # these_selection_results <- as_tibble(these_selection_results)
     for(j in 1:nrow(these_selection_results)){
 
 
 
-      these_selection_results[j,c("selection_intensity")] <-
-        cancereffectsizeR::optimize_gamma(
+      these_selection_results[j,c("selection_intensity")][[1]] <-
+        list(cancereffectsizeR::optimize_gamma(
             MAF_input=subset(MAF,
                              Gene_name==gene_to_analyze &
                                Reference_Allele %in% c("A","T","G","C") &
@@ -644,11 +648,15 @@ effect_size_SNV <- function(MAF,
             all_tumors=tumors,
             gene=gene_to_analyze,
             variant=colnames(these_mutation_rates$mutation_rate_matrix)[j],
-            specific_mut_rates=these_mutation_rates$mutation_rate_matrix)
+            specific_mut_rates=these_mutation_rates$mutation_rate_matrix))
+      names(these_selection_results[j,c("selection_intensity")][[1]][[1]]) <- levels(MAF[,subset_col])
 
+      freq_vec <- NULL
       for(this_level in 1:length(these_mutation_rates$variant_freq)){
-      these_selection_results[j,"variant_freq"][[1]] <- c(these_selection_results[j,"variant_freq"][[1]],these_mutation_rates$variant_freq[[this_level]][as.character(these_selection_results[,"variant"])[j]])
+      freq_vec <- c(freq_vec,these_mutation_rates$variant_freq[[this_level]][as.character(these_selection_results[j,"variant"])])
       }
+      these_selection_results[j,"variant_freq"][[1]] <- list(freq_vec)
+      names(these_selection_results[j,"variant_freq"][[1]][[1]]) <- levels(MAF[,subset_col])
     }
 
     these_selection_results[,"unsure_gene_name"] <- these_mutation_rates$unsure_genes_vec
