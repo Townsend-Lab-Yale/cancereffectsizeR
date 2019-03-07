@@ -23,20 +23,36 @@ ml_objective <- function(gamma, MAF_input, all_tumors, gene, variant, specific_m
   sum_log_lik <- 0
 
   for (tumor in tumors_without_gene_mutated) {
-    for(this_level in unique(all_tumors[,"subset"])) {
-      sum_log_lik <- sum_log_lik + (-gamma[this_level] * specific_mut_rates[tumor, variant])
+    for(this_level in 1:all_tumors[tumor,"subset"]) {
+      sum_log_lik <- sum_log_lik + (-1*(gamma[this_level] * specific_mut_rates[tumor, variant]))
     }
   }
 
 
+
+  # for (tumor in tumors_with_pos_mutated) {
+  #   for(levels in 1:all_tumors[tumor,"subset"]){
+  #     sum_log_lik <- sum_log_lik + log(1-exp(-gamma[levels] * specific_mut_rates[tumor, variant]))
+  #   }
+  # }
 
   for (tumor in tumors_with_pos_mutated) {
+    this_sum <- 0
     for(levels in 1:all_tumors[tumor,"subset"]){
-      sum_log_lik <- sum_log_lik + log(1-exp(-gamma[levels] * specific_mut_rates[tumor, variant]))
+      if(levels == 1){
+        this_sum <- this_sum + 1-exp(-1*(gamma[levels] * specific_mut_rates[tumor, variant]))
+      }else{
+        level_of_occur <- 1-exp(-1*(gamma[levels] * specific_mut_rates[tumor, variant]))
+        for(levels_sub in levels:2){
+            level_of_occur <- level_of_occur * exp(-1*(gamma[levels_sub-1] * specific_mut_rates[tumor, variant]))
+        }
+        this_sum <- this_sum + level_of_occur
+      }
     }
+    sum_log_lik <- sum_log_lik + log(this_sum)
   }
 
-
+  # 1-exp(-gamma[levels] * specific_mut_rates[tumor, variant])
 
   #
   #   tumors_without_gene_mutated <- all_tumors[!all_tumors %in% unique(MAF_input$Unique_patient_identifier[MAF_input$Gene_name==gene])]

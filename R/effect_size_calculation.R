@@ -578,7 +578,7 @@ effect_size_SNV <- function(MAF,
 
   # tumors <- unique(MAF$Unique_patient_identifier)
 
-  #TODO: revisit structure of "tumors"
+
 
 
   tumors <- matrix(data = NA,nrow = length(unique(MAF[,sample_ID_column])),ncol=1)
