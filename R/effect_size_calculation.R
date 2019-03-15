@@ -14,7 +14,7 @@
 #' @import parallel
 #' @import dplyr
 #'
-#' @param MAF_file MAF file with substitution data
+#' @param MAF MAF file with substitution data
 #' @param covariate_file Either NULL and uses the \code{dndscv}
 #' default covariates, or one of these:  "bladder_pca"  "breast_pca"
 #' "cesc_pca" "colon_pca" "esca_pca" "gbm_pca" "hnsc_pca" "kidney_pca" "lihc_pca" "lung_pca" "ov_pca" "pancreas_pca" "prostate_pca" "rectum_pca" "skin_pca"  "stomach_pca"  "thca_pca" "ucec_pca"
@@ -27,6 +27,8 @@
 #' @param cores number of cores to use
 #' @param tumor_specific_rate_choice weights tumor-specific rates by their relative proportional substitution count (not recommended)
 #' @param trinuc_all_tumors Calculates trinucleotide signatures within all tumors (even those with < 50 variants)
+#' @param subset_col column in MAF with subset data (e.g., column contains data like "Primary" and "Metastatic" in each row)
+#' @param subset_levels_order evolutionary order of events in subset_col. (e.g. c("Primary", "Metastatic")
 #'
 #' @export
 
@@ -76,6 +78,9 @@ effect_size_SNV <- function(MAF,
   # MAF <- get(load(MAF_file))
   # MAF <- MAF_file
 
+
+  message("PLEASE DOWNLOAD v0.1.0, USING INSTRUCTIONS HERE: \nhttps://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/user_guide/cancereffectsizeR_user_guide.md \nOR devtools::install_github(`Townsend-Lab-Yale/cancereffectsizeR@0.1.0` \nOR https://github.com/Townsend-Lab-Yale/cancereffectsizeR/releases/tag/0.1.0
+          \nEverything after v0.1.0 is experimental. v0.1.0 is associated with this publication: \nhttps://doi.org/10.1093/jnci/djy168")
 
 
   if(length(which(MAF[,pos_column]==150713902))>0){

@@ -13,7 +13,15 @@
 #' @export
 #'
 #' @examples
-mutation_rate_calc <- function(this_MAF, gene, gene_mut_rate, trinuc_proportion_matrix,gene_trinuc_comp, RefCDS,relative_substitution_rate=relative_substitution_rate,tumor_specific_rate=F,tumor_subsets=tumors,subset_col=subset_col){
+mutation_rate_calc <- function(this_MAF,
+                               gene, gene_mut_rate,
+                               trinuc_proportion_matrix,
+                               gene_trinuc_comp,
+                               RefCDS,
+                               relative_substitution_rate=relative_substitution_rate,
+                               tumor_specific_rate=F,
+                               tumor_subsets=tumors,
+                               subset_col=subset_col){
 
   mutation_rate_nucs <- matrix(nrow=nrow(trinuc_proportion_matrix),ncol=ncol(trinuc_proportion_matrix),data = NA)
   rownames(mutation_rate_nucs) <- rownames(trinuc_proportion_matrix)

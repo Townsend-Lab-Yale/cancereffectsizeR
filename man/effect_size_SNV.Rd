@@ -13,6 +13,8 @@ effect_size_SNV(MAF, covariate_file = NULL,
   subset_col = NULL, subset_levels_order = NULL)
 }
 \arguments{
+\item{MAF}{MAF file with substitution data}
+
 \item{covariate_file}{Either NULL and uses the \code{dndscv}
 default covariates, or one of these:  "bladder_pca"  "breast_pca"
 "cesc_pca" "colon_pca" "esca_pca" "gbm_pca" "hnsc_pca" "kidney_pca" "lihc_pca" "lung_pca" "ov_pca" "pancreas_pca" "prostate_pca" "rectum_pca" "skin_pca"  "stomach_pca"  "thca_pca" "ucec_pca"}
@@ -35,7 +37,9 @@ default covariates, or one of these:  "bladder_pca"  "breast_pca"
 
 \item{trinuc_all_tumors}{Calculates trinucleotide signatures within all tumors (even those with < 50 variants)}
 
-\item{MAF_file}{MAF file with substitution data}
+\item{subset_col}{column in MAF with subset data (e.g., column contains data like "Primary" and "Metastatic" in each row)}
+
+\item{subset_levels_order}{evolutionary order of events in subset_col. (e.g. c("Primary", "Metastatic")}
 }
 \description{
 Function that determines mutation rate at the gene- and trinucleotide- level
