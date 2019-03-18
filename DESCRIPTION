@@ -18,7 +18,8 @@ Imports:
     dndscv,
     reshape2,
     S4Vectors,
-    IRanges
+    IRanges,
+    dplyr
 License: GPL-3
 Encoding: UTF-8
 LazyData: false
@@ -26,5 +27,7 @@ RoxygenNote: 6.1.1
 Suggests: 
     ggplot2,
     knitr,
-    rmarkdown
+    rmarkdown,
+    magrittr,
+    tidyr
 VignetteBuilder: knitr

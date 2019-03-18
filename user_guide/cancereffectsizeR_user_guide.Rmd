@@ -47,7 +47,7 @@ biocLite("BSgenome")
 biocLite("BSgenome.Hsapiens.UCSC.hg19")
 install.packages("deconstructSigs",repos = "https://cloud.r-project.org")
 install.packages("devtools",repos = "https://cloud.r-project.org")
-devtools::install_github("im3sanger/dndscv")
+devtools::install_github("im3sanger/dndscv@0.1.0")
 devtools::install_github("Townsend-Lab-Yale/cancereffectsizeR@0.1.0")
 ```
 

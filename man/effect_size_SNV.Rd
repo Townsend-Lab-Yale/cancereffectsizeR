@@ -9,9 +9,12 @@ effect_size_SNV(MAF, covariate_file = NULL,
   chr_column = "Chromosome", pos_column = "Start_Position",
   ref_column = "Reference_Allele", alt_column = "Tumor_allele",
   genes_for_effect_size_analysis = "all", cores = 1,
-  tumor_specific_rate_choice = F, trinuc_all_tumors = T)
+  tumor_specific_rate_choice = F, trinuc_all_tumors = T,
+  subset_col = NULL, subset_levels_order = NULL)
 }
 \arguments{
+\item{MAF}{MAF file with substitution data}
+
 \item{covariate_file}{Either NULL and uses the \code{dndscv}
 default covariates, or one of these:  "bladder_pca"  "breast_pca"
 "cesc_pca" "colon_pca" "esca_pca" "gbm_pca" "hnsc_pca" "kidney_pca" "lihc_pca" "lung_pca" "ov_pca" "pancreas_pca" "prostate_pca" "rectum_pca" "skin_pca"  "stomach_pca"  "thca_pca" "ucec_pca"}
@@ -30,7 +33,13 @@ default covariates, or one of these:  "bladder_pca"  "breast_pca"
 
 \item{cores}{number of cores to use}
 
-\item{MAF_file}{MAF file with substitution data}
+\item{tumor_specific_rate_choice}{weights tumor-specific rates by their relative proportional substitution count (not recommended)}
+
+\item{trinuc_all_tumors}{Calculates trinucleotide signatures within all tumors (even those with < 50 variants)}
+
+\item{subset_col}{column in MAF with subset data (e.g., column contains data like "Primary" and "Metastatic" in each row)}
+
+\item{subset_levels_order}{evolutionary order of events in subset_col. (e.g. c("Primary", "Metastatic")}
 }
 \description{
 Function that determines mutation rate at the gene- and trinucleotide- level

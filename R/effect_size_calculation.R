@@ -12,8 +12,9 @@
 #' @import deconstructSigs
 #' @import dndscv
 #' @import parallel
+#' @import dplyr
 #'
-#' @param MAF_file MAF file with substitution data
+#' @param MAF MAF file with substitution data
 #' @param covariate_file Either NULL and uses the \code{dndscv}
 #' default covariates, or one of these:  "bladder_pca"  "breast_pca"
 #' "cesc_pca" "colon_pca" "esca_pca" "gbm_pca" "hnsc_pca" "kidney_pca" "lihc_pca" "lung_pca" "ov_pca" "pancreas_pca" "prostate_pca" "rectum_pca" "skin_pca"  "stomach_pca"  "thca_pca" "ucec_pca"
@@ -26,6 +27,8 @@
 #' @param cores number of cores to use
 #' @param tumor_specific_rate_choice weights tumor-specific rates by their relative proportional substitution count (not recommended)
 #' @param trinuc_all_tumors Calculates trinucleotide signatures within all tumors (even those with < 50 variants)
+#' @param subset_col column in MAF with subset data (e.g., column contains data like "Primary" and "Metastatic" in each row)
+#' @param subset_levels_order evolutionary order of events in subset_col. (e.g. c("Primary", "Metastatic")
 #'
 #' @export
 
@@ -40,19 +43,29 @@ effect_size_SNV <- function(MAF,
                             pos_column = "Start_Position",
                             ref_column = "Reference_Allele",
                             alt_column = "Tumor_allele",
-                            genes_for_effect_size_analysis="all",
-                            cores=1,tumor_specific_rate_choice=F,
-                            trinuc_all_tumors=T){
+                            genes_for_effect_size_analysis = "all",
+                            cores = 1,
+                            tumor_specific_rate_choice = F,
+                            trinuc_all_tumors = T,
+                            subset_col = NULL,
+                            subset_levels_order = NULL){
 
-  # for initial tests
-  # MAF <- MAF_input
-  # covariate_file <- "lung_pca"
+  # for auto_subset tests
+  # load("../local_work/auto_subset/skcm_maf_data.RData")
+  # MAF <- SKCM_maf
+  # covariate_file <- "skcm_pca"
   # sample_ID_column="Unique_patient_identifier"
   # chr_column = "Chromosome"
   # pos_column = "Start_Position"
   # ref_column = "Reference_Allele"
   # alt_column = "Tumor_allele"
-  # genes_for_effect_size_analysis=c("OTP","KRAS","EGFR","BRAF")
+  # genes_for_effect_size_analysis="all"#c("OTP","KRAS","EGFR","BRAF")
+  # cores = 6
+  # tumor_specific_rate_choice = F
+  # trinuc_all_tumors = T
+  # subset_col = "prim_or_met"
+  # subset_levels_order = c("primary","metastatic")
+
 
   # source("../R/dndscv_wrongRef_checker.R")
   # source("../R/all_in_R_trinucleotide_profile.R")
@@ -66,6 +79,9 @@ effect_size_SNV <- function(MAF,
   # MAF <- MAF_file
 
 
+  message("PLEASE DOWNLOAD v0.1.0, USING INSTRUCTIONS HERE: \nhttps://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/user_guide/cancereffectsizeR_user_guide.md \nOR devtools::install_github(`Townsend-Lab-Yale/cancereffectsizeR@0.1.0` \nOR https://github.com/Townsend-Lab-Yale/cancereffectsizeR/releases/tag/0.1.0
+          \nEverything after v0.1.0 is experimental. v0.1.0 is associated with this publication: \nhttps://doi.org/10.1093/jnci/djy168")
+
 
   if(length(which(MAF[,pos_column]==150713902))>0){
     MAF <- MAF[-which(MAF[,pos_column]==150713902),]
@@ -75,9 +91,21 @@ effect_size_SNV <- function(MAF,
   }
 
 
+  if(is.null(subset_col)){
+    subset_col <- "subset_col"
+    MAF$subset_col <- "no_subset"
+    MAF$subset_col <- factor(MAF$subset_col,levels = "no_subset")
+  }else{
+    MAF[,"subset_col"] <- MAF[,subset_col]
+    MAF <- MAF[,-which(colnames(MAF)==subset_col)]
+    subset_col <- "subset_col"
+    MAF[,subset_col] <- factor(x =  MAF[,subset_col], levels=subset_levels_order,ordered = T)
+  }
+
+
   message("Checking if any reference alleles provided do not match reference genome...")
 
-  MAF <- MAF[,c(sample_ID_column,chr_column,pos_column,ref_column,alt_column)]
+  MAF <- MAF[,c(sample_ID_column,chr_column,pos_column,ref_column,alt_column,subset_col)]
 
   reference_alleles <- as.character(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens, paste("chr",MAF[,chr_column],sep=""),
                                                      strand="+", start=MAF[,pos_column], end=MAF[,pos_column]))
@@ -218,7 +246,7 @@ effect_size_SNV <- function(MAF,
                                                             tri.counts.method = 'exome2genome')
 
       signatures_output_list[[tumor_name]] <- list(signatures_output = signatures_output,
-                                                                           substitution_count = length(which(MAF[,sample_ID_column] == rownames(trinuc_breakdown_per_tumor)[tumor_name])))
+                                                   substitution_count = length(which(MAF[,sample_ID_column] == rownames(trinuc_breakdown_per_tumor)[tumor_name])))
 
 
       trinuc_proportion_matrix[rownames(trinuc_breakdown_per_tumor)[tumor_name],] <- signatures_output$product/sum( signatures_output$product) #need it to sum to 1.
@@ -285,13 +313,22 @@ effect_size_SNV <- function(MAF,
 
   data("RefCDS_TP53splice",package = "cancereffectsizeR")
 
-  dndscvout <- dndscv::dndscv(
-    mutations = MAF,
-    gene_list = genes_in_pca,
-    cv = if(is.null(covariate_file)){ "hg19"}else{ this_cov_pca$rotation},
-    refdb = paste(path_to_library,"/data/RefCDS_TP53splice.RData",sep=""))
 
-  RefCDS_our_genes <- RefCDS[which(sapply(RefCDS, function(x) x$gene_name) %in% dndscvout$genemuts$gene_name)]
+  # store dndscv data in a list, split by data subsets
+  dndscv_out_list <- vector(mode = "list",length = length(levels(MAF[,subset_col])))
+  names(dndscv_out_list) <- levels(MAF[,subset_col])
+
+
+  # dndscv output for each subset
+  for(this_subset in 1:length(dndscv_out_list)){
+    dndscv_out_list[[this_subset]] <- dndscv::dndscv(
+      mutations = MAF[MAF[,subset_col] == levels(MAF[,subset_col])[this_subset],],
+      gene_list = genes_in_pca,
+      cv = if(is.null(covariate_file)){ "hg19"}else{ this_cov_pca$rotation},
+      refdb = paste(path_to_library,"/data/RefCDS_TP53splice.RData",sep=""))
+  }
+
+  RefCDS_our_genes <- RefCDS[which(sapply(RefCDS, function(x) x$gene_name) %in% dndscv_out_list[[1]]$genemuts$gene_name)]
 
 
   data("gene_trinuc_comp", package = "cancereffectsizeR")
@@ -302,36 +339,46 @@ effect_size_SNV <- function(MAF,
   # collect the garbage
   gc()
 
-  # data("refcds_hg19", package="dndscv")
 
 
 
-  if(dndscvout$nbreg$theta>1){
-    mutrates <- ((dndscvout$genemuts$n_syn + dndscvout$nbreg$theta - 1)/(1+(dndscvout$nbreg$theta/dndscvout$genemuts$exp_syn_cv))/sapply(RefCDS_our_genes, function(x) colSums(x$L)[1]))/length(unique(MAF[,sample_ID_column]))
-  }else{
-    mutrates <- rep(NA,length(dndscvout$genemuts$exp_syn_cv))
+  mutrates_list <- vector(mode = "list", length = length(levels(MAF[,subset_col])))
+  names(mutrates_list) <- levels(MAF[,subset_col])
+  dndscv_pq_list <- vector(mode="list", length = length(levels(MAF[,subset_col])))
+  names(dndscv_pq_list) <- levels(MAF[,subset_col])
 
-    syn_sites <- sapply(RefCDS_our_genes, function(x) colSums(x$L)[1])
 
-    for(i in 1:length(mutrates)){
-      if( dndscvout$genemuts$exp_syn_cv[i] >  ((dndscvout$genemuts$n_syn[i] + dndscvout$nbreg$theta - 1)/(1+(dndscvout$nbreg$theta/dndscvout$genemuts$exp_syn_cv[i])))){
-        mutrates[i] <- (dndscvout$genemuts$exp_syn_cv[i]/syn_sites[i])/length(unique(MAF[,sample_ID_column]))
-      }else{
-        mutrates[i] <- (((dndscvout$genemuts$n_syn[i] + dndscvout$nbreg$theta - 1)/(1+(dndscvout$nbreg$theta/dndscvout$genemuts$exp_syn_cv[i])))/syn_sites[i])/length(unique(MAF[,sample_ID_column]))
+  for(this_subset in 1:length(mutrates_list)){
+
+    number_of_tumors_in_this_subset <- length(unique(MAF[MAF[,subset_col] == levels(MAF[,subset_col])[this_subset],sample_ID_column]))
+
+
+    if(dndscv_out_list[[this_subset]]$nbreg$theta>1){
+      mutrates_list[[this_subset]] <- ((dndscv_out_list[[this_subset]]$genemuts$n_syn + dndscv_out_list[[this_subset]]$nbreg$theta - 1)/(1+(dndscv_out_list[[this_subset]]$nbreg$theta/dndscv_out_list[[this_subset]]$genemuts$exp_syn_cv))/sapply(RefCDS_our_genes, function(x) colSums(x$L)[1]))/number_of_tumors_in_this_subset
+    }else{
+      mutrates_list[[this_subset]] <- rep(NA,length(dndscv_out_list[[this_subset]]$genemuts$exp_syn_cv))
+
+      syn_sites <- sapply(RefCDS_our_genes, function(x) colSums(x$L)[1])
+
+      for(i in 1:length(mutrates_list[[this_subset]])){
+        if( dndscv_out_list[[this_subset]]$genemuts$exp_syn_cv[i] >  ((dndscv_out_list[[this_subset]]$genemuts$n_syn[i] + dndscv_out_list[[this_subset]]$nbreg$theta - 1)/(1+(dndscv_out_list[[this_subset]]$nbreg$theta/dndscv_out_list[[this_subset]]$genemuts$exp_syn_cv[i])))){
+          mutrates_list[[this_subset]][i] <- (dndscv_out_list[[this_subset]]$genemuts$exp_syn_cv[i]/syn_sites[i])/number_of_tumors_in_this_subset
+        }else{
+          mutrates_list[[this_subset]][i] <- (((dndscv_out_list[[this_subset]]$genemuts$n_syn[i] + dndscv_out_list[[this_subset]]$nbreg$theta - 1)/(1+(dndscv_out_list[[this_subset]]$nbreg$theta/dndscv_out_list[[this_subset]]$genemuts$exp_syn_cv[i])))/syn_sites[i])/number_of_tumors_in_this_subset
+        }
+
       }
-
     }
+    names(mutrates_list[[this_subset]]) <- dndscv_out_list[[this_subset]]$genemuts$gene_name
+
+
+
+    dndscv_pq_list[[this_subset]] <- dndscv_out_list[[this_subset]]$sel_cv
+    dndscv_pq_list[[this_subset]]$gene <- dndscv_pq_list[[this_subset]]$gene_name
+    dndscv_pq_list[[this_subset]]$p <- dndscv_pq_list[[this_subset]]$pallsubs_cv
+    dndscv_pq_list[[this_subset]]$q <- dndscv_pq_list[[this_subset]]$qallsubs_cv
+
   }
-  names(mutrates) <- dndscvout$genemuts$gene_name
-
-
-
-  dndscv_pq <- dndscvout$sel_cv
-  dndscv_pq$gene <- dndscv_pq$gene_name
-  dndscv_pq$p <- dndscv_pq$pallsubs_cv
-  dndscv_pq$q <- dndscv_pq$qallsubs_cv
-
-
 
   # 4. Assign genes to MAF ----
   # keeping assignments consistent with dndscv, where possible
@@ -393,6 +440,9 @@ effect_size_SNV <- function(MAF,
   all_possible_names <- gr_genes$names[S4Vectors::subjectHits(gene_name_matches)]
   query_spots <- S4Vectors::queryHits(gene_name_matches)
 
+
+
+
   for(i in 1:length(multi_choice)){
     # first, assign if the nearest happened to be within the GenomicRanges::findOverlaps() and applicable to one gene
     if(length(which(queryHits(gene_name_matches) == multi_choice[i])) == 1){
@@ -403,8 +453,8 @@ effect_size_SNV <- function(MAF,
 
       genes_for_this_choice <- all_possible_names[which(query_spots==multi_choice[i])]
 
-      if(any( genes_for_this_choice %in% names(mutrates), na.rm=TRUE )){
-        MAF_unmatched$Gene_name[multi_choice[i]] <- genes_for_this_choice[which( genes_for_this_choice %in% names(mutrates) )[1]]
+      if(any( genes_for_this_choice %in% names(mutrates_list[[1]]), na.rm=TRUE )){
+        MAF_unmatched$Gene_name[multi_choice[i]] <- genes_for_this_choice[which( genes_for_this_choice %in% names(mutrates_list[[1]]) )[1]]
       }else{
         MAF_unmatched$Gene_name[multi_choice[i]] <- "Indeterminate"
       }
@@ -425,10 +475,15 @@ effect_size_SNV <- function(MAF,
   data("AA_mutation_list", package = "cancereffectsizeR")
 
 
-  MAF <- MAF[which(MAF$Gene_name %in% names(mutrates)),]
+  MAF <- MAF[which(MAF$Gene_name %in% names(mutrates_list[[1]])),]
   MAF <- MAF[which(MAF$Reference_Allele %in% c("A","T","C","G") & MAF$Tumor_allele %in% c("A","T","C","G")),]
 
-  dndscvout_annotref <- dndscvout$annotmuts[which(dndscvout$annotmuts$ref %in% c("A","T","G","C") & dndscvout$annotmuts$mut %in% c("A","T","C","G")),]
+  dndscvout_annotref <- NULL
+  for(this_subset in 1:length(dndscv_out_list)){
+    dndscvout_annotref <- rbind(dndscvout_annotref,dndscv_out_list[[this_subset]]$annotmuts)
+  }
+
+  dndscvout_annotref <- dndscvout_annotref[which(dndscvout_annotref$ref %in% c("A","T","G","C") & dndscvout_annotref$mut %in% c("A","T","C","G")),]
 
   # assign strand data
   strand_data <- sapply(RefCDS_our_genes, function(x) x$strand)
@@ -527,9 +582,19 @@ effect_size_SNV <- function(MAF,
 
   message("Calculating selection intensity...")
 
-  tumors <- unique(MAF$Unique_patient_identifier)
 
 
+  # tumors <- unique(MAF$Unique_patient_identifier)
+
+
+
+
+  tumors <- matrix(data = NA,nrow = length(unique(MAF[,sample_ID_column])),ncol=1)
+  colnames(tumors) <- c("subset")
+  rownames(tumors) <- unique(MAF[,sample_ID_column])
+  for(tumor in unique(MAF[,sample_ID_column])){
+   tumors[tumor,1] <- MAF[which(MAF[,sample_ID_column]==tumor)[1] ,subset_col]
+  }
 
 
   if(all(genes_for_effect_size_analysis=="all")){
@@ -551,22 +616,39 @@ effect_size_SNV <- function(MAF,
                             Reference_Allele %in% c("A","T","G","C") &
                             Tumor_allele %in% c("A","T","G","C")),
         gene = gene_to_analyze,
-        gene_mut_rate = mutrates,
+        gene_mut_rate = mutrates_list,
         trinuc_proportion_matrix = trinuc_proportion_matrix,
-        gene_trinuc_comp = gene_trinuc_comp,RefCDS = RefCDS_our_genes,
+        gene_trinuc_comp = gene_trinuc_comp,
+        RefCDS = RefCDS_our_genes,
         relative_substitution_rate=relative_substitution_rate,
-        tumor_specific_rate=tumor_specific_rate_choice)
+        tumor_specific_rate=tumor_specific_rate_choice,
+        tumor_subsets = tumors,subset_col=subset_col)
 
-    these_selection_results <- matrix(
-      nrow=ncol(these_mutation_rates$mutation_rate_matrix), ncol=5,data=NA)
-    rownames(these_selection_results) <- colnames(these_mutation_rates$mutation_rate_matrix)
-    colnames(these_selection_results) <- c(
-      "variant","selection_intensity","unsure_gene_name","variant_freq","unique_variant_ID")
+    # these_selection_results <- matrix(
+    #   nrow=ncol(these_mutation_rates$mutation_rate_matrix), ncol=5,data=NA)
+    # rownames(these_selection_results) <- colnames(these_mutation_rates$mutation_rate_matrix)
+    # colnames(these_selection_results) <- c(
+    #   "variant","selection_intensity","unsure_gene_name","variant_freq","unique_variant_ID")
 
+    # data frame with a list of selection results corresponding to subsets.
+
+    these_selection_results <- dplyr::tibble(variant = colnames(these_mutation_rates$mutation_rate_matrix),
+                                          selection_intensity = vector(mode = "list",
+                                                                         length = ncol(these_mutation_rates$mutation_rate_matrix)),
+                                          unsure_gene_name=NA,
+                                          variant_freq=vector(mode = "list",
+                                                                length = ncol(these_mutation_rates$mutation_rate_matrix)),
+                                          unique_variant_ID=NA)
+    # rownames(these_selection_results) <- colnames(these_mutation_rates$mutation_rate_matrix)
+
+
+    # these_selection_results <- as_tibble(these_selection_results)
     for(j in 1:nrow(these_selection_results)){
-      these_selection_results[j,c("variant","selection_intensity")] <-
-        c(colnames(these_mutation_rates$mutation_rate_matrix)[j] ,
-          cancereffectsizeR::optimize_gamma(
+
+
+
+      these_selection_results[j,c("selection_intensity")][[1]] <-
+        list(cancereffectsizeR::optimize_gamma(
             MAF_input=subset(MAF,
                              Gene_name==gene_to_analyze &
                                Reference_Allele %in% c("A","T","G","C") &
@@ -575,13 +657,21 @@ effect_size_SNV <- function(MAF,
             gene=gene_to_analyze,
             variant=colnames(these_mutation_rates$mutation_rate_matrix)[j],
             specific_mut_rates=these_mutation_rates$mutation_rate_matrix))
+      names(these_selection_results[j,c("selection_intensity")][[1]][[1]]) <- levels(MAF[,subset_col])
+
+      freq_vec <- NULL
+      for(this_level in 1:length(these_mutation_rates$variant_freq)){
+      freq_vec <- c(freq_vec,these_mutation_rates$variant_freq[[this_level]][as.character(these_selection_results[j,"variant"])])
+      }
+      these_selection_results[j,"variant_freq"][[1]] <- list(freq_vec)
+      names(these_selection_results[j,"variant_freq"][[1]][[1]]) <- levels(MAF[,subset_col])
     }
 
     these_selection_results[,"unsure_gene_name"] <- these_mutation_rates$unsure_genes_vec
 
-    these_selection_results[,"variant_freq"] <- these_mutation_rates$variant_freq[as.character(these_selection_results[,"variant"])]
-
     these_selection_results[,"unique_variant_ID"] <- these_mutation_rates$unique_variant_ID
+
+
 
     print(gene_to_analyze)
 
@@ -596,10 +686,10 @@ effect_size_SNV <- function(MAF,
 
 
   return(list(selection_output=selection_results,
-              mutation_rates=mutrates,
+              mutation_rates=mutrates_list,
               trinuc_data=list(trinuc_proportion_matrix=trinuc_proportion_matrix,
                                signatures_output=signatures_output_list),
-              dndscvout=dndscvout,
+              dndscvout=dndscv_out_list,
               MAF=MAF))
 
 }
