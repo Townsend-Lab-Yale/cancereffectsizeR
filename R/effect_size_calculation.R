@@ -96,6 +96,9 @@ effect_size_SNV <- function(MAF,
     MAF$subset_col <- "no_subset"
     MAF$subset_col <- factor(MAF$subset_col,levels = "no_subset")
   }else{
+    MAF[,"subset_col"] <- MAF[,subset_col]
+    MAF <- MAF[,-which(colnames(MAF)==subset_col)]
+    subset_col <- "subset_col"
     MAF[,subset_col] <- factor(x =  MAF[,subset_col], levels=subset_levels_order,ordered = T)
   }
 
