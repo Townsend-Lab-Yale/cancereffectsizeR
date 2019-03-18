@@ -2,6 +2,7 @@
 #'
 #' @import dplyr
 #' @import magrittr
+#' @import tidyr
 #'
 #' @param results_input List of the selection results from get_gene_results within effect_size_SNV
 #' @param subset_greater_than_freq subsetting the data for only substitutions in more than this number of tumors
@@ -32,15 +33,16 @@ selection_results_converter <- function(results_input, subset_greater_than_freq=
   # selection_data <- sapply(selection_results, function(x) x$selection_results)
 
   selection_data <- selection_results %>%
-    map(gene_adder) %>%
-    bind_rows() %>%
-    rowwise() %>%
-    mutate(variant =
-             case_when(sum(charToRaw(variant) == charToRaw(" "))==0 ~ paste(gene, variant),
+    lapply(., gene_adder) %>%
+    dplyr::bind_rows() %>%
+    dplyr::rowwise() %>%
+    dplyr::mutate(variant =
+             dplyr::case_when(sum(charToRaw(variant) == charToRaw(" "))==0 ~ paste(gene, variant),
                        sum(charToRaw(variant) == charToRaw(" "))>0 ~ variant)) %>%
-    ungroup() %>%
-    unnest() %>%
-    add_column(subset=rep(levels_in_selection_analysis,nrow(.)/length(levels_in_selection_analysis)))
+    dplyr::ungroup() %>%
+    tidyr::unnest()
+
+    selection_data$subset=rep(levels_in_selection_analysis,nrow(selection_data)/length(levels_in_selection_analysis))
 
   selection_data$population_proportion <- NA
 

@@ -28,5 +28,6 @@ Suggests:
     ggplot2,
     knitr,
     rmarkdown,
-    magrittr
+    magrittr,
+    tidyr
 VignetteBuilder: knitr
