@@ -24,7 +24,7 @@ selection_results_converter <- function(results_input, subset_greater_than_freq=
 
   subsets <- results_input$MAF %>%
     dplyr::group_by(subset_col) %>%
-    summarize(unique_tumors = n_distinct(Unique_patient_identifier))
+    dplyr::summarize(unique_tumors = dplyr::n_distinct(Unique_patient_identifier))
 
   levels_in_selection_analysis <- levels(results_input$MAF[,"subset_col"])
 
@@ -51,7 +51,7 @@ selection_results_converter <- function(results_input, subset_greater_than_freq=
   }
 
   selection_data <- selection_data %>%
-    mutate(population_percent =
+    dplyr::mutate(population_percent =
              paste(round(population_proportion*100,2), "%", sep=""))
 
 
