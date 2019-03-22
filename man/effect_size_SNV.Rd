@@ -10,7 +10,8 @@ effect_size_SNV(MAF, covariate_file = NULL,
   ref_column = "Reference_Allele", alt_column = "Tumor_allele",
   genes_for_effect_size_analysis = "all", cores = 1,
   tumor_specific_rate_choice = F, trinuc_all_tumors = T,
-  subset_col = NULL, subset_levels_order = NULL)
+  subset_col = NULL, subset_levels_order = NULL,
+  epistasis_top_prev_number = NULL)
 }
 \arguments{
 \item{MAF}{MAF file with substitution data}
