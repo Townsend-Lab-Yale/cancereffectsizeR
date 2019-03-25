@@ -52,8 +52,8 @@ effect_size_SNV <- function(MAF,
                             epistasis_top_prev_number = NULL){
 
   # for epistasis tests
-  load("../local_work/auto_subset/LUAD_FALSE_selection_output_ML_cores_trinuc.RData")
-  MAF <- selection_output$MAF
+  load("../local_work/epistasis_analysis/LUAD_MAF.RData")
+  MAF <- LUAD_MAF
   covariate_file <- "lung_pca"
   sample_ID_column="Unique_patient_identifier"
   chr_column = "Chromosome"
@@ -66,7 +66,7 @@ effect_size_SNV <- function(MAF,
   trinuc_all_tumors = T
   subset_col = NULL
   subset_levels_order = NULL
-  epistasis_top_prev_number <- 5
+  epistasis_top_prev_number <- 10
 
 
   # source("../R/dndscv_wrongRef_checker.R")
@@ -791,51 +791,53 @@ effect_size_SNV <- function(MAF,
 
 
 
-        these_selection_results[3:6] <-
+      these_selection_results[3:6] <-
 
 
 
-          cancereffectsizeR::optimize_gamma_epistasis(
-            MAF_input1=subset(MAF,
-                              Gene_name== MAF[variant1_MAFindex,"Gene_name"] &
-                               Reference_Allele %in% c("A","T","G","C") &
-                               Tumor_allele %in% c("A","T","G","C")),
-            MAF_input2=subset(MAF,
-                              Gene_name==MAF[variant2_MAFindex,"Gene_name"] &
-                                Reference_Allele %in% c("A","T","G","C") &
-                                Tumor_allele %in% c("A","T","G","C")),
-            all_tumors=tumors,
-            gene1=MAF[variant1_MAFindex,"Gene_name"],
-            gene2=MAF[variant2_MAFindex,"Gene_name"],
-            variant1= MAF[variant1_MAFindex,"unique_variant_ID_AA"],
-            variant2= MAF[variant2_MAFindex,"unique_variant_ID_AA"],
-            specific_mut_rates1=these_mutation_rates1$mutation_rate_matrix,
-            specific_mut_rates2=these_mutation_rates2$mutation_rate_matrix)
+        cancereffectsizeR::optimize_gamma_epistasis(
+          MAF_input1=subset(MAF,
+                            Gene_name== MAF[variant1_MAFindex,"Gene_name"] &
+                              Reference_Allele %in% c("A","T","G","C") &
+                              Tumor_allele %in% c("A","T","G","C")),
+          MAF_input2=subset(MAF,
+                            Gene_name==MAF[variant2_MAFindex,"Gene_name"] &
+                              Reference_Allele %in% c("A","T","G","C") &
+                              Tumor_allele %in% c("A","T","G","C")),
+          all_tumors=tumors,
+          gene1=MAF[variant1_MAFindex,"Gene_name"],
+          gene2=MAF[variant2_MAFindex,"Gene_name"],
+          variant1= MAF[variant1_MAFindex,"unique_variant_ID_AA"],
+          variant2= MAF[variant2_MAFindex,"unique_variant_ID_AA"],
+          specific_mut_rates1=these_mutation_rates1$mutation_rate_matrix,
+          specific_mut_rates2=these_mutation_rates2$mutation_rate_matrix)
 
 
-        names(these_selection_results[j,c("selection_intensity")][[1]][[1]]) <- levels(MAF[,subset_col])
+      # names(these_selection_results[j,c("selection_intensity")][[1]][[1]]) <- levels(MAF[,subset_col])
 
-        freq_vec <- NULL
-        for(this_level in 1:length(these_mutation_rates$variant_freq)){
-          freq_vec <- c(freq_vec,these_mutation_rates$variant_freq[[this_level]][as.character(these_selection_results[j,"variant"])])
-        }
-        these_selection_results[j,"variant_freq"][[1]] <- list(freq_vec)
-        names(these_selection_results[j,"variant_freq"][[1]][[1]]) <- levels(MAF[,subset_col])
-
-
-      these_selection_results[,"unsure_gene_name"] <- these_mutation_rates$unsure_genes_vec
-
-      these_selection_results[,"unique_variant_ID"] <- these_mutation_rates$unique_variant_ID
+      # freq_vec <- NULL
+      # for(this_level in 1:length(these_mutation_rates$variant_freq)){
+      # freq_vec <- c(freq_vec,these_mutation_rates$variant_freq[[this_level]][as.character(these_selection_results[j,"variant"])])
+      # }
+      # these_selection_results[j,"variant_freq"][[1]] <- list(freq_vec)
+      # names(these_selection_results[j,"variant_freq"][[1]][[1]]) <- levels(MAF[,subset_col])
 
 
+      # these_selection_results[,"unsure_gene_name"] <- these_mutation_rates$unsure_genes_vec
 
-      print(gene_to_analyze)
+      # these_selection_results[,"unique_variant_ID"] <- these_mutation_rates$unique_variant_ID
 
-      return(list(gene_name=gene_to_analyze,RefCDS_our_genes[[gene_to_analyze]]$gene_id,selection_results=these_selection_results))
+
+
+      # print(gene_to_analyze)
+
+      # return(list(gene_name=gene_to_analyze,RefCDS_our_genes[[gene_to_analyze]]$gene_id,selection_results=these_selection_results))
+
+      return(these_selection_results)
 
     }
 
-    selection_results <- parallel::mclapply(genes_to_analyze, get_gene_results, mc.cores = cores)
+    selection_results <- parallel::mclapply(selection_epistasis_results_list, get_gene_results_epistasis, mc.cores = cores)
 
 
 

@@ -27,6 +27,17 @@ ml_objective_epistasis <- function(gamma, MAF_input1,MAF_input2, all_tumors, gen
   tumors_with_neither_mutated <- setdiff(rownames(all_tumors), c(tumors_with_both_mutated,tumors_with_ONLY_variant1_mutated,tumors_with_ONLY_variant2_mutated))
 
 
+
+  # if(gamma[1] + gamma[2] - gamma[3]){
+  #  gamma[3] <- gamma[3] + 1e-5
+  # }
+  #
+  # if(gamma[1] + gamma[2] == gamma[4]){
+  #   gamma[4] <- gamma[4] + 1e-5
+  # }
+  #
+
+
   sum_log_lik <- 0
 
   # not in either
@@ -46,23 +57,26 @@ ml_objective_epistasis <- function(gamma, MAF_input1,MAF_input2, all_tumors, gen
 
   for( tumor in tumors_with_ONLY_variant1_mutated){
     sum_log_lik <- sum_log_lik +
+
+      # if(
       log(
         # log(
-          -1*(
-            (gamma[1] * specific_mut_rates1[tumor, variant1]) /
-              (
-                (gamma[1] * specific_mut_rates1[tumor, variant1]) +
-                  (gamma[2] * specific_mut_rates2[tumor, variant2]) -
-                  (gamma[4] * specific_mut_rates2[tumor, variant2])
-              )
+        -1*(
+          (gamma[1] * specific_mut_rates1[tumor, variant1]) /
+            (
+              (gamma[1] * specific_mut_rates1[tumor, variant1]) +
+                (gamma[2] * specific_mut_rates2[tumor, variant2]) -
+                (gamma[4] * specific_mut_rates2[tumor, variant2])
+            )
           # )
         ) *
           # log(
-            ((exp(  (-1*(gamma[1] * specific_mut_rates1[tumor, variant1])) +
-                     (-1*(gamma[2] * specific_mut_rates2[tumor, variant2])))) -
-              (exp(-1*(gamma[4] * specific_mut_rates2[tumor, variant2]))))
-          # )
+          ((exp(  (-1*(gamma[1] * specific_mut_rates1[tumor, variant1])) +
+                    (-1*(gamma[2] * specific_mut_rates2[tumor, variant2])))) -
+             (exp(-1*(gamma[4] * specific_mut_rates2[tumor, variant2]))))
+        # )
       )
+    # ==-Inf){break}
 
   }
 
@@ -83,8 +97,8 @@ ml_objective_epistasis <- function(gamma, MAF_input1,MAF_input2, all_tumors, gen
         ) *
           # log(
           ((exp(  (-1*(gamma[1] * specific_mut_rates1[tumor, variant1])) +
-                   (-1*(gamma[2] * specific_mut_rates2[tumor, variant2])))) -
-          (exp(-1*(gamma[3] * specific_mut_rates1[tumor, variant1]))))
+                    (-1*(gamma[2] * specific_mut_rates2[tumor, variant2])))) -
+             (exp(-1*(gamma[3] * specific_mut_rates1[tumor, variant1]))))
         # )
       )
 
@@ -95,45 +109,48 @@ ml_objective_epistasis <- function(gamma, MAF_input1,MAF_input2, all_tumors, gen
   for( tumor in tumors_with_both_mutated) {
 
     sum_log_lik <- sum_log_lik + log(
-      (
-        (-1*(gamma[1] * specific_mut_rates1[tumor, variant1])) +
-          (-1*(gamma[2] * specific_mut_rates2[tumor, variant2]))
-      ) -
+      1-
         (
-          # log(
-          -1*(
-            (gamma[1] * specific_mut_rates1[tumor, variant1]) /
-              (
-                (gamma[1] * specific_mut_rates1[tumor, variant1]) +
-                  (gamma[2] * specific_mut_rates2[tumor, variant2]) -
-                  (gamma[4] * specific_mut_rates2[tumor, variant2])
-              )
-            # )
-          ) *
-            # log(
-            ((exp(  (-1*(gamma[1] * specific_mut_rates1[tumor, variant1])) +
-                      (-1*(gamma[2] * specific_mut_rates2[tumor, variant2])))) -
-               (exp(-1*(gamma[4] * specific_mut_rates2[tumor, variant2]))))
-          # )
-        ) -
-        ( -1* (
-          (gamma[2] * specific_mut_rates2[tumor, variant2]) /
-            (
-              (gamma[2] * specific_mut_rates2[tumor, variant2]) +
-                (gamma[1] * specific_mut_rates1[tumor, variant1]) -
-                (gamma[3] * specific_mut_rates1[tumor, variant1])
+          ( # P(wt)
+            exp((-1*(gamma[1] * specific_mut_rates1[tumor, variant1])) +
+                  (-1*(gamma[2] * specific_mut_rates2[tumor, variant2])))
+          ) +
+            ( #P(1)
+              # log(
+              -1*(
+                (gamma[1] * specific_mut_rates1[tumor, variant1]) /
+                  (
+                    (gamma[1] * specific_mut_rates1[tumor, variant1]) +
+                      (gamma[2] * specific_mut_rates2[tumor, variant2]) -
+                      (gamma[4] * specific_mut_rates2[tumor, variant2])
+                  )
+                # )
+              ) *
+                # log(
+                ((exp(  (-1*(gamma[1] * specific_mut_rates1[tumor, variant1])) +
+                          (-1*(gamma[2] * specific_mut_rates2[tumor, variant2])))) -
+                   (exp(-1*(gamma[4] * specific_mut_rates2[tumor, variant2]))))
+              # )
+            ) +
+            ( # P(2)
+              -1* (
+                (gamma[2] * specific_mut_rates2[tumor, variant2]) /
+                  (
+                    (gamma[2] * specific_mut_rates2[tumor, variant2]) +
+                      (gamma[1] * specific_mut_rates1[tumor, variant1]) -
+                      (gamma[3] * specific_mut_rates1[tumor, variant1])
+                  )
+                # )
+              ) *
+                # log(
+                ((exp(  (-1*(gamma[1] * specific_mut_rates1[tumor, variant1])) +
+                          (-1*(gamma[2] * specific_mut_rates2[tumor, variant2])))) -
+                   (exp(-1*(gamma[3] * specific_mut_rates1[tumor, variant1]))))
+              # )
             )
-          # )
-        ) *
-        # log(
-        ((exp(  (-1*(gamma[1] * specific_mut_rates1[tumor, variant1])) +
-                  (-1*(gamma[2] * specific_mut_rates2[tumor, variant2])))) -
-           (exp(-1*(gamma[3] * specific_mut_rates1[tumor, variant1]))))
-      # )
-    )
 
 
-
+        )
 
 
     )
