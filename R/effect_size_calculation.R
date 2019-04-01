@@ -780,7 +780,7 @@ effect_size_SNV <- function(MAF,
 
 
 
-          cancereffectsizeR::optimize_gamma_epistasis(
+          cancereffectsizeR::optimize_gamma_epistasis_full_gene(
             MAF_input1=subset(MAF,
                               Gene_name== variant1 &
                                 Reference_Allele %in% c("A","T","G","C") &
