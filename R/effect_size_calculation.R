@@ -58,21 +58,23 @@ effect_size_SNV <- function(MAF,
   #TODO: switch for assumption of complete epistasis @ variant level
 
   # # for epistasis tests
-  # load("../local_work/epistasis_analysis/LUAD_MAF.RData")
-  # MAF <- LUAD_MAF
-  # covariate_file <- "lung_pca"
-  # sample_ID_column="Unique_patient_identifier"
-  # chr_column = "Chromosome"
-  # pos_column = "Start_Position"
-  # ref_column = "Reference_Allele"
-  # alt_column = "Tumor_allele"
-  # genes_for_effect_size_analysis="all"#c("OTP","KRAS","EGFR","BRAF")
-  # cores = 6
-  # tumor_specific_rate_choice = F
-  # trinuc_all_tumors = T
-  # subset_col = NULL
-  # subset_levels_order = NULL
-  # epistasis_top_prev_number <- 10
+  load("../local_work/epistasis_analysis/LUAD_MAF.RData")
+  MAF <- LUAD_MAF
+  covariate_file <- "lung_pca"
+  sample_ID_column="Unique_patient_identifier"
+  chr_column = "Chromosome"
+  pos_column = "Start_Position"
+  ref_column = "Reference_Allele"
+  alt_column = "Tumor_allele"
+  genes_for_effect_size_analysis="all"#c("OTP","KRAS","EGFR","BRAF")
+  cores = 6
+  tumor_specific_rate_choice = F
+  trinuc_all_tumors = T
+  subset_col = NULL
+  subset_levels_order = NULL
+  epistasis_top_prev_number <- 10
+  epistasis_gene_level = T
+  q_threshold_for_gene_level = 0.1
 
 
   # source("../R/dndscv_wrongRef_checker.R")
@@ -795,6 +797,21 @@ effect_size_SNV <- function(MAF,
             specific_mut_rates1=these_mutation_rates1$mutation_rate_matrix,
             specific_mut_rates2=these_mutation_rates2$mutation_rate_matrix)
 
+        # optimize_gamma_epistasis_full_gene(
+        #   MAF_input1=subset(MAF,
+        #                     Gene_name== variant1 &
+        #                       Reference_Allele %in% c("A","T","G","C") &
+        #                       Tumor_allele %in% c("A","T","G","C")),
+        #   MAF_input2=subset(MAF,
+        #                     Gene_name==variant2 &
+        #                       Reference_Allele %in% c("A","T","G","C") &
+        #                       Tumor_allele %in% c("A","T","G","C")),
+        #   all_tumors=tumors,
+        #   gene1=variant1,
+        #   gene2=variant2,
+        #   specific_mut_rates1=these_mutation_rates1$mutation_rate_matrix,
+        #   specific_mut_rates2=these_mutation_rates2$mutation_rate_matrix)
+
 
 
         return(these_selection_results)
@@ -802,6 +819,8 @@ effect_size_SNV <- function(MAF,
       }
 
       selection_results <- parallel::mclapply(selection_epistasis_results_list, get_gene_results_epistasis_bygene, mc.cores = cores)
+
+
 
 
     }else{
