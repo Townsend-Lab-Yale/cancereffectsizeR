@@ -58,9 +58,9 @@ effect_size_SNV <- function(MAF,
   #TODO: switch for assumption of complete epistasis @ variant level
 
   # # for epistasis tests
-  # load("../local_work/epistasis_analysis/LUAD_MAF.RData")
-  # MAF <- LUAD_MAF
-  # covariate_file <- "lung_pca"
+  # load("../cluster_work/epistasis/BLCA_MAF_for_analysis.RData")
+  # MAF <- MAF_for_analysis
+  # covariate_file <- "bladder_pca"
   # sample_ID_column="Unique_patient_identifier"
   # chr_column = "Chromosome"
   # pos_column = "Start_Position"
@@ -72,7 +72,7 @@ effect_size_SNV <- function(MAF,
   # trinuc_all_tumors = T
   # subset_col = NULL
   # subset_levels_order = NULL
-  # epistasis_top_prev_number <- 10
+  # epistasis_top_prev_number <- 20
   # epistasis_gene_level = T
   # q_threshold_for_gene_level = 0.1
 
@@ -701,7 +701,7 @@ effect_size_SNV <- function(MAF,
 
       # MAF$CDS_size <- CDS_sizes[MAF$Gene_name]
 
-      ID_prevalence <- table(MAF$Gene_name)[order(table(MAF$Gene_name),decreasing = T)]
+      ID_prevalence <- table(MAF[which(MAF$unsure_gene_name==F),"Gene_name"])[order(table(MAF[which(MAF$unsure_gene_name==F),"Gene_name"]),decreasing = T)]
       ID_prevalence_by_size <- ID_prevalence/CDS_sizes[names(ID_prevalence)]
       ID_prevalence_by_size <- ID_prevalence_by_size[order(ID_prevalence_by_size,decreasing = T)]
 
@@ -745,7 +745,8 @@ effect_size_SNV <- function(MAF,
             RefCDS = RefCDS_our_genes,
             relative_substitution_rate=relative_substitution_rate,
             tumor_specific_rate=tumor_specific_rate_choice,
-            tumor_subsets = tumors,subset_col=subset_col)
+            tumor_subsets = tumors,
+            subset_col=subset_col)
 
         these_mutation_rates2 <-
           cancereffectsizeR::mutation_rate_calc(
