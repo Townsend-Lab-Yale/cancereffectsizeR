@@ -44,6 +44,9 @@ ml_objective_epistasis_full_gene <- function(gamma,
   # }
   #
 
+  # two points of discontinuity we need to account for
+  if((gamma[3] == gamma[1] + gamma[2]) |
+     (gamma[4] == gamma[1] + gamma[2])){return(-1e-200)}
 
   sum_log_lik <- 0
 
