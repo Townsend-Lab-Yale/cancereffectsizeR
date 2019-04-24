@@ -699,8 +699,6 @@ effect_size_SNV <- function(MAF,
       CDS_sizes <- sapply(RefCDS_our_genes,function(x) x$CDS_length)
       names(CDS_sizes) <- names(RefCDS_our_genes)
 
-      # MAF$CDS_size <- CDS_sizes[MAF$Gene_name]
-
       ID_prevalence <- table(MAF[which(MAF$unsure_gene_name==F),"Gene_name"])[order(table(MAF[which(MAF$unsure_gene_name==F),"Gene_name"]),decreasing = T)]
       ID_prevalence_by_size <- ID_prevalence/CDS_sizes[names(ID_prevalence)]
       ID_prevalence_by_size <- ID_prevalence_by_size[order(ID_prevalence_by_size,decreasing = T)]
@@ -796,22 +794,10 @@ effect_size_SNV <- function(MAF,
             gene1=variant1,
             gene2=variant2,
             specific_mut_rates1=these_mutation_rates1$mutation_rate_matrix,
-            specific_mut_rates2=these_mutation_rates2$mutation_rate_matrix)
+            specific_mut_rates2=these_mutation_rates2$mutation_rate_matrix,
+            variant_freq_1 = these_mutation_rates1$variant_freq$no_subset,
+            variant_freq_2 = these_mutation_rates2$variant_freq$no_subset)
 
-        # optimize_gamma_epistasis_full_gene(
-        #   MAF_input1=subset(MAF,
-        #                     Gene_name== variant1 &
-        #                       Reference_Allele %in% c("A","T","G","C") &
-        #                       Tumor_allele %in% c("A","T","G","C")),
-        #   MAF_input2=subset(MAF,
-        #                     Gene_name==variant2 &
-        #                       Reference_Allele %in% c("A","T","G","C") &
-        #                       Tumor_allele %in% c("A","T","G","C")),
-        #   all_tumors=tumors,
-        #   gene1=variant1,
-        #   gene2=variant2,
-        #   specific_mut_rates1=these_mutation_rates1$mutation_rate_matrix,
-        #   specific_mut_rates2=these_mutation_rates2$mutation_rate_matrix)
 
 
 

@@ -20,10 +20,16 @@ ml_objective_epistasis_full_gene <- function(gamma,
                                              gene1,
                                              gene2,
                                              specific_mut_rates1,
-                                             specific_mut_rates2) {
+                                             specific_mut_rates2,
+                                             variant_freq_1,
+                                             variant_freq_2) {
 
-  tumors_with_variant1_mutated <- MAF_input1[MAF_input1$Gene_name==gene1,"Unique_patient_identifier"]
-  tumors_with_variant2_mutated <- MAF_input2[MAF_input2$Gene_name==gene2,"Unique_patient_identifier"]
+  # tumors_with_variant1_mutated <- MAF_input1[MAF_input1$Gene_name==gene1,"Unique_patient_identifier"]
+  # tumors_with_variant2_mutated <- MAF_input2[MAF_input2$Gene_name==gene2,"Unique_patient_identifier"]
+
+  # only the tumors containing a recurrent variant factor into the selection analysis
+  tumors_with_variant1_mutated <- MAF_input1[which(MAF_input1$unique_variant_ID_AA %in% names(which(variant_freq_1>1))),"Unique_patient_identifier"]
+  tumors_with_variant2_mutated <- MAF_input2[which(MAF_input2$unique_variant_ID_AA %in% names(which(variant_freq_2>1))),"Unique_patient_identifier"]
 
   tumors_with_both_mutated <- base::intersect(tumors_with_variant1_mutated,tumors_with_variant2_mutated)
 

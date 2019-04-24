@@ -18,7 +18,9 @@ optimize_gamma_epistasis_full_gene <- function(MAF_input1,
                            gene1,
                            gene2,
                            specific_mut_rates1,
-                           specific_mut_rates2) {
+                           specific_mut_rates2,
+                           variant_freq_1,
+                           variant_freq_2) {
 
   # par_init <- rep(1000,length=4)
   par_init <- 1000:1003
@@ -32,6 +34,8 @@ optimize_gamma_epistasis_full_gene <- function(MAF_input1,
                gene2=gene2,
                specific_mut_rates1=specific_mut_rates1,
                specific_mut_rates2=specific_mut_rates2,
+               variant_freq_1=variant_freq_1,
+               variant_freq_2=variant_freq_2,
                method="L-BFGS-B",
                lower=1e-3,
                upper=1e5,
