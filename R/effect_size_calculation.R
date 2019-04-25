@@ -764,6 +764,15 @@ effect_size_SNV <- function(MAF,
 
 
 
+        # since we are looking at selection at the gene level,
+        # we only consider selection at sites that are recurrently
+        # substituted.
+
+
+        these_mutation_rates1$mutation_rate_matrix <- these_mutation_rates1$mutation_rate_matrix[,colnames(these_mutation_rates1$mutation_rate_matrix) %in% names(these_mutation_rates1$variant_freq$no_subset[these_mutation_rates1$variant_freq$no_subset>1])]
+
+        these_mutation_rates2$mutation_rate_matrix <- these_mutation_rates2$mutation_rate_matrix[,colnames(these_mutation_rates2$mutation_rate_matrix) %in% names(these_mutation_rates2$variant_freq$no_subset[these_mutation_rates2$variant_freq$no_subset>1])]
+
         these_selection_results <- c(variant1,variant2,NA,NA,NA,NA)
         names(these_selection_results) <- c("Variant_1",
                                             "Variant_2",
