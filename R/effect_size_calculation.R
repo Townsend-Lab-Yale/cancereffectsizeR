@@ -699,7 +699,25 @@ effect_size_SNV <- function(MAF,
       CDS_sizes <- sapply(RefCDS_our_genes,function(x) x$CDS_length)
       names(CDS_sizes) <- names(RefCDS_our_genes)
 
-      ID_prevalence <- table(MAF[which(MAF$unsure_gene_name==F),"Gene_name"])[order(table(MAF[which(MAF$unsure_gene_name==F),"Gene_name"]),decreasing = T)]
+
+      # want to prioritize genes with recurrent variants
+
+      MAF$gene_AA_unique <- paste(MAF$Gene_name, MAF$unique_variant_ID_AA)
+      gene_AA_table <- table(MAF$gene_AA_unique)
+      MAF$gene_AA_tally <- gene_AA_table[MAF$gene_AA_unique]
+      MAF$gene_has_recurrent_variant <- F
+      if(length(which(MAF$gene_AA_tally>1))>0){
+        genes_with_recurrent_variants <- MAF$Gene_name[which(MAF$gene_AA_tally>1)]
+        MAF$gene_has_recurrent_variant[which(MAF$Gene_name %in% genes_with_recurrent_variants)] <- T
+      }else{
+        stop("There are no recurrent variants in the dataset, so you cannot
+            run the gene-by-gene epistasis analysis")
+      }
+
+
+
+
+      ID_prevalence <- table(MAF[which(MAF$unsure_gene_name==F & MAF$gene_AA_tally>1),"Gene_name"])[order(table(MAF[which(MAF$unsure_gene_name==F & MAF$gene_AA_tally>1),"Gene_name"]),decreasing = T)]
       ID_prevalence_by_size <- ID_prevalence/CDS_sizes[names(ID_prevalence)]
       ID_prevalence_by_size <- ID_prevalence_by_size[order(ID_prevalence_by_size,decreasing = T)]
 
@@ -710,6 +728,8 @@ effect_size_SNV <- function(MAF,
 
       if(length(which(dndscv_pq_list[[1]]$q < q_threshold_for_gene_level)) > 0){
         genes_to_add <- as.character(dndscv_pq_list[[1]]$gene_name[which(dndscv_pq_list[[1]]$q < q_threshold_for_gene_level)])
+        # genes_with_recurrent_variants <- MAF$Gene_name[which(MAF$gene_AA_tally>1)]
+        genes_to_add <- genes_to_add[genes_to_add %in% MAF$Gene_name[MAF$gene_has_recurrent_variant]]
         ID_prevalence_top <- c(ID_prevalence_top,base::setdiff(genes_to_add,ID_prevalence_top))
       }
 
@@ -721,6 +741,8 @@ effect_size_SNV <- function(MAF,
       selection_epistasis_results_list <- as.list(selection_epistasis_results)
 
       get_gene_results_epistasis_bygene <- function(variant_combo_list) {
+
+        # print(variant_combo_list)
 
         variant1 <- variant_combo_list[1]
         variant2 <- variant_combo_list[2]
@@ -769,9 +791,9 @@ effect_size_SNV <- function(MAF,
         # substituted.
 
 
-        these_mutation_rates1$mutation_rate_matrix <- these_mutation_rates1$mutation_rate_matrix[,colnames(these_mutation_rates1$mutation_rate_matrix) %in% names(these_mutation_rates1$variant_freq$no_subset[these_mutation_rates1$variant_freq$no_subset>1])]
+        these_mutation_rates1$mutation_rate_matrix <- as.matrix(these_mutation_rates1$mutation_rate_matrix[,colnames(these_mutation_rates1$mutation_rate_matrix) %in% names(these_mutation_rates1$variant_freq$no_subset[these_mutation_rates1$variant_freq$no_subset>1])])
 
-        these_mutation_rates2$mutation_rate_matrix <- these_mutation_rates2$mutation_rate_matrix[,colnames(these_mutation_rates2$mutation_rate_matrix) %in% names(these_mutation_rates2$variant_freq$no_subset[these_mutation_rates2$variant_freq$no_subset>1])]
+        these_mutation_rates2$mutation_rate_matrix <- as.matrix(these_mutation_rates2$mutation_rate_matrix[,colnames(these_mutation_rates2$mutation_rate_matrix) %in% names(these_mutation_rates2$variant_freq$no_subset[these_mutation_rates2$variant_freq$no_subset>1])])
 
         these_selection_results <- c(variant1,variant2,NA,NA,NA,NA)
         names(these_selection_results) <- c("Variant_1",
