@@ -42,7 +42,7 @@ ml_objective_epistasis_full_gene <- function(gamma,
 
   # two points of discontinuity we need to account for
   if((gamma[3] == gamma[1] + gamma[2]) |
-     (gamma[4] == gamma[1] + gamma[2])){return(-1e-200)}
+     (gamma[4] == gamma[1] + gamma[2])){return(-1e200)}
 
   sum_log_lik <- 0
 
@@ -168,7 +168,7 @@ ml_objective_epistasis_full_gene <- function(gamma,
 
   # in case it tried all the max at once.
   if(!is.finite(sum_log_lik)){
-   return(-1e-200)
+   return(-1e200)
   }
   return(sum_log_lik)
 }

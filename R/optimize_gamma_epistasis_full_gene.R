@@ -22,7 +22,8 @@ optimize_gamma_epistasis_full_gene <- function(MAF_input1,
                            variant_freq_1,
                            variant_freq_2,
                            full_gene_epistasis_lower_optim,
-                           full_gene_epistasis_upper_optim) {
+                           full_gene_epistasis_upper_optim,
+                           full_gene_epistasis_fnscale) {
 
   # par_init <- rep(1000,length=4)
   par_init <- 1000:1003
@@ -41,5 +42,5 @@ optimize_gamma_epistasis_full_gene <- function(MAF_input1,
                method="L-BFGS-B",
                lower=full_gene_epistasis_lower_optim,
                upper=full_gene_epistasis_upper_optim,
-               control=list(fnscale=-1e-12))$par)
+               control=list(fnscale=full_gene_epistasis_fnscale))$par)
 }

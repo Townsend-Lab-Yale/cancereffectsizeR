@@ -53,6 +53,7 @@ effect_size_SNV <- function(MAF,
                             epistasis_gene_level = F,
                             full_gene_epistasis_lower_optim = 1e-3,
                             full_gene_epistasis_upper_optim=1e9,
+                            full_gene_epistasis_fnscale=-1e-16,
                             q_threshold_for_gene_level=0.1){
 
 
@@ -78,7 +79,7 @@ effect_size_SNV <- function(MAF,
   # epistasis_gene_level = T
   # q_threshold_for_gene_level = 0.1
   # full_gene_epistasis_lower_optim = 1e-3
-  # full_gene_epistasis_upper_optim=1e7
+  # full_gene_epistasis_upper_optim=1e9
 
 
   # source("../R/dndscv_wrongRef_checker.R")
@@ -833,7 +834,8 @@ effect_size_SNV <- function(MAF,
             variant_freq_1 = these_mutation_rates1$variant_freq$no_subset,
             variant_freq_2 = these_mutation_rates2$variant_freq$no_subset,
             full_gene_epistasis_lower_optim=full_gene_epistasis_lower_optim,
-            full_gene_epistasis_upper_optim=full_gene_epistasis_upper_optim)
+            full_gene_epistasis_upper_optim=full_gene_epistasis_upper_optim,
+            full_gene_epistasis_fnscale=full_gene_epistasis_fnscale)
 
 
 

@@ -38,6 +38,6 @@ optimize_gamma_epistasis <- function(MAF_input1,
                specific_mut_rates2=specific_mut_rates2,
                method="L-BFGS-B",
                lower=1e-6,
-               upper=1e7,
+               upper=1e9,
                control=list(fnscale=-1e-12))$par)
 }
