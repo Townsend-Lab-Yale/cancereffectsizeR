@@ -36,7 +36,8 @@ ml_objective_epistasis <- function(gamma, MAF_input1,MAF_input2, all_tumors, gen
   #   gamma[4] <- gamma[4] + 1e-5
   # }
   #
-
+  if((gamma[3] == gamma[1] + gamma[2]) |
+     (gamma[4] == gamma[1] + gamma[2])){return(-1e-200)}
 
   sum_log_lik <- 0
 

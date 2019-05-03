@@ -51,6 +51,8 @@ effect_size_SNV <- function(MAF,
                             subset_levels_order = NULL,
                             epistasis_top_prev_number = NULL,
                             epistasis_gene_level = F,
+                            full_gene_epistasis_lower_optim = 1e-3,
+                            full_gene_epistasis_upper_optim=1e9,
                             q_threshold_for_gene_level=0.1){
 
 
@@ -58,9 +60,9 @@ effect_size_SNV <- function(MAF,
   #TODO: switch for assumption of complete epistasis @ variant level
 
   # # for epistasis tests
-  # load("../cluster_work/epistasis/BLCA_MAF_for_analysis.RData")
+  # load("../cluster_work/epistasis/LUAD_MAF_for_analysis.RData")
   # MAF <- MAF_for_analysis
-  # covariate_file <- "bladder_pca"
+  # covariate_file <- "lung_pca"
   # sample_ID_column="Unique_patient_identifier"
   # chr_column = "Chromosome"
   # pos_column = "Start_Position"
@@ -75,6 +77,8 @@ effect_size_SNV <- function(MAF,
   # epistasis_top_prev_number <- 20
   # epistasis_gene_level = T
   # q_threshold_for_gene_level = 0.1
+  # full_gene_epistasis_lower_optim = 1e-3
+  # full_gene_epistasis_upper_optim=1e7
 
 
   # source("../R/dndscv_wrongRef_checker.R")
@@ -827,7 +831,9 @@ effect_size_SNV <- function(MAF,
             specific_mut_rates1=these_mutation_rates1$mutation_rate_matrix,
             specific_mut_rates2=these_mutation_rates2$mutation_rate_matrix,
             variant_freq_1 = these_mutation_rates1$variant_freq$no_subset,
-            variant_freq_2 = these_mutation_rates2$variant_freq$no_subset)
+            variant_freq_2 = these_mutation_rates2$variant_freq$no_subset,
+            full_gene_epistasis_lower_optim=full_gene_epistasis_lower_optim,
+            full_gene_epistasis_upper_optim=full_gene_epistasis_upper_optim)
 
 
 

@@ -24,8 +24,7 @@ ml_objective_epistasis_full_gene <- function(gamma,
                                              variant_freq_1,
                                              variant_freq_2) {
 
-  # tumors_with_variant1_mutated <- MAF_input1[MAF_input1$Gene_name==gene1,"Unique_patient_identifier"]
-  # tumors_with_variant2_mutated <- MAF_input2[MAF_input2$Gene_name==gene2,"Unique_patient_identifier"]
+
 
   # only the tumors containing a recurrent variant factor into the selection analysis
   tumors_with_variant1_mutated <- MAF_input1[which(MAF_input1$unique_variant_ID_AA %in% names(which(variant_freq_1>1))),"Unique_patient_identifier"]
@@ -40,15 +39,6 @@ ml_objective_epistasis_full_gene <- function(gamma,
   tumors_with_neither_mutated <- setdiff(rownames(all_tumors), c(tumors_with_both_mutated,tumors_with_ONLY_variant1_mutated,tumors_with_ONLY_variant2_mutated))
 
 
-
-  # if(gamma[1] + gamma[2] - gamma[3]){
-  #  gamma[3] <- gamma[3] + 1e-5
-  # }
-  #
-  # if(gamma[1] + gamma[2] == gamma[4]){
-  #   gamma[4] <- gamma[4] + 1e-5
-  # }
-  #
 
   # two points of discontinuity we need to account for
   if((gamma[3] == gamma[1] + gamma[2]) |
@@ -176,5 +166,9 @@ ml_objective_epistasis_full_gene <- function(gamma,
   }
 
 
+  # in case it tried all the max at once.
+  if(!is.finite(sum_log_lik)){
+   return(-1e-200)
+  }
   return(sum_log_lik)
 }
