@@ -5,7 +5,8 @@
 \title{ml_objective for epistasis calculation at the gene level}
 \usage{
 ml_objective_epistasis_full_gene(gamma, MAF_input1, MAF_input2, all_tumors,
-  gene1, gene2, specific_mut_rates1, specific_mut_rates2)
+  gene1, gene2, specific_mut_rates1, specific_mut_rates2, variant_freq_1,
+  variant_freq_2)
 }
 \arguments{
 \item{gamma}{A selection intensity at which to calculate the likelihood}
@@ -24,5 +25,5 @@ ml_objective_epistasis_full_gene(gamma, MAF_input1, MAF_input2, all_tumors,
 A log likelihood value
 }
 \description{
-Objective function that we will be optimizing in order to find the site specific selection intensity that maximizes the likelihood of each tumor having a mutation or not, where the mutation rates are site and tumor specific.
+Objective function that we will be optimizing (minimizing the negative of the log likelihood, so maximizing the log likelihood) in order to find the site specific selection intensity that maximizes the likelihood of each tumor having a mutation or not, where the mutation rates are site and tumor specific.
 }

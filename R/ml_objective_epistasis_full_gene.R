@@ -1,6 +1,7 @@
 #' ml_objective for epistasis calculation at the gene level
 #'
-#' Objective function that we will be optimizing in order to find the site specific selection intensity that maximizes the likelihood of each tumor having a mutation or not, where the mutation rates are site and tumor specific.
+#' Objective function that we will be optimizing (minimizing the negative of the log likelihood, so maximizing the log likelihood) in order to find the site specific selection intensity that maximizes the likelihood of each tumor having a mutation or not, where the mutation rates are site and tumor specific.
+#'
 #'
 #' @param gamma A selection intensity at which to calculate the likelihood
 #' @param MAF_input A data frame that includes columns "Unique_patient_identifier", "Gene_name", and "unique_variant_ID_AA"
@@ -42,7 +43,7 @@ ml_objective_epistasis_full_gene <- function(gamma,
 
   # two points of discontinuity we need to account for
   if((gamma[3] == gamma[1] + gamma[2]) |
-     (gamma[4] == gamma[1] + gamma[2])){return(-1e200)}
+     (gamma[4] == gamma[1] + gamma[2])){return(1e200)}
 
   sum_log_lik <- 0
 
@@ -168,7 +169,7 @@ ml_objective_epistasis_full_gene <- function(gamma,
 
   # in case it tried all the max at once.
   if(!is.finite(sum_log_lik)){
-   return(-1e200)
+   return(1e200)
   }
-  return(sum_log_lik)
+  return(-sum_log_lik)
 }

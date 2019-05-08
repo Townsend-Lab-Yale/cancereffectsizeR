@@ -5,7 +5,9 @@
 \title{Calculate selection intensity and epistasis at the gene level}
 \usage{
 optimize_gamma_epistasis_full_gene(MAF_input1, MAF_input2, all_tumors,
-  gene1, gene2, specific_mut_rates1, specific_mut_rates2)
+  gene1, gene2, specific_mut_rates1, specific_mut_rates2, variant_freq_1,
+  variant_freq_2, full_gene_epistasis_lower_optim,
+  full_gene_epistasis_upper_optim, full_gene_epistasis_fnscale)
 }
 \arguments{
 \item{all_tumors}{A list of all the tumors we are calculating the likelihood across}
