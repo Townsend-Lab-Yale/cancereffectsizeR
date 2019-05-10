@@ -738,17 +738,43 @@ effect_size_SNV <- function(MAF,
       #         ID_prevalence_top <- c(ID_prevalence_top,base::setdiff(genes_to_add,ID_prevalence_top))
       #       }
 
-      MAF_all_sure <- MAF[which(MAF$unsure_gene_name==F),]
+      MAF_all_sure <- MAF
       MAF_all_sure <- MAF_all_sure[MAF_all_sure$gene_has_recurrent_variant,]
 
-      selection_epistasis_results <- t(utils::combn(unique(MAF_all_sure$Gene_name),2))
+      # list of tumors that contain recurrent variants per gene
+      tumors_per_gene <- vector(mode = "list",length = length(unique(MAF_all_sure$Gene_name)))
+      recurrent_gene_list <- unique(MAF_all_sure$Gene_name)
+      names(tumors_per_gene) <- recurrent_gene_list
+      for(gene in 1:length(tumors_per_gene)){
+       tumors_per_gene[[gene]] <- MAF_all_sure$Unique_patient_identifier[which(MAF_all_sure$Gene_name == recurrent_gene_list[gene] & MAF_all_sure$gene_AA_tally>1)]
+      }
+
+      # see which genes have recurrent variants >1 tumors
+
+      selection_epistasis_results_list <- list()
+
+      for(gene in 1:(length(tumors_per_gene)-1)){
+
+       for(other_genes in (gene+1):length(tumors_per_gene)){
+
+         # if there are more than one tumors with shared recurrent variants among the genes
+         if(length(which(tumors_per_gene[[gene]] %in% tumors_per_gene[[other_genes]]))>1){
+           selection_epistasis_results_list[[(length(selection_epistasis_results_list)+1)]] <- c(recurrent_gene_list[gene],recurrent_gene_list[other_genes])
+         }
+
+       }
+
+      }
+
+
+      # selection_epistasis_results <- t(utils::combn(unique(MAF_all_sure$Gene_name),2))
 
       # selection_epistasis_results <- t(utils::combn(ID_prevalence_top,2))
 
       # selection_epistasis_results <- selection_epistasis_potential_comparisons
-      selection_epistasis_results <- data.frame(t(selection_epistasis_results),stringsAsFactors=F)
-      rownames(selection_epistasis_results) <- c("Variant_1","Variant_2")
-      selection_epistasis_results_list <- as.list(selection_epistasis_results)
+      # selection_epistasis_results <- data.frame(t(selection_epistasis_results),stringsAsFactors=F)
+      # rownames(selection_epistasis_results) <- c("Variant_1","Variant_2")
+      # selection_epistasis_results_list <- as.list(selection_epistasis_results)
 
       get_gene_results_epistasis_bygene <- function(variant_combo_list) {
 
@@ -757,8 +783,8 @@ effect_size_SNV <- function(MAF,
         variant1 <- variant_combo_list[1]
         variant2 <- variant_combo_list[2]
 
-        # variant1_MAFindex <- which(MAF$identifier==variant1)[1]
-        # variant2_MAFindex <- which(MAF$identifier==variant2)[1]
+        variant1_MAFindex <- which(MAF$identifier==variant1)[1]
+        variant2_MAFindex <- which(MAF$identifier==variant2)[1]
 
         MAF_input1=subset(MAF,
                           Gene_name== variant1 &
@@ -772,15 +798,15 @@ effect_size_SNV <- function(MAF,
 
         variant_freq_1 <- table(MAF_input1$unique_variant_ID_AA)
         variant_freq_2 <- table(MAF_input2$unique_variant_ID_AA)
-
-        tumors_with_variant1_mutated <- MAF_input1[which(MAF_input1$unique_variant_ID_AA %in% names(which(variant_freq_1>1))),"Unique_patient_identifier"]
-        tumors_with_variant2_mutated <- MAF_input2[which(MAF_input2$unique_variant_ID_AA %in% names(which(variant_freq_2>1))),"Unique_patient_identifier"]
-
-        tumors_with_both_mutated <- base::intersect(tumors_with_variant1_mutated,tumors_with_variant2_mutated)
+        #
+        # tumors_with_variant1_mutated <- MAF_input1[which(MAF_input1$unique_variant_ID_AA %in% names(which(variant_freq_1>1))),"Unique_patient_identifier"]
+        # tumors_with_variant2_mutated <- MAF_input2[which(MAF_input2$unique_variant_ID_AA %in% names(which(variant_freq_2>1))),"Unique_patient_identifier"]
+        #
+        # tumors_with_both_mutated <- base::intersect(tumors_with_variant1_mutated,tumors_with_variant2_mutated)
 
         # only run the selection algorithm if there are 2 or more tumors with
         # recurrent variants of each gene present.
-        if(length(tumors_with_both_mutated) > 1) {
+        # if(length(tumors_with_both_mutated) > 1) {
 
 
           these_mutation_rates1 <-
@@ -868,18 +894,18 @@ effect_size_SNV <- function(MAF,
 
           return(these_selection_results)
 
-        }else{
-          return(NULL)
-        }
+        # }else{
+        #   return(NULL)
+        # }
 
       }
 
       selection_results <- parallel::mclapply(selection_epistasis_results_list, get_gene_results_epistasis_bygene, mc.cores = cores)
 
       # remove the NULL epistatic interactions (no shared recurrent variants)
-      if(length(which(sapply(selection_results, is.null)))>0){
-        selection_results <- selection_results[-which(sapply(selection_results, is.null))]
-      }
+      # if(length(which(sapply(selection_results, is.null)))>0){
+      #   selection_results <- selection_results[-which(sapply(selection_results, is.null))]
+      # }
 
     }else{
 
