@@ -632,6 +632,7 @@ effect_size_SNV <- function(MAF,
   }
 
 
+
   if(is.null(epistasis_top_prev_number)){
 
     selection_results <- vector("list",length = length(genes_to_analyze))
@@ -697,6 +698,7 @@ effect_size_SNV <- function(MAF,
         }
         these_selection_results[j,"variant_freq"][[1]] <- list(freq_vec)
         names(these_selection_results[j,"variant_freq"][[1]][[1]]) <- levels(MAF[,subset_col])
+
       }
 
       these_selection_results[,"unsure_gene_name"] <- these_mutation_rates$unsure_genes_vec
