@@ -662,7 +662,7 @@ effect_size_SNV <- function(MAF,
                                                variant_freq=vector(mode = "list",
                                                                    length = ncol(these_mutation_rates$mutation_rate_matrix)),
                                                unique_variant_ID=NA,
-                                               loglikelihood=NA))
+                                               loglikelihood=NA)
 
       for(j in 1:nrow(these_selection_results)){
 
