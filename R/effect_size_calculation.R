@@ -660,22 +660,36 @@ effect_size_SNV <- function(MAF,
                                                unsure_gene_name=NA,
                                                variant_freq=vector(mode = "list",
                                                                    length = ncol(these_mutation_rates$mutation_rate_matrix)),
-                                               unique_variant_ID=NA)
+                                               unique_variant_ID=NA,
+                                               loglikelihood=NA))
 
       for(j in 1:nrow(these_selection_results)){
 
 
+        optimization_output <- cancereffectsizeR::optimize_gamma(
+          MAF_input=subset(MAF,
+                           Gene_name==gene_to_analyze &
+                             Reference_Allele %in% c("A","T","G","C") &
+                             Tumor_allele %in% c("A","T","G","C")),
+          all_tumors=tumors,
+          gene=gene_to_analyze,
+          variant=colnames(these_mutation_rates$mutation_rate_matrix)[j],
+          specific_mut_rates=these_mutation_rates$mutation_rate_matrix)
 
         these_selection_results[j,c("selection_intensity")][[1]] <-
-          list(cancereffectsizeR::optimize_gamma(
-            MAF_input=MAF[MAF[,"Gene_name"] == gene_to_analyze &
-                            MAF[,ref_column] %in% c("A","T","G","C") &
-                            MAF[,alt_column] %in% c("A","T","G","C"),],
-            all_tumors=tumors,
-            gene=gene_to_analyze,
-            variant=colnames(these_mutation_rates$mutation_rate_matrix)[j],
-            specific_mut_rates=these_mutation_rates$mutation_rate_matrix))
+          list(optimization_output$par)
+          # list(cancereffectsizeR::optimize_gamma(
+          #   MAF_input=MAF[MAF[,"Gene_name"] == gene_to_analyze &
+          #                   MAF[,ref_column] %in% c("A","T","G","C") &
+          #                   MAF[,alt_column] %in% c("A","T","G","C"),],
+          #   all_tumors=tumors,
+          #   gene=gene_to_analyze,
+          #   variant=colnames(these_mutation_rates$mutation_rate_matrix)[j],
+          #   specific_mut_rates=these_mutation_rates$mutation_rate_matrix))
         names(these_selection_results[j,c("selection_intensity")][[1]][[1]]) <- levels(MAF[,subset_col])
+
+        these_selection_results[j,"loglikelihood"] <- optimization_output$value
+
 
         freq_vec <- NULL
         for(this_level in 1:length(these_mutation_rates$variant_freq)){
