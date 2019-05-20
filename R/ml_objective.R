@@ -66,6 +66,9 @@ ml_objective <- function(gamma, MAF_input, all_tumors, gene, variant, specific_m
   #     sum_log_lik <- sum_log_lik + log(1-exp(-gamma * specific_mut_rates[tumor, variant]))
   #   }
 
-
+  # in case it tried all the max at once.
+  if(!is.finite(sum_log_lik)){
+    return(-1e200)
+  }
   return(sum_log_lik)
 }

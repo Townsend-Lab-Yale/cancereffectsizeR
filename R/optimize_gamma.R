@@ -15,5 +15,6 @@
 optimize_gamma <- function(MAF_input, all_tumors, gene, variant, specific_mut_rates) {
   par_init <- rep(1000,length=length(unique(all_tumors[,"subset"])))
     return(optim(par=par_init, fn=cancereffectsizeR::ml_objective, MAF_input=MAF_input, all_tumors=all_tumors, gene=gene, variant=variant, specific_mut_rates=specific_mut_rates,
-               method="L-BFGS-B", lower=1e-3, upper=1000000000, control=list(fnscale=-1e-12)))
+                 method="L-BFGS-B", lower=1e-3, upper=1000000000, control=list(fnscale=-1e-12)))
+
 }
