@@ -57,8 +57,10 @@ effect_size_SNV <- function(MAF,
                             q_threshold_for_gene_level=0.1){
 
 
-  #TODO: switch for gene-level vs. variant level @ epistasis
+
   #TODO: switch for assumption of complete epistasis @ variant level
+  #TODO: investigate if optimx:: is necessary for other optimization instances
+  # besides full gene epistasis or if optim() works well.
 
   # # for epistasis tests
   # load("../cluster_work/epistasis/LUAD_MAF_for_analysis.RData")
@@ -110,13 +112,13 @@ effect_size_SNV <- function(MAF,
   message(version_message)
 
 
-
-  if(length(which(MAF[,pos_column]==150713902))>0){
-    MAF <- MAF[-which(MAF[,pos_column]==150713902),]
-  }
-  if(length(which(MAF[,pos_column]==41123095))>0){
-    MAF <- MAF[-which(MAF[,pos_column]==41123095),]
-  }
+#
+#   if(length(which(MAF[,pos_column]==150713902))>0){
+#     MAF <- MAF[-which(MAF[,pos_column]==150713902),]
+#   }
+#   if(length(which(MAF[,pos_column]==41123095))>0){
+#     MAF <- MAF[-which(MAF[,pos_column]==41123095),]
+#   }
 
 
   if(is.null(subset_col)){
