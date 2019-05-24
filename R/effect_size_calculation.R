@@ -54,15 +54,18 @@ effect_size_SNV <- function(MAF,
                             full_gene_epistasis_lower_optim = 1e-3,
                             full_gene_epistasis_upper_optim=1e9,
                             full_gene_epistasis_fnscale=-1e-16,
-                            q_threshold_for_gene_level=0.1){
+                            q_threshold_for_gene_level=0.1,
+                            trinuc_algorithm_choice="weighted"){
 
 
 
   #TODO: switch for assumption of complete epistasis @ variant level
   #TODO: investigate if optimx:: is necessary for other optimization instances
+  #TODO: revisit initial parameterization for optimization
+  #TODO: consistent output instead of if() statements given function choices above
   # besides full gene epistasis or if optim() works well.
 
-  # # for epistasis tests
+  # # for mutation rate work
   # load("../cluster_work/epistasis/LUAD_MAF_for_analysis.RData")
   # MAF <- MAF_for_analysis
   # covariate_file <- "lung_pca"
@@ -77,11 +80,12 @@ effect_size_SNV <- function(MAF,
   # trinuc_all_tumors = T
   # subset_col = NULL
   # subset_levels_order = NULL
-  # epistasis_top_prev_number <- 20
-  # epistasis_gene_level = T
+  # epistasis_top_prev_number <- NULL
+  # epistasis_gene_level = F
   # q_threshold_for_gene_level = 0.1
   # full_gene_epistasis_lower_optim = 1e-3
   # full_gene_epistasis_upper_optim=1e9
+  # trinuc_algorithm_choice <- "all_calculated"
 
 
   # source("../R/dndscv_wrongRef_checker.R")
@@ -110,15 +114,6 @@ effect_size_SNV <- function(MAF,
 
   warning(version_message)
   message(version_message)
-
-
-#
-#   if(length(which(MAF[,pos_column]==150713902))>0){
-#     MAF <- MAF[-which(MAF[,pos_column]==150713902),]
-#   }
-#   if(length(which(MAF[,pos_column]==41123095))>0){
-#     MAF <- MAF[-which(MAF[,pos_column]==41123095),]
-#   }
 
 
   if(is.null(subset_col)){
@@ -158,156 +153,23 @@ effect_size_SNV <- function(MAF,
 
   message("Calculating trinucleotide composition and signatures...")
 
-
-  MAF_input_deconstructSigs_preprocessed <-
-    cancereffectsizeR::deconstructSigs_input_preprocess(MAF = MAF,
-                                                        sample_ID_column = sample_ID_column,
-                                                        chr_column = chr_column,
-                                                        pos_column = pos_column,
-                                                        ref_column = ref_column,
-                                                        alt_column = alt_column)
-
-  # Need to make sure we are only calculating the selection intensities from tumors in which we are able to calculate a mutation rate
-  MAF <- MAF[MAF[,sample_ID_column] %in% MAF_input_deconstructSigs_preprocessed[,sample_ID_column],]
-
-  substitution_counts <- table(MAF_input_deconstructSigs_preprocessed[,sample_ID_column])
-  tumors_with_50_or_more <- names(which(substitution_counts>=50))
-  tumors_with_less_than_50 <- setdiff(MAF_input_deconstructSigs_preprocessed[,sample_ID_column],tumors_with_50_or_more)
-
-  # relative total substitution rate in all tumors
-  median_substitutions <- median(as.numeric(substitution_counts))
-
-  relative_substitution_rate <- substitution_counts/median_substitutions
+  trinucleotide_weights <-
+    cancereffectsizeR::trinucleotide_mutation_weights(MAF = MAF,
+                                                      sample_ID_column = sample_ID_column,
+                                                      chr_column = chr_column,
+                                                      pos_column = pos_column,
+                                                      ref_column = ref_column,
+                                                      alt_column = alt_column,
+                                                      algorithm_choice = trinuc_algorithm_choice)
 
 
 
-  trinuc_breakdown_per_tumor <- deconstructSigs::mut.to.sigs.input(mut.ref =
-                                                                     MAF_input_deconstructSigs_preprocessed,
-                                                                   sample.id = sample_ID_column,
-                                                                   chr = chr_column,
-                                                                   pos = pos_column,
-                                                                   ref = ref_column,
-                                                                   alt = alt_column)
+
+  # Need to make sure we are only calculating the selection intensities from
+  # tumors in which we are able to calculate a mutation rate
+  MAF <- MAF[MAF[,sample_ID_column] %in% trinucleotide_weights$tumors_with_a_mutation_rate,]
 
 
-  deconstructSigs_trinuc_string <- colnames(trinuc_breakdown_per_tumor)
-
-  rm(MAF_input_deconstructSigs_preprocessed)
-
-  # message("Building trinuc_proportion_matrix")
-
-
-  trinuc_proportion_matrix <- matrix(data = NA,
-                                     nrow = nrow(trinuc_breakdown_per_tumor),
-                                     ncol = ncol(trinuc_breakdown_per_tumor))
-  rownames(trinuc_proportion_matrix) <- rownames(trinuc_breakdown_per_tumor)
-  colnames(trinuc_proportion_matrix) <- colnames(trinuc_breakdown_per_tumor)
-
-  signatures_output_list <- vector(mode = "list",length = length(unique(MAF[,sample_ID_column])))
-  names(signatures_output_list) <- unique(MAF[,sample_ID_column])
-
-  if(trinuc_all_tumors==F){
-    for(tumor_name in 1:length(tumors_with_50_or_more)){
-      signatures_output <- deconstructSigs::whichSignatures(tumor.ref = trinuc_breakdown_per_tumor,
-                                                            signatures.ref = signatures.cosmic,
-                                                            sample.id = tumors_with_50_or_more[tumor_name],
-                                                            contexts.needed = TRUE,
-                                                            tri.counts.method = 'exome2genome')
-
-      signatures_output_list[[tumors_with_50_or_more[tumor_name]]] <- list(signatures_output = signatures_output,
-                                                                           substitution_count = length(which(MAF[,sample_ID_column] == tumors_with_50_or_more[tumor_name])))
-
-
-      trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],] <- signatures_output$product/sum( signatures_output$product) #need it to sum to 1.
-
-      # Not all trinuc weights in the cosmic dataset are nonzero for certain signatures
-      # This leads to the rare occasion where a certain combination of signatues leads to ZERO
-      # rate for particular trinucleotide contexts.
-      # True rate is nonzero, as we do see those variants in those tumors, so renormalizing
-      # the rates by adding the lowest nonzero rate to all the rates and renormalizing
-
-
-      if(0 %in% trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],]){
-        # finding the lowest nonzero rate
-        lowest_rate <- min(trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],
-                                                    -which(trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],]==0)])
-
-        # adding it to the rates
-        trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],] <- trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],] + lowest_rate
-
-        # renormalizing to 1
-        trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],] <-
-          trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],] / sum(trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],])
-      }
-
-    }
-
-    # 2. Find nearest neighbor to tumors with < 50 mutations, assign identical weights as neighbor ----
-    # message(head(trinuc_proportion_matrix))
-
-    # message("should have printed")
-
-    distance_matrix <- as.matrix(dist(trinuc_breakdown_per_tumor))
-
-    for(tumor_name in 1:length(tumors_with_less_than_50)){
-      #find closest tumor that have over 50 mutations
-      closest_tumor <- names(sort(distance_matrix[tumors_with_less_than_50[tumor_name],tumors_with_50_or_more]))[1]
-
-      trinuc_proportion_matrix[tumors_with_less_than_50[tumor_name],] <- trinuc_proportion_matrix[closest_tumor,]
-
-      signatures_output_list[[tumors_with_less_than_50[tumor_name]]] <- list(signatures_output = signatures_output_list[[closest_tumor]]$signatures_output, substitution_count = length(which(MAF[,sample_ID_column] == tumors_with_less_than_50[tumor_name])), tumor_signatures_used = closest_tumor)
-
-
-    }
-
-    rm(distance_matrix)
-    # now, trinuc_proportion_matrix has the proportion of all trinucs in every tumor.
-
-    # collect the garbage
-    gc()
-  }else{
-    for(tumor_name in 1:nrow(trinuc_breakdown_per_tumor)){
-
-      signatures_output <- deconstructSigs::whichSignatures(tumor.ref = trinuc_breakdown_per_tumor,
-                                                            signatures.ref = signatures.cosmic,
-                                                            sample.id = rownames(trinuc_breakdown_per_tumor)[tumor_name],
-                                                            contexts.needed = TRUE,
-                                                            tri.counts.method = 'exome2genome')
-
-      signatures_output_list[[tumor_name]] <- list(signatures_output = signatures_output,
-                                                   substitution_count = length(which(MAF[,sample_ID_column] == rownames(trinuc_breakdown_per_tumor)[tumor_name])))
-
-
-      trinuc_proportion_matrix[rownames(trinuc_breakdown_per_tumor)[tumor_name],] <- signatures_output$product/sum( signatures_output$product) #need it to sum to 1.
-
-      # Not all trinuc weights in the cosmic dataset are nonzero for certain signatures
-      # This leads to the rare occasion where a certain combination of signatues leads to ZERO
-      # rate for particular trinucleotide contexts.
-      # True rate is nonzero, as we do see those variants in those tumors, so renormalizing
-      # the rates by adding the lowest nonzero rate to all the rates and renormalizing
-
-
-      if(0 %in% trinuc_proportion_matrix[tumor_name,]){
-        # finding the lowest nonzero rate
-        lowest_rate <- min(trinuc_proportion_matrix[tumor_name,
-                                                    -which(trinuc_proportion_matrix[tumor_name,]==0)])
-
-        # adding it to the rates
-        trinuc_proportion_matrix[tumor_name,] <- trinuc_proportion_matrix[tumor_name,] + lowest_rate
-
-        # renormalizing to 1
-        trinuc_proportion_matrix[tumor_name,] <-
-          trinuc_proportion_matrix[tumor_name,] / sum(trinuc_proportion_matrix[tumor_name,])
-      }
-
-    }
-
-
-
-    # collect the garbage
-    gc()
-
-  }
   message("Calculating gene-level mutation rate...")
 
   if(is.null(covariate_file)){
@@ -649,7 +511,7 @@ effect_size_SNV <- function(MAF,
                            MAF[,alt_column] %in% c("A","T","G","C"),],
           gene = gene_to_analyze,
           gene_mut_rate = mutrates_list,
-          trinuc_proportion_matrix = trinuc_proportion_matrix,
+          trinuc_proportion_matrix = trinucleotide_weights$trinuc_proportion_matrix,
           gene_trinuc_comp = gene_trinuc_comp,
           RefCDS = RefCDS_our_genes,
           relative_substitution_rate=relative_substitution_rate,
@@ -681,14 +543,14 @@ effect_size_SNV <- function(MAF,
 
         these_selection_results[j,c("selection_intensity")][[1]] <-
           list(optimization_output$par)
-          # list(cancereffectsizeR::optimize_gamma(
-          #   MAF_input=MAF[MAF[,"Gene_name"] == gene_to_analyze &
-          #                   MAF[,ref_column] %in% c("A","T","G","C") &
-          #                   MAF[,alt_column] %in% c("A","T","G","C"),],
-          #   all_tumors=tumors,
-          #   gene=gene_to_analyze,
-          #   variant=colnames(these_mutation_rates$mutation_rate_matrix)[j],
-          #   specific_mut_rates=these_mutation_rates$mutation_rate_matrix))
+        # list(cancereffectsizeR::optimize_gamma(
+        #   MAF_input=MAF[MAF[,"Gene_name"] == gene_to_analyze &
+        #                   MAF[,ref_column] %in% c("A","T","G","C") &
+        #                   MAF[,alt_column] %in% c("A","T","G","C"),],
+        #   all_tumors=tumors,
+        #   gene=gene_to_analyze,
+        #   variant=colnames(these_mutation_rates$mutation_rate_matrix)[j],
+        #   specific_mut_rates=these_mutation_rates$mutation_rate_matrix))
         names(these_selection_results[j,c("selection_intensity")][[1]][[1]]) <- levels(MAF[,subset_col])
 
         these_selection_results[j,"loglikelihood"] <- optimization_output$value
@@ -839,7 +701,7 @@ effect_size_SNV <- function(MAF,
                              MAF[,alt_column] %in% c("A","T","G","C"),],
             gene = variant1,
             gene_mut_rate = mutrates_list,
-            trinuc_proportion_matrix = trinuc_proportion_matrix,
+            trinuc_proportion_matrix = trinucleotide_weights$trinuc_proportion_matrix,
             gene_trinuc_comp = gene_trinuc_comp,
             RefCDS = RefCDS_our_genes,
             relative_substitution_rate=relative_substitution_rate,
@@ -854,7 +716,7 @@ effect_size_SNV <- function(MAF,
                              MAF[,alt_column] %in% c("A","T","G","C"),],
             gene = variant2,
             gene_mut_rate = mutrates_list,
-            trinuc_proportion_matrix = trinuc_proportion_matrix,
+            trinuc_proportion_matrix = trinucleotide_weights$trinuc_proportion_matrix,
             gene_trinuc_comp = gene_trinuc_comp,
             RefCDS = RefCDS_our_genes,
             relative_substitution_rate=relative_substitution_rate,
@@ -974,7 +836,7 @@ effect_size_SNV <- function(MAF,
                              MAF[,alt_column] %in% c("A","T","G","C"),],
             gene = MAF[variant1_MAFindex,"Gene_name"],
             gene_mut_rate = mutrates_list,
-            trinuc_proportion_matrix = trinuc_proportion_matrix,
+            trinuc_proportion_matrix = trinucleotide_weights$trinuc_proportion_matrix,
             gene_trinuc_comp = gene_trinuc_comp,
             RefCDS = RefCDS_our_genes,
             relative_substitution_rate=relative_substitution_rate,
@@ -988,7 +850,7 @@ effect_size_SNV <- function(MAF,
                              MAF[,alt_column] %in% c("A","T","G","C"),],
             gene = MAF[variant2_MAFindex,"Gene_name"],
             gene_mut_rate = mutrates_list,
-            trinuc_proportion_matrix = trinuc_proportion_matrix,
+            trinuc_proportion_matrix = trinucleotide_weights$trinuc_proportion_matrix,
             gene_trinuc_comp = gene_trinuc_comp,
             RefCDS = RefCDS_our_genes,
             relative_substitution_rate=relative_substitution_rate,
@@ -1049,8 +911,8 @@ effect_size_SNV <- function(MAF,
 
   return(list(selection_output=selection_results,
               mutation_rates=mutrates_list,
-              trinuc_data=list(trinuc_proportion_matrix=trinuc_proportion_matrix,
-                               signatures_output=signatures_output_list),
+              trinuc_data=list(trinuc_proportion_matrix=trinucleotide_weights$trinuc_proportion_matrix,
+                               signatures_output=trinucleotide_weights$signatures_output_list),
               dndscvout=dndscv_out_list,
               MAF=MAF))
 

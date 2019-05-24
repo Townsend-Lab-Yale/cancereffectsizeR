@@ -15,7 +15,8 @@ effect_size_SNV(MAF, covariate_file = NULL,
   full_gene_epistasis_lower_optim = 0.001,
   full_gene_epistasis_upper_optim = 1e+09,
   full_gene_epistasis_fnscale = -1e-16,
-  q_threshold_for_gene_level = 0.1)
+  q_threshold_for_gene_level = 0.1,
+  trinuc_algorithm_choice = "weighted")
 }
 \arguments{
 \item{MAF}{MAF file with substitution data}
