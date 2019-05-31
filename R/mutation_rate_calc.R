@@ -31,9 +31,21 @@ mutation_rate_calc <- function(this_MAF,
     gene_trinuc_comp[[gene]]$gene_trinuc$count <- gene_trinuc_comp[[gene]]$gene_trinuc$count + 1
   }
 
+  # for(i in 1:nrow(mutation_rate_nucs)){
+  #   mutation_rate_nucs[i,] <- ((gene_trinuc_comp[[gene]]$gene_trinuc$count * trinuc_proportion_matrix[i,] / mean(gene_trinuc_comp[[gene]]$gene_trinuc$count * trinuc_proportion_matrix[i,]))) * gene_mut_rate[[tumor_subsets[rownames(mutation_rate_nucs)[i],"subset"]]][gene]
+  # }
+
+
+
   for(i in 1:nrow(mutation_rate_nucs)){
-    mutation_rate_nucs[i,] <- ((gene_trinuc_comp[[gene]]$gene_trinuc$count * trinuc_proportion_matrix[i,] / mean(gene_trinuc_comp[[gene]]$gene_trinuc$count * trinuc_proportion_matrix[i,]))) * gene_mut_rate[[tumor_subsets[rownames(mutation_rate_nucs)[i],"subset"]]][gene]
+
+    normalizer <- sum(gene_trinuc_comp[[gene]]$gene_trinuc$count * trinuc_proportion_matrix[i,]) / sum(gene_trinuc_comp[[gene]]$gene_trinuc[,"count"])
+
+    mutation_rate_nucs[i,] <- (trinuc_proportion_matrix[i,] / normalizer) * gene_mut_rate[[tumor_subsets[rownames(mutation_rate_nucs)[i],"subset"]]][gene]
+
+    # mutation_rate_nucs[i,] <- ((gene_trinuc_comp[[gene]]$gene_trinuc$count * trinuc_proportion_matrix[i,] / mean(gene_trinuc_comp[[gene]]$gene_trinuc$count * trinuc_proportion_matrix[i,]))) * gene_mut_rate[[tumor_subsets[rownames(mutation_rate_nucs)[i],"subset"]]][gene]
   }
+
 
   # mutation_rate_nucs is now the rate of each trinucleotide in each tumor for this gene
 
