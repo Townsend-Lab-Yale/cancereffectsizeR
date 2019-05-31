@@ -14,8 +14,8 @@ for(i in 1:length(gene_trinuc_comp)){
   gene_trinuc <- data.frame(count=rep(0,length(deconstructSigs_trinuc_string)))
   rownames(gene_trinuc) <- deconstructSigs_trinuc_string
 
-  gene_trinuc$downstream <- substr(deconstructSigs_trinuc_string,start = 1,stop = 1)
-  gene_trinuc$upstream <- substr(deconstructSigs_trinuc_string,start = 7,stop = 7)
+  gene_trinuc$downstream <- substr(deconstructSigs_trinuc_string,start = 7,stop = 7)
+  gene_trinuc$upstream <- substr(deconstructSigs_trinuc_string,start = 1,stop = 1)
   gene_trinuc$ref <- substr(deconstructSigs_trinuc_string,start = 3,stop = 3)
   gene_trinuc$alt <- substr(deconstructSigs_trinuc_string,start = 5,stop = 5)
 
