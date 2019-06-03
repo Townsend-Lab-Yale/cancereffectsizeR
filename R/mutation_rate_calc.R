@@ -27,6 +27,14 @@ mutation_rate_calc <- function(this_MAF,
   rownames(mutation_rate_nucs) <- rownames(trinuc_proportion_matrix)
   colnames(mutation_rate_nucs) <- colnames(trinuc_proportion_matrix)
 
+  # if there are no substitutions within a tumor after our preprocessing,
+  # do not calculate the mutation rate within that tumor
+
+  if(length(which(!rownames(mutation_rate_nucs) %in% rownames(tumor_subsets))) > 0){
+    mutation_rate_nucs <- mutation_rate_nucs[-which(!rownames(mutation_rate_nucs) %in% rownames(tumor_subsets)),]
+  }
+
+
   if(0 %in% gene_trinuc_comp[[gene]]$gene_trinuc$count){
     gene_trinuc_comp[[gene]]$gene_trinuc$count <- gene_trinuc_comp[[gene]]$gene_trinuc$count + 1
   }
@@ -88,6 +96,11 @@ mutation_rate_calc <- function(this_MAF,
   mutation_rate_matrix <- matrix(nrow=nrow(trinuc_proportion_matrix), ncol=nrow(this_MAF))
   rownames(mutation_rate_matrix) <- rownames(trinuc_proportion_matrix)
   colnames(mutation_rate_matrix) <- this_MAF$unique_variant_ID_AA
+
+  if(length(which(!rownames(mutation_rate_matrix) %in% rownames(tumor_subsets))) > 0){
+    mutation_rate_matrix <- mutation_rate_matrix[-which(!rownames(mutation_rate_matrix) %in% rownames(tumor_subsets)),]
+  }
+
 
 
   for(i in 1:nrow(mutation_rate_matrix)){
