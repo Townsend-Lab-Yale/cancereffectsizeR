@@ -199,6 +199,8 @@ trinucleotide_mutation_weights <- function(MAF,
 
         signatures_output_list[[tumors_with_less_than_50[tumor_name_index]]]$signatures_output$product <-
           trinuc_proportion_matrix[tumors_with_less_than_50[tumor_name_index],]
+        rownames(signatures_output_list[[tumors_with_less_than_50[tumor_name_index]]]$signatures_output$product) <-
+          tumors_with_less_than_50[tumor_name_index]
 
 
 
