@@ -89,7 +89,7 @@ trinucleotide_mutation_weights <- function(MAF,
 
   deconstructSigs_trinuc_string <- colnames(trinuc_breakdown_per_tumor)
 
-  rm(MAF_input_deconstructSigs_preprocessed)
+  # rm(MAF_input_deconstructSigs_preprocessed)
 
   # message("Building trinuc_proportion_matrix")
 
@@ -100,8 +100,8 @@ trinucleotide_mutation_weights <- function(MAF,
   rownames(trinuc_proportion_matrix) <- rownames(trinuc_breakdown_per_tumor)
   colnames(trinuc_proportion_matrix) <- colnames(trinuc_breakdown_per_tumor)
 
-  signatures_output_list <- vector(mode = "list",length = length(unique(MAF[,sample_ID_column])))
-  names(signatures_output_list) <- unique(MAF[,sample_ID_column])
+  signatures_output_list <- vector(mode = "list",length = nrow(trinuc_breakdown_per_tumor))
+  names(signatures_output_list) <- rownames(trinuc_breakdown_per_tumor)
 
 
   # algorithms ----
@@ -146,15 +146,40 @@ trinucleotide_mutation_weights <- function(MAF,
     }
 
     # finding the average of the >= 50 tumors
-
-    averaged_weight <- 0
-    # add up the weights ...
+    # original_signatures <- signatures_output_list
+    averaged_product <- 0
+    # add up the products ...
     for(tumor_name_index in 1:length(tumors_with_50_or_more)){
-      averaged_weight <- averaged_weight + trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name_index],]
+      averaged_product <- averaged_product +
+        trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name_index],]
     }
 
     # ... and divide by the length
+    averaged_product <- averaged_product/length(tumors_with_50_or_more)
+
+
+
+    # need to do the same for weights
+    weight_matrix <- matrix(data = NA,
+                            nrow = length(signatures_output_list),
+                            ncol = ncol(signatures_output_list[[1]]$signatures_output$weights))
+    rownames(weight_matrix) <- names(signatures_output_list)
+    colnames(weight_matrix) <- colnames(signatures_output_list[[1]]$signatures_output$weights)
+
+    for(weight_row in 1:nrow(weight_matrix)){
+     weight_matrix[weight_row,] <-  as.numeric(signatures_output_list[[rownames(weight_matrix)[weight_row]]]$signatures_output$weights)
+    }
+
+    averaged_weight <- 0
+    for(tumor_name_index in 1:length(tumors_with_50_or_more)){
+      averaged_weight <- averaged_weight +
+        weight_matrix[tumors_with_50_or_more[tumor_name_index],]
+    }
+
     averaged_weight <- averaged_weight/length(tumors_with_50_or_more)
+    #TODO: should this be forced to sum() to 1?
+
+
 
     # for tumors < 50 substitutions, weight their found signature product by the average
     # of the signatures over 50 relative to substitution load.
@@ -162,12 +187,56 @@ trinucleotide_mutation_weights <- function(MAF,
       for(tumor_name_index in 1:length(tumors_with_less_than_50)){
 
         trinuc_proportion_matrix[tumors_with_less_than_50[tumor_name_index],]  <-
-          ((substitution_counts[tumors_with_less_than_50[tumor_name_index]]/50) * trinuc_proportion_matrix[tumors_with_less_than_50[tumor_name_index],]) +
+          ((substitution_counts[tumors_with_less_than_50[tumor_name_index]]/50) *
+             trinuc_proportion_matrix[tumors_with_less_than_50[tumor_name_index],]) +
+          (((50-substitution_counts[tumors_with_less_than_50[tumor_name_index]])/50) *
+             averaged_product)
+
+        signatures_output_list[[tumors_with_less_than_50[tumor_name_index]]]$signatures_output$weights <-
+          ((substitution_counts[tumors_with_less_than_50[tumor_name_index]]/50) *
+             signatures_output_list[[tumors_with_less_than_50[tumor_name_index]]]$signatures_output$weights) +
           (((50-substitution_counts[tumors_with_less_than_50[tumor_name_index]])/50) * averaged_weight)
+
+        signatures_output_list[[tumors_with_less_than_50[tumor_name_index]]]$signatures_output$product <-
+          trinuc_proportion_matrix[tumors_with_less_than_50[tumor_name_index],]
+
 
 
       }
     }
+
+
+    # If a tumor had all variants removed in preprocessing
+    # (meaning it only had recurrent variants)
+    # then add back in the mutation rates as the average of the > 50
+    if(length(signatures_output_list) < length(unique(MAF[,sample_ID_column]))){
+      tumors_to_add <- unique(MAF[,sample_ID_column])[which(!unique(MAF[,sample_ID_column]) %in% names(signatures_output_list))]
+
+      matrix_to_add <- matrix(data = NA, nrow = length(tumors_to_add), ncol = ncol(trinuc_breakdown_per_tumor))
+      rownames(matrix_to_add) <- tumors_to_add
+      colnames(matrix_to_add) <- colnames(trinuc_breakdown_per_tumor)
+
+      for(matrix_row in 1:nrow(matrix_to_add)){
+       matrix_to_add[matrix_row,] <- as.numeric(averaged_product)
+       signatures_output_list[[rownames(matrix_to_add)]]$signatures_output$product <- matrix(data=averaged_product,nrow=1)
+       rownames(signatures_output_list[[rownames(matrix_to_add)]]$signatures_output$product) <- rownames(matrix_to_add)
+       colnames(signatures_output_list[[rownames(matrix_to_add)]]$signatures_output$product) <- names(averaged_product)
+       signatures_output_list[[rownames(matrix_to_add)]]$signatures_output$weights <- matrix(data=averaged_weight, nrow=1)
+       rownames(signatures_output_list[[rownames(matrix_to_add)]]$signatures_output$weights) <- rownames(matrix_to_add)
+       colnames(signatures_output_list[[rownames(matrix_to_add)]]$signatures_output$weights) <- names(averaged_weight)
+
+      }
+
+      trinuc_proportion_matrix <- rbind(trinuc_proportion_matrix, matrix_to_add)
+      tumors_with_a_mutation_rate <- rownames(trinuc_proportion_matrix)
+
+
+
+
+
+    }
+
+
 
   }
 
@@ -214,17 +283,17 @@ trinucleotide_mutation_weights <- function(MAF,
 
     # finding the average of the >= 50 tumors
 
-    averaged_weight <- 0
+    averaged_product <- 0
     # add up the weights ...
     for(tumor_name_index in 1:length(tumors_with_50_or_more)){
-      averaged_weight <- averaged_weight + trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name_index],]
+      averaged_product <- averaged_product + trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name_index],]
     }
 
     # ... and divide by the length
-    averaged_weight <- averaged_weight/length(tumors_with_50_or_more)
+    averaged_product <- averaged_product/length(tumors_with_50_or_more)
 
     for(this_row in 1:nrow(trinuc_proportion_matrix)){
-      trinuc_proportion_matrix[this_row,] <- averaged_weight
+      trinuc_proportion_matrix[this_row,] <- averaged_product
     }
 
   }
