@@ -44,7 +44,11 @@ trinucleotide_mutation_weights <- function(MAF,
   #'TODO: it is possible that the only mutation in a tumor is a recurrent variant,
   #' and if we remove this variant, then the tumor is lost from the mutation
   #' rate calculation. Should this be added back in if algorithm_choice
-  #' is something involving averages?
+  #' is something involving averages? ---- UPDATE: it is added in "weightd", need to
+  #' add in other options
+  #'
+  #' TODO: really, averages should be averages of weight, and then product is calculated
+  #' individually per tumor, as opposed to average product and average rate.
 
 
   # pre-process ----
@@ -198,9 +202,13 @@ trinucleotide_mutation_weights <- function(MAF,
           (((50-substitution_counts[tumors_with_less_than_50[tumor_name_index]])/50) * averaged_weight)
 
         signatures_output_list[[tumors_with_less_than_50[tumor_name_index]]]$signatures_output$product <-
-          trinuc_proportion_matrix[tumors_with_less_than_50[tumor_name_index],]
+          matrix(data=trinuc_proportion_matrix[tumors_with_less_than_50[tumor_name_index],], nrow=1)
         rownames(signatures_output_list[[tumors_with_less_than_50[tumor_name_index]]]$signatures_output$product) <-
           tumors_with_less_than_50[tumor_name_index]
+        colnames(signatures_output_list[[tumors_with_less_than_50[tumor_name_index]]]$signatures_output$product) <-
+          colnames(signatures_output_list[[tumors_with_less_than_50[tumor_name_index]]]$signatures_output$tumor)
+
+
 
 
 
