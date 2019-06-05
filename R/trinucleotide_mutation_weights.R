@@ -227,15 +227,16 @@ trinucleotide_mutation_weights <- function(MAF,
       colnames(matrix_to_add) <- colnames(trinuc_breakdown_per_tumor)
 
       for(matrix_row in 1:nrow(matrix_to_add)){
-       matrix_to_add[matrix_row,] <- as.numeric(averaged_product)
-       signatures_output_list[[rownames(matrix_to_add)]]$signatures_output$product <- matrix(data=averaged_product,nrow=1)
-       rownames(signatures_output_list[[rownames(matrix_to_add)]]$signatures_output$product) <- rownames(matrix_to_add)
-       colnames(signatures_output_list[[rownames(matrix_to_add)]]$signatures_output$product) <- names(averaged_product)
-       signatures_output_list[[rownames(matrix_to_add)]]$signatures_output$weights <- matrix(data=averaged_weight, nrow=1)
-       rownames(signatures_output_list[[rownames(matrix_to_add)]]$signatures_output$weights) <- rownames(matrix_to_add)
-       colnames(signatures_output_list[[rownames(matrix_to_add)]]$signatures_output$weights) <- names(averaged_weight)
+        matrix_to_add[matrix_row,] <- as.numeric(averaged_product)
+        signatures_output_list[[rownames(matrix_to_add)[matrix_row]]]$signatures_output$product <- matrix(data=averaged_product,nrow=1)
+        rownames(signatures_output_list[[rownames(matrix_to_add)[matrix_row]]]$signatures_output$product) <- rownames(matrix_to_add)[matrix_row]
+        colnames(signatures_output_list[[rownames(matrix_to_add)[matrix_row]]]$signatures_output$product) <- names(averaged_product)
+        signatures_output_list[[rownames(matrix_to_add)[matrix_row]]]$signatures_output$weights <- matrix(data=averaged_weight, nrow=1)
+        rownames(signatures_output_list[[rownames(matrix_to_add)[matrix_row]]]$signatures_output$weights) <- rownames(matrix_to_add)[matrix_row]
+        colnames(signatures_output_list[[rownames(matrix_to_add)[matrix_row]]]$signatures_output$weights) <- names(averaged_weight)
 
       }
+
 
       trinuc_proportion_matrix <- rbind(trinuc_proportion_matrix, matrix_to_add)
       tumors_with_a_mutation_rate <- rownames(trinuc_proportion_matrix)
