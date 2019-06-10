@@ -211,46 +211,56 @@ effect_size_SNV <- function(MAF,
   # collect the garbage
   gc()
 
-
-
-
   mutrates_list <- vector(mode = "list", length = length(levels(MAF[,subset_col])))
   names(mutrates_list) <- levels(MAF[,subset_col])
-  dndscv_pq_list <- vector(mode="list", length = length(levels(MAF[,subset_col])))
-  names(dndscv_pq_list) <- levels(MAF[,subset_col])
 
 
   for(this_subset in 1:length(mutrates_list)){
-
-    number_of_tumors_in_this_subset <- length(unique(MAF[MAF[,subset_col] == levels(MAF[,subset_col])[this_subset],sample_ID_column]))
-
-
-    if(dndscv_out_list[[this_subset]]$nbreg$theta>1){
-      mutrates_list[[this_subset]] <- ((dndscv_out_list[[this_subset]]$genemuts$n_syn + dndscv_out_list[[this_subset]]$nbreg$theta - 1)/(1+(dndscv_out_list[[this_subset]]$nbreg$theta/dndscv_out_list[[this_subset]]$genemuts$exp_syn_cv))/sapply(RefCDS_our_genes, function(x) colSums(x$L)[1]))/number_of_tumors_in_this_subset
-    }else{
-      mutrates_list[[this_subset]] <- rep(NA,length(dndscv_out_list[[this_subset]]$genemuts$exp_syn_cv))
-
-      syn_sites <- sapply(RefCDS_our_genes, function(x) colSums(x$L)[1])
-
-      for(i in 1:length(mutrates_list[[this_subset]])){
-        if( dndscv_out_list[[this_subset]]$genemuts$exp_syn_cv[i] >  ((dndscv_out_list[[this_subset]]$genemuts$n_syn[i] + dndscv_out_list[[this_subset]]$nbreg$theta - 1)/(1+(dndscv_out_list[[this_subset]]$nbreg$theta/dndscv_out_list[[this_subset]]$genemuts$exp_syn_cv[i])))){
-          mutrates_list[[this_subset]][i] <- (dndscv_out_list[[this_subset]]$genemuts$exp_syn_cv[i]/syn_sites[i])/number_of_tumors_in_this_subset
-        }else{
-          mutrates_list[[this_subset]][i] <- (((dndscv_out_list[[this_subset]]$genemuts$n_syn[i] + dndscv_out_list[[this_subset]]$nbreg$theta - 1)/(1+(dndscv_out_list[[this_subset]]$nbreg$theta/dndscv_out_list[[this_subset]]$genemuts$exp_syn_cv[i])))/syn_sites[i])/number_of_tumors_in_this_subset
-        }
-
-      }
-    }
-    names(mutrates_list[[this_subset]]) <- dndscv_out_list[[this_subset]]$genemuts$gene_name
-
-
-
-    dndscv_pq_list[[this_subset]] <- dndscv_out_list[[this_subset]]$sel_cv
-    dndscv_pq_list[[this_subset]]$gene <- dndscv_pq_list[[this_subset]]$gene_name
-    dndscv_pq_list[[this_subset]]$p <- dndscv_pq_list[[this_subset]]$pallsubs_cv
-    dndscv_pq_list[[this_subset]]$q <- dndscv_pq_list[[this_subset]]$qallsubs_cv
-
+    mutrates_list[[this_subset]] <- cancereffectsizeR::gene_level_mutation_rates(dndscv_output =
+                                                                                   dndscv_out_list[[this_subset]],
+                                                                                 RefCDS_object = RefCDS)
   }
+
+
+  #
+  #
+  #   mutrates_list <- vector(mode = "list", length = length(levels(MAF[,subset_col])))
+  #   names(mutrates_list) <- levels(MAF[,subset_col])
+  #   dndscv_pq_list <- vector(mode="list", length = length(levels(MAF[,subset_col])))
+  #   names(dndscv_pq_list) <- levels(MAF[,subset_col])
+  #
+  #
+  #   for(this_subset in 1:length(mutrates_list)){
+  #
+  #     number_of_tumors_in_this_subset <- length(unique(MAF[MAF[,subset_col] == levels(MAF[,subset_col])[this_subset],sample_ID_column]))
+  #
+  #
+  #     if(dndscv_out_list[[this_subset]]$nbreg$theta>1){
+  #       mutrates_list[[this_subset]] <- ((dndscv_out_list[[this_subset]]$genemuts$n_syn + dndscv_out_list[[this_subset]]$nbreg$theta - 1)/(1+(dndscv_out_list[[this_subset]]$nbreg$theta/dndscv_out_list[[this_subset]]$genemuts$exp_syn_cv))/sapply(RefCDS_our_genes, function(x) colSums(x$L)[1]))/number_of_tumors_in_this_subset
+  #     }else{
+  #       mutrates_list[[this_subset]] <- rep(NA,length(dndscv_out_list[[this_subset]]$genemuts$exp_syn_cv))
+  #
+  #       syn_sites <- sapply(RefCDS_our_genes, function(x) colSums(x$L)[1])
+  #
+  #       for(i in 1:length(mutrates_list[[this_subset]])){
+  #         if( dndscv_out_list[[this_subset]]$genemuts$exp_syn_cv[i] >  ((dndscv_out_list[[this_subset]]$genemuts$n_syn[i] + dndscv_out_list[[this_subset]]$nbreg$theta - 1)/(1+(dndscv_out_list[[this_subset]]$nbreg$theta/dndscv_out_list[[this_subset]]$genemuts$exp_syn_cv[i])))){
+  #           mutrates_list[[this_subset]][i] <- (dndscv_out_list[[this_subset]]$genemuts$exp_syn_cv[i]/syn_sites[i])/number_of_tumors_in_this_subset
+  #         }else{
+  #           mutrates_list[[this_subset]][i] <- (((dndscv_out_list[[this_subset]]$genemuts$n_syn[i] + dndscv_out_list[[this_subset]]$nbreg$theta - 1)/(1+(dndscv_out_list[[this_subset]]$nbreg$theta/dndscv_out_list[[this_subset]]$genemuts$exp_syn_cv[i])))/syn_sites[i])/number_of_tumors_in_this_subset
+  #         }
+  #
+  #       }
+  #     }
+  #     names(mutrates_list[[this_subset]]) <- dndscv_out_list[[this_subset]]$genemuts$gene_name
+  #
+  #
+  #
+  #     dndscv_pq_list[[this_subset]] <- dndscv_out_list[[this_subset]]$sel_cv
+  #     dndscv_pq_list[[this_subset]]$gene <- dndscv_pq_list[[this_subset]]$gene_name
+  #     dndscv_pq_list[[this_subset]]$p <- dndscv_pq_list[[this_subset]]$pallsubs_cv
+  #     dndscv_pq_list[[this_subset]]$q <- dndscv_pq_list[[this_subset]]$qallsubs_cv
+  #
+  #   }
 
   # 4. Assign genes to MAF ----
   # keeping assignments consistent with dndscv, where possible
