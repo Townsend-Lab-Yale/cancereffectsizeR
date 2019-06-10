@@ -162,25 +162,34 @@ trinucleotide_mutation_weights <- function(MAF,
     averaged_product <- averaged_product/length(tumors_with_50_or_more)
 
 
+    averaged_product_mat <- as.data.frame(matrix(data = averaged_product,nrow=1),stringsAsFactors=F)
+    rownames(averaged_product_mat) <- "averaged_product"; colnames(averaged_product_mat) <- names(averaged_product)
 
+    averaged_weight_deconstructed <- deconstructSigs::whichSignatures(tumor.ref = averaged_product_mat,
+                                                          signatures.ref = signatures.cosmic,
+                                                          sample.id = "averaged_product",
+                                                          contexts.needed = TRUE,
+                                                          tri.counts.method = 'exome2genome')
+
+    averaged_weight <- averaged_weight_deconstructed$weights
     # need to do the same for weights
-    weight_matrix <- matrix(data = NA,
-                            nrow = length(signatures_output_list),
-                            ncol = ncol(signatures_output_list[[1]]$signatures_output$weights))
-    rownames(weight_matrix) <- names(signatures_output_list)
-    colnames(weight_matrix) <- colnames(signatures_output_list[[1]]$signatures_output$weights)
-
-    for(weight_row in 1:nrow(weight_matrix)){
-     weight_matrix[weight_row,] <-  as.numeric(signatures_output_list[[rownames(weight_matrix)[weight_row]]]$signatures_output$weights)
-    }
-
-    averaged_weight <- 0
-    for(tumor_name_index in 1:length(tumors_with_50_or_more)){
-      averaged_weight <- averaged_weight +
-        weight_matrix[tumors_with_50_or_more[tumor_name_index],]
-    }
-
-    averaged_weight <- averaged_weight/length(tumors_with_50_or_more)
+    # weight_matrix <- matrix(data = NA,
+    #                         nrow = length(signatures_output_list),
+    #                         ncol = ncol(signatures_output_list[[1]]$signatures_output$weights))
+    # rownames(weight_matrix) <- names(signatures_output_list)
+    # colnames(weight_matrix) <- colnames(signatures_output_list[[1]]$signatures_output$weights)
+    #
+    # for(weight_row in 1:nrow(weight_matrix)){
+    #  weight_matrix[weight_row,] <-  as.numeric(signatures_output_list[[rownames(weight_matrix)[weight_row]]]$signatures_output$weights)
+    # }
+    #
+    # averaged_weight <- 0
+    # for(tumor_name_index in 1:length(tumors_with_50_or_more)){
+    #   averaged_weight <- averaged_weight +
+    #     weight_matrix[tumors_with_50_or_more[tumor_name_index],]
+    # }
+    #
+    # averaged_weight <- averaged_weight/length(tumors_with_50_or_more)
     #TODO: should this be forced to sum() to 1?
 
 
