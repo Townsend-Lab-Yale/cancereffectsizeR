@@ -237,10 +237,10 @@ trinucleotide_mutation_weights <- function(MAF,
 
       for(matrix_row in 1:nrow(matrix_to_add)){
         matrix_to_add[matrix_row,] <- as.numeric(averaged_product)
-        signatures_output_list[[rownames(matrix_to_add)[matrix_row]]]$signatures_output$product <- matrix(data=averaged_product,nrow=1)
+        signatures_output_list[[rownames(matrix_to_add)[matrix_row]]]$signatures_output$product <- as.data.frame(matrix(data=averaged_product,nrow=1),stringsAsFactors=F)
         rownames(signatures_output_list[[rownames(matrix_to_add)[matrix_row]]]$signatures_output$product) <- rownames(matrix_to_add)[matrix_row]
         colnames(signatures_output_list[[rownames(matrix_to_add)[matrix_row]]]$signatures_output$product) <- names(averaged_product)
-        signatures_output_list[[rownames(matrix_to_add)[matrix_row]]]$signatures_output$weights <- matrix(data=averaged_weight, nrow=1)
+        signatures_output_list[[rownames(matrix_to_add)[matrix_row]]]$signatures_output$weights <- as.data.frame(matrix(data=as.numeric(averaged_weight), nrow=1),stringsAsFactors=F)
         rownames(signatures_output_list[[rownames(matrix_to_add)[matrix_row]]]$signatures_output$weights) <- rownames(matrix_to_add)[matrix_row]
         colnames(signatures_output_list[[rownames(matrix_to_add)[matrix_row]]]$signatures_output$weights) <- names(averaged_weight)
 
