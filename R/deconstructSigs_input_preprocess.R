@@ -37,9 +37,11 @@ deconstructSigs_input_preprocess <- function(MAF,
   duplicated_vec_last <- duplicated(MAF[,c(pos_column,chr_column,alt_column)],fromLast=T)
   duplicated_vec_pos <- which(duplicated_vec_first | duplicated_vec_last)
 
-  MAF <- MAF[-duplicated_vec_pos,]
-
   MAF[,chr_column] <- paste("chr",trimws(MAF[,chr_column]),sep="")
+
+  if (length(duplicated_vec_pos) > 0) {
+    MAF <- MAF[-duplicated_vec_pos,]
+  }
 
   return(MAF)
 }
