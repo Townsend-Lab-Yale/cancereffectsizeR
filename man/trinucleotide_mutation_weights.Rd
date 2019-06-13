@@ -4,13 +4,12 @@
 \alias{trinucleotide_mutation_weights}
 \title{Trinucleotide mutation weights}
 \usage{
-trinucleotide_mutation_weights(MAF,
-  sample_ID_column = "Unique_patient_identifier",
-  chr_column = "Chromosome", pos_column = "Start_Position",
-  ref_column = "Reference_Allele", alt_column = "Tumor_allele",
-  algorithm_choice = "weighted", remove_recurrent = TRUE)
+trinucleotide_mutation_weights(ceslist, algorithm_choice = "weighted",
+  remove_recurrent = TRUE)
 }
 \arguments{
+\item{ceslist}{# CESList object}
+
 \item{algorithm_choice}{The choice of the algorithm used in determining trinucleotide weights.
 Defaults to `weighted`, where all tumors with >= 50 substitutions have mutation
 rates directly from deconstructSigs, and tumors with < 50 substitutions have that rate weighted

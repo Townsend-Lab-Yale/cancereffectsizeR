@@ -4,12 +4,15 @@
 \alias{optimize_gamma}
 \title{Calculate selection intensity}
 \usage{
-optimize_gamma(MAF_input, all_tumors, gene, variant, specific_mut_rates)
+optimize_gamma(MAF_input, all_tumors, stages, gene, variant,
+  specific_mut_rates)
 }
 \arguments{
 \item{MAF_input}{A data frame that includes columns "Unique_patient_identifier", "Gene_name", and "unique_variant_ID_AA"}
 
 \item{all_tumors}{A list of all the tumors we are calculating the likelihood across}
+
+\item{stages}{An environment with keys = tumor, value = all_tumors[tumor, "subset"], or Null if all are in same class (subset = 1)}
 
 \item{gene}{The gene we want to look at}
 

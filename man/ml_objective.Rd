@@ -4,7 +4,7 @@
 \alias{ml_objective}
 \title{ml_objective}
 \usage{
-ml_objective(gamma, MAF_input, all_tumors, gene, variant,
+ml_objective(gamma, MAF_input, all_tumors, stages, gene, variant,
   specific_mut_rates)
 }
 \arguments{
@@ -13,6 +13,8 @@ ml_objective(gamma, MAF_input, all_tumors, gene, variant,
 \item{MAF_input}{A data frame that includes columns "Unique_patient_identifier", "Gene_name", and "unique_variant_ID_AA"}
 
 \item{all_tumors}{A list of all the tumors we are calculating the likelihood across}
+
+\item{stages}{An environment keys = tumor, value = all_tumors[tumor, "subset"]; or Null if all are in same class (subset = 1)}
 
 \item{gene}{The gene we want to look at}
 

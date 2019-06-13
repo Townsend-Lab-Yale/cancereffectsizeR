@@ -4,10 +4,7 @@
 \alias{effect_size_SNV}
 \title{SNV effect size calculation function}
 \usage{
-effect_size_SNV(MAF, covariate_file = NULL,
-  sample_ID_column = "Unique_patient_identifier",
-  chr_column = "Chromosome", pos_column = "Start_Position",
-  ref_column = "Reference_Allele", alt_column = "Tumor_allele",
+effect_size_SNV(covariate_file = NULL, ceslist = NULL,
   genes_for_effect_size_analysis = "all", cores = 1,
   tumor_specific_rate_choice = F, trinuc_all_tumors = T,
   subset_col = NULL, subset_levels_order = NULL,
@@ -19,21 +16,11 @@ effect_size_SNV(MAF, covariate_file = NULL,
   trinuc_algorithm_choice = "weighted")
 }
 \arguments{
-\item{MAF}{MAF file with substitution data}
-
 \item{covariate_file}{Either NULL and uses the \code{dndscv}
 default covariates, or one of these:  "bladder_pca"  "breast_pca"
 "cesc_pca" "colon_pca" "esca_pca" "gbm_pca" "hnsc_pca" "kidney_pca" "lihc_pca" "lung_pca" "ov_pca" "pancreas_pca" "prostate_pca" "rectum_pca" "skin_pca"  "stomach_pca"  "thca_pca" "ucec_pca"}
 
-\item{sample_ID_column}{column in MAF with sample ID data}
-
-\item{chr_column}{column in MAF with chromosome data}
-
-\item{pos_column}{column in MAF with chromosome nucleotide location data}
-
-\item{ref_column}{column in MAF with reference allele data}
-
-\item{alt_column}{column in MAF with alternative allele data}
+\item{ceslist}{a CESList object}
 
 \item{genes_for_effect_size_analysis}{genes to calculate effect sizes within. If unspecified, defaults to "all".}
 
@@ -46,6 +33,8 @@ default covariates, or one of these:  "bladder_pca"  "breast_pca"
 \item{subset_col}{column in MAF with subset data (e.g., column contains data like "Primary" and "Metastatic" in each row)}
 
 \item{subset_levels_order}{evolutionary order of events in subset_col. (e.g. c("Primary", "Metastatic")}
+
+\item{MAF}{MAF file with substitution data}
 }
 \description{
 Function that determines mutation rate at the gene- and trinucleotide- level

@@ -1,8 +1,6 @@
 #' Selection results converter
 #'
-#' @import dplyr
-#' @import magrittr
-#' @import tidyr
+#' @importFrom magrittr "%>%"
 #'
 #' @param results_input List of the selection results from get_gene_results within effect_size_SNV
 #' @param subset_greater_than_freq subsetting the data for only substitutions in more than this number of tumors
@@ -81,8 +79,6 @@ selection_results_converter <- function(results_input, subset_greater_than_freq=
   # selection_data_df$dndscv_q  <- dndscv_results[selection_data_df[,"gene"],"qallsubs_cv"]
 
   results_output <- selection_data_df[order(selection_data_df$selection_intensity,decreasing = T),]
-
-
 
 
   return(results_output)

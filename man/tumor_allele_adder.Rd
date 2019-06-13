@@ -4,15 +4,17 @@
 \alias{tumor_allele_adder}
 \title{Tumor allele column addition}
 \usage{
-tumor_allele_adder(MAF)
+tumor_allele_adder(Reference_Allele, Tumor_Seq_Allele1, Tumor_Seq_Allele2)
 }
 \arguments{
-\item{MAF}{MAF file with columns labels "Reference_Allele",
-"Tumor_Seq_Allele1", and "Tumor_Seq_Allele2"}
+\item{Reference_Allele:}{MAF-style "Reference_Allele" vector}
+
+\item{Tumor_Seq_Allele1:}{MAF-style "Tumor_Seq_Allele1" vector}
+
+\item{Tumor_Seq_Allele2:}{MAF-style "Tumor_Seq_Allele2" vector}
 }
 \description{
 Several MAF files recently encountered had different representations of
 the "tumor allele" . This function attempts to normalize all of the
-different representations and put the tumor allele into a column called
-"Tumor_allele".
+different representations and return an analysis-ready vector of tumor alleles
 }

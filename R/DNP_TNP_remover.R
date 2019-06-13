@@ -22,14 +22,14 @@
 
 
 DNP_TNP_remover <- function(MAF,delete_recur=F){
-  message("Removing possible DNP and TNP")
+  #message("Removing possible DNP and TNP")
   # sort by Tumor, Chromosome, and then position
-  MAF <- MAF[with(MAF, order(Unique_patient_identifier,Chromosome,Start_Position)),]
+  MAF <- MAF[with(MAF, order(Unique_Patient_Identifier,Chromosome,Start_Position)),]
 
   MAF$difference <- c(NA,diff(MAF[,"Start_Position"]))
 
   MAF$same_tumor_chrom <- c(NA,((MAF[2:nrow(MAF),"Chromosome"]==MAF[1:(nrow(MAF)-1),"Chromosome"]) &
-                                  (MAF[2:nrow(MAF),"Unique_patient_identifier"]==MAF[1:(nrow(MAF)-1),"Unique_patient_identifier"])))
+                                  (MAF[2:nrow(MAF),"Unique_Patient_Identifier"]==MAF[1:(nrow(MAF)-1),"Unique_Patient_Identifier"])))
 
   DNP_and_TNP <- which(MAF$difference %in% c(1,2) & MAF$same_tumor_chrom==T)
   DNP_and_TNP_prior <- DNP_and_TNP - 1
@@ -37,18 +37,19 @@ DNP_TNP_remover <- function(MAF,delete_recur=F){
 
   to_remove <- unique(c(DNP_and_TNP,DNP_and_TNP_prior))
 
-  if(length(to_remove)>0){
-    MAF <- MAF[-to_remove,]
-  }
+  dnp_and_tnp = MAF[to_remove, 1:5] # to-do: make this less cryptic
+  dnp_and_tnp = dnp_and_tnp[with(dnp_and_tnp, order(Chromosome, Start_Position, Unique_Patient_Identifier)),]
+  MAF <- MAF[-to_remove,]
+  
   # remove_it <- MAF
   # final_MAF <- NULL
-  # tumor_list <- unique(remove_it$Unique_patient_identifier)
+  # tumor_list <- unique(remove_it$Unique_Patient_Identifier)
   # counter <- 0
   # possible_DNP <- NULL
   # for(i in 1:length(tumor_list)){
   #   to_delete <- NULL
-  #   this_tumor_full <- remove_it[which(remove_it$Unique_patient_identifier==tumor_list[i] & remove_it$Variant_Type!="SNP"),]
-  #   this_tumor <- remove_it[which(remove_it$Unique_patient_identifier==tumor_list[i] & remove_it$Variant_Type=="SNP"),]
+  #   this_tumor_full <- remove_it[which(remove_it$Unique_Patient_Identifier==tumor_list[i] & remove_it$Variant_Type!="SNP"),]
+  #   this_tumor <- remove_it[which(remove_it$Unique_Patient_Identifier==tumor_list[i] & remove_it$Variant_Type=="SNP"),]
   #   for(j in 1:nrow(this_tumor)){
   #     if(any(this_tumor$Chromosome==this_tumor$Chromosome[j] &
   #                     (this_tumor$Start_Position==this_tumor$Start_Position[j]+1 |
@@ -69,8 +70,7 @@ DNP_TNP_remover <- function(MAF,delete_recur=F){
   #     final_MAF <- rbind(final_MAF,this_tumor_full)
   #   }
   # }
-  message(paste("Total count of potential DNP removed: ", length(to_remove)))
-  message("DNP and TNP removal complete")
+
 
   # If we only want primary for this analysis
   if(delete_recur){
@@ -95,5 +95,5 @@ DNP_TNP_remover <- function(MAF,delete_recur=F){
     }
   }
 
-  return(MAF)
+  return(list(kept = MAF, removed = dnp_and_tnp))
 }

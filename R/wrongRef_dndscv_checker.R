@@ -6,8 +6,6 @@
 #'  mutations (5 columns: sampleID, chr, pos, ref, alt). Only list independent events as mutations.
 #' @return matrix of provided mutations that do not match reference genome
 #' @import dndscv
-#' @import seqinr
-#' @import Biostrings
 #' @import MASS
 #' @import GenomicRanges
 #' @export

@@ -2,11 +2,11 @@
 #'
 #' Several MAF files recently encountered had different representations of
 #' the "tumor allele" . This function attempts to normalize all of the
-#' different representations and put the tumor allele into a column called
-#' "Tumor_allele".
+#' different representations and return an analysis-ready vector of tumor alleles
 #'
-#' @param MAF MAF file with columns labels "Reference_Allele",
-#'  "Tumor_Seq_Allele1", and "Tumor_Seq_Allele2"
+#' @param Reference_Allele: MAF-style "Reference_Allele" vector
+#' @param Tumor_Seq_Allele1: MAF-style "Tumor_Seq_Allele1" vector
+#' @param Tumor_Seq_Allele2: MAF-style "Tumor_Seq_Allele2" vector
 #' @export
 
 #TODO: add in column headers
@@ -14,21 +14,16 @@
 # Different MAF files we obtained had different ways of representing
 # where the "tumor allele" was located. This normalizes to a new column.
 
-tumor_allele_adder <- function(MAF){
-
-  if("Tumor_allele" %in% colnames(MAF)){
-    message("
-            It appears that you already ran this function because
-            Tumor_allele is already a column. Returning
-            original MAF_file")
-    return(MAF)
-  }
-
+tumor_allele_adder <- function(Reference_Allele, Tumor_Seq_Allele1, Tumor_Seq_Allele2) {
 
   #Make sure all the characters in these columns are uppercase for consistency.
-  MAF$Tumor_Seq_Allele2 <- toupper(MAF$Tumor_Seq_Allele2)
-  MAF$Tumor_Seq_Allele1 <- toupper(MAF$Tumor_Seq_Allele1)
-  MAF$Reference_Allele <- toupper(MAF$Reference_Allele)
+  Tumor_Seq_Allele2 <- toupper(Tumor_Seq_Allele2)
+  Tumor_Seq_Allele1 <- toupper(Tumor_Seq_Allele1)
+  Reference_Allele <- toupper(Reference_Allele)
+
+  # this code can be cleaned up in the future, but for now just declare a dataframe and re-use old code
+  MAF = data.frame(Reference_Allele = Reference_Allele, Tumor_Seq_Allele1 = Tumor_Seq_Allele1, Tumor_Seq_Allele2 = Tumor_Seq_Allele2, stringsAsFactors = F)
+
 
   #Delete rows with no information in either Tumor Seq columns.
   if(any(MAF$Tumor_Seq_Allele1=="" & MAF$Tumor_Seq_Allele2=="", na.rm=TRUE)){
@@ -81,5 +76,5 @@ tumor_allele_adder <- function(MAF){
     MAF[-which(MAF$Tumor_allele == MAF$Reference_Allele),]
 
   }
-  return(MAF)
+  return(MAF$Tumor_allele)
 }
