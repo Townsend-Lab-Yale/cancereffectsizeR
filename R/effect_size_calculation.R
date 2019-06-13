@@ -542,10 +542,9 @@ effect_size_SNV <- function(MAF,
 
 
         optimization_output <- cancereffectsizeR::optimize_gamma(
-          MAF_input=subset(MAF,
-                           Gene_name==gene_to_analyze &
-                             Reference_Allele %in% c("A","T","G","C") &
-                             Tumor_allele %in% c("A","T","G","C")),
+          MAF_input=MAF[MAF[,"Gene_name"] == gene_to_analyze &
+                          MAF[,ref_column] %in% c("A","T","G","C") &
+                          MAF[,alt_column] %in% c("A","T","G","C"),],
           all_tumors=tumors,
           gene=gene_to_analyze,
           variant=colnames(these_mutation_rates$mutation_rate_matrix)[j],
