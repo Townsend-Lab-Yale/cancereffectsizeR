@@ -419,9 +419,6 @@ trinucleotide_mutation_weights <- function(ceslist,
       }
 
     }
-
-
-
   }
 
 
@@ -429,10 +426,11 @@ trinucleotide_mutation_weights <- function(ceslist,
   # tumors in which we are able to calculate a mutation rate
 
   # To-do: save the MAF entries that lack mutation rates somewhere for reporting
-  ceslist@maf = MAF[MAF[,"Unique_Patient_Identifier"] %in% trinucleotide_weights$tumors_with_a_mutation_rate,]
+  ceslist@maf = MAFdf(MAF[MAF[,"Unique_Patient_Identifier"] %in% tumors_with_a_mutation_rate,])
   ceslist@trinucleotide_mutation_weights = list(tumors_with_a_mutation_rate=tumors_with_a_mutation_rate,
               trinuc_proportion_matrix=trinuc_proportion_matrix,
               signatures_output_list=signatures_output_list,
               algorithm_choice=algorithm_choice)
+  ceslist@relative_substitution_rates = relative_substitution_rate
   return(ceslist)
 }

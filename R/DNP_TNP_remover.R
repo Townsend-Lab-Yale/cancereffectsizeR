@@ -39,7 +39,11 @@ DNP_TNP_remover <- function(MAF,delete_recur=F){
 
   dnp_and_tnp = MAF[to_remove, 1:5] # to-do: make this less cryptic
   dnp_and_tnp = dnp_and_tnp[with(dnp_and_tnp, order(Chromosome, Start_Position, Unique_Patient_Identifier)),]
-  MAF <- MAF[-to_remove,]
+
+  if(length(to_remove) != 0) {
+    MAF <- MAF[-to_remove,]
+  }
+  
   
   # remove_it <- MAF
   # final_MAF <- NULL
