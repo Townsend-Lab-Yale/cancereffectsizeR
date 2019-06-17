@@ -6,6 +6,7 @@
 #' (2017). Universal Patterns of Selection in Cancer and Somatic Tissues. Cell. https://doi.org/10.1016/j.cell.2017.09.042
 #' and the associated R package dndscv .
 #'
+#' @param cesa CESAnalysis object
 #' @param covariate_file Either NULL and uses dNdScv default covariates, or one of these:  "bladder_pca"  "breast_pca"
 #' "cesc_pca" "colon_pca" "esca_pca" "gbm_pca" "hnsc_pca" "kidney_pca" "lihc_pca" "lung_pca" "ov_pca" "pancreas_pca" "prostate_pca" "rectum_pca" "skin_pca"  "stomach_pca"  "thca_pca" "ucec_pca"
 #'
@@ -16,7 +17,7 @@
 #'
 
 # Runs dNdScv and calculates gene-level mutation rates
-gene_level_mutation_rates <- function(ceslist, covariate_file = NULL){
+gene_level_mutation_rates <- function(cesa, covariate_file = NULL){
   
 
   if(is.null(covariate_file)){
@@ -34,15 +35,15 @@ gene_level_mutation_rates <- function(ceslist, covariate_file = NULL){
 
   # store dndscv data in a list, split by tumor progression subsets
 
-  dndscv_out_list <- vector(mode = "list",length = length(ceslist@tumor.progressions@order))
-  names(dndscv_out_list) <- ceslist@tumor.progressions@order
+  dndscv_out_list <- vector(mode = "list",length = length(cesa@tumor.progressions@order))
+  names(dndscv_out_list) <- cesa@tumor.progressions@order
 
   # dndscv output for each subset
   message("Running dNdScv...")
   for(this_subset in 1:length(dndscv_out_list)){
-    current_subset_tumors = sapply(ceslist@maf$Unique_Patient_Identifier, function(x) ceslist@tumor.progressions@by.tumor[[x]] == ceslist@tumor.progressions@order[this_subset])
+    current_subset_tumors = sapply(cesa@mutations.maf$Unique_Patient_Identifier, function(x) cesa@tumor.progressions@by.tumor[[x]] == cesa@tumor.progressions@order[this_subset])
     dndscv_out_list[[this_subset]] <- dndscv::dndscv(
-      mutations = ceslist@maf[current_subset_tumors,],
+      mutations = cesa@mutations.maf[current_subset_tumors,],
       gene_list = genes_in_pca,
       cv = if(is.null(covariate_file)){ "hg19"}else{ this_cov_pca$rotation},
       refdb = paste(path_to_library,"/data/RefCDS_TP53splice.RData",sep=""))
@@ -56,8 +57,8 @@ gene_level_mutation_rates <- function(ceslist, covariate_file = NULL){
   gc()
 
 
-  mutrates_list <- vector(mode = "list",length = length(ceslist@tumor.progressions@order))
-  names(mutrates_list) <- ceslist@tumor.progressions@order
+  mutrates_list <- vector(mode = "list",length = length(cesa@tumor.progressions@order))
+  names(mutrates_list) <- cesa@tumor.progressions@order
 
 
   message("Calculating gene-level mutation rates...")
@@ -105,8 +106,8 @@ gene_level_mutation_rates <- function(ceslist, covariate_file = NULL){
     names(mutrates_vec) <- dndscv_output$genemuts$gene_name
     mutrates_list[[this_subset]] = mutrates_vec
   }
-  ceslist@mutrates_list = mutrates_list
-  ceslist@dndscv_out_list = dndscv_out_list
-  ceslist@refcds_data = RefCDS_our_genes 
-  return(ceslist)
+  cesa@mutrates_list = mutrates_list
+  cesa@dndscv_out_list = dndscv_out_list
+  cesa@refcds_data = RefCDS_our_genes 
+  return(cesa)
 }

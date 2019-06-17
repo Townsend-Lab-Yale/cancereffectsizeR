@@ -59,19 +59,19 @@ MAFdf = function(df, ...) {
   new("MAFdf", df, ...)
 }
 
-setClass("CESList", representation(maf = "MAFdf",  reference.mismatch.maf = "MAFdf", snv.maf = "MAFdf",
+setClass("CESAnalysis", representation(mutations.maf = "MAFdf",  reference.mismatch.maf = "MAFdf", snv.maf = "MAFdf",
          pred.mnv.maf = "MAFdf", trinucleotide_mutation_weights = "list", tumor.progressions = "CESProgressions",
          mutrates_list = "list", dndscv_out_list = "list", relative_substitution_rates = "table", refcds_data = "array"))
 
 
 ## To-do: Add generic methods for editing slots that enfore these validity checks
 ## Currently, validity is only checked on object creation, so downstream functions can mess up the object
-setValidity("CESList", 
+setValidity("CESAnalysis", 
     function(object) {
       ## Can add more validation later
       problems = character()
-      if (nrow(object@maf) == 0) {
-        problems = c(problems, "CESList must be provided MAF data")
+      if (nrow(object@mutations.maf) == 0) {
+        problems = c(problems, "CESAnalysis must be provided MAF data")
       }
 
       if (length(problems) > 0) {

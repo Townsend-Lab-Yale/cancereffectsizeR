@@ -1,4 +1,4 @@
-#' Reads in an MAF file or data frame and creates a CESList object (the data structure used by cancereffectsizeR)
+#' Reads in an MAF file or data frame and creates a CESAnalysis object (the data structure used by cancereffectsizeR)
 #' @param maf	Path of tab-delimited text file in MAF format, or an MAF in data.frame format
 #' @param sample_col column name with sample ID data
 #' @param ref_col column name with reference allele data
@@ -11,7 +11,7 @@
 #' @export
 
 
-CESList = function(maf = NULL, sample_col = "Tumor_Sample_Barcode", chr_col = "Chromosome", start_col = "Start_Position",
+CESAnalysis = function(maf = NULL, sample_col = "Tumor_Sample_Barcode", chr_col = "Chromosome", start_col = "Start_Position",
                    ref_col = "Reference_Allele", tumor_allele_col = "guess",
                    progression_col = NULL, progression_order = NULL) {
 
@@ -120,7 +120,7 @@ CESList = function(maf = NULL, sample_col = "Tumor_Sample_Barcode", chr_col = "C
 	}
 	tumor.progressions = new("CESProgressions", order = progression_order, by.tumor = progression_by_tumor)
 
-	# select only the necessary columns and give column names with consistency enforced by CESList class
+	# select only the necessary columns and give column names with consistency enforced by CESAnalysis class
 	maf = maf[,c(sample_col, chr_col, start_col, ref_col, tumor_allele_col)]
 	sample_col = "Unique_Patient_Identifier"
 	chr_col = "Chromosome"
@@ -187,8 +187,8 @@ CESList = function(maf = NULL, sample_col = "Tumor_Sample_Barcode", chr_col = "C
 	num.samples = length(unique(snv.maf[, sample_col]))
 	message(paste0(num.good.snv, " SNVs from ", num.samples, " samples will be included in effect size analysis."))
   
-	# declare CESList object
-	x = new("CESList", maf = MAFdf(maf), reference.mismatch.maf = MAFdf(reference.mismatch.maf),
+	# declare CESAnalysis object
+	x = new("CESAnalysis", mutations.maf = MAFdf(maf), reference.mismatch.maf = MAFdf(reference.mismatch.maf),
 	        pred.mnv.maf = MAFdf(pred.mnv.maf), snv.maf = MAFdf(snv.maf), tumor.progressions = tumor.progressions)
 	return(x)
 }

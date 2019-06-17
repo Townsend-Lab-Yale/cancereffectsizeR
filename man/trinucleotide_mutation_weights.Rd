@@ -4,11 +4,11 @@
 \alias{trinucleotide_mutation_weights}
 \title{Trinucleotide mutation weights}
 \usage{
-trinucleotide_mutation_weights(ceslist, algorithm_choice = "weighted",
+trinucleotide_mutation_weights(cesa, algorithm_choice = "weighted",
   remove_recurrent = TRUE)
 }
 \arguments{
-\item{ceslist}{# CESList object}
+\item{cesa}{# CESAnalysis object}
 
 \item{algorithm_choice}{The choice of the algorithm used in determining trinucleotide weights.
 Defaults to `weighted`, where all tumors with >= 50 substitutions have mutation

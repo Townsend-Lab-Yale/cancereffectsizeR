@@ -1,6 +1,6 @@
 #' Trinucleotide mutation weights
 #'
-#' @param ceslist # CESList object
+#' @param cesa # CESAnalysis object
 #' @param algorithm_choice The choice of the algorithm used in determining trinucleotide weights.
 #'   Defaults to `weighted`, where all tumors with >= 50 substitutions have mutation
 #'   rates directly from deconstructSigs, and tumors with < 50 substitutions have that rate weighted
@@ -20,7 +20,7 @@
 #'
 #'
 #'
-trinucleotide_mutation_weights <- function(ceslist,
+trinucleotide_mutation_weights <- function(cesa,
                                            algorithm_choice = "weighted",
                                            remove_recurrent = TRUE){
 
@@ -43,7 +43,7 @@ trinucleotide_mutation_weights <- function(ceslist,
 
   # pre-process ----
 
-  MAF = ceslist@maf
+  MAF = cesa@mutations.maf # calculate weights
   sample_ID_column = "Unique_Patient_Identifier"
   chr_column = "Chromosome"
   pos_column = "Start_Position"
@@ -426,11 +426,12 @@ trinucleotide_mutation_weights <- function(ceslist,
   # tumors in which we are able to calculate a mutation rate
 
   # To-do: save the MAF entries that lack mutation rates somewhere for reporting
-  ceslist@maf = MAFdf(MAF[MAF[,"Unique_Patient_Identifier"] %in% tumors_with_a_mutation_rate,])
-  ceslist@trinucleotide_mutation_weights = list(tumors_with_a_mutation_rate=tumors_with_a_mutation_rate,
+  cesa@mutations.maf = MAFdf(MAF[MAF[,"Unique_Patient_Identifier"] %in% tumors_with_a_mutation_rate,])
+  cesa@snv.maf = MAFdf(cesa@snv.maf[cesa@snv.maf[,"Unique_Patient_Identifier"] %in% tumors_with_a_mutation_rate,])
+  cesa@trinucleotide_mutation_weights = list(tumors_with_a_mutation_rate=tumors_with_a_mutation_rate,
               trinuc_proportion_matrix=trinuc_proportion_matrix,
               signatures_output_list=signatures_output_list,
               algorithm_choice=algorithm_choice)
-  ceslist@relative_substitution_rates = relative_substitution_rate
-  return(ceslist)
+  cesa@relative_substitution_rates = relative_substitution_rate
+  return(cesa)
 }

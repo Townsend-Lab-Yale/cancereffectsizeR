@@ -10,7 +10,7 @@
 #' from one coordinate system to another.
 #'
 #'
-#' @param ceslist a CESList object
+#' @param cesa CESAnalysis object
 #' @param genes_for_effect_size_analysis genes to calculate effect sizes within. If unspecified, defaults to "all".
 #' @param cores number of cores to use
 #' @param tumor_specific_rate_choice weights tumor-specific rates by their relative proportional substitution count (not recommended)
@@ -23,7 +23,7 @@
 
 
 effect_size_SNV <- function(
-                            ceslist = NULL,
+                            cesa = NULL,
                             covariate_file=NULL,
                             genes_for_effect_size_analysis = "all",
                             cores = 1,
@@ -39,7 +39,7 @@ effect_size_SNV <- function(
 
 
 
-  MAF = ceslist@maf
+  MAF = cesa@maf
   if(!is.null(subset_col) & !is.null(epistasis_top_prev_number)){
     stop("You can either measure selection of a linear evolving system
         (i.e., you provide `subset_col` with a value), or
@@ -57,20 +57,20 @@ effect_size_SNV <- function(
   message(version_message)
 
   message("Calculating trinucleotide composition and signatures...")
-  ceslist = cancereffectsizeR::trinucleotide_mutation_weights(ceslist, algorithm_choice = trinuc_algorithm_choice)
+  cesa = cancereffectsizeR::trinucleotide_mutation_weights(cesa, algorithm_choice = trinuc_algorithm_choice)
 
   # Calculate gene-level mutation rates using dNdScv
-  ceslist = cancereffectsizeR::gene_level_mutation_rates(ceslist, covariate_file)
+  cesa = cancereffectsizeR::gene_level_mutation_rates(cesa, covariate_file)
 
   # Assign genes to MAF, keeping assignments consistent with dndscv when possible
-  ceslist = cancereffectsizeR::annotate_gene_maf(ceslist)
+  cesa = cancereffectsizeR::annotate_gene_maf(cesa)
 
   # for each SNV, calculate the gene- and tumor- and mutation-specific mutation rate
-  ceslist = cancereffectsizeR::snv_mutation_rates(ceslist)
+  cesa = cancereffectsizeR::snv_mutation_rates(cesa)
 
   message("Calculating selection intensity...")
 
-  genes_in_dataset = unique(ceslist@annotated.maf$Gene_name)
+  genes_in_dataset = unique(cesa@annotated.maf$Gene_name)
   if(all(genes_for_effect_size_analysis=="all")) {
     genes_to_analyze <- genes_in_dataset
   } else{

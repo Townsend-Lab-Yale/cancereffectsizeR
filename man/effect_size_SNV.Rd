@@ -4,10 +4,9 @@
 \alias{effect_size_SNV}
 \title{SNV effect size calculation function}
 \usage{
-effect_size_SNV(covariate_file = NULL, ceslist = NULL,
+effect_size_SNV(cesa = NULL, covariate_file = NULL,
   genes_for_effect_size_analysis = "all", cores = 1,
   tumor_specific_rate_choice = F, trinuc_all_tumors = T,
-  subset_col = NULL, subset_levels_order = NULL,
   epistasis_top_prev_number = NULL, epistasis_gene_level = F,
   full_gene_epistasis_lower_optim = 0.001,
   full_gene_epistasis_upper_optim = 1e+09,
@@ -16,11 +15,7 @@ effect_size_SNV(covariate_file = NULL, ceslist = NULL,
   trinuc_algorithm_choice = "weighted")
 }
 \arguments{
-\item{covariate_file}{Either NULL and uses the \code{dndscv}
-default covariates, or one of these:  "bladder_pca"  "breast_pca"
-"cesc_pca" "colon_pca" "esca_pca" "gbm_pca" "hnsc_pca" "kidney_pca" "lihc_pca" "lung_pca" "ov_pca" "pancreas_pca" "prostate_pca" "rectum_pca" "skin_pca"  "stomach_pca"  "thca_pca" "ucec_pca"}
-
-\item{ceslist}{a CESList object}
+\item{cesa}{CESAnalysis object}
 
 \item{genes_for_effect_size_analysis}{genes to calculate effect sizes within. If unspecified, defaults to "all".}
 
@@ -29,12 +24,6 @@ default covariates, or one of these:  "bladder_pca"  "breast_pca"
 \item{tumor_specific_rate_choice}{weights tumor-specific rates by their relative proportional substitution count (not recommended)}
 
 \item{trinuc_all_tumors}{Calculates trinucleotide signatures within all tumors (even those with < 50 variants)}
-
-\item{subset_col}{column in MAF with subset data (e.g., column contains data like "Primary" and "Metastatic" in each row)}
-
-\item{subset_levels_order}{evolutionary order of events in subset_col. (e.g. c("Primary", "Metastatic")}
-
-\item{MAF}{MAF file with substitution data}
 }
 \description{
 Function that determines mutation rate at the gene- and trinucleotide- level

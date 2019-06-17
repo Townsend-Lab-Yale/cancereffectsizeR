@@ -2,15 +2,15 @@
 #'
 #'
 #'
-#' @param ceslist a CESList object
+#' @param cesa CESAnalysis object
 #' @export
 
 
-annotate_gene_maf <- function(ceslist) {
-	MAF = ceslist@snv.maf ## Using the 
-	RefCDS_our_genes = ceslist@refcds_data
-	dndscv_gene_names = names(ceslist@mutrates_list[[1]])
-	dndscv_out_list = ceslist@dndscv_out_list
+annotate_gene_maf <- function(cesa) {
+	MAF = cesa@snv.maf ## Using the SNV MAF
+	RefCDS_our_genes = cesa@refcds_data
+	dndscv_gene_names = names(cesa@mutrates_list[[1]])
+	dndscv_out_list = cesa@dndscv_out_list
 	MAF$Gene_name <- NA
 	MAF$unsure_gene_name <- F
 
@@ -203,7 +203,7 @@ annotate_gene_maf <- function(ceslist) {
 
 	MAF$coding_variant_AA_mut <- as.character(AA_translations_unique[MAF$coding_variant_AA_mut,"AA_short"])
 
-	ceslist@snv.maf = MAFdf(MAF)
-	ceslist@refcds_data = RefCDS_our_genes # has been updated by this script
-	return(ceslist)
+	cesa@snv.maf = MAFdf(MAF)
+	cesa@refcds_data = RefCDS_our_genes # has been updated by this script
+	return(cesa)
 }
