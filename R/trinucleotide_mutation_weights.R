@@ -42,8 +42,8 @@ trinucleotide_mutation_weights <- function(cesa,
 
 
   # pre-process ----
-
-  MAF = cesa@mutations.maf # calculate weights
+  message("Calculating trinucleotide composition and signatures...")
+  MAF = cesa@main.maf # calculate weights
   sample_ID_column = "Unique_Patient_Identifier"
   chr_column = "Chromosome"
   pos_column = "Start_Position"
@@ -425,9 +425,13 @@ trinucleotide_mutation_weights <- function(cesa,
   # Need to make sure we are only calculating the selection intensities from
   # tumors in which we are able to calculate a mutation rate
 
-  # To-do: save the MAF entries that lack mutation rates somewhere for reporting
-  cesa@mutations.maf = MAFdf(MAF[MAF[,"Unique_Patient_Identifier"] %in% tumors_with_a_mutation_rate,])
-  cesa@snv.maf = MAFdf(cesa@snv.maf[cesa@snv.maf[,"Unique_Patient_Identifier"] %in% tumors_with_a_mutation_rate,])
+  cesa@main.maf = MAFdf(MAF[MAF$"Unique_Patient_Identifier" %in% tumors_with_a_mutation_rate,])
+  cesa@excluded[["no_tumor_mutation_rate.maf"]] = MAFdf(MAF[! MAF$"Unique_Patient_Identifier" %in% tumors_with_a_mutation_rate,])
+  if (nrow(cesa@excluded[["no_tumor_mutation_rate.maf"]]) > 0) {
+    message(paste("Note: Some tumor(s) has only recurrent mutations (mutations also appearing in other samples) ",
+                  "so a baseline mutation rate cannot be calculated. MAF data for these has set aside and saved to ",
+                  "@excluded$no_tumor_mutation_rate.maf."))
+  }
   cesa@trinucleotide_mutation_weights = list(tumors_with_a_mutation_rate=tumors_with_a_mutation_rate,
               trinuc_proportion_matrix=trinuc_proportion_matrix,
               signatures_output_list=signatures_output_list,

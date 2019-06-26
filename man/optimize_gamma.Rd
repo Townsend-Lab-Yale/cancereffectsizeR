@@ -4,7 +4,7 @@
 \alias{optimize_gamma}
 \title{Calculate selection intensity}
 \usage{
-optimize_gamma(MAF_input, all_tumors, stages, gene, variant,
+optimize_gamma(MAF_input, all_tumors, progressions, gene, variant,
   specific_mut_rates)
 }
 \arguments{
@@ -12,7 +12,7 @@ optimize_gamma(MAF_input, all_tumors, stages, gene, variant,
 
 \item{all_tumors}{A list of all the tumors we are calculating the likelihood across}
 
-\item{stages}{An environment with keys = tumor, value = all_tumors[tumor, "subset"], or Null if all are in same class (subset = 1)}
+\item{progressions}{CESProgressions object}
 
 \item{gene}{The gene we want to look at}
 

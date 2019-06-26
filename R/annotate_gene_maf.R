@@ -7,7 +7,11 @@
 
 
 annotate_gene_maf <- function(cesa) {
-	MAF = cesa@snv.maf ## Using the SNV MAF
+	MAF = cesa@main.maf
+	bases = c("A", "C", "T", "G")
+
+	# subset to SNVs
+	MAF = MAF[MAF$Reference_Allele %in% bases & MAF$Tumor_Allele %in% bases,]
 	RefCDS_our_genes = cesa@refcds_data
 	dndscv_gene_names = names(cesa@mutrates_list[[1]])
 	dndscv_out_list = cesa@dndscv_out_list
@@ -203,7 +207,7 @@ annotate_gene_maf <- function(cesa) {
 
 	MAF$coding_variant_AA_mut <- as.character(AA_translations_unique[MAF$coding_variant_AA_mut,"AA_short"])
 
-	cesa@snv.maf = MAFdf(MAF)
+	cesa@annotated.snv.maf = MAFdf(MAF)
 	cesa@refcds_data = RefCDS_our_genes # has been updated by this script
 	return(cesa)
 }

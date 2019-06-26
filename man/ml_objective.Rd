@@ -4,17 +4,17 @@
 \alias{ml_objective}
 \title{ml_objective}
 \usage{
-ml_objective(gamma, MAF_input, all_tumors, stages, gene, variant,
+ml_objective(gamma, MAF_input, all_tumors, progressions, gene, variant,
   specific_mut_rates)
 }
 \arguments{
 \item{gamma}{A selection intensity at which to calculate the likelihood}
 
-\item{MAF_input}{A data frame that includes columns "Unique_patient_identifier", "Gene_name", and "unique_variant_ID_AA"}
+\item{MAF_input}{A data frame that includes columns "Unique_Patient_Identifier", "Gene_name", and "unique_variant_ID_AA"}
 
 \item{all_tumors}{A list of all the tumors we are calculating the likelihood across}
 
-\item{stages}{An environment keys = tumor, value = all_tumors[tumor, "subset"]; or Null if all are in same class (subset = 1)}
+\item{progressions}{CESProgressions object}
 
 \item{gene}{The gene we want to look at}
 

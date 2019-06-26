@@ -7,7 +7,7 @@
 #' and the associated R package dndscv .
 #'
 #' @param cesa CESAnalysis object
-#' @param covariate_file Either NULL and uses dNdScv default covariates, or one of these:  "bladder_pca"  "breast_pca"
+#' @param covariate_file Either NULL and usefs dNdScv default covariates, or one of these:  "bladder_pca"  "breast_pca"
 #' "cesc_pca" "colon_pca" "esca_pca" "gbm_pca" "hnsc_pca" "kidney_pca" "lihc_pca" "lung_pca" "ov_pca" "pancreas_pca" "prostate_pca" "rectum_pca" "skin_pca"  "stomach_pca"  "thca_pca" "ucec_pca"
 #'
 #' @return
@@ -35,15 +35,15 @@ gene_level_mutation_rates <- function(cesa, covariate_file = NULL){
 
   # store dndscv data in a list, split by tumor progression subsets
 
-  dndscv_out_list <- vector(mode = "list",length = length(cesa@tumor.progressions@order))
-  names(dndscv_out_list) <- cesa@tumor.progressions@order
+  dndscv_out_list <- vector(mode = "list",length = length(cesa@progressions@order))
+  names(dndscv_out_list) <- names(cesa@progressions@order)
 
   # dndscv output for each subset
   message("Running dNdScv...")
   for(this_subset in 1:length(dndscv_out_list)){
-    current_subset_tumors = sapply(cesa@mutations.maf$Unique_Patient_Identifier, function(x) cesa@tumor.progressions@by.tumor[[x]] == cesa@tumor.progressions@order[this_subset])
+    current_subset_tumors = get_progression_tumors(cesa@progressions, this_subset)
     dndscv_out_list[[this_subset]] <- dndscv::dndscv(
-      mutations = cesa@mutations.maf[current_subset_tumors,],
+      mutations = cesa@main.maf[cesa@main.maf$Unique_Patient_Identifier %in% current_subset_tumors,],
       gene_list = genes_in_pca,
       cv = if(is.null(covariate_file)){ "hg19"}else{ this_cov_pca$rotation},
       refdb = paste(path_to_library,"/data/RefCDS_TP53splice.RData",sep=""))
@@ -57,8 +57,8 @@ gene_level_mutation_rates <- function(cesa, covariate_file = NULL){
   gc()
 
 
-  mutrates_list <- vector(mode = "list",length = length(cesa@tumor.progressions@order))
-  names(mutrates_list) <- cesa@tumor.progressions@order
+  mutrates_list <- vector(mode = "list",length = length(cesa@progressions@order))
+  names(mutrates_list) <- names(cesa@progressions@order)
 
 
   message("Calculating gene-level mutation rates...")

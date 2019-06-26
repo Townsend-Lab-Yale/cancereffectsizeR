@@ -106,19 +106,8 @@ CESAnalysis = function(maf = NULL, sample_col = "Tumor_Sample_Barcode", chr_col 
 		progressions = rep("1", nrow(maf)) # if analysis ignores tumor progression levels, all tumors get assigned level 1
 		progression_order = c("1")
 	}
+	progressions = CESProgressions(samples = maf[,sample_col], sample_progressions = progressions, order = progression_order)
 		
-	progression_by_tumor = new.env()
-	samples = maf[,sample_col]
-	for (i in 1:length(samples)) {
-		tumor = as.character(samples[i])
-		progression = progressions[i]
-		if (exists(tumor, progression_by_tumor) && progression_by_tumor[[tumor]] != progression) {
-			stop(paste0("Tumor ", tumor, " has multiple progression states in the input MAF."))
-		} else {
-			progression_by_tumor[[tumor]] = progression
-		}
-	}
-	tumor.progressions = new("CESProgressions", order = progression_order, by.tumor = progression_by_tumor)
 
 	# select only the necessary columns and give column names with consistency enforced by CESAnalysis class
 	maf = maf[,c(sample_col, chr_col, start_col, ref_col, tumor_allele_col)]
@@ -148,7 +137,7 @@ CESAnalysis = function(maf = NULL, sample_col = "Tumor_Sample_Barcode", chr_col 
 	  percent = round((num.pred.mnv / num.prefilter) * 100, 1)
 	  message(paste0("Note: ", num.pred.mnv, " mutation records out of ", num.prefilter, " (", percent, "%) ",
 	                 "are within 2 bp of other mutations in the same tumors."))
-	  message("These records (saved as @pred.mnv.maf) will be excluded from effect size analysis.")
+	  message("These records (saved as @excluded$pred.mnv.maf) will be excluded from effect size analysis.")
 	}
 	
 	# Ensure reference alleles of mutations match reference genome (Note: Insertions won't match if their reference allele is "-")
@@ -165,12 +154,12 @@ CESAnalysis = function(maf = NULL, sample_col = "Tumor_Sample_Barcode", chr_col 
 	  percent = round((num.nonmatching / num.prefilter) * 100, 1)
 	  message(paste0("Note: ", num.nonmatching, " mutation records out of ", num.prefilter, " (", percent, "%) ",
 	                 "have reference alleles that do not actually match the reference genome."))
-	  message("These records (saved as @reference.mismatch.maf) will be excluded from effect size analysis.")
+	  message("These records (saved as @excluded$reference.mismatch.maf) will be excluded from effect size analysis.")
 	} else {
 	  message("Reference alleles look good.")
 	}
 
-	# make not of explicit non-SNV mutations and save separate MAF of just SNVs
+	# Count SNVs that will be included in effect size analysis
 	message("Collecting all SNVs...")
 	num.total = nrow(maf) # indels won't be filtered, but still another filtering steff later 
 	bases = c("A","T","G","C")
@@ -187,9 +176,14 @@ CESAnalysis = function(maf = NULL, sample_col = "Tumor_Sample_Barcode", chr_col 
 	num.samples = length(unique(snv.maf[, sample_col]))
 	message(paste0(num.good.snv, " SNVs from ", num.samples, " samples will be included in effect size analysis."))
   
+  # declare environment to hold excluded MAFs
+  excluded = new.env()
+  excluded[["reference.mismatch.maf"]] = MAFdf(reference.mismatch.maf)
+  excluded[["pred.mnv.maf"]] = MAFdf(pred.mnv.maf)
+
+
 	# declare CESAnalysis object
-	x = new("CESAnalysis", mutations.maf = MAFdf(maf), reference.mismatch.maf = MAFdf(reference.mismatch.maf),
-	        pred.mnv.maf = MAFdf(pred.mnv.maf), snv.maf = MAFdf(snv.maf), tumor.progressions = tumor.progressions)
+	x = new("CESAnalysis", main.maf = MAFdf(maf), excluded = excluded, progressions = progressions)
 	return(x)
 }
 

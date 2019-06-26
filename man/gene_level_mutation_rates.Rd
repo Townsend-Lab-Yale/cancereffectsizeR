@@ -9,7 +9,7 @@ gene_level_mutation_rates(cesa, covariate_file = NULL)
 \arguments{
 \item{cesa}{CESAnalysis object}
 
-\item{covariate_file}{Either NULL and uses dNdScv default covariates, or one of these:  "bladder_pca"  "breast_pca"
+\item{covariate_file}{Either NULL and usefs dNdScv default covariates, or one of these:  "bladder_pca"  "breast_pca"
 "cesc_pca" "colon_pca" "esca_pca" "gbm_pca" "hnsc_pca" "kidney_pca" "lihc_pca" "lung_pca" "ov_pca" "pancreas_pca" "prostate_pca" "rectum_pca" "skin_pca"  "stomach_pca"  "thca_pca" "ucec_pca"}
 }
 \description{
