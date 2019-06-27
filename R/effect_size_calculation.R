@@ -29,6 +29,7 @@
 #' @param trinuc_all_tumors Calculates trinucleotide signatures within all tumors (even those with < 50 variants)
 #' @param subset_col column in MAF with subset data (e.g., column contains data like "Primary" and "Metastatic" in each row)
 #' @param subset_levels_order evolutionary order of events in subset_col. (e.g. c("Primary", "Metastatic")
+#' @param signature_choice Either "signatures_cosmic_May2019" (default) or "signatures.cosmic" (COSMIC signatures v2 originally packaged with deconstructSigs).
 #'
 #' @export
 
@@ -55,7 +56,8 @@ effect_size_SNV <- function(MAF,
                             full_gene_epistasis_upper_optim=1e9,
                             full_gene_epistasis_fnscale=-1e-16,
                             q_threshold_for_gene_level=0.1,
-                            trinuc_algorithm_choice="weighted"){
+                            trinuc_algorithm_choice="weighted",
+                            signature_choice = "signatures_cosmic_May2019"){
 
 
 
@@ -160,7 +162,8 @@ effect_size_SNV <- function(MAF,
                                                       pos_column = pos_column,
                                                       ref_column = ref_column,
                                                       alt_column = alt_column,
-                                                      algorithm_choice = trinuc_algorithm_choice)
+                                                      algorithm_choice = trinuc_algorithm_choice,
+                                                      signature_choice = signature_choice)
 
 
 
