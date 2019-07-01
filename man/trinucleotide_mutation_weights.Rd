@@ -5,7 +5,8 @@
 \title{Trinucleotide mutation weights}
 \usage{
 trinucleotide_mutation_weights(cesa, algorithm_choice = "weighted",
-  remove_recurrent = TRUE)
+  remove_recurrent = TRUE,
+  signature_choice = "signatures_cosmic_May2019")
 }
 \arguments{
 \item{cesa}{# CESAnalysis object}
@@ -21,6 +22,8 @@ distribution profile of the low substitution tumor as determined by a distance m
 `all_calculated`, where all tumors have the mutation rate from the deconstructSigs output regardless of substitution number.}
 
 \item{remove_recurrent}{If TRUE, removes recurrent variants prior to calculating trinucleotide signatures and weights. If FALSE, uses all variants.}
+
+\item{signature_choice}{Either "signatures_cosmic_May2019" (default) or "signatures.cosmic" (COSMIC signatures v2 originally packaged with deconstructSigs).}
 }
 \description{
 Trinucleotide mutation weights

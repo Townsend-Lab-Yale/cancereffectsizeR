@@ -11,6 +11,7 @@
 #'   distribution profile of the low substitution tumor as determined by a distance matrix, and
 #'   `all_calculated`, where all tumors have the mutation rate from the deconstructSigs output regardless of substitution number.
 #' @param remove_recurrent If TRUE, removes recurrent variants prior to calculating trinucleotide signatures and weights. If FALSE, uses all variants.
+#' @param signature_choice Either "signatures_cosmic_May2019" (default) or "signatures.cosmic" (COSMIC signatures v2 originally packaged with deconstructSigs).
 #'
 #' @return
 #' @export
@@ -22,7 +23,8 @@
 #'
 trinucleotide_mutation_weights <- function(cesa,
                                            algorithm_choice = "weighted",
-                                           remove_recurrent = TRUE){
+                                           remove_recurrent = TRUE,
+                                           signature_choice = "signatures_cosmic_May2019"){
 
 
 
@@ -107,13 +109,22 @@ trinucleotide_mutation_weights <- function(cesa,
 
   # algorithms ----
 
+  if(signature_choice == "signatures_cosmic_May2019"){
+    data("signatures_cosmic_May2019",package = "cancereffectsizeR")
+    signatures <- signatures_cosmic_May2019
+  }
+
+  if(signature_choice == "signatures.cosmic"){
+    signatures <- signatures.cosmic
+  }
+
 
   if(algorithm_choice == "weighted"){
 
     for(tumor_name in 1:nrow(trinuc_breakdown_per_tumor)){
 
       signatures_output <- deconstructSigs::whichSignatures(tumor.ref = trinuc_breakdown_per_tumor,
-                                                            signatures.ref = signatures.cosmic,
+                                                            signatures.ref = signatures,
                                                             sample.id = rownames(trinuc_breakdown_per_tumor)[tumor_name],
                                                             contexts.needed = TRUE,
                                                             tri.counts.method = 'exome2genome')
@@ -163,10 +174,10 @@ trinucleotide_mutation_weights <- function(cesa,
     rownames(averaged_product_mat) <- "averaged_product"; colnames(averaged_product_mat) <- names(averaged_product)
 
     averaged_weight_deconstructed <- deconstructSigs::whichSignatures(tumor.ref = averaged_product_mat,
-                                                          signatures.ref = signatures.cosmic,
-                                                          sample.id = "averaged_product",
-                                                          contexts.needed = TRUE,
-                                                          tri.counts.method = 'exome2genome')
+                                                                      signatures.ref = signatures,
+                                                                      sample.id = "averaged_product",
+                                                                      contexts.needed = TRUE,
+                                                                      tri.counts.method = 'exome2genome')
 
     averaged_weight <- averaged_weight_deconstructed$weights
     # need to do the same for weights
@@ -264,7 +275,7 @@ trinucleotide_mutation_weights <- function(cesa,
     for(tumor_name in 1:nrow(trinuc_breakdown_per_tumor)){
 
       signatures_output <- deconstructSigs::whichSignatures(tumor.ref = trinuc_breakdown_per_tumor,
-                                                            signatures.ref = signatures.cosmic,
+                                                            signatures.ref = signatures,
                                                             sample.id = rownames(trinuc_breakdown_per_tumor)[tumor_name],
                                                             contexts.needed = TRUE,
                                                             tri.counts.method = 'exome2genome')
@@ -320,7 +331,7 @@ trinucleotide_mutation_weights <- function(cesa,
   if(algorithm_choice == "nearest_neighbor"){
     for(tumor_name in 1:length(tumors_with_50_or_more)){
       signatures_output <- deconstructSigs::whichSignatures(tumor.ref = trinuc_breakdown_per_tumor,
-                                                            signatures.ref = signatures.cosmic,
+                                                            signatures.ref = signatures,
                                                             sample.id = tumors_with_50_or_more[tumor_name],
                                                             contexts.needed = TRUE,
                                                             tri.counts.method = 'exome2genome')
@@ -387,7 +398,7 @@ trinucleotide_mutation_weights <- function(cesa,
     for(tumor_name in 1:nrow(trinuc_breakdown_per_tumor)){
 
       signatures_output <- deconstructSigs::whichSignatures(tumor.ref = trinuc_breakdown_per_tumor,
-                                                            signatures.ref = signatures.cosmic,
+                                                            signatures.ref = signatures,
                                                             sample.id = rownames(trinuc_breakdown_per_tumor)[tumor_name],
                                                             contexts.needed = TRUE,
                                                             tri.counts.method = 'exome2genome')

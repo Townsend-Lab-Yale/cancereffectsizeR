@@ -1,3 +1,86 @@
+#' Calculate SNV selection intensity
+#' @param cesa CESAnalysis object
+#' @param gene which genes to calculate effect sizes within; defaults to all genes in data set
+#' @param analysis choose SNV, gene-level-epistasis, or top-epistasis
+#' @param cores number of cores to use
+#' @param ignore_progression_stages don't calculate stage-specific selection intensities even if stage data is present
+#' @param tumor_specific_rate_choice weights tumor-specific rates by their relative proportional substitution count (not recommended)
+#' @return CESAnalysis object with selection results added for the chosen analysis
+#' @export
+effect_size_SNV <- function(
+		cesa = NULL,
+		genes = "all",
+		analysis = c("SNV", "gene-level-epistasis", "top-epistasis"),
+		epistasis_top_prev_number = NULL,
+		cores = 1,
+		ignore_progression_stages = F,
+		tumor_specific_rate_choice = F,
+		full_gene_epistasis_lower_optim = 1e-3,
+		full_gene_epistasis_upper_optim=1e9,
+		full_gene_epistasis_fnscale=-1e-16,
+		q_threshold_for_gene_level=0.1) {
+
+	# validate analysis choice
+	analysis = match.arg(analysis)
+
+	if (analysis != "top-epistasis" && ! is.null(epistasis_top_prev_number)) {
+		stop("Error: epistasis_top_prev_number is only used for \"top-epistasis\" analysis")
+	} else if(! is.null(epistasis_top_prev_number)) {
+		stop("Error: epistasis_top_prev_number must be defined for top-epistasis analysis")
+	}
+
+	# can't combine epistasis analysis with multi-stage yet
+	if (analysis != "SNV" && length(cesa@progressions@order) > 1) {
+		message(paste("Warning: Tumor progression stage-specific analysis cannot be combined with an epistasis ",
+					"analysis yet, so SNV selection intensities will be treated as constant across stages."))
+	} else if(length(cesa@progressions@order) > 1 && ! ignore_progression_stages) {
+		message(paste("Note: Tumors are annotated with progression stages, so SNV selection intensities will be estimated ",
+			"for each progression. To ignore stage information, re-run with ignore_progression_stages=TRUE"))
+	}
+
+	# using the "SNV" genes
+	snv.maf = cesa@annotated.snv.maf
+	genes_in_dataset = unique(snv.maf$Gene_name) 
+	if(genes[1] =="all") {
+		genes_to_analyze <- genes_in_dataset
+	} else{
+		genes_to_analyze <- genes[genes %in% genes_in_dataset]
+	}
+	
+	data("gene_trinuc_comp", package = "cancereffectsizeR")
+	names(gene_trinuc_comp) <- sapply(gene_trinuc_comp, function(x) x$gene_name) # formally used names of RefCDS, but they're the same
+
+
+	selection_results <- vector("list",length = length(genes_to_analyze))
+	names(selection_results) <- genes_to_analyze
+
+	# divide MAF data by gene
+	MAF = snv.maf # temp
+	mafs = new.env(hash=TRUE)
+	for (gene in genes_to_analyze) {
+		gene_maf = MAF[MAF[,"Gene_name"] == gene,]
+		mafs[[gene]][["maf"]] = gene_maf
+	}
+
+	all_tumors = unique(snv.maf$Unique_Patient_Identifier)
+
+	if (analysis == "SNV") {
+		selection_results <- parallel::mclapply(genes_to_analyze, get_gene_results, mc.cores = cores, cesa = cesa,
+										gene_mafs = mafs, gene_trinuc_comp = gene_trinuc_comp,
+										tumor_specific_rate_choice = tumor_specific_rate_choice,
+										all_tumors = all_tumors)
+	} else if(analysis == "gene-level-epistasis") {
+		selection_results = epistasis_gene_level()
+	} else if(analysis == "top-epistasis") {
+		selection_results = top_epistasis()
+	}
+	cesa@selection_results = selection_results
+	return(cesa)
+}
+
+
+	
+
 #' Single-stage SNV effect size analysis (gets called by effect_size_SNV)
 get_gene_results <- function(gene_to_analyze, cesa, gene_mafs, gene_trinuc_comp, 
 							 tumor_specific_rate_choice, all_tumors) {
@@ -302,86 +385,3 @@ top_epistasis = function(cesa, genes_to_analyze) {
 	return(selection_results)
 }
 
-
-#' @name effect_size_SNV
-#' @param cesa CESAnalysis object
-#' @param gene which genes to calculate effect sizes within; defaults to all genes in data set
-#' @param analysis choose SNV, gene-level-epistasis, or top-epistasis
-#' @param cores number of cores to use
-#' @param ignore_progression_stages don't calculate stage-specific selection intensities even if stage data is present
-#' @param tumor_specific_rate_choice weights tumor-specific rates by their relative proportional substitution count (not recommended)
-#' @return CESAnalysis object with selection results added for the chosen analysis
-#' @export
-effect_size_SNV <- function(
-		cesa = NULL,
-		genes = "all",
-		analysis = c("SNV", "gene-level-epistasis", "top-epistasis"),
-		epistasis_top_prev_number = NULL,
-		cores = 1,
-		ignore_progression_stages = F,
-		tumor_specific_rate_choice = F,
-		full_gene_epistasis_lower_optim = 1e-3,
-		full_gene_epistasis_upper_optim=1e9,
-		full_gene_epistasis_fnscale=-1e-16,
-		q_threshold_for_gene_level=0.1) {
-
-	# validate analysis choice
-	analysis = match.arg(analysis)
-
-	if (analysis != "top-epistasis" && ! is.null(epistasis_top_prev_number)) {
-		stop("Error: epistasis_top_prev_number is only used for \"top-epistasis\" analysis")
-	} else if(! is.null(epistasis_top_prev_number)) {
-		stop("Error: epistasis_top_prev_number must be defined for top-epistasis analysis")
-	}
-
-	# can't combine epistasis analysis with multi-stage yet
-	if (analysis != "SNV" && length(cesa@progressions@order) > 1) {
-		message(paste("Warning: Tumor progression stage-specific analysis cannot be combined with an epistasis ",
-					"analysis yet, so SNV selection intensities will be treated as constant across stages."))
-	} else if(length(cesa@progressions@order) > 1 && ! ignore_progression_stages) {
-		message(paste("Note: Tumors are annotated with progression stages, so SNV selection intensities will be estimated ",
-			"for each progression. To ignore stage information, re-run with ignore_progression_stages=TRUE"))
-	}
-
-	# using the "SNV" genes
-	snv.maf = cesa@annotated.snv.maf
-	genes_in_dataset = unique(snv.maf$Gene_name) 
-	if(genes[1] =="all") {
-		genes_to_analyze <- genes_in_dataset
-	} else{
-		genes_to_analyze <- genes[genes %in% genes_in_dataset]
-	}
-	
-	data("gene_trinuc_comp", package = "cancereffectsizeR")
-	names(gene_trinuc_comp) <- sapply(gene_trinuc_comp, function(x) x$gene_name) # formally used names of RefCDS, but they're the same
-
-
-	selection_results <- vector("list",length = length(genes_to_analyze))
-	names(selection_results) <- genes_to_analyze
-
-	# divide MAF data by gene
-	MAF = snv.maf # temp
-	mafs = new.env(hash=TRUE)
-	for (gene in genes_to_analyze) {
-		gene_maf = MAF[MAF[,"Gene_name"] == gene,]
-		mafs[[gene]][["maf"]] = gene_maf
-	}
-
-	all_tumors = unique(snv.maf$Unique_Patient_Identifier)
-
-	if (analysis == "SNV") {
-		selection_results <- parallel::mclapply(genes_to_analyze, get_gene_results, mc.cores = cores, cesa = cesa,
-										gene_mafs = mafs, gene_trinuc_comp = gene_trinuc_comp,
-										tumor_specific_rate_choice = tumor_specific_rate_choice,
-										all_tumors = all_tumors)
-	} else if(analysis == "gene-level-epistasis") {
-		selection_results = epistasis_gene_level()
-	} else if(analysis == "top-epistasis") {
-		selection_results = top_epistasis()
-	}
-	cesa@selection_results = selection_results
-	return(cesa)
-}
-
-
-	
