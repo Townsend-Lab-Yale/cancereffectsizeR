@@ -1,11 +1,6 @@
 #' Trinucleotide mutation weights
 #'
-#' @param MAF
-#' @param sample_ID_column
-#' @param chr_column
-#' @param pos_column
-#' @param ref_column
-#' @param alt_column
+#' @param cesa # CESAnalysis object
 #' @param algorithm_choice The choice of the algorithm used in determining trinucleotide weights.
 #'   Defaults to `weighted`, where all tumors with >= 50 substitutions have mutation
 #'   rates directly from deconstructSigs, and tumors with < 50 substitutions have that rate weighted
@@ -26,12 +21,7 @@
 #'
 #'
 #'
-trinucleotide_mutation_weights <- function(MAF,
-                                           sample_ID_column="Unique_patient_identifier",
-                                           chr_column = "Chromosome",
-                                           pos_column = "Start_Position",
-                                           ref_column = "Reference_Allele",
-                                           alt_column = "Tumor_allele",
+trinucleotide_mutation_weights <- function(cesa,
                                            algorithm_choice = "weighted",
                                            remove_recurrent = TRUE,
                                            signature_choice = "signatures_cosmic_May2019"){
@@ -54,6 +44,13 @@ trinucleotide_mutation_weights <- function(MAF,
 
 
   # pre-process ----
+  message("Calculating trinucleotide composition and signatures...")
+  MAF = cesa@main.maf # calculate weights
+  sample_ID_column = "Unique_Patient_Identifier"
+  chr_column = "Chromosome"
+  pos_column = "Start_Position"
+  ref_column = "Reference_Allele"
+  alt_column = "Tumor_Allele"
 
   if(remove_recurrent){
     MAF_input_deconstructSigs_preprocessed <-
@@ -433,19 +430,23 @@ trinucleotide_mutation_weights <- function(MAF,
       }
 
     }
-
-
-
   }
 
 
+  # Need to make sure we are only calculating the selection intensities from
+  # tumors in which we are able to calculate a mutation rate
 
-
-  return(list(tumors_with_a_mutation_rate=tumors_with_a_mutation_rate,
+  cesa@main.maf = MAFdf(MAF[MAF$"Unique_Patient_Identifier" %in% tumors_with_a_mutation_rate,])
+  cesa@excluded[["no_tumor_mutation_rate.maf"]] = MAFdf(MAF[! MAF$"Unique_Patient_Identifier" %in% tumors_with_a_mutation_rate,])
+  if (nrow(cesa@excluded[["no_tumor_mutation_rate.maf"]]) > 0) {
+    message(paste("Note: Some tumor(s) has only recurrent mutations (mutations also appearing in other samples) ",
+                  "so a baseline mutation rate cannot be calculated. MAF data for these has set aside and saved to ",
+                  "@excluded$no_tumor_mutation_rate.maf."))
+  }
+  cesa@trinucleotide_mutation_weights = list(tumors_with_a_mutation_rate=tumors_with_a_mutation_rate,
               trinuc_proportion_matrix=trinuc_proportion_matrix,
               signatures_output_list=signatures_output_list,
               algorithm_choice=algorithm_choice)
-  )
-
-
+  cesa@relative_substitution_rates = relative_substitution_rate
+  return(cesa)
 }

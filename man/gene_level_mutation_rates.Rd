@@ -4,12 +4,13 @@
 \alias{gene_level_mutation_rates}
 \title{Gene-level mutation rate function}
 \usage{
-gene_level_mutation_rates(dndscv_output, RefCDS_object)
+gene_level_mutation_rates(cesa, covariate_file = NULL)
 }
 \arguments{
-\item{dndscv_output}{output from dndscv}
+\item{cesa}{CESAnalysis object}
 
-\item{RefCDS_object}{object in the style of 'RefCDS' within the dndscv package}
+\item{covariate_file}{Either NULL and usefs dNdScv default covariates, or one of these:  "bladder_pca"  "breast_pca"
+"cesc_pca" "colon_pca" "esca_pca" "gbm_pca" "hnsc_pca" "kidney_pca" "lihc_pca" "lung_pca" "ov_pca" "pancreas_pca" "prostate_pca" "rectum_pca" "skin_pca"  "stomach_pca"  "thca_pca" "ucec_pca"}
 }
 \description{
 This function calculates the maximum likelihood estimate for the expected
@@ -17,8 +18,4 @@ number of synonymous mutations in a gene under the dNdScv model, as described wi
 Martincorena, I., Raine, K. M., Gerstung, M., Dawson, K. J., Haase, K., Van Loo, P., … Campbell, P. J.
 (2017). Universal Patterns of Selection in Cancer and Somatic Tissues. Cell. https://doi.org/10.1016/j.cell.2017.09.042
 and the associated R package dndscv .
-}
-\examples{
-
-
 }

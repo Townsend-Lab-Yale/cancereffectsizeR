@@ -4,10 +4,10 @@
 \alias{selection_results_converter}
 \title{Selection results converter}
 \usage{
-selection_results_converter(results_input, subset_greater_than_freq = 1)
+selection_results_converter(cesa, subset_greater_than_freq = 1)
 }
 \arguments{
-\item{results_input}{List of the selection results from get_gene_results within effect_size_SNV}
+\item{cesa}{CESAnalysis object with selection intensity results}
 
 \item{subset_greater_than_freq}{subsetting the data for only substitutions in more than this number of tumors}
 }

@@ -5,6 +5,7 @@
 #' @param MAF_input A data frame that includes columns "Unique_patient_identifier", "Gene_name", and "unique_variant_ID_AA"
 #' @param all_tumors A list of all the tumors we are calculating the likelihood across
 #' @param gene The gene we want to look at
+#' @param progressions CESProgressions object
 #' @param variant The variant we want to look at
 #' @param specific_mut_rates A matrix of site and tumor specific mutation rates where the rows correspond to tumors and the columns to variants (produced by mutation_rate_calc)
 #'
@@ -12,9 +13,9 @@
 #' @export
 #'
 #' @examples
-optimize_gamma <- function(MAF_input, all_tumors, gene, variant, specific_mut_rates) {
-  par_init <- rep(1000,length=length(unique(all_tumors[,"subset"])))
-    return(optim(par=par_init, fn=cancereffectsizeR::ml_objective, MAF_input=MAF_input, all_tumors=all_tumors, gene=gene, variant=variant, specific_mut_rates=specific_mut_rates,
-                 method="L-BFGS-B", lower=1e-3, upper=1000000000, control=list(fnscale=-1e-12)))
 
+optimize_gamma <- function(MAF_input, all_tumors, progressions, gene, variant, specific_mut_rates) {
+  par_init <- rep(1000,length=length(progressions@order))
+    return(optim(par=par_init, fn=ml_objective, all_tumors = all_tumors, MAF_input=MAF_input, progressions = progressions, gene=gene, variant=variant, specific_mut_rates=specific_mut_rates,
+                 method="L-BFGS-B", lower=1e-3, upper=1000000000, control=list(fnscale=-1e-12)))
 }

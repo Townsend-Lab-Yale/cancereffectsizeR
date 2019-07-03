@@ -1,10 +1,8 @@
 #' Selection results converter
 #'
-#' @import dplyr
-#' @import magrittr
-#' @import tidyr
+#' @importFrom magrittr "%>%"
 #'
-#' @param results_input List of the selection results from get_gene_results within effect_size_SNV
+#' @param cesa CESAnalysis object with selection intensity results
 #' @param subset_greater_than_freq subsetting the data for only substitutions in more than this number of tumors
 #'
 #' @return
@@ -12,7 +10,7 @@
 #'
 #' @examples
 #'
-selection_results_converter <- function(results_input, subset_greater_than_freq=1){
+selection_results_converter <- function(cesa, subset_greater_than_freq=1){
 
   gene_adder <- function(x){
     holder <- x$selection_results
@@ -20,17 +18,13 @@ selection_results_converter <- function(results_input, subset_greater_than_freq=
     return(holder)
   }
 
-  selection_results <- results_input$selection_output
+  selection_results = cesa@selection_results
+  levels_in_selection_analysis <- names(cesa@progressions@order)
 
-  subsets <- results_input$MAF %>%
-    dplyr::group_by(subset_col) %>%
-    dplyr::summarize(unique_tumors = dplyr::n_distinct(Unique_patient_identifier))
+  subset_col = factor(levels_in_selection_analysis, levels = levels_in_selection_analysis, ordered = T)
+  unique_tumors = sapply(cesa@progressions@order, function(x) length(get_progression_tumors(cesa@progressions, x)))
 
-  levels_in_selection_analysis <- levels(results_input$MAF[,"subset_col"])
-
-  # gene_names <- sapply(selection_results, function(x) x$gene_name)
-
-  # selection_data <- sapply(selection_results, function(x) x$selection_results)
+  subsets = dplyr::tibble(subset_col = subset_col, unique_tumors = unique_tumors)
 
   selection_data <- selection_results %>%
     lapply(., gene_adder) %>%
@@ -61,10 +55,10 @@ selection_results_converter <- function(results_input, subset_greater_than_freq=
   selection_data_df$selection_intensity <- as.numeric(selection_data_df$selection_intensity)
 
   dndscv_results <- vector(mode = "list",length = length(levels_in_selection_analysis))
-  names(dndscv_results) <- names(results_input$dndscvout)
+  names(dndscv_results) <- names(cesa@dndscv_out_list)
 
   for(subset_index in 1:length(dndscv_results)){
-    dndscv_results[[subset_index]] <- results_input$dndscvout[[subset_index]]$sel_cv
+    dndscv_results[[subset_index]] <- cesa@dndscv_out_list[[subset_index]]$sel_cv
     rownames(dndscv_results[[subset_index]]) <- dndscv_results[[subset_index]]$gene_name
 
     if(length(which(selection_data_df$subset == levels_in_selection_analysis[subset_index]))>0){
@@ -81,8 +75,6 @@ selection_results_converter <- function(results_input, subset_greater_than_freq=
   # selection_data_df$dndscv_q  <- dndscv_results[selection_data_df[,"gene"],"qallsubs_cv"]
 
   results_output <- selection_data_df[order(selection_data_df$selection_intensity,decreasing = T),]
-
-
 
 
   return(results_output)

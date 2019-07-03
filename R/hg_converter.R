@@ -9,18 +9,11 @@
 #' @param chrom_col_name Name of the column header containing chromosome information.
 #' @param new_build_name This will be the string in the "NCBI_Build" column header of the new MAF file.
 #' @return The returned output will be a MAF file with all the same data fields as the original but with "Start_Position" and "End_Position" converted to the build specified by the 'chain' input.
-#' @import rtracklayer
-#' @import GenomicRanges
 #' @export
 
 
 #-##' @examples
 #-##' hg_converter(chain = "input_data/hg38Tohg19.chain", maf_to_convert = MAF_of_interest)
-
-
-
-# library(rtracklayer)
-# library(GenomicRanges)
 
 hg_converter <- function(chain,maf_to_convert,chrom_col_name = "Chromosome",new_build_name = "Converted_from_GRCh38_to_hg19") {
 
@@ -51,7 +44,7 @@ hg_converter <- function(chain,maf_to_convert,chrom_col_name = "Chromosome",new_
   # Keeping the convention of the original hg38 --> hg19 conversion
   # although this has now been updated for any conversion.
 
-  hg38_Grange <- makeGRangesFromDataFrame(df = maf_to_convert,
+  hg38_Grange <- GenomicRanges::makeGRangesFromDataFrame(df = maf_to_convert,
                                           keep.extra.columns = T,
                                           ignore.strand = F,
                                           seqinfo = NULL,
