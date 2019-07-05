@@ -22,7 +22,7 @@ tumor_allele_adder <- function(Reference_Allele, Tumor_Seq_Allele1, Tumor_Seq_Al
   Reference_Allele <- toupper(Reference_Allele)
 
   # this code can be cleaned up in the future, but for now just declare a dataframe and re-use old code
-  MAF = data.frame(Reference_Allele = Reference_Allele, Tumor_Seq_Allele1 = Tumor_Seq_Allele1, Tumor_Seq_Allele2 = Tumor_Seq_Allele2, stringsAsFactors = F)
+  MAF = data.frame(Reference_Allele = Reference_Allele, Tumor_Seq_Allele1 = Tumor_Seq_Allele1, Tumor_Seq_Allele2 = Tumor_Seq_Allele2, original_index=1:length(Reference_Allele), stringsAsFactors = F)
 
 
   #Delete rows with no information in either Tumor Seq columns.
@@ -76,5 +76,5 @@ tumor_allele_adder <- function(Reference_Allele, Tumor_Seq_Allele1, Tumor_Seq_Al
     MAF[-which(MAF$Tumor_allele == MAF$Reference_Allele),]
 
   }
-  return(MAF$Tumor_allele)
+  return(MAF)
 }
