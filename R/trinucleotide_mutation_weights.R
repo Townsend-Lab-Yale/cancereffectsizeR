@@ -24,7 +24,8 @@
 trinucleotide_mutation_weights <- function(cesa,
                                            algorithm_choice = "weighted",
                                            remove_recurrent = TRUE,
-                                           signature_choice = "signatures_cosmic_May2019"){
+                                           signature_choice = "signatures_cosmic_May2019",
+                                           artifact_accounting = T){
 
 
 
@@ -119,6 +120,13 @@ trinucleotide_mutation_weights <- function(cesa,
   }
 
 
+  if(artifact_accounting){
+    data("signatures_names_matrix", package="cancereffectsizeR")
+    possible_artifact_signatures <- signatures_names_matrix[startsWith(x = signatures_names_matrix[,2], prefix = "*"),1]
+    tumors_zeroed_out <- NULL
+  }
+
+
   if(algorithm_choice == "weighted"){
 
     for(tumor_name in 1:nrow(trinuc_breakdown_per_tumor)){
@@ -129,33 +137,97 @@ trinucleotide_mutation_weights <- function(cesa,
                                                             contexts.needed = TRUE,
                                                             tri.counts.method = 'exome2genome')
 
-      signatures_output_list[[tumor_name]] <- list(signatures_output = signatures_output,
+
+      # some of the COSMIC v3 signatures are likely artifacts,
+      # once accounted for in deconstructSigs::whichSignatures,
+      # we remove artifacts and renormalize so that we can
+      # determine mutational flux in tumor from true sources
+      if(artifact_accounting & signature_choice == "signatures_cosmic_May2019"){
+
+
+        if(any(signatures_output$weights[possible_artifact_signatures] > 0 )){
+
+          # often, sum of best estimation of signatures is < 1.
+          # will renormalize to this original total explanation of weight.
+          current_sum <- sum(signatures_output$weights)
+
+          # remove artifacts from mutational signatures flux
+          signatures_output$weights[possible_artifact_signatures] <- 0
+
+          # if other weights exist, renormalize
+          # else, assign this tumor the average product and weight of tumors
+          # with > 50 variants.
+          if(any(signatures_output$weights>0)){
+
+            signatures_output$weights <- signatures_output$weights/(sum(signatures_output$weights)/current_sum)
+
+            signatures_output$product <- as.matrix(signatures_output$weights) %*% as.matrix(signatures)
+
+          }else{
+
+            signatures_output$weights <- signatures_output$weights*0
+
+            signatures_output$product <- as.matrix(signatures_output$weights) %*% as.matrix(signatures)
+
+            # if zeroed out, remove from downstream analyses
+            if(rownames(trinuc_breakdown_per_tumor)[tumor_name] %in% tumors_with_50_or_more){
+              tumors_with_50_or_more <- tumors_with_50_or_more[-which(tumors_with_50_or_more == rownames(trinuc_breakdown_per_tumor)[tumor_name])]
+            }
+
+            if(rownames(trinuc_breakdown_per_tumor)[tumor_name] %in% tumors_with_less_than_50){
+              tumors_with_less_than_50 <- tumors_with_less_than_50[-which(tumors_with_less_than_50 == rownames(trinuc_breakdown_per_tumor)[tumor_name])]
+            }
+
+            tumors_zeroed_out <- c(tumors_zeroed_out, rownames(trinuc_breakdown_per_tumor)[tumor_name])
+
+
+          }
+
+
+
+
+        }
+
+      }
+
+
+      signatures_output_list[[rownames(trinuc_breakdown_per_tumor)[tumor_name]]] <- list(signatures_output = signatures_output,
                                                    substitution_count = length(which(MAF[,sample_ID_column] == rownames(trinuc_breakdown_per_tumor)[tumor_name])))
 
 
-      trinuc_proportion_matrix[rownames(trinuc_breakdown_per_tumor)[tumor_name],] <- signatures_output$product/sum( signatures_output$product) #need it to sum to 1.
+      # if all 0, it means accounting for artifacts zeroed out weights,
+      # and we will later assume weights for this tumor consistent with
+      # average weights of the tissue.
+      if(any(signatures_output$product!=0)){
 
-      # Not all trinuc weights in the cosmic dataset are nonzero for certain signatures
-      # This leads to the rare occasion where a certain combination of signatues leads to ZERO
-      # rate for particular trinucleotide contexts.
-      # True rate is nonzero, as we do see those variants in those tumors, so renormalizing
-      # the rates by adding the lowest nonzero rate to all the rates and renormalizing
+        trinuc_proportion_matrix[rownames(trinuc_breakdown_per_tumor)[tumor_name],] <- signatures_output$product/sum( signatures_output$product) #need it to sum to 1.
+
+        # Not all trinuc weights in the cosmic dataset are nonzero for certain signatures
+        # This leads to the rare occasion where a certain combination of signatues leads to ZERO
+        # rate for particular trinucleotide contexts.
+        # True rate is nonzero, as we do see those variants in those tumors, so renormalizing
+        # the rates by adding the lowest nonzero rate to all the rates and renormalizing
 
 
-      if(0 %in% trinuc_proportion_matrix[tumor_name,]){
-        # finding the lowest nonzero rate
-        lowest_rate <- min(trinuc_proportion_matrix[tumor_name,
-                                                    -which(trinuc_proportion_matrix[tumor_name,]==0)])
+        if(0 %in% trinuc_proportion_matrix[which(rownames(trinuc_proportion_matrix) == rownames(trinuc_breakdown_per_tumor)[tumor_name]),]){
+          # finding the lowest nonzero rate
+          lowest_rate <- min(trinuc_proportion_matrix[which(rownames(trinuc_proportion_matrix) == rownames(trinuc_breakdown_per_tumor)[tumor_name]),
+                                                      -which(trinuc_proportion_matrix[which(rownames(trinuc_proportion_matrix) == rownames(trinuc_breakdown_per_tumor)[tumor_name]),]==0)])
 
-        # adding it to the rates
-        trinuc_proportion_matrix[tumor_name,] <- trinuc_proportion_matrix[tumor_name,] + lowest_rate
+          # adding it to the rates
+          trinuc_proportion_matrix[which(rownames(trinuc_proportion_matrix) == rownames(trinuc_breakdown_per_tumor)[tumor_name]),] <- trinuc_proportion_matrix[which(rownames(trinuc_proportion_matrix) == rownames(trinuc_breakdown_per_tumor)[tumor_name]),] + lowest_rate
 
-        # renormalizing to 1
-        trinuc_proportion_matrix[tumor_name,] <-
-          trinuc_proportion_matrix[tumor_name,] / sum(trinuc_proportion_matrix[tumor_name,])
+          # renormalizing to 1
+          trinuc_proportion_matrix[which(rownames(trinuc_proportion_matrix) == rownames(trinuc_breakdown_per_tumor)[tumor_name]),] <-
+            trinuc_proportion_matrix[which(rownames(trinuc_proportion_matrix) == rownames(trinuc_breakdown_per_tumor)[tumor_name]),] / sum(trinuc_proportion_matrix[which(rownames(trinuc_proportion_matrix) == rownames(trinuc_breakdown_per_tumor)[tumor_name]),])
+        }
+      }else{
+        # if zeroed out, remove, add back later.
+        trinuc_proportion_matrix <- trinuc_proportion_matrix[-which(rownames(trinuc_proportion_matrix) == rownames(trinuc_breakdown_per_tumor)[tumor_name]),]
       }
 
     }
+
 
     # finding the average of the >= 50 tumors
     # original_signatures <- signatures_output_list
@@ -236,14 +308,38 @@ trinucleotide_mutation_weights <- function(cesa,
     # If a tumor had all variants removed in preprocessing
     # (meaning it only had recurrent variants)
     # then add back in the mutation rates as the average of the > 50
-    if(length(signatures_output_list) < length(unique(MAF[,sample_ID_column]))){
+
+    run_next_block <- F
+    if((length(signatures_output_list) < length(unique(MAF[,sample_ID_column])))){
+      run_next_block <- T
+    }
+    if(artifact_accounting & signature_choice == "signatures_cosmic_May2019" & !is.null(tumors_zeroed_out)){
+      run_next_block <- T
+    }
+
+    if(run_next_block){
+
+      if(length(signatures_output_list) < length(unique(MAF[,sample_ID_column])) ){
       tumors_to_add <- unique(MAF[,sample_ID_column])[which(!unique(MAF[,sample_ID_column]) %in% names(signatures_output_list))]
+      }else{
+        tumors_to_add <- NULL
+      }
+
+      if(artifact_accounting & signature_choice == "signatures_cosmic_May2019"){
+        if(!is.null(tumors_zeroed_out)){
+
+          tumors_to_add <- c(tumors_to_add, tumors_zeroed_out)
+
+        }
+
+      }
 
       matrix_to_add <- matrix(data = NA, nrow = length(tumors_to_add), ncol = ncol(trinuc_breakdown_per_tumor))
       rownames(matrix_to_add) <- tumors_to_add
       colnames(matrix_to_add) <- colnames(trinuc_breakdown_per_tumor)
 
       for(matrix_row in 1:nrow(matrix_to_add)){
+
         matrix_to_add[matrix_row,] <- as.numeric(averaged_product)
         signatures_output_list[[rownames(matrix_to_add)[matrix_row]]]$signatures_output$product <- as.data.frame(matrix(data=averaged_product,nrow=1),stringsAsFactors=F)
         rownames(signatures_output_list[[rownames(matrix_to_add)[matrix_row]]]$signatures_output$product) <- rownames(matrix_to_add)[matrix_row]
@@ -444,9 +540,9 @@ trinucleotide_mutation_weights <- function(cesa,
                   "@excluded$no_tumor_mutation_rate.maf."))
   }
   cesa@trinucleotide_mutation_weights = list(tumors_with_a_mutation_rate=tumors_with_a_mutation_rate,
-              trinuc_proportion_matrix=trinuc_proportion_matrix,
-              signatures_output_list=signatures_output_list,
-              algorithm_choice=algorithm_choice)
+                                             trinuc_proportion_matrix=trinuc_proportion_matrix,
+                                             signatures_output_list=signatures_output_list,
+                                             algorithm_choice=algorithm_choice)
   cesa@relative_substitution_rates = relative_substitution_rate
   return(cesa)
 }

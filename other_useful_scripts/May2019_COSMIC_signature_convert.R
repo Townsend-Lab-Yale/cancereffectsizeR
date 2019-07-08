@@ -36,6 +36,15 @@ head(signatures_cosmic_May2019_t)
 
 signatures_cosmic_May2019 <- as.data.frame(signatures_cosmic_May2019_t, stringsAsFactors=F)
 
+# rates seem to be binned into two categories,
+# 1) rates consistent in magnitude with the previous v2 release and
+# 2) rates fixed to a floor several orders of
+# magnitude less than v2 (several are exactly equal to 2.23e-16).
+# changing these to zero, consistent with the v2 release.
+signatures_cosmic_May2019[which(signatures_cosmic_May2019 < 1e-15,arr.ind = T)] <- 0
+
+
+
 save(signatures_cosmic_May2019, file = "data/signatures_cosmic_May2019.RData")
 
 
