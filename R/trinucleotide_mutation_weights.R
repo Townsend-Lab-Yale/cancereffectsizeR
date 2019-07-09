@@ -130,7 +130,7 @@ trinucleotide_mutation_weights <- function(cesa,
   if(algorithm_choice == "weighted"){
 
     for(tumor_name in 1:nrow(trinuc_breakdown_per_tumor)){
-
+      # if(tumor_name==40){break}
       signatures_output <- deconstructSigs::whichSignatures(tumor.ref = trinuc_breakdown_per_tumor,
                                                             signatures.ref = signatures,
                                                             sample.id = rownames(trinuc_breakdown_per_tumor)[tumor_name],
@@ -192,7 +192,7 @@ trinucleotide_mutation_weights <- function(cesa,
 
 
       signatures_output_list[[rownames(trinuc_breakdown_per_tumor)[tumor_name]]] <- list(signatures_output = signatures_output,
-                                                   substitution_count = length(which(MAF[,sample_ID_column] == rownames(trinuc_breakdown_per_tumor)[tumor_name])))
+                                                                                         substitution_count = length(which(MAF[,sample_ID_column] == rownames(trinuc_breakdown_per_tumor)[tumor_name])))
 
 
       # if all 0, it means accounting for artifacts zeroed out weights,
@@ -252,6 +252,35 @@ trinucleotide_mutation_weights <- function(cesa,
                                                                       tri.counts.method = 'exome2genome')
 
     averaged_weight <- averaged_weight_deconstructed$weights
+
+
+
+    if(artifact_accounting & signature_choice == "signatures_cosmic_May2019"){
+
+
+      if(any(averaged_weight[possible_artifact_signatures] > 0 )){
+
+        current_sum <- sum(averaged_weight)
+
+        # remove artifacts from mutational signatures flux
+        averaged_weight[possible_artifact_signatures] <- 0
+
+        # if other weights exist, renormalize
+        # else, assign this tumor the average product and weight of tumors
+        # with > 50 variants.
+        if(any(signatures_output$weights>0)){
+
+          averaged_weight <- averaged_weight/(sum(averaged_weight)/current_sum)
+
+        }else{
+         stop("After accounting for artifacts,
+              all weights are zero in the average weights within tumors with
+              >50 substitutions")
+        }
+      }
+    }
+
+
     # need to do the same for weights
     # weight_matrix <- matrix(data = NA,
     #                         nrow = length(signatures_output_list),
@@ -320,7 +349,7 @@ trinucleotide_mutation_weights <- function(cesa,
     if(run_next_block){
 
       if(length(signatures_output_list) < length(unique(MAF[,sample_ID_column])) ){
-      tumors_to_add <- unique(MAF[,sample_ID_column])[which(!unique(MAF[,sample_ID_column]) %in% names(signatures_output_list))]
+        tumors_to_add <- unique(MAF[,sample_ID_column])[which(!unique(MAF[,sample_ID_column]) %in% names(signatures_output_list))]
       }else{
         tumors_to_add <- NULL
       }
