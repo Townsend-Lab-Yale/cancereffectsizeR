@@ -51,6 +51,9 @@ effect_size_SNV <- function(
   names(gene_trinuc_comp) <- sapply(gene_trinuc_comp, function(x) x$gene_name) # formally used names of RefCDS, but they're the same
 
 
+  data("AA_mutation_list", package="cancereffectsizeR")
+  data("AA_translations", package="cancereffectsizeR")
+
   selection_results <- vector("list",length = length(genes_to_analyze))
   names(selection_results) <- genes_to_analyze
 
@@ -71,6 +74,33 @@ effect_size_SNV <- function(
                                             all_tumors = all_tumors)
   } else if(analysis == "gene-level-epistasis") {
 
+
+    cesa_subset <- cesa@annotated.snv.maf[cesa@annotated.snv.maf$Gene_name %in% genes_to_analyze,]
+
+    cesa_subset$identifier <- cesa_subset$unique_variant_ID_AA
+    cesa_subset$identifier[
+      which(sapply(strsplit(cesa_subset$identifier,split = " "),
+                   function(x) length(x))==1)
+      ] <- paste(cesa_subset$Gene_name[
+        which(sapply(strsplit(cesa_subset$identifier,split = " "),
+                     function(x) length(x))==1)],
+        cesa_subset$identifier[
+          which(sapply(strsplit(cesa_subset$identifier,split = " "),
+                       function(x) length(x))==1)
+          ],sep=" ")
+
+    cesa_subset_table <- table(cesa_subset$identifier)
+    cesa_subset$recurrent_val <- cesa_subset_table[cesa_subset$identifier]
+
+    recurrently_subed_genes <- unique(cesa_subset[cesa_subset$recurrent_val>1,"Gene_name"])
+
+    if(length(recurrently_subed_genes) < 2){
+     stop("Less than 2 of the 'genes' you specified have recurrent variants.
+          Choose 2 genes or more with recurrent variants to measure epistasis
+          among those recurrently substituted variants. ")
+    }
+
+    genes_to_analyze <- recurrently_subed_genes
 
     selection_epistasis_results <- t(utils::combn(genes_to_analyze,2))
     selection_epistasis_results <- data.frame(t(selection_epistasis_results),stringsAsFactors=F)
