@@ -2,6 +2,7 @@
 
 export(CESAnalysis)
 export(CESProgressions)
+export(CI_finder)
 export(DNP_TNP_remover)
 export(MAFdf)
 export(annotate_gene_maf)

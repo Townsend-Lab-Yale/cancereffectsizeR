@@ -19,8 +19,8 @@
 
 
 
-ml_objective <- function(gamma, MAF_input, all_tumors, progressions, gene, variant, specific_mut_rates) {
-  
+ml_objective <- function(gamma, MAF_input, all_tumors, progressions, gene, variant, specific_mut_rates, modifier=0) {
+
 
 
   tumors_with_pos_mutated <- MAF_input$Unique_Patient_Identifier[MAF_input$unique_variant_ID_AA==variant & MAF_input$Gene_name==gene]
@@ -61,5 +61,5 @@ ml_objective <- function(gamma, MAF_input, all_tumors, progressions, gene, varia
   if(!is.finite(sum_log_lik)){
     return(-1e200)
   }
-  return(sum_log_lik)
+  return(sum_log_lik - modifier)
 }

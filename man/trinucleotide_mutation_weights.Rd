@@ -6,7 +6,8 @@
 \usage{
 trinucleotide_mutation_weights(cesa, algorithm_choice = "weighted",
   remove_recurrent = TRUE,
-  signature_choice = "signatures_cosmic_May2019")
+  signature_choice = "signatures_cosmic_May2019",
+  artifact_accounting = T)
 }
 \arguments{
 \item{cesa}{# CESAnalysis object}

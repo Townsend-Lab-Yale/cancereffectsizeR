@@ -18,7 +18,8 @@ effect_size_SNV <- function(
   full_gene_epistasis_lower_optim = 1e-3,
   full_gene_epistasis_upper_optim=1e9,
   full_gene_epistasis_fnscale=-1e-16,
-  q_threshold_for_gene_level=0.1) {
+  q_threshold_for_gene_level=0.1,
+  find_CI=T) {
 
   # validate analysis choice
   analysis = match.arg(analysis)
@@ -71,7 +72,7 @@ effect_size_SNV <- function(
     selection_results <- parallel::mclapply(genes_to_analyze, get_gene_results, mc.cores = cores, cesa = cesa,
                                             gene_mafs = mafs, gene_trinuc_comp = gene_trinuc_comp,
                                             tumor_specific_rate_choice = tumor_specific_rate_choice,
-                                            all_tumors = all_tumors)
+                                            all_tumors = all_tumors,find_CI=find_CI)
   } else if(analysis == "gene-level-epistasis") {
 
 
@@ -129,7 +130,7 @@ effect_size_SNV <- function(
 
 #' Single-stage SNV effect size analysis (gets called by effect_size_SNV)
 get_gene_results <- function(gene_to_analyze, cesa, gene_mafs, gene_trinuc_comp,
-                             tumor_specific_rate_choice, all_tumors) {
+                             tumor_specific_rate_choice, all_tumors,find_CI) {
   mutrates_list = cesa@mutrates_list
   relative_substitution_rates = cesa@relative_substitution_rates
   trinuc_proportion_matrix = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix
@@ -159,6 +160,12 @@ get_gene_results <- function(gene_to_analyze, cesa, gene_mafs, gene_trinuc_comp,
                                            unique_variant_ID=NA,
                                            loglikelihood=NA)
 
+  if(length(progressions)== 1 & find_CI) {
+
+    these_selection_results <- cbind(these_selection_results,
+                                     dplyr::tibble(ci_low=rep(NA,ncol(these_mutation_rates$mutation_rate_matrix)),ci_high=NA))
+
+  }
 
 
   num_selection_results = nrow(these_selection_results)
@@ -179,13 +186,29 @@ get_gene_results <- function(gene_to_analyze, cesa, gene_mafs, gene_trinuc_comp,
 
     these_selection_results[j,"loglikelihood"] <- optimization_output$value
 
-
     freq_vec <- NULL
     for(this_level in 1:length(these_mutation_rates$variant_freq)){
       freq_vec <- c(freq_vec,these_mutation_rates$variant_freq[[this_level]][as.character(these_selection_results[j,"variant"])])
     }
     these_selection_results[j,"variant_freq"][[1]] <- list(freq_vec)
     names(these_selection_results[j,"variant_freq"][[1]][[1]]) <- progressions@order
+
+    if(length(progressions)== 1 & find_CI){
+      # find CI function
+      CI_results <- cancereffectsizeR::CI_finder(gamma_max = optimization_output$par,
+                                                 MAF_input= gene_mafs[[gene_to_analyze]][["maf"]],
+                                                 all_tumors=all_tumors,
+                                                 progressions = progressions,
+                                                 gene=gene_to_analyze,
+                                                 variant=colnames(these_mutation_rates$mutation_rate_matrix)[j],
+                                                 specific_mut_rates=these_mutation_rates$mutation_rate_matrix)
+
+
+      these_selection_results[j,"ci_low"] <- CI_results$lower_CI
+      these_selection_results[j,"ci_high"] <- CI_results$upper_CI
+
+    }
+
 
   }
 

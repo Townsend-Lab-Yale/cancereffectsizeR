@@ -7,7 +7,7 @@
 calc_baseline_mutation_rates(cesa = NULL, covariate_file = NULL,
   tumor_specific_rate_choice = F, trinuc_all_tumors = T,
   signature_choice = "signatures_cosmic_May2019",
-  trinuc_algorithm_choice = "weighted", ...)
+  trinuc_algorithm_choice = "weighted", artifact_accounting = T, ...)
 }
 \arguments{
 \item{cesa}{CESAnalysis object}

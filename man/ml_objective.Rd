@@ -5,7 +5,7 @@
 \title{ml_objective}
 \usage{
 ml_objective(gamma, MAF_input, all_tumors, progressions, gene, variant,
-  specific_mut_rates)
+  specific_mut_rates, modifier = 0)
 }
 \arguments{
 \item{gamma}{A selection intensity at which to calculate the likelihood}
