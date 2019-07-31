@@ -7,7 +7,8 @@
 trinucleotide_mutation_weights(cesa, algorithm_choice = "weighted",
   remove_recurrent = TRUE,
   signature_choice = "signatures_cosmic_May2019",
-  artifact_accounting = T)
+  artifact_accounting = T, signatures_to_remove = c("SBS25", "SBS31",
+  "SBS32", "SBS35"))
 }
 \arguments{
 \item{cesa}{# CESAnalysis object}
@@ -25,6 +26,10 @@ distribution profile of the low substitution tumor as determined by a distance m
 \item{remove_recurrent}{If TRUE, removes recurrent variants prior to calculating trinucleotide signatures and weights. If FALSE, uses all variants.}
 
 \item{signature_choice}{Either "signatures_cosmic_May2019" (default) or "signatures.cosmic" (COSMIC signatures v2 originally packaged with deconstructSigs).}
+
+\item{artifact_accounting}{Accounts for the fact that the COSMIC v3 artifacts were detected, and renormalizes to see contribution of "true" sources of mutational flux.}
+
+\item{signatures_to_remove}{Removes signatures from full potential signatures to minimize "signature bleeding", along the rationale proposed within the manuscript that originally calculated the v3 signature set doi: https://doi.org/10.1101/322859. Use `NULL` to keep all signatures. Signatures must correspond to the signature names in `signature_choice`.}
 }
 \description{
 Trinucleotide mutation weights
