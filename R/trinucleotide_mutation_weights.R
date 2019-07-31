@@ -12,6 +12,8 @@
 #'   `all_calculated`, where all tumors have the mutation rate from the deconstructSigs output regardless of substitution number.
 #' @param remove_recurrent If TRUE, removes recurrent variants prior to calculating trinucleotide signatures and weights. If FALSE, uses all variants.
 #' @param signature_choice Either "signatures_cosmic_May2019" (default) or "signatures.cosmic" (COSMIC signatures v2 originally packaged with deconstructSigs).
+#' @param artifact_accounting Accounts for the fact that the COSMIC v3 artifacts were detected, and renormalizes to see contribution of "true" sources of mutational flux.
+#' @param signatures_to_remove Removes signatures from full potential signatures to minimize "signature bleeding", along the rationale proposed within the manuscript that originally calculated the v3 signature set doi: https://doi.org/10.1101/322859. Use `NULL` to keep all signatures. Signatures must correspond to the signature names in `signature_choice`.
 #'
 #' @return
 #' @export
@@ -25,7 +27,8 @@ trinucleotide_mutation_weights <- function(cesa,
                                            algorithm_choice = "weighted",
                                            remove_recurrent = TRUE,
                                            signature_choice = "signatures_cosmic_May2019",
-                                           artifact_accounting = T){
+                                           artifact_accounting = T,
+                                           signatures_to_remove = c("SBS25","SBS31","SBS32","SBS35")){
 
 
 
@@ -127,15 +130,67 @@ trinucleotide_mutation_weights <- function(cesa,
   }
 
 
+  main_signatures <- signatures
+
+
+
   if(algorithm_choice == "weighted"){
 
     for(tumor_name in 1:nrow(trinuc_breakdown_per_tumor)){
+      signatures <- main_signatures
+      these_signatures_to_remove <- signatures_to_remove
+
+
+
+
+      # Assignment rules for hypermutator tumors found
+      # in "SigProfiler_signature_assignment_rules" supp data here:
+      # https://doi.org/10.1101/322859
+      # (these rules are for whole-exome, not whole-genome.
+      # Different rules apply then, also in that supp data)
+      if(substitution_counts[rownames(trinuc_breakdown_per_tumor)[tumor_name]] < 2*10^3){
+
+        these_signatures_to_remove <- c(these_signatures_to_remove, "SBS10a","SBS10b")
+
+        if(substitution_counts[rownames(trinuc_breakdown_per_tumor)[tumor_name]] < 2*10^2){
+
+          these_signatures_to_remove <- c(these_signatures_to_remove,
+                                          "SBS6",
+                                          "SBS14",
+                                          "SBS15",
+                                          "SBS20",
+                                          "SBS21",
+                                          "SBS26",
+                                          "SBS44")
+
+        }
+
+      }
+
+      if(!is.null(these_signatures_to_remove)){
+        signatures <- signatures[-which(rownames(signatures) %in% these_signatures_to_remove),]
+      }
+
+
       # if(tumor_name==40){break}
       signatures_output <- deconstructSigs::whichSignatures(tumor.ref = trinuc_breakdown_per_tumor,
                                                             signatures.ref = signatures,
                                                             sample.id = rownames(trinuc_breakdown_per_tumor)[tumor_name],
                                                             contexts.needed = TRUE,
                                                             tri.counts.method = 'exome2genome')
+
+
+      # add the removed signatures back in
+      if(!is.null(these_signatures_to_remove)){
+        df_to_add <- as.data.frame(matrix(data = 0,nrow = 1,ncol = length(these_signatures_to_remove)),stringsAsFactors=F)
+        colnames(df_to_add) <- these_signatures_to_remove
+        signatures_output$weights <- cbind(signatures_output$weights,df_to_add)
+        # match original ordering
+        signatures_output$weights <-
+          signatures_output$weights[,match(rownames(main_signatures),colnames(signatures_output$weights))]
+
+        signatures <- main_signatures
+      }
 
 
       # some of the COSMIC v3 signatures are likely artifacts,
@@ -191,8 +246,10 @@ trinucleotide_mutation_weights <- function(cesa,
       }
 
 
-      signatures_output_list[[rownames(trinuc_breakdown_per_tumor)[tumor_name]]] <- list(signatures_output = signatures_output,
-                                                                                         substitution_count = length(which(MAF[,sample_ID_column] == rownames(trinuc_breakdown_per_tumor)[tumor_name])))
+      signatures_output_list[[rownames(trinuc_breakdown_per_tumor)[tumor_name]]] <-
+        list(signatures_output = signatures_output,
+             substitution_count = length(which(MAF[,sample_ID_column] ==
+                                                 rownames(trinuc_breakdown_per_tumor)[tumor_name])))
 
 
       # if all 0, it means accounting for artifacts zeroed out weights,
@@ -273,7 +330,7 @@ trinucleotide_mutation_weights <- function(cesa,
           averaged_weight <- averaged_weight/(sum(averaged_weight)/current_sum)
 
         }else{
-         stop("After accounting for artifacts,
+          stop("After accounting for artifacts,
               all weights are zero in the average weights within tumors with
               >50 substitutions")
         }
