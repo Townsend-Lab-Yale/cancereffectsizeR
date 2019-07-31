@@ -20,7 +20,7 @@ signatures_names_matrix <- matrix(
       "SBS12" , "Unknown (12)",
       "SBS13" , "APOBEC (13)",
       "SBS14", "Concurrent polymerase epsilon mutation and defective mismatch repair (14)",
-      "SBS15", "Defective mismatch repair",
+      "SBS15", "Defective mismatch repair (15)",
       "SBS16", "Unknown (16)",
       "SBS17a", "Unknown (17a)",
       "SBS17b", "Unknown (17b)",
