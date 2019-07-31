@@ -14,6 +14,7 @@
 #' @param signature_choice Either "signatures_cosmic_May2019" (default) or "signatures.cosmic" (COSMIC signatures v2 originally packaged with deconstructSigs).
 #' @param artifact_accounting Accounts for the fact that the COSMIC v3 artifacts were detected, and renormalizes to see contribution of "true" sources of mutational flux.
 #' @param signatures_to_remove Removes signatures from full potential signatures to minimize "signature bleeding", along the rationale proposed within the manuscript that originally calculated the v3 signature set doi: https://doi.org/10.1101/322859. Use `NULL` to keep all signatures. Signatures must correspond to the signature names in `signature_choice`.
+#' @param mutation_count_rules T/F on whether to follow the mutation count rules outlined in https://doi.org/10.1101/322859, the manuscript reported the v3 COSMIC signature set.
 #'
 #' @return
 #' @export
@@ -28,7 +29,8 @@ trinucleotide_mutation_weights <- function(cesa,
                                            remove_recurrent = TRUE,
                                            signature_choice = "signatures_cosmic_May2019",
                                            artifact_accounting = T,
-                                           signatures_to_remove = c("SBS25","SBS31","SBS32","SBS35")){
+                                           signatures_to_remove = c("SBS25","SBS31","SBS32","SBS35"),
+                                           mutation_count_rules = T){
 
 
 
@@ -148,23 +150,25 @@ trinucleotide_mutation_weights <- function(cesa,
       # https://doi.org/10.1101/322859
       # (these rules are for whole-exome, not whole-genome.
       # Different rules apply then, also in that supp data)
-      if(substitution_counts[rownames(trinuc_breakdown_per_tumor)[tumor_name]] < 2*10^3){
+      if(mutation_count_rules){
+        if(substitution_counts[rownames(trinuc_breakdown_per_tumor)[tumor_name]] < 2*10^3){
 
-        these_signatures_to_remove <- c(these_signatures_to_remove, "SBS10a","SBS10b")
+          these_signatures_to_remove <- c(these_signatures_to_remove, "SBS10a","SBS10b")
 
-        if(substitution_counts[rownames(trinuc_breakdown_per_tumor)[tumor_name]] < 2*10^2){
+          if(substitution_counts[rownames(trinuc_breakdown_per_tumor)[tumor_name]] < 2*10^2){
 
-          these_signatures_to_remove <- c(these_signatures_to_remove,
-                                          "SBS6",
-                                          "SBS14",
-                                          "SBS15",
-                                          "SBS20",
-                                          "SBS21",
-                                          "SBS26",
-                                          "SBS44")
+            these_signatures_to_remove <- c(these_signatures_to_remove,
+                                            "SBS6",
+                                            "SBS14",
+                                            "SBS15",
+                                            "SBS20",
+                                            "SBS21",
+                                            "SBS26",
+                                            "SBS44")
+
+          }
 
         }
-
       }
 
       if(!is.null(these_signatures_to_remove)){
