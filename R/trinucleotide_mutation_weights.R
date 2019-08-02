@@ -34,19 +34,19 @@ trinucleotide_mutation_weights <- function(cesa,
 
 
 
-  #' only want to find the signatures that reflect the underlying mutational
-  #' processes within the tumor, i.e., those that reach detectable levels neutrally
-  #' so we detect the signatues from non-recurrently substituted variants
+  # only want to find the signatures that reflect the underlying mutational
+  # processes within the tumor, i.e., those that reach detectable levels neutrally
+  # so we detect the signatues from non-recurrently substituted variants
 
 
-  #'TODO: it is possible that the only mutation in a tumor is a recurrent variant,
-  #' and if we remove this variant, then the tumor is lost from the mutation
-  #' rate calculation. Should this be added back in if algorithm_choice
-  #' is something involving averages? ---- UPDATE: it is added in "weightd", need to
-  #' add in other options
-  #'
-  #' TODO: really, averages should be averages of weight, and then product is calculated
-  #' individually per tumor, as opposed to average product and average rate.
+  #TODO: it is possible that the only mutation in a tumor is a recurrent variant,
+  # and if we remove this variant, then the tumor is lost from the mutation
+  # rate calculation. Should this be added back in if algorithm_choice
+  # is something involving averages? ---- UPDATE: it is added in "weightd", need to
+  # add in other options
+  #
+  # TODO: really, averages should be averages of weight, and then product is calculated
+  # individually per tumor, as opposed to average product and average rate.
 
 
   # pre-process ----
