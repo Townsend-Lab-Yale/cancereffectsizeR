@@ -160,7 +160,7 @@ get_gene_results <- function(gene_to_analyze, cesa, gene_mafs, gene_trinuc_comp,
                                            unique_variant_ID=NA,
                                            loglikelihood=NA)
 
-  if(length(progressions)== 1 & find_CI) {
+  if(length(names(progressions@order)) == 1 & find_CI) {
 
     these_selection_results <- cbind(these_selection_results,
                                      dplyr::tibble(ci_low=rep(NA,ncol(these_mutation_rates$mutation_rate_matrix)),ci_high=NA))
