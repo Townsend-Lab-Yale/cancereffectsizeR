@@ -160,10 +160,11 @@ get_gene_results <- function(gene_to_analyze, cesa, gene_mafs, gene_trinuc_comp,
                                            unique_variant_ID=NA,
                                            loglikelihood=NA)
 
-  if(length(progressions)== 1 & find_CI) {
+  if(length(names(progressions@order)) == 1 & find_CI) {
 
+    # add columns corresponding to .999% and .95% confidence intervals
     these_selection_results <- cbind(these_selection_results,
-                                     dplyr::tibble(ci_low=rep(NA,ncol(these_mutation_rates$mutation_rate_matrix)),ci_high=NA))
+                                     dplyr::tibble(ci_low_999=rep(NA,ncol(these_mutation_rates$mutation_rate_matrix)),ci_high_999=NA,ci_low_95=NA,ci_high_95=NA))
 
   }
 
@@ -204,8 +205,23 @@ get_gene_results <- function(gene_to_analyze, cesa, gene_mafs, gene_trinuc_comp,
                                                  specific_mut_rates=these_mutation_rates$mutation_rate_matrix)
 
 
-      these_selection_results[j,"ci_low"] <- CI_results$lower_CI
-      these_selection_results[j,"ci_high"] <- CI_results$upper_CI
+      these_selection_results[j,"ci_low_999"] <- CI_results$lower_CI
+      these_selection_results[j,"ci_high_999"] <- CI_results$upper_CI
+
+      CI_results <- cancereffectsizeR::CI_finder(gamma_max = optimization_output$par,
+                                                 MAF_input= gene_mafs[[gene_to_analyze]][["maf"]],
+                                                 all_tumors=all_tumors,
+                                                 progressions = progressions,
+                                                 gene=gene_to_analyze,
+                                                 variant=colnames(these_mutation_rates$mutation_rate_matrix)[j],
+                                                 specific_mut_rates=these_mutation_rates$mutation_rate_matrix,
+                                                 log_units_down = 1.92 # 95% confidence interval
+                                                 )
+
+
+      these_selection_results[j,"ci_low_95"] <- CI_results$lower_CI
+      these_selection_results[j,"ci_high_95"] <- CI_results$upper_CI
+
 
     }
 

@@ -7,7 +7,9 @@
 calc_baseline_mutation_rates(cesa = NULL, covariate_file = NULL,
   tumor_specific_rate_choice = F, trinuc_all_tumors = T,
   signature_choice = "signatures_cosmic_May2019",
-  trinuc_algorithm_choice = "weighted", artifact_accounting = T, ...)
+  trinuc_algorithm_choice = "weighted", artifact_accounting = T,
+  signatures_to_remove = c("SBS25", "SBS31", "SBS32", "SBS35"),
+  mutation_count_rules = T, BIG_mem = TRUE, ...)
 }
 \arguments{
 \item{cesa}{CESAnalysis object}
@@ -17,6 +19,12 @@ calc_baseline_mutation_rates(cesa = NULL, covariate_file = NULL,
 \item{trinuc_all_tumors}{Calculates trinucleotide signatures within all tumors (even those with < 50 variants)}
 
 \item{signature_choice}{Either "signatures_cosmic_May2019" (default) or "signatures.cosmic" (COSMIC signatures v2 originally packaged with deconstructSigs).}
+
+\item{signatures_to_remove}{Removes signatures from full potential signatures to minimize "signature bleeding", along the rationale proposed within the manuscript that originally calculated the v3 signature set doi: https://doi.org/10.1101/322859. Use `NULL` to keep all signatures. Signatures must correspond to the signature names in `signature_choice`.}
+
+\item{mutation_count_rules}{T/F on whether to follow the mutation count rules outlined in https://doi.org/10.1101/322859, the manuscript reported the v3 COSMIC signature set.}
+
+\item{BIG_mem}{if FALSE then it deletes some information that, while maybe useful to the user, is unnecessary for the `effect_size_SNV` function}
 }
 \description{
 Runs functions supplying trinculeotide mutation weightings, mutation rate calculations, and MAF gene annotations

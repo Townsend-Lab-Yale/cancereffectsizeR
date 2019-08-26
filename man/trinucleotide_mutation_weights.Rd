@@ -7,7 +7,8 @@
 trinucleotide_mutation_weights(cesa, algorithm_choice = "weighted",
   remove_recurrent = TRUE,
   signature_choice = "signatures_cosmic_May2019",
-  artifact_accounting = T)
+  artifact_accounting = T, signatures_to_remove = c("SBS25", "SBS31",
+  "SBS32", "SBS35"), mutation_count_rules = T)
 }
 \arguments{
 \item{cesa}{# CESAnalysis object}
@@ -25,6 +26,12 @@ distribution profile of the low substitution tumor as determined by a distance m
 \item{remove_recurrent}{If TRUE, removes recurrent variants prior to calculating trinucleotide signatures and weights. If FALSE, uses all variants.}
 
 \item{signature_choice}{Either "signatures_cosmic_May2019" (default) or "signatures.cosmic" (COSMIC signatures v2 originally packaged with deconstructSigs).}
+
+\item{artifact_accounting}{Accounts for the fact that the COSMIC v3 artifacts were detected, and renormalizes to see contribution of "true" sources of mutational flux.}
+
+\item{signatures_to_remove}{Removes signatures from full potential signatures to minimize "signature bleeding", along the rationale proposed within the manuscript that originally calculated the v3 signature set doi: https://doi.org/10.1101/322859. Use `NULL` to keep all signatures. Signatures must correspond to the signature names in `signature_choice`.}
+
+\item{mutation_count_rules}{T/F on whether to follow the mutation count rules outlined in https://doi.org/10.1101/322859, the manuscript reported the v3 COSMIC signature set.}
 }
 \description{
 Trinucleotide mutation weights
@@ -33,15 +40,4 @@ Trinucleotide mutation weights
 
 
 
-only want to find the signatures that reflect the underlying mutational
-processes within the tumor, i.e., those that reach detectable levels neutrally
-so we detect the signatues from non-recurrently substituted variants
-TODO: it is possible that the only mutation in a tumor is a recurrent variant,
-and if we remove this variant, then the tumor is lost from the mutation
-rate calculation. Should this be added back in if algorithm_choice
-is something involving averages? ---- UPDATE: it is added in "weightd", need to
-add in other options
-
-TODO: really, averages should be averages of weight, and then product is calculated
-individually per tumor, as opposed to average product and average rate.
 }
