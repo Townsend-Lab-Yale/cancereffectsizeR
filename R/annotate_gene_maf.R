@@ -116,6 +116,17 @@ annotate_gene_maf <- function(cesa) {
 	                   start=MAF$Start_Position-1,
 	                   end=MAF$Start_Position+1))
 
+	# If trinucleotide context yields N (or other non-ACTG character), remove record from analysis
+	# For now, just prints a message; improve user reporting in the future
+	bad_trinuc_context <- grepl('[^ACTG]', MAF$triseq)
+	if (any(bad_trinuc_context)) {
+		bad_trinuc_context_maf <- MAF[bad_trinuc_context,]
+		MAF <- MAF[!bad_trinuc_context,]
+		num_bad_records = nrow(bad_trinuc_context_maf) 
+		message(paste("Note:", num_bad_records, "MAF records were removed from analysis because N's were found in their trinucleotide context."))
+	}
+		
+
 	MAF$unique_variant_ID <- paste(
 	  MAF$Gene_name,
 	  MAF$Chromosome,
