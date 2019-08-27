@@ -126,6 +126,9 @@ CESAnalysis = function(maf = NULL, sample_col = "Tumor_Sample_Barcode", chr_col 
 	# strip chr prefixes from chr column, if present
 	maf[,chr_col] = gsub('^chr', '', maf[,chr_col])
 
+	# declare environment to hold excluded MAF records by type of exclusion
+  	excluded = new.env()
+
 
 	# check for potential DNP/TNPs and separate them from data set
 	# this is done before any other filtering to ensure catching as many of them as possible
@@ -137,24 +140,47 @@ CESAnalysis = function(maf = NULL, sample_col = "Tumor_Sample_Barcode", chr_col 
 	num.pred.mnv = nrow(pred.mnv.maf)
 
 	if (num.pred.mnv > 0) {
+		excluded[["pred.mnv.maf"]] = MAFdf(pred.mnv.maf)
 	  # To-do: move message to DNP_TNP_remover or otherwise ensure this description remains accurate
-	  percent = round((num.pred.mnv / num.prefilter) * 100, 1)
-	  message(paste0("Note: ", num.pred.mnv, " mutation records out of ", num.prefilter, " (", percent, "%) ",
+	  	percent = round((num.pred.mnv / num.prefilter) * 100, 1)
+	  	message(paste0("Note: ", num.pred.mnv, " mutation records out of ", num.prefilter, " (", percent, "%) ",
 	                 "are within 2 bp of other mutations in the same tumors."))
-	  message("These records (saved as @excluded$pred.mnv.maf) will be excluded from effect size analysis.")
+	  	message("These records (saved as @excluded$pred.mnv.maf) will be excluded from effect size analysis.")
 	}
+
+
+
+
+	# No support for mitochondrial mutations yet
+	maf[maf[,chr_col] == "MT", chr_col] <- "M" # changing MT to M (for future)
+	is_mt <- maf[,chr_col] == "M"
+	if (any(is_mt)) {
+		excluded[["mitochondrial.maf"]] = MAFdf(maf[is_mt,])
+		maf <- maf[! is_mt,]
+		message(paste("Note:", sum(is_mt), "mitochondrial mutations have been removed from the data (mitochondrial analysis not yet supported)."))
+	}
+
+
+
 
 	# Ensure reference alleles of mutations match reference genome (Note: Insertions won't match if their reference allele is "-")
 	message("Checking that reference alleles match reference genome...")
 	ref_chr = paste0('chr', maf[,chr_col])
+	ref_allele_lengths = nchar(maf[,ref_col])
+	ref_alleles_to_test = maf[,ref_col]
+	end_pos = maf[,start_col] + ref_allele_lengths - 1 # for multi-base deletions, check that all deleted bases match reference
 	reference_alleles <- as.character(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens, ref_chr,
-	                                                   strand="+", start=maf[,start_col], end=maf[,start_col]))
+	                                                   strand="+", start=maf[,start_col], end=end_pos))
 	num.prefilter = nrow(maf)
-	reference.mismatch.maf = maf[maf[,ref_col] != reference_alleles,]
+
+	# For insertions, can't evaluate if record matches reference since MAF reference will be just "-"
+	# Could conceivably verify that the inserted bases don't match reference...
+	reference.mismatch.maf = maf[maf[,ref_col] != reference_alleles & maf[,ref_col] != '-',]
 	num.nonmatching = nrow(reference.mismatch.maf)
-	maf = maf[maf[,ref_col] == reference_alleles,]
+	maf = maf[maf[,ref_col] == reference_alleles | maf[,ref_col] == '-',]
 
 	if (num.nonmatching > 0) {
+		excluded[["reference.mismatch.maf"]] = MAFdf(reference.mismatch.maf)
 	  percent = round((num.nonmatching / num.prefilter) * 100, 1)
 	  message(paste0("Note: ", num.nonmatching, " mutation records out of ", num.prefilter, " (", percent, "%) ",
 	                 "have reference alleles that do not actually match the reference genome."))
@@ -180,10 +206,6 @@ CESAnalysis = function(maf = NULL, sample_col = "Tumor_Sample_Barcode", chr_col 
 	num.samples = length(unique(snv.maf[, sample_col]))
 	message(paste0(num.good.snv, " SNVs from ", num.samples, " samples will be included in effect size analysis."))
 
-  # declare environment to hold excluded MAFs
-  excluded = new.env()
-  excluded[["reference.mismatch.maf"]] = MAFdf(reference.mismatch.maf)
-  excluded[["pred.mnv.maf"]] = MAFdf(pred.mnv.maf)
 
 
 	# declare CESAnalysis object
