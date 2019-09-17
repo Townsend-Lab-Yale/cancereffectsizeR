@@ -69,10 +69,10 @@ effect_size_SNV <- function(
   all_tumors = unique(snv.maf$Unique_Patient_Identifier)
 
   if (analysis == "SNV") {
-    selection_results <- parallel::mclapply(genes_to_analyze, get_gene_results, mc.cores = cores, cesa = cesa,
+    selection_results <- pbapply::pblapply(genes_to_analyze, get_gene_results, cesa = cesa,
                                             gene_mafs = mafs, gene_trinuc_comp = gene_trinuc_comp,
                                             tumor_specific_rate_choice = tumor_specific_rate_choice,
-                                            all_tumors = all_tumors,find_CI=find_CI)
+                                            all_tumors = all_tumors,find_CI=find_CI, cl = cores)
   } else if(analysis == "gene-level-epistasis") {
 
 
@@ -109,7 +109,7 @@ effect_size_SNV <- function(
     selection_epistasis_results_list <- as.list(selection_epistasis_results)
 
 
-    selection_results = parallel::mclapply(X = selection_epistasis_results_list,
+    selection_results = pbapply::pblapply(X = selection_epistasis_results_list,
                                            FUN = epistasis_gene_level,
                                            mc.cores = cores,
                                            MAF=cesa@annotated.snv.maf,
@@ -230,6 +230,7 @@ get_gene_results <- function(gene_to_analyze, cesa, gene_mafs, gene_trinuc_comp,
 
   these_selection_results[,"unsure_gene_name"] <- these_mutation_rates$unsure_genes_vec
   these_selection_results[,"unique_variant_ID"] <- these_mutation_rates$unique_variant_ID
+
 
   print(gene_to_analyze)
   return(list(gene_name=gene_to_analyze, RefCDS[[gene_to_analyze]]$gene_id,selection_results=these_selection_results))
@@ -555,7 +556,7 @@ top_epistasis = function(cesa, genes_to_analyze) {
       specific_mut_rates2=these_mutation_rates2$mutation_rate_matrix)
     return(these_selection_results)
   }
-  selection_results <- parallel::mclapply(selection_epistasis_results_list, get_gene_results_epistasis, mc.cores = cores)
+  selection_results <- pbapply::pblapply(selection_epistasis_results_list, get_gene_results_epistasis, mc.cores = cores)
   return(selection_results)
 }
 

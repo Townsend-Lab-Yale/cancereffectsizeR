@@ -26,13 +26,15 @@ ml_objective <- function(gamma, MAF_input, all_tumors, progressions, gene, varia
   tumors_with_pos_mutated <- MAF_input$Unique_Patient_Identifier[MAF_input$unique_variant_ID_AA==variant & MAF_input$Gene_name==gene]
   tumors_without_gene_mutated <- all_tumors[ ! all_tumors %in% unique(MAF_input$Unique_Patient_Identifier[MAF_input$Gene_name==gene])]
 
+  tumor_stages = get_progression_number(progressions, tumors_without_gene_mutated) # should be called outside ML objective
   calc_gamma_sums = function(tumor) {
     if (length(progressions@order) == 1) {
       return(-1*gamma[1])
     }
-    current_tumor_progression = get_progression_number(progressions, tumor)
-    return(sum(-1*gamma[1:current_tumor_progression]))
+    return(sum(-1*gamma[1:tumor_stages[tumor]]))
   }
+
+
   gamma_sums = vapply(tumors_without_gene_mutated, calc_gamma_sums, FUN.VALUE = 1.0)
   sum_log_lik = sum(gamma_sums * specific_mut_rates[tumors_without_gene_mutated, variant])
 
