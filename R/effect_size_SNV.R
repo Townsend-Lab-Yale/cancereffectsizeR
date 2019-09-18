@@ -111,13 +111,13 @@ effect_size_SNV <- function(
 
     selection_results = pbapply::pblapply(X = selection_epistasis_results_list,
                                            FUN = epistasis_gene_level,
-                                           mc.cores = cores,
                                            MAF=cesa@annotated.snv.maf,
                                            trinuc_proportion_matrix=cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix,
                                            cesa=cesa,
                                            gene_trinuc_comp = gene_trinuc_comp,
                                            tumor_specific_rate_choice = tumor_specific_rate_choice,
-                                           all_tumors = all_tumors)
+                                           all_tumors = all_tumors,
+                                           cl = cores)
   } else if(analysis == "top-epistasis") {
     selection_results = top_epistasis()
   }
@@ -160,7 +160,7 @@ get_gene_results <- function(gene_to_analyze, cesa, gene_mafs, gene_trinuc_comp,
                                            unique_variant_ID=NA,
                                            loglikelihood=NA)
 
-  if(length(names(progressions@order)) == 1 & find_CI) {
+  if(length(progressions@order) == 1 & find_CI) {
 
     # add columns corresponding to .999% and .95% confidence intervals
     these_selection_results <- cbind(these_selection_results,
@@ -194,7 +194,7 @@ get_gene_results <- function(gene_to_analyze, cesa, gene_mafs, gene_trinuc_comp,
     these_selection_results[j,"variant_freq"][[1]] <- list(freq_vec)
     names(these_selection_results[j,"variant_freq"][[1]][[1]]) <- progressions@order
 
-    if(length(progressions)== 1 & find_CI){
+    if(length(progressions@order) == 1 & find_CI){
       # find CI function
       CI_results <- cancereffectsizeR::CI_finder(gamma_max = optimization_output$par,
                                                  MAF_input= gene_mafs[[gene_to_analyze]][["maf"]],
@@ -556,7 +556,7 @@ top_epistasis = function(cesa, genes_to_analyze) {
       specific_mut_rates2=these_mutation_rates2$mutation_rate_matrix)
     return(these_selection_results)
   }
-  selection_results <- pbapply::pblapply(selection_epistasis_results_list, get_gene_results_epistasis, mc.cores = cores)
+  selection_results <- pbapply::pblapply(selection_epistasis_results_list, get_gene_results_epistasis, cl = cores)
   return(selection_results)
 }
 

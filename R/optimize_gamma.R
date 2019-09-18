@@ -16,6 +16,10 @@
 
 optimize_gamma <- function(MAF_input, all_tumors, progressions, gene, variant, specific_mut_rates) {
   par_init <- rep(1000,length=length(progressions@order))
-    return(optim(par=par_init, fn=ml_objective, all_tumors = all_tumors, MAF_input=MAF_input, progressions = progressions, gene=gene, variant=variant, specific_mut_rates=specific_mut_rates,
+  tumors_with_pos_mutated <- MAF_input$Unique_Patient_Identifier[MAF_input$unique_variant_ID_AA==variant & MAF_input$Gene_name==gene]
+  tumors_without_gene_mutated <- all_tumors[ ! all_tumors %in% unique(MAF_input$Unique_Patient_Identifier[MAF_input$Gene_name==gene])]
+  tumor_stages = get_progression_number(progressions, all_tumors)
+    return(optim(par=par_init, fn=ml_objective, tumor_stages = tumor_stages, tumors_without_gene_mutated = tumors_without_gene_mutated,
+    	tumors_with_pos_mutated = tumors_with_pos_mutated, variant=variant, specific_mut_rates=specific_mut_rates,
                  method="L-BFGS-B", lower=1e-3, upper=1000000000, control=list(fnscale=-1e-12)))
 }
