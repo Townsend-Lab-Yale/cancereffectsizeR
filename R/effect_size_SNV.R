@@ -1,6 +1,7 @@
 #' Calculate SNV selection intensity
 #' @param cesa CESAnalysis object
-#' @param gene which genes to calculate effect sizes within; defaults to all genes in data set
+#' @param gene which genes to calculate effect sizes within; defaults to all genes with recurrent mutations in data set
+#' @param include_genes_without_recurrent_mutations default false; will greatly slow runtime and won't find anything interesting
 #' @param analysis choose SNV, gene-level-epistasis, or top-epistasis
 #' @param cores number of cores to use
 #' @param ignore_progression_stages don't calculate stage-specific selection intensities even if stage data is present
@@ -10,11 +11,13 @@
 effect_size_SNV <- function(
   cesa = NULL,
   genes = "all",
+
   analysis = c("SNV", "gene-level-epistasis", "top-epistasis"),
   epistasis_top_prev_number = NULL,
   cores = 1,
   ignore_progression_stages = F,
   tumor_specific_rate_choice = F,
+  include_genes_without_recurrent_mutations = F,
   full_gene_epistasis_lower_optim = 1e-3,
   full_gene_epistasis_upper_optim=1e9,
   full_gene_epistasis_fnscale=-1e-16,
@@ -43,7 +46,16 @@ effect_size_SNV <- function(
   snv.maf = cesa@annotated.snv.maf
   genes_in_dataset = unique(snv.maf$Gene_name)
   if(genes[1] =="all") {
-    genes_to_analyze <- genes_in_dataset
+    if (include_genes_without_recurrent_mutations) {
+      genes_to_analyze <- genes_in_dataset
+    } else {
+      tmp = table(snv.maf$unique_variant_ID)
+      recurrent_variants = names(tmp[tmp > 1])
+      has_recurrent = snv.maf$unique_variant_ID %in% recurrent_variants
+      genes_to_analyze = unique(ihc_stage_cesa@annotated.snv.maf[has_recurrent, "Gene_name"])
+    }
+    message(paste(length(genes_in_dataset) - length(genes_to_analyze), "genes in the data set have no recurrent SNV mutations."))
+    message(paste("Calculating selection intensity for recurrent SNV mutations across", length(genes_to_analyze), "genes."))
   } else{
     genes_to_analyze <- genes[genes %in% genes_in_dataset]
   }
