@@ -4,21 +4,19 @@
 \alias{ml_objective}
 \title{ml_objective}
 \usage{
-ml_objective(gamma, MAF_input, all_tumors, progressions, gene, variant,
-  specific_mut_rates, modifier = 0)
+ml_objective(gamma, tumor_stages, tumors_without_gene_mutated,
+  tumors_with_pos_mutated, variant, specific_mut_rates, modifier = 0)
 }
 \arguments{
 \item{gamma}{A selection intensity at which to calculate the likelihood}
 
-\item{MAF_input}{A data frame that includes columns "Unique_Patient_Identifier", "Gene_name", and "unique_variant_ID_AA"}
+\item{tumor_stages}{an environment with keys = tumor names, values = stage of tumor}
 
-\item{all_tumors}{A list of all the tumors we are calculating the likelihood across}
+\item{tumors_without_gene_mutated}{list of tumors without any mutation in the gene of the variant}
 
-\item{progressions}{CESProgressions object}
+\item{tumors_with_pos_mutated}{list of tumors with the specific variant in question}
 
-\item{gene}{The gene we want to look at}
-
-\item{variant}{The variant we want to look at}
+\item{variant}{the unique mutation whose selection intensity is being determined}
 
 \item{specific_mut_rates}{A matrix of site and tumor specific mutation rates where the rows correspond to tumors and the columns to variants (produced by mutation_rate_calc)}
 }

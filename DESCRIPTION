@@ -22,7 +22,8 @@ Imports:
     IRanges,
     dplyr,
     optimx,
-    magrittr
+    magrittr,
+    pbapply
 License: GPL-3
 Encoding: UTF-8
 LazyData: false
@@ -31,6 +32,5 @@ Suggests:
     ggplot2,
     knitr,
     rmarkdown,
-    magrittr,
     tidyr
 VignetteBuilder: knitr

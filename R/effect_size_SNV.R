@@ -1,6 +1,7 @@
 #' Calculate SNV selection intensity
 #' @param cesa CESAnalysis object
-#' @param gene which genes to calculate effect sizes within; defaults to all genes in data set
+#' @param gene which genes to calculate effect sizes within; defaults to all genes with recurrent mutations in data set
+#' @param include_genes_without_recurrent_mutations default false; will greatly slow runtime and won't find anything interesting
 #' @param analysis choose SNV, gene-level-epistasis, or top-epistasis
 #' @param cores number of cores to use
 #' @param ignore_progression_stages don't calculate stage-specific selection intensities even if stage data is present
@@ -10,11 +11,13 @@
 effect_size_SNV <- function(
   cesa = NULL,
   genes = "all",
+
   analysis = c("SNV", "gene-level-epistasis", "top-epistasis"),
   epistasis_top_prev_number = NULL,
   cores = 1,
   ignore_progression_stages = F,
   tumor_specific_rate_choice = F,
+  include_genes_without_recurrent_mutations = F,
   full_gene_epistasis_lower_optim = 1e-3,
   full_gene_epistasis_upper_optim=1e9,
   full_gene_epistasis_fnscale=-1e-16,
@@ -43,7 +46,16 @@ effect_size_SNV <- function(
   snv.maf = cesa@annotated.snv.maf
   genes_in_dataset = unique(snv.maf$Gene_name)
   if(genes[1] =="all") {
-    genes_to_analyze <- genes_in_dataset
+    if (include_genes_without_recurrent_mutations) {
+      genes_to_analyze <- genes_in_dataset
+    } else {
+      tmp = table(snv.maf$unique_variant_ID)
+      recurrent_variants = names(tmp[tmp > 1])
+      has_recurrent = snv.maf$unique_variant_ID %in% recurrent_variants
+      genes_to_analyze = unique(ihc_stage_cesa@annotated.snv.maf[has_recurrent, "Gene_name"])
+    }
+    message(paste(length(genes_in_dataset) - length(genes_to_analyze), "genes in the data set have no recurrent SNV mutations."))
+    message(paste("Calculating selection intensity for recurrent SNV mutations across", length(genes_to_analyze), "genes."))
   } else{
     genes_to_analyze <- genes[genes %in% genes_in_dataset]
   }
@@ -69,10 +81,10 @@ effect_size_SNV <- function(
   all_tumors = unique(snv.maf$Unique_Patient_Identifier)
 
   if (analysis == "SNV") {
-    selection_results <- parallel::mclapply(genes_to_analyze, get_gene_results, mc.cores = cores, cesa = cesa,
+    selection_results <- pbapply::pblapply(genes_to_analyze, get_gene_results, cesa = cesa,
                                             gene_mafs = mafs, gene_trinuc_comp = gene_trinuc_comp,
                                             tumor_specific_rate_choice = tumor_specific_rate_choice,
-                                            all_tumors = all_tumors,find_CI=find_CI)
+                                            all_tumors = all_tumors,find_CI=find_CI, cl = cores)
   } else if(analysis == "gene-level-epistasis") {
 
 
@@ -109,15 +121,15 @@ effect_size_SNV <- function(
     selection_epistasis_results_list <- as.list(selection_epistasis_results)
 
 
-    selection_results = parallel::mclapply(X = selection_epistasis_results_list,
+    selection_results = pbapply::pblapply(X = selection_epistasis_results_list,
                                            FUN = epistasis_gene_level,
-                                           mc.cores = cores,
                                            MAF=cesa@annotated.snv.maf,
                                            trinuc_proportion_matrix=cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix,
                                            cesa=cesa,
                                            gene_trinuc_comp = gene_trinuc_comp,
                                            tumor_specific_rate_choice = tumor_specific_rate_choice,
-                                           all_tumors = all_tumors)
+                                           all_tumors = all_tumors,
+                                           cl = cores)
   } else if(analysis == "top-epistasis") {
     selection_results = top_epistasis()
   }
@@ -160,7 +172,7 @@ get_gene_results <- function(gene_to_analyze, cesa, gene_mafs, gene_trinuc_comp,
                                            unique_variant_ID=NA,
                                            loglikelihood=NA)
 
-  if(length(names(progressions@order)) == 1 & find_CI) {
+  if(length(progressions@order) == 1 & find_CI) {
 
     # add columns corresponding to .999% and .95% confidence intervals
     these_selection_results <- cbind(these_selection_results,
@@ -194,7 +206,7 @@ get_gene_results <- function(gene_to_analyze, cesa, gene_mafs, gene_trinuc_comp,
     these_selection_results[j,"variant_freq"][[1]] <- list(freq_vec)
     names(these_selection_results[j,"variant_freq"][[1]][[1]]) <- progressions@order
 
-    if(length(progressions)== 1 & find_CI){
+    if(length(progressions@order) == 1 & find_CI){
       # find CI function
       CI_results <- cancereffectsizeR::CI_finder(gamma_max = optimization_output$par,
                                                  MAF_input= gene_mafs[[gene_to_analyze]][["maf"]],
@@ -230,6 +242,7 @@ get_gene_results <- function(gene_to_analyze, cesa, gene_mafs, gene_trinuc_comp,
 
   these_selection_results[,"unsure_gene_name"] <- these_mutation_rates$unsure_genes_vec
   these_selection_results[,"unique_variant_ID"] <- these_mutation_rates$unique_variant_ID
+
 
   print(gene_to_analyze)
   return(list(gene_name=gene_to_analyze, RefCDS[[gene_to_analyze]]$gene_id,selection_results=these_selection_results))
@@ -555,7 +568,7 @@ top_epistasis = function(cesa, genes_to_analyze) {
       specific_mut_rates2=these_mutation_rates2$mutation_rate_matrix)
     return(these_selection_results)
   }
-  selection_results <- parallel::mclapply(selection_epistasis_results_list, get_gene_results_epistasis, mc.cores = cores)
+  selection_results <- pbapply::pblapply(selection_epistasis_results_list, get_gene_results_epistasis, cl = cores)
   return(selection_results)
 }
 
