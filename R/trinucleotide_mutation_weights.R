@@ -80,11 +80,6 @@ trinucleotide_mutation_weights <- function(cesa,
   tumors_with_50_or_more <- names(which(substitution_counts>=50))
   tumors_with_less_than_50 <- setdiff(MAF_input_deconstructSigs_preprocessed[,sample_ID_column],tumors_with_50_or_more)
 
-  # relative total substitution rate in all tumors
-  median_substitutions <- median(as.numeric(substitution_counts))
-
-  relative_substitution_rate <- substitution_counts/median_substitutions
-
 
 
   trinuc_breakdown_per_tumor <- deconstructSigs::mut.to.sigs.input(mut.ref =
@@ -633,6 +628,5 @@ trinucleotide_mutation_weights <- function(cesa,
                                              trinuc_proportion_matrix=trinuc_proportion_matrix,
                                              signatures_output_list=signatures_output_list,
                                              algorithm_choice=algorithm_choice)
-  cesa@relative_substitution_rates = relative_substitution_rate
   return(cesa)
 }

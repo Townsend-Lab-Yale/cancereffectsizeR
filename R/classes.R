@@ -92,7 +92,8 @@ setValidity("MAFdf",
 
 setClass("CESAnalysis", representation(main.maf = "MAFdf", annotated.snv.maf = "MAFdf", trinucleotide_mutation_weights = "list",
           progressions = "CESProgressions", mutrates_list = "list", dndscv_out_list = "list",
-          relative_substitution_rates = "table", refcds_data = "array", excluded = "environment", selection_results = "list"))
+          refcds_data = "array", excluded = "environment", selection_results = "list",
+          seq_methods = "environment"))
 
 ## To-do: Add generic methods for editing slots that enfore these validity checks
 ## Currently, validity is only checked on object creation, so downstream functions can mess up the object

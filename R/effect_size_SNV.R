@@ -5,7 +5,6 @@
 #' @param analysis choose SNV, gene-level-epistasis, or top-epistasis
 #' @param cores number of cores to use
 #' @param ignore_progression_stages don't calculate stage-specific selection intensities even if stage data is present
-#' @param tumor_specific_rate_choice weights tumor-specific rates by their relative proportional substitution count (not recommended)
 #' @return CESAnalysis object with selection results added for the chosen analysis
 #' @export
 effect_size_SNV <- function(
@@ -16,7 +15,6 @@ effect_size_SNV <- function(
   epistasis_top_prev_number = NULL,
   cores = 1,
   ignore_progression_stages = F,
-  tumor_specific_rate_choice = F,
   include_genes_without_recurrent_mutations = F,
   full_gene_epistasis_lower_optim = 1e-3,
   full_gene_epistasis_upper_optim=1e9,
@@ -69,7 +67,8 @@ effect_size_SNV <- function(
 
   selection_results <- vector("list",length = length(genes_to_analyze))
   names(selection_results) <- genes_to_analyze
-
+  
+  
   # divide MAF data by gene
   MAF = snv.maf # temp
   mafs = new.env(hash=TRUE)
@@ -83,7 +82,6 @@ effect_size_SNV <- function(
   if (analysis == "SNV") {
     selection_results <- pbapply::pblapply(genes_to_analyze, get_gene_results, cesa = cesa,
                                             gene_mafs = mafs, gene_trinuc_comp = gene_trinuc_comp,
-                                            tumor_specific_rate_choice = tumor_specific_rate_choice,
                                             all_tumors = all_tumors,find_CI=find_CI, cl = cores)
   } else if(analysis == "gene-level-epistasis") {
 
@@ -127,7 +125,6 @@ effect_size_SNV <- function(
                                            trinuc_proportion_matrix=cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix,
                                            cesa=cesa,
                                            gene_trinuc_comp = gene_trinuc_comp,
-                                           tumor_specific_rate_choice = tumor_specific_rate_choice,
                                            all_tumors = all_tumors,
                                            cl = cores)
   } else if(analysis == "top-epistasis") {
@@ -141,10 +138,8 @@ effect_size_SNV <- function(
 
 
 #' Single-stage SNV effect size analysis (gets called by effect_size_SNV)
-get_gene_results <- function(gene_to_analyze, cesa, gene_mafs, gene_trinuc_comp,
-                             tumor_specific_rate_choice, all_tumors,find_CI) {
+get_gene_results <- function(gene_to_analyze, cesa, gene_mafs, gene_trinuc_comp, all_tumors,find_CI) {
   mutrates_list = cesa@mutrates_list
-  relative_substitution_rates = cesa@relative_substitution_rates
   trinuc_proportion_matrix = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix
   RefCDS = cesa@refcds_data
   progressions = cesa@progressions
@@ -157,9 +152,7 @@ get_gene_results <- function(gene_to_analyze, cesa, gene_mafs, gene_trinuc_comp,
       gene_trinuc_comp = gene_trinuc_comp,
       RefCDS = RefCDS,
       all_tumors = all_tumors,
-      progressions = progressions,
-      relative_substitution_rates=relative_substitution_rates,
-      tumor_specific_rate=tumor_specific_rate_choice)
+      progressions = progressions)
 
 
 
@@ -259,12 +252,10 @@ epistasis_gene_level = function(genes_to_analyze,
                                 trinuc_proportion_matrix,
                                 cesa,
                                 gene_trinuc_comp,
-                                tumor_specific_rate_choice,
                                 all_tumors) {
 
 
   mutrates_list = cesa@mutrates_list
-  relative_substitution_rates = cesa@relative_substitution_rates
   trinuc_proportion_matrix = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix
   RefCDS = cesa@refcds_data
   progressions = cesa@progressions
@@ -372,9 +363,7 @@ epistasis_gene_level = function(genes_to_analyze,
         gene_trinuc_comp = gene_trinuc_comp,
         RefCDS = RefCDS,
         all_tumors = all_tumors,
-        progressions = progressions,
-        relative_substitution_rates=relative_substitution_rates,
-        tumor_specific_rate=tumor_specific_rate_choice)
+        progressions = progressions)
 
     these_mutation_rates2 <-
       cancereffectsizeR::mutation_rate_calc(
@@ -385,9 +374,7 @@ epistasis_gene_level = function(genes_to_analyze,
         gene_trinuc_comp = gene_trinuc_comp,
         RefCDS = RefCDS,
         all_tumors = all_tumors,
-        progressions = progressions,
-        relative_substitution_rates=relative_substitution_rates,
-        tumor_specific_rate=tumor_specific_rate_choice)
+        progressions = progressions)
 
 
 
@@ -528,8 +515,6 @@ top_epistasis = function(cesa, genes_to_analyze) {
         trinuc_proportion_matrix = trinuc_proportion_matrix,
         gene_trinuc_comp = gene_trinuc_comp,
         RefCDS = RefCDS_our_genes,
-        relative_substitution_rates=relative_substitution_rates,
-        tumor_specific_rate=tumor_specific_rate_choice,
         tumor_subsets = tumors,subset_col=subset_col)
 
     these_mutation_rates2 <-
@@ -542,8 +527,6 @@ top_epistasis = function(cesa, genes_to_analyze) {
         trinuc_proportion_matrix = trinuc_proportion_matrix,
         gene_trinuc_comp = gene_trinuc_comp,
         RefCDS = RefCDS_our_genes,
-        relative_substitution_rates=relative_substitution_rates,
-        tumor_specific_rate=tumor_specific_rate_choice,
         tumor_subsets = tumors,subset_col=subset_col)
 
 

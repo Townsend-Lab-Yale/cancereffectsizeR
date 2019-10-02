@@ -19,12 +19,13 @@ mutation_rate_calc <- function(this_MAF,
                                trinuc_proportion_matrix,
                                gene_trinuc_comp,
                                RefCDS,
-                               relative_substitution_rates,
-                               tumor_specific_rate=F,
                                all_tumors,
                                progressions
                                ){
 
+  # trinuc_proportion_matrix: rows = samples, columns = relative frequency of trinucleotide-context-specific mutation (sums to 1)
+  # mutation_rate_nucs: rows = samples, columns = gene-specific relative frequency of trinuclotide-context-specific
+  ##                    mutations, calculated by normalizing trinuc_proportion_matrix by gene content
   mutation_rate_nucs <- matrix(nrow=nrow(trinuc_proportion_matrix),ncol=ncol(trinuc_proportion_matrix),data = NA)
   rownames(mutation_rate_nucs) <- rownames(trinuc_proportion_matrix)
   colnames(mutation_rate_nucs) <- colnames(trinuc_proportion_matrix)
@@ -119,14 +120,6 @@ mutation_rate_calc <- function(this_MAF,
     }
   }
 
-  # adjusting tumor-specific rate to reflect the tumor-specific non-recurrent substitution load
-
-  # mutation_rate_matrix_rel <- (mutation_rate_matrix) * t(relative_substitution_rates[rownames(mutation_rate_matrix)])
-  if(tumor_specific_rate){
-    for(this_row in 1:nrow(mutation_rate_matrix)){
-      mutation_rate_matrix[this_row,] <-  mutation_rate_matrix[this_row,] * relative_substitution_rates[rownames(mutation_rate_matrix)[this_row]]
-    }
-  }
   unsure_genes_vec <- this_MAF$unsure_gene_name
 
 
