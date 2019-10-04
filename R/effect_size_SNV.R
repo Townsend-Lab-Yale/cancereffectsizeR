@@ -156,12 +156,12 @@ get_gene_results <- function(gene_to_analyze, cesa, gene_mafs, gene_trinuc_comp,
 
 
 
-
+  # begin populating these_selection_results, which are selection results for all variants in given gene
+  ## rows = all variants found in mutatioin rate matrix columns
   these_selection_results <- dplyr::tibble(variant = colnames(these_mutation_rates$mutation_rate_matrix),
                                            selection_intensity = vector(mode = "list",
                                                                         length = ncol(these_mutation_rates$mutation_rate_matrix)),
                                            unsure_gene_name=NA,
-                                           variant_freq=vector(mode = "list", length = ncol(these_mutation_rates$mutation_rate_matrix)),
                                            unique_variant_ID=NA,
                                            loglikelihood=NA)
 
@@ -192,12 +192,6 @@ get_gene_results <- function(gene_to_analyze, cesa, gene_mafs, gene_trinuc_comp,
 
     these_selection_results[j,"loglikelihood"] <- optimization_output$value
 
-    freq_vec <- NULL
-    for(this_level in 1:length(these_mutation_rates$variant_freq)){
-      freq_vec <- c(freq_vec,these_mutation_rates$variant_freq[[this_level]][as.character(these_selection_results[j,"variant"])])
-    }
-    these_selection_results[j,"variant_freq"][[1]] <- list(freq_vec)
-    names(these_selection_results[j,"variant_freq"][[1]][[1]]) <- progressions@order
 
     if(length(progressions@order) == 1 & find_CI){
       # find CI function
