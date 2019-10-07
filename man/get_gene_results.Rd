@@ -5,7 +5,7 @@
 \title{Single-stage SNV effect size analysis (gets called by effect_size_SNV)}
 \usage{
 get_gene_results(gene_to_analyze, cesa, gene_mafs, gene_trinuc_comp,
-  tumor_specific_rate_choice, all_tumors, find_CI)
+  all_tumors, find_CI)
 }
 \description{
 Single-stage SNV effect size analysis (gets called by effect_size_SNV)

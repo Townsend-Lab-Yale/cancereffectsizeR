@@ -7,7 +7,8 @@
 effect_size_SNV(cesa = NULL, genes = "all", analysis = c("SNV",
   "gene-level-epistasis", "top-epistasis"),
   epistasis_top_prev_number = NULL, cores = 1,
-  ignore_progression_stages = F, tumor_specific_rate_choice = F,
+  ignore_progression_stages = F,
+  include_genes_without_recurrent_mutations = F,
   full_gene_epistasis_lower_optim = 0.001,
   full_gene_epistasis_upper_optim = 1e+09,
   full_gene_epistasis_fnscale = -1e-16,
@@ -22,9 +23,9 @@ effect_size_SNV(cesa = NULL, genes = "all", analysis = c("SNV",
 
 \item{ignore_progression_stages}{don't calculate stage-specific selection intensities even if stage data is present}
 
-\item{tumor_specific_rate_choice}{weights tumor-specific rates by their relative proportional substitution count (not recommended)}
+\item{include_genes_without_recurrent_mutations}{default false; will greatly slow runtime and won't find anything interesting}
 
-\item{gene}{which genes to calculate effect sizes within; defaults to all genes in data set}
+\item{gene}{which genes to calculate effect sizes within; defaults to all genes with recurrent mutations in data set}
 }
 \value{
 CESAnalysis object with selection results added for the chosen analysis

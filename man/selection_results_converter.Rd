@@ -4,12 +4,12 @@
 \alias{selection_results_converter}
 \title{Selection results converter}
 \usage{
-selection_results_converter(cesa, subset_greater_than_freq = 1)
+selection_results_converter(cesa, min_recurrence = 2)
 }
 \arguments{
 \item{cesa}{CESAnalysis object with selection intensity results}
 
-\item{subset_greater_than_freq}{subsetting the data for only substitutions in more than this number of tumors}
+\item{min_recurrence}{minimum number of samples in which a mutation must appear for the mutation to be included in results}
 }
 \description{
 Selection results converter
