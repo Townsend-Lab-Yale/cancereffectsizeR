@@ -28,9 +28,9 @@ load_maf(cesa = NULL, maf = NULL,
 
 \item{genome_build}{genome build associated with data (must match build of CESAnalysis; currently just hg19 supported)}
 
-\item{progression_col}{column in MAF with subset data (e.g., column contains data like "Primary" and "Metastatic" in each row)}
+\item{covered_regions}{for panel sequencing data, a BED file of covered interals, or a data frame with first three columns chr, start (1-based), end (inclusive)}
 
-\item{coverged_regions}{for panel sequencing data, a BED file giving intervals covered by the panel}
+\item{progression_col}{column in MAF with subset data (e.g., column contains data like "Primary" and "Metastatic" in each row)}
 }
 \value{
 CESAnalysis object with somewhat cleaned-up MAF data added

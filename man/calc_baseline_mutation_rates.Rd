@@ -5,7 +5,6 @@
 \title{Runs functions supplying trinculeotide mutation weightings, mutation rate calculations, and MAF gene annotations}
 \usage{
 calc_baseline_mutation_rates(cesa = NULL, covariate_file = NULL,
-  tumor_specific_rate_choice = F, trinuc_all_tumors = T,
   signature_choice = "signatures_cosmic_May2019",
   trinuc_algorithm_choice = "weighted", artifact_accounting = T,
   signatures_to_remove = c("SBS25", "SBS31", "SBS32", "SBS35"),
@@ -15,8 +14,6 @@ calc_baseline_mutation_rates(cesa = NULL, covariate_file = NULL,
 \item{cesa}{CESAnalysis object}
 
 \item{covariate_file}{tissue-specific covariate file for dNdScv (gene-level mutation rate calculation)}
-
-\item{trinuc_all_tumors}{Calculates trinucleotide signatures within all tumors (even those with < 50 variants)}
 
 \item{signature_choice}{Either "signatures_cosmic_May2019" (default) or "signatures.cosmic" (COSMIC signatures v2 originally packaged with deconstructSigs).}
 

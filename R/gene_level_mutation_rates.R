@@ -38,12 +38,17 @@ gene_level_mutation_rates <- function(cesa, covariate_file = NULL){
   dndscv_out_list <- vector(mode = "list",length = length(cesa@progressions@order))
   names(dndscv_out_list) <- names(cesa@progressions@order)
 
+  # select MAF records to use for gene mutation rate calculation (via dNdScv)
+  # for now, records from TGS samples are kept out; in the future, we could check out dNdScv's panel sequencing features
+  exome_samples = cesa@coverage$samples_by_coverage[["exome"]]
+  dndscv_maf = cesa@maf[cesa@maf$Unique_Patient_Identifier %in% exome_samples,]
+  
   # dndscv output for each subset
   message("Running dNdScv...")
   for(this_subset in 1:length(dndscv_out_list)){
     current_subset_tumors = get_progression_tumors(cesa@progressions, this_subset)
     dndscv_out_list[[this_subset]] <- dndscv::dndscv(
-      mutations = cesa@main.maf[cesa@main.maf$Unique_Patient_Identifier %in% current_subset_tumors,],
+      mutations = dndscv_maf[dndscv_maf$Unique_Patient_Identifier %in% current_subset_tumors,],
       gene_list = genes_in_pca,
       cv = if(is.null(covariate_file)){ "hg19"}else{ this_cov_pca$rotation},
       refdb = paste(path_to_library,"/data/RefCDS_TP53splice.RData",sep=""))

@@ -51,7 +51,7 @@ trinucleotide_mutation_weights <- function(cesa,
 
   # pre-process ----
   message("Calculating trinucleotide composition and signatures...")
-  MAF = cesa@main.maf # calculate weights
+  MAF = cesa@maf # calculate weights
   sample_ID_column = "Unique_Patient_Identifier"
   chr_column = "Chromosome"
   pos_column = "Start_Position"
@@ -171,7 +171,6 @@ trinucleotide_mutation_weights <- function(cesa,
       }
 
 
-      # if(tumor_name==40){break}
       signatures_output <- deconstructSigs::whichSignatures(tumor.ref = trinuc_breakdown_per_tumor,
                                                             signatures.ref = signatures,
                                                             sample.id = rownames(trinuc_breakdown_per_tumor)[tumor_name],
@@ -381,11 +380,6 @@ trinucleotide_mutation_weights <- function(cesa,
           tumors_with_less_than_50[tumor_name_index]
         colnames(signatures_output_list[[tumors_with_less_than_50[tumor_name_index]]]$signatures_output$product) <-
           colnames(signatures_output_list[[tumors_with_less_than_50[tumor_name_index]]]$signatures_output$tumor)
-
-
-
-
-
       }
     }
 
@@ -432,21 +426,10 @@ trinucleotide_mutation_weights <- function(cesa,
         signatures_output_list[[rownames(matrix_to_add)[matrix_row]]]$signatures_output$weights <- as.data.frame(matrix(data=as.numeric(averaged_weight), nrow=1),stringsAsFactors=F)
         rownames(signatures_output_list[[rownames(matrix_to_add)[matrix_row]]]$signatures_output$weights) <- rownames(matrix_to_add)[matrix_row]
         colnames(signatures_output_list[[rownames(matrix_to_add)[matrix_row]]]$signatures_output$weights) <- names(averaged_weight)
-
       }
-
-
       trinuc_proportion_matrix <- rbind(trinuc_proportion_matrix, matrix_to_add)
       tumors_with_a_mutation_rate <- rownames(trinuc_proportion_matrix)
-
-
-
-
-
     }
-
-
-
   }
 
 
@@ -543,7 +526,6 @@ trinucleotide_mutation_weights <- function(cesa,
         trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],] <-
           trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],] / sum(trinuc_proportion_matrix[tumors_with_50_or_more[tumor_name],])
       }
-
     }
 
     # 2. Find nearest neighbor to tumors with < 50 mutations, assign identical weights as neighbor ----
@@ -617,12 +599,13 @@ trinucleotide_mutation_weights <- function(cesa,
   # Need to make sure we are only calculating the selection intensities from
   # tumors in which we are able to calculate a mutation rate
 
-  cesa@main.maf = MAFdf(MAF[MAF$"Unique_Patient_Identifier" %in% tumors_with_a_mutation_rate,])
-  cesa@excluded[["no_tumor_mutation_rate.maf"]] = MAFdf(MAF[! MAF$"Unique_Patient_Identifier" %in% tumors_with_a_mutation_rate,])
-  if (nrow(cesa@excluded[["no_tumor_mutation_rate.maf"]]) > 0) {
-    message(paste("Note: Some tumor(s) has only recurrent mutations (mutations also appearing in other samples) ",
-                  "so a baseline mutation rate cannot be calculated. MAF data for these has set aside and saved to ",
-                  "@excluded$no_tumor_mutation_rate.maf."))
+  cesa@maf = MAFdf(MAF[MAF$"Unique_Patient_Identifier" %in% tumors_with_a_mutation_rate,])
+  no_mutation_rate = MAF[! MAF$"Unique_Patient_Identifier" %in% tumors_with_a_mutation_rate,]
+  if (nrow(no_mutation_rate) > 0) {
+    no_mutation_rate$Exclusion_Reason = "no_tumor_mutation_rate"
+    cesa@excluded = MAFdf(rbind(cesa@excluded, no_mutation_rate))  
+    message(paste("Note: Some tumor(s) have only recurrent mutations (mutations also appearing in other samples) ",
+                  "so a baseline mutation rate cannot be calculated. MAF data for these have been excluded from further analysis."))
   }
   cesa@trinucleotide_mutation_weights = list(tumors_with_a_mutation_rate=tumors_with_a_mutation_rate,
                                              trinuc_proportion_matrix=trinuc_proportion_matrix,

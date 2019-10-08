@@ -48,10 +48,11 @@ selection_results_converter <- function(cesa, min_recurrence = 2){
   
   maf = cesa@annotated.snv.maf
   
-  tumors_by_stage = sapply(progression_names, function(x) get_progression_tumors(cesa@progressions, x))
+  tumors_by_stage = lapply(progression_names, function(x) get_progression_tumors(cesa@progressions, x))
   names(tumors_by_stage) = progression_names
-  num_tumors_by_stage = sapply(tumors_by_stage, length)
-  table_by_stage = sapply(tumors_by_stage, function(x) table(maf$unique_variant_ID[maf$Unique_Patient_Identifier %in% x] ))
+  num_tumors_by_stage = lapply(tumors_by_stage, length)
+  names(num_tumors_by_stage) = progression_names
+  table_by_stage = lapply(tumors_by_stage, function(x) table(maf$unique_variant_ID[maf$Unique_Patient_Identifier %in% x] ))
   
   variant_freq = numeric(nrow(selection_data_df))
   population_proportion = variant_freq
@@ -59,7 +60,7 @@ selection_results_converter <- function(cesa, min_recurrence = 2){
   for (i in 1:nrow(selection_data_df)) {
     stage = selection_data_df[i, "subset"]
     variant_freq[i] = as.numeric(table_by_stage[[stage]][selection_data_df$unique_variant_ID[i]])
-    population_proportion[i] = variant_freq[i]/num_tumors_by_stage[stage]
+    population_proportion[i] = variant_freq[i]/num_tumors_by_stage[[stage]]
   }
 
   selection_data_df$variant_freq = variant_freq

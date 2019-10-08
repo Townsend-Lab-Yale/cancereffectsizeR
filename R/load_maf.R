@@ -8,7 +8,7 @@
 #' @param ref_col column name with reference allele data
 #' @param tumor_allele_col column name with alternate allele data (defaults to "guess", which examines ref_col,
 #'                         "Tumor_Seq_Allele1", and "Tumor_Seq_Allele2" and determines from there)
-#' @param coverged_regions for panel sequencing data, a BED file giving intervals covered by the panel
+#' @param covered_regions for panel sequencing data, a BED file of covered interals, or a data frame with first three columns chr, start (1-based), end (inclusive)
 #' @param genome_build genome build associated with data (must match build of CESAnalysis; currently just hg19 supported)
 #' @param progression_col column in MAF with subset data (e.g., column contains data like "Primary" and "Metastatic" in each row)
 #' @return CESAnalysis object with somewhat cleaned-up MAF data added 
@@ -25,6 +25,10 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   }
   if (is.null(progression_col) & length(cesa@progressions@order) != 1) {
     stop("You must supply a progression_col for your MAF since your analysis covers multiple progression stages")
+  }
+  
+  if (is.null(covered_regions)) {
+    stop("You must supply covered_regions. For whole-exome/whole-genome data, use the default setting \"exome\".")
   }
   
   bad_maf_msg = "Input MAF is expected to be a data.frame or the filename of an MAF-formatted tab-delimited text file."
@@ -128,6 +132,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   colnames(maf) =  c(sample_col, chr_col, start_col, ref_col, tumor_allele_col)
   
   
+  
   # if CESAnalysis already contains samples, make sure the new data has no repeat samples
   if (nrow(cesa@maf) > 0) {
     previous_samples = cesa@maf$Unique_Patient_Identifier
@@ -138,8 +143,39 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     }
   }
   
+  # get coverage info for new samples and incorporate with any existing info
+  coverage_update = cesa@coverage
+  if (covered_regions == "exome" & length(covered_regions) == 1) {
+    if ("exome" %in% coverage_update$samples_by_coverage) {
+      coverage_update$samples_by_coverage[["exome"]] = c(coverage_update$samples_by_coverage[["exome"]], unique(maf[,sample_col]))
+    } else {
+      coverage_update$samples_by_coverage[["exome"]] = unique(maf[,sample_col])
+    }
+  } else {
+    # create GRanges for panel sequencing coverage
+    if ("data.frame" %in% class(covered_regions)) {
+      grange_cols = colnames(covered_regions)[1:3]
+      coverage = GenomicRanges::makeGRangesFromDataFrame(covered_regions, seqnames.field = grange_cols[1], start.field = grange_cols[2], end.field = grange_cols[3])
+    } else if (class(covered_regions) == "character") {
+      coverage = read.table(covered_regions, comment.char = '#', sep = '\t', quote = '', blank.lines.skip = T, stringsAsFactors = F)
+      coverage = GenomicRanges::makeGRangesFromDataFrame(coverage, starts.in.df.are.0based = T, seqnames.field = "V1", start.field = "V2", end.field = "V3")
+    } else {
+      stop("Error: covered_regions should be a path to a BED-formatted file, or a data-frame-like object with chr, start (1-based), end (inclusive) in the first three columns.")
+    }
+    
+    # name panel coverage groups "panel_1", "panel_2", etc.
+    num_groups = length(coverage_update$samples_by_coverage)
+    new_coverage_group_num = ifelse("exome" %in% names(coverage_update$samples_by_coverage), num_groups, num_groups + 1)
+    new_group_name = paste0("panel_", new_coverage_group_num)
+    
+    # update sample_by_coverage and collection of granges
+    coverage_update$samples_by_coverage[[new_group_name]] = unique(maf[, sample_col])
+    coverage_update$granges[[new_group_name]] = coverage
+  }
+  
+  
   # add samples CESProgressions object (don't actually assign to the CESAnalysis until the end of this function)
-  new_progressions = cancereffectsizeR:::add_samples_to_CESProgressions(progressions = cesa@progressions, samples = maf[,sample_col], sample_progressions = sample_progressions)
+  progressions_update = cancereffectsizeR:::add_samples_to_CESProgressions(progressions = cesa@progressions, samples = maf[,sample_col], sample_progressions = sample_progressions)
   
   
   # strip chr prefixes from chr column, if present
@@ -225,10 +261,10 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   num.samples = length(unique(snv.maf[, sample_col]))
   message(paste0("Loaded ", num.good.snv, " SNVs from ", num.samples, " samples into CESAnalysis."))
   
-  cesa@progressions = new_progressions 
-  
+  cesa@coverage = coverage_update
+  cesa@progressions = progressions_update 
   cesa@maf = MAFdf(rbind(cesa@maf, maf))
-  if (nrow(excluded > 0)) {
+  if (nrow(excluded) > 0) {
     colnames(excluded) = c(colnames(maf), "Exclusion_Reason")
     cesa@excluded = MAFdf(rbind(cesa@excluded, excluded))  
   }

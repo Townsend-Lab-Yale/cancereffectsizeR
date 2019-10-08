@@ -138,7 +138,7 @@ effect_size_SNV <- function(
 
 
 #' Single-stage SNV effect size analysis (gets called by effect_size_SNV)
-get_gene_results <- function(gene_to_analyze, cesa, gene_mafs, gene_trinuc_comp, all_tumors,find_CI) {
+get_gene_results <- function(gene_to_analyze, cesa, gene_mafs, gene_trinuc_comp, all_tumors, find_CI) {
   mutrates_list = cesa@mutrates_list
   trinuc_proportion_matrix = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix
   RefCDS = cesa@refcds_data
@@ -176,12 +176,17 @@ get_gene_results <- function(gene_to_analyze, cesa, gene_mafs, gene_trinuc_comp,
 
   num_selection_results = nrow(these_selection_results)
   for(j in 1:num_selection_results){
+    variant = colnames(these_mutation_rates$mutation_rate_matrix)[j]
+    MAF_input = gene_mafs[[gene_to_analyze]][["maf"]]
+    current_locus = GenomicRanges::makeGRangesFromDataFrame(MAF_input[MAF_input$unique_variant_ID_AA == variant, ][1,], seqnames.field = "Chromosome",
+                                             start.field = "Start_Position", end.field = "Start_Position")
+    eligible_tumors = cancereffectsizeR:::get_tumors_with_coverage(coverage = cesa@coverage, locus = current_locus)
     optimization_output <- cancereffectsizeR::optimize_gamma(
-      MAF_input= gene_mafs[[gene_to_analyze]][["maf"]],
-      all_tumors=all_tumors,
+      MAF_input = MAF_input,
+      eligible_tumors = eligible_tumors,
       progressions = progressions,
       gene=gene_to_analyze,
-      variant=colnames(these_mutation_rates$mutation_rate_matrix)[j],
+      variant=variant,
       specific_mut_rates=these_mutation_rates$mutation_rate_matrix)
 
     these_selection_results[j,c("selection_intensity")][[1]] <-
@@ -197,7 +202,7 @@ get_gene_results <- function(gene_to_analyze, cesa, gene_mafs, gene_trinuc_comp,
       # find CI function
       CI_results <- cancereffectsizeR::CI_finder(gamma_max = optimization_output$par,
                                                  MAF_input= gene_mafs[[gene_to_analyze]][["maf"]],
-                                                 all_tumors=all_tumors,
+                                                 eligible_tumors = eligible_tumors,
                                                  progressions = progressions,
                                                  gene=gene_to_analyze,
                                                  variant=colnames(these_mutation_rates$mutation_rate_matrix)[j],
@@ -209,7 +214,7 @@ get_gene_results <- function(gene_to_analyze, cesa, gene_mafs, gene_trinuc_comp,
 
       CI_results <- cancereffectsizeR::CI_finder(gamma_max = optimization_output$par,
                                                  MAF_input= gene_mafs[[gene_to_analyze]][["maf"]],
-                                                 all_tumors=all_tumors,
+                                                 eligible_tumors = eligible_tumors,
                                                  progressions = progressions,
                                                  gene=gene_to_analyze,
                                                  variant=colnames(these_mutation_rates$mutation_rate_matrix)[j],
@@ -230,8 +235,6 @@ get_gene_results <- function(gene_to_analyze, cesa, gene_mafs, gene_trinuc_comp,
   these_selection_results[,"unsure_gene_name"] <- these_mutation_rates$unsure_genes_vec
   these_selection_results[,"unique_variant_ID"] <- these_mutation_rates$unique_variant_ID
 
-
-  print(gene_to_analyze)
   return(list(gene_name=gene_to_analyze, RefCDS[[gene_to_analyze]]$gene_id,selection_results=these_selection_results))
 }
 
