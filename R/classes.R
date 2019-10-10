@@ -88,7 +88,7 @@ setValidity("MAFdf",
 
 setClass("CESAnalysis", representation(maf = "MAFdf", annotated.snv.maf = "MAFdf", trinucleotide_mutation_weights = "list",
           progressions = "CESProgressions", mutrates_list = "list", dndscv_out_list = "list",
-          refcds_data = "array", excluded = "list", selection_results = "list", coverage = "list",
+          refcds_data = "array", excluded = "MAFdf", selection_results = "list", coverage = "list",
           genome_build = "character"))
 
 setValidity("CESAnalysis",

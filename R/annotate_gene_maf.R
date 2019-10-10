@@ -123,7 +123,8 @@ annotate_gene_maf <- function(cesa) {
 		MAF <- MAF[!bad_trinuc_context,]
 		num_bad_records = nrow(bad_trinuc_context_maf) 
 		message(paste("Note:", num_bad_records, "MAF records were excluded from analysis because the reference genome has N's (non-specific bases) in their trinucleotide context."))
-		
+		bad_trinuc_context_maf$Exclusion_Reason = "ambiguous_trinuc_context"
+		cesa@excluded = MAFdf(rbind(cesa@excluded, bad_trinuc_context_maf))
 	}
 		
 

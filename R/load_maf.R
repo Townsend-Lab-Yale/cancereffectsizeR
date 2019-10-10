@@ -117,6 +117,9 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
       message("regardless of any ordering in your input MAF data frame.")
     }
     sample_progressions = as.character(maf[,progression_col])
+    if(any(is.na(sample_progressions))) {
+      stop("Error: There are NA values in your sample progressions column.")
+    }
   } else {
     sample_progressions = rep("1", nrow(maf)) # if analysis ignores tumor progression levels, all tumors get assigned level 1
   }
@@ -158,7 +161,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   # get coverage info for new samples and incorporate with any existing info
   coverage_update = cesa@coverage
   if (class(covered_regions) == "character" && covered_regions[1] == "exome" && length(covered_regions) == 1) {
-    if ("exome" %in% coverage_update$samples_by_coverage) {
+    if ("exome" %in% names(coverage_update$samples_by_coverage)) {
       coverage_update$samples_by_coverage[["exome"]] = c(coverage_update$samples_by_coverage[["exome"]], unique(maf[,sample_col]))
     } else {
       coverage_update$samples_by_coverage[["exome"]] = unique(maf[,sample_col])

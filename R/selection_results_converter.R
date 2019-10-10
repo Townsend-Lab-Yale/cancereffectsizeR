@@ -55,7 +55,7 @@ selection_results_converter <- function(cesa, min_recurrence = 2){
   for (i in 1:nrow(selection_data_df)) {
     stage = selection_data_df[i, "subset"]
     variant_freq[i] = as.numeric(table_by_stage[[stage]][selection_data_df$unique_variant_ID[i]])
-    if (variant_freq[i] == 0) {
+    if (is.na(variant_freq[i]) | variant_freq[i] == 0) {
       next
     }
     # temporary way of getting current locus 
