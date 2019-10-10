@@ -7,7 +7,6 @@
 effect_size_SNV(cesa = NULL, genes = "all", analysis = c("SNV",
   "gene-level-epistasis", "top-epistasis"),
   epistasis_top_prev_number = NULL, cores = 1,
-  ignore_progression_stages = F,
   include_genes_without_recurrent_mutations = F,
   full_gene_epistasis_lower_optim = 0.001,
   full_gene_epistasis_upper_optim = 1e+09,
@@ -20,8 +19,6 @@ effect_size_SNV(cesa = NULL, genes = "all", analysis = c("SNV",
 \item{analysis}{choose SNV, gene-level-epistasis, or top-epistasis}
 
 \item{cores}{number of cores to use}
-
-\item{ignore_progression_stages}{don't calculate stage-specific selection intensities even if stage data is present}
 
 \item{include_genes_without_recurrent_mutations}{default false; will greatly slow runtime and won't find anything interesting}
 

@@ -70,9 +70,9 @@ annotate_gene_maf <- function(cesa) {
 
 	for(i in 1:length(multi_choice)){
 		# first, assign if the nearest happened to be within the GenomicRanges::findOverlaps() and applicable to one gene
-		if(length(which(queryHits(gene_name_matches) == multi_choice[i])) == 1){
+		if(length(which(S4Vectors::queryHits(gene_name_matches) == multi_choice[i])) == 1){
 
-			MAF_unmatched[multi_choice[i],"Gene_name"] <- gr_genes$names[subjectHits(gene_name_matches)[which(queryHits(gene_name_matches) == multi_choice[i])]]
+			MAF_unmatched[multi_choice[i],"Gene_name"] <- gr_genes$names[subjectHits(gene_name_matches)[which(S4Vectors::queryHits(gene_name_matches) == multi_choice[i])]]
 
 		}else{
 

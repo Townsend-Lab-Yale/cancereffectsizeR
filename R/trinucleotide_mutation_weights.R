@@ -18,7 +18,6 @@
 #'
 #' @return
 #' @export
-#' @import deconstructSigs
 #'
 #' @examples
 #'
@@ -49,6 +48,7 @@ trinucleotide_mutation_weights <- function(cesa,
   # individually per tumor, as opposed to average product and average rate.
 
 
+  library(deconstructSigs) # import statement doesn't work, probably due to bad behavior by deconstructSigs
   # pre-process ----
   message("Calculating trinucleotide composition and signatures...")
   MAF = cesa@maf # calculate weights
