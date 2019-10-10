@@ -4,7 +4,6 @@
 #' @param include_genes_without_recurrent_mutations default false; will greatly slow runtime and won't find anything interesting
 #' @param analysis choose SNV, gene-level-epistasis, or top-epistasis
 #' @param cores number of cores to use
-#' @param ignore_progression_stages don't calculate stage-specific selection intensities even if stage data is present
 #' @return CESAnalysis object with selection results added for the chosen analysis
 #' @export
 effect_size_SNV <- function(
@@ -14,7 +13,6 @@ effect_size_SNV <- function(
   analysis = c("SNV", "gene-level-epistasis", "top-epistasis"),
   epistasis_top_prev_number = NULL,
   cores = 1,
-  ignore_progression_stages = F,
   include_genes_without_recurrent_mutations = F,
   full_gene_epistasis_lower_optim = 1e-3,
   full_gene_epistasis_upper_optim=1e9,
@@ -33,11 +31,7 @@ effect_size_SNV <- function(
 
   # can't combine epistasis analysis with multi-stage yet
   if (analysis != "SNV" && length(cesa@progressions@order) > 1) {
-    message(paste("Warning: Tumor progression stage-specific analysis cannot be combined with an epistasis ",
-                  "analysis yet, so SNV selection intensities will be treated as constant across stages."))
-  } else if(length(cesa@progressions@order) > 1 && ! ignore_progression_stages) {
-    message(paste("Note: Tumors are annotated with progression stages, so SNV selection intensities will be estimated ",
-                  "for each progression. To ignore stage information, re-run with ignore_progression_stages=TRUE"))
+    stop("Epistasis analysis is not compatible yet with multi-stage analyses. You'll have to re-run from the beginning.")
   }
 
   # using the "SNV" genes
@@ -173,7 +167,6 @@ get_gene_results <- function(gene_to_analyze, cesa, gene_mafs, gene_trinuc_comp,
 
   }
 
-
   num_selection_results = nrow(these_selection_results)
   for(j in 1:num_selection_results){
     variant = colnames(these_mutation_rates$mutation_rate_matrix)[j]
@@ -181,6 +174,10 @@ get_gene_results <- function(gene_to_analyze, cesa, gene_mafs, gene_trinuc_comp,
     current_locus = GenomicRanges::makeGRangesFromDataFrame(MAF_input[MAF_input$unique_variant_ID_AA == variant, ][1,], seqnames.field = "Chromosome",
                                              start.field = "Start_Position", end.field = "Start_Position")
     eligible_tumors = cancereffectsizeR:::get_tumors_with_coverage(coverage = cesa@coverage, locus = current_locus)
+    
+    # toss out tumors that do not have any SNVs to analyze
+    eligible_tumors = eligible_tumors[eligible_tumors %in% all_tumors]
+    
     optimization_output <- cancereffectsizeR::optimize_gamma(
       MAF_input = MAF_input,
       eligible_tumors = eligible_tumors,

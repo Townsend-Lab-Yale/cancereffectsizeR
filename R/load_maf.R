@@ -143,9 +143,21 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     }
   }
   
+  # create MAF df to hold excluded records
+  excluded = data.frame()
+  
+  
+  # add samples CESProgressions object (don't actually assign to the CESAnalysis until the end of this function)
+  progressions_update = cancereffectsizeR:::add_samples_to_CESProgressions(progressions = cesa@progressions, samples = maf[,sample_col], sample_progressions = sample_progressions)
+  
+  
+  # strip chr prefixes from chr column, if present ("NCBI-style")
+  maf[,chr_col] = gsub('^chr', '', maf[,chr_col])
+  
+  
   # get coverage info for new samples and incorporate with any existing info
   coverage_update = cesa@coverage
-  if (covered_regions == "exome" & length(covered_regions) == 1) {
+  if (class(covered_regions) == "character" && covered_regions[1] == "exome" && length(covered_regions) == 1) {
     if ("exome" %in% coverage_update$samples_by_coverage) {
       coverage_update$samples_by_coverage[["exome"]] = c(coverage_update$samples_by_coverage[["exome"]], unique(maf[,sample_col]))
     } else {
@@ -153,16 +165,20 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     }
   } else {
     # create GRanges for panel sequencing coverage
+    genome_info = GenomeInfoDb::Seqinfo(genome = cesa@genome_build)
+    GenomeInfoDb::seqlevelsStyle(genome_info) = "NCBI"
     if ("data.frame" %in% class(covered_regions)) {
       grange_cols = colnames(covered_regions)[1:3]
-      coverage = GenomicRanges::makeGRangesFromDataFrame(covered_regions, seqnames.field = grange_cols[1], start.field = grange_cols[2], end.field = grange_cols[3])
+      coverage = GenomicRanges::makeGRangesFromDataFrame(covered_regions, seqnames.field = grange_cols[1], start.field = grange_cols[2], end.field = grange_cols[3], 
+                                                         seqinfo = genome_info)
     } else if (class(covered_regions) == "character") {
       coverage = read.table(covered_regions, comment.char = '#', sep = '\t', quote = '', blank.lines.skip = T, stringsAsFactors = F)
-      coverage = GenomicRanges::makeGRangesFromDataFrame(coverage, starts.in.df.are.0based = T, seqnames.field = "V1", start.field = "V2", end.field = "V3")
+      coverage = GenomicRanges::makeGRangesFromDataFrame(coverage, starts.in.df.are.0based = T, seqnames.field = "V1", start.field = "V2", end.field = "V3", seqinfo = genome_info)
     } else {
       stop("Error: covered_regions should be a path to a BED-formatted file, or a data-frame-like object with chr, start (1-based), end (inclusive) in the first three columns.")
     }
     
+    coverage = GenomicRanges::reduce(coverage)
     # name panel coverage groups "panel_1", "panel_2", etc.
     num_groups = length(coverage_update$samples_by_coverage)
     new_coverage_group_num = ifelse("exome" %in% names(coverage_update$samples_by_coverage), num_groups, num_groups + 1)
@@ -170,19 +186,37 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     
     # update sample_by_coverage and collection of granges
     coverage_update$samples_by_coverage[[new_group_name]] = unique(maf[, sample_col])
+    
+    # need to put the granges into an environment because list structure couldn't handle it in testing
+    if (! "granges" %in% coverage_update) {
+      coverage_update$granges = new.env()
+    }
     coverage_update$granges[[new_group_name]] = coverage
+    
+    # remove any MAF records that aren't in the provided coverage
+    maf_grange = makeGRangesFromDataFrame(maf, seqnames.field = chr_col, start.field = start_col, 
+                                          end.field = start_col, seqinfo = genome_info)
+    is_uncovered = ! maf_grange %within% coverage
+    num_uncovered = sum(is_uncovered)
+    
+    if (num_uncovered > 0) {
+      uncovered.maf = maf[is_uncovered,]
+      total = nrow(maf)
+      percent = round((num_uncovered / total) * 100, 1)
+      uncovered.maf$Exclusion_Reason = paste0("uncovered_in_", new_group_name)
+      maf = maf[!is_uncovered,]
+      excluded = rbind(excluded, uncovered.maf)
+      message(paste0("Warning: ", num_uncovered, " MAF records out of ", total, " (", percent, 
+                     "%) are at loci not covered in the input covered_regions. ",
+                     "\nThese mutations will be excluded from analysis."))
+    }
   }
   
   
-  # add samples CESProgressions object (don't actually assign to the CESAnalysis until the end of this function)
-  progressions_update = cancereffectsizeR:::add_samples_to_CESProgressions(progressions = cesa@progressions, samples = maf[,sample_col], sample_progressions = sample_progressions)
   
   
-  # strip chr prefixes from chr column, if present
-  maf[,chr_col] = gsub('^chr', '', maf[,chr_col])
   
-  # create MAF df to hold excluded records
-  excluded = data.frame()
+  
   
   # check for potential DNP/TNPs and separate them from data set
   # this is done before any other filtering to ensure catching as many of them as possible
@@ -258,6 +292,10 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   }
   
   num.good.snv = nrow(snv.maf)
+  
+  if (num.good.snv == 0) {
+    stop("Error: No SNVs are left to analyze!")
+  }
   num.samples = length(unique(snv.maf[, sample_col]))
   message(paste0("Loaded ", num.good.snv, " SNVs from ", num.samples, " samples into CESAnalysis."))
   

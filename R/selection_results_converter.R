@@ -41,11 +41,6 @@ selection_results_converter <- function(cesa, min_recurrence = 2){
   
   
   
-  # returns vector with number of tumors with coverage per progression stage
-  # get_num_tumors_with_coverage(variant_aa) {
-  #     pass
-  # }
-  
   maf = cesa@annotated.snv.maf
   
   tumors_by_stage = lapply(progression_names, function(x) get_progression_tumors(cesa@progressions, x))
@@ -60,7 +55,16 @@ selection_results_converter <- function(cesa, min_recurrence = 2){
   for (i in 1:nrow(selection_data_df)) {
     stage = selection_data_df[i, "subset"]
     variant_freq[i] = as.numeric(table_by_stage[[stage]][selection_data_df$unique_variant_ID[i]])
-    population_proportion[i] = variant_freq[i]/num_tumors_by_stage[[stage]]
+    if (variant_freq[i] == 0) {
+      next
+    }
+    # temporary way of getting current locus 
+    locus = cesa@annotated.snv.maf[cesa@annotated.snv.maf$unique_variant_ID == selection_data_df$unique_variant_ID[i], c("Chromosome", "Start_Position")][1,]
+    locus = paste0(locus[1], ':', locus[2]) # using format "chr:start"
+    current_stage_tumors = tumors_by_stage[[stage]]
+    covered_tumors = cancereffectsizeR:::get_tumors_with_coverage(coverage = cesa@coverage, locus = GenomicRanges::GRanges(locus))
+    num_tumors = length(current_stage_tumors[current_stage_tumors %in% covered_tumors])
+    population_proportion[i] = variant_freq[i]/num_tumors
   }
 
   selection_data_df$variant_freq = variant_freq
@@ -88,7 +92,5 @@ selection_results_converter <- function(cesa, min_recurrence = 2){
   }
 
   results_output <- selection_data_df[order(selection_data_df$selection_intensity,decreasing = T),]
-
-
   return(results_output)
 }
