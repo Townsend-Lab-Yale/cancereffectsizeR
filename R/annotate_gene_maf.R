@@ -119,7 +119,7 @@ annotate_gene_maf <- function(cesa) {
 	# If trinucleotide context yields N (or other non-ACTG character), remove record from analysis
 	bad_trinuc_context <- grepl('[^ACTG]', MAF$triseq)
 	if (any(bad_trinuc_context)) {
-		bad_trinuc_context_maf <- MAF[bad_trinuc_context,]
+		bad_trinuc_context_maf <- MAF[bad_trinuc_context, 1:5]
 		MAF <- MAF[!bad_trinuc_context,]
 		num_bad_records = nrow(bad_trinuc_context_maf) 
 		message(paste("Note:", num_bad_records, "MAF records were excluded from analysis because the reference genome has N's (non-specific bases) in their trinucleotide context."))
