@@ -31,7 +31,7 @@ selection_results_converter <- function(cesa, min_recurrence = 2){
              dplyr::case_when(sum(charToRaw(variant) == charToRaw(" "))==0 ~ paste(gene, variant),
                        sum(charToRaw(variant) == charToRaw(" "))>0 ~ variant)) %>%
     dplyr::ungroup() %>%
-    tidyr::unnest()
+    tidyr::unnest(cols = c(selection_intensity)) 
 
     selection_data$subset=rep(progression_names,nrow(selection_data)/length(progression_names))
 
