@@ -253,71 +253,7 @@ epistasis_gene_level = function(genes_to_analyze,
   trinuc_proportion_matrix = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix
   RefCDS = cesa@refcds_data
   progressions = cesa@progressions
-  # for now, just go with user-defined list
 
-
-  # CDS_sizes <- sapply(cesa@refcds_data, function(x) x$CDS_length)
-  # names(CDS_sizes) <- names(cesa@refcds_data)
-  #
-  #
-  # # want to prioritize genes with recurrent variants
-  # MAF$gene_AA_unique <- paste(MAF$Gene_name, MAF$unique_variant_ID_AA)
-  # gene_AA_table <- table(MAF$gene_AA_unique)
-  # MAF$gene_AA_tally <- gene_AA_table[MAF$gene_AA_unique]
-  # MAF$gene_has_recurrent_variant <- F
-  # if(length(which(MAF$gene_AA_tally>1))>0){
-  # 	genes_with_recurrent_variants <- MAF$Gene_name[which(MAF$gene_AA_tally>1)]
-  # 	MAF$gene_has_recurrent_variant[which(MAF$Gene_name %in% genes_with_recurrent_variants)] <- T
-  # }else{
-  # 	stop("There are no recurrent variants in the dataset, so you cannot
-  # 		run the gene-by-gene epistasis analysis")
-  # }
-  #
-  # MAF_all_sure <- MAF
-  # MAF_all_sure <- MAF_all_sure[MAF_all_sure$gene_has_recurrent_variant,]
-  #
-  # # list of tumors that contain recurrent variants per gene
-  # tumors_per_gene <- vector(mode = "list",length = length(unique(MAF_all_sure$Gene_name)))
-  # recurrent_gene_list <- unique(MAF_all_sure$Gene_name)
-  # names(tumors_per_gene) <- recurrent_gene_list
-  # for(gene in 1:length(tumors_per_gene)){
-  # 	tumors_per_gene[[gene]] <- MAF_all_sure[which(MAF_all_sure$Gene_name == recurrent_gene_list[gene] & MAF_all_sure$gene_AA_tally>1),"Unique_Patient_Identifier"]
-  # }
-  #
-  # # see which genes have recurrent variants >1 tumors
-  #
-  # selection_epistasis_results_list <- list()
-  #
-  # for(gene in 1:(length(tumors_per_gene)-1)){
-  #
-  # 	for(other_genes in (gene+1):length(tumors_per_gene)){
-  #
-  # 	# if there are more than one tumors with shared recurrent variants among the genes
-  # 	if(length(which(tumors_per_gene[[gene]] %in% tumors_per_gene[[other_genes]]))>1){
-  # 		selection_epistasis_results_list[[(length(selection_epistasis_results_list)+1)]] <- c(recurrent_gene_list[gene],recurrent_gene_list[other_genes])
-  # 	}
-  #
-  # 	}
-  # }
-
-
-  # MAF$identifier <- MAF$unique_variant_ID_AA
-  # MAF$identifier[
-  #   which(sapply(strsplit(MAF$identifier,split = " "),
-  #                function(x) length(x))==1)
-  #   ] <- paste(MAF$Gene_name[
-  #     which(sapply(strsplit(MAF$identifier,split = " "),
-  #                  function(x) length(x))==1)],
-  #     MAF$identifier[
-  #       which(sapply(strsplit(MAF$identifier,split = " "),
-  #                    function(x) length(x))==1)
-  #       ],sep=" ")
-
-  # selection_epistasis_results_list <- expand.grid(
-  # selection_epistasis_results <- t(utils::combn(genes_to_analyze,2))
-  # selection_epistasis_results <- data.frame(t(selection_epistasis_results),stringsAsFactors=F)
-  # rownames(selection_epistasis_results) <- c("Variant_1","Variant_2")
-  # selection_epistasis_results_list <- as.list(selection_epistasis_results)
 
   get_gene_results_epistasis_bygene <- function(variant_combo_list) {
 
@@ -325,11 +261,6 @@ epistasis_gene_level = function(genes_to_analyze,
 
     variant1 <- variant_combo_list[1]
     variant2 <- variant_combo_list[2]
-
-    # variant1_MAFindex <- which(MAF$identifier==variant1)[1]
-    # variant2_MAFindex <- which(MAF$identifier==variant2)[1]
-
-
 
     MAF_input1=MAF[MAF[,"Gene_name"] == variant1 &
                      MAF[,"Reference_Allele"] %in% c("A","T","G","C") &
@@ -345,7 +276,6 @@ epistasis_gene_level = function(genes_to_analyze,
 
     # only run the selection algorithm if there are 2 or more tumors with
     # recurrent variants of each gene present.
-    # if(length(tumors_with_both_mutated) > 1) {
 
 
     these_mutation_rates1 <-
@@ -377,25 +307,8 @@ epistasis_gene_level = function(genes_to_analyze,
     # we only consider selection at sites that are recurrently
     # substituted.
 
-
-    #TODO: JDM: unsure how to deal with no more $this_subset, and now
-    # it is $`1`... please double check to make sure this works.
-
-    these_mutation_rates1$mutation_rate_matrix <- as.matrix(these_mutation_rates1$mutation_rate_matrix[,colnames(these_mutation_rates1$mutation_rate_matrix) %in% names(these_mutation_rates1$variant_freq$`1`[these_mutation_rates1$variant_freq$`1`>1])])
-
-    these_mutation_rates2$mutation_rate_matrix <- as.matrix(these_mutation_rates2$mutation_rate_matrix[,colnames(these_mutation_rates2$mutation_rate_matrix) %in% names(these_mutation_rates2$variant_freq$`1`[these_mutation_rates2$variant_freq$`1`>1])])
-
-    # these_selection_results <- c(variant1,variant2,NA,NA,NA,NA,NA,NA,NA,NA)
-    # names(these_selection_results) <- c("Variant_1",
-    #                                     "Variant_2",
-    #                                     "Gamma_1",
-    #                                     "Gamma_2",
-    #                                     "Gamma_1_2background",
-    #                                     "Gamma_2_1background",
-    #                                     "tumors_with_ONLY_variant1_substituted",
-    #                                     "tumors_with_ONLY_variant2_substituted",
-    #                                     "tumors_with_both_substituted",
-    #                                     "tumors_with_neither_substituted")
+    these_mutation_rates1$mutation_rate_matrix <- as.matrix(these_mutation_rates1$mutation_rate_matrix[,colnames(these_mutation_rates1$mutation_rate_matrix) %in% names(variant_freq_1[variant_freq_1>1])])
+    these_mutation_rates2$mutation_rate_matrix <- as.matrix(these_mutation_rates2$mutation_rate_matrix[,colnames(these_mutation_rates2$mutation_rate_matrix) %in% names(variant_freq_2[variant_freq_2>1])])
 
     these_selection_results <- vector(mode = "list",length = 10)
     names(these_selection_results) <- c("Variant_1",
@@ -420,15 +333,13 @@ epistasis_gene_level = function(genes_to_analyze,
         gene2=variant2,
         specific_mut_rates1=these_mutation_rates1$mutation_rate_matrix,
         specific_mut_rates2=these_mutation_rates2$mutation_rate_matrix,
-        variant_freq_1 = these_mutation_rates1$variant_freq$`1`,
-        variant_freq_2 = these_mutation_rates2$variant_freq$`1`,
+        variant_freq_1 = variant_freq_1,
+        variant_freq_2 = variant_freq_2,
         full_gene_epistasis_lower_optim=full_gene_epistasis_lower_optim,
         full_gene_epistasis_upper_optim=full_gene_epistasis_upper_optim,
         full_gene_epistasis_fnscale=full_gene_epistasis_fnscale)
 
 
-    variant_freq_1 = these_mutation_rates1$variant_freq$`1`
-    variant_freq_2 = these_mutation_rates2$variant_freq$`1`
     # only the tumors containing a recurrent variant factor into the selection analysis
     tumors_with_variant1_mutated <- MAF_input1[which(MAF_input1$unique_variant_ID_AA %in% names(which(variant_freq_1>1))),"Unique_Patient_Identifier"]
     tumors_with_variant2_mutated <- MAF_input2[which(MAF_input2$unique_variant_ID_AA %in% names(which(variant_freq_2>1))),"Unique_Patient_Identifier"]
