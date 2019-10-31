@@ -269,15 +269,30 @@ epistasis_gene_level = function(genes_to_analyze,
     MAF_input2=MAF[MAF[,"Gene_name"] == variant2 &
                      MAF[,"Reference_Allele"] %in% c("A","T","G","C") &
                      MAF[,"Tumor_Allele"] %in% c("A","T","G","C"),]
-
-
+    
+    # when including target gene sequencing data, need to throw out any samples that don't have coverage at ALL variant sites in these genes
+    # this could be a problem if some of the "exome" samples are actually whole-genome if they haven't been trimmed strictly enough
+    
+    # this is clunky but okay for now and will change with next refactor
+    eligible_tumors = all_tumors # samples without coverage at all sites will get intersected out
+    for (maf in list(MAF_input1, MAF_input2)) {
+      for (i in 1:nrow(maf)) {
+        current_locus = GenomicRanges::makeGRangesFromDataFrame(maf[i,], seqnames.field = "Chromosome",
+                                                                start.field = "Start_Position", end.field = "Start_Position")
+        tumors_covering_locus = cancereffectsizeR:::get_tumors_with_coverage(coverage = cesa@coverage, locus = current_locus)
+        eligible_tumors = intersect(eligible_tumors, tumors_covering_locus) 
+      }
+    }
+    
+    # restrict MAFs to eligible tumors
+    MAF_input1 = MAF_input1[MAF_input1$Unique_Patient_Identifier %in% eligible_tumors,]
+    MAF_input2 = MAF_input2[MAF_input2$Unique_Patient_Identifier %in% eligible_tumors,]
+    
     variant_freq_1 <- table(MAF_input1$unique_variant_ID_AA)
     variant_freq_2 <- table(MAF_input2$unique_variant_ID_AA)
 
     # only run the selection algorithm if there are 2 or more tumors with
     # recurrent variants of each gene present.
-
-
     these_mutation_rates1 <-
       cancereffectsizeR::mutation_rate_calc(
         this_MAF = MAF_input1,
@@ -286,7 +301,7 @@ epistasis_gene_level = function(genes_to_analyze,
         trinuc_proportion_matrix = trinuc_proportion_matrix,
         gene_trinuc_comp = gene_trinuc_comp,
         RefCDS = RefCDS,
-        all_tumors = all_tumors,
+        all_tumors = eligible_tumors,
         progressions = progressions)
 
     these_mutation_rates2 <-
@@ -297,7 +312,7 @@ epistasis_gene_level = function(genes_to_analyze,
         trinuc_proportion_matrix = trinuc_proportion_matrix,
         gene_trinuc_comp = gene_trinuc_comp,
         RefCDS = RefCDS,
-        all_tumors = all_tumors,
+        all_tumors = eligible_tumors,
         progressions = progressions)
 
 
@@ -328,7 +343,7 @@ epistasis_gene_level = function(genes_to_analyze,
       cancereffectsizeR::optimize_gamma_epistasis_full_gene(
         MAF_input1=MAF_input1,
         MAF_input2=MAF_input2,
-        all_tumors=all_tumors,
+        all_tumors=eligible_tumors,
         gene1=variant1,
         gene2=variant2,
         specific_mut_rates1=these_mutation_rates1$mutation_rate_matrix,
@@ -350,22 +365,18 @@ epistasis_gene_level = function(genes_to_analyze,
 
     tumors_with_ONLY_variant2_mutated <- tumors_with_variant2_mutated[which(!tumors_with_variant2_mutated %in% tumors_with_variant1_mutated)]
 
-    tumors_with_neither_mutated <- setdiff(all_tumors, c(tumors_with_both_mutated,tumors_with_ONLY_variant1_mutated,tumors_with_ONLY_variant2_mutated))
+    # not all tumors with no mutations in the genes, just all that had coverage at all variant sites in both genes and no specific substitutions recurrent in other tumors
+    tumors_with_neither_mutated <- setdiff(eligible_tumors, c(tumors_with_both_mutated,tumors_with_ONLY_variant1_mutated,tumors_with_ONLY_variant2_mutated))
 
 
     these_selection_results$tumors_with_ONLY_variant1_substituted <- tumors_with_ONLY_variant1_mutated
     these_selection_results$tumors_with_ONLY_variant2_substituted <- tumors_with_ONLY_variant2_mutated
     these_selection_results$tumors_with_both_substituted <- tumors_with_both_mutated
     these_selection_results$tumors_with_neither_substituted <- tumors_with_neither_mutated
-
-
     return(these_selection_results)
   }
 
-
   selection_results <- get_gene_results_epistasis_bygene(genes_to_analyze)
-
-
   return(selection_results)
 }
 
