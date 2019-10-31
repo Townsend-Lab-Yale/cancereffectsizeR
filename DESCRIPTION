@@ -8,7 +8,7 @@ Description: cancereffectsizeR is an R package that may be used to calculate the
 Depends: R (>= 3.5.0)
 biocViews:
 Remotes: im3sanger/dndscv
-Imports: GenomicRanges, deconstructSigs, rtracklayer, BSgenome,
+Imports: GenomicRanges, deconstructSigs, GenomeInfoDb, rtracklayer, BSgenome,
         BSgenome.Hsapiens.UCSC.hg19, Biostrings, MASS, seqinr, dndscv,
         reshape2, S4Vectors, IRanges, dplyr, tidyr, optimx, magrittr, pbapply, crayon
 Suggests: 

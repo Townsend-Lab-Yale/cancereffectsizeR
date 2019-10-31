@@ -1,5 +1,6 @@
 #' load_maf
 #' @description Load MAF-formatted mutation data into a CESAnalysis object (the core cancereffectsizeR object)
+#' @importFrom IRanges "%within%"
 #' @param cesa the CESAnalysis object to load the data into
 #' @param maf Path of tab-delimited text file in MAF format, or an MAF in data.frame format
 #' @param sample_col column name with sample ID data
@@ -175,7 +176,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
       coverage = GenomicRanges::makeGRangesFromDataFrame(covered_regions, seqnames.field = grange_cols[1], start.field = grange_cols[2], end.field = grange_cols[3], 
                                                          seqinfo = genome_info)
     } else if (class(covered_regions) == "character") {
-      coverage = read.table(covered_regions, comment.char = '#', sep = '\t', quote = '', blank.lines.skip = T, stringsAsFactors = F)
+      coverage = read.table(file = covered_regions, comment.char = '#', sep = '\t', quote = '', blank.lines.skip = T, stringsAsFactors = F)
       coverage = GenomicRanges::makeGRangesFromDataFrame(coverage, starts.in.df.are.0based = T, seqnames.field = "V1", start.field = "V2", end.field = "V3", seqinfo = genome_info)
     } else {
       stop("Error: covered_regions should be a path to a BED-formatted file, or a data-frame-like object with chr, start (1-based), end (inclusive) in the first three columns.")
@@ -197,7 +198,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     coverage_update$granges[[new_group_name]] = coverage
     
     # remove any MAF records that aren't in the provided coverage
-    maf_grange = makeGRangesFromDataFrame(maf, seqnames.field = chr_col, start.field = start_col, 
+    maf_grange = GenomicRanges::makeGRangesFromDataFrame(maf, seqnames.field = chr_col, start.field = start_col, 
                                           end.field = start_col, seqinfo = genome_info)
     is_uncovered = ! maf_grange %within% coverage
     num_uncovered = sum(is_uncovered)
