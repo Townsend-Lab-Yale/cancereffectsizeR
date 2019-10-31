@@ -4,33 +4,19 @@ Title: Calculate Cancer Effect Size
 Version: 0.1.1
 Author: Vincent L. Cannataro
 Maintainer: Vincent L. Cannataro <vincent.cannataro@yale.edu>
-Description: cancereffectsizeR is an R package that may be used to calculate the effect size of single nucleotide variants (SNV) in cancer exome data. A user guide is available here: https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/user_guide/cancereffectsizeR_user_guide.md 
-Depends: 
-    R (>= 3.5.0),
-    GenomicRanges,
-    deconstructSigs
-Imports:
-    rtracklayer,
-    BSgenome,
-    BSgenome.Hsapiens.UCSC.hg19,
-    Biostrings,
-    MASS,
-    seqinr,
-    dndscv,
-    reshape2,
-    S4Vectors,
-    IRanges,
-    dplyr,
-    optimx,
-    magrittr,
-    pbapply
+Description: cancereffectsizeR is an R package that may be used to calculate the effect size of single nucleotide variants (SNV) in cancer exome data.
+Depends: R (>= 3.5.0)
+biocViews:
+Remotes: im3sanger/dndscv
+Imports: GenomicRanges, deconstructSigs, GenomeInfoDb, rtracklayer, BSgenome,
+        BSgenome.Hsapiens.UCSC.hg19, Biostrings, MASS, seqinr, dndscv,
+        reshape2, S4Vectors, IRanges, dplyr, tidyr, optimx, magrittr, pbapply, crayon
+Suggests: 
+    ggplot2,
+    knitr,
+    rmarkdown      
 License: GPL-3
 Encoding: UTF-8
 LazyData: false
 RoxygenNote: 6.1.1
-Suggests: 
-    ggplot2,
-    knitr,
-    rmarkdown,
-    tidyr
 VignetteBuilder: knitr

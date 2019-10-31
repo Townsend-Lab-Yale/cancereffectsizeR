@@ -2,31 +2,23 @@
 % Please edit documentation in R/CESAnalysis.R
 \name{CESAnalysis}
 \alias{CESAnalysis}
-\title{Reads in an MAF file or data frame and creates a CESAnalysis object (the data structure used by cancereffectsizeR)}
+\title{CESAnalysis}
 \usage{
-CESAnalysis(maf = NULL, sample_col = "Tumor_Sample_Barcode",
-  chr_col = "Chromosome", start_col = "Start_Position",
-  ref_col = "Reference_Allele", tumor_allele_col = "guess",
-  progression_col = NULL, progression_order = NULL)
+CESAnalysis(progression_order = NULL, maf = NULL,
+  genome_build = "hg19", ...)
 }
 \arguments{
-\item{maf}{Path of tab-delimited text file in MAF format, or an MAF in data.frame format}
+\item{progression_order}{evolutionary order of tumor stage progression (e.g. c("Primary", "Metastatic"))}
 
-\item{sample_col}{column name with sample ID data}
+\item{maf}{optional path of tab-delimited text file in MAF format, or an MAF in data.frame format}
 
-\item{chr_col}{column name with chromosome data}
+\item{genome_build}{Genome build of MAF data (currently, just hg19 supported)}
 
-\item{start_col}{column name with start position ( currently only analyze SNVs, so no end position needed)}
-
-\item{ref_col}{column name with reference allele data}
-
-\item{tumor_allele_col}{column name with alternate allele data (defaults to "guess", which examines ref_col,
-"Tumor_Seq_Allele1", and "Tumor_Seq_Allele2" and determines from there)}
-
-\item{progression_col}{column in MAF with subset data (e.g., column contains data like "Primary" and "Metastatic" in each row)}
-
-\item{progression_order}{evolutionary order of events in progression_col. (e.g. c("Primary", "Metastatic")}
+\item{...}{when loading MAF data, supply additional arguments for load_maf}
+}
+\value{
+CESAnalysis object
 }
 \description{
-Reads in an MAF file or data frame and creates a CESAnalysis object (the data structure used by cancereffectsizeR)
+Creates a CESAnalysis object (the data structure used by cancereffectsizeR), and optionally loads in MAF data
 }

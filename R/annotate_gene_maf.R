@@ -7,7 +7,7 @@
 
 
 annotate_gene_maf <- function(cesa) {
-	MAF = cesa@main.maf
+	MAF = cesa@maf
 	bases = c("A", "C", "T", "G")
 
 	# subset to SNVs
@@ -70,9 +70,9 @@ annotate_gene_maf <- function(cesa) {
 
 	for(i in 1:length(multi_choice)){
 		# first, assign if the nearest happened to be within the GenomicRanges::findOverlaps() and applicable to one gene
-		if(length(which(queryHits(gene_name_matches) == multi_choice[i])) == 1){
+		if(length(which(S4Vectors::queryHits(gene_name_matches) == multi_choice[i])) == 1){
 
-			MAF_unmatched[multi_choice[i],"Gene_name"] <- gr_genes$names[subjectHits(gene_name_matches)[which(queryHits(gene_name_matches) == multi_choice[i])]]
+			MAF_unmatched[multi_choice[i],"Gene_name"] <- gr_genes$names[subjectHits(gene_name_matches)[which(S4Vectors::queryHits(gene_name_matches) == multi_choice[i])]]
 
 		}else{
 
@@ -117,13 +117,14 @@ annotate_gene_maf <- function(cesa) {
 	                   end=MAF$Start_Position+1))
 
 	# If trinucleotide context yields N (or other non-ACTG character), remove record from analysis
-	# For now, just prints a message; improve user reporting in the future
 	bad_trinuc_context <- grepl('[^ACTG]', MAF$triseq)
 	if (any(bad_trinuc_context)) {
-		bad_trinuc_context_maf <- MAF[bad_trinuc_context,]
+		bad_trinuc_context_maf <- MAF[bad_trinuc_context, 1:5]
 		MAF <- MAF[!bad_trinuc_context,]
 		num_bad_records = nrow(bad_trinuc_context_maf) 
-		message(paste("Note:", num_bad_records, "MAF records were removed from analysis because N's were found in their trinucleotide context."))
+		message(paste("Note:", num_bad_records, "MAF records were excluded from analysis because the reference genome has N's (non-specific bases) in their trinucleotide context."))
+		bad_trinuc_context_maf$Exclusion_Reason = "ambiguous_trinuc_context"
+		cesa@excluded = MAFdf(rbind(cesa@excluded, bad_trinuc_context_maf))
 	}
 		
 

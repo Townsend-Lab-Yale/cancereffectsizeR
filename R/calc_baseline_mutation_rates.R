@@ -3,10 +3,8 @@
 #'
 #' @param cesa CESAnalysis object
 #' @param covariate_file tissue-specific covariate file for dNdScv (gene-level mutation rate calculation)
-#' @param trinuc_all_tumors Calculates trinucleotide signatures within all tumors (even those with < 50 variants)
 #' @param signature_choice Either "signatures_cosmic_May2019" (default) or "signatures.cosmic" (COSMIC signatures v2 originally packaged with deconstructSigs).
 #' @param signatures_to_remove Removes signatures from full potential signatures to minimize "signature bleeding", along the rationale proposed within the manuscript that originally calculated the v3 signature set doi: https://doi.org/10.1101/322859. Use `NULL` to keep all signatures. Signatures must correspond to the signature names in `signature_choice`.
-#' @param tumor_specific_rate_choice
 #' @param trinuc_algorithm_choice
 #' @param artifact_accounting
 #' @param BIG_mem if FALSE then it deletes some information that, while maybe useful to the user, is unnecessary for the `effect_size_SNV` function
@@ -21,8 +19,6 @@ calc_baseline_mutation_rates <- function(
       cesa = NULL,
       covariate_file=NULL,
       #cores = 1, # currently unused, but could add multicore functionality for dNdScv and possibly deconstructSigs
-      tumor_specific_rate_choice = F, # not currently used
-      trinuc_all_tumors = T, # not currently used
       signature_choice = "signatures_cosmic_May2019",
       trinuc_algorithm_choice="weighted",
       artifact_accounting = T,
@@ -52,7 +48,7 @@ calc_baseline_mutation_rates <- function(
        cesa@dndscv_out_list[[subset_index]] <-  list(sel_cv = cesa@dndscv_out_list[[subset_index]]$sel_cv)
       }
 
-      cesa@main.maf <- cancereffectsizeR::MAFdf(cesa@main.maf[1,])
+      cesa@maf <- cancereffectsizeR::MAFdf(cesa@maf[1,])
 
       # only need RefCDS that will be useful downstream
 

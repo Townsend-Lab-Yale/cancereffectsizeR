@@ -19,12 +19,13 @@ mutation_rate_calc <- function(this_MAF,
                                trinuc_proportion_matrix,
                                gene_trinuc_comp,
                                RefCDS,
-                               relative_substitution_rates,
-                               tumor_specific_rate=F,
                                all_tumors,
                                progressions
                                ){
 
+  # trinuc_proportion_matrix: rows = samples, columns = relative frequency of trinucleotide-context-specific mutation (sums to 1)
+  # mutation_rate_nucs: rows = samples, columns = gene-specific relative frequency of trinuclotide-context-specific
+  ##                    mutations, calculated by normalizing trinuc_proportion_matrix by gene content
   mutation_rate_nucs <- matrix(nrow=nrow(trinuc_proportion_matrix),ncol=ncol(trinuc_proportion_matrix),data = NA)
   rownames(mutation_rate_nucs) <- rownames(trinuc_proportion_matrix)
   colnames(mutation_rate_nucs) <- colnames(trinuc_proportion_matrix)
@@ -58,24 +59,6 @@ mutation_rate_calc <- function(this_MAF,
   # need to find unique variants and then rates
 
 
-  # frequency of all variants in the different subsets.
-  variant_freq_list <- vector(mode = "list", length = length(progressions@order))
-  names(variant_freq_list) <- names(progressions@order)
-  for(this_level in 1:length(progressions@order)){
-    variant_freq_list[[this_level]] <- c(
-      table(this_MAF[this_MAF$Unique_Patient_Identifier %in% get_progression_tumors(progressions, this_level),
-                     "unique_variant_ID_AA"]),
-      setNames(rep(0,length(base::setdiff(unique(this_MAF[,
-                                                          "unique_variant_ID_AA"]),
-                                          unique(this_MAF[this_MAF$Unique_Patient_Identifier %in% get_progression_tumors(progressions, this_level),
-                                                          "unique_variant_ID_AA"])))),
-               base::setdiff(unique(this_MAF[,
-                                             "unique_variant_ID_AA"]),
-                             unique(this_MAF[this_MAF$Unique_Patient_Identifier %in% get_progression_tumors(progressions, this_level),
-                                                          "unique_variant_ID_AA"])))
-      )
-  }
-
   this_MAF <- this_MAF[!duplicated(this_MAF[,c("unique_variant_ID_AA")]),]
 
   # Need to account for different nucleotide changes giving the same amino acid
@@ -85,6 +68,8 @@ mutation_rate_calc <- function(this_MAF,
 
   # as.numeric(gsub("\\D", "", dndscvout$annotmuts$ntchange))
 
+  # mutation rate matrix: rows = tumors, columns = expected relative rates of amino acid changes in gene for tumor
+  ## this is determined by summing over the rates for different nucleotides mutations that create same amino acid changes
   mutation_rate_matrix <- matrix(nrow=nrow(trinuc_proportion_matrix), ncol=nrow(this_MAF))
   rownames(mutation_rate_matrix) <- rownames(trinuc_proportion_matrix)
   colnames(mutation_rate_matrix) <- this_MAF$unique_variant_ID_AA
@@ -119,21 +104,12 @@ mutation_rate_calc <- function(this_MAF,
     }
   }
 
-  # adjusting tumor-specific rate to reflect the tumor-specific non-recurrent substitution load
-
-  # mutation_rate_matrix_rel <- (mutation_rate_matrix) * t(relative_substitution_rates[rownames(mutation_rate_matrix)])
-  if(tumor_specific_rate){
-    for(this_row in 1:nrow(mutation_rate_matrix)){
-      mutation_rate_matrix[this_row,] <-  mutation_rate_matrix[this_row,] * relative_substitution_rates[rownames(mutation_rate_matrix)[this_row]]
-    }
-  }
   unsure_genes_vec <- this_MAF$unsure_gene_name
 
 
 
   return(list(mutation_rate_matrix=mutation_rate_matrix,
               unsure_genes_vec=unsure_genes_vec,
-              variant_freq = variant_freq_list,
               unique_variant_ID_vec = this_MAF$unique_variant_ID))
 
 }

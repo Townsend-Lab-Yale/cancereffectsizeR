@@ -1,39 +1,35 @@
 setClass("CESProgressions", representation(order = "numeric", progression_by_tumor = "environment",
-                                            tumors_by_progression = "environment"))
+                                            tumors_by_progression = "environment", num_tumors = "numeric"))
 setValidity("CESProgressions",
   function(object) {
     problems = character()
     if (length(object@order) == 0) {
       problems = c(problems, "Need at least one tumor progression stage for effect size analysis")
     }
-    if (length(ls(object@progression_by_tumor)) == 0) {
-      problems = c(problems, "No tumors in tumor progression dictionary")
-    } else {
-        invalid_progressions = character()
-        for (tumor in ls(envir = object@progression_by_tumor)) {
-            progression = get(tumor, envir = object@progression_by_tumor)
-            if (! is.numeric(progression)) {
-                problems = c(problems, "tumor progression dictionary contains non-numeric values")
-                break
-            }
-            if(length(progression) != 1) {
-              problems = c(problems, "tumor progression dictionary values should be numeric vectors of length 1")
-              break
-            }
-            if (! progression %in% object@order) {
-              invalid_progressions = c(invalid_progressions, progression)
-            }
+    invalid_progressions = character()
+    for (tumor in ls(envir = object@progression_by_tumor)) {
+        progression = get(tumor, envir = object@progression_by_tumor)
+        if (! is.numeric(progression)) {
+            problems = c(problems, "tumor progression dictionary contains non-numeric values")
+            break
         }
-        if (length(invalid_progressions) > 0) {
-          if (length(invalid_progressions) > 10) {
-            num_additional = length(invalid_progressions) - 10
-            invalid_progressions = paste0(paste(invalid_progressions[1:10], collapse=", "), " (and ", num_additional, " more)")
-          } else {
-            invalid_progressions = paste(invalid_progressions, collapse=", ")
-          }
-          problems = c(problems, paste0("Tumor progression dictionary includes progression stages not found in ",
-                      "tumor progression order:\n", invalid_progressions))
+        if(length(progression) != 1) {
+          problems = c(problems, "tumor progression dictionary values should be numeric vectors of length 1")
+          break
         }
+        if (! progression %in% object@order) {
+          invalid_progressions = c(invalid_progressions, progression)
+        }
+    }
+    if (length(invalid_progressions) > 0) {
+      if (length(invalid_progressions) > 10) {
+        num_additional = length(invalid_progressions) - 10
+        invalid_progressions = paste0(paste(invalid_progressions[1:10], collapse=", "), " (and ", num_additional, " more)")
+      } else {
+        invalid_progressions = paste(invalid_progressions, collapse=", ")
+      }
+      problems = c(problems, paste0("Input data lists tumor progression stages not found in ",
+                  "CESAnalysis object's tumor progression order:\n", invalid_progressions))
     }
     if (length(problems) > 0) {
       problems
@@ -90,24 +86,14 @@ setValidity("MAFdf",
 
 
 
-setClass("CESAnalysis", representation(main.maf = "MAFdf", annotated.snv.maf = "MAFdf", trinucleotide_mutation_weights = "list",
+setClass("CESAnalysis", representation(maf = "MAFdf", annotated.snv.maf = "MAFdf", trinucleotide_mutation_weights = "list",
           progressions = "CESProgressions", mutrates_list = "list", dndscv_out_list = "list",
-          relative_substitution_rates = "table", refcds_data = "array", excluded = "environment", selection_results = "list"))
+          refcds_data = "array", excluded = "MAFdf", selection_results = "list", coverage = "list",
+          genome_build = "character"))
 
-## To-do: Add generic methods for editing slots that enfore these validity checks
-## Currently, validity is only checked on object creation, so downstream functions can mess up the object
 setValidity("CESAnalysis",
     function(object) {
-      ## Can add more validation later
-      problems = character()
-      if (nrow(object@main.maf) == 0) {
-        problems = c(problems, "CESAnalysis must be provided MAF data")
-      }
-
-      if (length(problems) > 0) {
-        problems
-      } else{
-        TRUE
-      }
+     # add validation later
+     TRUE
     }
 )

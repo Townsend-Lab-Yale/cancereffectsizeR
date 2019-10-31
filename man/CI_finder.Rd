@@ -4,13 +4,14 @@
 \alias{CI_finder}
 \title{MLE CI finder}
 \usage{
-CI_finder(gamma_max, all_tumors, MAF_input, progressions, gene, variant,
-  specific_mut_rates, log_units_down = 10.828/2, threshold = 0.01)
+CI_finder(gamma_max, eligible_tumors, MAF_input, progressions, gene,
+  variant, specific_mut_rates, log_units_down = 10.828/2,
+  threshold = 0.01)
 }
 \arguments{
 \item{gamma_max}{selection intensity that maximizes the objective function}
 
-\item{all_tumors}{A list of all the tumors we are calculating the likelihood across}
+\item{eligible_tumors}{A list of all the tumors we are calculating the likelihood across (excludes tumors without coverage at site)}
 
 \item{MAF_input}{A data frame that includes columns "Unique_Patient_Identifier", "Gene_name", and "unique_variant_ID_AA"}
 

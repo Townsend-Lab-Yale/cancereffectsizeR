@@ -3,14 +3,14 @@
 #' @importFrom magrittr "%>%"
 #'
 #' @param cesa CESAnalysis object with selection intensity results
-#' @param subset_greater_than_freq subsetting the data for only substitutions in more than this number of tumors
+#' @param min_recurrence   minimum number of samples in which a mutation must appear for the mutation to be included in results
 #'
 #' @return
 #' @export
 #'
 #' @examples
 #'
-selection_results_converter <- function(cesa, subset_greater_than_freq=1){
+selection_results_converter <- function(cesa, min_recurrence = 2){
 
   gene_adder <- function(x){
     holder <- x$selection_results
@@ -19,12 +19,9 @@ selection_results_converter <- function(cesa, subset_greater_than_freq=1){
   }
 
   selection_results = cesa@selection_results
-  levels_in_selection_analysis <- names(cesa@progressions@order)
+  progression_names <- names(cesa@progressions@order)
 
-  subset_col = factor(levels_in_selection_analysis, levels = levels_in_selection_analysis, ordered = T)
-  unique_tumors = sapply(cesa@progressions@order, function(x) length(get_progression_tumors(cesa@progressions, x)))
 
-  subsets = dplyr::tibble(subset_col = subset_col, unique_tumors = unique_tumors)
 
   selection_data <- selection_results %>%
     lapply(., gene_adder) %>%
@@ -34,48 +31,66 @@ selection_results_converter <- function(cesa, subset_greater_than_freq=1){
              dplyr::case_when(sum(charToRaw(variant) == charToRaw(" "))==0 ~ paste(gene, variant),
                        sum(charToRaw(variant) == charToRaw(" "))>0 ~ variant)) %>%
     dplyr::ungroup() %>%
-    tidyr::unnest()
+    tidyr::unnest(cols = c(selection_intensity)) 
 
-    selection_data$subset=rep(levels_in_selection_analysis,nrow(selection_data)/length(levels_in_selection_analysis))
+    selection_data$subset=rep(progression_names,nrow(selection_data)/length(progression_names))
 
-  selection_data$population_proportion <- NA
-
-  for(subset_index in 1:nrow(subsets)){
-    selection_data[which(selection_data[,"subset"] == as.character(as.matrix(subsets[subset_index,1]))),"population_proportion"] <- selection_data[which(selection_data[,"subset"] == as.character(as.matrix(subsets[subset_index,1]))),"variant_freq"] / as.numeric(subsets[subset_index,"unique_tumors"])
-  }
-
-  selection_data <- selection_data %>%
-    dplyr::mutate(population_percent =
-             paste(round(population_proportion*100,2), "%", sep=""))
 
 
   selection_data_df <- as.data.frame(selection_data,stringsAsFactors =F)
-  selection_data_df$variant_freq <- as.numeric(selection_data_df$variant_freq)
-  selection_data_df <- selection_data_df[selection_data_df$variant_freq>subset_greater_than_freq,]
+  
+  
+  
+  maf = cesa@annotated.snv.maf
+  
+  tumors_by_stage = lapply(progression_names, function(x) get_progression_tumors(cesa@progressions, x))
+  names(tumors_by_stage) = progression_names
+  num_tumors_by_stage = lapply(tumors_by_stage, length)
+  names(num_tumors_by_stage) = progression_names
+  table_by_stage = lapply(tumors_by_stage, function(x) table(maf$unique_variant_ID[maf$Unique_Patient_Identifier %in% x] ))
+  
+  variant_freq = numeric(nrow(selection_data_df))
+  population_proportion = variant_freq
+  
+  for (i in 1:nrow(selection_data_df)) {
+    stage = selection_data_df[i, "subset"]
+    variant_freq[i] = as.numeric(table_by_stage[[stage]][selection_data_df$unique_variant_ID[i]])
+    if (is.na(variant_freq[i]) | variant_freq[i] == 0) {
+      next
+    }
+    # temporary way of getting current locus 
+    locus = cesa@annotated.snv.maf[cesa@annotated.snv.maf$unique_variant_ID == selection_data_df$unique_variant_ID[i], c("Chromosome", "Start_Position")][1,]
+    locus = paste0(locus[1], ':', locus[2]) # using format "chr:start"
+    current_stage_tumors = tumors_by_stage[[stage]]
+    covered_tumors = cancereffectsizeR:::get_tumors_with_coverage(coverage = cesa@coverage, locus = GenomicRanges::GRanges(locus))
+    num_tumors = length(current_stage_tumors[current_stage_tumors %in% covered_tumors])
+    population_proportion[i] = variant_freq[i]/num_tumors
+  }
+
+  selection_data_df$variant_freq = variant_freq
+  selection_data_df$population_proportion = population_proportion
+  
+  selection_data_df <- selection_data_df[! is.na(selection_data_df$variant_freq) & selection_data_df$variant_freq>=min_recurrence,]
   selection_data_df$selection_intensity <- as.numeric(selection_data_df$selection_intensity)
 
-  dndscv_results <- vector(mode = "list",length = length(levels_in_selection_analysis))
+  dndscv_results <- vector(mode = "list",length = length(progression_names))
   names(dndscv_results) <- names(cesa@dndscv_out_list)
 
   for(subset_index in 1:length(dndscv_results)){
     dndscv_results[[subset_index]] <- cesa@dndscv_out_list[[subset_index]]$sel_cv
     rownames(dndscv_results[[subset_index]]) <- dndscv_results[[subset_index]]$gene_name
 
-    if(length(which(selection_data_df$subset == levels_in_selection_analysis[subset_index]))>0){
+    if(length(which(selection_data_df$subset == progression_names[subset_index]))>0){
     selection_data_df[which(selection_data_df$subset ==
-                              levels_in_selection_analysis[subset_index]),
+                              progression_names[subset_index]),
                       "dndscv_q"] <-
       dndscv_results[[subset_index]][
         selection_data_df[which(selection_data_df$subset ==
-                                  levels_in_selection_analysis[subset_index]),"gene"],
+                                  progression_names[subset_index]),"gene"],
         "qallsubs_cv"]
     }
   }
 
-  # selection_data_df$dndscv_q  <- dndscv_results[selection_data_df[,"gene"],"qallsubs_cv"]
-
   results_output <- selection_data_df[order(selection_data_df$selection_intensity,decreasing = T),]
-
-
   return(results_output)
 }

@@ -4,10 +4,18 @@
 \alias{CESProgressions}
 \title{CESProgressions}
 \usage{
-CESProgressions(samples, sample_progressions, ordered_progression_labels)
+CESProgressions(samples = NULL, sample_progressions = NULL,
+  ordered_progression_labels)
 }
 \arguments{
-\item{ordered_progression_labels}{}
+\item{samples}{a vector of unique patient identifiers}
+
+\item{sample_progressions}{a vector of tumor progression stages corresonding to samples}
+
+\item{ordered_progression_labels}{vector of progression stages in chronological order (e.g. c("1", "2", "3", ))}
+}
+\value{
+a CESProgressions object for keeping track of tumor stages in a data set
 }
 \description{
 CESProgressions

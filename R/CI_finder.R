@@ -2,7 +2,7 @@
 #'
 #' @param gamma_max selection intensity that maximizes the objective function
 #' @param MAF_input A data frame that includes columns "Unique_Patient_Identifier", "Gene_name", and "unique_variant_ID_AA"
-#' @param all_tumors A list of all the tumors we are calculating the likelihood across
+#' @param eligible_tumors A list of all the tumors we are calculating the likelihood across (excludes tumors without coverage at site)
 #' @param progressions CESProgressions object
 #' @param gene The gene we want to look at
 #' @param variant The variant we want to look at
@@ -15,7 +15,7 @@
 #'
 #' @examples
 CI_finder <- function(gamma_max,
-                      all_tumors,
+                      eligible_tumors,
                       MAF_input,
                       progressions,
                       gene,
@@ -28,8 +28,8 @@ CI_finder <- function(gamma_max,
 
   # Temporary fix (simplify CI_finder parameters later)
   tumors_with_pos_mutated <- MAF_input$Unique_Patient_Identifier[MAF_input$unique_variant_ID_AA==variant & MAF_input$Gene_name==gene]
-  tumors_without_gene_mutated <- all_tumors[ ! all_tumors %in% unique(MAF_input$Unique_Patient_Identifier[MAF_input$Gene_name==gene])]
-  tumor_stages = get_progression_number(progressions, all_tumors)
+  tumors_without_gene_mutated <- eligible_tumors[ ! eligible_tumors %in% unique(MAF_input$Unique_Patient_Identifier[MAF_input$Gene_name==gene])]
+  tumor_stages = get_progression_number(progressions, eligible_tumors)
 
 
   max_likelihood <- cancereffectsizeR::ml_objective(gamma = gamma_max, tumor_stages = tumor_stages, tumors_without_gene_mutated = tumors_without_gene_mutated,
