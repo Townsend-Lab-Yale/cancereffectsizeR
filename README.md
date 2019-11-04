@@ -14,7 +14,7 @@ CancereffectsizeR installation requires R 3.5.0 or later and a recent version of
 install.packages("devtools")
 
 # Install cancereffectsizeR and dependencies
-devtools::install_github("Townsend-Lab-Yale/cancereffectsizeR/")
+devtools::install_github("Townsend-Lab-Yale/cancereffectsizeR")
 
 ```
 
