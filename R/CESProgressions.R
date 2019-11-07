@@ -41,6 +41,9 @@ add_samples_to_CESProgressions = function(progressions, samples, sample_progress
   for (i in 1:length(samples)) {
     tumor = as.character(samples[i])
     progression_label = sample_progressions[i]
+    if (! progression_label %in% progression_order) {
+      stop(paste0("Error: Unexpected progressions stage (\"", progression_label, "\") in MAF data"))
+    }
     progression_number = progression_order[[progression_label]]
     if (exists(tumor, progression_by_tumor) && progression_by_tumor[[tumor]] != progression_number) {
       if (already_samples) {

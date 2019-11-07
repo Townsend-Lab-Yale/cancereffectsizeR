@@ -57,11 +57,6 @@ gene_level_mutation_rates <- function(cesa, covariate_file = NULL){
 
 
   RefCDS_our_genes <- RefCDS[which(sapply(RefCDS, function(x) x$gene_name) %in% dndscv_out_list[[1]]$genemuts$gene_name)]
-
-  # collect the garbage
-  gc()
-
-
   mutrates_list <- vector(mode = "list",length = length(cesa@progressions@order))
   names(mutrates_list) <- names(cesa@progressions@order)
 

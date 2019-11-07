@@ -48,7 +48,6 @@ calc_baseline_mutation_rates <- function(
        cesa@dndscv_out_list[[subset_index]] <-  list(sel_cv = cesa@dndscv_out_list[[subset_index]]$sel_cv)
       }
 
-      cesa@maf <- cancereffectsizeR::MAFdf(cesa@maf[1,])
 
       # only need RefCDS that will be useful downstream
 

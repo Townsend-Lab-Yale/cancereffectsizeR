@@ -1,0 +1,5 @@
+Tumor_Sample_Barcode	Chromosome	Start_Position	Reference_Allele	Tumor_Allele	stage
+sample-A	X	2000000	C	G	1
+sample-A	chr2	50000003	T	A	3
+Sample-B	chr2	50000003	AA	-	4
+sample-C	chr2	50000003	AC	-	4

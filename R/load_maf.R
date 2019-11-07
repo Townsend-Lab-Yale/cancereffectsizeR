@@ -28,6 +28,11 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     stop("You must supply a progression_col for your MAF since your analysis covers multiple progression stages")
   }
   
+  if (! is.null(progression_col) & length(cesa@progressions@order) == 1) {
+    stop(paste0("This CESAnalysis is not stage-specific, so you can't use the \"progression_col\" argument.\n",
+                "Create a new CESAnalysis with \"progression_order\" specified to include this information.")) 
+  }
+  
   if (is.null(covered_regions)) {
     stop("You must supply covered_regions. For whole-exome/whole-genome data, use the default setting \"exome\".")
   }
@@ -54,8 +59,10 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
       stop("Specified MAF not found.")
     }
   }
-  if(class(maf) != "data.frame") {
+  if(! "data.frame" %in% class(maf)) {
     stop(bad_maf_msg)
+  } else if(nrow(maf) == 0) {
+    stop("Input MAF data set is empty.")
   }
   
   missing_cols = character()

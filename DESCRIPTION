@@ -14,7 +14,9 @@ Imports: GenomicRanges, deconstructSigs, GenomeInfoDbData, GenomeInfoDb, rtrackl
 Suggests: 
     ggplot2,
     knitr,
-    rmarkdown      
+    rmarkdown,
+    parallel,
+    testthat (>= 2.1.0)
 License: GPL-3
 Encoding: UTF-8
 LazyData: false

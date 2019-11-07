@@ -1,0 +1,92 @@
+sample_id	Chromosome	Start_Position	Reference_Allele	Tumor_Seq_Allele2	Match_Norm_Seq_Allele1	Entrez_Gene_Id_answerkey	Hugo_Symbol_answerkey	Variant_Classification_answerkey	Note
+sample-A	X	2000000	C	G	C	.	.	.	bad ref allele (actually G)
+sample-A	chr2	50000003	T	A	A	.	.	.	bad ref allele (actually A)
+Sample-B	chr2	50000003	AA	-	A	.	.	.	valid deletion
+sample-C	chr2	50000003	AC	-	A	.	.	.	bad ref (should be AA)
+sample-D	17	41107177	T	A	T	.	.	.	DNV
+sample-D	17	41107179	T	A	T	.	.	.	DNV
+sample-E	17	41107179	T	A	T	.	.	.	Not DNV
+sample-E	17	41107176	T	C	T	.	.	.	Not DNV
+sample-F	chrMT	100	T	A	T	.	.	.	chrM not supported
+sample-F	M	2	A	C	A	.	.	.	chrM not supported
+sample-68	6	44240870	T	C	T	441151	TMEM151B	Missense_Mutation	
+sample-52	6	44241069	C	A	C	441151	TMEM151B	Nonsense_Mutation	
+sample-70	6	74079412	C	A	C	441161	OOEP	Missense_Mutation	
+sample-20	7	57522791	C	A	C	441234	ZNF716	Missense_Mutation	
+sample-70	7	57529492	G	T	G	441234	ZNF716	Missense_Mutation	
+sample-29	7	57528530	G	T	G	441234	ZNF716	Missense_Mutation	
+sample-18	7	57529455	C	A	C	441234	ZNF716	Missense_Mutation	
+sample-22	7	99917263	C	A	C	441272	SPDYE3	Silent	
+sample-26	7	99917345	C	G	C	441272	SPDYE3	Missense_Mutation	
+sample-52	7	134262504	T	A	T	441282	AKR1B15	Missense_Mutation	
+sample-42	7	134260646	C	G	C	441282	AKR1B15	Missense_Mutation	
+sample-70	7	134262523	C	A	C	441282	AKR1B15	Missense_Mutation	
+sample-42	7	134254183	G	T	G	441282	AKR1B15	Nonsense_Mutation	
+sample-20	7	134260645	G	T	G	441282	AKR1B15	Missense_Mutation	
+sample-42	7	134262489	G	A	G	441282	AKR1B15	Missense_Mutation	
+sample-86	9	90537219	G	T	G	441452	SPATA31C1	RNA	
+sample-10	9	99701145	C	A	C	441457	NUTM2G	Nonsense_Mutation	
+sample-12	X	102977191	C	A	C	441509	GLRA4	Nonsense_Mutation	
+sample-86	X	102979105	A	T	A	441509	GLRA4	Missense_Mutation	
+sample-87	X	102979032	C	G	C	441509	GLRA4	Missense_Mutation	
+sample-23	X	102978839	C	A	C	441509	GLRA4	Missense_Mutation	
+sample-92	X	134947996	C	A	C	441521	CT45A5	Missense_Mutation	
+sample-70	X	77224504	G	t	G	441531	PGAM4	Missense_Mutation	
+sample-75	10	135438871	A	T	A	441581	FRG2B	Missense_Mutation	
+sample-23	11	58170120	A	T	A	441608	OR5B3	Missense_Mutation	
+sample-32	12	55524274	T	C	T	441639	OR9K2	Missense_Mutation	
+sample-79	12	55524102	C	T	C	441639	OR9K2	Nonsense_Mutation	
+sample-33	14	20215631	G	T	G	441669	OR4Q3	Silent	
+sample-92	14	20216002	C	A	C	441669	OR4Q3	Missense_Mutation	
+sample-39	14	20216391	G	T	G	441669	OR4Q3	Missense_Mutation	
+sample-29	14	20249099	C	T	C	441670	OR4M1	Silent	
+sample-26	14	20248803	G	A	G	441670	OR4M1	Missense_Mutation	
+sample-51	14	20248803	G	C	G	441670	OR4M1	Missense_Mutation	
+sample-29	19	54578119	G	T	G	441864	TARM1	Missense_Mutation	
+sample-98	1	159283705	C	T	C	441911	OR10J3	Missense_Mutation	
+sample-104	1	159283703	G	T	G	441911	OR10J3	Silent	
+sample-84	1	247654827	T	A	T	441932	OR2W5	RNA	
+sample-70	1	247654938	G	T	G	441932	OR2W5	RNA	
+sample-29	1	247655036	G	T	G	441932	OR2W5	RNA	
+sample-12	1	247655171	G	T	G	441932	OR2W5	RNA	
+sample-12	1	247654867	T	C	T	441932	OR2W5	RNA	
+sample-3	1	247654903	C	T	C	441932	OR2W5	RNA	
+sample-23	1	247655263	A	G	A	441932	OR2W5	RNA	
+sample-23	1	247654768	C	A	C	441932	OR2W5	RNA	
+sample-56	1	247836033	G	T	G	441933	OR13G1	Missense_Mutation	
+sample-86	1	247835990	G	T	G	441933	OR13G1	Missense_Mutation	
+sample-29	1	247836066	C	G	C	441933	OR13G1	Missense_Mutation	
+sample-27	1	247835620	G	C	G	441933	OR13G1	Missense_Mutation	
+sample-42	4	173942640	G	T	G	442117	GALNTL6	Missense_Mutation	
+sample-76	4	172735779	G	T	G	442117	GALNTL6	Silent	
+sample-9	6	29054537	A	G	A	442184	OR2B3	Silent	
+sample-22	6	29054601	A	C	A	442184	OR2B3	Missense_Mutation	
+sample-73	6	29054907	A	T	A	442184	OR2B3	Missense_Mutation	
+sample-79	6	47847044	G	C	G	442213	PTCHD4	Missense_Mutation	
+sample-58	6	48036161	G	T	G	442213	PTCHD4	Missense_Mutation	
+sample-87	6	47976394	G	T	G	442213	PTCHD4	Missense_Mutation	
+sample-17	6	47846396	G	A	G	442213	PTCHD4	Silent	
+sample-92	6	47847449	C	G	C	442213	PTCHD4	Missense_Mutation	
+sample-23	6	112670913	G	T	G	442247	RFPL4B	Translation_Start_Site	
+sample-66	7	63538191	C	A	C	442319	ZNF727	Missense_Mutation	
+sample-44	7	63537724	C	A	C	442319	ZNF727	Silent	
+sample-13	7	63529295	T	A	T	442319	ZNF727	Silent	
+sample-32	7	63537904	C	A	C	442319	ZNF727	Silent	
+sample-85	7	143807274	C	A	C	442361	OR2A2	Missense_Mutation	
+sample-3	X	37027586	A	T	A	442444	FAM47C	Missense_Mutation	
+sample-62	X	37028698	C	A	C	442444	FAM47C	Missense_Mutation	
+sample-70	X	37026976	T	A	T	442444	FAM47C	Missense_Mutation	
+sample-35	X	37028096	C	A	C	442444	FAM47C	Missense_Mutation	
+sample-39	X	37026732	C	T	C	442444	FAM47C	Silent	
+sample-29	X	37028197	C	A	C	442444	FAM47C	Missense_Mutation	
+sample-29	X	37028738	C	A	C	442444	FAM47C	Missense_Mutation	
+sample-87	9	96097799	C	T	C	445577	C9orf129	Silent	
+sample-98	2	132010564	C	A	C	445582	POTEE	Missense_Mutation	
+sample-57	2	132010592	T	C	T	445582	POTEE	Silent	
+sample-72	2	132010524	A	T	A	445582	POTEE	Nonsense_Mutation	
+sample-58	2	131981173	G	T	G	445582	POTEE	Missense_Mutation	
+sample-42	9	112899025	C	G	C	445815	PALM2-AKAP2	Missense_Mutation	
+sample-53	1	152733631	C	G	C	448834	KPRP	Missense_Mutation	
+sample-76	1	152732894	C	T	C	448834	KPRP	Missense_Mutation	
+sample-98	1	152733570	G	T	G	448834	KPRP	Missense_Mutation	
+sample-92	1	152732424	G	T	G	448834	KPRP	Silent	
