@@ -1,4 +1,4 @@
-source(system.file("tests/testthat/helpers.R", package = "cancereffectsizeR"))
+# get_test_file and get_test_data are loaded automatically from helpers.R by testthat
 test_that("MAF data loads correctly", {
   tiny_maf = get_test_file("tiny.hg19.maf.txt")
   tiny = CESAnalysis(maf = tiny_maf, sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2")

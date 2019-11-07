@@ -12,7 +12,6 @@ annotate_gene_maf <- function(cesa) {
 
 	# subset to SNVs
 	MAF = MAF[MAF$Reference_Allele %in% bases & MAF$Tumor_Allele %in% bases,]
-	RefCDS_our_genes = cesa@refcds_data
 	dndscv_gene_names = names(cesa@mutrates_list[[1]])
 	dndscv_out_list = cesa@dndscv_out_list
 	MAF$Gene_name <- NA
@@ -22,6 +21,21 @@ annotate_gene_maf <- function(cesa) {
 
 
 	# first, find overlaps
+
+	# load RefCDS data and extract what is needed for annotations
+	# this loads both the RefCDS object and gr_genes, used for annotating SNV loci with gene name
+ 	data("RefCDS_TP53splice",package = "cancereffectsizeR", envir = environment())
+  	list_extract <- function(x){
+        return(list(gene_name=x$gene_name,
+                    gene_id = x$gene_id,
+                    strand = x$strand,
+                    intervals_cds = x$intervals_cds,
+                    seq_cds=x$seq_cds,
+                    seq_cds1up=x$seq_cds1up,
+                    seq_cds1down=x$seq_cds1down))
+  	}
+  	RefCDS = as.array(lapply(RefCDS, list_extract))
+  	names(RefCDS) = sapply(RefCDS, function(x) x$gene_name)
 
 	gene_name_overlaps <- GenomicRanges::findOverlaps(query = MAF_ranges,subject = gr_genes, type="any", select="all")
 
@@ -90,8 +104,6 @@ annotate_gene_maf <- function(cesa) {
 	MAF <- rbind(MAF_matched,MAF_unmatched)
 
 
-	data("AA_mutation_list", package = "cancereffectsizeR")
-
 	MAF <- MAF[which(MAF$Gene_name %in% dndscv_gene_names),]
 
 	dndscvout_annotref <- NULL
@@ -101,9 +113,10 @@ annotate_gene_maf <- function(cesa) {
 
 	dndscvout_annotref <- dndscvout_annotref[which(dndscvout_annotref$ref %in% c("A","T","G","C") & dndscvout_annotref$mut %in% c("A","T","C","G")),]
 
+
 	# assign strand data
-	strand_data <- sapply(RefCDS_our_genes, function(x) x$strand)
-	names(strand_data) <- sapply(RefCDS_our_genes, function(x) x$gene_name)
+	strand_data <- sapply(RefCDS, function(x) x$strand)
+	names(strand_data) <- names(RefCDS)
 	strand_data[which(strand_data==-1)] <- "-"
 	strand_data[which(strand_data==1)] <- "+"
 
@@ -150,7 +163,7 @@ annotate_gene_maf <- function(cesa) {
 	MAF$Tumor_allele_correct_strand[which(MAF$strand=="-")] <-
 	  toupper(seqinr::comp(MAF$Tumor_allele_correct_strand[which(MAF$strand=="-")]))
 
-	data("trinuc_translator", package="cancereffectsizeR")
+	data("trinuc_translator", package="cancereffectsizeR", envir = environment())
 
 	MAF$trinuc_dcS <- trinuc_translator[paste(MAF$triseq,
 	                                          ":",
@@ -158,7 +171,6 @@ annotate_gene_maf <- function(cesa) {
 	                                          sep=""),"deconstructSigs_format"]
 
 	# Assign coding variant data
-
 	dndscv_coding_unique <- dndscvout_annotref[!duplicated(dndscvout_annotref$unique_variant_ID),]
 
 	rownames(dndscv_coding_unique) <- dndscv_coding_unique$unique_variant_ID
@@ -178,9 +190,6 @@ annotate_gene_maf <- function(cesa) {
 	    "chr",MAF$Chromosome,sep=""),
 	    strand=MAF$strand, start=MAF$Start_Position-3, end=MAF$Start_Position+3))
 
-	ref_cds_genes <- sapply(RefCDS_our_genes, function(x) x$gene_name)
-	names(RefCDS_our_genes) <- ref_cds_genes
-
 	MAF$amino_acid_context[which(MAF$codon_pos==1)] <-
 	  substr(MAF$amino_acid_context[which(MAF$codon_pos==1)],3,7)
 
@@ -192,10 +201,8 @@ annotate_gene_maf <- function(cesa) {
 
 	MAF$next_to_splice <- F
 	for(i in 1:nrow(MAF)){
-	  if(any(abs(MAF$Start_Position[i] - RefCDS_our_genes[[MAF$Gene_name[i]]]$intervals_cds) <= 3)){
-
+	  if(any(abs(MAF$Start_Position[i] - RefCDS[[MAF$Gene_name[i]]]$intervals_cds) <= 3)){
 	    MAF$next_to_splice[i] <- T
-
 	  }
 	}
 
@@ -212,14 +219,26 @@ annotate_gene_maf <- function(cesa) {
 
 	MAF$coding_variant_AA_mut <-  substrRight(x = MAF$coding_variant,n=1)
 
-	data("AA_translations", package="cancereffectsizeR") # from cancereffectsizeR
+	data("AA_translations", package="cancereffectsizeR", envir = environment())
 
 	AA_translations_unique <- AA_translations[!duplicated(AA_translations$AA_letter),]
 	rownames(AA_translations_unique) <- as.character(AA_translations_unique$AA_letter)
 
 	MAF$coding_variant_AA_mut <- as.character(AA_translations_unique[MAF$coding_variant_AA_mut,"AA_short"])
 
+
+	# only need RefCDS that will be useful downstream
+	genes_to_keep_info <- unique(MAF$Gene_name[which(MAF$next_to_splice == T)])
+
+	for(gene_ind in 1:length(RefCDS)){
+	  if(!RefCDS[[gene_ind]]$gene_name %in% genes_to_keep_info){
+	    RefCDS[[gene_ind]] <- as.array(list(gene_name=RefCDS[[gene_ind]]$gene_name,
+	                                                  gene_id = RefCDS[[gene_ind]]$gene_id))
+	  }
+	}
+
+
 	cesa@annotated.snv.maf = MAFdf(MAF)
-	cesa@refcds_data = RefCDS_our_genes # has been updated by this script
+	cesa@refcds_data = RefCDS
 	return(cesa)
 }

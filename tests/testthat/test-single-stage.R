@@ -1,4 +1,3 @@
-source(system.file("tests/testthat/helpers.R", package = "cancereffectsizeR"))
 test_that("Trinucleotide signature weight calculation", {
   cesa = get_test_data("cesa_for_trinuc_weighting_calc.rds")
   cesa = expect_warning(trinucleotide_mutation_weights(cesa), "Some samples have fewer than 50 mutations")
