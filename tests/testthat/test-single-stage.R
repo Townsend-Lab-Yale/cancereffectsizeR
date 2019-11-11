@@ -29,7 +29,8 @@ test_that("SNV effect size calculation", {
   results_ak = get_test_data("single_stage_snv_results.rds")
   
   # selection results will vary slightly by machine due to numerical precision issues during parameter optimization
-  expect_equal(results, results_ak, tolerance = 1e-5)
+  ## For now, need to sort dfs by column name because dplyr version affects column orderings
+  expect_equal(results[,order(names(results))], results_ak[,order(names(results_ak))], tolerance = 1e-5)
 })
 
 
