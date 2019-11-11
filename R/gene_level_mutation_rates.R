@@ -48,7 +48,7 @@ gene_level_mutation_rates <- function(cesa, covariate_file = NULL, save_all_dnds
       mutations = dndscv_maf[dndscv_maf$Unique_Patient_Identifier %in% current_subset_tumors,],
       gene_list = genes_in_pca,
       cv = if(is.null(covariate_file)){ "hg19"}else{ this_cov_pca$rotation},
-      refdb = system.file("data/RefCDS_TP53splice.Rdata", package = "cancereffectsizeR"))
+      refdb = system.file("data/RefCDS_TP53splice.RData", package = "cancereffectsizeR"))
   }
 
 
