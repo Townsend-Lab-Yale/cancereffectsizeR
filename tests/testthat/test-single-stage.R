@@ -9,9 +9,9 @@ test_that("dNdScv and MAF annotation", {
   cesa = get_test_data("cesa_for_dndscv_and_anno.rds")
   cesa = expect_warning(gene_level_mutation_rates(cesa, covariate_file = "lung_pca"), "Same mutations observed in different sample")
   sel_cv = get_test_data("sel_cv.rds")
-  expect_identical(cesa@dndscv_out_list$`1`$sel_cv, sel_cv)
+  expect_equal(cesa@dndscv_out_list$`1`$sel_cv, sel_cv)
   mutrates = get_test_data("mutrates.rds")
-  expect_identical(cesa@mutrates_list$`1`, mutrates)
+  expect_equal(cesa@mutrates_list$`1`, mutrates)
   cesa = annotate_gene_maf(cesa)
   annotated_maf = get_test_data("annotated_maf_df.rds")
   expect_identical(data.frame(cesa@annotated.snv.maf), annotated_maf)
@@ -27,7 +27,9 @@ test_that("SNV effect size calculation", {
   cesa = effect_size_SNV(cesa, genes = test_genes, analysis = "SNV", cores = 1)
   results = selection_results_converter(cesa)
   results_ak = get_test_data("single_stage_snv_results.rds")
-  expect_identical(results, results_ak)
+  
+  # selection results will vary slightly by machine due to numerical precision issues during parameter optimization
+  expect_equal(results, results_ak, tolerance = 1e-5)
 })
 
 
