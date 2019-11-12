@@ -1,4 +1,3 @@
-source(system.file("tests/testthat/helpers.R", package = "cancereffectsizeR"))
 
 # note that mutational signature calculation doesn't use stage information, so no tests for that step here
 test_that("multi-stage dNdScv and annotation", {
@@ -15,5 +14,4 @@ test_that("multi-stage dNdScv and annotation", {
   cesa = annotate_gene_maf(cesa)
   annotated_maf = get_test_data("multi_annotated_maf_df.rds")
   expect_identical(data.frame(cesa@annotated.snv.maf), annotated_maf)
-  
 }) 

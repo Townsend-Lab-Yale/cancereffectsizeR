@@ -102,10 +102,13 @@ gene_level_mutation_rates <- function(cesa, covariate_file = NULL, save_all_dnds
   }
 
   # keep just the main gene-level selection output from dNdScv, unless user wanted everything
-  # currently need annotmuts for annotate_gene_maf
+  # currently also need annotmuts for annotate_gene_maf
   if(! save_all_dndscv_output) {
     for (i in 1:length(dndscv_out_list)) {
-      dndscv_out_list[[i]] = list(sel_cv = dndscv_out_list[[i]]$sel_cv, annotmuts = dndscv_out_list[[i]]$annotmuts)
+      # filter out genes with 0 mutations (to keep object size small, mainly for dev purposes)
+      sel_cv = dndscv_out_list[[i]]$sel_cv
+      #no_dndscv_mutations = (sel_cv$n_syn == 0 & sel_cv$n_mis == 0 & sel_cv$n_non == 0 & sel_cv$n_spl == 0)
+      dndscv_out_list[[i]] = list(sel_cv = sel_cv, annotmuts = dndscv_out_list[[i]]$annotmuts)
     }
   }
   cesa@mutrates_list = mutrates_list

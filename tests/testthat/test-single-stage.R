@@ -17,8 +17,7 @@ test_that("dNdScv and MAF annotation", {
   expect_identical(data.frame(cesa@annotated.snv.maf), annotated_maf)
 })
 
-
-# genes to plug into effect_size_SNV; some likely to be high effect size, others random
+# genes to plug into effect_size_SNV; some with high-effect-size SNVs, others random
 test_genes = c("TTN", "KRAS", "RYR2", "USH2A", "CSMD3", "TP53", "CSMD1", "LRP1B", 
                "ZFHX4", "FAT3", "CNTNAP5", "PCDH15", "NEB", "RYR3", "DMD", "KATNAL1", 
                "OR13H1", "KSR1", "VWA5B1", "IFNAR1", "ARRB2", "CMSS1", "SLC10A7", "ENOX2", "IFITM2")

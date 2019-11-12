@@ -27,7 +27,6 @@ annotate_gene_maf <- function(cesa) {
  	data("RefCDS_TP53splice",package = "cancereffectsizeR", envir = environment())
   	list_extract <- function(x){
         return(list(gene_name=x$gene_name,
-                    gene_id = x$gene_id,
                     strand = x$strand,
                     intervals_cds = x$intervals_cds,
                     seq_cds=x$seq_cds,
@@ -227,18 +226,11 @@ annotate_gene_maf <- function(cesa) {
 	MAF$coding_variant_AA_mut <- as.character(AA_translations_unique[MAF$coding_variant_AA_mut,"AA_short"])
 
 
-	# only need RefCDS that will be useful downstream
-	genes_to_keep_info <- unique(MAF$Gene_name[which(MAF$next_to_splice == T)])
-
-	for(gene_ind in 1:length(RefCDS)){
-	  if(!RefCDS[[gene_ind]]$gene_name %in% genes_to_keep_info){
-	    RefCDS[[gene_ind]] <- as.array(list(gene_name=RefCDS[[gene_ind]]$gene_name,
-	                                                  gene_id = RefCDS[[gene_ind]]$gene_id))
-	  }
+  	# drop annotmuts info since it's already been used here
+  	for(this_subset in 1:length(cesa@dndscv_out_list)){
+	  cesa@dndscv_out_list[[this_subset]]$annotmuts = NULL
 	}
 
-
 	cesa@annotated.snv.maf = MAFdf(MAF)
-	cesa@refcds_data = RefCDS
 	return(cesa)
 }

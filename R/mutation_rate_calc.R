@@ -3,10 +3,10 @@
 #' This function calculates the mutation rates of all the unique varaints within a gene given gene-level mutation rate and tumor-specific trinucleotide contexts.
 #'
 #' @param this_MAF The subset MAF (just the gene to be analyzed) file to extract mutational data from
-#' @param gene Gene name in question
+#' @param gene current gene
 #' @param trinuc_proportion_matrix matrix constructed from deconstructSigs output, containing proportion of each trinucleotide mutated in each tumor
 #' @param gene_trinuc_comp list containing matrices of counts of each trinuc in every gene
-#' @param RefCDS RefCDS loaded in from data("RefCDS_TP53splice",package = "cancereffectsizeR")
+#' @param gene_refcds information from RefCDS data set for the current gene
 #' @param progression CESProgressions
 #' @param gene_mut_rate mutation rate at the gene-level
 #'
@@ -18,7 +18,7 @@ mutation_rate_calc <- function(this_MAF,
                                gene, gene_mut_rate,
                                trinuc_proportion_matrix,
                                gene_trinuc_comp,
-                               RefCDS,
+                               gene_refcds,
                                all_tumors,
                                progressions
                                ){
@@ -66,7 +66,6 @@ mutation_rate_calc <- function(this_MAF,
   # Need to give this information back to the main function to count total variants in population
 
 
-  # as.numeric(gsub("\\D", "", dndscvout$annotmuts$ntchange))
 
   # mutation rate matrix: rows = tumors, columns = expected relative rates of amino acid changes in gene for tumor
   ## this is determined by summing over the rates for different nucleotides mutations that create same amino acid changes
@@ -87,7 +86,7 @@ mutation_rate_calc <- function(this_MAF,
       if(this_MAF$next_to_splice[j]){
 
         if(this_MAF$is_coding[j]){
-          mutation_rate_matrix[i,j] <- sum(mutation_rate_nucs[i,cancereffectsizeR::mutation_finder(RefCDS_instance = RefCDS[[gene]],MAF_input_row = this_MAF[j,])])
+          mutation_rate_matrix[i,j] <- sum(mutation_rate_nucs[i,cancereffectsizeR::mutation_finder(RefCDS_instance = gene_refcds, MAF_input_row = this_MAF[j,])])
         } else {
           mutation_rate_matrix[i,j] <- mutation_rate_nucs[i,this_MAF$trinuc_dcS[j]]
         }

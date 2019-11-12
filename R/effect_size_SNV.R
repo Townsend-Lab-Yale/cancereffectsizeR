@@ -6,10 +6,10 @@
 #' @param cores number of cores to use
 #' @return CESAnalysis object with selection results added for the chosen analysis
 #' @export
+
 effect_size_SNV <- function(
   cesa = NULL,
   genes = "all",
-
   analysis = c("SNV", "gene-level-epistasis", "top-epistasis"),
   epistasis_top_prev_number = NULL,
   cores = 1,
@@ -52,12 +52,17 @@ effect_size_SNV <- function(
     genes_to_analyze <- genes[genes %in% genes_in_dataset]
   }
 
-  data("gene_trinuc_comp", package = "cancereffectsizeR")
+  # Possibly make this only load when needed (but it's usually needed)
+  data("RefCDS_TP53splice", package = "cancereffectsizeR", envir = environment())
+  names(RefCDS) = sapply(RefCDS, function(x) x$gene_name)
+
+
+  data("gene_trinuc_comp", package = "cancereffectsizeR", envir = environment())
   names(gene_trinuc_comp) <- sapply(gene_trinuc_comp, function(x) x$gene_name) # formally used names of RefCDS, but they're the same
 
 
-  data("AA_mutation_list", package="cancereffectsizeR")
-  data("AA_translations", package="cancereffectsizeR")
+  data("AA_mutation_list", package="cancereffectsizeR", envir = as.environment("package:cancereffectsizeR"))
+  data("AA_translations", package="cancereffectsizeR", envir = as.environment("package:cancereffectsizeR"))
 
   selection_results <- vector("list",length = length(genes_to_analyze))
   names(selection_results) <- genes_to_analyze
@@ -76,7 +81,7 @@ effect_size_SNV <- function(
   if (analysis == "SNV") {
     selection_results <- pbapply::pblapply(genes_to_analyze, get_gene_results, cesa = cesa,
                                             gene_mafs = mafs, gene_trinuc_comp = gene_trinuc_comp,
-                                            all_tumors = all_tumors,find_CI=find_CI, cl = cores)
+                                            all_tumors = all_tumors,find_CI=find_CI, RefCDS = RefCDS, cl = cores)
   } else if(analysis == "gene-level-epistasis") {
 
 
@@ -120,6 +125,7 @@ effect_size_SNV <- function(
                                            cesa=cesa,
                                            gene_trinuc_comp = gene_trinuc_comp,
                                            all_tumors = all_tumors,
+                                           RefCDS = RefCDS,
                                            cl = cores)
   } else if(analysis == "top-epistasis") {
     selection_results = top_epistasis()
@@ -132,10 +138,9 @@ effect_size_SNV <- function(
 
 
 #' Single-stage SNV effect size analysis (gets called by effect_size_SNV)
-get_gene_results <- function(gene_to_analyze, cesa, gene_mafs, gene_trinuc_comp, all_tumors, find_CI) {
+get_gene_results <- function(gene_to_analyze, cesa, gene_mafs, gene_trinuc_comp, all_tumors, find_CI, RefCDS) {
   mutrates_list = cesa@mutrates_list
   trinuc_proportion_matrix = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix
-  RefCDS = cesa@refcds_data
   progressions = cesa@progressions
   these_mutation_rates <-
     cancereffectsizeR::mutation_rate_calc(
@@ -144,7 +149,7 @@ get_gene_results <- function(gene_to_analyze, cesa, gene_mafs, gene_trinuc_comp,
       gene_mut_rate = mutrates_list,
       trinuc_proportion_matrix = trinuc_proportion_matrix,
       gene_trinuc_comp = gene_trinuc_comp,
-      RefCDS = RefCDS,
+      gene_refcds = RefCDS[[gene_to_analyze]],
       all_tumors = all_tumors,
       progressions = progressions)
 
@@ -232,7 +237,7 @@ get_gene_results <- function(gene_to_analyze, cesa, gene_mafs, gene_trinuc_comp,
   these_selection_results[,"unsure_gene_name"] <- these_mutation_rates$unsure_genes_vec
   these_selection_results[,"unique_variant_ID"] <- these_mutation_rates$unique_variant_ID
 
-  return(list(gene_name=gene_to_analyze, RefCDS[[gene_to_analyze]]$gene_id,selection_results=these_selection_results))
+  return(list(gene_name=gene_to_analyze, selection_results=these_selection_results))
 }
 
 
@@ -246,12 +251,12 @@ epistasis_gene_level = function(genes_to_analyze,
                                 trinuc_proportion_matrix,
                                 cesa,
                                 gene_trinuc_comp,
-                                all_tumors) {
+                                all_tumors,
+                                RefC) {
 
 
   mutrates_list = cesa@mutrates_list
   trinuc_proportion_matrix = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix
-  RefCDS = cesa@refcds_data
   progressions = cesa@progressions
 
 
@@ -300,7 +305,7 @@ epistasis_gene_level = function(genes_to_analyze,
         gene_mut_rate = mutrates_list,
         trinuc_proportion_matrix = trinuc_proportion_matrix,
         gene_trinuc_comp = gene_trinuc_comp,
-        RefCDS = RefCDS,
+        gene_refcds = RefCDS[[variant1]],
         all_tumors = eligible_tumors,
         progressions = progressions)
 
@@ -311,7 +316,7 @@ epistasis_gene_level = function(genes_to_analyze,
         gene_mut_rate = mutrates_list,
         trinuc_proportion_matrix = trinuc_proportion_matrix,
         gene_trinuc_comp = gene_trinuc_comp,
-        RefCDS = RefCDS,
+        gene_refcds = RefCDS[[variant2]],
         all_tumors = eligible_tumors,
         progressions = progressions)
 
@@ -430,7 +435,7 @@ top_epistasis = function(cesa, genes_to_analyze) {
         gene_mut_rate = mutrates_list,
         trinuc_proportion_matrix = trinuc_proportion_matrix,
         gene_trinuc_comp = gene_trinuc_comp,
-        RefCDS = RefCDS_our_genes,
+        gene_refcds = RefCDS[[gene]],
         tumor_subsets = tumors,subset_col=subset_col)
 
     these_mutation_rates2 <-
@@ -442,7 +447,7 @@ top_epistasis = function(cesa, genes_to_analyze) {
         gene_mut_rate = mutrates_list,
         trinuc_proportion_matrix = trinuc_proportion_matrix,
         gene_trinuc_comp = gene_trinuc_comp,
-        RefCDS = RefCDS_our_genes,
+        gene_refcds = RefCDS[[gene]],
         tumor_subsets = tumors,subset_col=subset_col)
 
 
