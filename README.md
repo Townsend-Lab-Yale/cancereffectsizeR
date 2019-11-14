@@ -1,5 +1,5 @@
 # Introduction
-CancereffectsizeR estimates the selection intensity of somatic mutations in cancer from collections of tumor sequencing data. In brief, selection intensity is calculated by 
+CancereffectsizeR is an R package that estimates the selection intensity of somatic mutations in cancer from collections of tumor sequencing data. In brief, each tumor sample's trinucleotide-context-specific neutral mutation rates are derived the deconvolution of mutational signatures, performed by [deconstructSigs](https://github.com/raerose01/deconstructSigs). Next, all whole-exome tumor samples are used to estimate per-gene netural mutation rates using [dNdScv](https://github.com/im3sanger/dndscv), with support for tissue-specific covariates if supplied. Combining this information, the rate of neutral mutation at a particular SNV site in a tumor is that tumors's trinucleotide-context-specific mutation rates normalized by the neutral mutation rate of the gene. CancereffectsizeR uses maximum-likelihood methods to estimate the selection intensity at SNV sites by comparing the frequency of variants in the data with their expected frequency in the absence of selection.
 
 ## Version Note
 [Version 0.1.0](https://github.com/Townsend-Lab-Yale/cancereffectsizeR/releases/tag/0.1.0) of this package was developed by Cannataro, V. L., Gaffney, S. G., and Townsend, J. P., as decribed in our 2018 JNCI paper [_Effect sizes of somatic mutations in cancer_](https://doi.org/10.1093/jnci/djy168). A user guide for v0.1.0 is available [here](https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/user_guide/cancereffectsizeR_user_guide.md).
@@ -10,7 +10,7 @@ This README is for the current version, which has a number of improvements.
 CancereffectsizeR installation requires R 3.5.0 or later and a recent version of the devtools package.
 
 ```R
-# If you don't have devtools, install it (or use update.packages if your version is ancient)
+# If you don't have devtools, install it (or re-install if your version is ancient)
 install.packages("devtools")
 
 # Install cancereffectsizeR and dependencies
@@ -24,7 +24,7 @@ Input data should be MAF format (either a text file or a data frame with the sam
 ```R
 
   # Create CESAnalysis object and define the chronological tumor progression stages
-  analysis = CESAnalysis(progression_order = c("Primary", "Metastatic"))
+  analysis = CESAnalysis(genome_build = "hg19", progression_order = c("Primary", "Metastatic"))
   
   # Load in an MAF and give the name of the column that identifies tumor stage
   analysis = load_maf(analysis, maf = "my_wes_tumor_data.maf", progression_col = "Primary_Met")
@@ -43,6 +43,8 @@ Input data should be MAF format (either a text file or a data frame with the sam
   # Calculate selection intensities and produce human-readable results
   # If you have multiple computing cores and the parallel library, you can parallelize the operation
   analysis = effect_size_SNV(analysis, cores = 4)
+
+  # Generate a relatively small data frame that lists all recurrent SNVs of high selection intensity
   results = selection_results_converter(analysis)
   
 ```
