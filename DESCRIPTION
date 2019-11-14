@@ -10,7 +10,8 @@ biocViews:
 Remotes: im3sanger/dndscv
 Imports: GenomicRanges, deconstructSigs, GenomeInfoDbData, GenomeInfoDb, rtracklayer, BSgenome,
         BSgenome.Hsapiens.UCSC.hg19, Biostrings, MASS, seqinr, dndscv,
-        reshape2, S4Vectors, IRanges, dplyr, tidyr, optimx, magrittr, pbapply, crayon
+        reshape2, S4Vectors, IRanges, dplyr, tidyr, optimx, magrittr, pbapply, crayon,
+        dfoptim, minqa, lbfgsb3, BB
 Suggests: 
     ggplot2,
     knitr,
