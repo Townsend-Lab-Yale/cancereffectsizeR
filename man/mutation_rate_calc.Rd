@@ -4,13 +4,21 @@
 \alias{mutation_rate_calc}
 \title{Mutation rate calculation}
 \usage{
-mutation_rate_calc(this_MAF, gene, gene_mut_rate, trinuc_proportion_matrix,
-  gene_trinuc_comp, RefCDS, all_tumors, progressions)
+mutation_rate_calc(
+  this_MAF,
+  gene,
+  gene_mut_rate,
+  trinuc_proportion_matrix,
+  gene_trinuc_comp,
+  gene_refcds,
+  all_tumors,
+  progressions
+)
 }
 \arguments{
 \item{this_MAF}{The subset MAF (just the gene to be analyzed) file to extract mutational data from}
 
-\item{gene}{Gene name in question}
+\item{gene}{current gene}
 
 \item{gene_mut_rate}{mutation rate at the gene-level}
 
@@ -18,9 +26,12 @@ mutation_rate_calc(this_MAF, gene, gene_mut_rate, trinuc_proportion_matrix,
 
 \item{gene_trinuc_comp}{list containing matrices of counts of each trinuc in every gene}
 
-\item{RefCDS}{RefCDS loaded in from data("RefCDS_TP53splice",package = "cancereffectsizeR")}
+\item{gene_refcds}{information from RefCDS data set for the current gene}
 
 \item{progression}{CESProgressions}
+}
+\value{
+
 }
 \description{
 This function calculates the mutation rates of all the unique varaints within a gene given gene-level mutation rate and tumor-specific trinucleotide contexts.

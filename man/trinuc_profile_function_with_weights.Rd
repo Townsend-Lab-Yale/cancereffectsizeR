@@ -4,13 +4,18 @@
 \alias{trinuc_profile_function_with_weights}
 \title{Trinucleotide profiler}
 \usage{
-trinuc_profile_function_with_weights(input_MAF,
+trinuc_profile_function_with_weights(
+  input_MAF,
   signature_choice = "signatures.cosmic",
-  minimum_mutations_per_tumor = 50, save_figs = F,
+  minimum_mutations_per_tumor = 50,
+  save_figs = F,
   tumor.name = "[Tumor name here]",
   sample_ID_column = "Unique_patient_identifier",
-  chr_column = "Chromosome", pos_column = "Start_Position",
-  ref_column = "Reference_Allele", alt_column = "Tumor_allele")
+  chr_column = "Chromosome",
+  pos_column = "Start_Position",
+  ref_column = "Reference_Allele",
+  alt_column = "Tumor_allele"
+)
 }
 \arguments{
 \item{tumor.name}{If \code{save.figs = T} then you should have a character string

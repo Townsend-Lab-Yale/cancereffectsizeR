@@ -11,6 +11,9 @@ selection_results_converter(cesa, min_recurrence = 2)
 
 \item{min_recurrence}{minimum number of samples in which a mutation must appear for the mutation to be included in results}
 }
+\value{
+
+}
 \description{
 Selection results converter
 }

@@ -2,7 +2,6 @@
 #'
 #' Actual function to find the site specific selection intensity that maximizes the likelihood of each tumor being mutated or not. Uses site and tumor specific mutation rates. Uses Brent 1 dimensional optimization technique.optimize_gamma
 #'
-#' @import optimx
 #'
 #' @param MAF_input A data frame that includes columns "Unique_patient_identifier", "Gene_name", and "unique_variant_ID_AA"
 #' @param all_tumors A list of all the tumors we are calculating the likelihood across
@@ -30,12 +29,24 @@ optimize_gamma_epistasis_full_gene <- function(MAF_input1,
   # par_init <- rep(1000,length=4)
   par_init <- 1000:1003
 
-  # suppressWarnings because optimx tries all possible optimization algorithms,
-  # several of which are not appropriate for this sort of problem and throw
-  # warnings
-  opm_output <- suppressWarnings(optimx::opm(par=1000:1003,
+  # Some methods crash for unclear reasons: Rnmin, nmkb, newuoa
+  # Others should be skipped automatically because they aren't appropriate, but it's
+  # necessary to skip them manually: "subplex", "snewtonm", "snewton", "CG", "BFGS","Nelder-Mead", "nlm", "lbfgs"
+  # Leaving out Rtnmin method because it crashes (still unclear why)
+
+  # This list consists of all other methods offered by optimx; a couple are much slower than others and should be dropped unless they're good
+  methods = c("L-BFGS-B", "nlminb", "lbfgsb3", "Rcgmin", "Rvmmin",
+              "spg", "bobyqa", "hjkb", "hjn")
+
+  # To test/debug add this option to optimx options: "control = list(trace = 1) "
+  par = 1000:1003
+  
+  # suppress warnings because user doesn't need to be informed about methods that fail to converge in particular instances
+  opm_output <- suppressWarnings(optimx::opm(par,
                             fn=cancereffectsizeR::ml_objective_epistasis_full_gene,
-                            gr = "grfwd",
+                            method=methods,
+                            lower=1e-3,
+                            upper=1e20, gr = "grfwd",
                             MAF_input1=MAF_input1,
                             MAF_input2=MAF_input2,
                             all_tumors=all_tumors,
@@ -44,10 +55,7 @@ optimize_gamma_epistasis_full_gene <- function(MAF_input1,
                             specific_mut_rates1=specific_mut_rates1,
                             specific_mut_rates2=specific_mut_rates2,
                             variant_freq_1=variant_freq_1,
-                            variant_freq_2=variant_freq_2,
-                            method="ALL",
-                            lower=1e-3,
-                            upper=1e20))
+                            variant_freq_2=variant_freq_2))
 
   #TODO: explore the best possible optimization algorithm, fnscale, etc.
 
@@ -55,19 +63,4 @@ optimize_gamma_epistasis_full_gene <- function(MAF_input1,
   opm_output <- opm_output[order(opm_output$value,decreasing = T),]
 
   return(opm_output[1,1:4])
-  # return(optim(par=par_init,
-  #              fn=cancereffectsizeR::ml_objective_epistasis_full_gene,
-  #              MAF_input1=MAF_input1,
-  #              MAF_input2=MAF_input2,
-  #              all_tumors=all_tumors,
-  #              gene1=gene1,
-  #              gene2=gene2,
-  #              specific_mut_rates1=specific_mut_rates1,
-  #              specific_mut_rates2=specific_mut_rates2,
-  #              variant_freq_1=variant_freq_1,
-  #              variant_freq_2=variant_freq_2,
-  #              method="L-BFGS-B",
-  #              lower=full_gene_epistasis_lower_optim,
-  #              upper=full_gene_epistasis_upper_optim,
-  #              control=list(fnscale=full_gene_epistasis_fnscale))$par)
 }

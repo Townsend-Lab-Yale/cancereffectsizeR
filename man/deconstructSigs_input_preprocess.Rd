@@ -4,10 +4,14 @@
 \alias{deconstructSigs_input_preprocess}
 \title{Preprocess for deconstructSigs}
 \usage{
-deconstructSigs_input_preprocess(MAF,
+deconstructSigs_input_preprocess(
+  MAF,
   sample_ID_column = "Unique_patient_identifier",
-  chr_column = "Chromosome", pos_column = "Start_Position",
-  ref_column = "Reference_Allele", alt_column = "Tumor_allele")
+  chr_column = "Chromosome",
+  pos_column = "Start_Position",
+  ref_column = "Reference_Allele",
+  alt_column = "Tumor_allele"
+)
 }
 \arguments{
 \item{MAF}{MAF file to have recurrent variants removed}

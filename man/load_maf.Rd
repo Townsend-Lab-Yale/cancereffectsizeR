@@ -4,11 +4,18 @@
 \alias{load_maf}
 \title{load_maf}
 \usage{
-load_maf(cesa = NULL, maf = NULL,
-  sample_col = "Tumor_Sample_Barcode", chr_col = "Chromosome",
-  start_col = "Start_Position", ref_col = "Reference_Allele",
-  tumor_allele_col = "guess", genome_build = "hg19",
-  covered_regions = "exome", progression_col = NULL)
+load_maf(
+  cesa = NULL,
+  maf = NULL,
+  sample_col = "Tumor_Sample_Barcode",
+  chr_col = "Chromosome",
+  start_col = "Start_Position",
+  ref_col = "Reference_Allele",
+  tumor_allele_col = "guess",
+  genome_build = "hg19",
+  covered_regions = "exome",
+  progression_col = NULL
+)
 }
 \arguments{
 \item{cesa}{the CESAnalysis object to load the data into}

@@ -3,7 +3,7 @@
 #' Objective function that we will be optimizing (minimizing the negative of the log likelihood, so maximizing the log likelihood) in order to find the site specific selection intensity that maximizes the likelihood of each tumor having a mutation or not, where the mutation rates are site and tumor specific.
 #'
 #'
-#' @param gamma A selection intensity at which to calculate the likelihood
+#' @param par A selection intensity at which to calculate the likelihood
 #' @param MAF_input A data frame that includes columns "Unique_patient_identifier", "Gene_name", and "unique_variant_ID_AA"
 #' @param all_tumors A list of all the tumors we are calculating the likelihood across
 #' @param gene The gene we want to look at
@@ -14,8 +14,8 @@
 #' @export
 #'
 #' @examples
-ml_objective_epistasis_full_gene <- function(gamma,
-                                             MAF_input1,
+ml_objective_epistasis_full_gene <- function(par,
+                                             MAF_input1 = NULL,
                                              MAF_input2,
                                              all_tumors,
                                              gene1,
@@ -25,8 +25,15 @@ ml_objective_epistasis_full_gene <- function(gamma,
                                              variant_freq_1,
                                              variant_freq_2) {
 
-
-
+  # if optimization algorithm is not calling this function correctly, arguments end up null
+  if (is.null(MAF_input1)) {
+    stop("ml_objective_epistasis_full_gene called without required arguments")
+  }
+  
+  # sometimes the pars end up as NaNs or NAs, possibly because of inappropriate optimization techniques
+  if(! all(is.finite(par))) {
+    return(1e200)
+  }
   # only the tumors containing a recurrent variant factor into the selection analysis
   tumors_with_variant1_mutated <- MAF_input1[which(MAF_input1$unique_variant_ID_AA %in% names(which(variant_freq_1>1))),"Unique_Patient_Identifier"]
   tumors_with_variant2_mutated <- MAF_input2[which(MAF_input2$unique_variant_ID_AA %in% names(which(variant_freq_2>1))),"Unique_Patient_Identifier"]
@@ -42,8 +49,8 @@ ml_objective_epistasis_full_gene <- function(gamma,
 
 
   # two points of discontinuity we need to account for
-  if((gamma[3] == gamma[1] + gamma[2]) |
-     (gamma[4] == gamma[1] + gamma[2])){return(1e200)}
+  if((par[3] == par[1] + par[2]) |
+     (par[4] == par[1] + par[2])){return(1e200)}
 
   sum_log_lik <- 0
 
@@ -52,8 +59,8 @@ ml_objective_epistasis_full_gene <- function(gamma,
   for (tumor in tumors_with_neither_mutated) {
     sum_log_lik <- sum_log_lik +
       (
-        (-1*(gamma[1] * sum(specific_mut_rates1[tumor, ]))) +
-          (-1*(gamma[2] * sum(specific_mut_rates2[tumor, ])))
+        (-1*(par[1] * sum(specific_mut_rates1[tumor, ]))) +
+          (-1*(par[2] * sum(specific_mut_rates2[tumor, ])))
       )
 
   }
@@ -69,21 +76,20 @@ ml_objective_epistasis_full_gene <- function(gamma,
       log(
         # log(
         -1*(
-          (gamma[1] * sum(specific_mut_rates1[tumor, ])) /
+          (par[1] * sum(specific_mut_rates1[tumor, ])) /
             (
-              (gamma[1] * sum(specific_mut_rates1[tumor, ])) +
-                (gamma[2] * sum(specific_mut_rates2[tumor, ])) -
-                (gamma[4] * sum(specific_mut_rates2[tumor, ]))
+              (par[1] * sum(specific_mut_rates1[tumor, ])) +
+                (par[2] * sum(specific_mut_rates2[tumor, ])) -
+                (par[4] * sum(specific_mut_rates2[tumor, ]))
             )
           # )
         ) *
           # log(
-          ((exp(  (-1*(gamma[1] * sum(specific_mut_rates1[tumor, ]))) +
-                    (-1*(gamma[2] * sum(specific_mut_rates2[tumor, ]))))) -
-             (exp(-1*(gamma[4] * sum(specific_mut_rates2[tumor, ])))))
+          ((exp(  (-1*(par[1] * sum(specific_mut_rates1[tumor, ]))) +
+                    (-1*(par[2] * sum(specific_mut_rates2[tumor, ]))))) -
+             (exp(-1*(par[4] * sum(specific_mut_rates2[tumor, ])))))
         # )
       )
-    # ==-Inf){break}
 
   }
 
@@ -94,18 +100,18 @@ ml_objective_epistasis_full_gene <- function(gamma,
       log(
         # log(
         -1* (
-          (gamma[2] * sum(specific_mut_rates2[tumor, ])) /
+          (par[2] * sum(specific_mut_rates2[tumor, ])) /
             (
-              (gamma[2] * sum(specific_mut_rates2[tumor, ])) +
-                (gamma[1] * sum(specific_mut_rates1[tumor, ])) -
-                (gamma[3] * sum(specific_mut_rates1[tumor, ]))
+              (par[2] * sum(specific_mut_rates2[tumor, ])) +
+                (par[1] * sum(specific_mut_rates1[tumor, ])) -
+                (par[3] * sum(specific_mut_rates1[tumor, ]))
             )
           # )
         ) *
           # log(
-          ((exp(  (-1*(gamma[1] * sum(specific_mut_rates1[tumor, ]))) +
-                    (-1*(gamma[2] * sum(specific_mut_rates2[tumor, ]))))) -
-             (exp(-1*(gamma[3] * sum(specific_mut_rates1[tumor, ])))))
+          ((exp(  (-1*(par[1] * sum(specific_mut_rates1[tumor, ]))) +
+                    (-1*(par[2] * sum(specific_mut_rates2[tumor, ]))))) -
+             (exp(-1*(par[3] * sum(specific_mut_rates1[tumor, ])))))
         # )
       )
 
@@ -119,40 +125,40 @@ ml_objective_epistasis_full_gene <- function(gamma,
       1-
         (
           ( # P(wt)
-            exp((-1*(gamma[1] * sum(specific_mut_rates1[tumor, ]))) +
-                  (-1*(gamma[2] * sum(specific_mut_rates2[tumor, ]))))
+            exp((-1*(par[1] * sum(specific_mut_rates1[tumor, ]))) +
+                  (-1*(par[2] * sum(specific_mut_rates2[tumor, ]))))
           ) +
             ( #P(1)
               # log(
               -1*(
-                (gamma[1] * sum(specific_mut_rates1[tumor, ])) /
+                (par[1] * sum(specific_mut_rates1[tumor, ])) /
                   (
-                    (gamma[1] * sum(specific_mut_rates1[tumor, ])) +
-                      (gamma[2] * sum(specific_mut_rates2[tumor, ])) -
-                      (gamma[4] * sum(specific_mut_rates2[tumor, ]))
+                    (par[1] * sum(specific_mut_rates1[tumor, ])) +
+                      (par[2] * sum(specific_mut_rates2[tumor, ])) -
+                      (par[4] * sum(specific_mut_rates2[tumor, ]))
                   )
                 # )
               ) *
                 # log(
-                ((exp(  (-1*(gamma[1] * sum(specific_mut_rates1[tumor, ]))) +
-                          (-1*(gamma[2] * sum(specific_mut_rates2[tumor, ]))))) -
-                   (exp(-1*(gamma[4] * sum(specific_mut_rates2[tumor, ])))))
+                ((exp(  (-1*(par[1] * sum(specific_mut_rates1[tumor, ]))) +
+                          (-1*(par[2] * sum(specific_mut_rates2[tumor, ]))))) -
+                   (exp(-1*(par[4] * sum(specific_mut_rates2[tumor, ])))))
               # )
             ) +
             ( # P(2)
               -1* (
-                (gamma[2] * sum(specific_mut_rates2[tumor, ])) /
+                (par[2] * sum(specific_mut_rates2[tumor, ])) /
                   (
-                    (gamma[2] * sum(specific_mut_rates2[tumor, ])) +
-                      (gamma[1] * sum(specific_mut_rates1[tumor, ])) -
-                      (gamma[3] * sum(specific_mut_rates1[tumor, ]))
+                    (par[2] * sum(specific_mut_rates2[tumor, ])) +
+                      (par[1] * sum(specific_mut_rates1[tumor, ])) -
+                      (par[3] * sum(specific_mut_rates1[tumor, ]))
                   )
                 # )
               ) *
                 # log(
-                ((exp(  (-1*(gamma[1] * sum(specific_mut_rates1[tumor, ]))) +
-                          (-1*(gamma[2] * sum(specific_mut_rates2[tumor, ]))))) -
-                   (exp(-1*(gamma[3] * sum(specific_mut_rates1[tumor, ])))))
+                ((exp(  (-1*(par[1] * sum(specific_mut_rates1[tumor, ]))) +
+                          (-1*(par[2] * sum(specific_mut_rates2[tumor, ]))))) -
+                   (exp(-1*(par[3] * sum(specific_mut_rates1[tumor, ])))))
               # )
             )
 
@@ -169,7 +175,7 @@ ml_objective_epistasis_full_gene <- function(gamma,
 
   # in case it tried all the max at once.
   if(!is.finite(sum_log_lik)){
-   return(1e200)
+    return(1e200)
   }
   return(-sum_log_lik)
 }

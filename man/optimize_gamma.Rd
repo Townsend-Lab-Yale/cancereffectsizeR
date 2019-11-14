@@ -4,8 +4,14 @@
 \alias{optimize_gamma}
 \title{Calculate selection intensity}
 \usage{
-optimize_gamma(MAF_input, eligible_tumors, progressions, gene, variant,
-  specific_mut_rates)
+optimize_gamma(
+  MAF_input,
+  eligible_tumors,
+  progressions,
+  gene,
+  variant,
+  specific_mut_rates
+)
 }
 \arguments{
 \item{MAF_input}{A data frame that includes columns "Unique_patient_identifier", "Gene_name", and "unique_variant_ID_AA"}

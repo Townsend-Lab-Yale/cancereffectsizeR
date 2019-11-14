@@ -14,4 +14,14 @@ test_that("multi-stage dNdScv and annotation", {
   cesa = annotate_gene_maf(cesa)
   annotated_maf = get_test_data("multi_annotated_maf_df.rds")
   expect_identical(data.frame(cesa@annotated.snv.maf), annotated_maf)
-}) 
+})
+
+
+test_that("multi-stage SNV effect size calculation", {
+  cesa = get_test_data("cesa_for_snv_multi.rds")
+  test_genes = c("TTN", "KRAS", "RYR2", "EGFR", "TP53", "ASXL3","IFITM2")
+  cesa = effect_size_SNV(cesa, genes = test_genes, analysis = "SNV")
+  results = selection_results_converter(cesa)
+  results_ak = get_test_data("multi_stage_snv_results.rds")
+  expect_equal(results[,order(names(results))], results_ak[,order(names(results_ak))], tolerance = 1e-5)
+})

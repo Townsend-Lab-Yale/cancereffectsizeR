@@ -4,8 +4,18 @@
 \alias{ml_objective_epistasis}
 \title{ml_objective for epistasis calculation}
 \usage{
-ml_objective_epistasis(gamma, MAF_input1, MAF_input2, all_tumors, gene1,
-  gene2, variant1, variant2, specific_mut_rates1, specific_mut_rates2)
+ml_objective_epistasis(
+  gamma,
+  MAF_input1,
+  MAF_input2,
+  all_tumors,
+  gene1,
+  gene2,
+  variant1,
+  variant2,
+  specific_mut_rates1,
+  specific_mut_rates2
+)
 }
 \arguments{
 \item{gamma}{A selection intensity at which to calculate the likelihood}

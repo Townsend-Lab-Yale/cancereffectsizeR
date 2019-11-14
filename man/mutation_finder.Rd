@@ -11,6 +11,9 @@ mutation_finder(RefCDS_instance, MAF_input_row)
 
 \item{MAF_input_row}{Row from the MAF being analyzed with the mutation in question.}
 }
+\value{
+
+}
 \description{
 Finds original trinucleotides of variants near splice sites.
 }

@@ -17,19 +17,45 @@ test_that("dNdScv and MAF annotation", {
   expect_identical(data.frame(cesa@annotated.snv.maf), annotated_maf)
 })
 
+# will use SNV-analysis-ready object for remaining tests
+cesa = get_test_data("cesa_for_snv.rds")
+
+test_that("Handle missing or invalid gene choice in SNV analysis", {
+  # Error when any requested gene is not in RefCDS data
+  expect_error(effect_size_SNV(cesa, genes = c("KRAS", "TP53", "notagene")),
+               "genes have no reference data")
+  
+  # AC006486.1 is not in the data set; error when no genes request are in the data set
+  expect_error(effect_size_SNV(cesa, genes = c("AC006486.1")),
+               "None of the requested genes have mutations")
+  
+  # Expect a message when one or more of the genes requested isn't in data set
+  # This call quits early after receiving the message to save time
+  expect_match(tryCatch({effect_size_SNV(cesa, genes = c("AC006486.1", "TP53"))}, 
+                        message = function(m) {m$message}),
+               "The following requested genes have no mutations")
+})
+
+
 # genes to plug into effect_size_SNV; some with high-effect-size SNVs, others random
 test_genes = c("TTN", "KRAS", "RYR2", "USH2A", "CSMD3", "TP53", "CSMD1", "LRP1B", 
                "ZFHX4", "FAT3", "CNTNAP5", "PCDH15", "NEB", "RYR3", "DMD", "KATNAL1", 
                "OR13H1", "KSR1", "VWA5B1", "IFNAR1", "ARRB2", "CMSS1", "SLC10A7", "ENOX2", "IFITM2")
 test_that("SNV effect size calculation", {
-  cesa = get_test_data("cesa_for_snv.rds")
-  cesa = effect_size_SNV(cesa, genes = test_genes, analysis = "SNV", cores = 1)
+  cesa = effect_size_SNV(cesa, genes = test_genes, analysis = "SNV", cores = 3)
   results = selection_results_converter(cesa)
   results_ak = get_test_data("single_stage_snv_results.rds")
   
   # selection results will vary slightly by machine due to numerical precision issues during parameter optimization
   ## For now, need to sort dfs by column name because dplyr version affects column orderings
   expect_equal(results[,order(names(results))], results_ak[,order(names(results_ak))], tolerance = 1e-5)
+})
+
+test_that("Gene-level SNV epistasis analysis", {
+  cesa = effect_size_SNV(cesa, genes = c("EGFR", "KRAS", "TP53"), analysis = "gene-level-epistasis")
+  results = cesa@selection_results
+  results_ak = get_test_data("epistasis_results.rds")
+  expect_equal(results, results_ak, tolerance = 1e-7)
 })
 
 

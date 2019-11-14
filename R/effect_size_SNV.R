@@ -34,9 +34,23 @@ effect_size_SNV <- function(
     stop("Epistasis analysis is not compatible yet with multi-stage analyses. You'll have to re-run from the beginning.")
   }
 
+  if (! "character" %in% class(genes)) {
+    stop("Expected -genes to take a character vector.")
+  }
+
   # using the "SNV" genes
   snv.maf = cesa@annotated.snv.maf
   genes_in_dataset = unique(snv.maf$Gene_name)
+  if(length(genes_in_dataset) == 0) {
+    stop("The SNV mutation data set is empty!")
+  }
+
+
+  # Possibly make this only load when needed (but it's usually needed)
+  data("RefCDS_TP53splice", package = "cancereffectsizeR", envir = environment())
+  names(RefCDS) = sapply(RefCDS, function(x) x$gene_name)
+
+
   if(genes[1] =="all") {
     if (include_genes_without_recurrent_mutations) {
       genes_to_analyze <- genes_in_dataset
@@ -49,20 +63,48 @@ effect_size_SNV <- function(
     message(paste(length(genes_in_dataset) - length(genes_to_analyze), "genes in the data set have no recurrent SNV mutations."))
     message(paste("Calculating selection intensity for recurrent SNV mutations across", length(genes_to_analyze), "genes."))
   } else{
+    genes = unique(genes)
     genes_to_analyze <- genes[genes %in% genes_in_dataset]
+    missing_genes = genes[! genes %in% genes_in_dataset]
+    invalid_genes = missing_genes[! missing_genes %in% names(RefCDS)]
+    num_invalid = length(invalid_genes)
+    if(num_invalid > 0) {
+      additional_msg = ""
+      if(num_invalid > 50) {
+        invalid_genes = invalid_genes[1:40]
+        additional_msg = paste0(" (and ", num_invalid - 40, " more)")
+      }
+      list_of_invalid = paste(invalid_genes, collapse = ", ")
+      stop(paste0("Note: The following requested genes have no reference data (for genome build ", cesa@genome_build, "):\n\t",
+                  list_of_invalid, additional_msg, "\n"))
+    }
+    if (length(genes_to_analyze) == 0) {
+      stop("None of the requested genes have mutations in the SNV data set.")
+    }
+
+    num_missing = length(missing_genes)
+    if(num_missing > 0) {
+      additional_msg = ""
+      if(num_missing > 50) {
+        missing_genes = missing_genes[1:40]
+        additional_msg = paste0(" (and ", num_missing - 40, " more)")
+      }
+      list_of_missing = paste(missing_genes, collapse = ", ")
+
+      message(paste0("The following requested genes have no mutations in the SNV data set, so they won't be analyzed:\n\t",
+        list_of_missing, additional_msg))
+    }
   }
 
-  # Possibly make this only load when needed (but it's usually needed)
-  data("RefCDS_TP53splice", package = "cancereffectsizeR", envir = environment())
-  names(RefCDS) = sapply(RefCDS, function(x) x$gene_name)
+
 
 
   data("gene_trinuc_comp", package = "cancereffectsizeR", envir = environment())
   names(gene_trinuc_comp) <- sapply(gene_trinuc_comp, function(x) x$gene_name) # formally used names of RefCDS, but they're the same
 
 
-  data("AA_mutation_list", package="cancereffectsizeR", envir = as.environment("package:cancereffectsizeR"))
-  data("AA_translations", package="cancereffectsizeR", envir = as.environment("package:cancereffectsizeR"))
+  data("AA_mutation_list", package="cancereffectsizeR")
+  data("AA_translations", package="cancereffectsizeR")
 
   selection_results <- vector("list",length = length(genes_to_analyze))
   names(selection_results) <- genes_to_analyze
@@ -252,7 +294,7 @@ epistasis_gene_level = function(genes_to_analyze,
                                 cesa,
                                 gene_trinuc_comp,
                                 all_tumors,
-                                RefC) {
+                                RefCDS) {
 
 
   mutrates_list = cesa@mutrates_list

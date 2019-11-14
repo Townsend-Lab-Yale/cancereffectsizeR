@@ -4,8 +4,7 @@
 \alias{CESAnalysis}
 \title{CESAnalysis}
 \usage{
-CESAnalysis(progression_order = NULL, maf = NULL,
-  genome_build = "hg19", ...)
+CESAnalysis(progression_order = NULL, maf = NULL, genome_build = "hg19", ...)
 }
 \arguments{
 \item{progression_order}{evolutionary order of tumor stage progression (e.g. c("Primary", "Metastatic"))}

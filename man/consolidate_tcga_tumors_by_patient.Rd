@@ -6,8 +6,12 @@
 identifiers, such patients with multiple distinct tumors in the analysis share
 share just one identifer. Sample barcodes that don't start with "TCGA" are unaltered.}
 \usage{
-consolidate_tcga_tumors_by_patient(tumor_sample_barcodes,
-  non_TCGA_characters_to_keep = "all", sum_stats = T, figures = F)
+consolidate_tcga_tumors_by_patient(
+  tumor_sample_barcodes,
+  non_TCGA_characters_to_keep = "all",
+  sum_stats = T,
+  figures = F
+)
 }
 \arguments{
 \item{tumor_sample_barcodes}{an MAF-style Tumor_Sample_Barcode vector, of which some or all are TCGA samples}

@@ -9,6 +9,9 @@ MAFdf(df, ...)
 \arguments{
 \item{...}{}
 }
+\value{
+
+}
 \description{
 MAFdf
 }

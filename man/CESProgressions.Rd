@@ -4,8 +4,11 @@
 \alias{CESProgressions}
 \title{CESProgressions}
 \usage{
-CESProgressions(samples = NULL, sample_progressions = NULL,
-  ordered_progression_labels)
+CESProgressions(
+  samples = NULL,
+  sample_progressions = NULL,
+  ordered_progression_labels
+)
 }
 \arguments{
 \item{samples}{a vector of unique patient identifiers}

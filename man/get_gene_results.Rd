@@ -4,8 +4,15 @@
 \alias{get_gene_results}
 \title{Single-stage SNV effect size analysis (gets called by effect_size_SNV)}
 \usage{
-get_gene_results(gene_to_analyze, cesa, gene_mafs, gene_trinuc_comp,
-  all_tumors, find_CI)
+get_gene_results(
+  gene_to_analyze,
+  cesa,
+  gene_mafs,
+  gene_trinuc_comp,
+  all_tumors,
+  find_CI,
+  RefCDS
+)
 }
 \description{
 Single-stage SNV effect size analysis (gets called by effect_size_SNV)

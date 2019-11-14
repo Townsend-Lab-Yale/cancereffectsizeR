@@ -4,14 +4,19 @@
 \alias{effect_size_SNV}
 \title{Calculate SNV selection intensity}
 \usage{
-effect_size_SNV(cesa = NULL, genes = "all", analysis = c("SNV",
-  "gene-level-epistasis", "top-epistasis"),
-  epistasis_top_prev_number = NULL, cores = 1,
+effect_size_SNV(
+  cesa = NULL,
+  genes = "all",
+  analysis = c("SNV", "gene-level-epistasis", "top-epistasis"),
+  epistasis_top_prev_number = NULL,
+  cores = 1,
   include_genes_without_recurrent_mutations = F,
   full_gene_epistasis_lower_optim = 0.001,
   full_gene_epistasis_upper_optim = 1e+09,
   full_gene_epistasis_fnscale = -1e-16,
-  q_threshold_for_gene_level = 0.1, find_CI = T)
+  q_threshold_for_gene_level = 0.1,
+  find_CI = T
+)
 }
 \arguments{
 \item{cesa}{CESAnalysis object}

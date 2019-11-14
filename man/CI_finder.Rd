@@ -4,9 +4,17 @@
 \alias{CI_finder}
 \title{MLE CI finder}
 \usage{
-CI_finder(gamma_max, eligible_tumors, MAF_input, progressions, gene,
-  variant, specific_mut_rates, log_units_down = 10.828/2,
-  threshold = 0.01)
+CI_finder(
+  gamma_max,
+  eligible_tumors,
+  MAF_input,
+  progressions,
+  gene,
+  variant,
+  specific_mut_rates,
+  log_units_down = 10.828/2,
+  threshold = 0.01
+)
 }
 \arguments{
 \item{gamma_max}{selection intensity that maximizes the objective function}
@@ -26,6 +34,9 @@ CI_finder(gamma_max, eligible_tumors, MAF_input, progressions, gene,
 \item{log_units_down}{log units below maximum that correspond to 99.9 percent confidence}
 
 \item{threshold}{tolerance threshold for the uniroot function}
+}
+\value{
+
 }
 \description{
 MLE CI finder

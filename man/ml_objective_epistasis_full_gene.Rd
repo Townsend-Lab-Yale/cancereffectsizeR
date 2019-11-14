@@ -4,12 +4,21 @@
 \alias{ml_objective_epistasis_full_gene}
 \title{ml_objective for epistasis calculation at the gene level}
 \usage{
-ml_objective_epistasis_full_gene(gamma, MAF_input1, MAF_input2, all_tumors,
-  gene1, gene2, specific_mut_rates1, specific_mut_rates2, variant_freq_1,
-  variant_freq_2)
+ml_objective_epistasis_full_gene(
+  par,
+  MAF_input1 = NULL,
+  MAF_input2,
+  all_tumors,
+  gene1,
+  gene2,
+  specific_mut_rates1,
+  specific_mut_rates2,
+  variant_freq_1,
+  variant_freq_2
+)
 }
 \arguments{
-\item{gamma}{A selection intensity at which to calculate the likelihood}
+\item{par}{A selection intensity at which to calculate the likelihood}
 
 \item{all_tumors}{A list of all the tumors we are calculating the likelihood across}
 

@@ -4,8 +4,11 @@
 \alias{merging_TCGA_and_local_MAFdata_function}
 \title{Merging TCGA and local MAF data}
 \usage{
-merging_TCGA_and_local_MAFdata_function(NCI_data, Local_data,
-  check_for_same_tumor = T)
+merging_TCGA_and_local_MAFdata_function(
+  NCI_data,
+  Local_data,
+  check_for_same_tumor = T
+)
 }
 \arguments{
 \item{NCI_data}{MAF downloaded from the NCI GDC}

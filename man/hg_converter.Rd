@@ -4,8 +4,12 @@
 \alias{hg_converter}
 \title{hg_converter}
 \usage{
-hg_converter(chain, maf_to_convert, chrom_col_name = "Chromosome",
-  new_build_name = "Converted_from_GRCh38_to_hg19")
+hg_converter(
+  chain,
+  maf_to_convert,
+  chrom_col_name = "Chromosome",
+  new_build_name = "Converted_from_GRCh38_to_hg19"
+)
 }
 \arguments{
 \item{chain}{A directory on your system with the "*over.chain" file to be used with liftOver. For instance, the chain to convert from hg38 to hg19 can to be downloaded from UCSC \url{http://hgdownload.cse.ucsc.edu/gbdb/hg38/liftOver/} (hg38ToHg19.over.chain.gz).}

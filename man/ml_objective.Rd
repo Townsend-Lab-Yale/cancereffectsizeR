@@ -4,8 +4,15 @@
 \alias{ml_objective}
 \title{ml_objective}
 \usage{
-ml_objective(gamma, tumor_stages, tumors_without_gene_mutated,
-  tumors_with_pos_mutated, variant, specific_mut_rates, modifier = 0)
+ml_objective(
+  gamma,
+  tumor_stages,
+  tumors_without_gene_mutated,
+  tumors_with_pos_mutated,
+  variant,
+  specific_mut_rates,
+  modifier = 0
+)
 }
 \arguments{
 \item{gamma}{A selection intensity at which to calculate the likelihood}

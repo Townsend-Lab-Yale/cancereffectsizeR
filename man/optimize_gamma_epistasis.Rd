@@ -4,8 +4,17 @@
 \alias{optimize_gamma_epistasis}
 \title{Calculate selection intensity and epistasis}
 \usage{
-optimize_gamma_epistasis(MAF_input1, MAF_input2, all_tumors, gene1, gene2,
-  variant1, variant2, specific_mut_rates1, specific_mut_rates2)
+optimize_gamma_epistasis(
+  MAF_input1,
+  MAF_input2,
+  all_tumors,
+  gene1,
+  gene2,
+  variant1,
+  variant2,
+  specific_mut_rates1,
+  specific_mut_rates2
+)
 }
 \arguments{
 \item{all_tumors}{A list of all the tumors we are calculating the likelihood across}

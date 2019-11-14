@@ -1,6 +1,4 @@
 # create list of all the trinuc numbers in every gene
-library(cancereffectsizeR)
-library(dndscv)
 data("RefCDS_TP53splice", package="cancereffectsizeR")
 
 gene_list <- sapply(RefCDS, function(x) x$gene_name)
