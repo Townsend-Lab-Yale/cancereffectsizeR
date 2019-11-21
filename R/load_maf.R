@@ -48,7 +48,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
           # To-do: Switch to fread to make reading large files faster,
           # but need to handle optional presence of Tumor_Seq_Allele_1/2 columns
           #data.table::fread(maf, sep = "\t", header=T, stringsAsFactors = F, quote="", select = data.c("hey"))
-          read.table(maf, sep = "\t", header = T, stringsAsFactors = F, quote ="", comment.char = '#')
+          data.table::fread(maf, sep = "\t", quote ="", blank.lines.skip = T)
         },
         error = function(e) {
           message("Unable to read specified MAF file:")
@@ -165,6 +165,8 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   # strip chr prefixes from chr column, if present ("NCBI-style")
   maf[,chr_col] = gsub('^chr', '', maf[,chr_col])
   
+  # temporary handling of MT/M
+  maf[maf[,chr_col] == "M", chr_col] <- "MT" # changing MT to M (for future)
   
   # get coverage info for new samples and incorporate with any existing info
   coverage_update = cesa@coverage
@@ -189,7 +191,9 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
       stop("Error: covered_regions should be a path to a BED-formatted file, or a data-frame-like object with chr, start (1-based), end (inclusive) in the first three columns.")
     }
     
-    coverage = GenomicRanges::reduce(coverage)
+    # combine overlapping intervals
+    coverage = GenomicRanges::reduce(coverage) 
+    
     # name panel coverage groups "panel_1", "panel_2", etc.
     num_groups = length(coverage_update$samples_by_coverage)
     new_coverage_group_num = ifelse("exome" %in% names(coverage_update$samples_by_coverage), num_groups, num_groups + 1)
@@ -199,7 +203,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     coverage_update$samples_by_coverage[[new_group_name]] = unique(maf[, sample_col])
     
     # need to put the granges into an environment because list structure couldn't handle it in testing
-    if (! "granges" %in% coverage_update) {
+    if (! "granges" %in% names(coverage_update)) {
       coverage_update$granges = new.env()
     }
     coverage_update$granges[[new_group_name]] = coverage
@@ -249,8 +253,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   }
   
   # No support for mitochondrial mutations yet
-  maf[maf[,chr_col] == "MT", chr_col] <- "M" # changing MT to M (for future)
-  is_mt <- maf[,chr_col] == "M"
+  is_mt <- maf[,chr_col] == "MT"
   if (any(is_mt)) {
     mt_maf = maf[is_mt,]
     mt_maf$Exclusion_Reason = "mitochondrial"

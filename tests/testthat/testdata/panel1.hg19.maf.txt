@@ -1,0 +1,6 @@
+Tumor_Sample_Barcode	Chromosome	Start_Position	Reference_Allele	Tumor_Allele	Note
+panel1-1	7	55259515	T	G	Same exact substitution in test exome data (should increase selection intensity)
+panel1-2	17	7579312	C	T	Same non-exon (splice) site on TP53 as test exome data, but different base (no effect on significance of other variant)
+panel1-3	10	13168009	G	T	Same site on OPTN, different base substitution, same amino acid change (L>F); should bring locus to significance
+panel1-4	10	99511133	A	C	AGT context allows Ser>Arg via A>C and T>A/G (gene ZFYVE27; near splice)
+			

@@ -1,0 +1,3 @@
+Tumor_Sample_Barcode	Chromosome	Start_Position	Reference_Allele	Tumor_Allele	Note
+panel2-1	17	7579312	C	T	Makes panel1-1 variant recurrent; should affect TP53 epistasis ouptut when both panels loaded
+panel2-2	10	99511135	T	A	AGT context allows Ser>Arg via A>C and T>A/G (gene ZFYVE27; near splice)

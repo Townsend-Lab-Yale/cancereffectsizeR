@@ -1,0 +1,5 @@
+# covers a recurrent EGFR locus (in test data), all of TP53 (chr 17); and KRAS G12D (chr 12); and OPTN (chr 10)
+7	55259514	55259515
+12	25380283	25398286
+17	1	40000000
+10	1	110000000

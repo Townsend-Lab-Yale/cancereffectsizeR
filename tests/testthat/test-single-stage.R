@@ -51,12 +51,17 @@ test_that("SNV effect size calculation", {
   expect_equal(results[,order(names(results))], results_ak[,order(names(results_ak))], tolerance = 1e-5)
 })
 
+
+
+
 test_that("Gene-level SNV epistasis analysis", {
   cesa = effect_size_SNV(cesa, genes = c("EGFR", "KRAS", "TP53"), analysis = "gene-level-epistasis")
   results = cesa@selection_results
   results_ak = get_test_data("epistasis_results.rds")
   expect_equal(results, results_ak, tolerance = 1e-7)
 })
+
+
 
 
 
