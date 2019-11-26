@@ -4,20 +4,16 @@
 \alias{CESAnalysis}
 \title{CESAnalysis}
 \usage{
-CESAnalysis(progression_order = NULL, maf = NULL, genome_build = "hg19", ...)
+CESAnalysis(progression_order = NULL, genome_build = "hg19")
 }
 \arguments{
 \item{progression_order}{evolutionary order of tumor stage progression (e.g. c("Primary", "Metastatic"))}
 
-\item{maf}{optional path of tab-delimited text file in MAF format, or an MAF in data.frame format}
-
 \item{genome_build}{Genome build of MAF data (currently, just hg19 supported)}
-
-\item{...}{when loading MAF data, supply additional arguments for load_maf}
 }
 \value{
 CESAnalysis object
 }
 \description{
-Creates a CESAnalysis object (the data structure used by cancereffectsizeR), and optionally loads in MAF data
+Creates a CESAnalysis object (the data structure used by cancereffectsizeR)
 }

@@ -42,7 +42,7 @@ Input data should be MAF format (either a text file or a data frame with the sam
   
   # Calculate selection intensities and produce human-readable results
   # If you have multiple computing cores and the parallel library, you can parallelize the operation
-  analysis = effect_size_SNV(analysis, cores = 4)
+  analysis = ces_snv(analysis, cores = 4)
 
   # Generate a relatively small data frame that lists all recurrent SNVs of high selection intensity
   results = selection_results_converter(analysis)
