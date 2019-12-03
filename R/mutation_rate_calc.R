@@ -5,7 +5,6 @@
 #' @param this_MAF The subset MAF (just the gene to be analyzed) file to extract mutational data from
 #' @param gene current gene
 #' @param trinuc_proportion_matrix matrix constructed from deconstructSigs output, containing proportion of each trinucleotide mutated in each tumor
-#' @param gene_trinuc_comp list containing matrices of counts of each trinuc in every gene
 #' @param gene_refcds information from RefCDS data set for the current gene
 #' @param progression CESProgressions
 #' @param gene_mut_rate mutation rate at the gene-level
@@ -15,9 +14,9 @@
 #'
 #' @examples
 mutation_rate_calc <- function(this_MAF,
-                               gene, gene_mut_rate,
+                               gene,
+                               gene_mut_rate,
                                trinuc_proportion_matrix,
-                               gene_trinuc_comp,
                                gene_refcds,
                                all_tumors,
                                progressions
@@ -38,18 +37,18 @@ mutation_rate_calc <- function(this_MAF,
     colnames(mutation_rate_nucs) <- colnames(trinuc_proportion_matrix)
   }
 
-
-  if(0 %in% gene_trinuc_comp[[gene]]$gene_trinuc$count){
-    gene_trinuc_comp[[gene]]$gene_trinuc$count <- gene_trinuc_comp[[gene]]$gene_trinuc$count + 1
+  trinuc_counts = gene_trinuc_comp[[gene]]
+  if (0 %in% trinuc_counts) {
+    trinuc_counts = trinuc_counts + 1
   }
+  norm_constant = sum(trinuc_counts)
 
-
-
-  norm_constant = sum(gene_trinuc_comp[[gene]]$gene_trinuc[,"count"])
   calc_normalizers = function(x) {
-    return(sum(gene_trinuc_comp[[gene]]$gene_trinuc$count * x))
+    return(sum(trinuc_counts * x))
   }
   normalizers = apply(trinuc_proportion_matrix, 1, calc_normalizers) / norm_constant
+
+
 
   for(i in 1:nrow(mutation_rate_nucs)){
     mutation_rate_nucs[i,] <- (trinuc_proportion_matrix[i,] / normalizers[i]) * gene_mut_rate[[get_progression_number(progressions, rownames(mutation_rate_nucs)[i])]][gene]

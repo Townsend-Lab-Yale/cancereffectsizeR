@@ -1,88 +1,55 @@
 # create list of all the trinuc numbers in every gene
-data("RefCDS_TP53splice", package="cancereffectsizeR")
+data("RefCDS_TP53splice", package= "cancereffectsizeR")
 
-gene_list <- sapply(RefCDS, function(x) x$gene_name)
+# Load the 92 context-specific SNV mutations, in the order used by deconstructSigs
+data("deconstructSigs_trinuc_string", package = "cancereffectsizeR")
 
-load("data/deconstructSigs_trinuc_string.RData")
+# Convert stuff like "A[C>G]A" format to "ACA" (just the reference trinucleotide context)
+context_names = sub("\\[([ACTG]).*\\]", "\\1", deconstructSigs_trinuc_string)
 
-gene_trinuc_comp <- vector("list",length(RefCDS))
+# deconstructSigs only includes C/T as central nucleotides; we need reverse complement for A/G in center
+reverse_complement_names = as.character(Biostrings::reverseComplement(Biostrings::DNAStringSet(context_names)))
 
-for(i in 1:length(gene_trinuc_comp)){
+gene_trinuc_comp  = new.env()
 
-  gene_trinuc <- data.frame(count=rep(0,length(deconstructSigs_trinuc_string)))
-  rownames(gene_trinuc) <- deconstructSigs_trinuc_string
-
-  gene_trinuc$downstream <- substr(deconstructSigs_trinuc_string,start = 7,stop = 7)
-  gene_trinuc$upstream <- substr(deconstructSigs_trinuc_string,start = 1,stop = 1)
-  gene_trinuc$ref <- substr(deconstructSigs_trinuc_string,start = 3,stop = 3)
-  gene_trinuc$alt <- substr(deconstructSigs_trinuc_string,start = 5,stop = 5)
-
-
-  for(j in 1:RefCDS[[i]]$CDS_length){
-
-    if(!(strsplit(as.character(RefCDS[[i]]$seq_cds),split = "")[[1]][j] %in% c("C","T"))){
-      this_trinuc <- c(
-        strsplit(as.character(RefCDS[[i]]$seq_cds1up),split = "")[[1]][j],
-        strsplit(as.character(RefCDS[[i]]$seq_cds),split = "")[[1]][j],
-        strsplit(as.character(RefCDS[[i]]$seq_cds1down),split = "")[[1]][j]
-      )
-
-      this_trinuc <- rev(toupper(seqinr::comp(this_trinuc)))
-
-    }else{
-      this_trinuc <- c(
-        strsplit(as.character(RefCDS[[i]]$seq_cds1up),split = "")[[1]][j],
-        strsplit(as.character(RefCDS[[i]]$seq_cds),split = "")[[1]][j],
-        strsplit(as.character(RefCDS[[i]]$seq_cds1down),split = "")[[1]][j]
-      )
-
-    }
-
-    gene_trinuc$count[which(gene_trinuc$upstream== this_trinuc[1] &
-                              gene_trinuc$ref== this_trinuc[2] &
-                              gene_trinuc$downstream == this_trinuc[3])] <-
-      gene_trinuc$count[which(gene_trinuc$upstream== this_trinuc[1] &
-                                gene_trinuc$ref== this_trinuc[2] &
-                                gene_trinuc$downstream == this_trinuc[3])] + 1
-
-
+# go through all the transcripts in the RefCDS object...
+for(i in 1:length(RefCDS)){
+  if (i%%1000 == 0) {
+    message(paste("Finished with", i, "RefCDS transcripts."))
   }
 
-#
-#   if(RefCDS[[i]]$strand=="-1"){
-#     seq_cds2up <- paste(toupper(seqinr::comp(strsplit(as.character(rev(unlist(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens,paste("chr",RefCDS[[i]]$chr,sep=""),start=RefCDS[[i]]$intervals_cds[,1]+2,end = RefCDS[[i]]$intervals_cds[,2]+2,strand="+")))),split="")[[1]])),collapse = "")
-#
-#     seq_cds2down <- paste(toupper(seqinr::comp(strsplit(as.character(rev(unlist(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens,paste("chr",RefCDS[[i]]$chr,sep=""),start=RefCDS[[i]]$intervals_cds[,1]-2,end = RefCDS[[i]]$intervals_cds[,2]-2,strand="+")))),split="")[[1]])),collapse = "")
-#
-#     seq_cds3up <- paste(toupper(seqinr::comp(strsplit(as.character(rev(unlist(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens,paste("chr",RefCDS[[i]]$chr,sep=""),start=RefCDS[[i]]$intervals_cds[,1]+3,end = RefCDS[[i]]$intervals_cds[,2]+3,strand="+")))),split="")[[1]])),collapse = "")
-#
-#     seq_cds3down <- paste(toupper(seqinr::comp(strsplit(as.character(rev(unlist(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens,paste("chr",RefCDS[[i]]$chr,sep=""),start=RefCDS[[i]]$intervals_cds[,1]-3,end = RefCDS[[i]]$intervals_cds[,2]-3,strand="+")))),split="")[[1]])),collapse = "")
-#
-#   }
-#
-#
-#   if(RefCDS[[i]]$strand=="1"){
-#     seq_cds2up <- paste(strsplit(as.character(unlist(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens,paste("chr",RefCDS[[i]]$chr,sep=""),start=RefCDS[[i]]$intervals_cds[,1]-2,end = RefCDS[[i]]$intervals_cds[,2]-2,strand="+"))),split="")[[1]],collapse = "")
-#
-#     seq_cds2down <- paste(strsplit(as.character(unlist(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens,paste("chr",RefCDS[[i]]$chr,sep=""),start=RefCDS[[i]]$intervals_cds[,1]+2,end = RefCDS[[i]]$intervals_cds[,2]+2,strand="+"))),split="")[[1]],collapse = "")
-#
-#     seq_cds3up <- paste(strsplit(as.character(unlist(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens,paste("chr",RefCDS[[i]]$chr,sep=""),start=RefCDS[[i]]$intervals_cds[,1]-3,end = RefCDS[[i]]$intervals_cds[,2]-3,strand="+"))),split="")[[1]],collapse = "")
-#
-#     seq_cds3down <- paste(strsplit(as.character(unlist(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens,paste("chr",RefCDS[[i]]$chr,sep=""),start=RefCDS[[i]]$intervals_cds[,1]+3,end = RefCDS[[i]]$intervals_cds[,2]+3,strand="+"))),split="")[[1]],collapse = "")
-#
-#
-#   }
+  total_counts = integer(96) # number of distinct deconstructSigs SNVs
 
+  # for each transcripts, need to consider each exon and 1 base up/downstream for trinucleotide context
+  intervals = RefCDS[[i]]$intervals_cds # two-column matrix with start/stop coordinates of each cds
+  cds_lengths = intervals[,2] - intervals[,1] 
 
-  gene_trinuc_comp[[i]] <- list(gene_name = gene_list[i],gene_trinuc=gene_trinuc)#,
-                                # seq_cds2up=seq_cds2up, seq_cds2down=seq_cds2down,
-                                # seq_cds3up=seq_cds3up, seq_cds3down=seq_cds3down)
+  # if transcript is on negative strand, flip exon order
+  if (RefCDS[[i]]$strand == -1) {
+    cds_lengths = rev(cds_lengths)
+  }
+  start = 1
+  for (cds_length in cds_lengths) {
+    end = start + cds_length
+    # xscat and subseq are much more efficient than plain concatenation and subsetting
+    seq = Biostrings::xscat(Biostrings::subseq(RefCDS[[i]]$seq_cds1up, start = start, width = 1), 
+            Biostrings::subseq(RefCDS[[i]]$seq_cds, start = start, end = end), 
+            Biostrings::subseq(RefCDS[[i]]$seq_cds1down, start = end, width = 1))
+    
+    # get trinucleotide counts for cds
+    # this function returns full 64-cell table, including counts of 0 (otherwise subsetting below wouldn't work)
+    cds_counts = Biostrings::trinucleotideFrequency(seq)
 
+    # order the counts in deconstructSigs order and add them to total counts for this transcript
+    total_counts = cds_counts[context_names] + cds_counts[reverse_complement_names] + total_counts
 
-  print(i)
+    # next cds sequence starts with next base in the seq_cds sequence
+    start = end + 1
+  }
 
+  # add to trinuc counts to environment (dropping names since they don't match deconstructSigs format)
+  gene_trinuc_comp[[RefCDS[[i]]$gene_name]] = unname(total_counts)
 }
-
 
 save(gene_trinuc_comp,file = "data/gene_trinuc_comp.RData")
 

@@ -78,13 +78,6 @@ ces_snv <- function(cesa = NULL,
 
 
 
-  data("gene_trinuc_comp", package = "cancereffectsizeR", envir = environment())
-  names(gene_trinuc_comp) <- sapply(gene_trinuc_comp, function(x) x$gene_name) # formally used names of RefCDS, but they're the same
-
-
-  data("AA_mutation_list", package="cancereffectsizeR")
-  data("AA_translations", package="cancereffectsizeR")
-
   selection_results <- vector("list",length = length(genes_to_analyze))
   names(selection_results) <- genes_to_analyze
   
@@ -93,7 +86,6 @@ ces_snv <- function(cesa = NULL,
   all_tumors = unique(snv.maf$Unique_Patient_Identifier)
 
   selection_results <- pbapply::pblapply(genes_to_analyze, get_gene_results, cesa = cesa,
-                                            gene_trinuc_comp = gene_trinuc_comp,
                                             all_tumors = all_tumors,find_CI=find_CI, RefCDS = RefCDS, cl = cores)
 
   cesa@selection_results = selection_results
@@ -104,7 +96,7 @@ ces_snv <- function(cesa = NULL,
 
 
 #' Single-stage SNV effect size analysis (gets called by ces_snv)
-get_gene_results <- function(gene_to_analyze, cesa, gene_trinuc_comp, all_tumors, find_CI, RefCDS) {
+get_gene_results <- function(gene_to_analyze, cesa, all_tumors, find_CI, RefCDS) {
   snv.maf = cesa@annotated.snv.maf
   progressions = cesa@progressions
   current_gene_maf = snv.maf[snv.maf$Gene_name == gene_to_analyze,]
@@ -114,7 +106,6 @@ get_gene_results <- function(gene_to_analyze, cesa, gene_trinuc_comp, all_tumors
       gene = gene_to_analyze,
       gene_mut_rate = cesa@mutrates_list,
       trinuc_proportion_matrix = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix,
-      gene_trinuc_comp = gene_trinuc_comp,
       gene_refcds = RefCDS[[gene_to_analyze]],
       all_tumors = all_tumors,
       progressions = progressions)

@@ -24,12 +24,6 @@ ces_gene_epistasis = function(cesa = NULL, genes, cores = 1, full_gene_epistasis
   data("RefCDS_TP53splice", package = "cancereffectsizeR", envir = environment())
   names(RefCDS) = sapply(RefCDS, function(x) x$gene_name)
 
-  data("gene_trinuc_comp", package = "cancereffectsizeR", envir = environment())
-  names(gene_trinuc_comp) <- sapply(gene_trinuc_comp, function(x) x$gene_name) # formally used names of RefCDS, but they're the same
-
-
-  data("AA_mutation_list", package="cancereffectsizeR")
-  data("AA_translations", package="cancereffectsizeR")
 
 	genes = unique(genes)
 	genes_in_dataset = unique(cesa@annotated.snv.maf$Gene_name)
@@ -74,7 +68,6 @@ ces_gene_epistasis = function(cesa = NULL, genes, cores = 1, full_gene_epistasis
                                            MAF=cesa@annotated.snv.maf,
                                            trinuc_proportion_matrix=cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix,
                                            cesa=cesa,
-                                           gene_trinuc_comp = gene_trinuc_comp,
                                            all_tumors = unique(cesa@annotated.snv.maf$Unique_Patient_Identifier),
                                            RefCDS = RefCDS,
                                            cl = cores)
@@ -86,7 +79,6 @@ epistasis_gene_level = function(genes_to_analyze,
                                 MAF,
                                 trinuc_proportion_matrix,
                                 cesa,
-                                gene_trinuc_comp,
                                 all_tumors,
                                 RefCDS) {
   mutrates_list = cesa@mutrates_list
@@ -138,7 +130,6 @@ epistasis_gene_level = function(genes_to_analyze,
         gene = variant1,
         gene_mut_rate = mutrates_list,
         trinuc_proportion_matrix = trinuc_proportion_matrix,
-        gene_trinuc_comp = gene_trinuc_comp,
         gene_refcds = RefCDS[[variant1]],
         all_tumors = eligible_tumors,
         progressions = progressions)
@@ -149,7 +140,6 @@ epistasis_gene_level = function(genes_to_analyze,
         gene = variant2,
         gene_mut_rate = mutrates_list,
         trinuc_proportion_matrix = trinuc_proportion_matrix,
-        gene_trinuc_comp = gene_trinuc_comp,
         gene_refcds = RefCDS[[variant2]],
         all_tumors = eligible_tumors,
         progressions = progressions)

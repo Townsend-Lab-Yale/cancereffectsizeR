@@ -336,28 +336,6 @@ trinucleotide_mutation_weights <- function(cesa,
     }
 
 
-    # need to do the same for weights
-    # weight_matrix <- matrix(data = NA,
-    #                         nrow = length(signatures_output_list),
-    #                         ncol = ncol(signatures_output_list[[1]]$signatures_output$weights))
-    # rownames(weight_matrix) <- names(signatures_output_list)
-    # colnames(weight_matrix) <- colnames(signatures_output_list[[1]]$signatures_output$weights)
-    #
-    # for(weight_row in 1:nrow(weight_matrix)){
-    #  weight_matrix[weight_row,] <-  as.numeric(signatures_output_list[[rownames(weight_matrix)[weight_row]]]$signatures_output$weights)
-    # }
-    #
-    # averaged_weight <- 0
-    # for(tumor_name_index in 1:length(tumors_with_50_or_more)){
-    #   averaged_weight <- averaged_weight +
-    #     weight_matrix[tumors_with_50_or_more[tumor_name_index],]
-    # }
-    #
-    # averaged_weight <- averaged_weight/length(tumors_with_50_or_more)
-    #TODO: should this be forced to sum() to 1?
-
-
-
     # for tumors < 50 substitutions, weight their found signature product by the average
     # of the signatures over 50 relative to substitution load.
     if(length(tumors_with_less_than_50)>0){
