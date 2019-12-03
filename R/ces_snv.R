@@ -26,7 +26,6 @@ ces_snv <- function(cesa = NULL,
 
 
   # Possibly make this only load when needed (but it's usually needed)
-  data("RefCDS_TP53splice", package = "cancereffectsizeR", envir = environment())
   names(RefCDS) = sapply(RefCDS, function(x) x$gene_name)
 
 

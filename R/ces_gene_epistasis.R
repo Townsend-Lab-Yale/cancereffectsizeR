@@ -21,7 +21,6 @@ ces_gene_epistasis = function(cesa = NULL, genes, cores = 1, full_gene_epistasis
     stop("Supply at least two genes to analyze.")
   }
 
-  data("RefCDS_TP53splice", package = "cancereffectsizeR", envir = environment())
   names(RefCDS) = sapply(RefCDS, function(x) x$gene_name)
 
 

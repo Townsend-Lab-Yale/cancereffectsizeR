@@ -24,7 +24,6 @@ annotate_gene_maf <- function(cesa) {
 
 	# load RefCDS data and extract what is needed for annotations
 	# this loads both the RefCDS object and gr_genes, used for annotating SNV loci with gene name
- 	data("RefCDS_TP53splice",package = "cancereffectsizeR", envir = environment())
   	list_extract <- function(x){
         return(list(gene_name=x$gene_name,
                     strand = x$strand,
@@ -162,7 +161,6 @@ annotate_gene_maf <- function(cesa) {
 	MAF$Tumor_allele_correct_strand[which(MAF$strand=="-")] <-
 	  toupper(seqinr::comp(MAF$Tumor_allele_correct_strand[which(MAF$strand=="-")]))
 
-	data("trinuc_translator", package="cancereffectsizeR", envir = environment())
 
 	MAF$trinuc_dcS <- trinuc_translator[paste(MAF$triseq,
 	                                          ":",
@@ -218,7 +216,6 @@ annotate_gene_maf <- function(cesa) {
 
 	MAF$coding_variant_AA_mut <-  substrRight(x = MAF$coding_variant,n=1)
 
-	data("AA_translations", package="cancereffectsizeR", envir = environment())
 
 	AA_translations_unique <- AA_translations[!duplicated(AA_translations$AA_letter),]
 	rownames(AA_translations_unique) <- as.character(AA_translations_unique$AA_letter)

@@ -24,7 +24,7 @@ gene_level_mutation_rates <- function(cesa, covariate_file = NULL, save_all_dnds
     genes_in_pca <- rownames(covs)
   }else{
     message("Loading tissue covariates file...")
-    this_cov_pca <- get(data(list=covariate_file, package="cancereffectsizeR", envir = environment()))
+    this_cov_pca <- get(covariate_file) # To-do: clean this up
     genes_in_pca <- rownames(this_cov_pca$rotation)
   }
 
@@ -54,7 +54,6 @@ gene_level_mutation_rates <- function(cesa, covariate_file = NULL, save_all_dnds
 
   # Get RefCDS data on number of synonymous mutations possible at each site
   # Per dNdScv docs, L matrices list "number of synonymous, missense, nonsense and splice sites in each CDS at each trinucleotide context"
-  data("RefCDS_TP53splice",package = "cancereffectsizeR", envir = environment())
   num_syn = sapply(RefCDS, function(x) colSums(x$L)[1])
   names(num_syn) = sapply(RefCDS, function(x) x$gene_name)
 
