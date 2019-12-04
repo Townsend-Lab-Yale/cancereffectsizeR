@@ -42,14 +42,20 @@ gene_level_mutation_rates <- function(cesa, covariate_file = NULL, save_all_dnds
   
   # dndscv output for each subset
   message("Running dNdScv...")
+
+  # temporary workaround pending updates to dndscv
+  tmp_refdb = tempfile(fileext = ".rda")
+  save(RefCDS, file = tmp_refdb)
   for(this_subset in 1:length(dndscv_out_list)){
     current_subset_tumors = get_progression_tumors(cesa@progressions, this_subset)
-    dndscv_out_list[[this_subset]] <- dndscv::dndscv(
+    dndscv_out_list[[this_subset]] <- 
+      dndscv::dndscv(
       mutations = dndscv_maf[dndscv_maf$Unique_Patient_Identifier %in% current_subset_tumors,],
       gene_list = genes_in_pca,
-      cv = if(is.null(covariate_file)){ "hg19"}else{ this_cov_pca$rotation},
-      refdb = system.file("data/RefCDS_TP53splice.RData", package = "cancereffectsizeR"))
+      cv = if(is.null(covariate_file)){ "hg19"} else{ this_cov_pca$rotation},
+      refdb = tmp_refdb)
   }
+  unlink(tmp_refdb)
 
 
   # Get RefCDS data on number of synonymous mutations possible at each site
