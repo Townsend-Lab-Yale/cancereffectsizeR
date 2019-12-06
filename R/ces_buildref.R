@@ -2,12 +2,9 @@
 #' 
 #' Function to build a RefCDS object from a reference genome and a table of transcripts. The RefCDS object has to be precomputed for any new species or assembly prior to running dndscv. This function generates an .rda file that needs to be input into dndscv using the refdb argument. Note that when multiple CDS share the same gene name (second column of cdsfile), the longest coding CDS will be chosen for the gene. CDS with ambiguous bases (N) will not be considered.
 #' 
-#' @author Inigo Martincorena (Wellcome Sanger Institute)
-#' @details Martincorena I, et al. (2017) Universal patterns of selection in cancer and somatic tissues. Cell. 171(5):1029-1041.
-#' 
-#' @param cdsfile Path to the reference transcript table.
-#' @param genomefile Path to the indexed reference genome file.
-#' @param outfile Output file name (default = "RefCDS.rda").
+#' @details Based on the buildref function in Inigo Martincorena's package dNdScv.
+#' @param cds_data data from biomaRt for the genome assembly of interest
+#' @param genome a BSgenome object corresponding to the genome assembly of interest
 #' @param numcode NCBI genetic code number (default = 1; standard genetic code). To see the list of genetic codes supported use: ? seqinr::translate
 #' @param excludechrs Vector or string with chromosome names to be excluded from the RefCDS object (default: no chromosome will be excluded). The mitochondrial chromosome should be excluded as it has different genetic code and mutation rates, either using the excludechrs argument or not including mitochondrial transcripts in cdsfile.
 #' @param onlychrs Vector of valid chromosome names (default: all chromosomes will be included)
@@ -15,14 +12,18 @@
 #' 
 #' @export
 
-buildref = function(cdsfile, genomefile, outfile = "RefCDS.rda", numcode = 1, excludechrs = NULL, onlychrs = NULL, useids = F) {
+buildref = function(cds_data, genome, numcode = 1, excludechrs = NULL, onlychrs = NULL, useids = F) {
   
   ## 1. Valid chromosomes and reference CDS per gene
   message("[1/3] Preparing the environment...")
   
-  reftable = read.table(cdsfile, header=1, sep="\t", stringsAsFactors=F, quote="\"", na.strings="-", fill=TRUE) # Loading the reference table
-  colnames(reftable) = c("gene.id","gene.name","cds.id","chr","chr.coding.start","chr.coding.end","cds.start","cds.end","length","strand")
-  reftable[,5:10] = suppressWarnings(lapply(reftable[,5:10], as.numeric)) # Convert to numeric
+  reftable = cds_data
+  
+  GenomeInfoDb::seqlevelsStyle(genome) = "NCBI" # assuming this doesn't crash on any genomes
+  
+  # change column names
+  colnames(reftable) = c("gene.id","cds.id","chr","strand","gene.name","length","chr.coding.start","chr.coding.end","cds.start","cds.end")
+  reftable[,6:10] = suppressWarnings(lapply(reftable[,6:10], as.numeric)) # Convert to numeric
   
   # Checking for systematic absence of gene names (it happens in some BioMart inputs)
   longname = paste(reftable$gene.id, reftable$gene.name, sep=":") # Gene name combining the Gene stable ID and the Associated gene name
@@ -34,8 +35,12 @@ buildref = function(cdsfile, genomefile, outfile = "RefCDS.rda", numcode = 1, ex
   }
   
   # Reading chromosome names in the fasta file using its index file if it already exists or creating it if it does not exist. The index file is also used by scanFa later.
-  validchrs = as.character(GenomicRanges::seqnames(Rsamtools::scanFaIndex(genomefile)))
   
+  #genomefile = tempfile(fileext=".2bit")
+  #BSgenome::export(genome, con = rtracklayer::TwoBitFile())
+  
+  #validchrs = as.character(GenomicRanges::seqnames(Rsamtools::scanFaIndex(genomefile)))
+  validchrs = as.character(GenomicRanges::seqnames(genome))
   validchrs = setdiff(validchrs, excludechrs)
   if (length(onlychrs)>0) {
     validchrs = validchrs[validchrs %in% onlychrs]
@@ -44,22 +49,16 @@ buildref = function(cdsfile, genomefile, outfile = "RefCDS.rda", numcode = 1, ex
   # Restricting to chromosomes present in both the genome file and the CDS table
   if (any(validchrs %in% unique(reftable$chr))) {
     validchrs = validchrs[validchrs %in% unique(reftable$chr)]
-  } else { # Try adding a chr prefix
-    reftable$chr = paste("chr", reftable$chr, sep="")
-    validchrs = validchrs[validchrs %in% unique(reftable$chr)]
-    if (length(validchrs)==0) { # No matching chromosome names
-      stop("No chromosome names in common between the genome file and the CDS table")
-    }
   }
   
   
   # Removing genes that fall partially or completely outside of the available chromosomes/contigs
   
-  reftable = reftable[reftable[,1]!="" & reftable[,2]!="" & reftable[,3]!="" & !is.na(reftable[,5]) & !is.na(reftable[,6]),] # Removing invalid entries
-  reftable = reftable[which(reftable$chr %in% validchrs),] # Only valid chromosomes
+  reftable = reftable[reftable[,1]!="" & reftable[,2]!="" & reftable[,5]!="" & !is.na(reftable[,7]) & !is.na(reftable[,8]),] # Removing invalid entries
+  reftable = reftable[which(as.character(reftable$chr) %in% validchrs),] # Only valid chromosomes
   
   transc_gr = GenomicRanges::GRanges(reftable$chr, IRanges::IRanges(reftable$chr.coding.start,reftable$chr.coding.end))
-  chrs_gr = Rsamtools::scanFaIndex(genomefile)
+  chrs_gr = GenomicRanges::GRanges(GenomicRanges::seqinfo(genome))
   ol = as.data.frame(GenomicRanges::findOverlaps(transc_gr, chrs_gr, type="within", select="all"))
   
   # Issuing an error if any transcript falls outside of the limits of a chromosome. Possibly due to a mismatch between the assembly used for the reference table and the reference genome.
@@ -94,7 +93,7 @@ buildref = function(cdsfile, genomefile, outfile = "RefCDS.rda", numcode = 1, ex
   
   # Selecting the longest complete CDS for every gene (required when there are multiple alternative transcripts per unique gene name)
   
-  cds_table = unique(reftable[,c(1:3,9)])
+  cds_table = unique(reftable[,c(1,2,5,6)])
   cds_table = cds_table[order(cds_table$gene.name, -cds_table$length), ] # Sorting CDS from longest to shortest
   cds_table = cds_table[(cds_table$length %% 3)==0, ] # Removing CDS of length not multiple of 3
   cds_table = cds_table[cds_table$cds.id %in% fullcds, ] # Complete CDS
@@ -111,7 +110,7 @@ buildref = function(cdsfile, genomefile, outfile = "RefCDS.rda", numcode = 1, ex
   
   # Subfunction to extract the coding sequence
   get_CDSseq = function(gr, strand) {
-    cdsseq = strsplit(paste(as.vector(Rsamtools::scanFa(genomefile, gr)),collapse=""),"")[[1]]
+    cdsseq = strsplit(paste(BSgenome::getSeq(genome, gr), collapse=""), "")[[1]]
     if (strand==-1) {
       cdsseq = rev(seqinr::comp(cdsseq,forceToLower=F))
     }
@@ -123,13 +122,13 @@ buildref = function(cdsfile, genomefile, outfile = "RefCDS.rda", numcode = 1, ex
   get_splicesites = function(cds) {
     splpos = numeric(0)
     if (nrow(cds)>1) { # If the CDS has more than one exon
-      if (cds[1,10]==1) { # + strand
-        spl5prime = cds[-nrow(cds),6] # Exon end before splice site
-        spl3prime = cds[-1,5] # Exon start after splice site
+      if (cds[1,4]==1) { # + strand
+        spl5prime = cds[-nrow(cds),8] # Exon end before splice site
+        spl3prime = cds[-1,7] # Exon start after splice site
         splpos = unique(sort(c(spl5prime+1, spl5prime+2, spl5prime+5, spl3prime-1, spl3prime-2)))
-      } else if (cds[1,10]==-1) { # - strand
-        spl5prime = cds[-1,5] # Exon end before splice site
-        spl3prime = cds[-nrow(cds),6] # Exon start after splice site
+      } else if (cds[1,4]==-1) { # - strand
+        spl5prime = cds[-1,7] # Exon end before splice site
+        spl3prime = cds[-nrow(cds),8] # Exon start after splice site
         splpos = unique(sort(c(spl5prime-1, spl5prime-2, spl5prime-5, spl3prime+1, spl3prime+2)))
       }
     }
@@ -138,7 +137,7 @@ buildref = function(cdsfile, genomefile, outfile = "RefCDS.rda", numcode = 1, ex
   
   # Subfunction to extract the essential splice site sequence
   get_spliceseq = function(gr, strand) {
-    spliceseq = unname(as.vector(Rsamtools::scanFa(genomefile, gr)))
+    spliceseq = unname(as.vector(BSgenome::getSeq(genome, gr)))
     if (strand==-1) {
       spliceseq = seqinr::comp(spliceseq,forceToLower=F)
     }
@@ -151,17 +150,17 @@ buildref = function(cdsfile, genomefile, outfile = "RefCDS.rda", numcode = 1, ex
   invalid_genes = rep(0, length(gene_split)) # Initialising empty object
   
   for (j in 1:length(gene_split)) {
-    
     gene_cdss = gene_split[[j]]
     h = keeptrying = 1
     
     while (h<=nrow(gene_cdss) & keeptrying) {
       
-      pid = gene_cdss[h,3]
+      pid = gene_cdss[h,2]
       cds = cds_split[[pid]]
-      strand = cds[1,10]
-      chr = cds[1,4]
-      gr = GenomicRanges::GRanges(chr, IRanges::IRanges(cds[,5], cds[,6]))
+      strand = cds[1,4]
+      chr = cds[1,3]
+      gr = GenomicRanges::GRanges(chr, IRanges::IRanges(cds[,7], cds[,8]))
+      
       cdsseq = get_CDSseq(gr,strand)
       pseq = seqinr::translate(cdsseq, numcode = numcode)
       
@@ -177,8 +176,8 @@ buildref = function(cdsfile, genomefile, outfile = "RefCDS.rda", numcode = 1, ex
         # Obtaining the splicing sequences and the coding and splicing sequence contexts
         if (strand==1) {
           
-          cdsseq1up = get_CDSseq(GenomicRanges::GRanges(chr, IRanges::IRanges(cds[,5]-1, cds[,6]-1)), strand)
-          cdsseq1down = get_CDSseq(GenomicRanges::GRanges(chr, IRanges::IRanges(cds[,5]+1, cds[,6]+1)), strand)
+          cdsseq1up = get_CDSseq(GenomicRanges::GRanges(chr, IRanges::IRanges(cds[,7]-1, cds[,8]-1)), strand)
+          cdsseq1down = get_CDSseq(GenomicRanges::GRanges(chr, IRanges::IRanges(cds[,7]+1, cds[,8]+1)), strand)
           if (length(splpos)>0) {
             splseq1up = get_spliceseq(GenomicRanges::GRanges(chr, IRanges::IRanges(splpos-1, splpos-1)), strand)
             splseq1down = get_spliceseq(GenomicRanges::GRanges(chr, IRanges::IRanges(splpos+1, splpos+1)), strand)
@@ -186,8 +185,8 @@ buildref = function(cdsfile, genomefile, outfile = "RefCDS.rda", numcode = 1, ex
           
         } else if (strand==-1) {
           
-          cdsseq1up = get_CDSseq(GenomicRanges::GRanges(chr, IRanges::IRanges(cds[,5]+1, cds[,6]+1)), strand)
-          cdsseq1down = get_CDSseq(GenomicRanges::GRanges(chr, IRanges::IRanges(cds[,5]-1, cds[,6]-1)), strand)
+          cdsseq1up = get_CDSseq(GenomicRanges::GRanges(chr, IRanges::IRanges(cds[,7]+1, cds[,8]+1)), strand)
+          cdsseq1down = get_CDSseq(GenomicRanges::GRanges(chr, IRanges::IRanges(cds[,7]-1, cds[,8]-1)), strand)
           if (length(splpos)>0) {
             splseq1up = get_spliceseq(GenomicRanges::GRanges(chr, IRanges::IRanges(splpos+1, splpos+1)), strand)
             splseq1down = get_spliceseq(GenomicRanges::GRanges(chr, IRanges::IRanges(splpos-1, splpos-1)), strand)
@@ -196,14 +195,13 @@ buildref = function(cdsfile, genomefile, outfile = "RefCDS.rda", numcode = 1, ex
         }
         
         # Annotating the CDS in the RefCDS database
-        
-        RefCDS[[j]]$gene_name = gene_cdss[h,2]
+        RefCDS[[j]]$gene_name = gene_cdss[h,3]
         RefCDS[[j]]$gene_id = gene_cdss[h,1]
-        RefCDS[[j]]$protein_id = gene_cdss[h,3]
+        RefCDS[[j]]$protein_id = gene_cdss[h,2]
         RefCDS[[j]]$CDS_length = gene_cdss[h,4]
-        RefCDS[[j]]$chr = cds[1,4]
+        RefCDS[[j]]$chr = cds[1,3]
         RefCDS[[j]]$strand = strand
-        RefCDS[[j]]$intervals_cds = unname(as.matrix(cds[,5:6]))
+        RefCDS[[j]]$intervals_cds = unname(as.matrix(cds[,7:8]))
         RefCDS[[j]]$intervals_splice = splpos
         
         RefCDS[[j]]$seq_cds = Biostrings::DNAString(paste(cdsseq, collapse=""))
@@ -321,6 +319,6 @@ buildref = function(cdsfile, genomefile, outfile = "RefCDS.rda", numcode = 1, ex
   gr_genes = GenomicRanges::GRanges(df_genes$chr, IRanges::IRanges(df_genes$start, df_genes$end))
   GenomicRanges::mcols(gr_genes)$names = df_genes$gene
   
-  save(RefCDS, gr_genes, file=outfile)
+  return(list(RefCDS, gr_genes))
   
 } # EOF
