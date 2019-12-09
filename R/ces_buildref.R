@@ -108,14 +108,6 @@ buildref = function(cds_data, genome, numcode = 1, excludechrs = NULL, onlychrs 
   ## 2. Building the RefCDS object
   message("[2/3] Building the RefCDS object...")
   
-  # Subfunction to extract the coding sequence
-  get_CDSseq = function(gr, strand) {
-    cdsseq = strsplit(paste(BSgenome::getSeq(genome, gr), collapse=""), "")[[1]]
-    if (strand==-1) {
-      cdsseq = rev(seqinr::comp(cdsseq,forceToLower=F))
-    }
-    return(cdsseq)
-  }
   
   # Subfunction to extract essential splice site sequences
   # Definition of essential splice sites: (5' splice site: +1,+2,+5; 3' splice site: -1,-2)
@@ -135,17 +127,8 @@ buildref = function(cds_data, genome, numcode = 1, excludechrs = NULL, onlychrs 
     return(splpos)
   }
   
-  # Subfunction to extract the essential splice site sequence
-  get_spliceseq = function(gr, strand) {
-    spliceseq = unname(as.vector(BSgenome::getSeq(genome, gr)))
-    if (strand==-1) {
-      spliceseq = seqinr::comp(spliceseq,forceToLower=F)
-    }
-    return(spliceseq)
-  }
   
   # Initialising and populating the RefCDS object
-  
   RefCDS = array(list(NULL), length(gene_split)) # Initialising empty object
   invalid_genes = rep(0, length(gene_split)) # Initialising empty object
   
@@ -159,41 +142,52 @@ buildref = function(cds_data, genome, numcode = 1, excludechrs = NULL, onlychrs 
       cds = cds_split[[pid]]
       strand = cds[1,4]
       chr = cds[1,3]
-      gr = GenomicRanges::GRanges(chr, IRanges::IRanges(cds[,7], cds[,8]))
       
-      cdsseq = get_CDSseq(gr,strand)
-      pseq = seqinr::translate(cdsseq, numcode = numcode)
+      # get grange with extra base on both ends of all ranges
+      gr = GenomicRanges::GRanges(chr, IRanges::IRanges(cds[,7] - 1, cds[,8] + 1))
       
-      if (all(pseq[-length(pseq)]!="*") & all(cdsseq!="N")) { # A valid CDS has been found (no stop codons inside the CDS excluding the last codon) and no "N" nucleotides
-        
+      cdsseq_padded = BSgenome::getSeq(genome, gr)
+      if(strand == -1) {
+        cdsseq_padded = rev(Biostrings::reverseComplement(cdsseq_padded))
+      }
+      padded_widths = Biostrings::width(cdsseq_padded)
+
+      # exclude the 1bp padding at each end of each sequence, and paste all together to get full cds sequence
+      cdsseq = unlist(Biostrings::subseq(cdsseq_padded, start = 2, end = padded_widths - 1))
+      
+      # similar idea to get sequences with upstream/downstream bases
+      cdsseq1up = unlist(Biostrings::subseq(cdsseq_padded, start = 1, end = padded_widths - 2))
+      cdsseq1down = unlist(Biostrings::subseq(cdsseq_padded, start = 3, end = padded_widths))
+      
+    
+      # Get AA sequence (can add alternative translation codes later; looks like Biostrings supports them)
+      # Suppressing warnings to avoid messages when stop codons are in the middle (those get)
+      pseq = as.character(suppressWarnings(Biostrings::translate(cdsseq))) 
+      
+      # A valid CDS has been found if this test passes
+      # No stop codons ("*") in pseq excluding the last codon, and no "N" nucleotides in cdsseq
+      if(! grepl("\\*.", pseq) && Biostrings::countPattern("N", cdsseq) == 0) {
         # Essential splice sites
         splpos = get_splicesites(cds) # Essential splice sites
         if (length(splpos)>0) { # CDSs with a single exon do not have splice sites
-          gr_spl = GenomicRanges::GRanges(chr, IRanges::IRanges(splpos, splpos))
-          splseq = get_spliceseq(gr_spl, strand)
-        }
-        
-        # Obtaining the splicing sequences and the coding and splicing sequence contexts
-        if (strand==1) {
           
-          cdsseq1up = get_CDSseq(GenomicRanges::GRanges(chr, IRanges::IRanges(cds[,7]-1, cds[,8]-1)), strand)
-          cdsseq1down = get_CDSseq(GenomicRanges::GRanges(chr, IRanges::IRanges(cds[,7]+1, cds[,8]+1)), strand)
-          if (length(splpos)>0) {
-            splseq1up = get_spliceseq(GenomicRanges::GRanges(chr, IRanges::IRanges(splpos-1, splpos-1)), strand)
-            splseq1down = get_spliceseq(GenomicRanges::GRanges(chr, IRanges::IRanges(splpos+1, splpos+1)), strand)
+          # Obtaining the splicing sequences and the coding and splicing sequence contexts
+          # get splice ranges +/- 1 base
+          gr_spl = GenomicRanges::GRanges(chr, IRanges::IRanges(splpos - 1, splpos + 1))
+          splseq_padded = BSgenome::getSeq(genome, gr_spl)
+          if(strand == -1) {
+            splseq_padded = rev(Biostrings::reverseComplement(splseq_padded))
           }
+          padded_widths = Biostrings::width(splseq_padded)
           
-        } else if (strand==-1) {
+          # exclude the 1bp padding at each end of each sequence, and paste all together to get full cds sequence
+          splseq = unlist(Biostrings::subseq(splseq_padded, start = 2, end = padded_widths - 1))
           
-          cdsseq1up = get_CDSseq(GenomicRanges::GRanges(chr, IRanges::IRanges(cds[,7]+1, cds[,8]+1)), strand)
-          cdsseq1down = get_CDSseq(GenomicRanges::GRanges(chr, IRanges::IRanges(cds[,7]-1, cds[,8]-1)), strand)
-          if (length(splpos)>0) {
-            splseq1up = get_spliceseq(GenomicRanges::GRanges(chr, IRanges::IRanges(splpos+1, splpos+1)), strand)
-            splseq1down = get_spliceseq(GenomicRanges::GRanges(chr, IRanges::IRanges(splpos-1, splpos-1)), strand)
-          }
-          
+          # similar idea to get sequences with upstream/downstream bases
+          splseq1up = unlist(Biostrings::subseq(splseq_padded, start = 1, end = padded_widths - 2))
+          splseq1down = unlist(Biostrings::subseq(splseq_padded, start = 3, end = padded_widths))
         }
-        
+
         # Annotating the CDS in the RefCDS database
         RefCDS[[j]]$gene_name = gene_cdss[h,3]
         RefCDS[[j]]$gene_id = gene_cdss[h,1]
@@ -204,16 +198,15 @@ buildref = function(cds_data, genome, numcode = 1, excludechrs = NULL, onlychrs 
         RefCDS[[j]]$intervals_cds = unname(as.matrix(cds[,7:8]))
         RefCDS[[j]]$intervals_splice = splpos
         
-        RefCDS[[j]]$seq_cds = Biostrings::DNAString(paste(cdsseq, collapse=""))
-        RefCDS[[j]]$seq_cds1up = Biostrings::DNAString(paste(cdsseq1up, collapse=""))
-        RefCDS[[j]]$seq_cds1down = Biostrings::DNAString(paste(cdsseq1down, collapse=""))
+        RefCDS[[j]]$seq_cds = cdsseq
+        RefCDS[[j]]$seq_cds1up = cdsseq1up
+        RefCDS[[j]]$seq_cds1down = cdsseq1down
         
         if (length(splpos)>0) { # If there are splice sites in the gene
           RefCDS[[j]]$seq_splice = Biostrings::DNAString(paste(splseq, collapse=""))
           RefCDS[[j]]$seq_splice1up = Biostrings::DNAString(paste(splseq1up, collapse=""))
           RefCDS[[j]]$seq_splice1down = Biostrings::DNAString(paste(splseq1down, collapse=""))
         }
-        
         keeptrying = 0 # Stopping the while loop
       }
       h = h+1
