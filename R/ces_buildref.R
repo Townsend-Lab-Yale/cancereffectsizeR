@@ -12,7 +12,7 @@
 #' 
 #' @export
 
-buildref = function(cds_data, genome, numcode = 1, excludechrs = NULL, onlychrs = NULL, useids = F) {
+ces_buildref = function(cds_data, genome, numcode = 1, excludechrs = NULL, onlychrs = NULL, useids = F) {
   
   ## 1. Valid chromosomes and reference CDS per gene
   message("[1/3] Preparing the environment...")
