@@ -101,93 +101,87 @@ ces_buildref = function(cds_data, genome, numcode = 1, excludechrs = NULL, onlyc
   gene_split = split(cds_table, f=cds_table$gene.name)
   
   
-  
-  # Save strand/chr information for quicker access, as all ranges within each transcript share same strand/chr
-  strands = sapply(cds_split, function(x) x$strand[1])
-  strands[strands == "-1"] = "-"
-  strands[strands == "1"] = "+"
-  
-  chrs = sapply(cds_split, function(x) x$chr[1])
-  reftable$strand[reftable$strand == "-1"] = "-"
-  reftable$strand[reftable$strand == "1"] = "+"
-  
-  message("Getting DNA sequences for each transcript...")
-  grs = GenomicRanges::makeGRangesFromDataFrame(reftable, keep.extra.columns = T, 
-                                                seqinfo = GenomicRanges::seqinfo(genome), seqnames.field = "chr", 
-                                                start.field = "chr.coding.start", end.field = "chr.coding.end", strand.field = "strand")
-  GenomicRanges::start(grs) = GenomicRanges::start(grs) - 1
-  GenomicRanges::end(grs) = GenomicRanges::end(grs) + 1
-  grs_by_transcript = GenomicRanges::split(grs, f = grs$cds.id)
-  
-  # reverse granges exon order on negative-strand transcripts
-  grs_by_transcript[which(strands == "-")] = S4Vectors::endoapply(grs_by_transcript[which(strands == "-")], rev)
-  
-  # Get sequences
-  padded_cds_seqs = BSgenome::getSeq(genome, grs_by_transcript)
-  
-
-  # Essential splice sites are 1,2 bp upstream (3') and 1,2,5 bp downstream (5')
-  ## The inputs to this function were padded +/- 1 base, so we add/subtract 0,1 and 0,1,4 to get the same positions
-  get_spl_info = function(pid) {
-    gr = grs_by_transcript[[pid]]
-    strand = strands[[pid]]
-    chr = chrs[[pid]]
-    # extend +/- strand positions accordingly
-    if(strand == "+") {
-      spl3prime = GenomicRanges::start(gr[-1]) # first exon has no 3' splice site
-      spl5prime = GenomicRanges::end(gr[-length(gr)]) # last exon has no 5' splice site
-      splpos = unique(sort(c(spl5prime, spl5prime+1, spl5prime+4, spl3prime, spl3prime-1)))
-      
-    } else {
-      spl3prime = GenomicRanges::end(gr[-1]) # first exon has no 3' splice site
-      spl5prime = GenomicRanges::start(gr[-length(gr)]) # last exon has no 5' splice site
-      splpos = unique(sort(c(spl5prime, spl5prime-1, spl5prime-4, spl3prime, spl3prime+1)))
-    }
+  remaining_genes = gene_list
+  which_transcript = 1
+  num_transcript_by_gene = sapply(gene_split, nrow)
+  RefCDS = array(list(NULL),length(gene_split))
+  j = 0
+  invalid_genes = character()
+  strands = 
+  while(length(remaining_genes) > 0) {
+    remaining_gene_info = gene_split[remaining_genes]
+    transcript_ids = sapply(remaining_gene_info, function(x) x[which_transcript,"cds.id"])
+    cds_split_subset = cds_split[transcript_ids]
+    reftable_subset = reftable[reftable$cds.id %in% transcript_ids,]
+    reftable_subset$strand[reftable_subset$strand == "-1"] = "-"
+    reftable_subset$strand[reftable_subset$strand == "1"] = "+"
     
-    # empty GRanges object if there are no splice sites (happens for 1-exon transcripts)
-    if (length(splpos) == 0) {
-      grange = GenomicRanges::GRanges()
-    } else {
-      ranges = IRanges::IRanges(start = splpos-1, end = splpos + 1)
-      grange = GenomicRanges::GRanges(seqnames = chr, ranges = ranges, strand = strand)
-      if (strand == "-") {
-        grange = rev(grange)
+    grs = GenomicRanges::makeGRangesFromDataFrame(reftable_subset, keep.extra.columns = T, 
+                                                  seqinfo = GenomicRanges::seqinfo(genome), seqnames.field = "chr", 
+                                                  start.field = "chr.coding.start", end.field = "chr.coding.end", strand.field = "strand")
+    GenomicRanges::start(grs) = GenomicRanges::start(grs) - 1
+    GenomicRanges::end(grs) = GenomicRanges::end(grs) + 1
+    grs_by_transcript = GenomicRanges::split(grs, f = grs$cds.id)
+    
+    # reverse granges exon order on negative-strand transcripts
+    chrs = sapply(cds_split_subset[names(grs_by_transcript)], function(x) x$chr[1])
+    strands = sapply(cds_split_subset[names(grs_by_transcript)], function(x) x$strand[1])
+    strands[strands == "-1"] = "-"
+    strands[strands == "1"] = "+"
+    grs_by_transcript[which(strands == "-")] = S4Vectors::endoapply(grs_by_transcript[which(strands == "-")], rev)
+    
+    # Get sequences
+    padded_cds_seqs = BSgenome::getSeq(genome, grs_by_transcript)
+    
+    
+    # Essential splice sites are 1,2 bp upstream (3') and 1,2,5 bp downstream (5')
+    ## The inputs to this function were padded +/- 1 base, so we add/subtract 0,1 and 0,1,4 to get the same positions
+    get_spl_info = function(pid) {
+      gr = grs_by_transcript[[pid]]
+      strand = strands[[pid]]
+      chr = chrs[[pid]]
+      # extend +/- strand positions accordingly
+      if(strand == "+") {
+        spl3prime = GenomicRanges::start(gr[-1]) # first exon has no 3' splice site
+        spl5prime = GenomicRanges::end(gr[-length(gr)]) # last exon has no 5' splice site
+        splpos = unique(sort(c(spl5prime, spl5prime+1, spl5prime+4, spl3prime, spl3prime-1)))
+        
+      } else {
+        spl3prime = GenomicRanges::end(gr[-1]) # first exon has no 3' splice site
+        spl5prime = GenomicRanges::start(gr[-length(gr)]) # last exon has no 5' splice site
+        splpos = unique(sort(c(spl5prime, spl5prime-1, spl5prime-4, spl3prime, spl3prime+1)))
       }
+      
+      # empty GRanges object if there are no splice sites (happens for 1-exon transcripts)
+      if (length(splpos) == 0) {
+        grange = GenomicRanges::GRanges()
+      } else {
+        ranges = IRanges::IRanges(start = splpos-1, end = splpos + 1)
+        grange = GenomicRanges::GRanges(seqnames = chr, ranges = ranges, strand = strand)
+        if (strand == "-") {
+          grange = rev(grange)
+        }
+      }
+      return(list(splpos, grange))
     }
-    return(list(splpos, grange))
-  }
-  
-  message("Calculating splice site regions and getting DNA sequences...")
-  transcript_names = names(grs_by_transcript)
-  spl_info = pbapply::pblapply(transcript_names, get_spl_info)
-  splpos_by_transcript = lapply(spl_info, function(x) x[[1]])
-  splrange_by_transcript = GenomicRanges::GRangesList(lapply(spl_info, function(x) x[[2]]))
-  names(splpos_by_transcript) = transcript_names
-  names(splrange_by_transcript) = transcript_names
-  padded_spl_seqs = BSgenome::getSeq(genome, splrange_by_transcript)
-  
-  
-  
-  ## 2. Building the RefCDS object
-  message("Saving information on the longest valid transcript from each gene...")
-  
-  
-  # Initialising and populating the RefCDS object
-  RefCDS = array(list(NULL), length(gene_split)) # Initialising empty object
-  invalid_genes = rep(0, length(gene_split)) # Initialising empty object
-  
-  for (j in 1:length(gene_split)) {
-    gene_cdss = gene_split[[j]]
-    h = keeptrying = 1
     
-    while (h<=nrow(gene_cdss) & keeptrying) {
-      pid = gene_cdss[h,2]
-      cds = cds_split[[pid]]
+    transcript_names = names(grs_by_transcript)
+    spl_info = pbapply::pblapply(transcript_names, get_spl_info)
+    splpos_by_transcript = lapply(spl_info, function(x) x[[1]])
+    splrange_by_transcript = GenomicRanges::GRangesList(lapply(spl_info, function(x) x[[2]]))
+    names(splpos_by_transcript) = transcript_names
+    names(splrange_by_transcript) = transcript_names
+    padded_spl_seqs = BSgenome::getSeq(genome, splrange_by_transcript)
+    genes_for_next_time = character()
+    for(gene in remaining_genes) {
+      info = remaining_gene_info[[gene]]
+      pid = info$cds.id[which_transcript]
+      
+      cds = cds_split_subset[[pid]]
       strand = cds[1,4]
       chr = cds[1,3]
-
       # get grange with extra base on both ends of all ranges
-      cdsseq_padded = padded_cds_seqs[pid][[1]]
+      cdsseq_padded = padded_cds_seqs[[pid]]
       padded_widths = Biostrings::width(cdsseq_padded)
       
       # exclude the 1bp padding at each end of each sequence, and paste all together to get full cds sequence
@@ -197,7 +191,7 @@ ces_buildref = function(cds_data, genome, numcode = 1, excludechrs = NULL, onlyc
       cdsseq1up = unlist(Biostrings::subseq(cdsseq_padded, start = 1, end = padded_widths - 2))
       cdsseq1down = unlist(Biostrings::subseq(cdsseq_padded, start = 3, end = padded_widths))
       
-    
+      
       # Get AA sequence (can add alternative translation codes later; looks like Biostrings supports them)
       # Suppressing warnings to avoid messages when stop codons are in the middle (those get)
       pseq = as.character(suppressWarnings(Biostrings::translate(cdsseq))) 
@@ -221,17 +215,17 @@ ces_buildref = function(cds_data, genome, numcode = 1, excludechrs = NULL, onlyc
           splseq1up = unlist(Biostrings::subseq(splseq_padded, start = 1, end = padded_widths - 2))
           splseq1down = unlist(Biostrings::subseq(splseq_padded, start = 3, end = padded_widths))
         }
-
+        
         # Annotating the CDS in the RefCDS database
-        RefCDS[[j]]$gene_name = gene_cdss[h,3]
-        RefCDS[[j]]$gene_id = gene_cdss[h,1]
-        RefCDS[[j]]$protein_id = gene_cdss[h,2]
-        RefCDS[[j]]$CDS_length = gene_cdss[h,4]
+        j = j+1
+        RefCDS[[j]]$gene_name = gene
+        RefCDS[[j]]$gene_id = info$gene.id[which_transcript]
+        RefCDS[[j]]$protein_id = pid
+        RefCDS[[j]]$CDS_length = info$length[which_transcript]
         RefCDS[[j]]$chr = cds[1,3]
         RefCDS[[j]]$strand = strand
         RefCDS[[j]]$intervals_cds = unname(as.matrix(cds[,7:8]))
         RefCDS[[j]]$intervals_splice = splpos
-        
         RefCDS[[j]]$seq_cds = cdsseq
         RefCDS[[j]]$seq_cds1up = cdsseq1up
         RefCDS[[j]]$seq_cds1down = cdsseq1down
@@ -241,17 +235,26 @@ ces_buildref = function(cds_data, genome, numcode = 1, excludechrs = NULL, onlyc
           RefCDS[[j]]$seq_splice1up = splseq1up
           RefCDS[[j]]$seq_splice1down = splseq1down
         }
-        keeptrying = 0 # Stopping the while loop
+      } else {
+        if(num_transcript_by_gene[[gene]] > which_transcript) {
+          genes_for_next_time = c(genes_for_next_time, gene)
+        } else {
+          invalid_genes = c(invalid_genes, gene)
+        }
       }
-      h = h+1
     }
-    if (keeptrying) {
-      invalid_genes[j] = 1 # No valid CDS was found for this gene and the gene will be removed from the RefCDS object
-    }
-    if (round(j/1000)==(j/1000)) { message(sprintf('    %0.3g%% ...', round(j/length(gene_split),2)*100)) }
+    remaining_genes = genes_for_next_time
+    which_transcript = which_transcript + 1
   }
   
-  RefCDS = RefCDS[!invalid_genes] # Removing genes without a valid CDS
+  curr_name_order = unlist(sapply(RefCDS, function(x) x$gene_name))
+  final_order = gene_list[gene_list %in% curr_name_order]
+  names(RefCDS) = curr_name_order
+  RefCDS = RefCDS[final_order]
+  RefCDS = unname(RefCDS) # silly, but keeping compatibility by removing names
+  
+  
+ # RefCDS = RefCDS[!invalid_genes] # Removing genes without a valid CDS
   
   
   ## 3. L matrices: number of synonymous, missense, nonsense and splice sites in each CDS at each trinucleotide context
