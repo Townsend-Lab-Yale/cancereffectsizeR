@@ -1,7 +1,7 @@
 #' buildref
 #' 
 #' Function to build a RefCDS object from a reference genome and a table of transcripts. The RefCDS object has to be precomputed for any new species or assembly prior to running dndscv. This function generates an .rda file that needs to be input into dndscv using the refdb argument. Note that when multiple CDS share the same gene name (second column of cdsfile), the longest coding CDS will be chosen for the gene. CDS with ambiguous bases (N) will not be considered.
-#' 
+#' @importFrom crayon silver
 #' @details Based on the buildref function in Inigo Martincorena's package dNdScv.
 #' @param cds_data data from biomaRt for the genome assembly of interest
 #' @param genome a BSgenome object corresponding to the genome assembly of interest
@@ -13,12 +13,16 @@
 #' 
 #' @export
 
-ces_buildref = function(cds_data, genome, numcode = 1, excludechrs = NULL, onlychrs = NULL, useids = F, cores=1) {
-  
+build_RefCDS = function(cds_data, genome, numcode = 1, excludechrs = NULL, onlychrs = NULL, useids = F, cores=1) {
+  message("[Step 1/3] Identifying complete transcripts...")
   # Valid chromosomes and reference CDS per gene
   reftable = cds_data
-  
   GenomeInfoDb::seqlevelsStyle(genome) = "NCBI" # assuming this doesn't crash on any genomes
+  
+  # Support for alternate genetic codes not yet implemented
+  if(numcode != 1) {
+    stop("Currently only the standard genetic code is supported.")
+  }
   
   # change column names
   colnames(reftable) = c("gene.id","cds.id","chr","strand","gene.name","length","chr.coding.start","chr.coding.end","cds.start","cds.end")
@@ -100,15 +104,14 @@ ces_buildref = function(cds_data, genome, numcode = 1, excludechrs = NULL, onlyc
   cds_split = split(reftable, f=reftable$cds.id)
   gene_split = split(cds_table, f=cds_table$gene.name)
   
-  
+  message("[Step 2/3] Examining exons and splice sites of complete transcripts...")
   remaining_genes = gene_list
   which_transcript = 1
   num_transcript_by_gene = sapply(gene_split, nrow)
-  RefCDS = array(list(NULL),length(gene_split))
-  j = 0
   invalid_genes = character()
-  strands = 
+  ref_env = new.env()
   while(length(remaining_genes) > 0) {
+    message(silver(paste0("\tPass ", which_transcript, ":")))
     remaining_gene_info = gene_split[remaining_genes]
     transcript_ids = sapply(remaining_gene_info, function(x) x[which_transcript,"cds.id"])
     cds_split_subset = cds_split[transcript_ids]
@@ -121,17 +124,25 @@ ces_buildref = function(cds_data, genome, numcode = 1, excludechrs = NULL, onlyc
                                                   start.field = "chr.coding.start", end.field = "chr.coding.end", strand.field = "strand")
     GenomicRanges::start(grs) = GenomicRanges::start(grs) - 1
     GenomicRanges::end(grs) = GenomicRanges::end(grs) + 1
-    grs_by_transcript = GenomicRanges::split(grs, f = grs$cds.id)
+    
+    # for efficiency, start with list object, convert to GRangesList for getSeq, then environment for get_spl_info
+    grs_by_transcript = split(grs, f= grs$cds.id)
     
     # reverse granges exon order on negative-strand transcripts
-    chrs = sapply(cds_split_subset[names(grs_by_transcript)], function(x) x$chr[1])
-    strands = sapply(cds_split_subset[names(grs_by_transcript)], function(x) x$strand[1])
+    transcripts = names(grs_by_transcript)
+    chrs = sapply(cds_split_subset[transcripts], function(x) x$chr[1])
+    strands = sapply(cds_split_subset[transcripts], function(x) x$strand[1])
     strands[strands == "-1"] = "-"
     strands[strands == "1"] = "+"
-    grs_by_transcript[which(strands == "-")] = S4Vectors::endoapply(grs_by_transcript[which(strands == "-")], rev)
+    grs_by_transcript[strands == '-'] = lapply(grs_by_transcript[strands == '-'], rev)
     
     # Get sequences
-    padded_cds_seqs = BSgenome::getSeq(genome, grs_by_transcript)
+    message(silver("\tGetting exonic DNA sequences..."))
+    grangeslist = GenomicRanges::GRangesList(grs_by_transcript)
+    
+    padded_cds_seqs = list2env(as.list(BSgenome::getSeq(genome, grangeslist)))
+    
+    grs_by_transcript = list2env(grs_by_transcript)
     
     
     # Essential splice sites are 1,2 bp upstream (3') and 1,2,5 bp downstream (5')
@@ -157,22 +168,26 @@ ces_buildref = function(cds_data, genome, numcode = 1, excludechrs = NULL, onlyc
         grange = GenomicRanges::GRanges()
       } else {
         ranges = IRanges::IRanges(start = splpos-1, end = splpos + 1)
-        grange = GenomicRanges::GRanges(seqnames = chr, ranges = ranges, strand = strand)
         if (strand == "-") {
-          grange = rev(grange)
+          ranges = rev(ranges)
         }
+        grange = GenomicRanges::GRanges(seqnames = chr, ranges = ranges, strand = strand)
       }
       return(list(splpos, grange))
     }
     
     transcript_names = names(grs_by_transcript)
-    spl_info = pbapply::pblapply(transcript_names, get_spl_info)
+    message(silver("\tCalculating splice site info..."))
+    spl_info = pbapply::pblapply(transcript_names, get_spl_info, cl = cores)
+    message(silver("\tGetting splice site DNA sequences..."))
     splpos_by_transcript = lapply(spl_info, function(x) x[[1]])
     splrange_by_transcript = GenomicRanges::GRangesList(lapply(spl_info, function(x) x[[2]]))
     names(splpos_by_transcript) = transcript_names
     names(splrange_by_transcript) = transcript_names
-    padded_spl_seqs = BSgenome::getSeq(genome, splrange_by_transcript)
+    padded_spl_seqs = list2env(as.list(BSgenome::getSeq(genome, splrange_by_transcript)))
     genes_for_next_time = character()
+    
+    
     for(gene in remaining_genes) {
       info = remaining_gene_info[[gene]]
       pid = info$cds.id[which_transcript]
@@ -193,8 +208,7 @@ ces_buildref = function(cds_data, genome, numcode = 1, excludechrs = NULL, onlyc
       
       
       # Get AA sequence (can add alternative translation codes later; looks like Biostrings supports them)
-      # Suppressing warnings to avoid messages when stop codons are in the middle (those get)
-      pseq = as.character(suppressWarnings(Biostrings::translate(cdsseq))) 
+      pseq = as.character(Biostrings::translate(cdsseq))
       
       # A valid CDS has been found if this test passes
       # No stop codons ("*") in pseq excluding the last codon, and no "N" nucleotides in cdsseq
@@ -217,24 +231,31 @@ ces_buildref = function(cds_data, genome, numcode = 1, excludechrs = NULL, onlyc
         }
         
         # Annotating the CDS in the RefCDS database
-        j = j+1
-        RefCDS[[j]]$gene_name = gene
-        RefCDS[[j]]$gene_id = info$gene.id[which_transcript]
-        RefCDS[[j]]$protein_id = pid
-        RefCDS[[j]]$CDS_length = info$length[which_transcript]
-        RefCDS[[j]]$chr = cds[1,3]
-        RefCDS[[j]]$strand = strand
-        RefCDS[[j]]$intervals_cds = unname(as.matrix(cds[,7:8]))
-        RefCDS[[j]]$intervals_splice = splpos
-        RefCDS[[j]]$seq_cds = cdsseq
-        RefCDS[[j]]$seq_cds1up = cdsseq1up
-        RefCDS[[j]]$seq_cds1down = cdsseq1down
+        gene_name = gene
+        gene_id = info$gene.id[which_transcript]
+        protein_id = pid
+        CDS_length = info$length[which_transcript]
+        chr = cds[1,3]
+        strand = strand
+        intervals_cds = unname(as.matrix(cds[,7:8]))
+        intervals_splice = splpos
+        seq_cds = cdsseq
+        seq_cds1up = cdsseq1up
+        seq_cds1down = cdsseq1down
+        
+        results = list(gene_name = gene_name, gene_id = gene_id, 
+                       protein_id = protein_id, CDS_length = CDS_length, chr = chr, 
+                       strand = strand, intervals_cds = intervals_cds,
+                       intervals_splice = intervals_splice, seq_cds = seq_cds, 
+                       seq_cds1up = seq_cds1up, seq_cds1down = seq_cds1down)
         
         if (length(splpos)>0) { # If there are splice sites in the gene
-          RefCDS[[j]]$seq_splice = splseq
-          RefCDS[[j]]$seq_splice1up = splseq1up
-          RefCDS[[j]]$seq_splice1down = splseq1down
+          seq_splice = splseq
+          seq_splice1up = splseq1up
+          seq_splice1down = splseq1down
+          results = c(results, list(seq_splice = seq_splice, seq_splice1up = seq_splice1up, seq_splice1down = seq_splice1down))
         }
+        ref_env[[gene_name]] = results
       } else {
         if(num_transcript_by_gene[[gene]] > which_transcript) {
           genes_for_next_time = c(genes_for_next_time, gene)
@@ -247,18 +268,8 @@ ces_buildref = function(cds_data, genome, numcode = 1, excludechrs = NULL, onlyc
     which_transcript = which_transcript + 1
   }
   
-  curr_name_order = unlist(sapply(RefCDS, function(x) x$gene_name))
-  final_order = gene_list[gene_list %in% curr_name_order]
-  names(RefCDS) = curr_name_order
-  RefCDS = RefCDS[final_order]
-  RefCDS = unname(RefCDS) # silly, but keeping compatibility by removing names
-  
-  
- # RefCDS = RefCDS[!invalid_genes] # Removing genes without a valid CDS
-  
-  
   ## 3. L matrices: number of synonymous, missense, nonsense and splice sites in each CDS at each trinucleotide context
-  message("Calculating the impact of all possible coding changes...")
+  message("[Step 3/3] Cataloguing the impacts of all possible coding changes in all collected transcripts...")
   
   nt = c("A","C","G","T")
   trinuc_list = paste(rep(nt,each=16,times=1), rep(nt,each=4,times=4), rep(nt,each=1,times=16), sep="")
@@ -287,15 +298,15 @@ ces_buildref = function(cds_data, genome, numcode = 1, excludechrs = NULL, onlyc
     }
   }
   
-  for (j in 1:length(RefCDS)) {
-    
+  
+  
+  build_L_matrix = function(entry) {
     L = array(0, dim=c(192,4))
-    cdsseq = as.character(as.vector(RefCDS[[j]]$seq_cds))
-    cdsseq1up = as.character(as.vector(RefCDS[[j]]$seq_cds1up))
-    cdsseq1down = as.character(as.vector(RefCDS[[j]]$seq_cds1down))
+    cdsseq = as.character(as.vector(entry$seq_cds))
+    cdsseq1up = as.character(as.vector(entry$seq_cds1up))
+    cdsseq1down = as.character(as.vector(entry$seq_cds1down))
     
     # 1. Exonic mutations
-    
     ind = rep(1:length(cdsseq), each=3)
     old_trinuc = paste(cdsseq1up[ind], cdsseq[ind], cdsseq1down[ind], sep="")
     new_base = c(sapply(cdsseq, function(x) nt[nt!=x]))
@@ -323,10 +334,10 @@ ces_buildref = function(cds_data, genome, numcode = 1, excludechrs = NULL, onlyc
     L[as.numeric(names(matrix_ind)), 3] = matrix_ind
     
     # 2. Splice site mutations
-    if (length(RefCDS[[j]]$intervals_splice)>0) {
-      splseq = as.character(as.vector(RefCDS[[j]]$seq_splice))
-      splseq1up = as.character(as.vector(RefCDS[[j]]$seq_splice1up))
-      splseq1down = as.character(as.vector(RefCDS[[j]]$seq_splice1down))
+    if (length(entry$intervals_splice)>0) {
+      splseq = as.character(as.vector(entry$seq_splice))
+      splseq1up = as.character(as.vector(entry$seq_splice1up))
+      splseq1down = as.character(as.vector(entry$seq_splice1down))
       old_trinuc = rep(paste(splseq1up, splseq, splseq1down, sep=""), each=3)
       new_trinuc = paste(rep(splseq1up, each=3), c(sapply(splseq, function(x) nt[nt!=x])), rep(splseq1down,each=3), sep="")
       matrind = trinuc_subsind[paste(old_trinuc, new_trinuc, sep=">")]
@@ -334,12 +345,19 @@ ces_buildref = function(cds_data, genome, numcode = 1, excludechrs = NULL, onlyc
       L[as.numeric(names(matrix_ind)), 4] = matrix_ind
     }
     
-    RefCDS[[j]]$L = L # Saving the L matrix
-    if (round(j/1000)==(j/1000)) { message(sprintf('    %0.3g%% ...', round(j/length(gene_split),2)*100)) }
+    return(L)
+  }
+  genes_with_results = gene_list[gene_list %in% names(ref_env)]
+  RefCDS = array(list(NULL),length(genes_with_results))
+  L_mats = pbapply::pblapply(genes_with_results, function(x) build_L_matrix(ref_env[[x]]), cl = cores)
+  for (i in 1:length(genes_with_results)) {
+    gene = genes_with_results[i]
+    entry = ref_env[[gene]]
+    
+    RefCDS[[i]] = c(entry, list(L=L_mats[[i]]))
   }
   
   ## Saving the reference GenomicRanges object
-  
   aux = unlist(sapply(1:length(RefCDS), function(x) t(cbind(x,rbind(RefCDS[[x]]$intervals_cds,cbind(RefCDS[[x]]$intervals_splice,RefCDS[[x]]$intervals_splice))))))
   df_genes = as.data.frame(t(array(aux,dim=c(3,length(aux)/3))))
   colnames(df_genes) = c("ind","start","end")

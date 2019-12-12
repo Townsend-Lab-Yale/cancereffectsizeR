@@ -17,9 +17,8 @@ all_genes = unique(cds_data$ensembl_gene_id)
 chosen = all_genes[sample(1:length(all_genes), 1000)]
 cds_small = cds_data[cds_data$ensembl_gene_id %in% chosen,]
 
-out_path = paste0(system.file(package="cancereffectsizeR"), 
-	"/tests/testthat/testdata/ensembl_cds_hg19_small.rds")
-saveRDS(cds_small, out_path)
+dir = paste0(system.file(package="cancereffectsizeR"), "/tests/testthat/testdata/")
+saveRDS(cds_small, paste0(dir, "ensembl_cds_hg19_small.rds")
 
 
 ## To generate the mini RefCDS object
@@ -27,6 +26,7 @@ genome = BSgenome.Hsapiens.UCSC.hg19::BSgenome.Hsapiens.UCSC.hg19
 GenomeInfoDb::seqlevelsStyle(genome) = "NCBI" # script actually does this, anyway
 
 # this will change soon (and need to handle TP53/CDKN2A, also)
-refcds_and_gr_genes = ces_buildref(cds_small, genome)
+refcds_and_gr_genes = build_RefCDS(cds_small, genome)
 
+saveRDS(refcds_and_gr_genes, paste0(dir, "refcds_hg19_small.rds"))
 
