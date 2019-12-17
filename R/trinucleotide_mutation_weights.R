@@ -48,7 +48,6 @@ trinucleotide_mutation_weights <- function(cesa,
   # individually per tumor, as opposed to average product and average rate.
 
 
-  library(deconstructSigs) # import statement doesn't work, probably due to bad behavior by deconstructSigs
   # pre-process ----
   message("Calculating trinucleotide composition and signatures...")
   MAF = cesa@maf # calculate weights
@@ -58,42 +57,44 @@ trinucleotide_mutation_weights <- function(cesa,
   ref_column = "Reference_Allele"
   alt_column = "Tumor_Allele"
 
+  ds_maf = MAF
   if(remove_recurrent){
-    MAF_input_deconstructSigs_preprocessed <-
-      cancereffectsizeR::deconstructSigs_input_preprocess(MAF = MAF,
-                                                          sample_ID_column = sample_ID_column,
-                                                          chr_column = chr_column,
-                                                          pos_column = pos_column,
-                                                          ref_column = ref_column,
-                                                          alt_column = alt_column)
-  }else{
-    MAF[,chr_column] <- paste("chr",trimws(MAF[,chr_column]),sep="")
-    MAF_input_deconstructSigs_preprocessed <- MAF
+    # take just SNVs
+    ds_maf <- MAF[which(MAF[, ref_column] %in% c('A', 'T', 'C', 'G') & MAF[, alt_column] %in% c('A', 'T', 'C', 'G')),]
+
+    # remove all recurrent SNVs (SNVs appearing in more than one sample)
+    duplicated_vec_first <- duplicated(ds_maf[,c(pos_column,chr_column,alt_column)])
+    duplicated_vec_last <- duplicated(ds_maf[,c(pos_column,chr_column,alt_column)],fromLast=T)
+    duplicated_vec_pos <- which(duplicated_vec_first | duplicated_vec_last)
+    if (length(duplicated_vec_pos) > 0) {
+      ds_maf <- ds_maf[-duplicated_vec_pos,]
+    }
   }
 
 
-  tumors_with_a_mutation_rate <- unique(MAF_input_deconstructSigs_preprocessed[,sample_ID_column])
-
-
-
-  substitution_counts <- table(MAF_input_deconstructSigs_preprocessed[,sample_ID_column])
+  tumors_with_a_mutation_rate <- unique(ds_maf[,sample_ID_column])
+  substitution_counts <- table(ds_maf[,sample_ID_column])
   tumors_with_50_or_more <- names(which(substitution_counts>=50))
-  tumors_with_less_than_50 <- setdiff(MAF_input_deconstructSigs_preprocessed[,sample_ID_column],tumors_with_50_or_more)
+  tumors_with_less_than_50 <- setdiff(ds_maf[,sample_ID_column],tumors_with_50_or_more)
 
 
+  # this will move elsewhere once support for arbitrary genome build is finished
+  genome = BSgenome.Hsapiens.UCSC.hg19::BSgenome.Hsapiens.UCSC.hg19
+  GenomeInfoDb::seqlevelsStyle(genome) = "NCBI"
+  data("tri.counts.genome", package = "deconstructSigs")
+  data("tri.counts.exome", package = "deconstructSigs")
 
   trinuc_breakdown_per_tumor <- deconstructSigs::mut.to.sigs.input(mut.ref =
-                                                                     MAF_input_deconstructSigs_preprocessed,
+                                                                     ds_maf,
                                                                    sample.id = sample_ID_column,
                                                                    chr = chr_column,
                                                                    pos = pos_column,
                                                                    ref = ref_column,
-                                                                   alt = alt_column)
+                                                                   alt = alt_column,
+                                                                   bsg = genome)
 
 
   deconstructSigs_trinuc_string <- colnames(trinuc_breakdown_per_tumor)
-
-  # rm(MAF_input_deconstructSigs_preprocessed)
 
   # message("Building trinuc_proportion_matrix")
 
