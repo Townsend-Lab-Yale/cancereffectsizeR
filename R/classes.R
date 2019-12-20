@@ -89,7 +89,7 @@ setValidity("MAFdf",
 setClass("CESAnalysis", representation(maf = "MAFdf", annotated.snv.maf = "MAFdf", trinucleotide_mutation_weights = "list",
           progressions = "CESProgressions", mutrates_list = "list", dndscv_out_list = "list",
           excluded = "MAFdf", selection_results = "list", coverage = "list",
-          genome_build = "character"))
+          genome = "BSgenome"))
 
 setValidity("CESAnalysis",
     function(object) {

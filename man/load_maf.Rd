@@ -12,7 +12,6 @@ load_maf(
   start_col = "Start_Position",
   ref_col = "Reference_Allele",
   tumor_allele_col = "guess",
-  genome_build = "hg19",
   covered_regions = "exome",
   progression_col = NULL
 )
@@ -32,8 +31,6 @@ load_maf(
 
 \item{tumor_allele_col}{column name with alternate allele data (defaults to "guess", which examines ref_col,
 "Tumor_Seq_Allele1", and "Tumor_Seq_Allele2" and determines from there)}
-
-\item{genome_build}{genome build associated with data (must match build of CESAnalysis; currently just hg19 supported)}
 
 \item{covered_regions}{for panel sequencing data, a BED file of covered interals, or a data frame with first three columns chr, start (1-based), end (inclusive)}
 

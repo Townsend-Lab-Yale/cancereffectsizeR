@@ -4,12 +4,12 @@
 \alias{CESAnalysis}
 \title{CESAnalysis}
 \usage{
-CESAnalysis(progression_order = NULL, genome_build = "hg19")
+CESAnalysis(genome = NULL, progression_order = NULL)
 }
 \arguments{
-\item{progression_order}{evolutionary order of tumor stage progression (e.g. c("Primary", "Metastatic"))}
+\item{genome}{Genome build of MAF data (currently, just hg19 supported)}
 
-\item{genome_build}{Genome build of MAF data (currently, just hg19 supported)}
+\item{progression_order}{evolutionary order of tumor stage progression (e.g. c("Primary", "Metastatic"))}
 }
 \value{
 CESAnalysis object

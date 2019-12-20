@@ -23,7 +23,7 @@ cesa = get_test_data("cesa_for_snv.rds")
 test_that("Handle missing or invalid gene choice in SNV analysis", {
   # Error when any requested gene is not in RefCDS data
   expect_error(ces_snv(cesa, genes = c("KRAS", "TP53", "notagene")),
-               "genes have no reference data")
+               "requested genes were not found")
   
   # AC006486.1 is not in the data set; error when no genes requested are in the data set
   expect_error(ces_snv(cesa, genes = c("AC006486.1")),

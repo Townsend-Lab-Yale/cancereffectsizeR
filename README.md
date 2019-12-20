@@ -24,7 +24,7 @@ Input data should be MAF format (either a text file or a data frame with the sam
 ```R
 
   # Create CESAnalysis object and define the chronological tumor progression stages
-  analysis = CESAnalysis(genome_build = "hg19", progression_order = c("Primary", "Metastatic"))
+  analysis = CESAnalysis(genome = "hg19", progression_order = c("Primary", "Metastatic"))
   
   # Load in an MAF and give the name of the column that identifies tumor stage
   analysis = load_maf(analysis, maf = "my_wes_tumor_data.maf", progression_col = "Primary_Met")

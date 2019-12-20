@@ -53,7 +53,7 @@ ces_snv <- function(cesa = NULL,
         additional_msg = paste0(" (and ", num_invalid - 40, " more)")
       }
       list_of_invalid = paste(invalid_genes, collapse = ", ")
-      stop(paste0("Note: The following requested genes have no reference data (for genome build ", cesa@genome_build, "):\n\t",
+      stop(paste0("Note: The following requested genes were not found in reference data for your genome build:\n\t",
                   list_of_invalid, additional_msg, "\n"))
     }
     if (length(genes_to_analyze) == 0) {

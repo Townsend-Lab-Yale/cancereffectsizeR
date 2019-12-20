@@ -10,12 +10,11 @@
 #' @param tumor_allele_col column name with alternate allele data (defaults to "guess", which examines ref_col,
 #'                         "Tumor_Seq_Allele1", and "Tumor_Seq_Allele2" and determines from there)
 #' @param covered_regions for panel sequencing data, a BED file of covered interals, or a data frame with first three columns chr, start (1-based), end (inclusive)
-#' @param genome_build genome build associated with data (must match build of CESAnalysis; currently just hg19 supported)
 #' @param progression_col column in MAF with subset data (e.g., column contains data like "Primary" and "Metastatic" in each row)
 #' @return CESAnalysis object with somewhat cleaned-up MAF data added 
 #' @export
 load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode", chr_col = "Chromosome", start_col = "Start_Position",
-                    ref_col = "Reference_Allele", tumor_allele_col = "guess", genome_build = "hg19", covered_regions = "exome",
+                    ref_col = "Reference_Allele", tumor_allele_col = "guess", covered_regions = "exome",
                     progression_col = NULL) {
   if (is.null(cesa)) {
     stop("You need to supply a CESAnalysis object to load the MAF data into.")
@@ -38,7 +37,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   }
   
   bad_maf_msg = "Input MAF is expected to be a data.frame or the filename of an MAF-formatted tab-delimited text file."
-  if (class(maf) == "character") {
+  if ("character" %in% class(maf)) {
     if(length(maf) > 1) {
       stop(bad_maf_msg)
     }
@@ -166,7 +165,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   maf[,chr_col] = gsub('^chr', '', maf[,chr_col])
   
   # temporary handling of MT/M
-  maf[maf[,chr_col] == "M", chr_col] <- "MT" # changing MT to M (for future)
+  maf[maf[,chr_col] == "M", chr_col] <- "MT" # changing M to MT
   
   # get coverage info for new samples and incorporate with any existing info
   coverage_update = cesa@coverage
@@ -178,8 +177,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     }
   } else {
     # create GRanges for panel sequencing coverage
-    genome_info = GenomeInfoDb::Seqinfo(genome = cesa@genome_build)
-    GenomeInfoDb::seqlevelsStyle(genome_info) = "NCBI"
+    genome_info = GenomeInfoDb::Seqinfo(cesa@genome)
     if ("data.frame" %in% class(covered_regions)) {
       grange_cols = colnames(covered_regions)[1:3]
       coverage = GenomicRanges::makeGRangesFromDataFrame(covered_regions, seqnames.field = grange_cols[1], start.field = grange_cols[2], end.field = grange_cols[3], 
@@ -265,13 +263,11 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   
   # Ensure reference alleles of mutations match reference genome (Note: Insertions won't match if their reference allele is "-")
   message("Checking that reference alleles match reference genome...")
-  ref_chr = paste0('chr', maf[,chr_col])
   ref_allele_lengths = nchar(maf[,ref_col])
   ref_alleles_to_test = maf[,ref_col]
   end_pos = maf[,start_col] + ref_allele_lengths - 1 # for multi-base deletions, check that all deleted bases match reference
   
-  # To-do: make this genome-agnostic
-  reference_alleles <- as.character(BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens, ref_chr,
+  reference_alleles <- as.character(BSgenome::getSeq(cesa@genome, maf[,chr_col],
                                                      strand="+", start=maf[,start_col], end=end_pos))
   num.prefilter = nrow(maf)
   

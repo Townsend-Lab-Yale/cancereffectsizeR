@@ -84,8 +84,7 @@ trinucleotide_mutation_weights <- function(cesa,
   data("tri.counts.genome", package = "deconstructSigs")
   data("tri.counts.exome", package = "deconstructSigs")
 
-  trinuc_breakdown_per_tumor <- deconstructSigs::mut.to.sigs.input(mut.ref =
-                                                                     ds_maf,
+  trinuc_breakdown_per_tumor <- deconstructSigs::mut.to.sigs.input(mut.ref = ds_maf,
                                                                    sample.id = sample_ID_column,
                                                                    chr = chr_column,
                                                                    pos = pos_column,
@@ -163,7 +162,6 @@ trinucleotide_mutation_weights <- function(cesa,
                                             "SBS44")
 
           }
-
         }
       }
 
