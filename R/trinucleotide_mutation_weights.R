@@ -1,5 +1,8 @@
 #' Trinucleotide mutation weights
 #'
+#' Calculates
+#' Runs Removes signatures from full potential signatures to minimize "signature bleeding", along the rationale proposed within the manuscript that originally calculated the v3 signature set doi: https://doi.org/10.1101/322859. Use `NULL` to keep all signatures. Signatures must correspond to the signature names in `signature_choice`.
+#'
 #' @param cesa # CESAnalysis object
 #' @param algorithm_choice The choice of the algorithm used in determining trinucleotide weights.
 #'   Defaults to `weighted`, where all tumors with >= 50 substitutions have mutation
@@ -10,15 +13,15 @@
 #'   have the mutation rate of the tumor with >=50 substitutions closest to the mutational
 #'   distribution profile of the low substitution tumor as determined by a distance matrix, and
 #'   `all_calculated`, where all tumors have the mutation rate from the deconstructSigs output regardless of substitution number.
-#' @param remove_recurrent If TRUE, removes recurrent variants prior to calculating trinucleotide signatures and weights. If FALSE, uses all variants.
-#' @param signature_choice Either "signatures_cosmic_May2019" (default) or "signatures.cosmic" (COSMIC signatures v2 originally packaged with deconstructSigs).
-#' @param artifact_accounting Accounts for the fact that the COSMIC v3 artifacts were detected, and renormalizes to see contribution of "true" sources of mutational flux.
-#' @param signatures_to_remove Removes signatures from full potential signatures to minimize "signature bleeding", along the rationale proposed within the manuscript that originally calculated the v3 signature set doi: https://doi.org/10.1101/322859. Use `NULL` to keep all signatures. Signatures must correspond to the signature names in `signature_choice`.
-#' @param mutation_count_rules T/F on whether to follow the mutation count rules outlined in https://doi.org/10.1101/322859, the manuscript reported the v3 COSMIC signature set.
+#' @param remove_recurrent if TRUE (default), removes recurrent variants from signature analysis
+#' @param signature_choice "cosmic_v3" (default), "cosmic_v2", or a properly-formatted data frame with of trinucleotide signatures
+#' @param v3_artifact_accounting when COSMIC v3 signatures associated with sequencing artifacts are detected, renormalizes to isolate "true" sources of mutational flux.
+#' @param signatures_to_remove specify any signatures to exclude from analysis; some signatures automatically get excluded
+#'     from COSMIC v3 analyses; set to signatures_to_remove="none" to prevent this behavior (and )
+#' @param v3_exome_hypermutation_rules T/F on whether to follow the mutation count rules outlined in https://doi.org/10.1101/322859, the manuscript reported the v3 COSMIC signature set.
 #'
 #' @return
 #' @export
-#'
 #' @examples
 #'
 #'
@@ -26,16 +29,66 @@
 trinucleotide_mutation_weights <- function(cesa,
                                            algorithm_choice = "weighted",
                                            remove_recurrent = TRUE,
-                                           signature_choice = "signatures_cosmic_May2019",
-                                           artifact_accounting = T,
-                                           signatures_to_remove = c("SBS25","SBS31","SBS32","SBS35"),
-                                           mutation_count_rules = T){
+                                           signature_choice = "cosmic_v3",
+                                           v3_artifact_accounting = TRUE,
+                                           v3_exome_hypermutation_rules = TRUE,
+                                           signatures_to_remove = "" # cosmic_v3 analysis gets signatures added here later unless "none"
+                                           ){
 
+  artifact_accounting = FALSE # gets set to true if v3_artifact_account = TRUE and signature_choice = cosmic_v3
+  algorithms = c("weighted", "all_average", "nearest_neighbor", "all_calculated")
+  if(! "character" %in% class(algorithm_choice) || ! algorithm_choice %in% algorithms ) {
+    stop(paste0("algorithm_choice (for dealing with samples with fewer than 50 variants) must be one of ", paste(algorithms, collapse = ", ")))
+  }
+  if(! "character" %in% class(signatures_to_remove)) {
+    stop("signatures_to_remove should be a character vector")
+  }
+  bad_sig_choice_msg = "signature_choice should be \"cosmic_v3\", \"cosmic_v2\", or a properly-formatted signatures data.frame"
+  if("character" %in% class(signature_choice)) {
+    signature_choice = tolower(signature_choice)
+    if (length(signature_choice) != 1 || ! signature_choice %in% c("cosmic_v3", "cosmic_v2")) {
+      stop(bad_sig_choice_msg)
+    }
+    if(signature_choice == "cosmic_v3") {
+      signatures = signatures_cosmic_May2019
+      message("Analyzing tumors for COSMIC v3 (May 2019) SNV mutational signatures....")
+      if (v3_artifact_accounting) {
+        message("Sequencing artifact signatures will be subtracted to isolate true mutational processes (disable with v3_artifact_accounting=FALSE).")
+        artifact_accounting = TRUE
+      }
+      if (v3_exome_hypermutation_rules) {
+        message("Samples with many variants will have special exome hypermutation rules applied (disable with v3_exome_hypermutation_rules=FALSE).")
+      }
+      if(length(signatures_to_remove) == 1 && signatures_to_remove == "") {
+        signatures_to_remove = c("SBS25","SBS31","SBS32","SBS35")
+        message("The following signatures will be excluded (to include all signatures, set signatures_to_remove=\"none\"):")
+        removed_sigs = paste0("\tSBS25 (dubious and specific to Hodgkin's lymphoma cell lines)\n",
+                              "\tSBS31 (associated with platinum drug chemotherapy)\n",
+                              "\tSBS32 (associated with azathioprine treatment)\n",
+                              "\tSBS35 (associated with platinum drug chemotherapy)")
+        message(crayon::black(removed_sigs))
+      }
+    } else if (signature_choice == "cosmic_v2") {
+      data("signatures.cosmic", package = "deconstructSigs")
+      signatures = signatures.cosmic
+    }
 
+  } else if("data.frame" %in% class(signature_choice)) {
+      if(! identical(colnames(signatures_cosmic_May2019), colnames(signature_choice))) {
+        stop("Your signatures data.frame is not properly formatted. See the \"signatures_cosmic_May2019\" object for a template.")
+      }
+      signatures = signature_choice
+  } else {
+    stop(bad_sig_choice_msg)
+  }
 
-  # only want to find the signatures that reflect the underlying mutational
-  # processes within the tumor, i.e., those that reach detectable levels neutrally
-  # so we detect the signatues from non-recurrently substituted variants
+  # make sure all signatures that user has requested removed are actually valid signatures
+  if(length(signatures_to_remove) != 1 || tolower(signatures_to_remove[1]) != "none") {
+    if(any(! signatures_to_remove %in% rownames(signatures))) {
+      stop("One or more signatures specified in signatures_to_remove are not valid signatures")
+    }
+  }
+
 
 
   #TODO: it is possible that the only mutation in a tumor is a recurrent variant,
@@ -79,8 +132,6 @@ trinucleotide_mutation_weights <- function(cesa,
 
 
   # this will move elsewhere once support for arbitrary genome build is finished
-  genome = BSgenome.Hsapiens.UCSC.hg19::BSgenome.Hsapiens.UCSC.hg19
-  GenomeInfoDb::seqlevelsStyle(genome) = "NCBI"
   data("tri.counts.genome", package = "deconstructSigs")
   data("tri.counts.exome", package = "deconstructSigs")
 
@@ -90,12 +141,11 @@ trinucleotide_mutation_weights <- function(cesa,
                                                                    pos = pos_column,
                                                                    ref = ref_column,
                                                                    alt = alt_column,
-                                                                   bsg = genome)
+                                                                   bsg = cesa@genome)
 
 
   deconstructSigs_trinuc_string <- colnames(trinuc_breakdown_per_tumor)
 
-  # message("Building trinuc_proportion_matrix")
 
 
   trinuc_proportion_matrix <- matrix(data = NA,
@@ -111,21 +161,19 @@ trinucleotide_mutation_weights <- function(cesa,
   # algorithms ----
 
   if(signature_choice == "signatures_cosmic_May2019"){
-    data("signatures_cosmic_May2019",package = "cancereffectsizeR")
-    signatures <- signatures_cosmic_May2019
+    signatures <- signatures_cosmic_May2019 # part of CES data
   }
 
   if(signature_choice == "signatures.cosmic"){
-    signatures <- signatures.cosmic
+    signatures <- data("signatures.cosmic", package = "deconstructSigs")
   }
 
 
-  if(artifact_accounting){
+  if(artifact_accounting && signature_choice == "cosmic_v3"){
     data("signatures_names_matrix", package="cancereffectsizeR")
     possible_artifact_signatures <- signatures_names_matrix[startsWith(x = signatures_names_matrix[,2], prefix = "*"),1]
     tumors_zeroed_out <- NULL
   }
-
 
   main_signatures <- signatures
 
@@ -145,7 +193,7 @@ trinucleotide_mutation_weights <- function(cesa,
       # https://doi.org/10.1101/322859
       # (these rules are for whole-exome, not whole-genome.
       # Different rules apply then, also in that supp data)
-      if(mutation_count_rules){
+      if(v3_exome_hypermutation_rules) {
         if(substitution_counts[rownames(trinuc_breakdown_per_tumor)[tumor_name]] < 2*10^3){
 
           these_signatures_to_remove <- c(these_signatures_to_remove, "SBS10a","SBS10b")
@@ -194,7 +242,7 @@ trinucleotide_mutation_weights <- function(cesa,
       # once accounted for in deconstructSigs::whichSignatures,
       # we remove artifacts and renormalize so that we can
       # determine mutational flux in tumor from true sources
-      if(artifact_accounting & signature_choice == "signatures_cosmic_May2019"){
+      if(artifact_accounting){
 
 
         if(any(signatures_output$weights[possible_artifact_signatures] > 0 )){
@@ -309,7 +357,7 @@ trinucleotide_mutation_weights <- function(cesa,
 
 
 
-    if(artifact_accounting & signature_choice == "signatures_cosmic_May2019"){
+    if(artifact_accounting){
 
 
       if(any(averaged_weight[possible_artifact_signatures] > 0 )){
@@ -523,11 +571,7 @@ trinucleotide_mutation_weights <- function(cesa,
 
     }
 
-    # rm(distance_matrix)
     # now, trinuc_proportion_matrix has the proportion of all trinucs in every tumor.
-
-    # collect the garbage
-    # gc()
 
   }
 
