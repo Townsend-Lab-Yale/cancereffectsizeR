@@ -92,6 +92,9 @@ trinucleotide_mutation_weights <- function(cesa,
       stop("One or more signatures specified in signatures_to_remove are not valid signatures")
     }
   }
+  if(length(signatures_to_remove) == 1 && tolower(signatures_to_remove[1]) == "none") {
+    signatures_to_remove = character()
+  }
 
   # can't apply our COSMIC v3 enhancements unless we're using those signatures, naturally
   if(! running_cosmic_v3) {
@@ -165,7 +168,8 @@ trinucleotide_mutation_weights <- function(cesa,
   }
 
   if(signature_choice == "signatures.cosmic"){
-    signatures <- data("signatures.cosmic", package = "deconstructSigs")
+    data("signatures.cosmic", package = "deconstructSigs")
+    signatures <- signatures.cosmic # v2 signatures from deconstructSigs
   }
 
   message("Calculating mutational signature weightings...")
@@ -239,10 +243,10 @@ trinucleotide_mutation_weights <- function(cesa,
   # Note there's nothing more to do if choice was "all_calculated"
   if(length(tumors_with_less_than_50) > 0) {
     # hypermutation signatures are presumed absent from tumors with fewer than 50 variants, so removing them here
+    current_sigs_to_remove = signatures_to_remove
     if (v3_exome_hypermutation_rules) {
       current_sigs_to_remove = unique(c(signatures_to_remove, cosmic_v3_modest_hm_sigs, cosmic_v3_highly_hm_sigs))
     }
-
     nearest_neighbor_needs_mean = FALSE
     if(algorithm_choice == "nearest_neighbor") {
       if(length(zeroed_out_tumors) > 0 || length(tumors_with_only_recurrent_mutations) > 0) {
@@ -255,8 +259,10 @@ trinucleotide_mutation_weights <- function(cesa,
       # convert to data frame because that's what deconstructSigs wants
       mean_trinuc_prop = as.data.frame(t(mean_trinuc_prop))
 
+      # temporarily setting signatures_to_remove to NULL until permission to break with previous output
       mean_ds <- cancereffectsizeR:::run_deconstructSigs(tumor_trinuc_counts = mean_trinuc_prop, signatures_df = signatures, 
-                                                        signatures_to_remove = current_sigs_to_remove,
+                                                         signatures_to_remove = NULL,
+                                                        #signatures_to_remove = current_sigs_to_remove,
                                                         artifact_signatures = artifact_signatures)[[1]] # just need signatures_output element
       mean_weights <- mean_ds$weights
       # this should never happen
@@ -286,8 +292,8 @@ trinucleotide_mutation_weights <- function(cesa,
       #find closest tumor that has at least 50 mutations
       for(tumor in tumors_with_less_than_50) {
         tumor_dist  = distance_matrix[tumor, tumors_with_50_or_more, drop = F]
-        closet_tumor = colnames(tumor_dist)[which(tumor_dist == sort(tumor_dist))] # get name of closest tumor
-        trinuc_proportion_matrix[tumor,] = trinuc_proportion_matrix[closet_tumor,]
+        closest_tumor = colnames(tumor_dist)[which(tumor_dist == sort(tumor_dist)[1])] # get name of closest tumor
+        trinuc_proportion_matrix[tumor,] = trinuc_proportion_matrix[closest_tumor,]
         signatures_output_list[[tumor]]$signatures_output = signatures_output_list[[closest_tumor]]$signatures_output
         signatures_output_list[[tumor]]$tumor_signatures_used = closest_tumor
       }
@@ -304,7 +310,7 @@ trinucleotide_mutation_weights <- function(cesa,
       trinuc_proportion_matrix = trinuc_proportion_matrix[rownames(trinuc_proportion_matrix) != tumor,]
     }
   }
-  if (algorithm_choice != "all_calculated") {
+  if (algorithm_choice != "all_calculated" && length(tumors_to_add) > 0) {
     matrix_to_add <- matrix(data = NA, nrow = length(tumors_to_add), ncol = ncol(trinuc_breakdown_per_tumor),
                             dimnames = list(tumors_to_add, colnames(trinuc_breakdown_per_tumor)))
     mean_trinuc_prop = as.numeric(mean_trinuc_prop)
