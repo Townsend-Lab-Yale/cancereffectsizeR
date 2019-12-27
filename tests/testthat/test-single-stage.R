@@ -1,8 +1,8 @@
 test_that("Trinucleotide signature weight calculation", {
   cesa = get_test_data("cesa_for_trinuc_weighting_calc.rds")
-  cesa = expect_warning(trinucleotide_mutation_weights(cesa), "Some samples have fewer than 50 mutations")
+  cesa = trinucleotide_mutation_weights(cesa)
   trinuc_ak = get_test_data("trinuc_mut_weighting.rds")
-  expect_identical(cesa@trinucleotide_mutation_weights, trinuc_ak)
+  expect_equal(cesa@trinucleotide_mutation_weights, trinuc_ak)
 })
 
 test_that("dNdScv and MAF annotation", {

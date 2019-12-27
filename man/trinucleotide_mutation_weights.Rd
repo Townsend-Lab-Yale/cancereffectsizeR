@@ -6,16 +6,19 @@
 \usage{
 trinucleotide_mutation_weights(
   cesa,
+  cores = 1,
   algorithm_choice = "weighted",
   remove_recurrent = TRUE,
-  signature_choice = "signatures_cosmic_May2019",
-  artifact_accounting = T,
-  signatures_to_remove = c("SBS25", "SBS31", "SBS32", "SBS35"),
-  mutation_count_rules = T
+  signature_choice = "cosmic_v3",
+  v3_artifact_accounting = TRUE,
+  v3_exome_hypermutation_rules = TRUE,
+  signatures_to_remove = ""
 )
 }
 \arguments{
 \item{cesa}{# CESAnalysis object}
+
+\item{cores}{how many cores to use to process tumor samples in parallel (requires parallel package)}
 
 \item{algorithm_choice}{The choice of the algorithm used in determining trinucleotide weights.
 Defaults to `weighted`, where all tumors with >= 50 substitutions have mutation
@@ -27,24 +30,19 @@ have the mutation rate of the tumor with >=50 substitutions closest to the mutat
 distribution profile of the low substitution tumor as determined by a distance matrix, and
 `all_calculated`, where all tumors have the mutation rate from the deconstructSigs output regardless of substitution number.}
 
-\item{remove_recurrent}{If TRUE, removes recurrent variants prior to calculating trinucleotide signatures and weights. If FALSE, uses all variants.}
+\item{remove_recurrent}{if TRUE (default), removes recurrent variants from signature analysis}
 
-\item{signature_choice}{Either "signatures_cosmic_May2019" (default) or "signatures.cosmic" (COSMIC signatures v2 originally packaged with deconstructSigs).}
+\item{signature_choice}{"cosmic_v3" (default), "cosmic_v2", or a properly-formatted data frame with of trinucleotide signatures 
+(if using cosmic_v3, just leave option default instead of passing your own data frame, or you'll get improper behavior)}
 
-\item{artifact_accounting}{Accounts for the fact that the COSMIC v3 artifacts were detected, and renormalizes to see contribution of "true" sources of mutational flux.}
+\item{v3_artifact_accounting}{when COSMIC v3 signatures associated with sequencing artifacts are detected, renormalizes to isolate "true" sources of mutational flux.}
 
-\item{signatures_to_remove}{Removes signatures from full potential signatures to minimize "signature bleeding", along the rationale proposed within the manuscript that originally calculated the v3 signature set doi: https://doi.org/10.1101/322859. Use `NULL` to keep all signatures. Signatures must correspond to the signature names in `signature_choice`.}
+\item{v3_exome_hypermutation_rules}{T/F on whether to follow the mutation count rules outlined in https://doi.org/10.1101/322859, the manuscript reported the v3 COSMIC signature set.}
 
-\item{mutation_count_rules}{T/F on whether to follow the mutation count rules outlined in https://doi.org/10.1101/322859, the manuscript reported the v3 COSMIC signature set.}
-}
-\value{
-
+\item{signatures_to_remove}{specify any signatures to exclude from analysis; some signatures automatically get excluded
+from COSMIC v3 analyses; set to signatures_to_remove="none" to prevent this behavior (and )}
 }
 \description{
-Trinucleotide mutation weights
-}
-\examples{
-
-
-
+Calculates expected relative rates of SNV substitutions by trinucleotide context in tumors
+using deconstructSigs to estimate weightings of known mutational signatures (e.g., COSMIC v3)
 }
