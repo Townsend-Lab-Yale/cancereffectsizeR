@@ -2,16 +2,13 @@
 % Please edit documentation in R/calc_baseline_mutation_rates.R
 \name{calc_baseline_mutation_rates}
 \alias{calc_baseline_mutation_rates}
-\title{Runs functions supplying trinculeotide mutation weightings, mutation rate calculations, and MAF gene annotations}
+\title{calc_baseline_mutation_rates}
 \usage{
 calc_baseline_mutation_rates(
   cesa = NULL,
   covariate_file = NULL,
-  signature_choice = "signatures_cosmic_May2019",
-  trinuc_algorithm_choice = "weighted",
-  artifact_accounting = T,
-  signatures_to_remove = c("SBS25", "SBS31", "SBS32", "SBS35"),
-  mutation_count_rules = T
+  cores = 1,
+  signatures = "cosmic_v3"
 )
 }
 \arguments{
@@ -19,12 +16,13 @@ calc_baseline_mutation_rates(
 
 \item{covariate_file}{tissue-specific covariate file for dNdScv (gene-level mutation rate calculation)}
 
-\item{signature_choice}{Either "signatures_cosmic_May2019" (default) or "signatures.cosmic" (COSMIC signatures v2 originally packaged with deconstructSigs).}
+\item{cores}{number of cores to use for calcualtions that can parallelized (requires parallel package)}
 
-\item{signatures_to_remove}{Removes signatures from full potential signatures to minimize "signature bleeding", along the rationale proposed within the manuscript that originally calculated the v3 signature set doi: https://doi.org/10.1101/322859. Use `NULL` to keep all signatures. Signatures must correspond to the signature names in `signature_choice`.}
-
-\item{mutation_count_rules}{T/F on whether to follow the mutation count rules outlined in https://doi.org/10.1101/322859, the manuscript reported the v3 COSMIC signature set.}
+\item{signatures}{mutational signatures to which to attribute mutational processes in each tumor: "cosmic_v3" (default), 
+"cosmic_v2" ,or a properly-formatted user-supplied signatures data.frame}
 }
 \description{
-Runs functions supplying trinculeotide mutation weightings, mutation rate calculations, and MAF gene annotations
+Wrapper to sequentially run the functions trinucleotide_mutation_weights, gene_level_mutation_rates, and
+annotate_gene_maf. If you want to run these functions with advanced, non-default settings, see the
+documentation for each function and run the functions individually instead of using this wrapper.
 }

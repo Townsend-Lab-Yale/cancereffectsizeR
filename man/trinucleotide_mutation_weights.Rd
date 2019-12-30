@@ -46,3 +46,14 @@ from COSMIC v3 analyses; set to signatures_to_remove="none" to prevent this beha
 Calculates expected relative rates of SNV substitutions by trinucleotide context in tumors
 using deconstructSigs to estimate weightings of known mutational signatures (e.g., COSMIC v3)
 }
+\details{
+The purpose of this function is to calculate relative rates of trinucleotide-context-specific SNV
+mutations within tumors that can be attributed to known tumor-specific mutational processes. Since
+recurrent mutations (those that appear in multiple tumor samples) are more likely to be undergoing
+selection than other mutations, by default only non-recurrent mutations are considered in order to
+get a closer estimation of mutation rates independent of selection. This function currently uses
+the deconstructSigs to assign mutational signature weightings to tumors.
+As deconstructSigs suggests that a tumor must have at least 50 mutations for signature attribution
+to be reliable, this function offers several methods for dealing with tumors with fewer mutations.
+The default method, "weighted".... (to be continued)
+}

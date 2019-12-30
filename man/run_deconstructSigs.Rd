@@ -18,7 +18,8 @@ run_deconstructSigs(
 
 \item{signatures_to_remove}{names of signatures in signatures_df to keep out of deconstructSigs and assign zero weights}
 
-\item{artifact_signatures}{names of signatures that should be treated as sequencing artifacts}
+\item{artifact_signatures}{names of signatures that should be treated as sequencing artifacts  (these have weights calculated
+but are then normalized out when calculating true trinuc proportions)}
 }
 \description{
 gets called internally by trinucleotide_mutation_weights function (don't call directly without a good reason)
