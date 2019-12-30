@@ -27,9 +27,6 @@ gene_level_mutation_rates <- function(cesa, covariate_file = NULL, save_all_dnds
     genes_in_pca <- rownames(this_cov_pca$rotation)
   }
   
-  if(! is.numeric(cores) || length(cores) !=1) {
-    stop("cores should be a 1-length numeric")
-  }
 
 
   # select MAF records to use for gene mutation rate calculation (via dNdScv)
