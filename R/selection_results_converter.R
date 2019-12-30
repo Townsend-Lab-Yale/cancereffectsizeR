@@ -47,14 +47,19 @@ selection_results_converter <- function(cesa, min_recurrence = 2){
   names(tumors_by_stage) = progression_names
   num_tumors_by_stage = lapply(tumors_by_stage, length)
   names(num_tumors_by_stage) = progression_names
-  table_by_stage = lapply(tumors_by_stage, function(x) table(maf$unique_variant_ID[maf$Unique_Patient_Identifier %in% x] ))
+  
+  
+  ids_for_variant_freq = maf$unique_variant_ID_AA
+  is_coding = ids_for_variant_freq != maf$unique_variant_ID
+  ids_for_variant_freq[is_coding] = paste(maf[is_coding, "Gene_name"], ids_for_variant_freq[is_coding])
+  table_by_stage = lapply(tumors_by_stage, function(x) table(ids_for_variant_freq[maf$Unique_Patient_Identifier %in% x] ))
   
   variant_freq = numeric(nrow(selection_data_df))
   population_proportion = variant_freq
   
   for (i in 1:nrow(selection_data_df)) {
     stage = selection_data_df[i, "subset"]
-    variant_freq[i] = as.numeric(table_by_stage[[stage]][selection_data_df$unique_variant_ID[i]])
+    variant_freq[i] = as.numeric(table_by_stage[[stage]][selection_data_df$variant[i]])
     if (is.na(variant_freq[i]) | variant_freq[i] == 0) {
       next
     }
@@ -90,7 +95,8 @@ selection_results_converter <- function(cesa, min_recurrence = 2){
         "qallsubs_cv"]
     }
   }
-
   results_output <- selection_data_df[order(selection_data_df$selection_intensity,decreasing = T),]
+  results_output = results_output[,-4] # dropping the unique_variant_ID column since it's misleading
+  
   return(results_output)
 }
