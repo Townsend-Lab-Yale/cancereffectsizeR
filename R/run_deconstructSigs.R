@@ -6,8 +6,9 @@
 #' @param tumor_trinuc_counts one-row data.frame of trinuc variants counts (in deconstructSigs order) for one tumor
 #' @param signatures_df data.frame of signatures (see COSMIC v3 signatures included with package for format)
 #' @param signatures_to_remove names of signatures in signatures_df to keep out of deconstructSigs and assign zero weights
-#' @param artifact_signatures names of signatures that should be treated as sequencing artifacts
-#'
+#' @param artifact_signatures names of signatures that should be treated as sequencing artifacts  (these have weights calculated
+#'                            but are then normalized out when calculating true trinuc proportions)
+
 
 run_deconstructSigs = function(tumor_trinuc_counts, signatures_df, signatures_to_remove, artifact_signatures) {
 

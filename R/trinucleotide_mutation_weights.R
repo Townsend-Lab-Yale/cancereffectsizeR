@@ -3,6 +3,16 @@
 #' Calculates expected relative rates of SNV substitutions by trinucleotide context in tumors
 #' using deconstructSigs to estimate weightings of known mutational signatures (e.g., COSMIC v3)
 #'
+#' The purpose of this function is to calculate relative rates of trinucleotide-context-specific SNV
+#' mutations within tumors that can be attributed to known tumor-specific mutational processes. Since
+#' recurrent mutations (those that appear in multiple tumor samples) are more likely to be undergoing
+#' selection than other mutations, by default only non-recurrent mutations are considered in order to
+#' get a closer estimation of mutation rates independent of selection. This function currently uses
+#' the deconstructSigs to assign mutational signature weightings to tumors.
+#' As deconstructSigs suggests that a tumor must have at least 50 mutations for signature attribution
+#' to be reliable, this function offers several methods for dealing with tumors with fewer mutations.
+#' The default method, "weighted".... (to be continued)
+#'
 #' @param cesa # CESAnalysis object
 #' @param cores how many cores to use to process tumor samples in parallel (requires parallel package)
 #' @param algorithm_choice The choice of the algorithm used in determining trinucleotide weights.
@@ -184,6 +194,7 @@ trinucleotide_mutation_weights <- function(cesa,
     }
   }
 
+  # hypermutation signatures from https://doi.org/10.1101/322859
   cosmic_v3_highly_hm_sigs = c("SBS10a","SBS10b")
   cosmic_v3_modest_hm_sigs = c("SBS6","SBS14","SBS15","SBS20","SBS21","SBS26","SBS44")
 
@@ -200,6 +211,8 @@ trinucleotide_mutation_weights <- function(cesa,
     ### "SigProfiler_signature_assignment_rules" supp data here: https://doi.org/10.1101/322859
     ### (These rules are for whole-exome, not whole-genome. Different rules apply then, also in that supp data.)
     current_sigs_to_remove = signatures_to_remove
+    
+    # To-do: for WGS data, thresholds are 10^5 and 10^4, respectively
     if (v3_exome_hypermutation_rules) {
       if(num_variants < 2000) {
         current_sigs_to_remove = union(current_sigs_to_remove, cosmic_v3_highly_hm_sigs)
@@ -242,11 +255,8 @@ trinucleotide_mutation_weights <- function(cesa,
   # If any samples have <50 mutations, determine weightings for those samples using method specified by user
   # Note there's nothing more to do if choice was "all_calculated"
   if(length(tumors_with_less_than_50) > 0) {
-    # hypermutation signatures are presumed absent from tumors with fewer than 50 variants, so removing them here
-    current_sigs_to_remove = signatures_to_remove
-    if (v3_exome_hypermutation_rules) {
-      current_sigs_to_remove = unique(c(signatures_to_remove, cosmic_v3_modest_hm_sigs, cosmic_v3_highly_hm_sigs))
-    }
+    # nearest_neighbor method falls back to using a 50+ average weighting for zeroed-out tumors and those with
+    # only recurrent mutations
     nearest_neighbor_needs_mean = FALSE
     if(algorithm_choice == "nearest_neighbor") {
       if(length(zeroed_out_tumors) > 0 || length(tumors_with_only_recurrent_mutations) > 0) {
@@ -258,12 +268,20 @@ trinucleotide_mutation_weights <- function(cesa,
 
       # convert to data frame because that's what deconstructSigs wants
       mean_trinuc_prop = as.data.frame(t(mean_trinuc_prop))
-
-      # temporarily setting signatures_to_remove to NULL until permission to break with previous output
+      
+      
+      # Hypermutation signatures are presumed absent from tumors with fewer than 50 variants, but may be present in the 50+ mutation tumors.
+      # Therefore, they will be treated like artifact signatures: included in deconstructSigs signature weight calculation, but normalized
+      # out when calculating the "true" relative trinucleotide SNV mutation rates
+      # however, they are left in for the "all_average" method in the spirit of assuming all tumors have same mutational processes
+      mean_calc_artifact_signatures = artifact_signatures
+      if (v3_exome_hypermutation_rules && algorithm_choice == "weighted") {
+        mean_calc_artifact_signatures = unique(c(artifact_signatures, cosmic_v3_modest_hm_sigs, cosmic_v3_highly_hm_sigs))
+      }
+      
       mean_ds <- cancereffectsizeR:::run_deconstructSigs(tumor_trinuc_counts = mean_trinuc_prop, signatures_df = signatures, 
-                                                         signatures_to_remove = NULL,
-                                                        #signatures_to_remove = current_sigs_to_remove,
-                                                        artifact_signatures = artifact_signatures)[[1]] # just need signatures_output element
+                                                        signatures_to_remove = signatures_to_remove,
+                                                        artifact_signatures = mean_calc_artifact_signatures)[[1]] # just need signatures_output element
       mean_weights <- mean_ds$weights
       # this should never happen
       if(all(mean_weights == 0)) {
