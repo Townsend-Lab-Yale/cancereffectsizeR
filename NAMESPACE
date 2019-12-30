@@ -3,7 +3,6 @@
 export(CESAnalysis)
 export(CI_finder)
 export(DNP_TNP_remover)
-export(MAFdf)
 export(annotate_gene_maf)
 export(build_RefCDS)
 export(calc_baseline_mutation_rates)

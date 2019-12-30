@@ -69,26 +69,10 @@ setMethod("get_progression_tumors", signature("CESProgressions", "character"),
 
 
 
-#' A class that extends data.frame to enforce consistent handling of MAF data
-setClass("MAFdf", contains = "data.frame")
-setValidity("MAFdf",
-  function(object) {
-    # add column validation later (e.g., valid chromosomes, alleles)
-    maf_colnames = c("Unique_Patient_Identifier", "Chromosome", "Start_Position", "Reference_Allele", "Tumor_Allele")
-    if(! identical(colnames(object)[1:5], maf_colnames)) {
-      "Illegal MAF column names"
-    } else {
-      TRUE
-    }
-  }
-)
 
-
-
-
-setClass("CESAnalysis", representation(maf = "MAFdf", annotated.snv.maf = "MAFdf", trinucleotide_mutation_weights = "list",
+setClass("CESAnalysis", representation(maf = "data.frame", annotated.snv.maf = "data.frame", trinucleotide_mutation_weights = "list",
           progressions = "CESProgressions", mutrates_list = "list", dndscv_out_list = "list",
-          excluded = "MAFdf", selection_results = "list", coverage = "list",
+          excluded = "data.frame", selection_results = "list", coverage = "list",
           genome = "BSgenome"))
 
 setValidity("CESAnalysis",

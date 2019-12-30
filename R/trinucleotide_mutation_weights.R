@@ -344,11 +344,11 @@ trinucleotide_mutation_weights <- function(cesa,
 
   # Need to make sure we are only calculating the selection intensities from
   # tumors in which we are able to calculate a mutation rate
-  cesa@maf = MAFdf(MAF[MAF$"Unique_Patient_Identifier" %in% tumors_with_a_mutation_rate,])
+  cesa@maf = MAF[MAF$"Unique_Patient_Identifier" %in% tumors_with_a_mutation_rate,]
   no_mutation_rate = MAF[! MAF$"Unique_Patient_Identifier" %in% tumors_with_a_mutation_rate,]
   if (nrow(no_mutation_rate) > 0) {
     no_mutation_rate$Exclusion_Reason = "no_tumor_mutation_rate"
-    cesa@excluded = MAFdf(rbind(cesa@excluded, no_mutation_rate))  
+    cesa@excluded = rbind(cesa@excluded, no_mutation_rate) 
     message(paste("Note: Some tumor(s) have only recurrent mutations (mutations also appearing in other samples) ",
                   "so a baseline mutation rate cannot be calculated. MAF data for these have been excluded from further analysis."))
   }

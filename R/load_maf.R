@@ -132,7 +132,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   }
   
   
-  # select only the necessary columns and give column names matching MAFdf format
+  # select only the necessary columns and give column names that will stay consistent
   maf = maf[,c(sample_col, chr_col, start_col, ref_col, tumor_allele_col)]
   sample_col = "Unique_Patient_Identifier"
   chr_col = "Chromosome"
@@ -311,10 +311,10 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   
   cesa@coverage = coverage_update
   cesa@progressions = progressions_update 
-  cesa@maf = MAFdf(rbind(cesa@maf, maf))
+  cesa@maf = rbind(cesa@maf, maf)
   if (nrow(excluded) > 0) {
     colnames(excluded) = c(colnames(maf), "Exclusion_Reason")
-    cesa@excluded = MAFdf(rbind(cesa@excluded, excluded))  
+    cesa@excluded = rbind(cesa@excluded, excluded) 
   }
   return(cesa)
 }
