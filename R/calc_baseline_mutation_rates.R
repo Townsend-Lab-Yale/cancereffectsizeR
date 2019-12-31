@@ -26,7 +26,7 @@ calc_baseline_mutation_rates <- function(
   }
   
   # Calculate trinucleotide mutation weightings using deconstructSigs
-  cesa = cancereffectsizeR::trinucleotide_mutation_weights(cesa, signatures = signatures, cores = cores)
+  cesa = cancereffectsizeR::trinucleotide_mutation_weights(cesa, signature_choice  = signatures, cores = cores)
 
   # Calculate gene-level mutation rates using dNdScv
   ## multicore coming soon
