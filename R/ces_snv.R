@@ -36,7 +36,7 @@ ces_snv <- function(cesa = NULL,
       tmp = table(snv.maf$unique_variant_ID)
       recurrent_variants = names(tmp[tmp > 1])
       has_recurrent = snv.maf$unique_variant_ID %in% recurrent_variants
-      genes_to_analyze = unique(snv.maf[has_recurrent, "Gene_name"])
+      genes_to_analyze = unique(snv.maf$Gene_name[has_recurrent])
     }
     message(paste(length(genes_in_dataset) - length(genes_to_analyze), "genes in the data set have no recurrent SNV mutations."))
     message(paste("Calculating selection intensity for recurrent SNV mutations across", length(genes_to_analyze), "genes."))
