@@ -131,8 +131,8 @@ trinucleotide_mutation_weights <- function(cesa,
     ds_maf <- MAF[Reference_Allele %in% bases & Tumor_Allele %in% bases]
 
     # remove all recurrent SNVs (SNVs appearing in more than one sample)
-    duplicated_vec_first <- duplicated(ds_maf[,c(pos_column,chr_column,alt_column)])
-    duplicated_vec_last <- duplicated(ds_maf[,c(pos_column,chr_column,alt_column)],fromLast=T)
+    duplicated_vec_first <- duplicated(ds_maf[,.(Chromosome, Start_Position, Tumor_Allele)])
+    duplicated_vec_last <- duplicated(ds_maf[,.(Chromosome, Start_Position, Tumor_Allele)],fromLast=T)
     duplicated_vec_pos <- which(duplicated_vec_first | duplicated_vec_last)
     if (length(duplicated_vec_pos) > 0) {
       ds_maf <- ds_maf[-duplicated_vec_pos,]
