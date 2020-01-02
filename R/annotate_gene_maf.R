@@ -168,12 +168,12 @@ annotate_gene_maf <- function(cesa) {
 	                                          sep=""),"deconstructSigs_format"]
 
 	# Assign coding variant data
-	dndscv_coding_unique <- dndscvout_annotref[!duplicated(dndscvout_annotref$unique_variant_ID),]
+	dndscv_coding_unique <- dndscvout_annotref[!duplicated(unique_variant_ID)]
 
 	rownames(dndscv_coding_unique) <- dndscv_coding_unique$unique_variant_ID
 	MAF$nuc_variant <- character(nrow(MAF))
 	MAF$coding_variant <- character(nrow(MAF))
-	MAF[,c("nuc_variant","coding_variant")] <- dndscv_coding_unique[MAF, .(ntchange,aachange), on = "unique_variant_ID"]
+	MAF[,c("nuc_variant","coding_variant")] <- dndscv_coding_unique[MAF, .(as.character(ntchange),as.character(aachange)), on = "unique_variant_ID"]
 	MAF[which(MAF$coding_variant=="-"),"coding_variant"] <- NA
 	MAF[which(MAF$nuc_variant=="-"),"nuc_variant"] <- NA
 
