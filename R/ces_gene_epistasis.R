@@ -46,7 +46,7 @@ ces_gene_epistasis = function(cesa = NULL, genes, cores = 1, full_gene_epistasis
 	cesa_subset_table <- table(cesa_subset$identifier)
 	cesa_subset$recurrent_val <- cesa_subset_table[cesa_subset$identifier]
 
-	recurrently_subed_genes <- unique(cesa_subset[cesa_subset$recurrent_val>1,"Gene_name"])
+	recurrently_subed_genes <- unique(cesa_subset$Gene_name[cesa_subset$recurrent_val > 1])
 
     if(length(recurrently_subed_genes) < 2){
      stop("Less than 2 of the 'genes' you specified have recurrent variants.
@@ -92,13 +92,14 @@ epistasis_gene_level = function(genes_to_analyze,
     variant1 <- variant_combo_list[1]
     variant2 <- variant_combo_list[2]
 
-    MAF_input1=MAF[MAF[,"Gene_name"] == variant1 &
-                     MAF[,"Reference_Allele"] %in% c("A","T","G","C") &
-                     MAF[,"Tumor_Allele"] %in% c("A","T","G","C"),]
+    bases = c("A","T","G","C") 
+    MAF_input1=data.frame(MAF[Gene_name == variant1 &
+                     Reference_Allele %in% bases &
+                     Tumor_Allele %in% bases])
 
-    MAF_input2=MAF[MAF[,"Gene_name"] == variant2 &
-                     MAF[,"Reference_Allele"] %in% c("A","T","G","C") &
-                     MAF[,"Tumor_Allele"] %in% c("A","T","G","C"),]
+    MAF_input2=data.frame(MAF[Gene_name == variant2 &
+                     Reference_Allele %in% bases &
+                     Tumor_Allele %in% bases])
     
     # when including target gene sequencing data, need to throw out any samples that don't have coverage at ALL variant sites in these genes
     # this could be a problem if some of the "exome" samples are actually whole-genome if they haven't been trimmed strictly enough

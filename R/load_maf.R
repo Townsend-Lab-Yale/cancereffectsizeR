@@ -2,7 +2,7 @@
 #' @description Load MAF-formatted mutation data into a CESAnalysis object (the core cancereffectsizeR object)
 #' @importFrom IRanges "%within%"
 #' @param cesa the CESAnalysis object to load the data into
-#' @param maf Path of tab-delimited text file in MAF format, or an MAF in data.frame format
+#' @param maf Path of tab-delimited text file in MAF format, or an MAF in data.table or data.frame format
 #' @param sample_col column name with sample ID data
 #' @param chr_col column name with chromosome data             
 #' @param start_col column name with start position ( currently only analyze SNVs, so no end position needed)
@@ -46,7 +46,6 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
         {
           # To-do: Switch to fread to make reading large files faster,
           # but need to handle optional presence of Tumor_Seq_Allele_1/2 columns
-          #data.table::fread(maf, sep = "\t", header=T, stringsAsFactors = F, quote="", select = data.c("hey"))
           data.table::fread(maf, sep = "\t", quote ="", blank.lines.skip = T)
         },
         error = function(e) {
@@ -62,6 +61,8 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     stop(bad_maf_msg)
   } else if(nrow(maf) == 0) {
     stop("Input MAF data set is empty.")
+  } else {
+    maf = data.table(maf)
   }
   
   missing_cols = character()
@@ -113,17 +114,17 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
       maf[,tumor_allele_col] <- tumor_allele_adder_returns$Tumor_allele
     }
   }
-  maf[,ref_col] = toupper(maf[,ref_col])
-  maf[,tumor_allele_col] = toupper(maf[,tumor_allele_col])
+  maf[[ref_col]] = toupper(maf[[ref_col]])
+  maf[[tumor_allele_col]] = toupper(maf[[tumor_allele_col]])
   
   # collect tumor progression information
   if (! is.null(progression_col)) {
-    if (is.factor(maf[,progression_col])) {
+    if (is.factor(maf[[progression_col]])) {
       message("Warning: You supplied tumor progression as a factor, but it will be converted to character.")
       message("The progression ordering will be what you supplied to CESAnalysis() with \"progression_order\",")
       message("regardless of any ordering in your input MAF data frame.")
     }
-    sample_progressions = as.character(maf[,progression_col])
+    sample_progressions = as.character(maf[[progression_col]])
     if(any(is.na(sample_progressions))) {
       stop("Error: There are NA values in your sample progressions column.")
     }
@@ -133,7 +134,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   
   
   # select only the necessary columns and give column names that will stay consistent
-  maf = maf[,c(sample_col, chr_col, start_col, ref_col, tumor_allele_col)]
+  maf = maf[,c(..sample_col, ..chr_col, ..start_col, ..ref_col, ..tumor_allele_col)]
   sample_col = "Unique_Patient_Identifier"
   chr_col = "Chromosome"
   start_col = "Start_Position"
@@ -154,26 +155,26 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   }
   
   # create MAF df to hold excluded records
-  excluded = data.frame()
+  excluded = data.table()
   
   
   # add samples CESProgressions object (don't actually assign to the CESAnalysis until the end of this function)
-  progressions_update = cancereffectsizeR:::add_samples_to_CESProgressions(progressions = cesa@progressions, samples = maf[,sample_col], sample_progressions = sample_progressions)
+  progressions_update = cancereffectsizeR:::add_samples_to_CESProgressions(progressions = cesa@progressions, samples = maf[[sample_col]], sample_progressions = sample_progressions)
   
   
   # strip chr prefixes from chr column, if present ("NCBI-style")
-  maf[,chr_col] = gsub('^chr', '', maf[,chr_col])
+  maf$Chromosome = gsub('^chr', '', maf$Chromosome)
   
   # temporary handling of MT/M
-  maf[maf[,chr_col] == "M", chr_col] <- "MT" # changing M to MT
+  maf[Chromosome == "M", Chromosome:="MT"]  # changing M to MT
   
   # get coverage info for new samples and incorporate with any existing info
   coverage_update = cesa@coverage
   if (class(covered_regions) == "character" && covered_regions[1] == "exome" && length(covered_regions) == 1) {
     if ("exome" %in% names(coverage_update$samples_by_coverage)) {
-      coverage_update$samples_by_coverage[["exome"]] = c(coverage_update$samples_by_coverage[["exome"]], unique(maf[,sample_col]))
+      coverage_update$samples_by_coverage[["exome"]] = c(coverage_update$samples_by_coverage[["exome"]], unique(maf[[sample_col]]))
     } else {
-      coverage_update$samples_by_coverage[["exome"]] = unique(maf[,sample_col])
+      coverage_update$samples_by_coverage[["exome"]] = unique(maf[[sample_col]])
     }
   } else {
     # create GRanges for panel sequencing coverage
@@ -198,7 +199,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     new_group_name = paste0("panel_", new_coverage_group_num)
     
     # update sample_by_coverage and collection of granges
-    coverage_update$samples_by_coverage[[new_group_name]] = unique(maf[, sample_col])
+    coverage_update$samples_by_coverage[[new_group_name]] = unique(maf[,Unique_Patient_Identifier])
     
     # need to put the granges into an environment because list structure couldn't handle it in testing
     if (! "granges" %in% names(coverage_update)) {
@@ -251,7 +252,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   }
   
   # No support for mitochondrial mutations yet
-  is_mt <- maf[,chr_col] == "MT"
+  is_mt <- maf[,Chromosome] == "MT"
   if (any(is_mt)) {
     mt_maf = maf[is_mt,]
     mt_maf$Exclusion_Reason = "mitochondrial"
@@ -263,19 +264,19 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   
   # Ensure reference alleles of mutations match reference genome (Note: Insertions won't match if their reference allele is "-")
   message("Checking that reference alleles match reference genome...")
-  ref_allele_lengths = nchar(maf[,ref_col])
-  ref_alleles_to_test = maf[,ref_col]
-  end_pos = maf[,start_col] + ref_allele_lengths - 1 # for multi-base deletions, check that all deleted bases match reference
+  ref_allele_lengths = nchar(maf[, Reference_Allele])
+  ref_alleles_to_test = maf[, Reference_Allele]
+  end_pos = maf[, Start_Position] + ref_allele_lengths - 1 # for multi-base deletions, check that all deleted bases match reference
   
-  reference_alleles <- as.character(BSgenome::getSeq(cesa@genome, maf[,chr_col],
-                                                     strand="+", start=maf[,start_col], end=end_pos))
+  reference_alleles <- as.character(BSgenome::getSeq(cesa@genome, maf[,Chromosome],
+                                                     strand="+", start=maf[,Start_Position], end=end_pos))
   num.prefilter = nrow(maf)
   
   # For insertions, can't evaluate if record matches reference since MAF reference will be just "-"
   # Could conceivably verify that the inserted bases don't match reference....
-  reference.mismatch.maf = maf[maf[,ref_col] != reference_alleles & maf[,ref_col] != '-',]
+  reference.mismatch.maf = maf[Reference_Allele != reference_alleles & Reference_Allele != '-',]
   num.nonmatching = nrow(reference.mismatch.maf)
-  maf = maf[maf[,ref_col] == reference_alleles | maf[,ref_col] == '-',] # filter out ref mismatches
+  maf = maf[Reference_Allele == reference_alleles | Reference_Allele == '-',] # filter out ref mismatches
   
   if (num.nonmatching > 0) {
     reference.mismatch.maf$Exclusion_Reason = "reference_mismatch"
@@ -292,7 +293,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   message("Collecting all SNVs...")
   num.total = nrow(maf) # indels won't be filtered, but still another filtering step later
   bases = c("A","T","G","C")
-  snv.maf = maf[maf[,ref_col] %in% bases  & maf[,tumor_allele_col] %in% bases,]
+  snv.maf = maf[Reference_Allele %in% bases & Tumor_Allele %in% bases,]
   num.non.snv = num.total - nrow(snv.maf)
   if (num.non.snv > 0) {
     percent = round((num.non.snv / num.total) * 100, 1)
@@ -306,7 +307,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   if (num.good.snv == 0) {
     stop("Error: No SNVs are left to analyze!")
   }
-  num.samples = length(unique(snv.maf[, sample_col]))
+  num.samples = length(unique(snv.maf[,Unique_Patient_Identifier]))
   message(paste0("Loaded ", num.good.snv, " SNVs from ", num.samples, " samples into CESAnalysis."))
   
   cesa@coverage = coverage_update

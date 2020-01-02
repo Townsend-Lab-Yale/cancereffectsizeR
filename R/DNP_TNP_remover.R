@@ -24,12 +24,14 @@
 DNP_TNP_remover <- function(MAF,delete_recur=F){
   #message("Removing possible DNP and TNP")
   # sort by Tumor, Chromosome, and then position
-  MAF <- MAF[with(MAF, order(Unique_Patient_Identifier,Chromosome,Start_Position)),]
+  #  ordering with this syntax so rows get sorted as they would on a df (to keep a test functional)
+  ordering = with(MAF, order(Unique_Patient_Identifier,Chromosome,Start_Position))
+  MAF <- MAF[ordering,]
 
-  MAF$difference <- c(NA,diff(MAF[,"Start_Position"]))
+  MAF$difference <- c(NA,diff(MAF$Start_Position))
 
-  MAF$same_tumor_chrom <- c(NA,((MAF[2:nrow(MAF),"Chromosome"]==MAF[1:(nrow(MAF)-1),"Chromosome"]) &
-                                  (MAF[2:nrow(MAF),"Unique_Patient_Identifier"]==MAF[1:(nrow(MAF)-1),"Unique_Patient_Identifier"])))
+  MAF$same_tumor_chrom <- c(NA,((MAF[2:nrow(MAF),Chromosome]==MAF[1:(nrow(MAF)-1),Chromosome]) &
+                                  (MAF[2:nrow(MAF),Unique_Patient_Identifier]==MAF[1:(nrow(MAF)-1),Unique_Patient_Identifier])))
 
   DNP_and_TNP <- which(MAF$difference %in% c(1,2) & MAF$same_tumor_chrom==T)
   DNP_and_TNP_prior <- DNP_and_TNP - 1
@@ -45,35 +47,6 @@ DNP_TNP_remover <- function(MAF,delete_recur=F){
   }
   
   
-  # remove_it <- MAF
-  # final_MAF <- NULL
-  # tumor_list <- unique(remove_it$Unique_Patient_Identifier)
-  # counter <- 0
-  # possible_DNP <- NULL
-  # for(i in 1:length(tumor_list)){
-  #   to_delete <- NULL
-  #   this_tumor_full <- remove_it[which(remove_it$Unique_Patient_Identifier==tumor_list[i] & remove_it$Variant_Type!="SNP"),]
-  #   this_tumor <- remove_it[which(remove_it$Unique_Patient_Identifier==tumor_list[i] & remove_it$Variant_Type=="SNP"),]
-  #   for(j in 1:nrow(this_tumor)){
-  #     if(any(this_tumor$Chromosome==this_tumor$Chromosome[j] &
-  #                     (this_tumor$Start_Position==this_tumor$Start_Position[j]+1 |
-  #                      this_tumor$Start_Position==this_tumor$Start_Position[j]-1 |
-  #                      this_tumor$Start_Position==this_tumor$Start_Position[j]+2 |
-  #                      this_tumor$Start_Position==this_tumor$Start_Position[j]-2 ), na.rm=TRUE)){
-  #
-  #       to_delete <- c(to_delete,j)
-  #       counter <- counter+1
-  #     }
-  #   }
-  #
-  #   if(length(to_delete)>0){
-  #     this_tumor_full <- rbind(this_tumor[-to_delete,],this_tumor_full)
-  #     final_MAF <- rbind(final_MAF,this_tumor_full)
-  #   }else{
-  #     this_tumor_full <- rbind(this_tumor,this_tumor_full)
-  #     final_MAF <- rbind(final_MAF,this_tumor_full)
-  #   }
-  # }
 
 
   # If we only want primary for this analysis

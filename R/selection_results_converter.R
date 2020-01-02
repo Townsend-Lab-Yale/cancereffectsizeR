@@ -51,7 +51,7 @@ selection_results_converter <- function(cesa, min_recurrence = 2){
   
   ids_for_variant_freq = maf$unique_variant_ID_AA
   is_coding = ids_for_variant_freq != maf$unique_variant_ID
-  ids_for_variant_freq[is_coding] = paste(maf[is_coding, "Gene_name"], ids_for_variant_freq[is_coding])
+  ids_for_variant_freq[is_coding] = paste(maf$Gene_name[is_coding], ids_for_variant_freq[is_coding])
   table_by_stage = lapply(tumors_by_stage, function(x) table(ids_for_variant_freq[maf$Unique_Patient_Identifier %in% x] ))
   
   variant_freq = numeric(nrow(selection_data_df))

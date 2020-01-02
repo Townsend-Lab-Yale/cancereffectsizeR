@@ -171,9 +171,9 @@ annotate_gene_maf <- function(cesa) {
 	dndscv_coding_unique <- dndscvout_annotref[!duplicated(dndscvout_annotref$unique_variant_ID),]
 
 	rownames(dndscv_coding_unique) <- dndscv_coding_unique$unique_variant_ID
-	MAF$nuc_variant <- NA
-	MAF$coding_variant <- NA
-	MAF[,c("nuc_variant","coding_variant")] <- dndscv_coding_unique[MAF$unique_variant_ID,c("ntchange","aachange")]
+	MAF$nuc_variant <- character(nrow(MAF))
+	MAF$coding_variant <- character(nrow(MAF))
+	MAF[,c("nuc_variant","coding_variant")] <- dndscv_coding_unique[MAF, .(ntchange,aachange), on = "unique_variant_ID"]
 	MAF[which(MAF$coding_variant=="-"),"coding_variant"] <- NA
 	MAF[which(MAF$nuc_variant=="-"),"nuc_variant"] <- NA
 
@@ -203,12 +203,11 @@ annotate_gene_maf <- function(cesa) {
 	  }
 	}
 
+	MAF$unique_variant_ID_AA = character(nrow(MAF))
 
-
-	MAF$unique_variant_ID_AA <- NA
-
-	MAF[which(MAF$is_coding==T),"unique_variant_ID_AA"] <- MAF[which(MAF$is_coding==T),"coding_variant"]
-	MAF[which(MAF$is_coding==F),"unique_variant_ID_AA"] <- MAF[which(MAF$is_coding==F),"unique_variant_ID"]
+	MAF[is_coding==TRUE]$unique_variant_ID_AA = MAF[is_coding==TRUE]$coding_variant
+	MAF[is_coding==FALSE]$unique_variant_ID_AA = MAF[is_coding==FALSE]$unique_variant_ID
+	
 
 	substrRight <- function(x, n){
 	  substr(x, nchar(x)-n+1, nchar(x))
