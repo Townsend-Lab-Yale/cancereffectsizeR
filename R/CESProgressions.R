@@ -32,16 +32,18 @@ add_samples_to_CESProgressions = function(progressions, samples, sample_progress
   tumors_by_progression = progressions@tumors_by_progression
   progression_by_tumor = progressions@progression_by_tumor
   progression_order = progressions@order
+  valid_progression_names = names(progression_order)
   
   if(length(samples) != length(sample_progressions)) {
     stop("Samples and progressions vectors are not equal-length.")
   }
   
   already_samples = sum(progressions@num_tumors) > 0 # for clearer error messages, check if progressions object already has samples
+  
   for (i in 1:length(samples)) {
     tumor = as.character(samples[i])
     progression_label = sample_progressions[i]
-    if (! progression_label %in% progression_order) {
+    if (! progression_label %in% valid_progression_names) {
       stop(paste0("Error: Unexpected progressions stage (\"", progression_label, "\") in MAF data"))
     }
     progression_number = progression_order[[progression_label]]
