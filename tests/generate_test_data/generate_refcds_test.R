@@ -1,4 +1,4 @@
-setwd(system.file("tests/testthat/testdata", package = "cancereffectsizeR"))
+setwd(system.file("tests/test_data/", package = "cancereffectsizeR"))
 
 # takes at least several minutes to get all data from Ensembl
 library(biomaRt)

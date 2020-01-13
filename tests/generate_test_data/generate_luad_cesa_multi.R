@@ -1,4 +1,4 @@
-setwd(system.file("tests/testthat/testdata", package = "cancereffectsizeR"))
+setwd(system.file("tests/test_data/", package = "cancereffectsizeR"))
 luad = CESAnalysis(genome = "hg19", progression_order = 1:4)
 luad = load_maf(luad, maf = "luad.hg19.maf.txt", sample_col = "sample_id", 
                 tumor_allele_col = "Tumor_Seq_Allele2", progression_col = "fake_stage")
