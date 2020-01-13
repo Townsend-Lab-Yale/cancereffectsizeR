@@ -10,24 +10,32 @@
 #' @param covariate_file Either NULL and usefs dNdScv default covariates, or one of these:  "bladder_pca"  "breast_pca"
 #' "cesc_pca" "colon_pca" "esca_pca" "gbm_pca" "hnsc_pca" "kidney_pca" "lihc_pca" "lung_pca" "ov_pca" "pancreas_pca" "prostate_pca" "rectum_pca" "skin_pca"  "stomach_pca"  "thca_pca" "ucec_pca"
 #' @param save_all_dndscv_output default false; when true, saves all dndscv output, not just what's needed by CES
-#' @return
-#' @export
-#'
-#'
-#'
+#' @return CESAnalysis object with 
 
-# Runs dNdScv and calculates gene-level mutation rates
+
+#' @export
 gene_level_mutation_rates <- function(cesa, covariate_file = NULL, save_all_dndscv_output = FALSE){
+  dndscv_input = dndscv_preprocess(cesa = cesa, covariate_file = covariate_file)
+  message("Running dNdScv...")
+  dndscv_raw_output = lapply(dndscv_input, function(x) do.call(dndscv::dndscv, x))
+  unlink(dndscv_input[[1]][["refdb"]]) # temporary pending update to dndscv (and hg19-specific)
+  cesa = dndscv_postprocess(cesa = cesa, dndscv_raw_output = dndscv_raw_output, save_all_dndscv_output = save_all_dndscv_output)
+  return(cesa)
+}
+
+
+#' Internal function to prepare for running dNdScv
+dndscv_preprocess = function(cesa, covariate_file = NULL) {
   if(is.null(covariate_file)){
     message("Loading dNdScv default covariates for hg19...")
     data("covariates_hg19",package = "dndscv", envir = environment())
     genes_in_pca <- rownames(covs)
-  }else{
+    cv = "hg19"
+  } else {
     this_cov_pca <- get(covariate_file) # To-do: clean this up
-    genes_in_pca <- rownames(this_cov_pca$rotation)
+    cv = this_cov_pca$rotation
+    genes_in_pca = rownames(cv)
   }
-  
-
 
   # select MAF records to use for gene mutation rate calculation (via dNdScv)
   # for now, records from TGS samples are kept out; in the future, we could check out dNdScv's panel sequencing features
@@ -38,25 +46,21 @@ gene_level_mutation_rates <- function(cesa, covariate_file = NULL, save_all_dnds
   # temporary workaround pending updates to dndscv
   tmp_refdb = tempfile(fileext = ".rda")
   save(RefCDS, file = tmp_refdb)
-  
-  
-  # Run dNdScv for each progressions stage, storing output in a list
-  message("Running dNdScv...")
-  run_dndscv = function(tumor_stage) {
-    current_subset_tumors = get_progression_tumors(cesa@progressions, tumor_stage)
-    return(dndscv::dndscv(
-      mutations = dndscv_maf[dndscv_maf$Unique_Patient_Identifier %in% current_subset_tumors,],
-      gene_list = genes_in_pca,
-      cv = if(is.null(covariate_file)){ "hg19"} else{ this_cov_pca$rotation},
-      refdb = tmp_refdb))
+
+  dndscv_input = list()
+  for (stage in cesa@progressions@order) {
+    current_subset_tumors = get_progression_tumors(cesa@progressions, stage)
+    mutations = dndscv_maf[dndscv_maf$Unique_Patient_Identifier %in% current_subset_tumors,]
+    dndscv_input[[stage]] = list(mutations = mutations, gene_list = genes_in_pca, cv = cv, refdb = tmp_refdb)
   }
-  
-  dndscv_out_list = lapply(names(cesa@progressions@order), run_dndscv)
+  return(dndscv_input)
+}
+
+#' Internal function to calculate gene-level mutation rates from dNdScv output
+dndscv_postprocess = function(cesa, dndscv_raw_output, save_all_dndscv_output) {
+  dndscv_out_list = dndscv_raw_output
   names(dndscv_out_list) = names(cesa@progressions@order)
-  unlink(tmp_refdb)
-
-
-  # Get RefCDS data on number of synonymous mutations possible at each site
+   # Get RefCDS data on number of synonymous mutations possible at each site
   # Per dNdScv docs, L matrices list "number of synonymous, missense, nonsense and splice sites in each CDS at each trinucleotide context"
   num_syn = sapply(RefCDS, function(x) colSums(x$L)[1])
   names(num_syn) = sapply(RefCDS, function(x) x$gene_name)
@@ -68,7 +72,7 @@ gene_level_mutation_rates <- function(cesa, covariate_file = NULL, save_all_dnds
   names(mutrates_list) <- names(cesa@progressions@order)
 
 
-  message("Calculating gene-level mutation rates...")
+  message("Using dNdScv output to calculate gene-level mutation rates...")
   for(this_subset in 1:length(mutrates_list)){
     dndscv_output = dndscv_out_list[[this_subset]] 
     number_of_tumors_in_this_subset <- length(unique(dndscv_output$annotmuts$sampleID))
@@ -118,3 +122,4 @@ gene_level_mutation_rates <- function(cesa, covariate_file = NULL, save_all_dnds
   cesa@dndscv_out_list = dndscv_out_list
   return(cesa)
 }
+
