@@ -19,7 +19,7 @@ gene_level_mutation_rates(
 \item{save_all_dndscv_output}{default false; when true, saves all dndscv output, not just what's needed by CES}
 }
 \value{
-
+CESAnalysis object with
 }
 \description{
 This function calculates the maximum likelihood estimate for the expected

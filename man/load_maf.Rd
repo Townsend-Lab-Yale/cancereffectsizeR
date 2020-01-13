@@ -19,7 +19,7 @@ load_maf(
 \arguments{
 \item{cesa}{the CESAnalysis object to load the data into}
 
-\item{maf}{Path of tab-delimited text file in MAF format, or an MAF in data.frame format}
+\item{maf}{Path of tab-delimited text file in MAF format, or an MAF in data.table or data.frame format}
 
 \item{sample_col}{column name with sample ID data}
 
