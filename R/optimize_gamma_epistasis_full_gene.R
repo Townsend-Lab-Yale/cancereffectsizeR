@@ -58,7 +58,6 @@ optimize_gamma_epistasis_full_gene <- function(MAF_input1,
                             variant_freq_2=variant_freq_2))
 
   #TODO: explore the best possible optimization algorithm, fnscale, etc.
-
   opm_output$value <- -opm_output$value # we did a minimization of the negative, so need to take the negative again to find the maximum
   opm_output <- opm_output[order(opm_output$value,decreasing = T),]
 

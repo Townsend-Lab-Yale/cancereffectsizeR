@@ -7,7 +7,11 @@ test_that("Trinucleotide signature weight calculation", {
 
 test_that("dNdScv and MAF annotation", {
   cesa = get_test_data("cesa_for_dndscv_and_anno.rds")
-  cesa = expect_warning(gene_level_mutation_rates(cesa, covariate_file = "lung_pca"), "Same mutations observed in different sample")
+  dndscv_input = cancereffectsizeR:::dndscv_preprocess(cesa = cesa, covariate_file = "lung_pca")
+  dndscv_input_ak = get_test_data("dndscv_input_single.rds")
+  expect_equal(dndscv_input, dndscv_input_ak)
+  dndscv_output = get_test_data("dndscv_raw_output_single.rds")
+  cesa = dndscv_postprocess(cesa, dndscv_output)
   sel_cv = get_test_data("sel_cv.rds")
   expect_equal(cesa@dndscv_out_list$`1`$sel_cv, sel_cv)
   mutrates = get_test_data("mutrates.rds")

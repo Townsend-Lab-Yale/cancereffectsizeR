@@ -12,6 +12,8 @@ ces_snv <- function(cesa = NULL,
                             include_genes_without_recurrent_mutations = F,
                             find_CI=T) 
 {
+  # temporarily hard-coded hg19 RefCDS data
+  load(system.file("genomes/hg19/ces_hg19_tp53_splice_refcds_gr_genes.rda", package = "cancereffectsizeR"))
 
   if (! "character" %in% class(genes)) {
     stop("Expected argument \"genes\" to take a character vector.")
@@ -23,10 +25,6 @@ ces_snv <- function(cesa = NULL,
   if(length(genes_in_dataset) == 0) {
     stop("The SNV mutation data set is empty!")
   }
-
-
-  # Possibly make this only load when needed (but it's usually needed)
-  names(RefCDS) = sapply(RefCDS, function(x) x$gene_name)
 
 
   if(genes[1] =="all") {

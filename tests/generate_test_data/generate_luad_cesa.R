@@ -29,11 +29,22 @@ for_dndscv = load_maf(cesa = CESAnalysis(genome="hg19"), maf = maf_for_dndscv, s
 for_dndscv = trinucleotide_mutation_weights(for_dndscv)
 saveRDS(for_dndscv, "cesa_for_dndscv_and_anno.rds")
 
-dndscv_out = gene_level_mutation_rates(for_dndscv, covariate_file = "lung_pca")
+# long tests will actually run dNdScv; short tests will just make sure internal preprocess/postprocess functions behave as expected
+dndscv_input = cancereffectsizeR:::dndscv_preprocess(cesa = for_dndscv, covariate_file = "lung_pca")
+saveRDS(dndscv_input, "dndscv_input_single.rds")
+dndscv_raw_output = lapply(dndscv_input, function(x) do.call(dndscv::dndscv, x))
+
+# a few attributes are huge (>1 GB); drop these
+dndscv_raw_output = lapply(dndscv_raw_output, function(x) { x$nbreg$terms = NULL; x$nbreg$model = NULL; x$poissmodel = NULL; return(x)})
+saveRDS(dndscv_raw_output, "dndscv_raw_output_single.rds")
+unlink(dndscv_input[[1]][["refdb"]]) # temporary
+dndscv_out = dndscv_postprocess(cesa = for_dndscv, dndscv_raw_output = dndscv_raw_output)
+
 saveRDS(dndscv_out@dndscv_out_list$`1`$sel_cv, "sel_cv.rds")
 saveRDS(dndscv_out@mutrates_list$`1`, "mutrates.rds")
 anno_out = annotate_gene_maf(dndscv_out)
 saveRDS(anno_out@annotated.snv.maf, "annotated_maf_df.rds")
+
 
 
 # ## Re-run, incorporating panel 1 test data

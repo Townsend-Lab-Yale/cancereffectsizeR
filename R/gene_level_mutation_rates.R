@@ -14,11 +14,11 @@
 
 
 #' @export
+# don't change this function at all without being sure you're not messing up tests
 gene_level_mutation_rates <- function(cesa, covariate_file = NULL, save_all_dndscv_output = FALSE){
   dndscv_input = dndscv_preprocess(cesa = cesa, covariate_file = covariate_file)
   message("Running dNdScv...")
   dndscv_raw_output = lapply(dndscv_input, function(x) do.call(dndscv::dndscv, x))
-  unlink(dndscv_input[[1]][["refdb"]]) # temporary pending update to dndscv (and hg19-specific)
   cesa = dndscv_postprocess(cesa = cesa, dndscv_raw_output = dndscv_raw_output, save_all_dndscv_output = save_all_dndscv_output)
   return(cesa)
 }
@@ -42,11 +42,10 @@ dndscv_preprocess = function(cesa, covariate_file = NULL) {
   exome_samples = cesa@coverage$samples_by_coverage[["exome"]]
   dndscv_maf = cesa@maf[cesa@maf$Unique_Patient_Identifier %in% exome_samples,]
   
-  message("Loading reference data...")
-  # temporary workaround pending updates to dndscv
-  tmp_refdb = tempfile(fileext = ".rda")
-  save(RefCDS, file = tmp_refdb)
 
+  # temporarily hard-coding an hg19 RefCDS/gr_genes file (gets loaded by dNdScv)
+  tmp_refdb = system.file("genomes/hg19/ces_hg19_tp53_splice_refcds_gr_genes.rda", package = "cancereffectsizeR")
+  
   dndscv_input = list()
   for (stage in cesa@progressions@order) {
     current_subset_tumors = get_progression_tumors(cesa@progressions, stage)
@@ -57,7 +56,9 @@ dndscv_preprocess = function(cesa, covariate_file = NULL) {
 }
 
 #' Internal function to calculate gene-level mutation rates from dNdScv output
-dndscv_postprocess = function(cesa, dndscv_raw_output, save_all_dndscv_output) {
+dndscv_postprocess = function(cesa, dndscv_raw_output, save_all_dndscv_output = FALSE) {
+  # temporarily hard-coded hg19 RefCDS data
+  load(system.file("genomes/hg19/ces_hg19_tp53_splice_refcds_gr_genes.rda", package = "cancereffectsizeR"))
   dndscv_out_list = dndscv_raw_output
   names(dndscv_out_list) = names(cesa@progressions@order)
    # Get RefCDS data on number of synonymous mutations possible at each site

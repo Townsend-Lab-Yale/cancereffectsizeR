@@ -1,0 +1,11 @@
+test_that("dNdScv and MAF annotation", {
+  cesa = get_test_data("cesa_for_dndscv_and_anno.rds")
+  cesa = expect_warning(gene_level_mutation_rates(cesa, covariate_file = "lung_pca"), "Same mutations observed in different sample")
+  sel_cv = get_test_data("sel_cv.rds")
+  expect_equal(cesa@dndscv_out_list$`1`$sel_cv, sel_cv)
+  mutrates = get_test_data("mutrates.rds")
+  expect_equal(cesa@mutrates_list$`1`, mutrates)
+  cesa = annotate_gene_maf(cesa)
+  annotated_maf = get_test_data("annotated_maf_df.rds")
+  expect_equal(cesa@annotated.snv.maf, annotated_maf)
+})

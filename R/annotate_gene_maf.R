@@ -7,7 +7,10 @@
 
 
 annotate_gene_maf <- function(cesa) {
-	MAF = cesa@maf
+	
+  # temporarily hard-coded hg19 RefCDS data
+  load(system.file("genomes/hg19/ces_hg19_tp53_splice_refcds_gr_genes.rda", package = "cancereffectsizeR"))
+  MAF = cesa@maf
 	bases = c("A", "C", "T", "G")
 
 	# subset to SNVs

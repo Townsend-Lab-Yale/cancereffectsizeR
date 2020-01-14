@@ -21,7 +21,8 @@ ces_gene_epistasis = function(cesa = NULL, genes, cores = 1, full_gene_epistasis
     stop("Supply at least two genes to analyze.")
   }
 
-  names(RefCDS) = sapply(RefCDS, function(x) x$gene_name)
+  # temporarily hard-coded RefCDS data
+  load(system.file("genomes/hg19/ces_hg19_tp53_splice_refcds_gr_genes.rda", package = "cancereffectsizeR"))
 
 
 	genes = unique(genes)
