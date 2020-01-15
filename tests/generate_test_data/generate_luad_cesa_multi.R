@@ -29,7 +29,6 @@ dndscv_raw_output = lapply(dndscv_input, function(x) do.call(dndscv::dndscv, x))
 # a few attributes are huge (>1 GB); drop these
 dndscv_raw_output = lapply(dndscv_raw_output, function(x) { x$nbreg$terms = NULL; x$nbreg$model = NULL; x$poissmodel = NULL; return(x)})
 saveRDS(dndscv_raw_output, "dndscv_raw_output_multi.rds")
-unlink(dndscv_input[[1]][["refdb"]]) # temporary
 dndscv_out = dndscv_postprocess(cesa = for_dndscv, dndscv_raw_output = dndscv_raw_output)
 
 

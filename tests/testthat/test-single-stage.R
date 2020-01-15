@@ -9,9 +9,9 @@ test_that("dNdScv and MAF annotation", {
   cesa = get_test_data("cesa_for_dndscv_and_anno.rds")
   dndscv_input = cancereffectsizeR:::dndscv_preprocess(cesa = cesa, covariate_file = "lung_pca")
   dndscv_input_ak = get_test_data("dndscv_input_single.rds")
-  expect_equal(dndscv_input, dndscv_input_ak)
+  expect_equal(dndscv_input[[1]][-4], dndscv_input_ak[[1]][-4]) # refdb path will very on dev/prod due to inst dir
   dndscv_output = get_test_data("dndscv_raw_output_single.rds")
-  cesa = dndscv_postprocess(cesa, dndscv_output)
+  cesa = cancereffectsizeR:::dndscv_postprocess(cesa, dndscv_output)
   sel_cv = get_test_data("sel_cv.rds")
   expect_equal(cesa@dndscv_out_list$`1`$sel_cv, sel_cv)
   mutrates = get_test_data("mutrates.rds")
