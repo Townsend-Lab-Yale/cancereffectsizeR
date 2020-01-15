@@ -27,7 +27,6 @@ DNP_TNP_remover <- function(MAF,delete_recur=F){
   #  ordering with this syntax so rows get sorted as they would on a df (to keep a test functional)
   ordering = with(MAF, order(Unique_Patient_Identifier,Chromosome,Start_Position))
   MAF <- MAF[ordering,]
-
   MAF$difference <- c(NA,diff(MAF$Start_Position))
 
   MAF$same_tumor_chrom <- c(NA,((MAF[2:nrow(MAF),Chromosome]==MAF[1:(nrow(MAF)-1),Chromosome]) &

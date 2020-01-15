@@ -3,9 +3,9 @@ test_that("MAF data loads correctly", {
   tiny_maf = get_test_file("tiny.hg19.maf.txt")
   tiny = load_maf(cesa = CESAnalysis(genome="hg19"), maf = tiny_maf, sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2")
   tiny_ak = get_test_data("tiny_hg19_maf_loaded.rds")
-  expect_identical(data.frame(tiny@maf), data.frame(tiny_ak@maf))
-  expect_identical(data.frame(tiny@excluded), data.frame(tiny_ak@excluded))
-  expect_identical(tiny@coverage, tiny_ak@coverage)
+  expect_equal(tiny@maf, tiny_ak@maf)
+  expect_equal(tiny@excluded, tiny_ak@excluded)
+  expect_equal(tiny@coverage, tiny_ak@coverage)
   expect_error(load_maf(tiny, maf = tiny_maf, sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2"),
                "Sample identifiers in new data have overlap")
   

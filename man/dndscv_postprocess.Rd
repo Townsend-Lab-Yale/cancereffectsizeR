@@ -4,7 +4,7 @@
 \alias{dndscv_postprocess}
 \title{Internal function to calculate gene-level mutation rates from dNdScv output}
 \usage{
-dndscv_postprocess(cesa, dndscv_raw_output, save_all_dndscv_output)
+dndscv_postprocess(cesa, dndscv_raw_output, save_all_dndscv_output = FALSE)
 }
 \description{
 Internal function to calculate gene-level mutation rates from dNdScv output

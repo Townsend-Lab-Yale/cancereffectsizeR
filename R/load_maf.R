@@ -21,7 +21,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   }
   
   if (is.null(maf)) {
-    stop("Supply MAF data via maf=[file path or data frame].")
+    stop("Supply MAF data via maf=[file path or data.table/data.frame].")
   }
   if (is.null(progression_col) & length(cesa@progressions@order) != 1) {
     stop("You must supply a progression_col for your MAF since your analysis covers multiple progression stages")
@@ -36,23 +36,32 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     stop("You must supply covered_regions. For whole-exome/whole-genome data, use the default setting \"exome\".")
   }
   
+  select_cols = c(sample_col, chr_col, start_col, ref_col, progression_col)
+  if (tumor_allele_col == "guess") {
+    select_cols = c(select_cols, "Tumor_Seq_Allele1", "Tumor_Seq_Allele2", "Tumor_Allele")
+  } else {
+    select_cols = c(select_cols, tumor_allele_col)
+  }
+  
   bad_maf_msg = "Input MAF is expected to be a data.frame or the filename of an MAF-formatted tab-delimited text file."
   if ("character" %in% class(maf)) {
     if(length(maf) > 1) {
       stop(bad_maf_msg)
     }
     if(file.exists(maf)) {
-      maf = tryCatch(
-        {
-          # To-do: Switch to fread to make reading large files faster,
-          # but need to handle optional presence of Tumor_Seq_Allele_1/2 columns
-          data.table::fread(maf, sep = "\t", quote ="", blank.lines.skip = T)
-        },
-        error = function(e) {
-          message("Unable to read specified MAF file:")
-          message(e)
-        }
-      )
+      # read in file and suppress warnings about missing columns since this function handles the validation
+      withCallingHandlers(
+      {
+        maf = data.table::fread(maf, sep = "\t", quote ="", blank.lines.skip = T, select = select_cols)
+      },
+      error = function(e) {
+        message("Unable to read specified MAF file:")
+      },
+      warning = function(w) {
+          if (grepl("not found in column name header", conditionMessage(w))) {
+            invokeRestart("muffleWarning")
+          }
+      })
     } else {
       stop("Specified MAF not found.")
     }
@@ -62,21 +71,25 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   } else if(nrow(maf) == 0) {
     stop("Input MAF data set is empty.")
   } else {
-    maf = data.table(maf)
+    # user supplied pre-loaded data.frame or data.table
+    # take just necessary columns and convert to data.table if necessary
+    cols_to_keep = names(maf)[which(names(maf) %in% select_cols)]
+    if ("data.table" %in% class(maf)) {
+      maf = maf[, ..cols_to_keep]
+    } else {
+      maf = maf[, cols_to_keep]
+      maf = data.table(maf)
+    }
   }
+  
   
   missing_cols = character()
   input_maf_cols = colnames(maf)
   
-  
-  cols_to_check = c(sample_col, ref_col, chr_col, start_col)
+  cols_to_check = c(sample_col, ref_col, chr_col, start_col, progression_col)
   if (tumor_allele_col != "guess") {
     cols_to_check = c(cols_to_check, tumor_allele_col)
   }
-  if (! is.null(progression_col)) {
-    cols_to_check = c(cols_to_check, progression_col)
-  }
-  
   
   for (col in cols_to_check) {
     if (! col %in% input_maf_cols) {
@@ -91,38 +104,72 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     stop(msg)
   }
   
+  # convert all columns to character except Start_Position
+  maf = maf[, names(maf) := lapply(.SD, as.character)]
+  maf[[start_col]] = as.numeric(maf[[start_col]])
   
+  # drop columns with NAs or empty-ish strings
+  nrow_orig = nrow(maf)
+  maf = na.omit(maf)
+  nrow_curr = nrow(maf)
+  if(nrow_curr != nrow_orig) {
+    diff = nrow_orig - nrow_curr
+    warning(paste0(diff, " records in the input MAF had NA values in required columns. These have been dropped from analysis."))
+  }
+  looks_empty = apply(maf, 1, function(x) any(grepl("^[.\"\' ]*$", x)))
+  num_empty = sum(looks_empty)
+  if(num_empty > 0) {
+    maf = maf[! looks_empty,]
+    warning(paste0(num_empty, " MAF records had fields that looked empty (just whitespace, quotation marks or periods).\n",
+                   "These records have been removed from analysis. (One possible cause is indels not being in proper MAF format.)"))
+  }
+  
+  
+  maf[[ref_col]] = toupper(maf[[ref_col]])
   # figure out which column has correct tumor allele data
   if(tumor_allele_col == "guess") {
-    if ("Tumor_Allele" %in% colnames(maf)) {
+    tumor_allele_col = "Tumor_Allele"
+    if (tumor_allele_col %in% colnames(maf)) {
       message("Found data column \"Tumor_Allele\"; will assume this is the correct column for tumor allele.")
-      tumor_allele_col = "Tumor_Allele"
+      maf[[tumor_allele_col]] = toupper(maf[[tumor_allele_col]])
     } else {
       # automated tumor allele determination requires Tumor_Seq_Allele1/Tumor_Seq_Allele2 columns
       # if these columns are present, the tumor_allele_adder function will handle capitalization and other validation
       allele1_col = "Tumor_Seq_Allele1"
       allele2_col = "Tumor_Seq_Allele2"
       if (! allele1_col %in% colnames(maf) | ! allele2_col %in% colnames(maf)) {
-        stop(paste0("Tumor alleles can't be deduced automatically deduced without Tumor_Seq_Allele1",
+        stop(paste0("Tumor alleles can't be deduced automatically deduced without Tumor_Seq_Allele1 ",
                     "and Tumor_Seq_Allele2 columns. Please manually specify with \"tumor_allele_col=...\""))
       }
+      maf$Tumor_Seq_Allele1 = toupper(maf$Tumor_Seq_Allele1)
+      maf$Tumor_Seq_Allele2 = toupper(maf$Tumor_Seq_Allele2)
       message("Determining tumor alleles...")
-      tumor_allele_adder_returns <- cancereffectsizeR::tumor_allele_adder(Reference_Allele = maf[,ref_col],
-                                                                          Tumor_Seq_Allele1 = maf[,allele1_col],
-                                                                          Tumor_Seq_Allele2 =  maf[,allele2_col])
-      maf <- maf[tumor_allele_adder_returns$original_index,]
-      maf[,tumor_allele_col] <- tumor_allele_adder_returns$Tumor_allele
+      
+      # take allele 2 as the tumor allele, but when it matches ref, replace with allele 1
+      # if that is still equal to ref, record will later be discarded
+      tumor_alleles = maf$Tumor_Seq_Allele2
+      allele_2_matches_ref = maf$Tumor_Seq_Allele2 == maf[[ref_col]]
+      tumor_alleles[allele_2_matches_ref] = maf$Tumor_Seq_Allele1[allele_2_matches_ref]
+      maf[[tumor_allele_col]] <- tumor_alleles
     }
+  } else {
+    maf[[tumor_allele_col]] = toupper(maf[[tumor_allele_col]])
   }
-  maf[[ref_col]] = toupper(maf[[ref_col]])
-  maf[[tumor_allele_col]] = toupper(maf[[tumor_allele_col]])
+  
+  # drop records where tumor allele is equal to reference allele
+  no_variant = maf[[ref_col]] == maf[[tumor_allele_col]]
+  num_unvaried = sum(no_variant)
+  if(num_unvaried > 0) {
+    maf = maf[!no_variant]
+    warning(paste0(num_unvaried, " MAF records had tumor alleles identical to reference alleles; these were removed from analysis.\n"))
+  }
   
   # collect tumor progression information
   if (! is.null(progression_col)) {
     if (is.factor(maf[[progression_col]])) {
       message("Warning: You supplied tumor progression as a factor, but it will be converted to character.")
       message("The progression ordering will be what you supplied to CESAnalysis() with \"progression_order\",")
-      message("regardless of any ordering in your input MAF data frame.")
+      message("regardless of your factor ordering.")
     }
     sample_progressions = as.character(maf[[progression_col]])
     if(any(is.na(sample_progressions))) {
