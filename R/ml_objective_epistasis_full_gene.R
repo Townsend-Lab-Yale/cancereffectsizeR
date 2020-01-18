@@ -14,38 +14,14 @@
 #' @export
 #'
 #' @examples
-ml_objective_epistasis_full_gene <- function(par,
-                                             MAF_input1 = NULL,
-                                             MAF_input2,
-                                             all_tumors,
-                                             gene1,
-                                             gene2,
-                                             specific_mut_rates1,
-                                             specific_mut_rates2,
-                                             variant_freq_1,
-                                             variant_freq_2) {
+ml_objective_epistasis_full_gene <- function(par, with_just_1, with_just_2, with_both, with_neither) {
 
-  # if optimization algorithm is not calling this function correctly, arguments end up null
-  if (is.null(MAF_input1)) {
-    stop("ml_objective_epistasis_full_gene called without required arguments")
-  }
   
   # sometimes the pars end up as NaNs or NAs, possibly because of inappropriate optimization techniques
   if(! all(is.finite(par))) {
     return(1e200)
   }
-  # only the tumors containing a recurrent variant factor into the selection analysis
-  tumors_with_variant1_mutated <- unique(MAF_input1[which(MAF_input1$unique_variant_ID_AA %in% names(which(variant_freq_1>1))),"Unique_Patient_Identifier"])
-  tumors_with_variant2_mutated <- unique(MAF_input2[which(MAF_input2$unique_variant_ID_AA %in% names(which(variant_freq_2>1))),"Unique_Patient_Identifier"])
-
-  tumors_with_both_mutated <- base::intersect(tumors_with_variant1_mutated,tumors_with_variant2_mutated)
-
-  tumors_with_ONLY_variant1_mutated <- tumors_with_variant1_mutated[which(!tumors_with_variant1_mutated %in% tumors_with_variant2_mutated)]
-
-  tumors_with_ONLY_variant2_mutated <- tumors_with_variant2_mutated[which(!tumors_with_variant2_mutated %in% tumors_with_variant1_mutated)]
-
-  tumors_with_neither_mutated <- setdiff(all_tumors, c(tumors_with_both_mutated,tumors_with_ONLY_variant1_mutated,tumors_with_ONLY_variant2_mutated))
-
+ 
 
 
   # two points of discontinuity we need to account for
@@ -53,124 +29,62 @@ ml_objective_epistasis_full_gene <- function(par,
      (par[4] == par[1] + par[2])){return(1e200)}
 
   sum_log_lik <- 0
-
-  # not in either
-
-  for (tumor in tumors_with_neither_mutated) {
-    sum_log_lik <- sum_log_lik +
-      (
-        (-1*(par[1] * sum(specific_mut_rates1[tumor, ]))) +
-          (-1*(par[2] * sum(specific_mut_rates2[tumor, ])))
-      )
-
-  }
-
-
-  # tumors only have variant 1
-
-
-  for( tumor in tumors_with_ONLY_variant1_mutated){
-    sum_log_lik <- sum_log_lik +
-
-      # if(
-      log(
-        # log(
-        -1*(
-          (par[1] * sum(specific_mut_rates1[tumor, ])) /
-            (
-              (par[1] * sum(specific_mut_rates1[tumor, ])) +
-                (par[2] * sum(specific_mut_rates2[tumor, ])) -
-                (par[4] * sum(specific_mut_rates2[tumor, ]))
-            )
-          # )
-        ) *
-          # log(
-          ((exp(  (-1*(par[1] * sum(specific_mut_rates1[tumor, ]))) +
-                    (-1*(par[2] * sum(specific_mut_rates2[tumor, ]))))) -
-             (exp(-1*(par[4] * sum(specific_mut_rates2[tumor, ])))))
-        # )
-      )
-
-  }
-
-  # tumors only have variant 2
-
-  for( tumor in tumors_with_ONLY_variant2_mutated){
-    sum_log_lik <- sum_log_lik +
-      log(
-        # log(
-        -1* (
-          (par[2] * sum(specific_mut_rates2[tumor, ])) /
-            (
-              (par[2] * sum(specific_mut_rates2[tumor, ])) +
-                (par[1] * sum(specific_mut_rates1[tumor, ])) -
-                (par[3] * sum(specific_mut_rates1[tumor, ]))
-            )
-          # )
-        ) *
-          # log(
-          ((exp(  (-1*(par[1] * sum(specific_mut_rates1[tumor, ]))) +
-                    (-1*(par[2] * sum(specific_mut_rates2[tumor, ]))))) -
-             (exp(-1*(par[3] * sum(specific_mut_rates1[tumor, ])))))
-        # )
-      )
-
-  }
-
-
-  # tumors have both variants
-  for( tumor in tumors_with_both_mutated) {
-
-    sum_log_lik <- sum_log_lik + log(
-      1-
-        (
-          ( # P(wt)
-            exp((-1*(par[1] * sum(specific_mut_rates1[tumor, ]))) +
-                  (-1*(par[2] * sum(specific_mut_rates2[tumor, ]))))
-          ) +
-            ( #P(1)
-              # log(
-              -1*(
-                (par[1] * sum(specific_mut_rates1[tumor, ])) /
-                  (
-                    (par[1] * sum(specific_mut_rates1[tumor, ])) +
-                      (par[2] * sum(specific_mut_rates2[tumor, ])) -
-                      (par[4] * sum(specific_mut_rates2[tumor, ]))
+  
+  tmp = with_neither[,(-1*par[1]*dt1_sum) + (-1 * par[2] * dt2_sum) ]
+  sum_log_lik = sum_log_lik + sum(tmp)
+  
+  tmp = with_just_1[,log((-1 * (par[1] * dt1_sum / (par[1]*dt1_sum + par[2]*dt2_sum - par[4]*dt2_sum))) * (exp((-1 * par[1]*dt1_sum) + (-1 * par[2]* dt2_sum)) - exp(-1*par[4] * dt2_sum)))]
+  sum_log_lik = sum_log_lik + sum(tmp)
+  
+  tmp = with_just_2[,log((-1 * (par[2] * dt2_sum / (par[2]*dt2_sum + par[1]*dt1_sum - par[3]*dt1_sum))) * (exp((-1 * par[1]*dt1_sum) + (-1 * par[2]* dt2_sum)) - exp(-1*par[3] * dt1_sum)))]
+  sum_log_lik = sum_log_lik + sum(tmp)
+  tmp = with_both[,
+                  log(
+                    1-
+                      (
+                        ( # P(wt)
+                          exp((-1*(par[1] * dt1_sum)) +
+                                (-1*(par[2] * dt2_sum)))
+                        ) +
+                          ( #P(1)
+                            # log(
+                            -1*(
+                              (par[1] * dt1_sum) /
+                                (
+                                  (par[1] * dt1_sum) +
+                                    (par[2] * dt2_sum) -
+                                    (par[4] * dt2_sum)
+                                )
+                              # )
+                            ) *
+                              # log(
+                              ((exp(  (-1*(par[1] * dt1_sum)) +
+                                        (-1*(par[2] * dt2_sum)))) -
+                                 (exp(-1*(par[4] * dt2_sum))))
+                            # )
+                          ) +
+                          ( # P(2)
+                            -1* (
+                              (par[2] * dt2_sum) /
+                                (
+                                  (par[2] * dt2_sum) +
+                                    (par[1] * dt1_sum) -
+                                    (par[3] * dt1_sum)
+                                )
+                              # )
+                            ) *
+                              # log(
+                              ((exp(  (-1*(par[1] * dt1_sum)) +
+                                        (-1*(par[2] * dt2_sum)))) -
+                                 (exp(-1*(par[3] * dt1_sum))))
+                            # )
+                          )
+                        
+                        
+                      )
                   )
-                # )
-              ) *
-                # log(
-                ((exp(  (-1*(par[1] * sum(specific_mut_rates1[tumor, ]))) +
-                          (-1*(par[2] * sum(specific_mut_rates2[tumor, ]))))) -
-                   (exp(-1*(par[4] * sum(specific_mut_rates2[tumor, ])))))
-              # )
-            ) +
-            ( # P(2)
-              -1* (
-                (par[2] * sum(specific_mut_rates2[tumor, ])) /
-                  (
-                    (par[2] * sum(specific_mut_rates2[tumor, ])) +
-                      (par[1] * sum(specific_mut_rates1[tumor, ])) -
-                      (par[3] * sum(specific_mut_rates1[tumor, ]))
-                  )
-                # )
-              ) *
-                # log(
-                ((exp(  (-1*(par[1] * sum(specific_mut_rates1[tumor, ]))) +
-                          (-1*(par[2] * sum(specific_mut_rates2[tumor, ]))))) -
-                   (exp(-1*(par[3] * sum(specific_mut_rates1[tumor, ])))))
-              # )
-            )
-
-
-        )
-
-
-    )
-
-
-
-  }
+                  ]
+  sum_log_lik = sum_log_lik + sum(tmp)
 
 
   # in case it tried all the max at once.

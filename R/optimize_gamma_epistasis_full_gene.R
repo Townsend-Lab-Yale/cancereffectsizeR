@@ -41,21 +41,44 @@ optimize_gamma_epistasis_full_gene <- function(MAF_input1,
   # To test/debug add this option to optimx options: "control = list(trace = 1) "
   par = 1000:1003
   
+  
+  # calculate tumors with and without recurrent mutations in the two genes
+  # only the tumors containing a recurrent variant factor into the selection analysis
+  tumors_with_variant1_mutated <- unique(MAF_input1[which(MAF_input1$unique_variant_ID_AA %in% names(which(variant_freq_1>1))),"Unique_Patient_Identifier"])
+  tumors_with_variant2_mutated <- unique(MAF_input2[which(MAF_input2$unique_variant_ID_AA %in% names(which(variant_freq_2>1))),"Unique_Patient_Identifier"])
+  tumors_with_both_mutated <- base::intersect(tumors_with_variant1_mutated,tumors_with_variant2_mutated)
+  tumors_with_ONLY_variant1_mutated <- tumors_with_variant1_mutated[which(!tumors_with_variant1_mutated %in% tumors_with_variant2_mutated)]
+  tumors_with_ONLY_variant2_mutated <- tumors_with_variant2_mutated[which(!tumors_with_variant2_mutated %in% tumors_with_variant1_mutated)]
+  tumors_with_neither_mutated <- setdiff(all_tumors, c(tumors_with_both_mutated,tumors_with_ONLY_variant1_mutated,tumors_with_ONLY_variant2_mutated))
+  
+  # get efficient data tables with the summed mutation rates across all variant sites in each gene
+  get_dt = function(tumors) {
+    if(length(tumors) == 0) {
+      return(NULL)
+    }
+    dt1 = data.table(specific_mut_rates1[tumors, , drop=F], keep.rownames = T)
+    dt2 = data.table(specific_mut_rates2[tumors, , drop=F], keep.rownames = T)
+    dt1_sum = dt1[,.(dt1_sum = sum(.SD)), by = rn]
+    dt2_sum = dt2[,.(dt2_sum = sum(.SD)), by = rn]
+    comb = merge.data.table(dt1_sum, dt2_sum)
+  }
+  with_just_1 = get_dt(tumors_with_ONLY_variant1_mutated)
+  with_just_2 = get_dt(tumors_with_ONLY_variant2_mutated)
+  with_both = get_dt(tumors_with_both_mutated)
+  with_neither = get_dt(tumors_with_neither_mutated)
+  
+  
+  
   # suppress warnings because user doesn't need to be informed about methods that fail to converge in particular instances
   opm_output <- suppressWarnings(optimx::opm(par,
                             fn=cancereffectsizeR::ml_objective_epistasis_full_gene,
                             method=methods,
                             lower=1e-3,
                             upper=1e20, gr = "grfwd",
-                            MAF_input1=MAF_input1,
-                            MAF_input2=MAF_input2,
-                            all_tumors=all_tumors,
-                            gene1=gene1,
-                            gene2=gene2,
-                            specific_mut_rates1=specific_mut_rates1,
-                            specific_mut_rates2=specific_mut_rates2,
-                            variant_freq_1=variant_freq_1,
-                            variant_freq_2=variant_freq_2))
+                            with_just_1 = with_just_1,
+                            with_just_2 = with_just_2,
+                            with_both = with_both,
+                            with_neither = with_neither))
 
   #TODO: explore the best possible optimization algorithm, fnscale, etc.
   opm_output$value <- -opm_output$value # we did a minimization of the negative, so need to take the negative again to find the maximum
