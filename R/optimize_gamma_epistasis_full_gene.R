@@ -56,16 +56,16 @@ optimize_gamma_epistasis_full_gene <- function(MAF_input1,
     if(length(tumors) == 0) {
       return(NULL)
     }
-    dt1 = data.table(specific_mut_rates1[tumors, , drop=F], keep.rownames = T)
-    dt2 = data.table(specific_mut_rates2[tumors, , drop=F], keep.rownames = T)
-    dt1_sum = dt1[,.(dt1_sum = sum(.SD)), by = rn]
-    dt2_sum = dt2[,.(dt2_sum = sum(.SD)), by = rn]
-    comb = merge.data.table(dt1_sum, dt2_sum)
+    rates1 = specific_mut_rates1[tumors, , drop=F]
+    rates2 = specific_mut_rates2[tumors, , drop=F]
+    return(list(rowSums(rates1), rowSums(rates2)))
   }
+  
   with_just_1 = get_dt(tumors_with_ONLY_variant1_mutated)
   with_just_2 = get_dt(tumors_with_ONLY_variant2_mutated)
   with_both = get_dt(tumors_with_both_mutated)
   with_neither = get_dt(tumors_with_neither_mutated)
+  
   
   
   

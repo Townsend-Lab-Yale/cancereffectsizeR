@@ -30,61 +30,73 @@ ml_objective_epistasis_full_gene <- function(par, with_just_1, with_just_2, with
 
   sum_log_lik <- 0
   
-  tmp = with_neither[,(-1*par[1]*dt1_sum) + (-1 * par[2] * dt2_sum) ]
-  sum_log_lik = sum_log_lik + sum(tmp)
+  if(! is.null(with_just_1)) {
+    tmp = (-1*par[1]*with_neither[[1]] + (-1 * par[2] * with_neither[[2]]))
+    sum_log_lik = sum_log_lik + sum(tmp)  
+  }
   
-  tmp = with_just_1[,log((-1 * (par[1] * dt1_sum / (par[1]*dt1_sum + par[2]*dt2_sum - par[4]*dt2_sum))) * (exp((-1 * par[1]*dt1_sum) + (-1 * par[2]* dt2_sum)) - exp(-1*par[4] * dt2_sum)))]
-  sum_log_lik = sum_log_lik + sum(tmp)
   
-  tmp = with_just_2[,log((-1 * (par[2] * dt2_sum / (par[2]*dt2_sum + par[1]*dt1_sum - par[3]*dt1_sum))) * (exp((-1 * par[1]*dt1_sum) + (-1 * par[2]* dt2_sum)) - exp(-1*par[3] * dt1_sum)))]
-  sum_log_lik = sum_log_lik + sum(tmp)
-  tmp = with_both[,
-                  log(
-                    1-
-                      (
-                        ( # P(wt)
-                          exp((-1*(par[1] * dt1_sum)) +
-                                (-1*(par[2] * dt2_sum)))
-                        ) +
-                          ( #P(1)
-                            # log(
-                            -1*(
-                              (par[1] * dt1_sum) /
-                                (
-                                  (par[1] * dt1_sum) +
-                                    (par[2] * dt2_sum) -
-                                    (par[4] * dt2_sum)
-                                )
-                              # )
-                            ) *
-                              # log(
-                              ((exp(  (-1*(par[1] * dt1_sum)) +
-                                        (-1*(par[2] * dt2_sum)))) -
-                                 (exp(-1*(par[4] * dt2_sum))))
-                            # )
-                          ) +
-                          ( # P(2)
-                            -1* (
-                              (par[2] * dt2_sum) /
-                                (
-                                  (par[2] * dt2_sum) +
-                                    (par[1] * dt1_sum) -
-                                    (par[3] * dt1_sum)
-                                )
-                              # )
-                            ) *
-                              # log(
-                              ((exp(  (-1*(par[1] * dt1_sum)) +
-                                        (-1*(par[2] * dt2_sum)))) -
-                                 (exp(-1*(par[3] * dt1_sum))))
-                            # )
-                          )
-                        
-                        
-                      )
+  if(! is.null(with_just_1)) {
+    tmp = log((-1 * (par[1] * with_just_1[[1]] / (par[1]*with_just_1[[1]] + par[2]*with_just_1[[2]] - par[4]*with_just_1[[2]]))) * (exp((-1 * par[1]*with_just_1[[1]]) + (-1 * par[2]* with_just_1[[2]])) - exp(-1*par[4] * with_just_1[[2]])))
+    sum_log_lik = sum_log_lik + sum(tmp)   
+  }
+  
+  
+  if(! is.null(with_just_2)) {
+    tmp = log((-1 * (par[2] * with_just_2[[2]] / (par[2]*with_just_2[[2]] + par[1]*with_just_2[[1]] - par[3]*with_just_2[[1]]))) * (exp((-1 * par[1]*with_just_2[[1]]) + (-1 * par[2]* with_just_2[[2]])) - exp(-1*par[3] * with_just_2[[1]])))
+    sum_log_lik = sum_log_lik + sum(tmp)   
+  }
+  
+  
+  if(! is.null(with_both)) {
+    tmp =  log(
+      1-
+        (
+          ( # P(wt)
+            exp((-1*(par[1] * with_both[[1]])) +
+                  (-1*(par[2] * with_both[[2]])))
+          ) +
+            ( #P(1)
+              # log(
+              -1*(
+                (par[1] * with_both[[1]]) /
+                  (
+                    (par[1] * with_both[[1]]) +
+                      (par[2] * with_both[[2]]) -
+                      (par[4] * with_both[[2]])
                   )
-                  ]
-  sum_log_lik = sum_log_lik + sum(tmp)
+                # )
+              ) *
+                # log(
+                ((exp(  (-1*(par[1] * with_both[[1]])) +
+                          (-1*(par[2] * with_both[[2]])))) -
+                   (exp(-1*(par[4] * with_both[[2]]))))
+              # )
+            ) +
+            ( # P(2)
+              -1* (
+                (par[2] * with_both[[2]]) /
+                  (
+                    (par[2] * with_both[[2]]) +
+                      (par[1] * with_both[[1]]) -
+                      (par[3] * with_both[[1]])
+                  )
+                # )
+              ) *
+                # log(
+                ((exp(  (-1*(par[1] * with_both[[1]])) +
+                          (-1*(par[2] * with_both[[2]])))) -
+                   (exp(-1*(par[3] * with_both[[1]]))))
+              # )
+            )
+          
+          
+        )
+    )
+    
+    sum_log_lik = sum_log_lik + sum(tmp)
+  }
+  
 
 
   # in case it tried all the max at once.
