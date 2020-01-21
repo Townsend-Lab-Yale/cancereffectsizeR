@@ -22,6 +22,7 @@ optimize_gamma_epistasis_full_gene <- function(MAF_input1,
                                                specific_mut_rates2,
                                                variant_freq_1,
                                                variant_freq_2,
+                                               methods = "auto",
                                                full_gene_epistasis_lower_optim,
                                                full_gene_epistasis_upper_optim,
                                                full_gene_epistasis_fnscale) {
@@ -35,8 +36,13 @@ optimize_gamma_epistasis_full_gene <- function(MAF_input1,
   # Leaving out Rtnmin method because it crashes (still unclear why)
 
   # This list consists of all other methods offered by optimx; a couple are much slower than others and should be dropped unless they're good
-  methods = c("L-BFGS-B", "nlminb", "lbfgsb3", "Rcgmin", "Rvmmin",
-              "spg", "bobyqa", "hjkb", "hjn")
+  if(! is(methods, "character")) {
+    stop("parameter methods should be class character (and usually, it should be left default)")
+  }
+  if(methods[1] == "auto") {
+    methods = c("L-BFGS-B", "nlminb", "lbfgsb3", "Rcgmin", "Rvmmin","spg", "bobyqa", "hjkb", "hjn")
+  }
+  
 
   # To test/debug add this option to optimx options: "control = list(trace = 1) "
   par = 1000:1003
@@ -83,6 +89,6 @@ optimize_gamma_epistasis_full_gene <- function(MAF_input1,
   #TODO: explore the best possible optimization algorithm, fnscale, etc.
   opm_output$value <- -opm_output$value # we did a minimization of the negative, so need to take the negative again to find the maximum
   opm_output <- opm_output[order(opm_output$value,decreasing = T),]
-
-  return(opm_output[1,1:4])
+  
+  return(opm_output)
 }
