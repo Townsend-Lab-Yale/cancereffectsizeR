@@ -65,10 +65,7 @@ ces_gene_epistasis = function(cesa = NULL, genes, cores = 1, full_gene_epistasis
 
     selection_results = pbapply::pblapply(X = selection_epistasis_results_list,
                                            FUN = epistasis_gene_level,
-                                           MAF=cesa@annotated.snv.maf,
-                                           trinuc_proportion_matrix=cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix,
                                            cesa=cesa,
-                                           all_tumors = unique(cesa@annotated.snv.maf$Unique_Patient_Identifier),
                                            RefCDS = RefCDS,
                                            cl = cores)
     cesa@selection_results = selection_results
@@ -76,14 +73,14 @@ ces_gene_epistasis = function(cesa = NULL, genes, cores = 1, full_gene_epistasis
 }
 
 epistasis_gene_level = function(genes_to_analyze,
-                                MAF,
-                                trinuc_proportion_matrix,
                                 cesa,
-                                all_tumors,
                                 RefCDS) {
   mutrates_list = cesa@mutrates_list
+  MAF = cesa@annotated.snv.maf
   trinuc_proportion_matrix = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix
   progressions = cesa@progressions
+  all_tumors = unique(cesa@annotated.snv.maf$Unique_Patient_Identifier)
+  
 
 
   get_gene_results_epistasis_bygene <- function(variant_combo_list) {

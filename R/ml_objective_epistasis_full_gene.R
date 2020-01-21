@@ -4,11 +4,10 @@
 #'
 #'
 #' @param par A selection intensity at which to calculate the likelihood
-#' @param MAF_input A data frame that includes columns "Unique_patient_identifier", "Gene_name", and "unique_variant_ID_AA"
-#' @param all_tumors A list of all the tumors we are calculating the likelihood across
-#' @param gene The gene we want to look at
-#' @param variant The variant we want to look at
-#' @param specific_mut_rates A matrix of site and tumor specific mutation rates where the rows correspond to tumors and the columns to variants (produced by mutation_rate_calc)
+#' @param with_just_1
+#' @param with_just_2
+#' @param with_both
+#' @param with_neither
 #'
 #' @return A log likelihood value
 #' @export
