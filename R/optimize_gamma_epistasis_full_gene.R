@@ -76,15 +76,20 @@ optimize_gamma_epistasis_full_gene <- function(MAF_input1,
   
   
   # suppress warnings because user doesn't need to be informed about methods that fail to converge in particular instances
-  opm_output <- suppressWarnings(optimx::opm(par,
-                            fn=cancereffectsizeR::ml_objective_epistasis_full_gene,
-                            method=methods,
-                            lower=1e-3,
-                            upper=1e20, gr = "grfwd",
-                            with_just_1 = with_just_1,
-                            with_just_2 = with_just_2,
-                            with_both = with_both,
-                            with_neither = with_neither))
+  optimx_args = list(gr = "grfwd", lower=1e-3, upper=1e20, method=methods)
+  our_args = 
+  args = c(list(par, fn = cancereffectsizeR::ml_objective_epistasis_full_gene,with_just_1 = with_just_1,
+                with_just_2 = with_just_2, with_both = with_both, with_neither = with_neither), optimx_args)
+  opm_output = do.call(optimx::opm, args = args)
+  # opm_output <- suppressWarnings(optimx::opm(par,
+  #                           fn=cancereffectsizeR::ml_objective_epistasis_full_gene,
+  #                           method=methods,
+  #                           lower=1e-3,
+  #                           upper=1e20, gr = "grfwd",
+  #                           with_just_1 = with_just_1,
+  #                           with_just_2 = with_just_2,
+  #                           with_both = with_both,
+  #                           with_neither = with_neither))
 
   #TODO: explore the best possible optimization algorithm, fnscale, etc.
   opm_output$value <- -opm_output$value # we did a minimization of the negative, so need to take the negative again to find the maximum
