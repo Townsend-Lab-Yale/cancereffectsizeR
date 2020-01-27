@@ -1,17 +1,31 @@
 #' Calculate gene-level selection intensity under an assumption of pairwise gene epistasis
 #' @param cesa CESAnalysis object
-#' @param genes which genes to calculate effect sizes within; defaults to all genes with recurrent mutations in data set
+#' @param genes which genes to calculate effect sizes within
 #' @param cores number of cores to use
-#' @param full_gene_epistasis_lower_optim  optimx parameter
-#' @param full_gene_epistasis_upper_optim optimx parameter
-#' @param full_gene_epistasis_fnscale optimx parameter
+#' @param optimx_args list of optimization parameters to feed into optimx::opm (see optimx docs); if you use this argument,
+#'                    none of the CES default values will be used (opm defaults will be used for parameters you don't provide)
+#' @param  return_all_opm_output whether to include full parameter optimization report with output (default false)
 #' @return CESAnalysis object with selection results added for the chosen analysis
 #' @export
 
 
-ces_gene_epistasis = function(cesa = NULL, genes, cores = 1, full_gene_epistasis_lower_optim = 1e-3, 
-						full_gene_epistasis_upper_optim = 1e9, full_gene_epistasis_fnscale = -1e-16, return_all_opm_output = FALSE)
+ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optimx_args = cancereffectsizeR:::ces_gene_epistasis_opm_args(), return_all_opm_output = FALSE)
 {
+  # Some optimx::opm optimization methods crash for unclear reasons: Rnmin, nmkb, newuoa, Rtnmin
+  # Others should be skipped automatically because they aren't appropriate, but it's
+  # necessary to skip them manually: "subplex", "snewtonm", "snewton", "CG", "BFGS","Nelder-Mead", "nlm", "lbfgs"
+  working_methods = c("L-BFGS-B", "nlminb", "lbfgsb3", "Rcgmin", "Rvmmin","spg", "bobyqa", "hjkb", "hjn")
+  if (is(optimx_args, "list")) {
+      if(is.null(optimx_args[["method"]])) {
+        warning(paste0("You specified custom optimization parameters with optimx_args, but you didn't include a \"method\" argument ",
+                        "(see optimx docs), which means all optimx methods will be used. However, several of these tend to crash this function, ",
+                        "and running many methods will substantially slow runtime. The following methods, while not all useful, are believed ",
+                        "to not crash: ", paste(working_methods, collapse = ", "), "."))
+      } 
+  } else {
+      stop("optimx_args should of type list (typically, leave out this argument to use CES default parameters)")
+  }
+  # check for custom optimx arguments
   # can't combine epistasis analysis with multi-stage yet
 	if (length(cesa@progressions@order) > 1) {
 	  stop("Epistasis analysis is not compatible yet with multi-stage analyses. You'll have to create a new single-stage analysis.")
@@ -19,6 +33,10 @@ ces_gene_epistasis = function(cesa = NULL, genes, cores = 1, full_gene_epistasis
 
   if (length(genes) < 2) {
     stop("Supply at least two genes to analyze.")
+  }
+  
+  if(return_all_opm_output) {
+    message(silver("FYI, you can access full parameter optimization output in [CESAnalysis]@advanced$opm_output"))
   }
   
   # temporarily hard-coded RefCDS data
@@ -31,7 +49,6 @@ ces_gene_epistasis = function(cesa = NULL, genes, cores = 1, full_gene_epistasis
 
 
 	cesa_subset <- cesa@annotated.snv.maf[cesa@annotated.snv.maf$Gene_name %in% genes_to_analyze,]
-
 	cesa_subset$identifier <- cesa_subset$unique_variant_ID_AA
 	cesa_subset$identifier[
 	  which(sapply(strsplit(cesa_subset$identifier,split = " "),
@@ -65,20 +82,23 @@ ces_gene_epistasis = function(cesa = NULL, genes, cores = 1, full_gene_epistasis
     selection_results = pbapply::pblapply(X = selection_epistasis_results_list,
                                            FUN = epistasis_gene_level,
                                            cesa=cesa,
-                                           RefCDS = RefCDS,
+                                           RefCDS = RefCDS, optimx_args = optimx_args,
                                            cl = cores)
     cesa@selection_results = lapply(selection_results, function(x) x[[1]])
     if(return_all_opm_output) {
       opm_output = lapply(selection_results, function(x) x[[3]])
       names(opm_output) = lapply(selection_results, function(x) x[[2]])
-      cesa@advanced[["opm_output"]] = list2env(opm_output)
+      # need to take the rownames (which are the methods use) and put them as a column for conversion to data.table
+      opm_output = lapply(opm_output, function(x) {x$method = rownames(x); return(x)})
+      opm_dt = data.table::rbindlist(opm_output, idcol = "genes")
+      cesa@advanced[["opm_output"]] = opm_dt
     }
     return(cesa)
 }
 
 epistasis_gene_level = function(genes_to_analyze,
                                 cesa,
-                                RefCDS) {
+                                RefCDS, optimx_args) {
   mutrates_list = cesa@mutrates_list
   MAF = cesa@annotated.snv.maf
   trinuc_proportion_matrix = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix
@@ -169,39 +189,50 @@ epistasis_gene_level = function(genes_to_analyze,
     these_selection_results[1:2] <- c(variant1,variant2)
     
     
-    optimization =  cancereffectsizeR::optimize_gamma_epistasis_full_gene(
-      MAF_input1=MAF_input1,
-      MAF_input2=MAF_input2,
-      all_tumors=eligible_tumors,
-      gene1=variant1,
-      gene2=variant2,
-      specific_mut_rates1=these_mutation_rates1$mutation_rate_matrix,
-      specific_mut_rates2=these_mutation_rates2$mutation_rate_matrix,
-      variant_freq_1 = variant_freq_1,
-      variant_freq_2 = variant_freq_2,
-      full_gene_epistasis_lower_optim=full_gene_epistasis_lower_optim,
-      full_gene_epistasis_upper_optim=full_gene_epistasis_upper_optim,
-      full_gene_epistasis_fnscale=full_gene_epistasis_fnscale)
     
+    
+    
+    # calculate tumors with and without recurrent mutations in the two genes
+    # only the tumors containing a recurrent variant factor into the selection analysis
+    ## MAF_input1 and MAF_input2 are already restricted to just eligible tumors
+    tumors_with_variant1_mutated <- unique(MAF_input1[which(MAF_input1$unique_variant_ID_AA %in% names(which(variant_freq_1>1))),"Unique_Patient_Identifier"])
+    tumors_with_variant2_mutated <- unique(MAF_input2[which(MAF_input2$unique_variant_ID_AA %in% names(which(variant_freq_2>1))),"Unique_Patient_Identifier"])
+    tumors_with_both_mutated <- base::intersect(tumors_with_variant1_mutated,tumors_with_variant2_mutated)
+    tumors_with_ONLY_variant1_mutated <- tumors_with_variant1_mutated[which(!tumors_with_variant1_mutated %in% tumors_with_variant2_mutated)]
+    tumors_with_ONLY_variant2_mutated <- tumors_with_variant2_mutated[which(!tumors_with_variant2_mutated %in% tumors_with_variant1_mutated)]
+    tumors_with_neither_mutated <- setdiff(eligible_tumors, c(tumors_with_both_mutated,tumors_with_ONLY_variant1_mutated,tumors_with_ONLY_variant2_mutated))
+    
+    specific_mut_rates1=these_mutation_rates1$mutation_rate_matrix
+    specific_mut_rates2=these_mutation_rates2$mutation_rate_matrix
+    get_summed_mut_rates = function(tumors) {
+      if(length(tumors) == 0) {
+        return(NULL)
+      }
+      rates1 = specific_mut_rates1[tumors, , drop=F]
+      rates2 = specific_mut_rates2[tumors, , drop=F]
+      return(list(rowSums(rates1), rowSums(rates2)))
+    }
+    
+    with_just_1 = get_summed_mut_rates(tumors_with_ONLY_variant1_mutated)
+    with_just_2 = get_summed_mut_rates(tumors_with_ONLY_variant2_mutated)
+    with_both = get_summed_mut_rates(tumors_with_both_mutated)
+    with_neither = get_summed_mut_rates(tumors_with_neither_mutated)
+    
+    par = 1000:1003 # initialized values (rumor has it some methods come up with trivial optimizations when all parameters start the same?)
+    args = c(list(par, fn = cancereffectsizeR::ml_objective_epistasis_full_gene,with_just_1 = with_just_1,
+                  with_just_2 = with_just_2, with_both = with_both, with_neither = with_neither), optimx_args)
+    
+    # suppress warnings because opm complains too much about everything
+    opm_output = suppressWarnings(do.call(optimx::opm, args = args))
+    
+    #TODO: explore the best possible optimization algorithm, fnscale, etc.
+    opm_output$value <- -opm_output$value # we did a minimization of the negative, so need to take the negative again to find the maximum
+    
+    # each row corresponds to the output from one optimization method; sort from best to worst result
+    optimization <- opm_output[order(opm_output$value,decreasing = T),]
     these_selection_results[3:6] = optimization[1,1:4] # take best set of parameters
 
     gene_pair = paste(variant1, variant2, sep=",")
-
-
-    # only the tumors containing a recurrent variant factor into the selection analysis
-    tumors_with_variant1_mutated <- MAF_input1[which(MAF_input1$unique_variant_ID_AA %in% names(which(variant_freq_1>1))),"Unique_Patient_Identifier"]
-    tumors_with_variant2_mutated <- MAF_input2[which(MAF_input2$unique_variant_ID_AA %in% names(which(variant_freq_2>1))),"Unique_Patient_Identifier"]
-
-    tumors_with_both_mutated <- base::intersect(tumors_with_variant1_mutated,tumors_with_variant2_mutated)
-
-    tumors_with_ONLY_variant1_mutated <- tumors_with_variant1_mutated[which(!tumors_with_variant1_mutated %in% tumors_with_variant2_mutated)]
-
-    tumors_with_ONLY_variant2_mutated <- tumors_with_variant2_mutated[which(!tumors_with_variant2_mutated %in% tumors_with_variant1_mutated)]
-
-    # not all tumors with no mutations in the genes, just all that had coverage at all variant sites in both genes and no specific substitutions recurrent in other tumors
-    tumors_with_neither_mutated <- setdiff(eligible_tumors, c(tumors_with_both_mutated,tumors_with_ONLY_variant1_mutated,tumors_with_ONLY_variant2_mutated))
-
-
     these_selection_results$tumors_with_ONLY_variant1_substituted <- tumors_with_ONLY_variant1_mutated
     these_selection_results$tumors_with_ONLY_variant2_substituted <- tumors_with_ONLY_variant2_mutated
     these_selection_results$tumors_with_both_substituted <- tumors_with_both_mutated
@@ -212,90 +243,10 @@ epistasis_gene_level = function(genes_to_analyze,
   return(get_gene_results_epistasis_bygene(genes_to_analyze))
 }
 
+#' Get list of arguments to feed into optimx::opm for parameter optimization during gene-level epistasis
+ces_gene_epistasis_opm_args = function() {
+  # L-BFGS-B is one of the fastest methods and had very good performance in testing
+  return(list(gr = "grfwd", lower=1e-3, upper=1e20, method= "L-BFGS-B"))
+}
 
-
-
-
-
-## currently broken (and will likely be replaced with other functions)
-# top_epistasis = function(cesa, genes_to_analyze) {
-#   MAF$identifier <- MAF$unique_variant_ID_AA
-#   MAF$identifier[
-#     which(sapply(strsplit(MAF$identifier,split = " "),
-#                  function(x) length(x))==1)
-#     ] <- paste(MAF$Gene_name[
-#       which(sapply(strsplit(MAF$identifier,split = " "),
-#                    function(x) length(x))==1)],
-#       MAF$identifier[
-#         which(sapply(strsplit(MAF$identifier,split = " "),
-#                      function(x) length(x))==1)
-#         ],sep=" ")
-
-#   # Sort by top prevalences
-#   ID_prevalence <- table(MAF$identifier)[order(table(MAF$identifier),decreasing = T)]
-
-#   # Find the variants that match the numerical frequencies of the top variants
-#   # (in case there are a few sharing the nth value)
-#   ID_prevalence_top <- ID_prevalence[which(ID_prevalence %in% ID_prevalence[1:epistasis_top_prev_number])]
-#   selection_epistasis_results <- t(utils::combn(names(ID_prevalence_top),2))
-#   selection_epistasis_results <- data.frame(t(selection_epistasis_results),stringsAsFactors=F)
-#   rownames(selection_epistasis_results) <- c("Variant_1","Variant_2")
-#   selection_epistasis_results_list <- as.list(selection_epistasis_results)
-
-#   get_gene_results_epistasis <- function(variant_combo_list) {
-#     variant1 <- variant_combo_list[1]
-#     variant2 <- variant_combo_list[2]
-
-#     variant1_MAFindex <- which(MAF$identifier==variant1)[1]
-#     variant2_MAFindex <- which(MAF$identifier==variant2)[1]
-
-
-#     these_mutation_rates1 <-
-#       cancereffectsizeR::mutation_rate_calc(
-#         this_MAF = MAF[MAF[,"Gene_name"] == MAF[variant1_MAFindex,"Gene_name"] &
-#                          MAF[,ref_column] %in% c("A","T","G","C") &
-#                          MAF[,alt_column] %in% c("A","T","G","C"),],
-#         gene = MAF[variant1_MAFindex,"Gene_name"],
-#         gene_mut_rate = mutrates_list,
-#         trinuc_proportion_matrix = trinuc_proportion_matrix,
-#         gene_trinuc_comp = gene_trinuc_comp,
-#         gene_refcds = RefCDS[[gene]],
-#         tumor_subsets = tumors,subset_col=subset_col)
-
-#     these_mutation_rates2 <-
-#       cancereffectsizeR::mutation_rate_calc(
-#         this_MAF = MAF[MAF[,"Gene_name"] == MAF[variant2_MAFindex,"Gene_name"] &
-#                          MAF[,ref_column] %in% c("A","T","G","C") &
-#                          MAF[,alt_column] %in% c("A","T","G","C"),],
-#         gene = MAF[variant2_MAFindex,"Gene_name"],
-#         gene_mut_rate = mutrates_list,
-#         trinuc_proportion_matrix = trinuc_proportion_matrix,
-#         gene_trinuc_comp = gene_trinuc_comp,
-#         gene_refcds = RefCDS[[gene]],
-#         tumor_subsets = tumors,subset_col=subset_col)
-
-
-
-
-#     these_selection_results <- c(variant1,variant2,NA,NA,NA,NA)
-#     names(these_selection_results) <- c("Variant_1", "Variant_2", "Gamma_1", "Gamma_2",
-#                                         "Gamma_1_2background", "Gamma_2_1background")
-#     these_selection_results[3:6] <- cancereffectsizeR::optimize_gamma_epistasis(
-#       MAF_input1=MAF[MAF[,"Gene_name"] == MAF[variant1_MAFindex,"Gene_name"] &
-#                        MAF[,ref_column] %in% c("A","T","G","C") &
-#                        MAF[,alt_column] %in% c("A","T","G","C"),],
-#       MAF_input2=MAF[MAF[,"Gene_name"] == MAF[variant2_MAFindex,"Gene_name"] &
-#                        MAF[,ref_column] %in% c("A","T","G","C") &
-#                        MAF[,alt_column] %in% c("A","T","G","C"),],
-#       all_tumors=tumors,
-#       gene1=MAF[variant1_MAFindex,"Gene_name"],
-#       gene2=MAF[variant2_MAFindex,"Gene_name"],
-#       variant1= MAF[variant1_MAFindex,"unique_variant_ID_AA"],
-#       variant2= MAF[variant2_MAFindex,"unique_variant_ID_AA"],
-#       specific_mut_rates1=these_mutation_rates1$mutation_rate_matrix,
-#       specific_mut_rates2=these_mutation_rates2$mutation_rate_matrix)
-#     return(these_selection_results)
-#   }
-#   selection_results <- pbapply::pblapply(selection_epistasis_results_list, get_gene_results_epistasis, cl = cores)
-#   return(selection_results)
 # }

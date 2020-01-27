@@ -6,29 +6,16 @@
 \usage{
 ml_objective_epistasis_full_gene(
   par,
-  MAF_input1 = NULL,
-  MAF_input2,
-  all_tumors,
-  gene1,
-  gene2,
-  specific_mut_rates1,
-  specific_mut_rates2,
-  variant_freq_1,
-  variant_freq_2
+  with_just_1,
+  with_just_2,
+  with_both,
+  with_neither
 )
 }
 \arguments{
 \item{par}{A selection intensity at which to calculate the likelihood}
 
-\item{all_tumors}{A list of all the tumors we are calculating the likelihood across}
-
-\item{MAF_input}{A data frame that includes columns "Unique_patient_identifier", "Gene_name", and "unique_variant_ID_AA"}
-
-\item{gene}{The gene we want to look at}
-
-\item{variant}{The variant we want to look at}
-
-\item{specific_mut_rates}{A matrix of site and tumor specific mutation rates where the rows correspond to tumors and the columns to variants (produced by mutation_rate_calc)}
+\item{with_neither}{}
 }
 \value{
 A log likelihood value

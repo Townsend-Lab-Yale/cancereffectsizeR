@@ -56,13 +56,13 @@ test_that("SNV effect size calculation", {
 })
 
 
-
-
 test_that("Gene-level SNV epistasis analysis", {
-  cesa = ces_gene_epistasis(cesa, genes = c("EGFR", "KRAS", "TP53"))
+  cesa = ces_gene_epistasis(cesa, genes = c("EGFR", "KRAS", "TP53"), return_all_opm_output = T)
   results = cesa@selection_results
   results_ak = get_test_data("epistasis_results.rds")
   expect_equal(results, results_ak, tolerance = 1e-7)
+  opm_ak = get_test_data("epistasis_opm.rds")
+  expect_equal(cesa@advanced$opm_output, opm_ak)
 })
 
 

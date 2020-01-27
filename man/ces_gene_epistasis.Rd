@@ -6,25 +6,20 @@
 \usage{
 ces_gene_epistasis(
   cesa = NULL,
-  genes,
+  genes = character(),
   cores = 1,
-  full_gene_epistasis_lower_optim = 0.001,
-  full_gene_epistasis_upper_optim = 1e+09,
-  full_gene_epistasis_fnscale = -1e-16
+  optimx_args = cancereffectsizeR:::ces_gene_epistasis_opm_args()
 )
 }
 \arguments{
 \item{cesa}{CESAnalysis object}
 
-\item{genes}{which genes to calculate effect sizes within; defaults to all genes with recurrent mutations in data set}
+\item{genes}{which genes to calculate effect sizes within}
 
 \item{cores}{number of cores to use}
 
-\item{full_gene_epistasis_lower_optim}{optimx parameter}
-
-\item{full_gene_epistasis_upper_optim}{optimx parameter}
-
-\item{full_gene_epistasis_fnscale}{optimx parameter}
+\item{optimx_args}{list of optimization parameters to feed into optimx::opm (see optimx docs); if you use this argument,
+none of the CES default values will be used (opm defaults will be used for parameters you don't provide)}
 }
 \value{
 CESAnalysis object with selection results added for the chosen analysis

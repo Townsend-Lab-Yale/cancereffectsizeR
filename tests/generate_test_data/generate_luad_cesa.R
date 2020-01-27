@@ -14,8 +14,9 @@ test_genes = c("TTN", "EGFR", "ASXL3", "KRAS", "RYR2", "USH2A", "CSMD3", "TP53",
 luad = ces_snv(luad, genes = test_genes)
 results = selection_results_converter(luad)
 saveRDS(results, "single_stage_snv_results.rds")
-luad = ces_gene_epistasis(luad, genes = c("EGFR", "KRAS", "TP53"))
+luad = ces_gene_epistasis(luad, genes = c("EGFR", "KRAS", "TP53"), return_all_opm_output = T)
 saveRDS(luad@selection_results, "epistasis_results.rds")
+saveRDS(luad@advanced$opm_output, "epistasis_opm.rds")
 
 
 # repeat with smaller data set for dndscv testing
