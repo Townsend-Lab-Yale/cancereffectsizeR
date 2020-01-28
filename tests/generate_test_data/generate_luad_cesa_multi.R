@@ -1,4 +1,4 @@
-setwd(system.file("tests/test_data/", package = "cancereffectsizeR"))
+prev_dir = setwd(system.file("tests/test_data/", package = "cancereffectsizeR"))
 luad = CESAnalysis(genome = "hg19", progression_order = 1:4)
 luad = load_maf(luad, maf = "luad.hg19.maf.txt", sample_col = "sample_id", 
                 tumor_allele_col = "Tumor_Seq_Allele2", progression_col = "fake_stage")
@@ -38,5 +38,4 @@ saveRDS(dndscv_out@mutrates_list, "mutrates_multi.rds")
 anno_out = annotate_gene_maf(dndscv_out)
 saveRDS(anno_out@annotated.snv.maf, "multi_annotated_maf_df.rds")
 
-
-
+setwd(prev_dir)

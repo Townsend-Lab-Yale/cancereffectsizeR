@@ -8,7 +8,8 @@ ces_gene_epistasis(
   cesa = NULL,
   genes = character(),
   cores = 1,
-  optimx_args = cancereffectsizeR:::ces_gene_epistasis_opm_args()
+  optimx_args = cancereffectsizeR:::ces_gene_epistasis_opm_args(),
+  return_all_opm_output = FALSE
 )
 }
 \arguments{
@@ -20,6 +21,8 @@ ces_gene_epistasis(
 
 \item{optimx_args}{list of optimization parameters to feed into optimx::opm (see optimx docs); if you use this argument,
 none of the CES default values will be used (opm defaults will be used for parameters you don't provide)}
+
+\item{return_all_opm_output}{whether to include full parameter optimization report with output (default false)}
 }
 \value{
 CESAnalysis object with selection results added for the chosen analysis

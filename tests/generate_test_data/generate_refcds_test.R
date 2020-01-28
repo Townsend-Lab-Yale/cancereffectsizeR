@@ -1,4 +1,4 @@
-setwd(system.file("tests/test_data/", package = "cancereffectsizeR"))
+prev_dir = setwd(system.file("tests/test_data/", package = "cancereffectsizeR"))
 
 # takes at least several minutes to get all data from Ensembl
 library(biomaRt)
@@ -29,4 +29,5 @@ GenomeInfoDb::seqlevelsStyle(genome) = "NCBI" # script actually does this, anywa
 refcds_and_gr_genes = build_RefCDS(cds_small, genome)
 
 saveRDS(refcds_and_gr_genes, "refcds_hg19_small.rds")
+setwd(prev_dir)
 

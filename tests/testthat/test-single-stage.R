@@ -62,7 +62,7 @@ test_that("Gene-level SNV epistasis analysis", {
   results_ak = get_test_data("epistasis_results.rds")
   expect_equal(results, results_ak, tolerance = 1e-7)
   opm_ak = get_test_data("epistasis_opm.rds")
-  expect_equal(cesa@advanced$opm_output, opm_ak)
+  expect_equal(cesa@advanced$opm_output[,!"xtime"], opm_ak[,!"xtime"]) # runtime will vary
 })
 
 
