@@ -225,7 +225,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     }
   } else {
     # create GRanges for panel sequencing coverage
-    genome_info = GenomeInfoDb::Seqinfo(cesa@genome)
+    genome_info = GenomeInfoDb::seqinfo(cesa@genome)
     if ("data.frame" %in% class(covered_regions)) {
       grange_cols = colnames(covered_regions)[1:3]
       coverage = GenomicRanges::makeGRangesFromDataFrame(covered_regions, seqnames.field = grange_cols[1], start.field = grange_cols[2], end.field = grange_cols[3], 
