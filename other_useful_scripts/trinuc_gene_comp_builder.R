@@ -1,5 +1,5 @@
 # create list of all the trinuc numbers in every gene
-data("RefCDS_TP53splice", package= "cancereffectsizeR")
+data("RefCDS_TP53splice", package = "cancereffectsizeR")
 
 # Load the 92 context-specific SNV mutations, in the order used by deconstructSigs
 data("deconstructSigs_trinuc_string", package = "cancereffectsizeR")

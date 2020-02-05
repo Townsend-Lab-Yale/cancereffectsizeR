@@ -18,7 +18,15 @@
 gene_level_mutation_rates <- function(cesa, covariate_file = NULL, save_all_dndscv_output = FALSE){
   dndscv_input = dndscv_preprocess(cesa = cesa, covariate_file = covariate_file)
   message("Running dNdScv...")
-  dndscv_raw_output = lapply(dndscv_input, function(x) do.call(dndscv::dndscv, x))
+  withCallingHandlers(
+    {
+      dndscv_raw_output = lapply(dndscv_input, function(x) do.call(dndscv::dndscv, x))
+    }, error = function(e) {
+      if (startsWith(conditionMessage(e), "bad 'file' argument"))  {
+        stop("You need to update dNdScv. Try running \"devtools::update_packages(packages = \"dndscv\")\".")
+      }
+    }
+  )
   cesa = dndscv_postprocess(cesa = cesa, dndscv_raw_output = dndscv_raw_output, save_all_dndscv_output = save_all_dndscv_output)
   return(cesa)
 }

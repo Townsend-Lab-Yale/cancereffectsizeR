@@ -68,11 +68,9 @@ setMethod("get_progression_tumors", signature("CESProgressions", "character"),
 )
 
 
-
-
 setClass("CESAnalysis", representation(maf = "data.frame", annotated.snv.maf = "data.frame", trinucleotide_mutation_weights = "list",
           progressions = "CESProgressions", mutrates_list = "list", dndscv_out_list = "list",
-          excluded = "data.frame", selection_results = "list", coverage = "list",
+          excluded = "data.frame", selection_results = "list", gene_epistasis_results = "data.table", coverage = "list",
           genome = "BSgenome", advanced = "list"))
 
 setValidity("CESAnalysis",

@@ -15,7 +15,7 @@ luad = ces_snv(luad, genes = test_genes)
 results = selection_results_converter(luad)
 saveRDS(results, "single_stage_snv_results.rds")
 luad = ces_gene_epistasis(luad, genes = c("EGFR", "KRAS", "TP53"), return_all_opm_output = T)
-saveRDS(luad@selection_results, "epistasis_results.rds")
+saveRDS(luad@gene_epistasis_results, "epistasis_results.rds")
 saveRDS(luad@advanced$opm_output, "epistasis_opm.rds")
 
 

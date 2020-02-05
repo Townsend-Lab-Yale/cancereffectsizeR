@@ -37,7 +37,8 @@ CESAnalysis = function(genome = NULL, progression_order = NULL) {
     progression_order = c("1")
   }
   
-  cesa = new("CESAnalysis", genome = genome, progressions = CESProgressions(order = progression_order))
+  cesa = new("CESAnalysis", genome = genome, progressions = CESProgressions(order = progression_order), 
+             gene_epistasis_results = data.table())
   return(cesa)
 }
 

@@ -12,7 +12,6 @@ ces_snv <- function(cesa = NULL,
                             include_genes_without_recurrent_mutations = F,
                             find_CI=T) 
 {
-  # temporarily hard-coded hg19 RefCDS data
   load(system.file("genomes/hg19/ces_hg19_tp53_splice_refcds_gr_genes.rda", package = "cancereffectsizeR"))
 
   if (! "character" %in% class(genes)) {
@@ -42,18 +41,18 @@ ces_snv <- function(cesa = NULL,
     genes = unique(genes)
     genes_to_analyze <- genes[genes %in% genes_in_dataset]
     missing_genes = genes[! genes %in% genes_in_dataset]
-    invalid_genes = missing_genes[! missing_genes %in% names(RefCDS)]
-    num_invalid = length(invalid_genes)
-    if(num_invalid > 0) {
-      additional_msg = ""
-      if(num_invalid > 50) {
-        invalid_genes = invalid_genes[1:40]
-        additional_msg = paste0(" (and ", num_invalid - 40, " more)")
-      }
-      list_of_invalid = paste(invalid_genes, collapse = ", ")
-      stop(paste0("Note: The following requested genes were not found in reference data for your genome build:\n\t",
-                  list_of_invalid, additional_msg, "\n"))
-    }
+    # invalid_genes = missing_genes[! missing_genes %in% names(RefCDS)]
+    # num_invalid = length(invalid_genes)
+    # if(num_invalid > 0) {
+    #   additional_msg = ""
+    #   if(num_invalid > 50) {
+    #     invalid_genes = invalid_genes[1:40]
+    #     additional_msg = paste0(" (and ", num_invalid - 40, " more)")
+    #   }
+    #   list_of_invalid = paste(invalid_genes, collapse = ", ")
+    #   stop(paste0("Note: The following requested genes were not found in reference data for your genome build:\n\t",
+    #               list_of_invalid, additional_msg, "\n"))
+    # }
     if (length(genes_to_analyze) == 0) {
       stop("None of the requested genes have mutations in the SNV data set.")
     }
@@ -72,16 +71,7 @@ ces_snv <- function(cesa = NULL,
     }
   }
 
-
-
-
-  selection_results <- vector("list",length = length(genes_to_analyze))
-  names(selection_results) <- genes_to_analyze
-  
-  
-
   all_tumors = unique(snv.maf$Unique_Patient_Identifier)
-
   selection_results <- pbapply::pblapply(genes_to_analyze, get_gene_results, cesa = cesa,
                                             all_tumors = all_tumors,find_CI=find_CI, RefCDS = RefCDS, cl = cores)
 
@@ -90,13 +80,11 @@ ces_snv <- function(cesa = NULL,
 }
 
 
-
-
 #' Single-stage SNV effect size analysis (gets called by ces_snv)
 get_gene_results <- function(gene_to_analyze, cesa, all_tumors, find_CI, RefCDS) {
   snv.maf = cesa@annotated.snv.maf
   progressions = cesa@progressions
-  current_gene_maf = snv.maf[snv.maf$Gene_name == gene_to_analyze,]
+  current_gene_maf = snv.maf[Gene_name == gene_to_analyze,]
   these_mutation_rates <-
     cancereffectsizeR::mutation_rate_calc(
       this_MAF = current_gene_maf,

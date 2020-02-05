@@ -36,13 +36,11 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optim
   }
   
   if(return_all_opm_output) {
-    message(silver("FYI, you can access full parameter optimization output in [CESAnalysis]@advanced$opm_output"))
+    message(silver("FYI, you can access full parameter optimization output in [CESAnalysis]@advanced$opm_output."))
   }
   
   # temporarily hard-coded RefCDS data
   load(system.file("genomes/hg19/ces_hg19_tp53_splice_refcds_gr_genes.rda", package = "cancereffectsizeR"))
-
-
 	genes = unique(genes)
 	genes_in_dataset = unique(cesa@annotated.snv.maf$Gene_name)
 	genes_to_analyze = genes[genes %in% genes_in_dataset]
@@ -84,7 +82,7 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optim
                                            cesa=cesa,
                                            RefCDS = RefCDS, optimx_args = optimx_args,
                                            cl = cores)
-    cesa@selection_results = lapply(selection_results, function(x) x[[1]])
+    cesa@gene_epistasis_results = data.table::rbindlist(lapply(selection_results, function(x) x[[1]]))
     if(return_all_opm_output) {
       opm_output = lapply(selection_results, function(x) x[[3]])
       names(opm_output) = lapply(selection_results, function(x) x[[2]])
@@ -174,24 +172,6 @@ epistasis_gene_level = function(genes_to_analyze,
     these_mutation_rates1$mutation_rate_matrix <- as.matrix(these_mutation_rates1$mutation_rate_matrix[,colnames(these_mutation_rates1$mutation_rate_matrix) %in% names(variant_freq_1[variant_freq_1>1])])
     these_mutation_rates2$mutation_rate_matrix <- as.matrix(these_mutation_rates2$mutation_rate_matrix[,colnames(these_mutation_rates2$mutation_rate_matrix) %in% names(variant_freq_2[variant_freq_2>1])])
 
-    these_selection_results <- vector(mode = "list",length = 10)
-    names(these_selection_results) <- c("Variant_1",
-                                        "Variant_2",
-                                        "Gamma_1",
-                                        "Gamma_2",
-                                        "Gamma_1_2background",
-                                        "Gamma_2_1background",
-                                        "tumors_with_ONLY_variant1_substituted",
-                                        "tumors_with_ONLY_variant2_substituted",
-                                        "tumors_with_both_substituted",
-                                        "tumors_with_neither_substituted")
-
-    these_selection_results[1:2] <- c(variant1,variant2)
-    
-    
-    
-    
-    
     # calculate tumors with and without recurrent mutations in the two genes
     # only the tumors containing a recurrent variant factor into the selection analysis
     ## MAF_input1 and MAF_input2 are already restricted to just eligible tumors
@@ -230,14 +210,17 @@ epistasis_gene_level = function(genes_to_analyze,
     
     # each row corresponds to the output from one optimization method; sort from best to worst result
     optimization <- opm_output[order(opm_output$value,decreasing = T),]
-    these_selection_results[3:6] = optimization[1,1:4] # take best set of parameters
+    params = as.numeric(optimization[1,1:4]) # take best set of parameters
 
     gene_pair = paste(variant1, variant2, sep=",")
-    these_selection_results$tumors_with_ONLY_variant1_substituted <- tumors_with_ONLY_variant1_mutated
-    these_selection_results$tumors_with_ONLY_variant2_substituted <- tumors_with_ONLY_variant2_mutated
-    these_selection_results$tumors_with_both_substituted <- tumors_with_both_mutated
-    these_selection_results$tumors_with_neither_substituted <- tumors_with_neither_mutated
-    return(list(these_selection_results, gene_pair, optimization))
+    ces_results = list(gene_1 = variant1, gene_2 = variant2, ces_g1 = params[1], ces_g2 = params[2],
+                ces_g1_after_g2 = params[3], ces_g2_after_g1 = params[4], 
+                tumors_with_recurrent_muts_only_g1 = length(tumors_with_ONLY_variant1_mutated),
+                tumors_with_recurrent_muts_only_g2 = length(tumors_with_ONLY_variant2_mutated),
+                tumors_with_recurrent_muts_in_both = length(tumors_with_both_mutated),
+                tumors_with_recurrent_muts_in_neither = length(tumors_with_neither_mutated))
+    
+    return(list(ces_results, gene_pair, optimization))
   }
 
   return(get_gene_results_epistasis_bygene(genes_to_analyze))
