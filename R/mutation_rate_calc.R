@@ -102,12 +102,5 @@ mutation_rate_calc <- function(this_MAF,
     }
   }
 
-  unsure_genes_vec <- this_MAF$unsure_gene_name
-
-
-
-  return(list(mutation_rate_matrix=mutation_rate_matrix,
-              unsure_genes_vec=unsure_genes_vec,
-              unique_variant_ID_vec = this_MAF$unique_variant_ID))
-
+  return(mutation_rate_matrix)
 }

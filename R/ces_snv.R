@@ -41,6 +41,7 @@ ces_snv <- function(cesa = NULL,
     genes = unique(genes)
     genes_to_analyze <- genes[genes %in% genes_in_dataset]
     missing_genes = genes[! genes %in% genes_in_dataset]
+    ### These checks will come back soon
     # invalid_genes = missing_genes[! missing_genes %in% names(RefCDS)]
     # num_invalid = length(invalid_genes)
     # if(num_invalid > 0) {
@@ -72,111 +73,110 @@ ces_snv <- function(cesa = NULL,
   }
 
   all_tumors = unique(snv.maf$Unique_Patient_Identifier)
-  selection_results <- pbapply::pblapply(genes_to_analyze, get_gene_results, cesa = cesa,
-                                            all_tumors = all_tumors,find_CI=find_CI, RefCDS = RefCDS, cl = cores)
-
+  selection_results <- rbindlist(pbapply::pblapply(genes_to_analyze, get_gene_results, cesa = cesa,
+                                            all_tumors = all_tumors,find_CI=find_CI, RefCDS = RefCDS, cl = cores))
   cesa@selection_results = selection_results
   return(cesa)
 }
 
 
 #' Single-stage SNV effect size analysis (gets called by ces_snv)
-get_gene_results <- function(gene_to_analyze, cesa, all_tumors, find_CI, RefCDS) {
+get_gene_results <- function(gene, cesa, all_tumors, find_CI, RefCDS) {
   snv.maf = cesa@annotated.snv.maf
   progressions = cesa@progressions
-  current_gene_maf = snv.maf[Gene_name == gene_to_analyze,]
+  current_gene_maf = snv.maf[Gene_name == gene]
   these_mutation_rates <-
     cancereffectsizeR::mutation_rate_calc(
       this_MAF = current_gene_maf,
-      gene = gene_to_analyze,
+      gene = gene,
       gene_mut_rate = cesa@mutrates_list,
       trinuc_proportion_matrix = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix,
-      gene_refcds = RefCDS[[gene_to_analyze]],
+      gene_refcds = RefCDS[[gene]],
       all_tumors = all_tumors,
       progressions = progressions)
 
-
-  # begin populating these_selection_results, which are selection results for all variants in given gene
-  ## rows = all variants found in mutatioin rate matrix columns
-  these_selection_results <- dplyr::tibble(variant = colnames(these_mutation_rates$mutation_rate_matrix),
-                                           selection_intensity = vector(mode = "list",
-                                                                        length = ncol(these_mutation_rates$mutation_rate_matrix)),
-                                           unsure_gene_name=NA,
-                                           unique_variant_ID=NA,
-                                           loglikelihood=NA)
-
-  if(length(progressions@order) == 1 & find_CI) {
-    # add columns corresponding to .999% and .95% confidence intervals
-    these_selection_results <- cbind(these_selection_results,
-                                     dplyr::tibble(ci_low_999=rep(NA,ncol(these_mutation_rates$mutation_rate_matrix)),ci_high_999=NA,ci_low_95=NA,ci_high_95=NA))
-
-  }
-
-  num_selection_results = nrow(these_selection_results)
-  for(j in 1:num_selection_results){
-    variant = colnames(these_mutation_rates$mutation_rate_matrix)[j]
-    current_locus = GenomicRanges::makeGRangesFromDataFrame(snv.maf[snv.maf$unique_variant_ID_AA == variant, ][1,], seqnames.field = "Chromosome",
-                                             start.field = "Start_Position", end.field = "Start_Position")
+  variants = colnames(these_mutation_rates)
+  process_variant = function(variant) {
+    # use the first matching record as the locus 
+    # (will assume that for amino acid variants, coverage at one site in codon implies coverage for whole codon)
+    variant_maf = current_gene_maf[unique_variant_ID_AA == variant] # no need to subset further because already dealing with a gene-specific MAF
+    current_locus = GenomicRanges::makeGRangesFromDataFrame(variant_maf[1,], 
+                                                            seqnames.field = "Chromosome",
+                                                            start.field = "Start_Position", 
+                                                            end.field = "Start_Position")
     eligible_tumors = cancereffectsizeR:::get_tumors_with_coverage(coverage = cesa@coverage, locus = current_locus)
-    
-    # toss out tumors that do not have any SNVs to analyze
+    # edge case: toss out tumors that do not have any SNVs to analyze
+    # e.g., a tumor only has indels so it's not in snv.maf, but it gets returned by get_tumors_with_coverage
     eligible_tumors = eligible_tumors[eligible_tumors %in% all_tumors]
     
+    # given the tumors with coverage, their mutation rates at the variant sites, and their mutation status,
+    # find most likely selection intensities (by stage if applicable)
     optimization_output <- cancereffectsizeR::optimize_gamma(
       MAF_input = current_gene_maf,
       eligible_tumors = eligible_tumors,
       progressions = progressions,
-      gene=gene_to_analyze,
+      gene=gene,
       variant=variant,
-      specific_mut_rates=these_mutation_rates$mutation_rate_matrix)
-
-    these_selection_results[j,c("selection_intensity")][[1]] <-
-      list(optimization_output$par)
-
-
-    names(these_selection_results[j,c("selection_intensity")][[1]][[1]]) <- names(progressions@order)
-
-    these_selection_results[j,"loglikelihood"] <- optimization_output$value
-
-
+      specific_mut_rates=these_mutation_rates)
+    
+    selection_intensity = optimization_output$par
+    loglikelihood = rep(optimization_output$value, length(selection_intensity))
+    unsure_gene_name = rep(variant_maf$unsure_gene_name[1], length(selection_intensity))
+    progression_name = names(progressions@order)
+    
+    # Note: since DNV/TNV have been removed, should not get any duplicate entries here
+    tumors_with_pos_mutated <- variant_maf$Unique_Patient_Identifier
+    stages = get_progression_name(progressions, tumors_with_pos_mutated)
+    # This gives number of tumors of each stage with the variant (in proper progression order)
+    tumors_with_variant = as.numeric(table(factor(stages, levels = progressions@order)))
+    
+    # Also get number of eligible tumors per stage (this excludes tumors in data set with 0 SNVs)
+    tumor_stages = get_progression_name(progressions, eligible_tumors)
+    tumors_with_coverage = as.numeric(table(factor(tumor_stages, levels = progressions@order)))
+    
+    dndscv_q = sapply(cesa@dndscv_out_list, function(x) x$sel_cv[x$sel_cv$gene_name == gene, "qallsubs_cv"])
+    
+    variant_id = variant
+    if (variant_maf$is_coding[1] == TRUE) {
+      variant_id = paste(gene, variant_id)
+    }
+    variant_id = rep(variant_id,  length(selection_intensity))
+    gene = rep(gene, length(selection_intensity))
+    
+    variant_output = data.table(variant = variant_id, selection_intensity, unsure_gene_name, loglikelihood, gene, 
+                         progression = progression_name, tumors_with_variant, tumors_with_coverage, dndscv_q)
+    
+    # CHECK ON SINGLE STAGE
     if(length(progressions@order) == 1 & find_CI){
       # find CI function
       CI_results <- cancereffectsizeR::CI_finder(gamma_max = optimization_output$par,
                                                  MAF_input= current_gene_maf,
                                                  eligible_tumors = eligible_tumors,
                                                  progressions = progressions,
-                                                 gene=gene_to_analyze,
-                                                 variant=colnames(these_mutation_rates$mutation_rate_matrix)[j],
-                                                 specific_mut_rates=these_mutation_rates$mutation_rate_matrix)
-
-
-      these_selection_results[j,"ci_low_999"] <- CI_results$lower_CI
-      these_selection_results[j,"ci_high_999"] <- CI_results$upper_CI
-
+                                                 gene=gene,
+                                                 variant=variant,
+                                                 specific_mut_rates=these_mutation_rates)
+      
+      
+      variant_output$ci_low_999 <- CI_results$lower_CI
+      variant_output$ci_high_999 <- CI_results$upper_CI
+      
       CI_results <- cancereffectsizeR::CI_finder(gamma_max = optimization_output$par,
                                                  MAF_input= current_gene_maf,
                                                  eligible_tumors = eligible_tumors,
                                                  progressions = progressions,
-                                                 gene=gene_to_analyze,
-                                                 variant=colnames(these_mutation_rates$mutation_rate_matrix)[j],
-                                                 specific_mut_rates=these_mutation_rates$mutation_rate_matrix,
+                                                 gene=gene,
+                                                 variant=variant,
+                                                 specific_mut_rates=these_mutation_rates,
                                                  log_units_down = 1.92 # 95% confidence interval
-                                                 )
-
-
-      these_selection_results[j,"ci_low_95"] <- CI_results$lower_CI
-      these_selection_results[j,"ci_high_95"] <- CI_results$upper_CI
-
-
+      )
+      variant_output$ci_low_95 <- CI_results$lower_CI
+      variant_output$ci_high_95 <- CI_results$upper_CI
+      
     }
-
-
+    return(variant_output)
   }
-
-  these_selection_results[,"unsure_gene_name"] <- these_mutation_rates$unsure_genes_vec
-  these_selection_results[,"unique_variant_ID"] <- these_mutation_rates$unique_variant_ID
-
-  return(list(gene_name=gene_to_analyze, selection_results=these_selection_results))
+  return(data.table::rbindlist(lapply(variants, process_variant)))
 }
 
 

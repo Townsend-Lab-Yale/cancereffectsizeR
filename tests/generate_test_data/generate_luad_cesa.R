@@ -12,8 +12,7 @@ test_genes = c("TTN", "EGFR", "ASXL3", "KRAS", "RYR2", "USH2A", "CSMD3", "TP53",
                "ZFHX4", "FAT3", "CNTNAP5", "PCDH15", "NEB", "RYR3", "DMD", "KATNAL1", 
                "OR13H1", "KSR1")
 luad = ces_snv(luad, genes = test_genes)
-results = selection_results_converter(luad)
-saveRDS(results, "single_stage_snv_results.rds")
+saveRDS(luad@selection_results, "single_stage_snv_results.rds")
 luad = ces_gene_epistasis(luad, genes = c("EGFR", "KRAS", "TP53"), return_all_opm_output = T)
 saveRDS(luad@gene_epistasis_results, "epistasis_results.rds")
 saveRDS(luad@advanced$opm_output, "epistasis_opm.rds")

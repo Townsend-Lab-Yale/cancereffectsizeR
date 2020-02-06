@@ -6,8 +6,7 @@ luad = calc_baseline_mutation_rates(luad, covariate_file = "lung_pca")
 saveRDS(luad, "cesa_for_snv_multi.rds")
 test_genes = c("TTN", "KRAS", "RYR2", "EGFR", "TP53", "ASXL3","IFITM2")
 luad = ces_snv(luad, genes = test_genes)
-results = selection_results_converter(luad)
-saveRDS(results, "multi_stage_snv_results.rds")
+saveRDS(luad@selection_results, "multi_stage_snv_results.rds")
 
 
 # repeat with subset of data for dndscv testing 

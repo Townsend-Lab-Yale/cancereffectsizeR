@@ -169,8 +169,8 @@ epistasis_gene_level = function(genes_to_analyze,
     # we only consider selection at sites that are recurrently
     # substituted.
 
-    these_mutation_rates1$mutation_rate_matrix <- as.matrix(these_mutation_rates1$mutation_rate_matrix[,colnames(these_mutation_rates1$mutation_rate_matrix) %in% names(variant_freq_1[variant_freq_1>1])])
-    these_mutation_rates2$mutation_rate_matrix <- as.matrix(these_mutation_rates2$mutation_rate_matrix[,colnames(these_mutation_rates2$mutation_rate_matrix) %in% names(variant_freq_2[variant_freq_2>1])])
+    these_mutation_rates1 <- as.matrix(these_mutation_rates1[,colnames(these_mutation_rates1) %in% names(variant_freq_1[variant_freq_1>1])])
+    these_mutation_rates2 <- as.matrix(these_mutation_rates2[,colnames(these_mutation_rates2) %in% names(variant_freq_2[variant_freq_2>1])])
 
     # calculate tumors with and without recurrent mutations in the two genes
     # only the tumors containing a recurrent variant factor into the selection analysis
@@ -182,8 +182,8 @@ epistasis_gene_level = function(genes_to_analyze,
     tumors_with_ONLY_variant2_mutated <- tumors_with_variant2_mutated[which(!tumors_with_variant2_mutated %in% tumors_with_variant1_mutated)]
     tumors_with_neither_mutated <- setdiff(eligible_tumors, c(tumors_with_both_mutated,tumors_with_ONLY_variant1_mutated,tumors_with_ONLY_variant2_mutated))
     
-    specific_mut_rates1=these_mutation_rates1$mutation_rate_matrix
-    specific_mut_rates2=these_mutation_rates2$mutation_rate_matrix
+    specific_mut_rates1=these_mutation_rates1
+    specific_mut_rates2=these_mutation_rates2
     get_summed_mut_rates = function(tumors) {
       if(length(tumors) == 0) {
         return(NULL)

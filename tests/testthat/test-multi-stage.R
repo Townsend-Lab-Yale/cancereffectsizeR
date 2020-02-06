@@ -30,7 +30,7 @@ test_that("multi-stage SNV effect size calculation", {
   cesa = get_test_data("cesa_for_snv_multi.rds")
   test_genes = c("TTN", "KRAS", "RYR2", "EGFR", "TP53", "ASXL3","IFITM2")
   cesa = ces_snv(cesa, genes = test_genes)
-  results = selection_results_converter(cesa)
+  results = cesa@selection_results
   results_ak = get_test_data("multi_stage_snv_results.rds")
-  expect_equal(results[,order(names(results))], results_ak[,order(names(results_ak))], tolerance = 1e-5)
+  expect_equal(results_ak, results, tolerance = 1e-5)
 })
