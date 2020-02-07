@@ -40,17 +40,14 @@ Input data should be MAF format (either a text file or a data frame with the sam
   # and annotating MAF with gene and trinucleotide information.
   analysis = calc_baseline_mutation_rates(analysis)
   
-  # Calculate selection intensities and produce human-readable results
-  # If you have multiple computing cores and the parallel library, you can parallelize the operation
+  # Calculate selection intensities
+  # If you have multiple computing cores and the parallel library (and are not using Windows),
+  # you can parallelize the operation by providing however many cores you have available.
   analysis = ces_snv(analysis, cores = 4)
 
-  # Generate a relatively small data frame that lists all recurrent SNVs of high selection intensity
-  results = selection_results_converter(analysis)
-  
+  # Create a filtered table of selection intensities for all recurrently mutated sites
+  results = analysis@selection_results[tumors_with_variant > 1]
 ```
   
-
-
-
-
+Note: Currently, targeted sequencing data support is only in conjunction with WES data, as the WES data must be used to estimate gene-level mutation rates.
 
