@@ -13,7 +13,8 @@ load_maf(
   ref_col = "Reference_Allele",
   tumor_allele_col = "guess",
   covered_regions = "exome",
-  progression_col = NULL
+  progression_col = NULL,
+  chain_file = NULL
 )
 }
 \arguments{
@@ -35,6 +36,8 @@ load_maf(
 \item{covered_regions}{for panel sequencing data, a BED file of covered interals, or a data frame with first three columns chr, start (1-based), end (inclusive)}
 
 \item{progression_col}{column in MAF with subset data (e.g., column contains data like "Primary" and "Metastatic" in each row)}
+
+\item{chain_file}{a chain file (text format, name ends in .chain) to convert MAF records to the genome build used in the CESAnalysis}
 }
 \value{
 CESAnalysis object with somewhat cleaned-up MAF data added

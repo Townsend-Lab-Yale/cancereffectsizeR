@@ -8,8 +8,7 @@
 #' @param artifact_signatures names of signatures that should be treated as experimental (e.g., sequencing) artifacts  
 #'                            (these have weights calculated but are then normalized out when calculating true trinuc proportions)
 #' @param tri.counts.method exome/genome trinucleotide content normalization argument to pass to deconstructSigs (see its docs)
-
-
+#' @export
 run_deconstructSigs = function(tumor_trinuc_counts, signatures_df, signatures_to_remove, 
                                artifact_signatures, tri.counts.method) {
 

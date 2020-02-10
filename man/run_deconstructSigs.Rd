@@ -8,7 +8,8 @@ run_deconstructSigs(
   tumor_trinuc_counts,
   signatures_df,
   signatures_to_remove,
-  artifact_signatures
+  artifact_signatures,
+  tri.counts.method
 )
 }
 \arguments{
@@ -18,9 +19,11 @@ run_deconstructSigs(
 
 \item{signatures_to_remove}{names of signatures in signatures_df to keep out of deconstructSigs and assign zero weights}
 
-\item{artifact_signatures}{names of signatures that should be treated as sequencing artifacts  (these have weights calculated
-but are then normalized out when calculating true trinuc proportions)}
+\item{artifact_signatures}{names of signatures that should be treated as experimental (e.g., sequencing) artifacts
+(these have weights calculated but are then normalized out when calculating true trinuc proportions)}
+
+\item{tri.counts.method}{exome/genome trinucleotide content normalization argument to pass to deconstructSigs (see its docs)}
 }
 \description{
-gets called internally by trinucleotide_mutation_weights function (don't call directly without a good reason)
+This function gets called internally during tumor-specific trinucleotide mutation rate calculation.
 }

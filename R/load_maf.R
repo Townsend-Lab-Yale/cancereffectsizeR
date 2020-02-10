@@ -11,11 +11,23 @@
 #'                         "Tumor_Seq_Allele1", and "Tumor_Seq_Allele2" and determines from there)
 #' @param covered_regions for panel sequencing data, a BED file of covered interals, or a data frame with first three columns chr, start (1-based), end (inclusive)
 #' @param progression_col column in MAF with subset data (e.g., column contains data like "Primary" and "Metastatic" in each row)
+#' @param chain_file a chain file (text format, name ends in .chain) to convert MAF records to the genome build used in the CESAnalysis
 #' @return CESAnalysis object with somewhat cleaned-up MAF data added 
 #' @export
 load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode", chr_col = "Chromosome", start_col = "Start_Position",
                     ref_col = "Reference_Allele", tumor_allele_col = "guess", covered_regions = "exome",
-                    progression_col = NULL) {
+                    progression_col = NULL, chain_file = NULL) {
+
+  need_to_liftOver = FALSE
+  if(! is.null(chain_file)) {
+    need_to_liftOver = TRUE
+    if(!is(chain_file, "character") || length(chain_file) != 1 || !(endsWith(chain_file, ".chain"))) {
+      stop("Argument chain_file expected to be the filename/path of a text file ending in .chain")
+    }
+    if(! file.exists(chain_file)) {
+      stop("The chain_file specified could not be found; check the file path.")
+    }
+  }
   if (is.null(cesa)) {
     stop("You need to supply a CESAnalysis object to load the MAF data into.")
   }
@@ -179,6 +191,9 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     sample_progressions = rep("1", nrow(maf)) # if analysis ignores tumor progression levels, all tumors get assigned level 1
   }
   
+  # add samples CESProgressions object (don't actually assign to the CESAnalysis until the end of this function)
+  progressions_update = cancereffectsizeR:::add_samples_to_CESProgressions(progressions = cesa@progressions, samples = maf[[sample_col]], sample_progressions = sample_progressions)
+  
   
   # select only the necessary columns and give column names that will stay consistent
   maf = maf[,c(..sample_col, ..chr_col, ..start_col, ..ref_col, ..tumor_allele_col)]
@@ -189,8 +204,6 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   tumor_allele_col = "Tumor_Allele"
   colnames(maf) =  c(sample_col, chr_col, start_col, ref_col, tumor_allele_col)
   
-  
-  
   # if CESAnalysis already contains samples, make sure the new data has no repeat samples
   if (nrow(cesa@maf) > 0) {
     previous_samples = cesa@maf$Unique_Patient_Identifier
@@ -200,21 +213,51 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
                   "If this is intentional, merge the data manually before loading it."))
     }
   }
-  
+
   # create MAF df to hold excluded records
   excluded = data.table()
   
-  
-  # add samples CESProgressions object (don't actually assign to the CESAnalysis until the end of this function)
-  progressions_update = cancereffectsizeR:::add_samples_to_CESProgressions(progressions = cesa@progressions, samples = maf[[sample_col]], sample_progressions = sample_progressions)
-  
-  
   # strip chr prefixes from chr column, if present ("NCBI-style")
-  maf$Chromosome = gsub('^chr', '', maf$Chromosome)
-  
+  maf[, Chromosome := sub('^chr', '', Chromosome)]
   # temporary handling of MT/M
   maf[Chromosome == "M", Chromosome:="MT"]  # changing M to MT
   
+  # handle liftOver to the assembly of the CESAnalysis
+  if(need_to_liftOver) {
+    chain = rtracklayer::import.chain(chain_file)
+    names(chain) = sub("^chr", "", names(chain))
+    # avoid potential NCBI/UCSC incompatibilities between the user's data and the chain file
+    if(any(maf$Chromosome == "MT")) {
+      if(! "MT" %in% names(chain) && "M" %in% names(chain)) {
+        names(chain) = sub("^M$", "MT", names(chain))
+        message(silver("Assuming that chrM in the chain file refers to mitochondrial DNA (aka chrMT)...."))
+        mesage(silver("If you get reference mismatches on this contig, you may need a different chain file."))
+      }
+    }
+    maf[, rn := 1:.N] # using row number as an identifier to know which intervals fail liftover
+    for_liftover = maf[,.(Chromosome, Start_Position, rn)] 
+    gr = GenomicRanges::makeGRangesFromDataFrame(df = for_liftover, seqnames.field = "Chromosome", 
+                                                 start.field = "Start_Position", end.field = "Start_Position",
+                                                  keep.extra.columns = T)
+    lifted_over = unlist(rtracklayer::liftOver(gr, chain))
+    GenomeInfoDb::seqlevelsStyle(lifted_over) = "NCBI"
+    lifted_over = as.data.table(lifted_over)
+    
+    merged_maf = data.table::merge.data.table(maf, lifted_over, by = "rn")
+    merged_maf[, Chromosome := seqnames]
+    merged_maf[, Start_Position := start]
+
+    failed_liftover = maf[! rn %in% merged_maf$rn,]
+    num_failing = nrow(failed_liftover)
+    if (num_failing > 0) {
+      failed_liftover$Exclusion_Reason = "failed liftOver"
+      excluded = rbind(excluded, failed_liftover[, -"rn"])
+      message(silver(paste0("Note: ", num_failing, " records failed liftOver, so they will be set aside.")))
+    }
+    maf = merged_maf[, .(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele, Tumor_Allele)]
+  }
+  
+
   # get coverage info for new samples and incorporate with any existing info
   coverage_update = cesa@coverage
   if (class(covered_regions) == "character" && covered_regions[1] == "exome" && length(covered_regions) == 1) {
@@ -275,10 +318,6 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   
   
   
-  
-  
-  
-  
   # check for potential DNP/TNPs and separate them from data set
   # this is done before any other filtering to ensure catching as many of them as possible
   message("Searching for possible multinucleotide variants...")
@@ -325,12 +364,21 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   num.nonmatching = nrow(reference.mismatch.maf)
   maf = maf[Reference_Allele == reference_alleles | Reference_Allele == '-',] # filter out ref mismatches
   
+  # if significant numbers of SNVs don't match reference, don't run
+  mismatch_snv = reference.mismatch.maf[Reference_Allele %in% c("A", "C", "T", "G"), .N]
+  total_snv = maf[Reference_Allele %in% c("A", "C", "T", "G"), .N]
+  bad_snv_frac = mismatch_snv / total_snv
+  bad_snv_percent = round(bad_snv_frac * 100, 1)
+  if(bad_snv_frac > .05) {
+    stop(paste0(bad_snv_percent, "% of SNV records do not match the given reference genome. Remove or fix these records before running."))
+  }
+  
   if (num.nonmatching > 0) {
     reference.mismatch.maf$Exclusion_Reason = "reference_mismatch"
     excluded = rbind(excluded, reference.mismatch.maf)
     percent = round((num.nonmatching / num.prefilter) * 100, 1)
-    message(paste0("Note: ", num.nonmatching, " mutation records out of ", num.prefilter, " (", percent, "%) ",
-                   "have reference alleles that do not actually match the reference genome."))
+    message(paste0("Note: ", num.nonmatching, " mutation records out of ", num.prefilter, " (", percent, "%, including ", bad_snv_percent,
+                    "% of SNV records) have reference alleles that do not actually match the reference genome."))
     message("These records will be excluded from effect size analysis.")
   } else {
     message("Reference alleles look good.")
