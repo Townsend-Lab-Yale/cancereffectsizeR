@@ -73,6 +73,16 @@ setClass("CESAnalysis", representation(maf = "data.frame", annotated.snv.maf = "
           excluded = "data.frame", selection_results = "data.table", gene_epistasis_results = "data.table", coverage = "list",
           genome = "BSgenome", advanced = "list"))
 
+setMethod("show", "CESAnalysis", 
+  function(object) {
+    cat(paste0("CESAnalysis of hg__ somatic variant records from ",
+                  length(object@maf[,unique(Unique_Patient_Identifier)]), " samples:\n"))
+    if(nrow(object@maf) != 0) {
+      print(object@maf, topn = 2)
+    }
+  }
+)
+
 setValidity("CESAnalysis",
     function(object) {
      # add validation later

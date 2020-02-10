@@ -1,16 +1,17 @@
 #' deconstructSigs wrapper
 #'
-#' gets called internally by trinucleotide_mutation_weights function (don't call directly without a good reason)
-#'
+#' This function gets called internally during tumor-specific trinucleotide mutation rate calculation.
 #' 
 #' @param tumor_trinuc_counts one-row data.frame of trinuc variants counts (in deconstructSigs order) for one tumor
 #' @param signatures_df data.frame of signatures (see COSMIC v3 signatures included with package for format)
 #' @param signatures_to_remove names of signatures in signatures_df to keep out of deconstructSigs and assign zero weights
-#' @param artifact_signatures names of signatures that should be treated as sequencing artifacts  (these have weights calculated
-#'                            but are then normalized out when calculating true trinuc proportions)
+#' @param artifact_signatures names of signatures that should be treated as experimental (e.g., sequencing) artifacts  
+#'                            (these have weights calculated but are then normalized out when calculating true trinuc proportions)
+#' @param tri.counts.method exome/genome trinucleotide content normalization argument to pass to deconstructSigs (see its docs)
 
 
-run_deconstructSigs = function(tumor_trinuc_counts, signatures_df, signatures_to_remove, artifact_signatures) {
+run_deconstructSigs = function(tumor_trinuc_counts, signatures_df, signatures_to_remove, 
+                               artifact_signatures, tri.counts.method) {
 
   # toss all the "signatures_to_remove" from the complete set of signatures
   signatures_to_include = signatures_df[! rownames(signatures_df) %in% signatures_to_remove,]
@@ -18,7 +19,7 @@ run_deconstructSigs = function(tumor_trinuc_counts, signatures_df, signatures_to
   signatures_output <- deconstructSigs::whichSignatures(tumor.ref = tumor_trinuc_counts,
                                                         signatures.ref = signatures_to_include,
                                                         contexts.needed = TRUE,
-                                                        tri.counts.method = 'exome2genome')
+                                                        tri.counts.method = tri.counts.method)
 
 
   # add columns for any removed signatures into output matrix (with zero values)
@@ -53,25 +54,23 @@ run_deconstructSigs = function(tumor_trinuc_counts, signatures_df, signatures_to
       signatures_output$product <- as.matrix(signatures_output$weights) %*% as.matrix(signatures_df)
     }
   }
+  
   # if all signatures have been zeroed (very unlikely, but would probably be due to artifact accounting),
   # then nothing to do but return the output and let user or package deal with it downstream
   if (all(signatures_output$product == 0)) {
     trinuc_prop = signatures_output$product
-    return(list(signatures_output, trinuc_prop))
+  } else {
+    # Some trinuc SNVs have substitution rates of zero under certain signatures.
+    # In rare cases, a tumor's fitted combination of signatures can therefore also
+    # have a substitution rate of zero for particular trinucleotide contexts.
+    # If this happens, we add the lowest nonzero rate to all rates and renormalize.
+    trinuc_prop = signatures_output$product/sum(signatures_output$product)
+    if(any(trinuc_prop == 0)) {
+      lowest_nonzero_rate = min(trinuc_prop[trinuc_prop != 0])
+      trinuc_prop = trinuc_prop + lowest_nonzero_rate
+      # renormalize so rates sum to 1
+      trinuc_prop = trinuc_prop / sum(trinuc_prop)
+    }
   }
-
-  # Some trinuc SNVs have substitution rates of zero under certain signatures.
-  # In rare cases, a tumor's fitted combination of signatures can therefore also
-  # have a substitution rate of zero for particular trinucleotide contexts.
-  # If this happens, we add the lowest nonzero rate to all rates and renormalize.
-  trinuc_prop = signatures_output$product/sum(signatures_output$product)
-
-  if(any(trinuc_prop == 0)) {
-    lowest_nonzero_rate = min(trinuc_prop[trinuc_prop != 0])
-    trinuc_prop = trinuc_prop + lowest_nonzero_rate
-    # renormalize so rates sum to 1
-    trinuc_prop = trinuc_prop / sum(trinuc_prop)
-  }
-
-  return(list(signatures_output, trinuc_prop))
+  return(list(deconstructSigs_output = signatures_output, trinuc_prop = trinuc_prop))
 }

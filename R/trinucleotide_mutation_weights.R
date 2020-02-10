@@ -222,8 +222,8 @@ trinucleotide_mutation_weights <- function(cesa,
         current_sigs_to_remove = union(current_sigs_to_remove, cosmic_v3_modest_hm_sigs)
       }
     }
-    ds = cancereffectsizeR:::run_deconstructSigs(tumor_trinuc_counts = tumor_trinuc_counts, signatures_df = signatures,
-                                                 signatures_to_remove = current_sigs_to_remove, artifact_signatures = artifact_signatures)
+    ds = cancereffectsizeR::run_deconstructSigs(tumor_trinuc_counts = tumor_trinuc_counts, tri.counts.method = "exome2genome",
+                                                signatures_df = signatures, signatures_to_remove = current_sigs_to_remove, artifact_signatures = artifact_signatures)
     return(list(list(signatures_output = ds[[1]], substitution_count = num_variants), ds[[2]]))
   }
 
@@ -280,8 +280,8 @@ trinucleotide_mutation_weights <- function(cesa,
         mean_calc_artifact_signatures = unique(c(artifact_signatures, cosmic_v3_modest_hm_sigs, cosmic_v3_highly_hm_sigs))
       }
       
-      mean_ds <- cancereffectsizeR:::run_deconstructSigs(tumor_trinuc_counts = mean_trinuc_prop, signatures_df = signatures, 
-                                                        signatures_to_remove = signatures_to_remove,
+      mean_ds <- cancereffectsizeR::run_deconstructSigs(tumor_trinuc_counts = mean_trinuc_prop, signatures_df = signatures, 
+                                                        signatures_to_remove = signatures_to_remove, tri.counts.method = "exome2genome",
                                                         artifact_signatures = mean_calc_artifact_signatures)[[1]] # just need signatures_output element
       mean_weights <- mean_ds$weights
       # this should never happen
