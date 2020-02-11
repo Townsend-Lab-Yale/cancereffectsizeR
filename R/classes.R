@@ -71,17 +71,17 @@ setMethod("get_progression_tumors", signature("CESProgressions", "character"),
 setClass("CESAnalysis", representation(maf = "data.frame", annotated.snv.maf = "data.frame", trinucleotide_mutation_weights = "list",
           progressions = "CESProgressions", mutrates_list = "list", dndscv_out_list = "list",
           excluded = "data.frame", selection_results = "data.table", gene_epistasis_results = "data.table", coverage = "list",
-          genome = "BSgenome", advanced = "list"))
+          genome = "BSgenome", advanced = "list", genome_data_dir = "character", status = "list"))
 
 setMethod("show", "CESAnalysis", 
   function(object) {
-    cat(paste0("CESAnalysis of hg__ somatic variant records from ",
-                  length(object@maf[,unique(Unique_Patient_Identifier)]), " samples:\n"))
-    if(nrow(object@maf) != 0) {
-      print(object@maf, topn = 2)
+    steps = names(object@status)
+    for (step in steps) {
+      cat(paste0(step,": ", object@status[[step]], "\n"))
     }
   }
 )
+
 
 setValidity("CESAnalysis",
     function(object) {

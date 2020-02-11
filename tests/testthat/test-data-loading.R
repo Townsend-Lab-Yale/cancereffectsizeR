@@ -27,7 +27,7 @@ test_that("Progression stage handling", {
   
   # If CESAnalysis is stage-specific, calls to load_maf must include progression_col
   bad_maf = get_test_file("bad_stages_1.maf.txt")
-  multistage = CESAnalysis(progression_order = 1:2, genome = BSgenome.Hsapiens.UCSC.hg19::Hsapiens)
+  multistage = CESAnalysis(progression_order = 1:2, genome = "hg19")
   expect_error(load_maf(multistage, maf = bad_maf), "You must supply a progression_col")
   
   # Ensuring that MAF data triggers error if progressions are out of bounds

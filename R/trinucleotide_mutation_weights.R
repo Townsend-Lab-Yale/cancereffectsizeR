@@ -55,12 +55,17 @@ trinucleotide_mutation_weights <- function(cesa,
   }
   bad_sig_choice_msg = "signature_choice should be \"cosmic_v3\", \"cosmic_v2\", or a properly-formatted signatures data.frame"
   running_cosmic_v3 = FALSE # gets set to true when user chooses
+  signature_set_name = "custom" # gets set appropriately below for cosmic v2/v3
   if("character" %in% class(signature_choice)) {
+    if(! GenomeInfoDb::providerVersion(cesa@genome) %in% c("hg19", "hg38")) {
+      stop("When not running with the human genome (hg38 or hg19), signatures must be supplied as a data frame (see docs).")
+    }
     signature_choice = tolower(signature_choice)
     if (length(signature_choice) != 1 || ! signature_choice %in% c("cosmic_v3", "cosmic_v2")) {
       stop(bad_sig_choice_msg)
     }
     if(signature_choice == "cosmic_v3") {
+      signature_set_name = "COSMIC v3"
       running_cosmic_v3 = TRUE
       signatures = signatures_cosmic_May2019
       message("Analyzing tumors for COSMIC v3 (May 2019) SNV mutational signatures....")
@@ -81,6 +86,7 @@ trinucleotide_mutation_weights <- function(cesa,
         message(crayon::black(removed_sigs))
       }
     } else if (signature_choice == "cosmic_v2") {
+      signature_set_name = "COSMIC v2"
       data("signatures.cosmic", package = "deconstructSigs")
       signatures = signatures.cosmic
     } else {
@@ -353,10 +359,13 @@ trinucleotide_mutation_weights <- function(cesa,
     message(paste("Note: Some tumor(s) have only recurrent mutations (mutations also appearing in other samples) ",
                   "so a baseline mutation rate cannot be calculated. MAF data for these have been excluded from further analysis."))
   }
-  cesa@trinucleotide_mutation_weights = list(tumors_with_a_mutation_rate=tumors_with_a_mutation_rate,
-                                             trinuc_proportion_matrix=trinuc_proportion_matrix,
-                                             signatures_output_list=signatures_output_list,
-                                             algorithm_choice=algorithm_choice)
+
+  # Update CESAnalysis status and add in trinuc results
+  cesa@status[["trinucleotide mutation rates"]] = paste0("Calculated using ", signature_set_name, " signatures (\"",
+                                                         algorithm_choice, "\" method for tumors with <50 mutations)")
+  cesa@status[["gene mutation rates"]] = "uncalculated (run gene_level_mutation_rates)"
+  cesa@trinucleotide_mutation_weights = list(trinuc_proportion_matrix=trinuc_proportion_matrix,
+                                             signatures_output_list=signatures_output_list)
   return(cesa)
 }
 
