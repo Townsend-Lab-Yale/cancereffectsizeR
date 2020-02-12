@@ -12,8 +12,7 @@ ces_snv <- function(cesa = NULL,
                             include_genes_without_recurrent_mutations = F,
                             find_CI=T) 
 {
-  load(system.file("genomes/hg19/ces_hg19_tp53_splice_refcds_gr_genes.rda", package = "cancereffectsizeR"))
-
+  RefCDS = get_genome_data(cesa, "RefCDS")
   if (! "character" %in% class(genes)) {
     stop("Expected argument \"genes\" to take a character vector.")
   }
@@ -34,26 +33,26 @@ ces_snv <- function(cesa = NULL,
       recurrent_variants = names(tmp[tmp > 1])
       has_recurrent = snv.maf$unique_variant_ID %in% recurrent_variants
       genes_to_analyze = unique(snv.maf$Gene_name[has_recurrent])
+      message(paste(length(genes_in_dataset) - length(genes_to_analyze), "genes in the data set have no recurrent SNV mutations."))
+      message(paste("Calculating selection intensity for recurrent SNV mutations across", length(genes_to_analyze), "genes."))
     }
-    message(paste(length(genes_in_dataset) - length(genes_to_analyze), "genes in the data set have no recurrent SNV mutations."))
-    message(paste("Calculating selection intensity for recurrent SNV mutations across", length(genes_to_analyze), "genes."))
   } else{
     genes = unique(genes)
     genes_to_analyze <- genes[genes %in% genes_in_dataset]
     missing_genes = genes[! genes %in% genes_in_dataset]
-    ### These checks will come back soon
-    # invalid_genes = missing_genes[! missing_genes %in% names(RefCDS)]
-    # num_invalid = length(invalid_genes)
-    # if(num_invalid > 0) {
-    #   additional_msg = ""
-    #   if(num_invalid > 50) {
-    #     invalid_genes = invalid_genes[1:40]
-    #     additional_msg = paste0(" (and ", num_invalid - 40, " more)")
-    #   }
-    #   list_of_invalid = paste(invalid_genes, collapse = ", ")
-    #   stop(paste0("Note: The following requested genes were not found in reference data for your genome build:\n\t",
-    #               list_of_invalid, additional_msg, "\n"))
-    # }
+    gene_names = get_genome_data(cesa, "gene_names")
+    invalid_genes = missing_genes[! missing_genes %in% gene_names]
+    num_invalid = length(invalid_genes)
+    if(num_invalid > 0) {
+      additional_msg = ""
+      if(num_invalid > 50) {
+        invalid_genes = invalid_genes[1:40]
+        additional_msg = paste0(" (and ", num_invalid - 40, " more)")
+      }
+      list_of_invalid = paste(invalid_genes, collapse = ", ")
+      stop(paste0("Note: The following requested genes were not found in reference data for your genome build:\n\t",
+                  list_of_invalid, additional_msg, "\n"))
+    }
     if (length(genes_to_analyze) == 0) {
       stop("None of the requested genes have mutations in the SNV data set.")
     }

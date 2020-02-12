@@ -7,9 +7,8 @@
 
 
 annotate_gene_maf <- function(cesa) {
-	
-  # temporarily hard-coded hg19 RefCDS data
-  load(system.file("genomes/hg19/ces_hg19_tp53_splice_refcds_gr_genes.rda", package = "cancereffectsizeR"))
+  RefCDS = get_genome_data(cesa, "RefCDS")
+  gr_genes = get_genome_data(cesa, "gr_genes")
   MAF = cesa@maf
 	bases = c("A", "C", "T", "G")
 

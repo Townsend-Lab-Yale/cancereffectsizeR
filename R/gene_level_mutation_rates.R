@@ -16,11 +16,19 @@
 #' @export
 # don't change this function at all without being sure you're not messing up tests
 gene_level_mutation_rates <- function(cesa, covariate_file = NULL, save_all_dndscv_output = FALSE){
+  RefCDS = get_genome_data(cesa, "RefCDS")
+  # hacky way of forcing an object of name gr_genes into the dndscv::dndscv function environment,
+  # since the object is required by dndscv but there's no argument to supply your own copy of it
+  our_env = new.env(parent = environment(dndscv::dndscv))
+  our_env$gr_genes = get_genome_data(cesa, "gr_genes")
+  f = dndscv::dndscv
+  environment(f) = our_env
   dndscv_input = dndscv_preprocess(cesa = cesa, covariate_file = covariate_file)
+  dndscv_input = lapply(dndscv_input, function(x) { x[["refdb"]] = RefCDS; return(x)})
   message("Running dNdScv...")
   withCallingHandlers(
     {
-      dndscv_raw_output = lapply(dndscv_input, function(x) do.call(dndscv::dndscv, x))
+      dndscv_raw_output = lapply(dndscv_input, function(x) do.call(f, x))
     }, error = function(e) {
       if (startsWith(conditionMessage(e), "bad 'file' argument"))  {
         stop("You need to update dNdScv. Try running \"devtools::update_packages(packages = \"dndscv\")\".")
@@ -49,24 +57,22 @@ dndscv_preprocess = function(cesa, covariate_file = NULL) {
   # for now, records from TGS samples are kept out; in the future, we could check out dNdScv's panel sequencing features
   exome_samples = cesa@coverage$samples_by_coverage[["exome"]]
   dndscv_maf = cesa@maf[cesa@maf$Unique_Patient_Identifier %in% exome_samples,]
-  
 
-  # temporarily hard-coding an hg19 RefCDS/gr_genes file (gets loaded by dNdScv)
-  tmp_refdb = system.file("genomes/hg19/ces_hg19_tp53_splice_refcds_gr_genes.rda", package = "cancereffectsizeR")
-  
   dndscv_input = list()
   for (stage in cesa@progressions@order) {
     current_subset_tumors = get_progression_tumors(cesa@progressions, stage)
     mutations = dndscv_maf[dndscv_maf$Unique_Patient_Identifier %in% current_subset_tumors,]
-    dndscv_input[[stage]] = list(mutations = mutations, gene_list = genes_in_pca, cv = cv, refdb = tmp_refdb)
+    dndscv_input[[stage]] = list(mutations = mutations, gene_list = genes_in_pca, cv = cv)
   }
   return(dndscv_input)
 }
 
 #' Internal function to calculate gene-level mutation rates from dNdScv output
 dndscv_postprocess = function(cesa, dndscv_raw_output, save_all_dndscv_output = FALSE) {
-  # temporarily hard-coded hg19 RefCDS data
-  load(system.file("genomes/hg19/ces_hg19_tp53_splice_refcds_gr_genes.rda", package = "cancereffectsizeR"))
+  # load RefCDS data if it's not already in the environment
+  if(! "RefCDS" %in% ls()) {
+    RefCDS = get_genome_data(cesa, "RefCDS")
+  }
   dndscv_out_list = dndscv_raw_output
   names(dndscv_out_list) = names(cesa@progressions@order)
    # Get RefCDS data on number of synonymous mutations possible at each site

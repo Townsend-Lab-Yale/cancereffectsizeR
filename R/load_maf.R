@@ -406,8 +406,12 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   message(paste0("Loaded ", num.good.snv, " SNVs from ", num.samples, " samples into CESAnalysis."))
   
   cesa@coverage = coverage_update
-  cesa@progressions = progressions_update 
+  cesa@progressions = progressions_update
+  
   cesa@maf = rbind(cesa@maf, maf)
+  nt = c("A", "T", "C", "G")
+  snv_stats = cesa@maf[Reference_Allele %in% nt & Tumor_Allele %in% nt, .(num_samples = length(unique(Unique_Patient_Identifier)), num_snv = .N)]
+  cesa@status[["MAF data"]] = paste0(snv_stats$num_snv, " SNV records from ", snv_stats$num_samples, " samples")
   if (nrow(excluded) > 0) {
     colnames(excluded) = c(colnames(maf), "Exclusion_Reason")
     cesa@excluded = rbind(cesa@excluded, excluded) 

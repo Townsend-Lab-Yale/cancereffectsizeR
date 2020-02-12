@@ -159,10 +159,10 @@ trinucleotide_mutation_weights <- function(cesa,
   }
 
 
-  # this will move elsewhere once support for arbitrary genome build is finished
-  data("tri.counts.genome", package = "deconstructSigs")
-  data("tri.counts.exome", package = "deconstructSigs")
-
+  tri.counts.genome = get_genome_data(cesa, "tri.counts.genome")
+  tri.counts.exome = get_genome_data(cesa, "tri.counts.exome")
+  norm_df = tri.counts.genome / tri.counts.exome # see deconstructSigs docs; equivalent method to exome2genome
+  
   withCallingHandlers(
   {
     trinuc_breakdown_per_tumor = deconstructSigs::mut.to.sigs.input(mut.ref = ds_maf,
@@ -228,7 +228,7 @@ trinucleotide_mutation_weights <- function(cesa,
         current_sigs_to_remove = union(current_sigs_to_remove, cosmic_v3_modest_hm_sigs)
       }
     }
-    ds = cancereffectsizeR::run_deconstructSigs(tumor_trinuc_counts = tumor_trinuc_counts, tri.counts.method = "exome2genome",
+    ds = cancereffectsizeR::run_deconstructSigs(tumor_trinuc_counts = tumor_trinuc_counts, tri.counts.method = norm_df,
                                                 signatures_df = signatures, signatures_to_remove = current_sigs_to_remove, artifact_signatures = artifact_signatures)
     return(list(list(signatures_output = ds[[1]], substitution_count = num_variants), ds[[2]]))
   }
@@ -287,7 +287,7 @@ trinucleotide_mutation_weights <- function(cesa,
       }
       
       mean_ds <- cancereffectsizeR::run_deconstructSigs(tumor_trinuc_counts = mean_trinuc_prop, signatures_df = signatures, 
-                                                        signatures_to_remove = signatures_to_remove, tri.counts.method = "exome2genome",
+                                                        signatures_to_remove = signatures_to_remove, tri.counts.method = norm_df,
                                                         artifact_signatures = mean_calc_artifact_signatures)[[1]] # just need signatures_output element
       mean_weights <- mean_ds$weights
       # this should never happen

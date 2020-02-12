@@ -24,22 +24,21 @@ test_that("dNdScv and MAF annotation", {
 # will use SNV-analysis-ready object for remaining tests
 cesa = get_test_data("cesa_for_snv.rds")
 
-## Temporarily out of service
-# test_that("Handle missing or invalid gene choice in SNV analysis", {
-#   # Error when any requested gene is not in RefCDS data
-#   expect_error(ces_snv(cesa, genes = c("KRAS", "TP53", "notagene")),
-#                "requested genes were not found")
-#   
-#   # AC006486.1 is not in the data set; error when no genes requested are in the data set
-#   expect_error(ces_snv(cesa, genes = c("AC006486.1")),
-#                "None of the requested genes have mutations")
-#   
-#   # Expect a message when one or more of the genes requested isn't in data set
-#   # This call quits early after receiving the message to save time
-#   expect_match(tryCatch({ces_snv(cesa, genes = c("AC006486.1", "TP53"))}, 
-#                         message = function(m) {m$message}),
-#                "The following requested genes have no mutations")
-# })
+test_that("Handle missing or invalid gene choice in SNV analysis", {
+  # Error when any requested gene is not in RefCDS data
+  expect_error(ces_snv(cesa, genes = c("KRAS", "TP53", "notagene")),
+               "requested genes were not found")
+
+  # AC006486.1 is not in the data set; error when no genes requested are in the data set
+  expect_error(ces_snv(cesa, genes = c("AC006486.1")),
+               "None of the requested genes have mutations")
+
+  # Expect a message when one or more of the genes requested isn't in data set
+  # This call quits early after receiving the message to save time
+  expect_match(tryCatch({ces_snv(cesa, genes = c("AC006486.1", "TP53"))},
+                        message = function(m) {m$message}),
+               "The following requested genes have no mutations")
+})
 
 
 # genes to plug into ces_snv; some with high-effect-size SNVs, others random

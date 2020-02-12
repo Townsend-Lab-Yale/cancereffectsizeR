@@ -39,8 +39,7 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optim
     message(silver("FYI, you can access full parameter optimization output in [CESAnalysis]@advanced$opm_output."))
   }
   
-  # temporarily hard-coded RefCDS data
-  load(system.file("genomes/hg19/ces_hg19_tp53_splice_refcds_gr_genes.rda", package = "cancereffectsizeR"))
+  RefCDS = get_genome_data(cesa, "RefCDS")
 	genes = unique(genes)
 	genes_in_dataset = unique(cesa@annotated.snv.maf$Gene_name)
 	genes_to_analyze = genes[genes %in% genes_in_dataset]
