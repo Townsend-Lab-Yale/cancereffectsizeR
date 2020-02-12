@@ -127,11 +127,11 @@ get_gene_results <- function(gene, cesa, all_tumors, find_CI, RefCDS) {
     tumors_with_pos_mutated <- variant_maf$Unique_Patient_Identifier
     stages = get_progression_name(progressions, tumors_with_pos_mutated)
     # This gives number of tumors of each stage with the variant (in proper progression order)
-    tumors_with_variant = as.numeric(table(factor(stages, levels = progressions@order)))
+    tumors_with_variant = as.numeric(table(factor(stages, levels = names(progressions@order))))
     
     # Also get number of eligible tumors per stage (this excludes tumors in data set with 0 SNVs)
     tumor_stages = get_progression_name(progressions, eligible_tumors)
-    tumors_with_coverage = as.numeric(table(factor(tumor_stages, levels = progressions@order)))
+    tumors_with_coverage = as.numeric(table(factor(tumor_stages, levels = names(progressions@order))))
     
     dndscv_q = sapply(cesa@dndscv_out_list, function(x) x$sel_cv[x$sel_cv$gene_name == gene, "qallsubs_cv"])
     
@@ -145,7 +145,6 @@ get_gene_results <- function(gene, cesa, all_tumors, find_CI, RefCDS) {
     variant_output = data.table(variant = variant_id, selection_intensity, unsure_gene_name, loglikelihood, gene, 
                          progression = progression_name, tumors_with_variant, tumors_with_coverage, dndscv_q)
     
-    # CHECK ON SINGLE STAGE
     if(length(progressions@order) == 1 & find_CI){
       # find CI function
       CI_results <- cancereffectsizeR::CI_finder(gamma_max = optimization_output$par,
