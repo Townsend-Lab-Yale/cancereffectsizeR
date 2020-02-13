@@ -9,6 +9,7 @@
 annotate_gene_maf <- function(cesa) {
   RefCDS = get_genome_data(cesa, "RefCDS")
   gr_genes = get_genome_data(cesa, "gr_genes")
+  
   MAF = cesa@maf
 	bases = c("A", "C", "T", "G")
 
@@ -18,59 +19,28 @@ annotate_gene_maf <- function(cesa) {
 	dndscv_out_list = cesa@dndscv_out_list
 	MAF$Gene_name <- NA
 	MAF$unsure_gene_name <- F
-
 	MAF_ranges <- GenomicRanges::GRanges(seqnames = MAF$Chromosome, ranges = IRanges::IRanges(start=MAF$Start_Position,end = MAF$Start_Position))
-
-
-	# first, find overlaps
-
-	# load RefCDS data and extract what is needed for annotations
-	# this loads both the RefCDS object and gr_genes, used for annotating SNV loci with gene name
-  	list_extract <- function(x){
-        return(list(gene_name=x$gene_name,
-                    strand = x$strand,
-                    intervals_cds = x$intervals_cds,
-                    seq_cds=x$seq_cds,
-                    seq_cds1up=x$seq_cds1up,
-                    seq_cds1down=x$seq_cds1down))
-  	}
-  	RefCDS = as.array(lapply(RefCDS, list_extract))
-  	names(RefCDS) = sapply(RefCDS, function(x) x$gene_name)
-
 	gene_name_overlaps <- GenomicRanges::findOverlaps(query = MAF_ranges,subject = gr_genes, type="any", select="all")
 
 	# duplicate any substitutions that matched two genes
 	overlaps <- as.matrix(gene_name_overlaps)
-
 	matched_ol <- which(1:nrow(MAF) %in% overlaps[,1])
 	unmatched_ol <- setdiff(1:nrow(MAF), matched_ol)
-
 	MAF_matched <- MAF[matched_ol,]
-
 	MAF_ranges <- GenomicRanges::GRanges(seqnames = MAF_matched$Chromosome, ranges = IRanges::IRanges(start=MAF_matched$Start_Position,end = MAF_matched$Start_Position))
-
 	gene_name_overlaps <- as.matrix(GenomicRanges::findOverlaps(query = MAF_ranges,subject = gr_genes, type="any", select="all"))
-
 	MAF_matched <- MAF_matched[gene_name_overlaps[,1],] #expand the multi-matches
 	MAF_matched$Gene_name <- gr_genes$names[gene_name_overlaps[,2]]# assign the multi-matches
-
-
 	MAF_unmatched <- MAF[unmatched_ol,]
 
 
-
-	# MAF_expanded <- MAF[overlaps[,1],] #this gets rid of unmatched subs, though...
-
 	# search out the unmatched remainder
-
 	MAF_ranges <- GenomicRanges::GRanges(seqnames = MAF_unmatched$Chromosome, ranges = IRanges::IRanges(start=MAF_unmatched$Start_Position,end = MAF_unmatched$Start_Position))
-
 	gene_name_matches <- GenomicRanges::nearest(x = MAF_ranges, subject = gr_genes,select=c("all"))
 
 
 	# take care of single hits
 	single_choice <- as.numeric(names(table(S4Vectors::queryHits(gene_name_matches)))[which(table(S4Vectors::queryHits(gene_name_matches))==1)])
-
 	MAF_unmatched$Gene_name[single_choice] <- gr_genes$names[S4Vectors::subjectHits(gene_name_matches)[which(S4Vectors::queryHits(gene_name_matches) %in% single_choice)]]
 
 
@@ -78,8 +48,6 @@ annotate_gene_maf <- function(cesa) {
 	multi_choice <- as.numeric(names(table(S4Vectors::queryHits(gene_name_matches)))[which(table(S4Vectors::queryHits(gene_name_matches))>1)])
 	all_possible_names <- gr_genes$names[S4Vectors::subjectHits(gene_name_matches)]
 	query_spots <- S4Vectors::queryHits(gene_name_matches)
-
-
 
 
 	for(i in 1:length(multi_choice)){
@@ -102,29 +70,23 @@ annotate_gene_maf <- function(cesa) {
 
 	MAF_unmatched$unsure_gene_name <- T
 	MAF <- rbind(MAF_matched,MAF_unmatched)
-
-
 	MAF <- MAF[which(MAF$Gene_name %in% dndscv_gene_names),]
 
-	dndscvout_annotref <- NULL
-	for(this_subset in 1:length(dndscv_out_list)){
-	  dndscvout_annotref <- rbind(dndscvout_annotref,dndscv_out_list[[this_subset]]$annotmuts)
-	}
-
-	dndscvout_annotref <- dndscvout_annotref[which(dndscvout_annotref$ref %in% c("A","T","G","C") & dndscvout_annotref$mut %in% c("A","T","C","G")),]
-
+	# get mutation annotations from dNdScv and subset to SNVs
+	dndscvout_annotref <- rbindlist(lapply(dndscv_out_list, function(x) x$annotmuts))
+	dndscvout_annotref <- dndscvout_annotref[ref %in% bases & mut %in% bases]
 
 	# assign strand data
-	strand_data <- sapply(RefCDS, function(x) x$strand)
-	names(strand_data) <- names(RefCDS)
-	strand_data[which(strand_data==-1)] <- "-"
-	strand_data[which(strand_data==1)] <- "+"
-
-	MAF$strand <- strand_data[MAF$Gene_name]
+	strand_data = rbindlist(lapply(RefCDS, function(x) return(list(Gene_name = x$gene_name, strand = x$strand))))
+	strand_data[, strand := as.character(strand)]
+	strand_data[strand == "-1", strand := "-"]
+	strand_data[strand == "1", strand := "+"]
+	MAF[, strand := strand_data[.SD, strand, on = .(Gene_name)]]
+	
 
 	MAF$triseq <- as.character(
-	  BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens,
-	                   paste("chr",MAF$Chromosome,sep=""),
+	  BSgenome::getSeq(cesa@genome,
+	                   MAF$Chromosome,
 	                   strand=MAF$strand,
 	                   start=MAF$Start_Position-1,
 	                   end=MAF$Start_Position+1))
@@ -183,11 +145,9 @@ annotate_gene_maf <- function(cesa) {
 	MAF$codon_pos <- (MAF$nuc_position %% 3)
 	MAF$codon_pos[which(MAF$codon_pos==0)] <- 3
 
-
 	MAF$amino_acid_context <- as.character(
-	  BSgenome::getSeq(BSgenome.Hsapiens.UCSC.hg19::Hsapiens, paste(
-	    "chr",MAF$Chromosome,sep=""),
-	    strand=MAF$strand, start=MAF$Start_Position-3, end=MAF$Start_Position+3))
+	  BSgenome::getSeq(cesa@genome, MAF$Chromosome, strand=MAF$strand, 
+	                   start=MAF$Start_Position-3, end=MAF$Start_Position+3))
 
 	MAF$amino_acid_context[which(MAF$codon_pos==1)] <-
 	  substr(MAF$amino_acid_context[which(MAF$codon_pos==1)],3,7)
@@ -198,12 +158,13 @@ annotate_gene_maf <- function(cesa) {
 	MAF$amino_acid_context[which(MAF$codon_pos==3)] <-
 	  substr(MAF$amino_acid_context[which(MAF$codon_pos==3)],1,5)
 
-	MAF$next_to_splice <- F
-	for(i in 1:nrow(MAF)){
-	  if(any(abs(MAF$Start_Position[i] - RefCDS[[MAF$Gene_name[i]]]$intervals_cds) <= 3)){
-	    MAF$next_to_splice[i] <- T
-	  }
-	}
+	# get CDS intervals for every gene; potential splice sites are all the start/end positions of these
+	splice_sites = rbindlist(lapply(RefCDS, function(x) return(list(Gene_name = x$gene_name, pos = x$intervals_cds))))
+	comb = merge.data.table(MAF[,.(Gene_name, Start_Position)], splice_sites)
+	comb[, diff:= abs(Start_Position - pos)]
+	comb = comb[, any(diff <= 3), by = .(Gene_name, Start_Position)]
+	MAF[, next_to_splice := comb[.SD, V1, on = .(Gene_name, Start_Position)]]
+
 
 	MAF$unique_variant_ID_AA = character(nrow(MAF))
 
@@ -224,10 +185,8 @@ annotate_gene_maf <- function(cesa) {
 	MAF$coding_variant_AA_mut <- as.character(AA_translations_unique[MAF$coding_variant_AA_mut,"AA_short"])
 
 
-  	# drop annotmuts info since it's already been used here
-  	for(this_subset in 1:length(cesa@dndscv_out_list)){
-	  cesa@dndscv_out_list[[this_subset]]$annotmuts = NULL
-	}
+	# drop annotmuts info since it's already been used here (and it takes up a lot of memory)
+	lapply(cesa@dndscv_out_list, function(x) x$annotmuts = NULL)
 
 	cesa@annotated.snv.maf = MAF
 	return(cesa)

@@ -41,8 +41,10 @@ CESAnalysis = function(genome = NULL, progression_order = NULL) {
   if(length(progression_order) == 1) {
     status[["progressions"]] = NULL
   }
+  advanced = list("version" = packageVersion("cancereffectsizeR"))
   cesa = new("CESAnalysis", status = status, genome = genome, progressions = CESProgressions(order = progression_order), 
-             gene_epistasis_results = data.table(), selection_results = data.table(), genome_data_dir = genome_dir)
+             gene_epistasis_results = data.table(), selection_results = data.table(), genome_data_dir = genome_dir,
+             advanced = advanced)
   return(cesa)
 }
 

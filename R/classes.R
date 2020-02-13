@@ -79,6 +79,7 @@ setMethod("show", "CESAnalysis",
     for (step in steps) {
       cat(paste0(step,": ", object@status[[step]], "\n"))
     }
+    cat(paste0("[Created in cancereffectsizeR, version ", object@advanced$version, ".]"))
   }
 )
 
