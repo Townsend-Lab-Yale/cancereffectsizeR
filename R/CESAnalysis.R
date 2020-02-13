@@ -16,12 +16,13 @@ CESAnalysis = function(genome = NULL, progression_order = NULL) {
     stop("Unrecognized genome. Run list_genomes() to see available genomes.")
   }
   
-  genome_path = paste0(genome_dir, "/genome.rds")
+  genome_path = paste0(genome_dir, "/genome_package_name.rds")
   if(! file.exists(genome_path)) {
     stop(paste0("Something is wrong with the genome data installation.\n",
                 "Expected to find a reference genome at ", genome_path, "."))
   }
-  genome = readRDS(genome_path)
+  genome_package = readRDS(genome_path)
+  genome = BSgenome::getBSgenome(genome_package)
   GenomeInfoDb::seqlevelsStyle(genome) = "NCBI"
   message(crayon::black(paste0("Okay, this CES analysis will use the ", 
                                tolower(BSgenome::commonName(genome)), " genome (", BSgenome::releaseName(genome), ").")))
