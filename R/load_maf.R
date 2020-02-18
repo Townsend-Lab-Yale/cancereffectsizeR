@@ -244,7 +244,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     lifted_over = as.data.table(lifted_over)
     
     merged_maf = data.table::merge.data.table(maf, lifted_over, by = "rn")
-    merged_maf[, Chromosome := seqnames]
+    merged_maf[, Chromosome := as.character(seqnames)] # seqnames comes back as factor!
     merged_maf[, Start_Position := start]
 
     failed_liftover = maf[! rn %in% merged_maf$rn,]

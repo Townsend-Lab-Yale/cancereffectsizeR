@@ -4,73 +4,40 @@
 #'
 #' @param cesa CESAnalysis object
 #' @export
-
-
 annotate_gene_maf <- function(cesa) {
   RefCDS = get_genome_data(cesa, "RefCDS")
   gr_genes = get_genome_data(cesa, "gr_genes")
   
   MAF = cesa@maf
 	bases = c("A", "C", "T", "G")
-
+  
 	# subset to SNVs
 	MAF = MAF[MAF$Reference_Allele %in% bases & MAF$Tumor_Allele %in% bases,]
 	dndscv_gene_names = names(cesa@mutrates_list[[1]])
 	dndscv_out_list = cesa@dndscv_out_list
-	MAF$Gene_name <- NA
-	MAF$unsure_gene_name <- F
-	MAF_ranges <- GenomicRanges::GRanges(seqnames = MAF$Chromosome, ranges = IRanges::IRanges(start=MAF$Start_Position,end = MAF$Start_Position))
-	gene_name_overlaps <- GenomicRanges::findOverlaps(query = MAF_ranges,subject = gr_genes, type="any", select="all")
 
-	# duplicate any substitutions that matched two genes
-	overlaps <- as.matrix(gene_name_overlaps)
-	matched_ol <- which(1:nrow(MAF) %in% overlaps[,1])
-	unmatched_ol <- setdiff(1:nrow(MAF), matched_ol)
-	MAF_matched <- MAF[matched_ol,]
-	MAF_ranges <- GenomicRanges::GRanges(seqnames = MAF_matched$Chromosome, ranges = IRanges::IRanges(start=MAF_matched$Start_Position,end = MAF_matched$Start_Position))
-	gene_name_overlaps <- as.matrix(GenomicRanges::findOverlaps(query = MAF_ranges,subject = gr_genes, type="any", select="all"))
-	MAF_matched <- MAF_matched[gene_name_overlaps[,1],] #expand the multi-matches
-	MAF_matched$Gene_name <- gr_genes$names[gene_name_overlaps[,2]]# assign the multi-matches
-	MAF_unmatched <- MAF[unmatched_ol,]
-
-
-	# search out the unmatched remainder
-	MAF_ranges <- GenomicRanges::GRanges(seqnames = MAF_unmatched$Chromosome, ranges = IRanges::IRanges(start=MAF_unmatched$Start_Position,end = MAF_unmatched$Start_Position))
-	gene_name_matches <- GenomicRanges::nearest(x = MAF_ranges, subject = gr_genes,select=c("all"))
-
-
-	# take care of single hits
-	single_choice <- as.numeric(names(table(S4Vectors::queryHits(gene_name_matches)))[which(table(S4Vectors::queryHits(gene_name_matches))==1)])
-	MAF_unmatched$Gene_name[single_choice] <- gr_genes$names[S4Vectors::subjectHits(gene_name_matches)[which(S4Vectors::queryHits(gene_name_matches) %in% single_choice)]]
-
-
-	# Then, assign rest to the closest gene
-	multi_choice <- as.numeric(names(table(S4Vectors::queryHits(gene_name_matches)))[which(table(S4Vectors::queryHits(gene_name_matches))>1)])
-	all_possible_names <- gr_genes$names[S4Vectors::subjectHits(gene_name_matches)]
-	query_spots <- S4Vectors::queryHits(gene_name_matches)
-
-
-	for(i in 1:length(multi_choice)){
-		# first, assign if the nearest happened to be within the GenomicRanges::findOverlaps() and applicable to one gene
-		if(length(which(S4Vectors::queryHits(gene_name_matches) == multi_choice[i])) == 1){
-
-			MAF_unmatched[multi_choice[i],"Gene_name"] <- gr_genes$names[subjectHits(gene_name_matches)[which(S4Vectors::queryHits(gene_name_matches) == multi_choice[i])]]
-
-		}else{
-
-			genes_for_this_choice <- all_possible_names[which(query_spots==multi_choice[i])]
-
-			if(any( genes_for_this_choice %in% dndscv_gene_names, na.rm=TRUE )){
-				MAF_unmatched$Gene_name[multi_choice[i]] <- genes_for_this_choice[which( genes_for_this_choice %in% dndscv_gene_names )[1]]
-			}else{
-				MAF_unmatched$Gene_name[multi_choice[i]] <- "Indeterminate"
-			}
-		}
-	}
-
-	MAF_unmatched$unsure_gene_name <- T
-	MAF <- rbind(MAF_matched,MAF_unmatched)
-	MAF <- MAF[which(MAF$Gene_name %in% dndscv_gene_names),]
+	# Select just the reference genes that are in the data output from dNdScv
+	is_in_dndscv = (GenomicRanges::mcols(gr_genes)["names"][,1] %in% dndscv_gene_names)
+	gr_genes_in_data = gr_genes[is_in_dndscv]
+	
+	# find the closest reference gene to each MAF record (ties are possible, including one record being found in multiple genes)
+	gr_maf_data = GenomicRanges::GRanges(seqnames = MAF$Chromosome, ranges = IRanges::IRanges(start = MAF$Start_Position, end = MAF$Start_Position))
+	nearest = as.data.table(GenomicRanges::distanceToNearest(gr_maf_data, gr_genes_in_data, select = "all"))
+	
+	# convert the "subjectHits" index returned by the distanceToNearest function to the corresponding gene name
+	possible_genes = GenomicRanges::mcols(gr_genes_in_data)["names"][,1]
+	nearest[,Gene_name := nearest[, possible_genes[subjectHits]]]
+	
+	# remove all but one of multiple hits from one record to the same gene
+	# this happens, for example, when a record overlaps multiple exons in the reference data
+	nearest = nearest[! duplicated(nearest[, .(queryHits, Gene_name)])] 
+	
+	# Note that some queryHits (corresponding to MAF row numbers) may have more than 1 hit, if 
+	# a record fits in multiple genes (or, rarely, an exact tie for distance to nearest gene, if record isn't in any gene).
+	# In these cases, a duplicate row of MAF is created for each additional gene.
+	MAF = MAF[nearest$queryHits]
+	MAF[, Gene_name := nearest$Gene_name]
+	MAF[, unsure_gene_name := TRUE][nearest$distance == 0, unsure_gene_name := FALSE]
 
 	# get mutation annotations from dNdScv and subset to SNVs
 	dndscvout_annotref <- rbindlist(lapply(dndscv_out_list, function(x) x$annotmuts))
@@ -121,7 +88,8 @@ annotate_gene_maf <- function(cesa) {
 	  dndscvout_annotref$unique_variant_ID[which(dndscvout_annotref$impact != "Essential_Splice")]
 
 	# Assign trinucleotide context data (for use with non-coding variants)
-	MAF$Tumor_allele_correct_strand <- MAF$Tumor_Allele
+	MAF[, Tumor_allele_correct_strand := Tumor_Allele]
+	
 	MAF$Tumor_allele_correct_strand[which(MAF$strand=="-")] <-
 	  toupper(seqinr::comp(MAF$Tumor_allele_correct_strand[which(MAF$strand=="-")]))
 
@@ -160,7 +128,7 @@ annotate_gene_maf <- function(cesa) {
 
 	# get CDS intervals for every gene; potential splice sites are all the start/end positions of these
 	splice_sites = rbindlist(lapply(RefCDS, function(x) return(list(Gene_name = x$gene_name, pos = x$intervals_cds))))
-	comb = merge.data.table(MAF[,.(Gene_name, Start_Position)], splice_sites)
+	comb = merge.data.table(MAF[,.(Gene_name, Start_Position)], splice_sites, allow.cartesian = T)
 	comb[, diff:= abs(Start_Position - pos)]
 	comb = comb[, any(diff <= 3), by = .(Gene_name, Start_Position)]
 	MAF[, next_to_splice := comb[.SD, V1, on = .(Gene_name, Start_Position)]]

@@ -41,6 +41,7 @@ dndscv_out = dndscv_postprocess(cesa = for_dndscv, dndscv_raw_output = dndscv_ra
 
 saveRDS(dndscv_out@dndscv_out_list$`1`$sel_cv, "sel_cv.rds")
 saveRDS(dndscv_out@mutrates_list$`1`, "mutrates.rds")
+saveRDS(dndscv_out, "single-dndscv_pre-anno.rds")
 anno_out = annotate_gene_maf(dndscv_out)
 saveRDS(anno_out@annotated.snv.maf, "annotated_maf_df.rds")
 
