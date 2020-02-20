@@ -1,7 +1,7 @@
 #' Annotates the SNV MAF with gene information, keeping assignments consistent with dndscv when possible
 #'
 #'
-#'
+#' @import 
 #' @param cesa CESAnalysis object
 #' @export
 annotate_gene_maf <- function(cesa) {
@@ -215,6 +215,22 @@ annotate_gene_maf <- function(cesa) {
 
 	# drop annotmuts info since it's already been used here (and it takes up a lot of memory)
 	lapply(cesa@dndscv_out_list, function(x) x$annotmuts = NULL)
+
+
+	## For comparing new/old annotated MAFs to ensure same selection results (see also mutation_rate_calc.R)
+	MAF$amino_acid_context <- as.character(
+	  BSgenome::getSeq(cesa@genome, MAF$Chromosome, strand=MAF$strand, 
+	                   start=MAF$Start_Position-3, end=MAF$Start_Position+3))
+
+	MAF$amino_acid_context[which(MAF$codon_pos==1)] <-
+	  substr(MAF$amino_acid_context[which(MAF$codon_pos==1)],3,7)
+
+	MAF$amino_acid_context[which(MAF$codon_pos==2)] <-
+	  substr(MAF$amino_acid_context[which(MAF$codon_pos==2)],2,6)
+
+	MAF$amino_acid_context[which(MAF$codon_pos==3)] <-
+	  substr(MAF$amino_acid_context[which(MAF$codon_pos==3)],1,5)
+
 
 	cesa@annotated.snv.maf = MAF
 	return(cesa)
