@@ -132,11 +132,11 @@ annotate_gene_maf <- function(cesa) {
 	# transcript reference data is used so that variants near splice sites get handled appropriately
 	coding_maf = MAF[is_coding == TRUE]
 	genes = coding_maf[,Gene_name]
-	upstream = DNAStringSet(lapply(RefCDS[genes], function(x) x$seq_cds1up))
-	inframe = DNAStringSet(lapply(RefCDS[genes], function(x) x$seq_cds))
-	downstream = DNAStringSet(lapply(RefCDS[genes], function(x) x$seq_cds1down))
+	upstream = Biostrings::DNAStringSet(lapply(RefCDS[genes], function(x) x$seq_cds1up))
+	inframe = Biostrings::DNAStringSet(lapply(RefCDS[genes], function(x) x$seq_cds))
+	downstream = Biostrings::DNAStringSet(lapply(RefCDS[genes], function(x) x$seq_cds1down))
 	
-	# get the first, second, and third nucleotides of the given codon, and the genomic trinuc context of each
+	# get the first, second, and third nucleotides of the given codonS, and the genomic trinuc context of each
 	# will shift from the given codon position to capture all three nucleotides in the codon
 	start = coding_maf$nuc_position - coding_maf$codon_pos + 1
 	upstream = Biostrings::subseq(upstream, start = start, width = 3)
@@ -147,9 +147,9 @@ annotate_gene_maf <- function(cesa) {
 	
 	# handle non-splice
   not_splice = coding_maf[, next_to_splice == F]
-  amino_acid_context = as.character(xscat(subseq(upstream[not_splice], start = 1, width = 1), 
-                                          ref_codon[not_splice], 
-                                          subseq(downstream[not_splice], start = 3, width = 1)))
+  amino_acid_context = as.character(Biostrings::xscat(Biostrings::subseq(upstream[not_splice], start = 1, width = 1), 
+                                                                         ref_codon[not_splice], 
+                                                      Biostrings::subseq(downstream[not_splice], start = 3, width = 1)))
   aa_mut_nonsplice = coding_maf[next_to_splice == F, coding_variant_AA_mut]
   equivalent_muts_nonsplice = lapply(1:length(amino_acid_context), function(x) unname(unlist(AA_mutation_list[[amino_acid_context[x]]][aa_mut_nonsplice[x]])))
   
@@ -160,22 +160,22 @@ annotate_gene_maf <- function(cesa) {
   # for splice sites, calculate all possible SNV mutations (with trinuc context) that would match the actual amino acid change
   # this could also be pre-computed, but that hasn't happened yet
   # replace each position in the codon with all bases to get all codons that can results from an SNV mutation
-  first_tri = xscat(subseq(upstream[splice], start = 1, width = 1), 
-                    subseq(ref_codon[splice], start = 1, width = 1), 
-                    subseq(downstream[splice], start = 1, width = 1))
-  second_tri = xscat(subseq(upstream[splice], start = 2, width = 1),
-                     subseq(ref_codon[splice], start = 2, width = 1),
-                     subseq(downstream[splice], start = 2, width = 1))
-  third_tri = xscat(subseq(upstream[splice], start = 3, width = 1),
-                    subseq(ref_codon[splice], start = 3, width = 1),
-                    subseq(downstream[splice], start = 3, width = 1))
+  first_tri = Biostrings::xscat(Biostrings::subseq(upstream[splice], start = 1, width = 1), 
+                    Biostrings::subseq(ref_codon[splice], start = 1, width = 1), 
+                    Biostrings::subseq(downstream[splice], start = 1, width = 1))
+  second_tri = Biostrings::xscat(Biostrings::subseq(upstream[splice], start = 2, width = 1),
+                     Biostrings::subseq(ref_codon[splice], start = 2, width = 1),
+                     Biostrings::subseq(downstream[splice], start = 2, width = 1))
+  third_tri = Biostrings::xscat(Biostrings::subseq(upstream[splice], start = 3, width = 1),
+                    Biostrings::subseq(ref_codon[splice], start = 3, width = 1),
+                    Biostrings::subseq(downstream[splice], start = 3, width = 1))
 	
   coding_splice_maf = coding_maf[next_to_splice == T, ]
   coding_splice_ref_codons = ref_codon[splice]
   
   equivalent_muts_splice = list()
   for(i in 1:nrow(coding_splice_maf)) {
-    trinuc_contexts = DNAStringSet(list(first_tri[[i]], second_tri[[i]], third_tri[[i]]))
+    trinuc_contexts = Biostrings::DNAStringSet(list(first_tri[[i]], second_tri[[i]], third_tri[[i]]))
     codon = coding_splice_ref_codons[[i]]
     all_mutated_codons = list()
     j = 1
@@ -183,7 +183,7 @@ annotate_gene_maf <- function(cesa) {
     bases = c("A", "T", "C", "G")
     for (nt in 1:4) {
       for(pos in 1:3) {
-        all_mutated_codons[[j]] = replaceAt(codon, IRanges(pos, pos), bases[nt])
+        all_mutated_codons[[j]] = Biostrings::replaceAt(codon, IRanges::IRanges(pos, pos), bases[nt])
         j = j + 1
       }
     }
@@ -215,21 +215,6 @@ annotate_gene_maf <- function(cesa) {
 
 	# drop annotmuts info since it's already been used here (and it takes up a lot of memory)
 	lapply(cesa@dndscv_out_list, function(x) x$annotmuts = NULL)
-
-
-	## For comparing new/old annotated MAFs to ensure same selection results (see also mutation_rate_calc.R)
-	MAF$amino_acid_context <- as.character(
-	  BSgenome::getSeq(cesa@genome, MAF$Chromosome, strand=MAF$strand, 
-	                   start=MAF$Start_Position-3, end=MAF$Start_Position+3))
-
-	MAF$amino_acid_context[which(MAF$codon_pos==1)] <-
-	  substr(MAF$amino_acid_context[which(MAF$codon_pos==1)],3,7)
-
-	MAF$amino_acid_context[which(MAF$codon_pos==2)] <-
-	  substr(MAF$amino_acid_context[which(MAF$codon_pos==2)],2,6)
-
-	MAF$amino_acid_context[which(MAF$codon_pos==3)] <-
-	  substr(MAF$amino_acid_context[which(MAF$codon_pos==3)],1,5)
 
 
 	cesa@annotated.snv.maf = MAF
