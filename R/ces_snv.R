@@ -12,7 +12,6 @@ ces_snv <- function(cesa = NULL,
                             include_genes_without_recurrent_mutations = F,
                             find_CI=T) 
 {
-  RefCDS = get_genome_data(cesa, "RefCDS")
   if (! "character" %in% class(genes)) {
     stop("Expected argument \"genes\" to take a character vector.")
   }
@@ -73,14 +72,14 @@ ces_snv <- function(cesa = NULL,
 
   all_tumors = unique(snv.maf$Unique_Patient_Identifier)
   selection_results <- rbindlist(pbapply::pblapply(genes_to_analyze, get_gene_results, cesa = cesa,
-                                            all_tumors = all_tumors,find_CI=find_CI, RefCDS = RefCDS, cl = cores))
+                                            all_tumors = all_tumors,find_CI=find_CI, cl = cores))
   cesa@selection_results = selection_results
   return(cesa)
 }
 
 
 #' Single-stage SNV effect size analysis (gets called by ces_snv)
-get_gene_results <- function(gene, cesa, all_tumors, find_CI, RefCDS) {
+get_gene_results <- function(gene, cesa, all_tumors, find_CI) {
   snv.maf = cesa@annotated.snv.maf
   progressions = cesa@progressions
   current_gene_maf = snv.maf[Gene_name == gene]
@@ -90,7 +89,6 @@ get_gene_results <- function(gene, cesa, all_tumors, find_CI, RefCDS) {
       gene = gene,
       gene_mut_rate = cesa@mutrates_list,
       trinuc_proportion_matrix = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix,
-      gene_refcds = RefCDS[[gene]],
       all_tumors = all_tumors,
       progressions = progressions)
 

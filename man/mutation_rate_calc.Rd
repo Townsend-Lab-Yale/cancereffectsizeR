@@ -9,7 +9,6 @@ mutation_rate_calc(
   gene,
   gene_mut_rate,
   trinuc_proportion_matrix,
-  gene_refcds,
   all_tumors,
   progressions
 )
@@ -22,8 +21,6 @@ mutation_rate_calc(
 \item{gene_mut_rate}{mutation rate at the gene-level}
 
 \item{trinuc_proportion_matrix}{matrix constructed from deconstructSigs output, containing proportion of each trinucleotide mutated in each tumor}
-
-\item{gene_refcds}{information from RefCDS data set for the current gene}
 
 \item{progression}{CESProgressions}
 }

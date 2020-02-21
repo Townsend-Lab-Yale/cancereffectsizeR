@@ -39,7 +39,6 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optim
     message(silver("FYI, you can access full parameter optimization output in [CESAnalysis]@advanced$opm_output."))
   }
   
-  RefCDS = get_genome_data(cesa, "RefCDS")
 	genes = unique(genes)
 	genes_in_dataset = unique(cesa@annotated.snv.maf$Gene_name)
 	genes_to_analyze = genes[genes %in% genes_in_dataset]
@@ -79,7 +78,7 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optim
     selection_results = pbapply::pblapply(X = selection_epistasis_results_list,
                                            FUN = epistasis_gene_level,
                                            cesa=cesa,
-                                           RefCDS = RefCDS, optimx_args = optimx_args,
+                                           optimx_args = optimx_args,
                                            cl = cores)
     cesa@gene_epistasis_results = data.table::rbindlist(lapply(selection_results, function(x) x[[1]]))
     if(return_all_opm_output) {
@@ -95,7 +94,7 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optim
 
 epistasis_gene_level = function(genes_to_analyze,
                                 cesa,
-                                RefCDS, optimx_args) {
+                                optimx_args) {
   mutrates_list = cesa@mutrates_list
   MAF = cesa@annotated.snv.maf
   trinuc_proportion_matrix = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix
@@ -147,7 +146,6 @@ epistasis_gene_level = function(genes_to_analyze,
         gene = variant1,
         gene_mut_rate = mutrates_list,
         trinuc_proportion_matrix = trinuc_proportion_matrix,
-        gene_refcds = RefCDS[[variant1]],
         all_tumors = eligible_tumors,
         progressions = progressions)
 
@@ -157,7 +155,6 @@ epistasis_gene_level = function(genes_to_analyze,
         gene = variant2,
         gene_mut_rate = mutrates_list,
         trinuc_proportion_matrix = trinuc_proportion_matrix,
-        gene_refcds = RefCDS[[variant2]],
         all_tumors = eligible_tumors,
         progressions = progressions)
 

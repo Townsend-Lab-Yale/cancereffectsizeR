@@ -1,7 +1,6 @@
 #' Annotates the SNV MAF with gene information, keeping assignments consistent with dndscv when possible
 #'
 #'
-#' @import 
 #' @param cesa CESAnalysis object
 #' @export
 annotate_gene_maf <- function(cesa) {

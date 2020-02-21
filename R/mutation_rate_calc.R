@@ -5,7 +5,6 @@
 #' @param this_MAF The subset MAF (just the gene to be analyzed) file to extract mutational data from
 #' @param gene current gene
 #' @param trinuc_proportion_matrix matrix constructed from deconstructSigs output, containing proportion of each trinucleotide mutated in each tumor
-#' @param gene_refcds information from RefCDS data set for the current gene
 #' @param progression CESProgressions
 #' @param gene_mut_rate mutation rate at the gene-level
 #'
@@ -17,7 +16,6 @@ mutation_rate_calc <- function(this_MAF,
                                gene,
                                gene_mut_rate,
                                trinuc_proportion_matrix,
-                               gene_refcds,
                                all_tumors,
                                progressions
                                ){
