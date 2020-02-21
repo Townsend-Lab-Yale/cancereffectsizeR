@@ -68,7 +68,7 @@ setMethod("get_progression_tumors", signature("CESProgressions", "character"),
 )
 
 
-setClass("CESAnalysis", representation(maf = "data.frame", annotated.snv.maf = "data.frame", trinucleotide_mutation_weights = "list",
+setClass("CESAnalysis", representation(maf = "data.table", annotated.snv.maf = "data.frame", trinucleotide_mutation_weights = "list",
           progressions = "CESProgressions", mutrates_list = "list", dndscv_out_list = "list",
           excluded = "data.frame", selection_results = "data.table", gene_epistasis_results = "data.table", coverage = "list",
           genome = "BSgenome", advanced = "list", genome_data_dir = "character", status = "list"))

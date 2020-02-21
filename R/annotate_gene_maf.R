@@ -157,7 +157,6 @@ annotate_gene_maf <- function(cesa) {
   
   
   # for splice sites, calculate all possible SNV mutations (with trinuc context) that would match the actual amino acid change
-  # this could also be pre-computed, but that hasn't happened yet
   # replace each position in the codon with all bases to get all codons that can results from an SNV mutation
   first_tri = Biostrings::xscat(Biostrings::subseq(upstream[splice], start = 1, width = 1), 
                     Biostrings::subseq(ref_codon[splice], start = 1, width = 1), 
@@ -175,24 +174,13 @@ annotate_gene_maf <- function(cesa) {
   equivalent_muts_splice = list()
   for(i in 1:nrow(coding_splice_maf)) {
     trinuc_contexts = Biostrings::DNAStringSet(list(first_tri[[i]], second_tri[[i]], third_tri[[i]]))
-    codon = coding_splice_ref_codons[[i]]
-    all_mutated_codons = list()
-    j = 1
-    # pre-calculate later
-    bases = c("A", "T", "C", "G")
-    for (nt in 1:4) {
-      for(pos in 1:3) {
-        all_mutated_codons[[j]] = Biostrings::replaceAt(codon, IRanges::IRanges(pos, pos), bases[nt])
-        j = j + 1
-      }
-    }
-    # drop the non-mutated codon and duplicate entries
-    all_mutated_codons = unique(sapply(all_mutated_codons, as.character))
-    all_mutated_codons = all_mutated_codons[all_mutated_codons != as.character(codon)]
-    
-    # get translated amino acids for each SNV-mutated codon, and select those that match the actual amino acid mutation
-    poss_amino_acids = sapply(all_mutated_codons, function(x) AA_translations[AA_translations$Nucs == x, "AA_short"])
-    poss_mut = all_mutated_codons[which(poss_amino_acids == coding_splice_maf$coding_variant_AA_mut[i])]
+    codon = coding_splice_ref_codons[[i]] # codon is a Biostring here
+
+    ## dictionary gives all codons that can be made from one point mutation to the original codon
+    ## keys = original codon; values = list where each name is a new codon, value is the resulting amino acid 
+    poss_mut = codon_point_mutation_dict[[as.character(codon)]]
+    mut_is_match = which(poss_mut == coding_splice_maf$coding_variant_AA_mut[i])
+    poss_mut = names(poss_mut)[mut_is_match]
     
 	  # for each possible mutated codon, saves its trinuc-context representation in deconstructSigs format
 	  trinucs_for_rate = character()

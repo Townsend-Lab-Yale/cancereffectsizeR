@@ -42,9 +42,20 @@ CESAnalysis = function(genome = NULL, progression_order = NULL) {
     status[["progressions"]] = NULL
   }
   advanced = list("version" = packageVersion("cancereffectsizeR"))
-  cesa = new("CESAnalysis", status = status, genome = genome, progressions = CESProgressions(order = progression_order), 
+  cesa = new("CESAnalysis", status = status, genome = genome, maf = data.table(),
+             progressions = CESProgressions(order = progression_order), 
              gene_epistasis_results = data.table(), selection_results = data.table(), genome_data_dir = genome_dir,
              advanced = advanced)
   return(cesa)
+}
+
+maf = function(cesa = NULL) {
+  if(! is(cesa, "CESAnalysis")) {
+    stop("\nUsage: maf(cesa), where cesa is a CESAnalysis")
+  }
+  if(cesa@maf[,.N] == 0) {
+    stop("No MAF data has been loaded")
+  }
+  return(cesa@maf)
 }
 
