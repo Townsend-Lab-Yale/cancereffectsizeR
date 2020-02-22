@@ -42,30 +42,6 @@ annotate_gene_maf <- function(cesa) {
 	dndscvout_annotref <- rbindlist(lapply(dndscv_out_list, function(x) x$annotmuts))
 	dndscvout_annotref <- dndscvout_annotref[ref %in% bases & mut %in% bases]
 
-	# assign strand data
-	strand_data = rbindlist(lapply(RefCDS, function(x) return(list(Gene_name = x$gene_name, strand = x$strand))))
-	strand_data[, strand := as.character(strand)]
-	strand_data[strand == "-1", strand := "-"]
-	strand_data[strand == "1", strand := "+"]
-	MAF[, strand := strand_data[.SD, strand, on = .(Gene_name)]]
-	
-
-	MAF$genomic_ref_template_triseq <- BSgenome::getSeq(cesa@genome,
-	                   MAF$Chromosome,
-	                   strand=MAF$strand,
-	                   start=MAF$Start_Position-1,
-	                   end=MAF$Start_Position+1, as.character = TRUE)
-
-	# If trinucleotide context yields N (or other non-ACTG character), remove record from analysis
-	bad_trinuc_context <- grepl('[^ACTG]', MAF$genomic_ref_template_triseq)
-	if (any(bad_trinuc_context)) {
-		bad_trinuc_context_maf <- MAF[bad_trinuc_context, .(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele, Tumor_Allele)]
-		MAF <- MAF[!bad_trinuc_context,]
-		num_bad_records = nrow(bad_trinuc_context_maf) 
-		message(paste("Note:", num_bad_records, "MAF records were excluded from analysis because the reference genome has N's (non-specific bases) in their trinucleotide context."))
-		bad_trinuc_context_maf$Exclusion_Reason = "ambiguous_trinuc_context"
-		cesa@excluded = rbind(cesa@excluded, bad_trinuc_context_maf)
-	}
 
 	MAF$unique_variant_ID <- paste(
 	  MAF$Gene_name,
@@ -83,11 +59,6 @@ annotate_gene_maf <- function(cesa) {
 	  MAF$unique_variant_ID %in%
 	  dndscvout_annotref$unique_variant_ID[which(dndscvout_annotref$impact != "Essential_Splice")]
   
-	# Assign trinucleotide context data (for use with non-coding variants)
-	MAF[, Tumor_allele_correct_strand := Tumor_Allele]
-	MAF[strand == "-", Tumor_allele_correct_strand := seqinr::comp(Tumor_allele_correct_strand, forceToLower = F)]
-	MAF$trinuc_dcS <- trinuc_translator[paste0(MAF$genomic_ref_template_triseq,":",MAF$Tumor_allele_correct_strand), "deconstructSigs_format"]
-	
 
 	# Assign coding variant data
 	dndscv_coding_unique <- dndscvout_annotref[!duplicated(unique_variant_ID)]
@@ -116,8 +87,6 @@ annotate_gene_maf <- function(cesa) {
 	}
 	
 	MAF$coding_variant_AA_mut <-  substrRight(x = MAF$coding_variant,n=1)
-	
-	
 	AA_translations_unique <- AA_translations[!duplicated(AA_translations$AA_letter),]
 	rownames(AA_translations_unique) <- as.character(AA_translations_unique$AA_letter)
 	MAF$coding_variant_AA_mut <- as.character(AA_translations_unique[MAF$coding_variant_AA_mut,"AA_short"])
@@ -143,8 +112,7 @@ annotate_gene_maf <- function(cesa) {
 	downstream = Biostrings::subseq(downstream, start = start, width = 3)
 	
 	
-	
-	# handle non-splice
+	# handle coding non-splice
   not_splice = coding_maf[, next_to_splice == F]
   amino_acid_context = as.character(Biostrings::xscat(Biostrings::subseq(upstream[not_splice], start = 1, width = 1), 
                                                                          ref_codon[not_splice], 
@@ -152,7 +120,7 @@ annotate_gene_maf <- function(cesa) {
   aa_mut_nonsplice = coding_maf[next_to_splice == F, coding_variant_AA_mut]
   equivalent_muts_nonsplice = lapply(1:length(amino_acid_context), function(x) unname(unlist(AA_mutation_list[[amino_acid_context[x]]][aa_mut_nonsplice[x]])))
   
-  # handle splice
+  # handle coding splice
   splice = coding_maf[, next_to_splice == T]
   
   
@@ -196,10 +164,32 @@ annotate_gene_maf <- function(cesa) {
 	  equivalent_muts_splice[[i]] = trinucs_for_rate
   }
 
-	MAF[is_coding == FALSE, equivalent_aa_muts :=.(as.list(trinuc_dcS))]
+  # for non-coding mutations, query the genome to get trinuc-context point mutations in deconstructSigs format (e.g., "G[T>C]T")
+  noncoding_maf = MAF[is_coding == F]
+  triseq <- BSgenome::getSeq(cesa@genome,
+                             noncoding_maf$Chromosome,
+                             start=noncoding_maf$Start_Position-1,
+                             end=noncoding_maf$Start_Position+1,
+                             as.character = TRUE)
+  noncoding_trinuc_dS <- trinuc_translator[paste0(triseq,":",noncoding_maf$Tumor_Allele), "deconstructSigs_format"]
+  
+  
+  # add all to the annotated MAF
+	MAF[is_coding == FALSE, equivalent_aa_muts :=.(as.list(noncoding_trinuc_dS))]
 	MAF[is_coding == TRUE & next_to_splice == FALSE, equivalent_aa_muts := equivalent_muts_nonsplice]
 	MAF[is_coding == TRUE & next_to_splice == TRUE, equivalent_aa_muts := equivalent_muts_splice]
 
+	# If any trinucleotide mutation comes up NA--usually due to an ambiguous N in the genomic trinuc context--remove record from analysis
+	bad_trinuc_context = sapply(MAF$equivalent_aa_muts, function(x) any(is.na(x)))
+	num_bad = sum(bad_trinuc_context)
+	if (num_bad > 0) {
+	  bad_trinuc_context_maf <- MAF[bad_trinuc_context, .(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele, Tumor_Allele)]
+	  MAF <- MAF[!bad_trinuc_context,]
+	  message(paste("Note:", num_bad, "MAF records were excluded from analysis because of ambiguous trinucleotide context (likely N's in the reference genome)."))
+	  bad_trinuc_context_maf$Exclusion_Reason = "ambiguous_trinuc_context"
+	  cesa@excluded = rbind(cesa@excluded, bad_trinuc_context_maf)
+	}
+	
 	# drop annotmuts info since it's already been used here (and it takes up a lot of memory)
 	lapply(cesa@dndscv_out_list, function(x) x$annotmuts = NULL)
 
