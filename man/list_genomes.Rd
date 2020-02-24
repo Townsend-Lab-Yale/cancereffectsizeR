@@ -2,12 +2,12 @@
 % Please edit documentation in R/genome_data_handling.R
 \name{list_genomes}
 \alias{list_genomes}
-\title{prints names of  all genome builds that are ready for use with cancereffectsizeR
-list_genomes}
+\title{list_genomes
+prints names of  all genome builds that are ready for use with cancereffectsizeR}
 \usage{
 list_genomes()
 }
 \description{
-prints names of  all genome builds that are ready for use with cancereffectsizeR
 list_genomes
+prints names of  all genome builds that are ready for use with cancereffectsizeR
 }

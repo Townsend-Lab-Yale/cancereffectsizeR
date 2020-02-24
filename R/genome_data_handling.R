@@ -12,6 +12,12 @@ get_genome_dirs = function() {
 #' reads in the requested reference data for the genome build associated with the CESAnalysis
 get_genome_data = function(cesa, datatype) {
   data_dir = cesa@genome_data_dir
+  if (! dir.exists(data_dir)) {
+    error_message = paste0("Error: Could not locate genome data directory. This can happen when a CESAnalysis is saved and\n",
+                           "reloaded in a different computing environment. Assuming you have the necessary data installed,\n",
+                           "you can try running set_genome_data_directory() to fix the problem.") 
+    stop(error_message)
+  }
   path = paste0(data_dir, "/", datatype, ".rds")
   if (! file.exists(path)) {
     stop(paste0("Something's wrong with the genome data installation\n",
@@ -20,8 +26,33 @@ get_genome_data = function(cesa, datatype) {
   return(readRDS(path))
 }
 
-#' prints names of  all genome builds that are ready for use with cancereffectsizeR
+#' get_genome_data_directory
+#' takes in a genome name (e.g., "hg38"), searches for an associated data directory, and returns the path
+get_genome_data_directory = function(genome) {
+  if(is.null(genome) || ! is(genome, "character") || length(genome) != 1) {
+    stop("You must specify a genome build (e.g., \"hg38\"). Run list_genomes() to see available genomes.")
+  }
+  genome_dirs = get_genome_dirs()
+  if(genome %in% names(genome_dirs)) {
+    genome_dir = genome_dirs[genome]
+  } else {
+    stop("Unrecognized genome. Run list_genomes() to see available genomes.")
+  }
+  return(genome_dir)
+}
+
+#' set_genome_data_directory
+#' assigns a genome data directory to a CESAnalysis; can be used when loading a saved CESAnalysis in a new envrionment
+#' @export
+set_genome_data_directory = function(cesa, genome) {
+  genome_dir = get_genome_data_directory(genome)
+  cesa@genome_data_dir = genome_dir
+  return(cesa)
+}
+
+
 #' list_genomes
+#' prints names of  all genome builds that are ready for use with cancereffectsizeR
 #' @export
 list_genomes = function() {
   genome_names = names(get_genome_dirs())

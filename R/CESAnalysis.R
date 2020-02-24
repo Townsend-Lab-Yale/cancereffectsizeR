@@ -6,16 +6,7 @@
 #' @export
 
 CESAnalysis = function(genome = NULL, progression_order = NULL) {
-  if(is.null(genome) || ! is(genome, "character") || length(genome) != 1) {
-    stop("You must specify a genome build (e.g., \"hg38\"). Run list_genomes() to see available genomes.")
-  }
-  genome_dirs = get_genome_dirs()
-  if(genome %in% names(genome_dirs)) {
-    genome_dir = genome_dirs[genome]
-  } else {
-    stop("Unrecognized genome. Run list_genomes() to see available genomes.")
-  }
-  
+  genome_dir = get_genome_data_directory(genome)
   genome_path = paste0(genome_dir, "/genome_package_name.rds")
   if(! file.exists(genome_path)) {
     stop(paste0("Something is wrong with the genome data installation.\n",
@@ -42,7 +33,7 @@ CESAnalysis = function(genome = NULL, progression_order = NULL) {
     status[["progressions"]] = NULL
   }
   advanced = list("version" = packageVersion("cancereffectsizeR"))
-  cesa = new("CESAnalysis", status = status, genome = genome, maf = data.table(),
+  cesa = new("CESAnalysis", status = status, genome = genome, maf = data.table(), excluded = data.table(),
              progressions = CESProgressions(order = progression_order), 
              gene_epistasis_results = data.table(), selection_results = data.table(), genome_data_dir = genome_dir,
              advanced = advanced)
@@ -57,5 +48,18 @@ maf = function(cesa = NULL) {
     stop("No MAF data has been loaded")
   }
   return(cesa@maf)
+}
+
+excluded_maf_records = function(cesa = NULL) {
+  if(! is(cesa, "CESAnalysis")) {
+    stop("\nUsage: excluded_maf_records(cesa), where cesa is a CESAnalysis")
+  }
+  if(cesa@maf[,.N] == 0) {
+    stop("No MAF data has been loaded yet, so naturally no records have been excluded.")
+  }
+  if(cesa@excluded[,.N] == 0) {
+    message("Returned an empty data table since no records have been excluded.")
+  }
+  return(cesa@excluded)
 }
 

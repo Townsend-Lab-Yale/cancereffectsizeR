@@ -320,7 +320,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   
   # check for potential DNP/TNPs and separate them from data set
   # this is done before any other filtering to ensure catching as many of them as possible
-  message("Searching for possible multinucleotide variants...")
+  message(silver("Searching for possible multinucleotide variants..."))
   num.prefilter = nrow(maf)
   dnp_tnp_results = cancereffectsizeR::DNP_TNP_remover(maf)
   maf = dnp_tnp_results$kept[,1:5] # To-do: fix return value of DNP_TNP
@@ -333,8 +333,8 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     # To-do: move message to DNP_TNP_remover or otherwise ensure this description remains accurate
     percent = round((num.pred.mnv / num.prefilter) * 100, 1)
     message(paste0("Note: ", num.pred.mnv, " mutation records out of ", num.prefilter, " (", percent, "%) ",
-                   "are within 2 bp of other mutations in the same tumors."))
-    message("These records will be excluded from effect size analysis.")
+                   "are within 2 bp of other mutations in the same tumors. "))
+    message("These records will be excluded since they may be multi-nucleotide mutation events rather than independent SNVs.")
   }
   
   # No support for mitochondrial mutations yet
@@ -349,7 +349,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   
   
   # Ensure reference alleles of mutations match reference genome (Note: Insertions won't match if their reference allele is "-")
-  message("Checking that reference alleles match reference genome...")
+  message(silver("Checking that reference alleles match reference genome..."))
   ref_allele_lengths = nchar(maf[, Reference_Allele])
   ref_alleles_to_test = maf[, Reference_Allele]
   end_pos = maf[, Start_Position] + ref_allele_lengths - 1 # for multi-base deletions, check that all deleted bases match reference
@@ -377,9 +377,9 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     reference.mismatch.maf$Exclusion_Reason = "reference_mismatch"
     excluded = rbind(excluded, reference.mismatch.maf)
     percent = round((num.nonmatching / num.prefilter) * 100, 1)
-    message(paste0("Note: ", num.nonmatching, " mutation records out of ", num.prefilter, " (", percent, "%, including ", bad_snv_percent,
-                    "% of SNV records) have reference alleles that do not actually match the reference genome."))
-    message("These records will be excluded from effect size analysis.")
+    message(silver(paste0("Note: ", num.nonmatching, " mutation records out of ", num.prefilter, " (", percent, "%, including ", bad_snv_percent,
+                    "% of SNV records) have reference alleles that do not actually match the reference genome.")))
+    message(silver("These records will be excluded from effect size analysis."))
   } else {
     message("Reference alleles look good.")
   }
@@ -392,9 +392,8 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   num.non.snv = num.total - nrow(snv.maf)
   if (num.non.snv > 0) {
     percent = round((num.non.snv / num.total) * 100, 1)
-    message(paste0("Note: ", num.non.snv, " mutation records out of ", num.total, " (", percent, "%) are not SNVs.\n",
-                   "(That is, ref or tumor allele were something other than a single A/C/T/G.)"))
-    message("Indels will be run through dNdScv for your convenience, but they will not be included in SNV selection analysis.")
+    message(silver(paste0("Note: ", num.non.snv, " mutation records out of ", num.total, " (", percent, "%) are not SNVs.\n",
+                   "(That is, ref or tumor allele were something other than a single A/C/T/G.)")))
   }
   
   num.good.snv = nrow(snv.maf)
