@@ -3,7 +3,7 @@
 \name{get_genome_dirs}
 \alias{get_genome_dirs}
 \title{get_genome_dirs
-returns a character vector mapping genome names to their data directories}
+get_genome_dirs}
 \usage{
 get_genome_dirs()
 }
@@ -11,6 +11,5 @@ get_genome_dirs()
 \item{full_paths}{default TRUE; returns full paths to genome data instead of just genome names}
 }
 \description{
-get_genome_dirs
 returns a character vector mapping genome names to their data directories
 }

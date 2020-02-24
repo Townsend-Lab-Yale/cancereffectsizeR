@@ -10,7 +10,6 @@
 #' @param specific_mut_rates A matrix of site and tumor specific mutation rates where the rows correspond to tumors and the columns to variants (produced by mutation_rate_calc)
 #'
 #' @return A log likelihood value
-#' @export
 #'
 #' @examples
 ml_objective_epistasis <- function(gamma, MAF_input1,MAF_input2, all_tumors, gene1,gene2, variant1,variant2, specific_mut_rates1,specific_mut_rates2) {

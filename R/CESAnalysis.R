@@ -1,10 +1,9 @@
 #' CESAnalysis
-#' @description Creates a CESAnalysis object (the data structure used by cancereffectsizeR)
+#' @description Creates a CESAnalysis object, the central data structure of cancereffectsizeR
 #' @param progression_order evolutionary order of tumor stage progression (e.g. c("Primary", "Metastatic"))
 #' @param genome Genome build of MAF data (currently, just hg19 supported)
 #' @return CESAnalysis object
 #' @export
-
 CESAnalysis = function(genome = NULL, progression_order = NULL) {
   genome_dir = get_genome_data_directory(genome)
   genome_path = paste0(genome_dir, "/genome_package_name.rds")
@@ -40,6 +39,11 @@ CESAnalysis = function(genome = NULL, progression_order = NULL) {
   return(cesa)
 }
 
+#' maf
+#' 
+#' returns a data.table containing MAF records used in the given CESAnalysis
+#' @param cesa CESAnalysis object
+#' @export
 maf = function(cesa = NULL) {
   if(! is(cesa, "CESAnalysis")) {
     stop("\nUsage: maf(cesa), where cesa is a CESAnalysis")
@@ -50,6 +54,11 @@ maf = function(cesa = NULL) {
   return(cesa@maf)
 }
 
+#' excluded_maf_records
+#' 
+#' returns a data.table containing MAF records that were excluded from the given CESAnalysis
+#' @param cesa CESAnalysis object
+#' @export
 excluded_maf_records = function(cesa = NULL) {
   if(! is(cesa, "CESAnalysis")) {
     stop("\nUsage: excluded_maf_records(cesa), where cesa is a CESAnalysis")

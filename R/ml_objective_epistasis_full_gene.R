@@ -10,7 +10,6 @@
 #' @param with_neither
 #'
 #' @return A log likelihood value
-#' @export
 #'
 #' @examples
 ml_objective_epistasis_full_gene <- function(par, with_just_1, with_just_2, with_both, with_neither) {

@@ -17,7 +17,6 @@
 #' If a "Local" tumor shares >10% of the same SNV, a file 
 #' "potential_duplicates.RData" is saves to the working directory with 
 #' potential duplicates data. 
-#' @export
 
 
 

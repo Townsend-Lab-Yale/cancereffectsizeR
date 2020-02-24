@@ -78,6 +78,12 @@ setMethod("show", "CESAnalysis",
     steps = names(object@status)
     for (step in steps) {
       cat(paste0(step,": ", object@status[[step]], "\n"))
+      if (step == "MAF data") {
+        num_excluded_records = object@excluded[, .N]
+        if(num_excluded_records) {
+          cat(paste0("(View ", num_excluded_records, " excluded MAF records with excluded_maf_records())\n"))
+        }
+      }
     }
     cat(paste0("[Created in cancereffectsizeR, version ", object@advanced$version, ".]"))
   }

@@ -11,7 +11,6 @@
 #'
 #' @param MAF MAF file, with relevant fields consisten with the GDC MAF specification (\url{https://docs.gdc.cancer.gov/Data/File_Formats/MAF_Format/}).
 #' @param delete_recur T/F statement about whether to remove recurrent (02) tumors.
-#' @export
 
 
 

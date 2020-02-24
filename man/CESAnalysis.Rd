@@ -15,5 +15,5 @@ CESAnalysis(genome = NULL, progression_order = NULL)
 CESAnalysis object
 }
 \description{
-Creates a CESAnalysis object (the data structure used by cancereffectsizeR)
+Creates a CESAnalysis object, the central data structure of cancereffectsizeR
 }

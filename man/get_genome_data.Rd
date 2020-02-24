@@ -2,12 +2,10 @@
 % Please edit documentation in R/genome_data_handling.R
 \name{get_genome_data}
 \alias{get_genome_data}
-\title{get_genome_data
-reads in the requested reference data for the genome build associated with the CESAnalysis}
+\title{get_genome_data}
 \usage{
 get_genome_data(cesa, datatype)
 }
 \description{
-get_genome_data
 reads in the requested reference data for the genome build associated with the CESAnalysis
 }

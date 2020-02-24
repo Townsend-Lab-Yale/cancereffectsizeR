@@ -9,11 +9,8 @@
 #' @param tumors_with_pos_mutated list of tumors with the specific variant in question
 #' @param specific_mut_rates A matrix of site and tumor specific mutation rates where the rows correspond to tumors and the columns to variants (produced by mutation_rate_calc)
 #' @return A log likelihood value
-#' @export
 #'
 #' @examples
-
-
 ml_objective <- function(gamma, tumor_stages, tumors_without_gene_mutated, tumors_with_pos_mutated, 
   variant, specific_mut_rates, modifier=0) {
 

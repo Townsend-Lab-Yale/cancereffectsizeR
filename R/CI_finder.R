@@ -11,7 +11,6 @@
 #' @param threshold tolerance threshold for the uniroot function
 #'
 #' @return
-#' @export
 #'
 #' @examples
 CI_finder <- function(gamma_max,

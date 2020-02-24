@@ -9,7 +9,6 @@
 #' @param specific_mut_rates A matrix of site and tumor specific mutation rates where the rows correspond to tumors and the columns to variants (produced by mutation_rate_calc)
 #'
 #' @return The optimal selection intensity for the gene and variant that maximizes the likelihood of the observations
-#' @export
 #'
 #' @examples
 optimize_gamma_epistasis <- function(MAF_input1,

@@ -1,4 +1,6 @@
 #' get_genome_dirs
+#' get_genome_dirs
+#' 
 #' returns a character vector mapping genome names to their data directories
 #' @param full_paths default TRUE; returns full paths to genome data instead of just genome names 
 get_genome_dirs = function() {
@@ -9,6 +11,7 @@ get_genome_dirs = function() {
 }
 
 #' get_genome_data
+#' 
 #' reads in the requested reference data for the genome build associated with the CESAnalysis
 get_genome_data = function(cesa, datatype) {
   data_dir = cesa@genome_data_dir
@@ -27,6 +30,7 @@ get_genome_data = function(cesa, datatype) {
 }
 
 #' get_genome_data_directory
+#' 
 #' takes in a genome name (e.g., "hg38"), searches for an associated data directory, and returns the path
 get_genome_data_directory = function(genome) {
   if(is.null(genome) || ! is(genome, "character") || length(genome) != 1) {
@@ -42,6 +46,7 @@ get_genome_data_directory = function(genome) {
 }
 
 #' set_genome_data_directory
+#' 
 #' assigns a genome data directory to a CESAnalysis; can be used when loading a saved CESAnalysis in a new envrionment
 #' @export
 set_genome_data_directory = function(cesa, genome) {
@@ -52,7 +57,8 @@ set_genome_data_directory = function(cesa, genome) {
 
 
 #' list_genomes
-#' prints names of  all genome builds that are ready for use with cancereffectsizeR
+#' 
+#' prints names of all genome builds that are ready for use with cancereffectsizeR
 #' @export
 list_genomes = function() {
   genome_names = names(get_genome_dirs())

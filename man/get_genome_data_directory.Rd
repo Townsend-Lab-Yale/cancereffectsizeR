@@ -2,12 +2,10 @@
 % Please edit documentation in R/genome_data_handling.R
 \name{get_genome_data_directory}
 \alias{get_genome_data_directory}
-\title{get_genome_data_directory
-takes in a genome name (e.g., "hg38"), searches for an associated data directory, and returns the path}
+\title{get_genome_data_directory}
 \usage{
 get_genome_data_directory(genome)
 }
 \description{
-get_genome_data_directory
 takes in a genome name (e.g., "hg38"), searches for an associated data directory, and returns the path
 }

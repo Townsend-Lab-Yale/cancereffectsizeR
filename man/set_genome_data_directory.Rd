@@ -2,12 +2,10 @@
 % Please edit documentation in R/genome_data_handling.R
 \name{set_genome_data_directory}
 \alias{set_genome_data_directory}
-\title{set_genome_data_directory
-assigns a genome data directory to a CESAnalysis; can be used when loading a saved CESAnalysis in a new envrionment}
+\title{set_genome_data_directory}
 \usage{
 set_genome_data_directory(cesa, genome)
 }
 \description{
-set_genome_data_directory
 assigns a genome data directory to a CESAnalysis; can be used when loading a saved CESAnalysis in a new envrionment
 }
