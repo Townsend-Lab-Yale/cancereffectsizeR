@@ -8,7 +8,7 @@ CI_finder(
   gamma_max,
   eligible_tumors,
   MAF_input,
-  progressions,
+  samples,
   gene,
   variant,
   specific_mut_rates,
@@ -23,7 +23,7 @@ CI_finder(
 
 \item{MAF_input}{A data frame that includes columns "Unique_Patient_Identifier", "Gene_name", and "unique_variant_ID_AA"}
 
-\item{progressions}{CESProgressions object}
+\item{samples}{sample data table}
 
 \item{gene}{The gene we want to look at}
 

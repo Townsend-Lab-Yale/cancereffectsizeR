@@ -18,12 +18,24 @@ CESAnalysis = function(genome = NULL, progression_order = NULL) {
                                tolower(BSgenome::commonName(genome)), " genome (", BSgenome::releaseName(genome), ").")))
   message(crayon::black("Note: We'll be using NCBI-style chromosome names (i.e., no \"chr\" prefixes)."))
   
+  
+  # Validate progression_order
   if (is.null(progression_order)) {
-    progression_order = c("1")
+    progression_order = c("stageless")
+  }
+  
+  if (is.numeric(progression_order)) {
+    progression_order = as.character(progression_order)
   }
 
+  if (! is(progression_order, "character")) {
+    stop("progression_order should be a character vector of chronological tumor states (e.g., Primary, Metastatic)")
+  }
+
+  
+  # simple analysis status tracking; used to guide user in show(CESAnalysis)
   status = list("genome" = GenomeInfoDb::providerVersion(genome),
-                "progressions" = paste0(as.character(progression_order), collapse = ", "),
+                "progressions" = paste0(progression_order, collapse = ", "),
                 "MAF data" = "none so far (run load_maf)",
                 "trinucleotide mutation rates" = "uncalculated (run trinucleotide_mutation_weights)",
                 "gene mutation rates" = "uncalculated (need trinucleotide rates first)"
@@ -33,9 +45,9 @@ CESAnalysis = function(genome = NULL, progression_order = NULL) {
   }
   advanced = list("version" = packageVersion("cancereffectsizeR"))
   cesa = new("CESAnalysis", status = status, genome = genome, maf = data.table(), excluded = data.table(),
-             progressions = CESProgressions(order = progression_order), 
+             progressions = progression_order, annotated.snv.maf = data.table(),
              gene_epistasis_results = data.table(), selection_results = data.table(), genome_data_dir = genome_dir,
-             advanced = advanced)
+             advanced = advanced, samples = data.table())
   return(cesa)
 }
 
@@ -72,3 +84,17 @@ excluded_maf_records = function(cesa = NULL) {
   return(cesa@excluded)
 }
 
+#' sample_info
+#' 
+#' returns a data.table with info on all samples in the CESAnalysis (at least, all samples with any valid mutations)
+#' @param cesa CESAnalysis object
+#' @export
+sample_info = function(cesa = NULL) {
+  if(! is(cesa, "CESAnalysis")) {
+    stop("\nUsage: sample_info(cesa), where cesa is a CESAnalysis")
+  }
+  if (cesa@samples[,.N] == 0) {
+    stop("No MAF data has been loaded yet, so naturally tere is no sample data.")
+  }
+  return(cesa@samples)
+}

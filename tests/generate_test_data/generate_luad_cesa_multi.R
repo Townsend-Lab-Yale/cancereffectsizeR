@@ -1,7 +1,6 @@
 prev_dir = setwd(system.file("tests/test_data/", package = "cancereffectsizeR"))
 luad = CESAnalysis(genome = "hg19", progression_order = 1:4)
-luad = load_maf(luad, maf = "luad.hg19.maf.txt", sample_col = "sample_id", 
-                tumor_allele_col = "Tumor_Seq_Allele2", progression_col = "fake_stage")
+luad = load_maf(luad, maf = "luad.hg19.maf.txt", sample_col = "sample_id", progression_col = "fake_stage")
 luad = calc_baseline_mutation_rates(luad, covariate_file = "lung_pca")
 saveRDS(luad, "cesa_for_snv_multi.rds")
 test_genes = c("TTN", "KRAS", "RYR2", "EGFR", "TP53", "ASXL3","IFITM2")

@@ -10,7 +10,7 @@ mutation_rate_calc(
   gene_mut_rate,
   trinuc_proportion_matrix,
   all_tumors,
-  progressions
+  samples
 )
 }
 \arguments{
@@ -22,7 +22,7 @@ mutation_rate_calc(
 
 \item{trinuc_proportion_matrix}{matrix constructed from deconstructSigs output, containing proportion of each trinucleotide mutated in each tumor}
 
-\item{progression}{CESProgressions}
+\item{samples}{data table with sample info}
 }
 \value{
 

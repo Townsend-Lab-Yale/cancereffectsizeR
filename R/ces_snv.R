@@ -81,7 +81,6 @@ ces_snv <- function(cesa = NULL,
 #' Single-stage SNV effect size analysis (gets called by ces_snv)
 get_gene_results <- function(gene, cesa, all_tumors, find_CI) {
   snv.maf = cesa@annotated.snv.maf
-  progressions = cesa@progressions
   current_gene_maf = snv.maf[Gene_name == gene]
   these_mutation_rates <-
     cancereffectsizeR::mutation_rate_calc(
@@ -90,7 +89,7 @@ get_gene_results <- function(gene, cesa, all_tumors, find_CI) {
       gene_mut_rate = cesa@mutrates_list,
       trinuc_proportion_matrix = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix,
       all_tumors = all_tumors,
-      progressions = progressions)
+      samples = cesa@samples)
 
   variants = colnames(these_mutation_rates)
   process_variant = function(variant) {
@@ -111,25 +110,29 @@ get_gene_results <- function(gene, cesa, all_tumors, find_CI) {
     optimization_output <- cancereffectsizeR::optimize_gamma(
       MAF_input = current_gene_maf,
       eligible_tumors = eligible_tumors,
-      progressions = progressions,
       gene=gene,
       variant=variant,
+      progressions = cesa@progressions,
+      samples = cesa@samples,
       specific_mut_rates=these_mutation_rates)
     
     selection_intensity = optimization_output$par
     loglikelihood = rep(optimization_output$value, length(selection_intensity))
     unsure_gene_name = rep(variant_maf$unsure_gene_name[1], length(selection_intensity))
-    progression_name = names(progressions@order)
+    progression_name = cesa@progressions
+    if (length(cesa@progressions) == 1) {
+      progression_name = "Not applicable"
+    }
     
     # Note: since DNV/TNV have been removed, should not get any duplicate entries here
     tumors_with_pos_mutated <- variant_maf$Unique_Patient_Identifier
-    stages = get_progression_name(progressions, tumors_with_pos_mutated)
+    stages = cesa@samples[tumors_with_pos_mutated, progression_name]
     # This gives number of tumors of each stage with the variant (in proper progression order)
-    tumors_with_variant = as.numeric(table(factor(stages, levels = names(progressions@order))))
+    tumors_with_variant = as.numeric(table(factor(stages, levels = cesa@progressions)))
     
     # Also get number of eligible tumors per stage (this excludes tumors in data set with 0 SNVs)
-    tumor_stages = get_progression_name(progressions, eligible_tumors)
-    tumors_with_coverage = as.numeric(table(factor(tumor_stages, levels = names(progressions@order))))
+    tumor_stages = cesa@samples[eligible_tumors, progression_name]
+    tumors_with_coverage = as.numeric(table(factor(tumor_stages, levels = cesa@progressions)))
     
     dndscv_q = sapply(cesa@dndscv_out_list, function(x) x$sel_cv[x$sel_cv$gene_name == gene, "qallsubs_cv"])
     
@@ -143,12 +146,12 @@ get_gene_results <- function(gene, cesa, all_tumors, find_CI) {
     variant_output = data.table(variant = variant_id, selection_intensity, unsure_gene_name, loglikelihood, gene, 
                          progression = progression_name, tumors_with_variant, tumors_with_coverage, dndscv_q)
     
-    if(length(progressions@order) == 1 & find_CI){
+    if(length(cesa@progressions) == 1 & find_CI){
       # find CI function
       CI_results <- cancereffectsizeR::CI_finder(gamma_max = optimization_output$par,
                                                  MAF_input= current_gene_maf,
                                                  eligible_tumors = eligible_tumors,
-                                                 progressions = progressions,
+                                                 samples = cesa@samples,
                                                  gene=gene,
                                                  variant=variant,
                                                  specific_mut_rates=these_mutation_rates)
@@ -160,7 +163,7 @@ get_gene_results <- function(gene, cesa, all_tumors, find_CI) {
       CI_results <- cancereffectsizeR::CI_finder(gamma_max = optimization_output$par,
                                                  MAF_input= current_gene_maf,
                                                  eligible_tumors = eligible_tumors,
-                                                 progressions = progressions,
+                                                 samples = cesa@samples,
                                                  gene=gene,
                                                  variant=variant,
                                                  specific_mut_rates=these_mutation_rates,

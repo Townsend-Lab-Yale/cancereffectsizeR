@@ -35,13 +35,13 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   if (is.null(maf)) {
     stop("Supply MAF data via maf=[file path or data.table/data.frame].")
   }
-  if (is.null(progression_col) & length(cesa@progressions@order) != 1) {
-    stop("You must supply a progression_col for your MAF since your analysis covers multiple progression stages")
+  if (is.null(progression_col) & length(cesa@progressions) != 1) {
+    stop("You must specify progression_col in the MAF since this CESAnalysis incorporates chronological tumor progression states.")
   }
   
-  if (! is.null(progression_col) & length(cesa@progressions@order) == 1) {
-    stop(paste0("This CESAnalysis is not stage-specific, so you can't use the \"progression_col\" argument.\n",
-                "Create a new CESAnalysis with \"progression_order\" specified to include this information.")) 
+  if (! is.null(progression_col) & length(cesa@progressions) == 1) {
+    stop(paste0("This CESAnalysis does not incorporate tumor progression states, so you can't use the \"progression_col\" argument.\n",
+                "Create a new CESAnalysis with \"progression_order\" specified to include this information."))
   }
   
   if (is.null(covered_regions)) {
@@ -53,6 +53,10 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     select_cols = c(select_cols, "Tumor_Seq_Allele1", "Tumor_Seq_Allele2", "Tumor_Allele")
   } else {
     select_cols = c(select_cols, tumor_allele_col)
+  }
+  # when sample_col has default value, will also check for Unique_Patient_Identifier if the default isn't found (since CESAnalysis creates this column)
+  if (sample_col == "Tumor_Sample_Barcode") {
+    select_cols = c(select_cols, "Unique_Patient_Identifier")
   }
   
   bad_maf_msg = "Input MAF is expected to be a data.frame or the filename of an MAF-formatted tab-delimited text file."
@@ -98,6 +102,10 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   missing_cols = character()
   input_maf_cols = colnames(maf)
   
+  if (sample_col == "Tumor_Sample_Barcode" & ! sample_col %in% input_maf_cols & "Unique_Patient_Identifier" %in% input_maf_cols) {
+    sample_col = "Unique_Patient_Identifier"
+    message(silver("Found column Unique_Patient_Identifier; we'll assume this is the correct sample ID column."))
+  }
   cols_to_check = c(sample_col, ref_col, chr_col, start_col, progression_col)
   if (tumor_allele_col != "guess") {
     cols_to_check = c(cols_to_check, tumor_allele_col)
@@ -136,37 +144,47 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
                    "These records have been removed from analysis. (One possible cause is indels not being in proper MAF format.)"))
   }
   
-  
+  # uppercase bases only
   maf[[ref_col]] = toupper(maf[[ref_col]])
+  
   # figure out which column has correct tumor allele data
   if(tumor_allele_col == "guess") {
     tumor_allele_col = "Tumor_Allele"
     if (tumor_allele_col %in% colnames(maf)) {
-      message("Found data column \"Tumor_Allele\"; will assume this is the correct column for tumor allele.")
-      maf[[tumor_allele_col]] = toupper(maf[[tumor_allele_col]])
+      message(silver("Found column Tumor_Allele; we'll assume this is the correct tumor allele column."))
     } else {
       # automated tumor allele determination requires Tumor_Seq_Allele1/Tumor_Seq_Allele2 columns
       # if these columns are present, the tumor_allele_adder function will handle capitalization and other validation
       allele1_col = "Tumor_Seq_Allele1"
       allele2_col = "Tumor_Seq_Allele2"
-      if (! allele1_col %in% colnames(maf) | ! allele2_col %in% colnames(maf)) {
-        stop(paste0("Tumor alleles can't be deduced automatically deduced without Tumor_Seq_Allele1 ",
-                    "and Tumor_Seq_Allele2 columns. Please manually specify with \"tumor_allele_col=...\""))
-      }
-      maf$Tumor_Seq_Allele1 = toupper(maf$Tumor_Seq_Allele1)
-      maf$Tumor_Seq_Allele2 = toupper(maf$Tumor_Seq_Allele2)
-      message("Determining tumor alleles...")
       
-      # take allele 2 as the tumor allele, but when it matches ref, replace with allele 1
-      # if that is still equal to ref, record will later be discarded
-      tumor_alleles = maf$Tumor_Seq_Allele2
-      allele_2_matches_ref = maf$Tumor_Seq_Allele2 == maf[[ref_col]]
-      tumor_alleles[allele_2_matches_ref] = maf$Tumor_Seq_Allele1[allele_2_matches_ref]
-      maf[[tumor_allele_col]] <- tumor_alleles
+      if (allele1_col %in% colnames(maf) && ! allele2_col %in% colnames(maf)) {
+        message(silver("Found column Tumor_Seq_Allele1 but not Tumor_Seq_Allele2;\nwe'll assume Tumor_Seq_Allele1 is the correct tumor allele column."))
+        maf[[tumor_allele_col]] = toupper(maf[[allele1_col]])
+      } else if (allele2_col %in% colnames(maf) && ! allele1_col %in% colnames(maf)) {
+        message(silver("Found column Tumor_Seq_Allele2 but not Tumor_Seq_Allele1;\nwe'll assume Tumor_Seq_Allele2 is the correct tumor allele column."))
+        maf[[tumor_allele_col]] = toupper(maf[[allele2_col]])
+      } else if (! allele1_col %in% colnames(maf) | ! allele2_col %in% colnames(maf)) {
+        stop(paste0("Tumor alleles can't be determined automatically deduced without Tumor_Seq_Allele1 ",
+                    "and/or Tumor_Seq_Allele2 columns. Please manually specify with \"tumor_allele_col=...\""))
+      } else {
+        maf$Tumor_Seq_Allele1 = toupper(maf$Tumor_Seq_Allele1)
+        maf$Tumor_Seq_Allele2 = toupper(maf$Tumor_Seq_Allele2)
+        message("Determining tumor alleles...")
+        
+        # take allele 2 as the tumor allele, but when it matches ref, replace with allele 1
+        # if that is still equal to ref, record will later be discarded
+        tumor_alleles = maf$Tumor_Seq_Allele2
+        allele_2_matches_ref = maf$Tumor_Seq_Allele2 == maf[[ref_col]]
+        tumor_alleles[allele_2_matches_ref] = maf$Tumor_Seq_Allele1[allele_2_matches_ref]
+        maf[[tumor_allele_col]] <- tumor_alleles
+      }
     }
-  } else {
-    maf[[tumor_allele_col]] = toupper(maf[[tumor_allele_col]])
   }
+  
+  # uppercase bases only
+  maf[[tumor_allele_col]] = toupper(maf[[tumor_allele_col]])
+
   
   # drop records where tumor allele is equal to reference allele
   no_variant = maf[[ref_col]] == maf[[tumor_allele_col]]
@@ -174,6 +192,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   if(num_unvaried > 0) {
     maf = maf[!no_variant]
     warning(paste0(num_unvaried, " MAF records had tumor alleles identical to reference alleles; these were removed from analysis.\n"))
+    # To-do: put BSGenome reference check before this check, and then put failing record from this check into the excluded table
   }
   
   # collect tumor progression information
@@ -188,12 +207,8 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
       stop("Error: There are NA values in your sample progressions column.")
     }
   } else {
-    sample_progressions = rep("1", nrow(maf)) # if analysis ignores tumor progression levels, all tumors get assigned level 1
+    sample_progressions = cesa@progressions[1] # indicates a stageless analysis
   }
-  
-  # add samples CESProgressions object (don't actually assign to the CESAnalysis until the end of this function)
-  progressions_update = cancereffectsizeR:::add_samples_to_CESProgressions(progressions = cesa@progressions, samples = maf[[sample_col]], sample_progressions = sample_progressions)
-  
   
   # select only the necessary columns and give column names that will stay consistent
   maf = maf[,c(..sample_col, ..chr_col, ..start_col, ..ref_col, ..tumor_allele_col)]
@@ -204,16 +219,47 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   tumor_allele_col = "Tumor_Allele"
   colnames(maf) =  c(sample_col, chr_col, start_col, ref_col, tumor_allele_col)
   
-  # if CESAnalysis already contains samples, make sure the new data has no repeat samples
-  if (nrow(cesa@maf) > 0) {
-    previous_samples = cesa@maf$Unique_Patient_Identifier
-    new_samples = maf$Unique_Patient_Identifier
-    if (length(intersect(previous_samples, new_samples)) > 0) {
-      stop(paste0("Error: Sample identifiers in new data have overlap with those already in the CESAnalysis.\n",
-                  "If this is intentional, merge the data manually before loading it."))
+
+  # for now, coverage always "exome", but other options coming soon
+  new_samples = data.table(Unique_Patient_Identifier = maf$Unique_Patient_Identifier, coverage = "exome", progression_name = sample_progressions)
+  new_samples = new_samples[, .(progression_name = unique(progression_name), coverage = "exome"), by = "Unique_Patient_Identifier"]
+
+  # associate each progression name with its chronological index (first progression stage is 1, next is 2, etc.)
+  new_samples[, progression_index := sapply(progression_name, function(x) which(cesa@progressions == x)[1])]
+  
+  # ensure no sample has an illegal progression
+  bad_progressions = setdiff(new_samples[, unique(progression_name)], cesa@progressions)
+  if(length(bad_progressions) > 0) {
+    stop(paste0("The following progressions were not declared in your CESAnalysis, but they were found in your MAF progressions column:\n",
+                paste(bad_progressions, collapse = ", ")))
+  }
+  # see if any sample appears more than once in sample table (happens when one sample has multiple listed progressions)
+  repeated_samples = new_samples[duplicated(Unique_Patient_Identifier), unique(Unique_Patient_Identifier)]
+  if(length(repeated_samples) > 0) {
+    stop(paste0("The following samples are associated with multiple progressions in the input data:\n", paste(repeated_samples, collapse=", ")))
+  }
+  
+  # make sure no new samples were already in the previously loaded MAF data
+  if(cesa@samples[, .N] > 0) {
+    repeat_samples = intersect(cesa@samples[, Unique_Patient_Identifier], new_samples[, Unique_Patient_Identifier])
+    if (length(repeat_samples) > 0) {
+      stop(paste0("Error: Can't load MAF data because some sample IDs already appear in previously loaded data.\n",
+                  "Either merge these data sets manually or remove duplicated samples: ",
+                  paste(repeat_samples, collapse = ", ")))
     }
   }
+  
+  # warn the user if some of the declared progressions don't appear in the data at all
+  if(length(cesa@progressions) > 1) {
+    missing_progressions = cesa@progressions[! cesa@progressions %in% new_samples[,unique(progression_name)]]
+    if (length(missing_progressions) > 0) {
+      warning(paste0("The following tumor progression states were declared in your CESAnalysis, but they weren't present in the MAF data:\n",
+                     paste(missing_progressions, collapse = ", ")))
+    }    
+  }
 
+
+  
   # create MAF df to hold excluded records
   excluded = data.table()
   
@@ -381,11 +427,11 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
                     "% of SNV records) have reference alleles that do not actually match the reference genome.")))
     message(silver("These records will be excluded from effect size analysis."))
   } else {
-    message("Reference alleles look good.")
+    message(silver("Reference alleles look good."))
   }
   
   # Count SNVs that will be included in effect size analysis
-  message("Collecting all SNVs...")
+  message(silver("Collecting all SNVs..."))
   num.total = nrow(maf) # indels won't be filtered, but still another filtering step later
   bases = c("A","T","G","C")
   snv.maf = maf[Reference_Allele %in% bases & Tumor_Allele %in% bases,]
@@ -397,20 +443,25 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   }
   
   num.good.snv = nrow(snv.maf)
-  
   if (num.good.snv == 0) {
     stop("Error: No SNVs are left to analyze!")
   }
   num.samples = length(unique(snv.maf[,Unique_Patient_Identifier]))
   message(paste0("Loaded ", num.good.snv, " SNVs from ", num.samples, " samples into CESAnalysis."))
   
+  # drop any samples that had all mutations excluded
+  new_samples = new_samples[Unique_Patient_Identifier %in% maf$Unique_Patient_Identifier]
+  cesa@samples = rbind(cesa@samples, new_samples)
+  setcolorder(cesa@samples, c("Unique_Patient_Identifier", "coverage", "progression_name", "progression_index"))
+  setkey(cesa@samples, "Unique_Patient_Identifier")
+  
+  
   cesa@coverage = coverage_update
-  cesa@progressions = progressions_update
   
   cesa@maf = rbind(cesa@maf, maf)
   nt = c("A", "T", "C", "G")
   snv_stats = cesa@maf[Reference_Allele %in% nt & Tumor_Allele %in% nt, .(num_samples = length(unique(Unique_Patient_Identifier)), num_snv = .N)]
-  cesa@status[["MAF data"]] = paste0(snv_stats$num_snv, " SNV records from ", snv_stats$num_samples, " samples (view with maf())")
+  cesa@status[["MAF data"]] = paste0(snv_stats$num_snv, " SNV records from ", snv_stats$num_samples, " samples (view with maf() and sample_info())")
   if (nrow(excluded) > 0) {
     colnames(excluded) = c(colnames(maf), "Exclusion_Reason")
     cesa@excluded = rbind(cesa@excluded, excluded) 

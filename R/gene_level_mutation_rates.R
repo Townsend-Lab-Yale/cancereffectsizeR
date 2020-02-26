@@ -60,10 +60,10 @@ dndscv_preprocess = function(cesa, covariate_file = NULL) {
   dndscv_maf = cesa@maf[cesa@maf$Unique_Patient_Identifier %in% exome_samples,]
 
   dndscv_input = list()
-  for (stage in cesa@progressions@order) {
-    current_subset_tumors = get_progression_tumors(cesa@progressions, stage)
+  for (progression in cesa@progressions) {
+    current_subset_tumors = cesa@samples[progression_name == progression, Unique_Patient_Identifier]
     mutations = dndscv_maf[dndscv_maf$Unique_Patient_Identifier %in% current_subset_tumors,]
-    dndscv_input[[stage]] = list(mutations = mutations, gene_list = genes_in_pca, cv = cv)
+    dndscv_input[[progression]] = list(mutations = mutations, gene_list = genes_in_pca, cv = cv)
   }
   return(dndscv_input)
 }
@@ -75,7 +75,7 @@ dndscv_postprocess = function(cesa, dndscv_raw_output, save_all_dndscv_output = 
     RefCDS = get_genome_data(cesa, "RefCDS")
   }
   dndscv_out_list = dndscv_raw_output
-  names(dndscv_out_list) = names(cesa@progressions@order)
+  names(dndscv_out_list) = cesa@progressions
    # Get RefCDS data on number of synonymous mutations possible at each site
   # Per dNdScv docs, L matrices list "number of synonymous, missense, nonsense and splice sites in each CDS at each trinucleotide context"
   num_syn = sapply(RefCDS, function(x) colSums(x$L)[1])
@@ -84,8 +84,8 @@ dndscv_postprocess = function(cesa, dndscv_raw_output, save_all_dndscv_output = 
   dndscv_genes = dndscv_out_list[[1]]$genemuts$gene_name # dndscv uses same set of genes for each stage
   num_syn = num_syn[names(num_syn) %in% dndscv_genes]
 
-  mutrates_list <- vector(mode = "list",length = length(cesa@progressions@order))
-  names(mutrates_list) <- names(cesa@progressions@order)
+  mutrates_list <- vector(mode = "list",length = length(cesa@progressions))
+  names(mutrates_list) <- cesa@progressions
 
 
   message("Using dNdScv output to calculate gene-level mutation rates...")

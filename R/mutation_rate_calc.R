@@ -5,7 +5,7 @@
 #' @param this_MAF The subset MAF (just the gene to be analyzed) file to extract mutational data from
 #' @param gene current gene
 #' @param trinuc_proportion_matrix matrix constructed from deconstructSigs output, containing proportion of each trinucleotide mutated in each tumor
-#' @param progression CESProgressions
+#' @param samples data table with sample info
 #' @param gene_mut_rate mutation rate at the gene-level
 #'
 #' @return
@@ -16,7 +16,7 @@ mutation_rate_calc <- function(this_MAF,
                                gene_mut_rate,
                                trinuc_proportion_matrix,
                                all_tumors,
-                               progressions
+                               samples
                                ){
 
   # trinuc_proportion_matrix: rows = samples, columns = relative frequency of trinucleotide-context-specific mutation (sums to 1)
@@ -46,9 +46,10 @@ mutation_rate_calc <- function(this_MAF,
   normalizers = apply(trinuc_proportion_matrix, 1, calc_normalizers) / norm_constant
 
 
-
+  
   for(i in 1:nrow(mutation_rate_nucs)){
-    mutation_rate_nucs[i,] <- (trinuc_proportion_matrix[i,] / normalizers[i]) * gene_mut_rate[[get_progression_number(progressions, rownames(mutation_rate_nucs)[i])]][gene]
+    current_tumor = rownames(mutation_rate_nucs)[i]
+    mutation_rate_nucs[i,] <- (trinuc_proportion_matrix[i,] / normalizers[i]) * gene_mut_rate[[samples[current_tumor, progression_name]]][gene]
   }
 
   # mutation_rate_nucs is now the rate of each trinucleotide in each tumor for this gene

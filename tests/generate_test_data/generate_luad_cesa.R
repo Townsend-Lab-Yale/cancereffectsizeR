@@ -4,7 +4,7 @@ prev_dir = setwd(system.file("tests/test_data/", package = "cancereffectsizeR"))
 luad = load_maf(cesa = CESAnalysis(genome="hg19"), maf = "luad.hg19.maf.txt", sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2")
 
 # run all pre-processing and save for quick import
-luad = calc_baseline_mutation_rates(luad, covariate_file = "lung_pca")
+luad = calc_baseline_mutation_rates(luad, covariate_file = "lung_pca", cores = 3)
 saveRDS(luad, "cesa_for_snv.rds")
 
 # save results to serve as expected test output
@@ -39,8 +39,8 @@ dndscv_raw_output = lapply(dndscv_raw_output, function(x) { x$nbreg$terms = NULL
 saveRDS(dndscv_raw_output, "dndscv_raw_output_single.rds")
 dndscv_out = dndscv_postprocess(cesa = for_dndscv, dndscv_raw_output = dndscv_raw_output)
 
-saveRDS(dndscv_out@dndscv_out_list$`1`$sel_cv, "sel_cv.rds")
-saveRDS(dndscv_out@mutrates_list$`1`, "mutrates.rds")
+saveRDS(dndscv_out@dndscv_out_list[[1]]$sel_cv, "sel_cv.rds")
+saveRDS(dndscv_out@mutrates_list[[1]], "mutrates.rds")
 saveRDS(dndscv_out, "single-dndscv_pre-anno.rds")
 anno_out = annotate_gene_maf(dndscv_out)
 saveRDS(anno_out@annotated.snv.maf, "annotated_maf_df.rds")

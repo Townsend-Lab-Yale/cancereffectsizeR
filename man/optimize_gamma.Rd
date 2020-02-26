@@ -8,6 +8,7 @@ optimize_gamma(
   MAF_input,
   eligible_tumors,
   progressions,
+  samples,
   gene,
   variant,
   specific_mut_rates
@@ -18,7 +19,7 @@ optimize_gamma(
 
 \item{eligible_tumors}{a vector of tumors we are calculating the likelihood across (excludes tumors without coverage at the variant site)}
 
-\item{progressions}{CESProgressions object}
+\item{progressions}{ordered progressions}
 
 \item{gene}{The gene we want to look at}
 

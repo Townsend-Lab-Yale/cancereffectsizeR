@@ -29,8 +29,6 @@ calc_baseline_mutation_rates <- function(
   cesa = cancereffectsizeR::trinucleotide_mutation_weights(cesa, signature_choice  = signatures, cores = cores)
 
   # Calculate gene-level mutation rates using dNdScv
-  ## multicore coming soon
-  #cores = min(cores, length(cesa@progressions@order)) # no use requesting more cores than number of stages
   cesa = cancereffectsizeR::gene_level_mutation_rates(cesa, covariate_file = covariate_file)
 
   # Assign genes to MAF, keeping assignments consistent with dndscv when possible

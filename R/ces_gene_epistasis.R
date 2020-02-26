@@ -27,7 +27,7 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optim
   }
   # check for custom optimx arguments
   # can't combine epistasis analysis with multi-stage yet
-	if (length(cesa@progressions@order) > 1) {
+	if (length(cesa@progressions) > 1) {
 	  stop("Epistasis analysis is not compatible yet with multi-stage analyses. You'll have to create a new single-stage analysis.")
 	}
 
@@ -98,7 +98,6 @@ epistasis_gene_level = function(genes_to_analyze,
   mutrates_list = cesa@mutrates_list
   MAF = cesa@annotated.snv.maf
   trinuc_proportion_matrix = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix
-  progressions = cesa@progressions
   all_tumors = unique(cesa@annotated.snv.maf$Unique_Patient_Identifier)
 
   get_gene_results_epistasis_bygene <- function(variant_combo_list) {
@@ -147,7 +146,7 @@ epistasis_gene_level = function(genes_to_analyze,
         gene_mut_rate = mutrates_list,
         trinuc_proportion_matrix = trinuc_proportion_matrix,
         all_tumors = eligible_tumors,
-        progressions = progressions)
+        samples = cesa@samples)
 
     these_mutation_rates2 <-
       cancereffectsizeR::mutation_rate_calc(
@@ -156,7 +155,7 @@ epistasis_gene_level = function(genes_to_analyze,
         gene_mut_rate = mutrates_list,
         trinuc_proportion_matrix = trinuc_proportion_matrix,
         all_tumors = eligible_tumors,
-        progressions = progressions)
+        samples = cesa@samples)
 
 
 
