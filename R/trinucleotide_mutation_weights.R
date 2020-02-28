@@ -123,19 +123,9 @@ trinucleotide_mutation_weights <- function(cesa,
   # individually per tumor, as opposed to average product and average rate.
 
 
-  MAF = cesa@maf
-  sample_ID_column = "Unique_Patient_Identifier"
-  chr_column = "Chromosome"
-  pos_column = "Start_Position"
-  ref_column = "Reference_Allele"
-  alt_column = "Tumor_Allele"
-
-  ds_maf = MAF
+  bases = c('A', 'T', 'C', 'G')
+  ds_maf = cesa@maf[Reference_Allele %in% bases & Tumor_Allele %in% bases]
   if(remove_recurrent){
-    # take just SNVs
-    bases = c('A', 'T', 'C', 'G')
-    ds_maf <- MAF[Reference_Allele %in% bases & Tumor_Allele %in% bases]
-
     # remove all recurrent SNVs (SNVs appearing in more than one sample)
     duplicated_vec_first <- duplicated(ds_maf[,.(Chromosome, Start_Position, Tumor_Allele)])
     duplicated_vec_last <- duplicated(ds_maf[,.(Chromosome, Start_Position, Tumor_Allele)],fromLast=T)
@@ -144,8 +134,9 @@ trinucleotide_mutation_weights <- function(cesa,
       ds_maf <- ds_maf[-duplicated_vec_pos,]
     }
   }
+  
 
-  all_tumors = unique(MAF$Unique_Patient_Identifier)
+  all_tumors = unique(cesa@maf$Unique_Patient_Identifier) # may include some tumors with no SNVs, or with only recurrent SNVs
   tumors_with_a_mutation_rate <- unique(ds_maf$Unique_Patient_Identifier)
   tumors_with_only_recurrent_mutations = setdiff(all_tumors, tumors_with_a_mutation_rate)
   substitution_counts = table(ds_maf$Unique_Patient_Identifier)
@@ -163,20 +154,18 @@ trinucleotide_mutation_weights <- function(cesa,
   tri.counts.exome = get_genome_data(cesa, "tri.counts.exome")
   norm_df = tri.counts.genome / tri.counts.exome # see deconstructSigs docs; equivalent method to exome2genome
   
-  withCallingHandlers(
-  {
-    trinuc_breakdown_per_tumor = deconstructSigs::mut.to.sigs.input(mut.ref = ds_maf,
-                                                                 sample.id = sample_ID_column,
-                                                                 chr = chr_column,
-                                                                 pos = pos_column,
-                                                                 ref = ref_column,
-                                                                 alt = alt_column,
-                                                                 bsg = cesa@genome)
-  }, warning = function(w) {
-    # user was already notified about samples with <50 mutations above
-    if (startsWith(conditionMessage(w), "Some samples have fewer than 50 mutations"))
-      invokeRestart("muffleWarning")
-  })
+  # build the data.frame required by deconstructSigs (and probably similar to what is required by most other SNV signature software)
+  # rows are samples, columns are counts of each of 96 trinuc-context-specific mutations in the order expected by deconstructSigs
+  trinuc = BSgenome::getSeq(cesa@genome, ds_maf$Chromosome, ds_maf$Start_Position - 1, ds_maf$Start_Position + 1, as.character = T)
+  
+  # internal dict converts trinuc/mut (e.g., GTA:C) into deconstructSigs format ("G[T>C]A")
+  ds_muts = trinuc_translator[paste0(trinuc, ":", ds_maf$Tumor_Allele), "deconstructSigs_format"]
+  samples = ds_maf[,unique(Unique_Patient_Identifier)]
+  counts = matrix(data = 0, nrow = length(samples), ncol = 96, dimnames = list(samples, deconstructSigs_trinuc_string))
+  for (i in 1:nrow(ds_maf)) {
+    counts[ds_maf[i, Unique_Patient_Identifier], ds_muts[i]] = counts[ds_maf[i, Unique_Patient_Identifier], ds_muts[i]] + 1
+  }
+  trinuc_breakdown_per_tumor = as.data.frame(counts)
 
 
   # algorithms ----
@@ -351,8 +340,8 @@ trinucleotide_mutation_weights <- function(cesa,
 
   # Need to make sure we are only calculating the selection intensities from
   # tumors in which we are able to calculate a mutation rate
-  cesa@maf = MAF[MAF$"Unique_Patient_Identifier" %in% tumors_with_a_mutation_rate,]
-  no_mutation_rate = MAF[! MAF$"Unique_Patient_Identifier" %in% tumors_with_a_mutation_rate,]
+  no_mutation_rate = cesa@maf[! Unique_Patient_Identifier %in% tumors_with_a_mutation_rate,]
+  cesa@maf = cesa@maf[Unique_Patient_Identifier %in% tumors_with_a_mutation_rate,]
   if (nrow(no_mutation_rate) > 0) {
     no_mutation_rate$Exclusion_Reason = "no_tumor_mutation_rate"
     cesa@excluded = rbind(cesa@excluded, no_mutation_rate) 
