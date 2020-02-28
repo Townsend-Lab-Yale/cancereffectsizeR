@@ -89,6 +89,7 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optim
       opm_dt = data.table::rbindlist(opm_output, idcol = "genes")
       cesa@advanced[["opm_output"]] = opm_dt
     }
+    cesa@status[["gene epistasis"]] = "view pairwise gene-level epistatic effect sizes with gene_epistasis_results()"
     return(cesa)
 }
 

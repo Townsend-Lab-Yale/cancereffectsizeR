@@ -84,17 +84,48 @@ excluded_maf_records = function(cesa = NULL) {
   return(cesa@excluded)
 }
 
-#' sample_info
+#' samples
 #' 
 #' returns a data.table with info on all samples in the CESAnalysis (at least, all samples with any valid mutations)
 #' @param cesa CESAnalysis object
 #' @export
-sample_info = function(cesa = NULL) {
+samples = function(cesa = NULL) {
   if(! is(cesa, "CESAnalysis")) {
-    stop("\nUsage: sample_info(cesa), where cesa is a CESAnalysis")
+    stop("\nUsage: samples(cesa), where cesa is a CESAnalysis")
   }
   if (cesa@samples[,.N] == 0) {
     stop("No MAF data has been loaded yet, so naturally tere is no sample data.")
   }
   return(cesa@samples)
 }
+
+#' snv_results
+#' 
+#' returns a data table of SNV effect sizes generated with ces_snv
+#' @param cesa CESAnalysis object
+#' @export
+snv_results = function(cesa = NULL) {
+  if(! is(cesa, "CESAnalysis")) {
+    stop("\nUsage: snv_results(cesa), where cesa is a CESAnalysis")
+  }
+  if (cesa@selection_results[, .N] == 0) {
+    stop("No results yet from ces_snv in this CESAnalysis")
+  }
+  return(cesa@selection_results)
+}
+
+#' gene_epistasis_results
+#' 
+#' returns a data table of pairwise gene epistasis effect sizes generated with ces_gene_epistasis
+#' @param cesa CESAnalysis object
+#' @export
+gene_epistasis_results = function(cesa = NULL) {
+  if(! is(cesa, "CESAnalysis")) {
+    stop("\nUsage: gene_epistasis_results(cesa), where cesa is a CESAnalysis")
+  }
+  if (cesa@gene_epistasis_results[, .N] == 0) {
+    stop("No results yet from ces_gene_epistasis in this CESAnalysis")
+  }
+  return(cesa@gene_epistasis_results)
+}
+

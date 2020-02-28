@@ -74,6 +74,7 @@ ces_snv <- function(cesa = NULL,
   selection_results <- rbindlist(pbapply::pblapply(genes_to_analyze, get_gene_results, cesa = cesa,
                                             all_tumors = all_tumors,find_CI=find_CI, cl = cores))
   cesa@selection_results = selection_results
+  cesa@status[["SNV selection"]] = "view effect sizes with snv_results()"
   return(cesa)
 }
 
