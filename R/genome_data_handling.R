@@ -14,6 +14,19 @@ get_genome_dirs = function() {
 #' 
 #' reads in the requested reference data for the genome build associated with the CESAnalysis
 get_genome_data = function(cesa, datatype) {
+  path = paste0(cesa@genome_data_dir, "/", datatype, ".rds")
+  if (check_for_genome_data(cesa, datatype)) {
+    return(readRDS(path))
+  } else {
+    stop(paste0("Something's wrong with the genome data installation:\n",
+                "Expected to find data at ", path, "."))
+  }
+}
+
+#' check_genome_data
+#' 
+#' checks if the requested reference data exists and returns T/F
+check_for_genome_data = function(cesa, datatype) {
   data_dir = cesa@genome_data_dir
   if (! dir.exists(data_dir)) {
     error_message = paste0("Error: Could not locate genome data directory. This can happen when a CESAnalysis is saved and\n",
@@ -22,11 +35,7 @@ get_genome_data = function(cesa, datatype) {
     stop(error_message)
   }
   path = paste0(data_dir, "/", datatype, ".rds")
-  if (! file.exists(path)) {
-    stop(paste0("Something's wrong with the genome data installation\n",
-                 "Expected to find data at ", path, "."))
-  }
-  return(readRDS(path))
+  return(file.exists(path))
 }
 
 #' get_genome_data_directory

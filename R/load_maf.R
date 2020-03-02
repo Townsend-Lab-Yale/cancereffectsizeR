@@ -9,13 +9,16 @@
 #' @param ref_col column name with reference allele data
 #' @param tumor_allele_col column name with alternate allele data (defaults to "guess", which examines ref_col,
 #'                         "Tumor_Seq_Allele1", and "Tumor_Seq_Allele2" and determines from there)
-#' @param covered_regions for panel sequencing data, a BED file of covered interals, or a data frame with first three columns chr, start (1-based), end (inclusive)
+#' @param coverage exome, genome, or targeted
+#' @param covered_regions optional for exome, required for targeted: a BED file of covered interals, 
+#'                        or a data frame with first three columns chr, start (1-based), end (inclusive),
+#'                        or a character vector of the names of covered genes (if BED file is available, use that instead)
 #' @param progression_col column in MAF with subset data (e.g., column contains data like "Primary" and "Metastatic" in each row)
 #' @param chain_file a chain file (text format, name ends in .chain) to convert MAF records to the genome build used in the CESAnalysis
 #' @return CESAnalysis object with somewhat cleaned-up MAF data added 
 #' @export
 load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode", chr_col = "Chromosome", start_col = "Start_Position",
-                    ref_col = "Reference_Allele", tumor_allele_col = "guess", covered_regions = "exome",
+                    ref_col = "Reference_Allele", tumor_allele_col = "guess", coverage = "exome", covered_regions = NULL,
                     progression_col = NULL, chain_file = NULL) {
 
   need_to_liftOver = FALSE
@@ -44,9 +47,26 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
                 "Create a new CESAnalysis with \"progression_order\" specified to include this information."))
   }
   
-  if (is.null(covered_regions)) {
-    stop("You must supply covered_regions. For whole-exome/whole-genome data, use the default setting \"exome\".")
+  if (! is.character(coverage) | ! coverage %in% c("exome", "genome", "targeted")) {
+    stop("Argument coverage must be \"exome\", \"genome\", or \"targeted\"")
   }
+  
+  if (! is.null(covered_regions) & coverage == "genome") {
+    stop("covered_regions should be left NULL when coverage is \"genome\"")
+  }
+  if (is.null(covered_regions) & coverage == "targeted") {
+    stop("can't load targeted data without covered_regions (see docs)")
+  }
+  if (is.null(covered_regions) & coverage == "exome") {
+    if(! check_for_genome_data(cesa, "generic_exome_gr")) {
+      stop("This genome has no generic exome intervals, so to load exome data you must supply covered_regions (see docs)")
+    } else {
+      covered_regions = get_genome_data(cesa, "generic_exome_gr")
+      message(silver("Assuming this data has generic exome coverage (use the covered_regions argument if this isn't accurate)...."))
+    }
+  }
+  
+  
   
   select_cols = c(sample_col, chr_col, start_col, ref_col, progression_col)
   if (tumor_allele_col == "guess") {
@@ -97,8 +117,6 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
       maf = data.table(maf)
     }
   }
-  
-  
   missing_cols = character()
   input_maf_cols = colnames(maf)
   
@@ -192,7 +210,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   if(num_unvaried > 0) {
     maf = maf[!no_variant]
     warning(paste0(num_unvaried, " MAF records had tumor alleles identical to reference alleles; these were removed from analysis.\n"))
-    # To-do: put BSGenome reference check before this check, and then put failing record from this check into the excluded table
+    # To-do: put BSGenome reference check before this check, and then put failing records from this check into the excluded table
   }
   
   # collect tumor progression information
@@ -221,11 +239,12 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   
 
   # for now, coverage always "exome", but other options coming soon
-  new_samples = data.table(Unique_Patient_Identifier = maf$Unique_Patient_Identifier, coverage = "exome", progression_name = sample_progressions)
-  new_samples = new_samples[, .(progression_name = unique(progression_name), coverage = "exome"), by = "Unique_Patient_Identifier"]
+  new_samples = data.table(Unique_Patient_Identifier = maf$Unique_Patient_Identifier, progression_name = sample_progressions)
+  new_samples = new_samples[, .(progression_name = unique(progression_name)), by = "Unique_Patient_Identifier"]
 
   # associate each progression name with its chronological index (first progression stage is 1, next is 2, etc.)
   new_samples[, progression_index := sapply(progression_name, function(x) which(cesa@progressions == x)[1])]
+  new_samples[, coverage := coverage]
   
   # ensure no sample has an illegal progression
   bad_progressions = setdiff(new_samples[, unique(progression_name)], cesa@progressions)
@@ -306,7 +325,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
 
   # get coverage info for new samples and incorporate with any existing info
   coverage_update = cesa@coverage
-  if (class(covered_regions) == "character" && covered_regions[1] == "exome" && length(covered_regions) == 1) {
+  if (coverage == "exome" | (class(covered_regions) == "character" && covered_regions[1] == "exome" && length(covered_regions) == 1)) {
     if ("exome" %in% names(coverage_update$samples_by_coverage)) {
       coverage_update$samples_by_coverage[["exome"]] = c(coverage_update$samples_by_coverage[["exome"]], unique(maf[[sample_col]]))
     } else {

@@ -1,7 +1,7 @@
 prev_dir = setwd(system.file("tests/test_data/", package = "cancereffectsizeR"))
 
 # read in the MAF used for all the testing
-luad = load_maf(cesa = CESAnalysis(genome="hg19"), maf = "luad.hg19.maf.txt", sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2")
+luad = load_maf(cesa = CESAnalysis(genome="hg19"), maf = "luad.hg19.maf.txt", sample_col = "sample_id")
 
 # run all pre-processing and save for quick import
 luad = calc_baseline_mutation_rates(luad, covariate_file = "lung_pca", cores = 3)
