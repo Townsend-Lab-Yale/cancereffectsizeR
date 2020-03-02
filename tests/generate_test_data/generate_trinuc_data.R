@@ -5,7 +5,7 @@ small_maf = cesa@maf[Unique_Patient_Identifier %in% c("sample-15", "sample-102",
 # add in a recurrent mutation for testing purposes
 small_maf = rbind(small_maf, list("sample-15", "1", 226180249, "G", "A"))
 
-cesa = load_maf(cesa = CESAnalysis("hg19"), maf = small_maf, sample_col = "Unique_Patient_Identifier")
+cesa = load_maf(cesa = CESAnalysis("hg19"), maf = small_maf)
 saveRDS(cesa, "cesa_for_trinuc_weighting_calc.rds")
 trimut = trinucleotide_mutation_weights(cesa)
 saveRDS(trimut@trinucleotide_mutation_weights, "trinuc_mut_weighting.rds")
