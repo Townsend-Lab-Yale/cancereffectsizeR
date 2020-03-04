@@ -94,7 +94,14 @@ samples = function(cesa = NULL) {
     stop("\nUsage: samples(cesa), where cesa is a CESAnalysis")
   }
   if (cesa@samples[,.N] == 0) {
-    stop("No MAF data has been loaded yet, so naturally tere is no sample data.")
+    stop("No MAF data has been loaded yet, so naturally there is no sample data.")
+  }
+  
+  # user doesn't need progression columns for single-progression-state analyses
+  if(length(cesa@progressions) == 1) {
+    return(cesa@samples[, -c("progression_index", "progression_name")])
+  } else {
+    return(cesa@samples)
   }
   return(cesa@samples)
 }

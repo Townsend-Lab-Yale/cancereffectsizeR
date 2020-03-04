@@ -56,8 +56,10 @@ dndscv_preprocess = function(cesa, covariate_file = NULL) {
 
   # select MAF records to use for gene mutation rate calculation (via dNdScv)
   # for now, records from TGS samples are kept out; in the future, we could check out dNdScv's panel sequencing features
-  exome_samples = cesa@coverage$samples_by_coverage[["exome"]]
-  dndscv_maf = cesa@maf[cesa@maf$Unique_Patient_Identifier %in% exome_samples,]
+  dndscv_samples = cesa@samples[coverage == "exome" | coverage == "genome", Unique_Patient_Identifier]
+  
+  
+  dndscv_maf = cesa@maf[cesa@maf$Unique_Patient_Identifier %in% dndscv_samples,]
 
   dndscv_input = list()
   for (progression in cesa@progressions) {

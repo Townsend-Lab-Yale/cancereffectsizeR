@@ -30,7 +30,7 @@
 #' @param v3_artifact_accounting when COSMIC v3 signatures associated with sequencing artifacts are detected, renormalizes to isolate "true" sources of mutational flux.
 #' @param signatures_to_remove specify any signatures to exclude from analysis; some signatures automatically get excluded
 #'     from COSMIC v3 analyses; set to signatures_to_remove="none" to prevent this behavior (and )
-#' @param v3_exome_hypermutation_rules T/F on whether to follow the mutation count rules outlined in https://doi.org/10.1101/322859, the manuscript reported the v3 COSMIC signature set.
+#' @param v3_hypermutation_rules T/F on whether to follow the mutation count rules outlined in https://doi.org/10.1101/322859, the manuscript reported the v3 COSMIC signature set.
 #'
 #' @export
 #'
@@ -42,7 +42,7 @@ trinucleotide_mutation_weights <- function(cesa,
                                            remove_recurrent = TRUE,
                                            signature_choice = "cosmic_v3",
                                            v3_artifact_accounting = TRUE,
-                                           v3_exome_hypermutation_rules = TRUE,
+                                           v3_hypermutation_rules = TRUE,
                                            signatures_to_remove = "" # cosmic_v3 analysis gets signatures added here later unless "none"
                                            ){
 
@@ -73,8 +73,8 @@ trinucleotide_mutation_weights <- function(cesa,
         message(crayon::black("Sequencing artifact signatures will be subtracted to isolate true mutational processes (disable with v3_artifact_accounting=FALSE)."))
         v3_artifact_accounting = TRUE
       }
-      if (v3_exome_hypermutation_rules) {
-        message(crayon::black("Samples with many variants will have special exome hypermutation rules applied (disable with v3_exome_hypermutation_rules=FALSE)."))
+      if (v3_hypermutation_rules) {
+        message(crayon::black("Samples with many variants will have special exome hypermutation rules applied (disable with v3_hypermutation_rules=FALSE)."))
       }
       if(length(signatures_to_remove) == 1 && signatures_to_remove == "") {
         signatures_to_remove = c("SBS25","SBS31","SBS32","SBS35")
@@ -114,14 +114,9 @@ trinucleotide_mutation_weights <- function(cesa,
 
   # can't apply our COSMIC v3 enhancements unless we're using those signatures, naturally
   if(! running_cosmic_v3) {
-    v3_exome_hypermutation_rules = FALSE
+    v3_hypermutation_rules = FALSE
     v3_artifact_accounting = FALSE
   }
-
-  #
-  # TODO: really, averages should be averages of weight, and then product is calculated
-  # individually per tumor, as opposed to average product and average rate.
-
 
   bases = c('A', 'T', 'C', 'G')
   ds_maf = cesa@maf[Reference_Allele %in% bases & Tumor_Allele %in% bases]
@@ -151,6 +146,8 @@ trinucleotide_mutation_weights <- function(cesa,
 
 
   tri.counts.genome = get_genome_data(cesa, "tri.counts.genome")
+  
+  
   tri.counts.exome = get_genome_data(cesa, "tri.counts.exome")
   norm_df = tri.counts.genome / tri.counts.exome # see deconstructSigs docs; equivalent method to exome2genome
   
@@ -209,12 +206,23 @@ trinucleotide_mutation_weights <- function(cesa,
     current_sigs_to_remove = signatures_to_remove
     
     # To-do: for WGS data, thresholds are 10^5 and 10^4, respectively
-    if (v3_exome_hypermutation_rules) {
-      if(num_variants < 2000) {
-        current_sigs_to_remove = union(current_sigs_to_remove, cosmic_v3_highly_hm_sigs)
-      }
-      if(num_variants < 200) {
-        current_sigs_to_remove = union(current_sigs_to_remove, cosmic_v3_modest_hm_sigs)
+    if (v3_hypermutation_rules) {
+      # apply hypermuation rules
+      if (cesa@samples[tumor_name, coverage] == "exome") {
+        if(num_variants < 2000) {
+          current_sigs_to_remove = union(current_sigs_to_remove, cosmic_v3_highly_hm_sigs)
+        }
+        if(num_variants < 200) {
+          current_sigs_to_remove = union(current_sigs_to_remove, cosmic_v3_modest_hm_sigs)
+        }
+      } else {
+        # if not exome, must be genome, since TGS data not used in this function
+        if(num_variants < 10^5) {
+          current_sigs_to_remove = union(current_sigs_to_remove, cosmic_v3_highly_hm_sigs)
+        }
+        if(num_variants < 10^4) {
+          current_sigs_to_remove = union(current_sigs_to_remove, cosmic_v3_modest_hm_sigs)
+        }
       }
     }
     ds = cancereffectsizeR::run_deconstructSigs(tumor_trinuc_counts = tumor_trinuc_counts, tri.counts.method = norm_df,
@@ -222,7 +230,7 @@ trinucleotide_mutation_weights <- function(cesa,
     return(list(list(signatures_output = ds[[1]], substitution_count = num_variants), ds[[2]]))
   }
 
-  tumor_names = rownames(trinuc_breakdown_per_tumor)
+  tumor_names = cesa@samples[, Unique_Patient_Identifier]
   ds_output = pbapply::pblapply(tumor_names, process_tumor, cl = cores)
 
   # store results
@@ -271,7 +279,7 @@ trinucleotide_mutation_weights <- function(cesa,
       # out when calculating the "true" relative trinucleotide SNV mutation rates
       # however, they are left in for the "all_average" method in the spirit of assuming all tumors have same mutational processes
       mean_calc_artifact_signatures = artifact_signatures
-      if (v3_exome_hypermutation_rules && algorithm_choice == "weighted") {
+      if (v3_hypermutation_rules && algorithm_choice == "weighted") {
         mean_calc_artifact_signatures = unique(c(artifact_signatures, cosmic_v3_modest_hm_sigs, cosmic_v3_highly_hm_sigs))
       }
       

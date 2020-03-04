@@ -40,5 +40,23 @@ test_that("Progression stage handling", {
   # Absence of a declared progression state in the data triggers a warning
   expect_warning(load_maf(multistage, maf = fread(bad_maf)[2:4,], progression_col = "stage"), "they weren't present in the MAF data")
   
+})
+
+
+test_that("Coverage arguments", {
+  tiny = CESAnalysis("hg19")
+  maf = data.table() # coverage arguments get validated before data actually loaded in load_maf 
+  expect_error(load_maf(tiny, maf = maf, coverage = c("genome", "hi")), 
+               "coverage must be \"exome")
+  expect_error(load_maf(tiny, maf = maf, coverage = NULL),
+               "coverage must be \"exome")
+  expect_error(load_maf(tiny, maf = maf, covered_regions_name = "exome"),
+               "covered_regions_name was supplied, but covered_regions wasn't")
+  expect_error(load_maf(tiny, maf = maf, covered_regions = data.table()),
+               "You must supply a name for your covered_regions")
+  expect_error(load_maf(tiny, maf = maf, coverage = "genome", covered_regions = data.table(), covered_regions_name = "hi"),
+               "covered_regions should be left NULL when coverage is \"genome")
+  expect_error(load_maf(tiny, maf = maf, coverage = "targeted"), 
+               "can't load targeted data without covered_regions")
   
 })
