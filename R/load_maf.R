@@ -99,10 +99,10 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     
     if("exome+" %in% names(cesa@coverage)) {
       covered_regions_name = "exome+"
-      covered_regions_name = cesa@coverage[["exome+"]]
+      covered_regions = cesa@coverage[["exome+"]]
     } else {
-      covered_regions = get_genome_data(cesa, "generic_exome_gr")
       covered_regions_name = "exome"
+      covered_regions = get_genome_data(cesa, "generic_exome_gr")
     }
     
     using_generic_exome = TRUE

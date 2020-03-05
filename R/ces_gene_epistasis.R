@@ -109,13 +109,13 @@ epistasis_gene_level = function(genes_to_analyze,
     variant2 <- variant_combo_list[2]
 
     bases = c("A","T","G","C") 
-    MAF_input1=data.frame(MAF[Gene_name == variant1 &
+    MAF_input1= MAF[Gene_name == variant1 &
                      Reference_Allele %in% bases &
-                     Tumor_Allele %in% bases])
+                     Tumor_Allele %in% bases]
 
-    MAF_input2=data.frame(MAF[Gene_name == variant2 &
+    MAF_input2= MAF[Gene_name == variant2 &
                      Reference_Allele %in% bases &
-                     Tumor_Allele %in% bases])
+                     Tumor_Allele %in% bases]
     
     # when including target gene sequencing data, need to throw out any samples that don't have coverage at ALL variant sites in these genes
     # this could be a problem if some of the "exome" samples are actually whole-genome if they haven't been trimmed strictly enough
@@ -124,16 +124,16 @@ epistasis_gene_level = function(genes_to_analyze,
     eligible_tumors = all_tumors # samples without coverage at all sites will get intersected out
     for (maf in list(MAF_input1, MAF_input2)) {
       for (i in 1:nrow(maf)) {
-        current_locus = GenomicRanges::makeGRangesFromDataFrame(maf[i,], seqnames.field = "Chromosome",
-                                                                start.field = "Start_Position", end.field = "Start_Position")
-        tumors_covering_locus = cancereffectsizeR:::get_tumors_with_coverage(coverage = cesa@coverage, locus = current_locus)
-        eligible_tumors = intersect(eligible_tumors, tumors_covering_locus) 
+        site_coverage = unlist(maf[i, covered_in]) # this returns a character vector naming the covered regions with coverage
+        tumors_covering_locus = cesa@samples[covered_regions %in% site_coverage, Unique_Patient_Identifier]
+        eligible_tumors = intersect(eligible_tumors, tumors_covering_locus)
       }
     }
     
     # restrict MAFs to eligible tumors
-    MAF_input1 = MAF_input1[MAF_input1$Unique_Patient_Identifier %in% eligible_tumors,]
-    MAF_input2 = MAF_input2[MAF_input2$Unique_Patient_Identifier %in% eligible_tumors,]
+    # temporarily make data.frame for compatibility
+    MAF_input1 = data.frame(MAF_input1[Unique_Patient_Identifier %in% eligible_tumors,])
+    MAF_input2 = data.frame(MAF_input2[Unique_Patient_Identifier %in% eligible_tumors,])
     
     variant_freq_1 <- table(MAF_input1$unique_variant_ID_AA)
     variant_freq_2 <- table(MAF_input2$unique_variant_ID_AA)

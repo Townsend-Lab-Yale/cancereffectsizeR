@@ -1,6 +1,8 @@
-#' Annotates the SNV MAF with gene information, keeping assignments consistent with dndscv when possible
+#' annotate_gene_maf
+#' 
+#' Annotates CESAnaysis MAF data with gene information, keeping assignments consistent with dndscv when possible
 #'
-#'
+#' @importFrom IRanges "%within%"
 #' @param cesa CESAnalysis object
 #' @export
 annotate_gene_maf <- function(cesa) {
@@ -189,6 +191,21 @@ annotate_gene_maf <- function(cesa) {
 	  bad_trinuc_context_maf$Exclusion_Reason = "ambiguous_trinuc_context"
 	  cesa@excluded = rbind(cesa@excluded, bad_trinuc_context_maf)
 	}
+	
+	# record which covered_regions granges cover each mutation
+	maf_gr = GenomicRanges::makeGRangesFromDataFrame(MAF, seqnames.field = "Chromosome", start.field = "Start_Position",  end.field = "Start_Position")
+	
+	# test each MAF locus against all coverage grs
+	# this returns a data frame where rows match MAF rows, columns are T/F for each coverage gr
+	is_covered = as.data.table(lapply(cesa@coverage, function(x) maf_gr %within% x))
+	
+	# get the names of coverage grs with coverage for each site (and add in genome, which covers every site)
+	grs_with_coverage = apply(is_covered, 1, function(x) c(names(which(x == TRUE)), "genome"))
+	
+	# Note that when exome+ coverage (see load_maf) is used, samples can have both "exome" and "exome+" associated with their mutations,
+	# but the samples thmeslves are considered "exome+" (be careful not to double-count these if developing something new)
+	MAF[,covered_in := grs_with_coverage]
+	
 	
 	# drop annotmuts info since it's already been used here (and it takes up a lot of memory)
 	lapply(cesa@dndscv_out_list, function(x) x$annotmuts = NULL)

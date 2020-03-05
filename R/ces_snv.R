@@ -97,13 +97,11 @@ get_gene_results <- function(gene, cesa, all_tumors, find_CI) {
     # use the first matching record as the locus 
     # (will assume that for amino acid variants, coverage at one site in codon implies coverage for whole codon)
     variant_maf = current_gene_maf[unique_variant_ID_AA == variant] # no need to subset further because already dealing with a gene-specific MAF
-    current_locus = GenomicRanges::makeGRangesFromDataFrame(variant_maf[1,], 
-                                                            seqnames.field = "Chromosome",
-                                                            start.field = "Start_Position", 
-                                                            end.field = "Start_Position")
-    eligible_tumors = cancereffectsizeR:::get_tumors_with_coverage(coverage = cesa@coverage, locus = current_locus)
+    # covered_in is a 1-item list with a character vector of coverage_grs that cover the variant site
+    site_coverage = unlist(variant_maf[1, covered_in])
+    eligible_tumors = cesa@samples[covered_regions %in% site_coverage, Unique_Patient_Identifier]
+    
     # edge case: toss out tumors that do not have any SNVs to analyze
-    # e.g., a tumor only has indels so it's not in snv.maf, but it gets returned by get_tumors_with_coverage
     eligible_tumors = eligible_tumors[eligible_tumors %in% all_tumors]
     
     # given the tumors with coverage, their mutation rates at the variant sites, and their mutation status,

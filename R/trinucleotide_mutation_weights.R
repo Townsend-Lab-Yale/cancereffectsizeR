@@ -230,7 +230,7 @@ trinucleotide_mutation_weights <- function(cesa,
     return(list(list(signatures_output = ds[[1]], substitution_count = num_variants), ds[[2]]))
   }
 
-  tumor_names = cesa@samples[, Unique_Patient_Identifier]
+  tumor_names = rownames(trinuc_breakdown_per_tumor)
   ds_output = pbapply::pblapply(tumor_names, process_tumor, cl = cores)
 
   # store results
