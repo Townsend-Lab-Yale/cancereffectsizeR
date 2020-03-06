@@ -156,14 +156,14 @@ trinucleotide_mutation_weights <- function(cesa,
   trinuc = BSgenome::getSeq(cesa@genome, ds_maf$Chromosome, ds_maf$Start_Position - 1, ds_maf$Start_Position + 1, as.character = T)
   
   # internal dict converts trinuc/mut (e.g., GTA:C) into deconstructSigs format ("G[T>C]A")
-  ds_muts = trinuc_translator[paste0(trinuc, ":", ds_maf$Tumor_Allele), "deconstructSigs_format"]
-  samples = ds_maf[,unique(Unique_Patient_Identifier)]
-  counts = matrix(data = 0, nrow = length(samples), ncol = 96, dimnames = list(samples, deconstructSigs_trinuc_string))
-  for (i in 1:nrow(ds_maf)) {
-    counts[ds_maf[i, Unique_Patient_Identifier], ds_muts[i]] = counts[ds_maf[i, Unique_Patient_Identifier], ds_muts[i]] + 1
-  }
-  trinuc_breakdown_per_tumor = as.data.frame(counts)
+  ds_muts = factor(trinuc_translator[paste0(trinuc, ":", ds_maf$Tumor_Allele), "deconstructSigs_format"], levels = deconstructSigs_trinuc_string)
+  
+  # mysteriously convert two-way table to data frame
+  tmp = table(ds_maf$Unique_Patient_Identifier, ds_muts)
+  counts = apply(tmp, 2, rbind)
+  rownames(counts) = rownames(tmp)
 
+  trinuc_breakdown_per_tumor = as.data.frame(counts)
 
   # algorithms ----
   if(signature_choice == "signatures_cosmic_May2019"){
