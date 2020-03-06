@@ -11,7 +11,6 @@
 #'
 #' @return The optimal selection intensity for the gene and variant that maximizes the likelihood of the observations
 #'
-#' @examples
 
 optimize_gamma <- function(MAF_input, eligible_tumors, progressions, samples, gene, variant, specific_mut_rates) {
   par_init <- rep(1000,length=length(progressions))

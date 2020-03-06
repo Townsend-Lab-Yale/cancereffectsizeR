@@ -10,7 +10,6 @@
 #'
 #' @return The optimal selection intensity for the gene and variant that maximizes the likelihood of the observations
 #'
-#' @examples
 optimize_gamma_epistasis <- function(MAF_input1,
                            MAF_input2,
                            all_tumors,

@@ -11,7 +11,7 @@ trinucleotide_mutation_weights(
   remove_recurrent = TRUE,
   signature_choice = "cosmic_v3",
   v3_artifact_accounting = TRUE,
-  v3_exome_hypermutation_rules = TRUE,
+  v3_hypermutation_rules = TRUE,
   signatures_to_remove = ""
 )
 }
@@ -37,7 +37,7 @@ distribution profile of the low substitution tumor as determined by a distance m
 
 \item{v3_artifact_accounting}{when COSMIC v3 signatures associated with sequencing artifacts are detected, renormalizes to isolate "true" sources of mutational flux.}
 
-\item{v3_exome_hypermutation_rules}{T/F on whether to follow the mutation count rules outlined in https://doi.org/10.1101/322859, the manuscript reported the v3 COSMIC signature set.}
+\item{v3_hypermutation_rules}{T/F on whether to follow the mutation count rules outlined in https://doi.org/10.1101/322859, the manuscript reported the v3 COSMIC signature set.}
 
 \item{signatures_to_remove}{specify any signatures to exclude from analysis; some signatures automatically get excluded
 from COSMIC v3 analyses; set to signatures_to_remove="none" to prevent this behavior (and )}

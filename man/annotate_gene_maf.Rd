@@ -2,7 +2,7 @@
 % Please edit documentation in R/annotate_gene_maf.R
 \name{annotate_gene_maf}
 \alias{annotate_gene_maf}
-\title{Annotates the SNV MAF with gene information, keeping assignments consistent with dndscv when possible}
+\title{annotate_gene_maf}
 \usage{
 annotate_gene_maf(cesa)
 }
@@ -10,5 +10,5 @@ annotate_gene_maf(cesa)
 \item{cesa}{CESAnalysis object}
 }
 \description{
-Annotates the SNV MAF with gene information, keeping assignments consistent with dndscv when possible
+Annotates CESAnaysis MAF data with gene information, keeping assignments consistent with dndscv when possible
 }

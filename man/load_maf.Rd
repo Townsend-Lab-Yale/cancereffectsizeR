@@ -12,9 +12,12 @@ load_maf(
   start_col = "Start_Position",
   ref_col = "Reference_Allele",
   tumor_allele_col = "guess",
-  covered_regions = "exome",
+  coverage = "exome",
+  covered_regions = NULL,
+  covered_regions_name = NULL,
   progression_col = NULL,
-  chain_file = NULL
+  chain_file = NULL,
+  enforce_generic_exome_coverage = FALSE
 )
 }
 \arguments{
@@ -22,25 +25,31 @@ load_maf(
 
 \item{maf}{Path of tab-delimited text file in MAF format, or an MAF in data.table or data.frame format}
 
-\item{sample_col}{column name with sample ID data}
+\item{sample_col}{column name with sample ID data (Tumor_Sample_Barcode or Unique_Patient_Identifier)}
 
-\item{chr_col}{column name with chromosome data}
+\item{chr_col}{column name with chromosome data  (Chromosome)}
 
-\item{start_col}{column name with start position ( currently only analyze SNVs, so no end position needed)}
+\item{start_col}{column name with start position (Start_Position)}
 
-\item{ref_col}{column name with reference allele data}
+\item{ref_col}{column name with reference allele data (Reference_Allele)}
 
-\item{tumor_allele_col}{column name with alternate allele data (defaults to "guess", which examines ref_col,
-"Tumor_Seq_Allele1", and "Tumor_Seq_Allele2" and determines from there)}
+\item{tumor_allele_col}{column name with alternate allele data (default uses Tumor_Seq_Allele2 and Tumor_Seq_Allele1 if present)}
 
-\item{covered_regions}{for panel sequencing data, a BED file of covered interals, or a data frame with first three columns chr, start (1-based), end (inclusive)}
+\item{coverage}{exome, genome, or targeted (default exome)}
 
-\item{progression_col}{column in MAF with subset data (e.g., column contains data like "Primary" and "Metastatic" in each row)}
+\item{covered_regions}{optional for exome, required for targeted: a GRanges object or a BED file of covered intervals matching the CESAnalysis genome}
+
+\item{covered_regions_name}{a name describing the covered regions (e.g., "my_custom_targeted_regions"); required when covered_regions are supplied}
+
+\item{progression_col}{column in MAF with tumor progression state (see readme)}
 
 \item{chain_file}{a chain file (text format, name ends in .chain) to convert MAF records to the genome build used in the CESAnalysis}
+
+\item{enforce_generic_exome_coverage}{when loading generic exome data, exclude records that aren't covered in the (somewhat arbitrary)
+generic exome intervals included with CES genome reference data (default FALSE)}
 }
 \value{
-CESAnalysis object with somewhat cleaned-up MAF data added
+CESAnalysis object with the specified MAF data loaded (in addition to any previously loaded data)
 }
 \description{
 Load MAF-formatted mutation data into a CESAnalysis object (the core cancereffectsizeR object)

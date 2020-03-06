@@ -15,7 +15,13 @@ ml_objective_epistasis_full_gene(
 \arguments{
 \item{par}{A selection intensity at which to calculate the likelihood}
 
-\item{with_neither}{}
+\item{with_just_1}{vector of tumors with mutation in just the first gene}
+
+\item{with_just_2}{vector of tumors with mutation in just the second gene}
+
+\item{with_both}{vector of tumors with mutations in both genes}
+
+\item{with_neither}{vector of tumors with no mutations in either gene}
 }
 \value{
 A log likelihood value

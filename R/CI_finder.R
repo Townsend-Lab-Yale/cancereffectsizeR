@@ -12,7 +12,6 @@
 #'
 #' @return
 #'
-#' @examples
 CI_finder <- function(gamma_max,
                       eligible_tumors,
                       MAF_input,

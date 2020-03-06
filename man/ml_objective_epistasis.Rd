@@ -9,8 +9,6 @@ ml_objective_epistasis(
   MAF_input1,
   MAF_input2,
   all_tumors,
-  gene1,
-  gene2,
   variant1,
   variant2,
   specific_mut_rates1,
@@ -20,15 +18,19 @@ ml_objective_epistasis(
 \arguments{
 \item{gamma}{A selection intensity at which to calculate the likelihood}
 
+\item{MAF_input1}{A data frame that includes columns "Unique_patient_identifier", "Gene_name", and "unique_variant_ID_AA"}
+
+\item{MAF_input2}{A data frame that includes columns "Unique_patient_identifier", "Gene_name", and "unique_variant_ID_AA"}
+
 \item{all_tumors}{A list of all the tumors we are calculating the likelihood across}
 
-\item{MAF_input}{A data frame that includes columns "Unique_patient_identifier", "Gene_name", and "unique_variant_ID_AA"}
+\item{variant1}{one variant in epistatic analysis}
 
-\item{gene}{The gene we want to look at}
+\item{variant2}{the other}
 
-\item{variant}{The variant we want to look at}
+\item{specific_mut_rates1}{site and tumor specific mutation rates (matrix: rows = tumors, columns = variants; produced by mutation_rate_calc)}
 
-\item{specific_mut_rates}{A matrix of site and tumor specific mutation rates where the rows correspond to tumors and the columns to variants (produced by mutation_rate_calc)}
+\item{specific_mut_rates2}{site and tumor specific mutation rates (matrix: rows = tumors, columns = variants; produced by mutation_rate_calc)}
 }
 \value{
 A log likelihood value
