@@ -34,8 +34,6 @@ run_deconstructSigs = function(tumor_trinuc_counts, signatures_df, signatures_to
   # We remove artifact signatures and renormalize so that we can
   # determine mutational flux in tumor from true sources
   if(! is.null(artifact_signatures)) {
-    # parse artifact signatures from signatures_names_matrix in package data 
-    artifact_signatures <- signatures_names_matrix[startsWith(x = signatures_names_matrix[,2], prefix = "*"),1]
     if(any(signatures_output$weights[artifact_signatures] > 0 )){
       # often, sum of best estimation of signatures is < 1.
       # will renormalize to this original total explanation of weight.

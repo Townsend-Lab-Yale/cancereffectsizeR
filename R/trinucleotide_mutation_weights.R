@@ -20,11 +20,8 @@
 #'   rates directly from deconstructSigs, and tumors with < 50 substitutions have that rate weighted
 #'   by the average of all tumors >= 50 substitutions relative to the substitution count < 50 in those tumors.
 #'   Other options currently include `all_average`, where all tumors have a mutation rate equal to the
-#'   average of all tumors >= 50 substitutions, `nearest_neighbor` where all tumors <50 substitutions
-#'   have the mutation rate of the tumor with >=50 substitutions closest to the mutational
-#'   distribution profile of the low substitution tumor as determined by a distance matrix, and
+#'   average of all tumors >= 50 substitutions, and
 #'   `all_calculated`, where all tumors have the mutation rate from the deconstructSigs output regardless of substitution number.
-#' @param remove_recurrent if TRUE (default), removes recurrent variants from signature analysis
 #' @param signature_choice "cosmic_v3" (default), "cosmic_v2", or a properly-formatted data frame with of trinucleotide signatures 
 #'        (if using cosmic_v3, just leave option default instead of passing your own data frame, or you'll get improper behavior)
 #' @param v3_artifact_accounting when COSMIC v3 signatures associated with sequencing artifacts are detected, renormalizes to isolate "true" sources of mutational flux.
@@ -39,14 +36,13 @@
 trinucleotide_mutation_weights <- function(cesa,
                                            cores = 1,
                                            algorithm_choice = "weighted",
-                                           remove_recurrent = TRUE,
                                            signature_choice = "cosmic_v3",
                                            v3_artifact_accounting = TRUE,
                                            v3_hypermutation_rules = TRUE,
                                            signatures_to_remove = "" # cosmic_v3 analysis gets signatures added here later unless "none"
                                            ){
 
-  algorithms = c("weighted", "all_average", "nearest_neighbor", "all_calculated")
+  algorithms = c("weighted", "all_average", "all_calculated")
   if(! "character" %in% class(algorithm_choice) || ! algorithm_choice %in% algorithms ) {
     stop(paste0("algorithm_choice (for dealing with samples with fewer than 50 variants) must be one of ", paste(algorithms, collapse = ", ")))
   }
@@ -120,26 +116,33 @@ trinucleotide_mutation_weights <- function(cesa,
 
   bases = c('A', 'T', 'C', 'G')
   ds_maf = cesa@maf[Reference_Allele %in% bases & Tumor_Allele %in% bases]
-  if(remove_recurrent){
-    # remove all recurrent SNVs (SNVs appearing in more than one sample)
-    duplicated_vec_first <- duplicated(ds_maf[,.(Chromosome, Start_Position, Tumor_Allele)])
-    duplicated_vec_last <- duplicated(ds_maf[,.(Chromosome, Start_Position, Tumor_Allele)],fromLast=T)
-    duplicated_vec_pos <- which(duplicated_vec_first | duplicated_vec_last)
-    if (length(duplicated_vec_pos) > 0) {
-      ds_maf <- ds_maf[-duplicated_vec_pos,]
-    }
-  }
-  
 
-  all_tumors = unique(cesa@maf$Unique_Patient_Identifier) # may include some tumors with no SNVs, or with only recurrent SNVs
-  tumors_with_a_mutation_rate <- unique(ds_maf$Unique_Patient_Identifier)
-  tumors_with_only_recurrent_mutations = setdiff(all_tumors, tumors_with_a_mutation_rate)
+  # remove all recurrent SNVs (SNVs appearing in more than one sample)
+  duplicated_vec_first <- duplicated(ds_maf[,.(Chromosome, Start_Position, Tumor_Allele)])
+  duplicated_vec_last <- duplicated(ds_maf[,.(Chromosome, Start_Position, Tumor_Allele)],fromLast=T)
+  duplicated_vec_pos <- which(duplicated_vec_first | duplicated_vec_last)
+  if (length(duplicated_vec_pos) > 0) {
+    ds_maf <- ds_maf[-duplicated_vec_pos,]
+  }
+
+
+  all_tumors = cesa@samples$Unique_Patient_Identifier # may include some tumors with no SNVs, or with only recurrent SNVs
+  
+  # can only find signatures in tumors with exome/genome data that have non-recurrent SNVs
+  tumors_eligible_for_trinuc_calc = intersect(cesa@samples[coverage != "targeted", Unique_Patient_Identifier], unique(ds_maf$Unique_Patient_Identifier))
+  tumors_needing_group_average_rates = setdiff(all_tumors, tumors_eligible_for_trinuc_calc)
+  
+  # subset to just the tumors that will be run through deconstructSigs
+  ds_maf = ds_maf[Unique_Patient_Identifier %in% tumors_eligible_for_trinuc_calc]
+  
   substitution_counts = table(ds_maf$Unique_Patient_Identifier)
   tumors_with_50_or_more = names(which(substitution_counts>=50))
-  tumors_with_less_than_50 = setdiff(tumors_with_a_mutation_rate, tumors_with_50_or_more)
-
+  
+  # tumors with < 50 SNVs that are eligible for deconstructSigs (which means weighting methods can be applied)
+  tumors_with_less_than_50 = names(which(substitution_counts<50))
+  
   if (any(substitution_counts < 50)) {
-    message(crayon::black(paste0("Note: ", length(tumors_with_less_than_50), " of ", length(tumors_with_a_mutation_rate),
+    message(crayon::black(paste0("Note: ", length(tumors_with_less_than_50), " of ", length(tumors_eligible_for_trinuc_calc),
       " tumor samples have fewer than 50 mutations. Mutational signature weightings for these samples ",
       "will be determined using the \"", algorithm_choice, "\" method (see documentation).")))
   }
@@ -147,9 +150,31 @@ trinucleotide_mutation_weights <- function(cesa,
 
   tri.counts.genome = get_genome_data(cesa, "tri.counts.genome")
   
+  # for each exome coverage gr (besides default generic, which is pre-calculated), tabulate trinucs
+  exome_counts_by_gr = list()
+  exomes_to_calc = cesa@samples[coverage == "exome", unique(covered_regions)]
+  for (exome_name in exomes_to_calc) {
+    if (exome_name %in% c("exome", "exome+")) {
+      exome_counts_by_gr[[exome_name]] = get_genome_data(cesa, "tri.counts.exome")
+    } else {
+      exome_seq = getSeq(cesa@genome, cesa@coverage[[exome_name]])
+      exome_tri_contexts = Biostrings::trinucleotideFrequency(exome_seq)
+      exome_tri_contexts = colSums(exome_tri_contexts)
+      
+      # deconstructSigs_trinuc_string is internal in cancereffectsizeR
+      # here, we need unique trinucleotide contexts (without mutations) in deconstructSigs ordering,
+      # which is why we produce this by converting from their column headings
+      context_names = unique(sub("\\[([ACTG]).*\\]", "\\1", deconstructSigs_trinuc_string))
+      context_names = sort(context_names)
+      reverse_complement_names = unique(as.character(Biostrings::reverseComplement(Biostrings::DNAStringSet(context_names))))
+      
+      # reorder the counts as desired, then save as a data frame since that's what deconstructSigs wants
+      exome_counts = exome_tri_contexts[context_names] + exome_tri_contexts[reverse_complement_names]
+      exome_counts = data.frame(x = exome_counts)
+      exome_counts_by_gr[[exome_name]] = exome_counts
+    }
+  }
   
-  tri.counts.exome = get_genome_data(cesa, "tri.counts.exome")
-  norm_df = tri.counts.genome / tri.counts.exome # see deconstructSigs docs; equivalent method to exome2genome
   
   # build the data.frame required by deconstructSigs (and probably similar to what is required by most other SNV signature software)
   # rows are samples, columns are counts of each of 96 trinuc-context-specific mutations in the order expected by deconstructSigs
@@ -162,7 +187,6 @@ trinucleotide_mutation_weights <- function(cesa,
   tmp = table(ds_maf$Unique_Patient_Identifier, ds_muts)
   counts = apply(tmp, 2, rbind)
   rownames(counts) = rownames(tmp)
-
   trinuc_breakdown_per_tumor = as.data.frame(counts)
 
   # algorithms ----
@@ -198,11 +222,10 @@ trinucleotide_mutation_weights <- function(cesa,
     tumor_trinuc_counts = as.data.frame(trinuc_breakdown_per_tumor[tumor_name,]) # deconstructSigs requires a data.frame
     num_variants = sum(tumor_trinuc_counts)
 
-    # Apply exome hypermuation rules if using
+    # Apply hypermuation rules if using
     ### If tumor is evidently not hypermutated, remove hypermutation-associated signatures from consideration
     ### Note: Assignment rules for hypermutator tumors found in
     ### "SigProfiler_signature_assignment_rules" supp data here: https://doi.org/10.1101/322859
-    ### (These rules are for whole-exome, not whole-genome. Different rules apply then, also in that supp data.)
     current_sigs_to_remove = signatures_to_remove
     
     # To-do: for WGS data, thresholds are 10^5 and 10^4, respectively
@@ -225,13 +248,17 @@ trinucleotide_mutation_weights <- function(cesa,
         }
       }
     }
-    ds = cancereffectsizeR::run_deconstructSigs(tumor_trinuc_counts = tumor_trinuc_counts, tri.counts.method = norm_df,
-                                                signatures_df = signatures, signatures_to_remove = current_sigs_to_remove, artifact_signatures = artifact_signatures)
-    return(list(list(signatures_output = ds[[1]], substitution_count = num_variants), ds[[2]]))
+    if (cesa@samples[tumor_name, coverage] == "genome") {
+      normalization = "default" # this actually means no normalization (since signatures and MAF coverage are both whole-genome)
+    } else {
+      normalization = tri.counts.genome / exome_counts_by_gr[[cesa@samples[tumor_name, covered_regions]]]
+    }
+    
+    return(cancereffectsizeR::run_deconstructSigs(tumor_trinuc_counts = tumor_trinuc_counts, tri.counts.method = normalization,
+                                                signatures_df = signatures, signatures_to_remove = current_sigs_to_remove, artifact_signatures = artifact_signatures))
   }
 
-  tumor_names = rownames(trinuc_breakdown_per_tumor)
-  ds_output = pbapply::pblapply(tumor_names, process_tumor, cl = cores)
+  ds_output = pbapply::pblapply(tumors_eligible_for_trinuc_calc, process_tumor, cl = cores)
 
   # store results
   # matrix with rows = tumors, columns = relative rates of mutation for each trinuc SNV (starts empty)
@@ -240,9 +267,9 @@ trinucleotide_mutation_weights <- function(cesa,
   signatures_output_list = list()
   zeroed_out_tumors = character() # for tumors that get all zero signature weights (rare)
   for(i in 1:length(ds_output)) {
-    tumor_name = tumor_names[i]
+    tumor_name = tumors_eligible_for_trinuc_calc[i]
     ds = ds_output[[i]]
-    if(all(ds[[1]]$signatures_output$product == 0)) {
+    if(all(ds[[1]]$product == 0)) {
       zeroed_out_tumors = c(zeroed_out_tumors, tumor_name)
     }
     signatures_output_list[[tumor_name]] = ds[[1]]
@@ -253,21 +280,14 @@ trinucleotide_mutation_weights <- function(cesa,
   # handle rare occurrence of zeroed-out tumors
   tumors_with_50_or_more = setdiff(tumors_with_50_or_more, zeroed_out_tumors)
   tumors_with_less_than_50 = setdiff(tumors_with_less_than_50, zeroed_out_tumors)
-  tumors_with_a_mutation_rate = setdiff(tumors_with_a_mutation_rate, zeroed_out_tumors)
+  tumors_eligible_for_trinuc_calc = setdiff(tumors_eligible_for_trinuc_calc, zeroed_out_tumors)
 
 
   # If any samples have <50 mutations, determine weightings for those samples using method specified by user
   # Note there's nothing more to do if choice was "all_calculated"
   if(length(tumors_with_less_than_50) > 0) {
-    # nearest_neighbor method falls back to using a 50+ average weighting for zeroed-out tumors and those with
     # only recurrent mutations
-    nearest_neighbor_needs_mean = FALSE
-    if(algorithm_choice == "nearest_neighbor") {
-      if(length(zeroed_out_tumors) > 0 || length(tumors_with_only_recurrent_mutations) > 0) {
-        nearest_neighbor_needs_mean = TRUE
-      }
-    }
-    if (algorithm_choice %in% c("weighted", "all_average") || nearest_neighbor_needs_mean) {
+    if (algorithm_choice %in% c("weighted", "all_average")) {
       mean_trinuc_prop = colMeans(trinuc_proportion_matrix[tumors_with_50_or_more, , drop = F])
 
       # convert to data frame because that's what deconstructSigs wants
@@ -283,8 +303,9 @@ trinucleotide_mutation_weights <- function(cesa,
         mean_calc_artifact_signatures = unique(c(artifact_signatures, cosmic_v3_modest_hm_sigs, cosmic_v3_highly_hm_sigs))
       }
       
+      
       mean_ds <- cancereffectsizeR::run_deconstructSigs(tumor_trinuc_counts = mean_trinuc_prop, signatures_df = signatures, 
-                                                        signatures_to_remove = signatures_to_remove, tri.counts.method = norm_df,
+                                                        signatures_to_remove = signatures_to_remove, tri.counts.method = tri.counts.genome / get_genome_data(cesa, "tri.counts.exome"),
                                                         artifact_signatures = mean_calc_artifact_signatures)[[1]] # just need signatures_output element
       mean_weights <- mean_ds$weights
       # this should never happen
@@ -296,10 +317,10 @@ trinucleotide_mutation_weights <- function(cesa,
           own_weighting = substitution_counts[tumor] / 50
           group_weighting = 1 - own_weighting
           trinuc_proportion_matrix[tumor, ] = as.numeric(trinuc_proportion_matrix[tumor, ] * own_weighting + mean_trinuc_prop * group_weighting)
-          new_ds = signatures_output_list[[tumor]]$signatures_output
+          new_ds = signatures_output_list[[tumor]]
           new_ds$weights = new_ds$weights * own_weighting + mean_weights * group_weighting
           new_ds$product = trinuc_proportion_matrix[tumor, , drop=F] 
-          signatures_output_list[[tumor]]$signatures_output = new_ds
+          signatures_output_list[[tumor]] = new_ds
         }       
       } else if (algorithm_choice == "all_average") {
         mean_trinuc_prop = as.numeric(mean_trinuc_prop)
@@ -309,22 +330,11 @@ trinucleotide_mutation_weights <- function(cesa,
       }
 
     }
-    if (algorithm_choice == "nearest_neighbor") {
-      distance_matrix <- as.matrix(dist(trinuc_breakdown_per_tumor))
-      #find closest tumor that has at least 50 mutations
-      for(tumor in tumors_with_less_than_50) {
-        tumor_dist  = distance_matrix[tumor, tumors_with_50_or_more, drop = F]
-        closest_tumor = colnames(tumor_dist)[which(tumor_dist == sort(tumor_dist)[1])] # get name of closest tumor
-        trinuc_proportion_matrix[tumor,] = trinuc_proportion_matrix[closest_tumor,]
-        signatures_output_list[[tumor]]$signatures_output = signatures_output_list[[closest_tumor]]$signatures_output
-        signatures_output_list[[tumor]]$tumor_signatures_used = closest_tumor
-      }
-    }
   }
 
   # Tumors with no recurrent mutations and  tumors with zeroed-out signatures both get assigned the 50+ average weightings
   # Exception: if user chose "all_calculated", these samples will get thrown out
-  tumors_to_add = c(tumors_with_only_recurrent_mutations, zeroed_out_tumors)
+  tumors_to_add = c(tumors_needing_group_average_rates, zeroed_out_tumors)
   for (tumor in tumors_to_add) {
     # quirky handling to match exact output of previous version of script 
     if (tumor %in% names(signatures_output_list)) {
@@ -338,18 +348,18 @@ trinucleotide_mutation_weights <- function(cesa,
     mean_trinuc_prop = as.numeric(mean_trinuc_prop)
     for(tumor in tumors_to_add) {
       matrix_to_add[tumor,] = mean_trinuc_prop
-      signatures_output_list[[tumor]]$signatures_output$product = mean_trinuc_prop
-      signatures_output_list[[tumor]]$signatures_output$weights = mean_weights
+      signatures_output_list[[tumor]]$product = mean_trinuc_prop
+      signatures_output_list[[tumor]]$weights = mean_weights
 
     }
     trinuc_proportion_matrix <- rbind(trinuc_proportion_matrix, matrix_to_add)
-    tumors_with_a_mutation_rate = c(tumors_with_a_mutation_rate, tumors_to_add)
+    tumors_eligible_for_trinuc_calc = c(tumors_eligible_for_trinuc_calc, tumors_to_add)
   }
 
   # Need to make sure we are only calculating the selection intensities from
   # tumors in which we are able to calculate a mutation rate
-  no_mutation_rate = cesa@maf[! Unique_Patient_Identifier %in% tumors_with_a_mutation_rate,]
-  cesa@maf = cesa@maf[Unique_Patient_Identifier %in% tumors_with_a_mutation_rate,]
+  no_mutation_rate = cesa@maf[! Unique_Patient_Identifier %in% tumors_eligible_for_trinuc_calc,]
+  cesa@maf = cesa@maf[Unique_Patient_Identifier %in% tumors_eligible_for_trinuc_calc,]
   if (nrow(no_mutation_rate) > 0) {
     no_mutation_rate$Exclusion_Reason = "no_tumor_mutation_rate"
     cesa@excluded = rbind(cesa@excluded, no_mutation_rate) 
