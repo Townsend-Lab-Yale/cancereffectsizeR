@@ -30,8 +30,6 @@ have the mutation rate of the tumor with >=50 substitutions closest to the mutat
 distribution profile of the low substitution tumor as determined by a distance matrix, and
 `all_calculated`, where all tumors have the mutation rate from the deconstructSigs output regardless of substitution number.}
 
-\item{remove_recurrent}{if TRUE (default), removes recurrent variants from signature analysis}
-
 \item{signature_choice}{"cosmic_v3" (default), "cosmic_v2", or a properly-formatted data frame with of trinucleotide signatures 
 (if using cosmic_v3, just leave option default instead of passing your own data frame, or you'll get improper behavior)}
 

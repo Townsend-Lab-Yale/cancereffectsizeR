@@ -2,7 +2,7 @@
 #'
 #' This function gets called internally during tumor-specific trinucleotide mutation rate calculation.
 #' 
-#' @param tumor_trinuc_counts one-row data.frame of trinuc variants counts (in deconstructSigs order) for one tumor
+#' @param tumor_trinuc_counts one-row data.frame of trinuc variant counts (in deconstructSigs order) for one tumor
 #' @param signatures_df data.frame of signatures (see COSMIC v3 signatures included with package for format)
 #' @param signatures_to_remove names of signatures in signatures_df to keep out of deconstructSigs and assign zero weights
 #' @param artifact_signatures names of signatures that should be treated as experimental (e.g., sequencing) artifacts  
@@ -52,22 +52,6 @@ run_deconstructSigs = function(tumor_trinuc_counts, signatures_df, signatures_to
     }
   }
   
-  # if all signatures have been zeroed (very unlikely, but would probably be due to artifact accounting),
-  # then nothing to do but return the output and let user or package deal with it downstream
-  if (all(signatures_output$product == 0)) {
-    trinuc_prop = signatures_output$product
-  } else {
-    # Some trinuc SNVs have substitution rates of zero under certain signatures.
-    # In rare cases, a tumor's fitted combination of signatures can therefore also
-    # have a substitution rate of zero for particular trinucleotide contexts.
-    # If this happens, we add the lowest nonzero rate to all rates and renormalize.
-    trinuc_prop = signatures_output$product/sum(signatures_output$product)
-    if(any(trinuc_prop == 0)) {
-      lowest_nonzero_rate = min(trinuc_prop[trinuc_prop != 0])
-      trinuc_prop = trinuc_prop + lowest_nonzero_rate
-      # renormalize so rates sum to 1
-      trinuc_prop = trinuc_prop / sum(trinuc_prop)
-    }
-  }
-  return(list(deconstructSigs_output = signatures_output, trinuc_prop = trinuc_prop))
+  # return signatures_output, a list which should look like normal deconstructSigs output
+  return(signatures_output)
 }

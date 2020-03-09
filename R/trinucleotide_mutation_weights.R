@@ -20,13 +20,12 @@
 #'   rates directly from deconstructSigs, and tumors with < 50 substitutions have that rate weighted
 #'   by the average of all tumors >= 50 substitutions relative to the substitution count < 50 in those tumors.
 #'   Other options currently include `all_average`, where all tumors have a mutation rate equal to the
-#'   average of all tumors >= 50 substitutions, and
-#'   `all_calculated`, where all tumors have the mutation rate from the deconstructSigs output regardless of substitution number.
+#'   average of all tumors >= 50 substitutions
 #' @param signature_choice "cosmic_v3" (default), "cosmic_v2", or a properly-formatted data frame with of trinucleotide signatures 
 #'        (if using cosmic_v3, just leave option default instead of passing your own data frame, or you'll get improper behavior)
 #' @param v3_artifact_accounting when COSMIC v3 signatures associated with sequencing artifacts are detected, renormalizes to isolate "true" sources of mutational flux.
 #' @param signatures_to_remove specify any signatures to exclude from analysis; some signatures automatically get excluded
-#'     from COSMIC v3 analyses; set to signatures_to_remove="none" to prevent this behavior (and )
+#'     from COSMIC v3 analyses; set to signatures_to_remove="none" to prevent this behavior
 #' @param v3_hypermutation_rules T/F on whether to follow the mutation count rules outlined in https://doi.org/10.1101/322859, the manuscript reported the v3 COSMIC signature set.
 #'
 #' @export
@@ -259,21 +258,38 @@ trinucleotide_mutation_weights <- function(cesa,
   }
 
   ds_output = pbapply::pblapply(tumors_eligible_for_trinuc_calc, process_tumor, cl = cores)
-
+  
   # store results
   # matrix with rows = tumors, columns = relative rates of mutation for each trinuc SNV (starts empty)
   trinuc_proportion_matrix <- matrix(data = NA, nrow = nrow(trinuc_breakdown_per_tumor), ncol = ncol(trinuc_breakdown_per_tumor),
                                      dimnames = list(rownames(trinuc_breakdown_per_tumor), colnames(trinuc_breakdown_per_tumor)))
   signatures_output_list = list()
   zeroed_out_tumors = character() # for tumors that get all zero signature weights (rare)
+  
+  
   for(i in 1:length(ds_output)) {
     tumor_name = tumors_eligible_for_trinuc_calc[i]
-    ds = ds_output[[i]]
-    if(all(ds[[1]]$product == 0)) {
+    signatures_output = ds_output[[i]]
+    signatures_output_list[[tumor_name]] = signatures_output
+    
+    # if all signature weights are zero (very unlikely, but would probably be due to artifact accounting),
+    # then nothing to do but return the output and let user or package deal with it downstream
+    if (all(signatures_output$product == 0)) {
       zeroed_out_tumors = c(zeroed_out_tumors, tumor_name)
+    } else {
+      # Some trinuc SNVs have substitution rates of zero under certain signatures.
+      # In rare cases, a tumor's fitted combination of signatures can therefore also
+      # have a substitution rate of zero for particular trinucleotide contexts.
+      # If this happens, we add the lowest nonzero rate to all rates and renormalize.
+      trinuc_prop = signatures_output$product/sum(signatures_output$product)
+      if(any(trinuc_prop == 0)) {
+        lowest_nonzero_rate = min(trinuc_prop[trinuc_prop != 0])
+        trinuc_prop = trinuc_prop + lowest_nonzero_rate
+        # renormalize so rates sum to 1
+        trinuc_prop = trinuc_prop / sum(trinuc_prop)
+      }
+      trinuc_proportion_matrix[i,] = trinuc_prop
     }
-    signatures_output_list[[tumor_name]] = ds[[1]]
-    trinuc_proportion_matrix[i,] = ds[[2]]
   }
 
 
@@ -306,7 +322,7 @@ trinucleotide_mutation_weights <- function(cesa,
       
       mean_ds <- cancereffectsizeR::run_deconstructSigs(tumor_trinuc_counts = mean_trinuc_prop, signatures_df = signatures, 
                                                         signatures_to_remove = signatures_to_remove, tri.counts.method = tri.counts.genome / get_genome_data(cesa, "tri.counts.exome"),
-                                                        artifact_signatures = mean_calc_artifact_signatures)[[1]] # just need signatures_output element
+                                                        artifact_signatures = mean_calc_artifact_signatures)
       mean_weights <- mean_ds$weights
       # this should never happen
       if(all(mean_weights == 0)) {
@@ -323,6 +339,7 @@ trinucleotide_mutation_weights <- function(cesa,
           signatures_output_list[[tumor]] = new_ds
         }       
       } else if (algorithm_choice == "all_average") {
+        
         mean_trinuc_prop = as.numeric(mean_trinuc_prop)
         for(i in 1:nrow(trinuc_proportion_matrix)) {
           trinuc_proportion_matrix[i,] = mean_trinuc_prop
