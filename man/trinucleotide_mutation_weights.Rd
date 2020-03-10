@@ -7,9 +7,9 @@
 trinucleotide_mutation_weights(
   cesa,
   cores = 1,
-  algorithm_choice = "weighted",
-  remove_recurrent = TRUE,
   signature_choice = "cosmic_v3",
+  assume_identical_mutational_processes = FALSE,
+  sig_averaging_threshold = 50,
   v3_artifact_accounting = TRUE,
   v3_hypermutation_rules = TRUE,
   signatures_to_remove = ""
@@ -20,38 +20,35 @@ trinucleotide_mutation_weights(
 
 \item{cores}{how many cores to use to process tumor samples in parallel (requires parallel package)}
 
-\item{algorithm_choice}{The choice of the algorithm used in determining trinucleotide weights.
-Defaults to `weighted`, where all tumors with >= 50 substitutions have mutation
-rates directly from deconstructSigs, and tumors with < 50 substitutions have that rate weighted
-by the average of all tumors >= 50 substitutions relative to the substitution count < 50 in those tumors.
-Other options currently include `all_average`, where all tumors have a mutation rate equal to the
-average of all tumors >= 50 substitutions, `nearest_neighbor` where all tumors <50 substitutions
-have the mutation rate of the tumor with >=50 substitutions closest to the mutational
-distribution profile of the low substitution tumor as determined by a distance matrix, and
-`all_calculated`, where all tumors have the mutation rate from the deconstructSigs output regardless of substitution number.}
-
 \item{signature_choice}{"cosmic_v3" (default), "cosmic_v2", or a properly-formatted data frame with of trinucleotide signatures 
 (if using cosmic_v3, just leave option default instead of passing your own data frame, or you'll get improper behavior)}
+
+\item{assume_identical_mutational_processes}{(default FALSE) instead of assigning different signature weights to each tumor (reflective of
+tumor-specific mutational processes), use well-mutated tumors (those with number of eligible mutations meeting sig_averaging_threshold)
+calculate group average signature weights and assign these to all tumors}
+
+\item{sig_averaging_threshold}{Mutational threshold (default 50) that determines which tumors inform the
+calculation of group-average signature weightings. When assume_identical_mutational_processes == FALSE (the default), 
+these group averages are blended into the signature weightings of tumors with few mutations (those below the threshold).}
 
 \item{v3_artifact_accounting}{when COSMIC v3 signatures associated with sequencing artifacts are detected, renormalizes to isolate "true" sources of mutational flux.}
 
 \item{v3_hypermutation_rules}{T/F on whether to follow the mutation count rules outlined in https://doi.org/10.1101/322859, the manuscript reported the v3 COSMIC signature set.}
 
 \item{signatures_to_remove}{specify any signatures to exclude from analysis; some signatures automatically get excluded
-from COSMIC v3 analyses; set to signatures_to_remove="none" to prevent this behavior (and )}
+from COSMIC v3 analyses; set signatures_to_remove = "none" to prevent this behavior}
 }
 \description{
-Calculates expected relative rates of SNV substitutions by trinucleotide context in tumors
-using deconstructSigs to estimate weightings of known mutational signatures (e.g., COSMIC v3)
+This function calculates relative rates of trinucleotide-context-specific SNV
+mutations within tumors by attributing SNVs to mutational processes represented
+in mutation signature sets (such as COSMIC v3). This function currently uses
+deconstructSigs to assign mutational signature weightings to tumors. Tumor samples
+with targeted sequencing data are assigned the average trinucleotide
+mutation rates calculated across all exome/genome data, which means that you need at
+least some exome or genome data to run.
 }
 \details{
-The purpose of this function is to calculate relative rates of trinucleotide-context-specific SNV
-mutations within tumors that can be attributed to known tumor-specific mutational processes. Since
-recurrent mutations (those that appear in multiple tumor samples) are more likely to be undergoing
-selection than other mutations, by default only non-recurrent mutations are considered in order to
-get a closer estimation of mutation rates independent of selection. This function currently uses
-the deconstructSigs to assign mutational signature weightings to tumors.
-As deconstructSigs suggests that a tumor must have at least 50 mutations for signature attribution
-to be reliable, this function offers several methods for dealing with tumors with fewer mutations.
-The default method, "weighted".... (to be continued)
+To reduce the influence of selection on the estimation of relative trinucleotide mutation
+rates, this function only uses non-recurrent SNVs (i.e., those that do not appear in more than one 
+sample in the data set).
 }

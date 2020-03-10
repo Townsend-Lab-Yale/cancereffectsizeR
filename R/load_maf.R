@@ -1,5 +1,15 @@
 #' load_maf
-#' @description Load MAF-formatted mutation data into a CESAnalysis object (the core cancereffectsizeR object)
+#' 
+#' Load MAF data from a text file or data.frame/data.table into a CESAnalysis object. If column names
+#' don't match MAF format specifications (Chromosome, Start_Position, etc., with Tumor_Sample_Barcode
+#' used as the sample ID column), you can supply your own column names. When your CESAnalysis includes
+#' chronological tumor progression states (e.g., pre- vs. post-treatment, stages 1-4, primary vs. metastatic),
+#' specify "progression_col". By default, data is assumed to be derived from whole-exome sequencing. Whole-genome
+#' data and targeted sequencing data are also supported when the "coverage" option is specified. If the data
+#' you are loading is from a different genome build than your CESAnalysis, you can use the "chain_file" option 
+#' to supply a UCSC-style chain file, and then your MAF coordinates will be automatically converted with liftOver.
+#' 
+#' 
 #' @importFrom IRanges "%within%"
 #' @param cesa the CESAnalysis object to load the data into
 #' @param maf Path of tab-delimited text file in MAF format, or an MAF in data.table or data.frame format

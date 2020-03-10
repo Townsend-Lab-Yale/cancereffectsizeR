@@ -1,18 +1,14 @@
-#' Gene-level mutation rate function
+#' Gene-level mutation rates
 #'
-#' This function calculates the maximum likelihood estimate for the expected
-#' number of synonymous mutations in a gene under the dNdScv model, as described within
-#' Martincorena, I., Raine, K. M., Gerstung, M., Dawson, K. J., Haase, K., Van Loo, P., … Campbell, P. J.
-#' (2017). Universal Patterns of Selection in Cancer and Somatic Tissues. Cell. https://doi.org/10.1016/j.cell.2017.09.042
-#' and the associated R package dndscv .
+#' This function calculates gene-level neutral mutation rates based on counts
+#' of nonsynonymous and synonymous mutations per gene under the dNdScv package's model, 
+#' as described in Martincorena et al. (https://doi.org/10.1016/j.cell.2017.09.042).
 #'
 #' @param cesa CESAnalysis object
 #' @param covariate_file Either NULL and usefs dNdScv default covariates, or one of these:  "bladder_pca"  "breast_pca"
 #' "cesc_pca" "colon_pca" "esca_pca" "gbm_pca" "hnsc_pca" "kidney_pca" "lihc_pca" "lung_pca" "ov_pca" "pancreas_pca" "prostate_pca" "rectum_pca" "skin_pca"  "stomach_pca"  "thca_pca" "ucec_pca"
 #' @param save_all_dndscv_output default false; when true, saves all dndscv output, not just what's needed by CES
-#' @return CESAnalysis object with 
-
-
+#' @return CESAnalysis object with gene-level mutation rates calculated
 #' @export
 # don't change this function at all without being sure you're not messing up tests
 gene_level_mutation_rates <- function(cesa, covariate_file = NULL, save_all_dndscv_output = FALSE){
@@ -58,8 +54,7 @@ dndscv_preprocess = function(cesa, covariate_file = NULL) {
   # for now, records from TGS samples are kept out; in the future, we could check out dNdScv's panel sequencing features
   dndscv_samples = cesa@samples[coverage == "exome" | coverage == "genome", Unique_Patient_Identifier]
   
-  
-  dndscv_maf = cesa@maf[cesa@maf$Unique_Patient_Identifier %in% dndscv_samples,]
+  dndscv_maf = cesa@maf[Unique_Patient_Identifier %in% dndscv_samples,]
 
   dndscv_input = list()
   for (progression in cesa@progressions) {

@@ -13,7 +13,7 @@ run_deconstructSigs(
 )
 }
 \arguments{
-\item{tumor_trinuc_counts}{one-row data.frame of trinuc variants counts (in deconstructSigs order) for one tumor}
+\item{tumor_trinuc_counts}{one-row data.frame of trinuc variant counts (in deconstructSigs order) for one tumor}
 
 \item{signatures_df}{data.frame of signatures (see COSMIC v3 signatures included with package for format)}
 

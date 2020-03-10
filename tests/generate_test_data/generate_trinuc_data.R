@@ -1,9 +1,11 @@
 prev_dir = setwd(system.file("tests/test_data/", package = "cancereffectsizeR"))
 maf_file = "luad.hg19.maf.txt"
 cesa = load_maf(cesa = CESAnalysis(genome = "hg19"), maf = maf_file, sample_col = "sample_id")
-small_maf = cesa@maf[Unique_Patient_Identifier %in% c("sample-15", "sample-102", "sample-30")]
+
+# these samples have been chosen because they (randomly) have a fast runtime in the group average dS step
+small_maf = cesa@maf[Unique_Patient_Identifier %in% c("sample-102", "sample-1", "sample-31")]
 # add in a recurrent mutation for testing purposes
-small_maf = rbind(small_maf, list("sample-15", "1", 226180249, "G", "A"))
+small_maf = rbind(small_maf, list("sample-1", "7", 124404124, "G", "C"))
 
 cesa = load_maf(cesa = CESAnalysis("hg19"), maf = small_maf)
 saveRDS(cesa, "cesa_for_trinuc_weighting_calc.rds")

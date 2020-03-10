@@ -2,7 +2,7 @@
 % Please edit documentation in R/gene_level_mutation_rates.R
 \name{gene_level_mutation_rates}
 \alias{gene_level_mutation_rates}
-\title{Gene-level mutation rate function}
+\title{Gene-level mutation rates}
 \usage{
 gene_level_mutation_rates(
   cesa,
@@ -19,12 +19,10 @@ gene_level_mutation_rates(
 \item{save_all_dndscv_output}{default false; when true, saves all dndscv output, not just what's needed by CES}
 }
 \value{
-CESAnalysis object with
+CESAnalysis object with gene-level mutation rates calculated
 }
 \description{
-This function calculates the maximum likelihood estimate for the expected
-number of synonymous mutations in a gene under the dNdScv model, as described within
-Martincorena, I., Raine, K. M., Gerstung, M., Dawson, K. J., Haase, K., Van Loo, P., … Campbell, P. J.
-(2017). Universal Patterns of Selection in Cancer and Somatic Tissues. Cell. https://doi.org/10.1016/j.cell.2017.09.042
-and the associated R package dndscv .
+This function calculates gene-level neutral mutation rates based on counts
+of nonsynonymous and synonymous mutations per gene under the dNdScv package's model, 
+as described in Martincorena et al. (https://doi.org/10.1016/j.cell.2017.09.042).
 }
