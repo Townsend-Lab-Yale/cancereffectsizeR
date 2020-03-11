@@ -132,11 +132,9 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
       covered_regions = rtracklayer::import(covered_regions, format = "bed")
       GenomeInfoDb::seqlevelsStyle(covered_regions) = "NCBI"
       
-      # take the seqlevel order from cesa@genome (for all levels present in covered_regions), and then reorder seqlevels in covered_regions to match
-      correct_seqlevel_order = GenomeInfoDb::seqlevels(genome_info)[GenomeInfoDb::seqlevels(genome_info) %in% GenomeInfoDb::seqlevels(covered_regions)]
-      GenomeInfoDb::seqlevels(covered_regions)[GenomeInfoDb::seqlevels(covered_regions) %in% correct_seqlevel_order] = correct_seqlevel_order
-      
+      GenomeInfoDb::seqlevels(covered_regions) = GenomeInfoDb::seqlevels(genome_info)
       # set genome to match CESAnalysis (if this fails, possibly the genome build does not match)
+      
       GenomeInfoDb::seqinfo(covered_regions) = genome_info
     } else if (! is(covered_regions, "GRanges")) {
       stop("Argument covered_regions expected to be a GRanges object or the path to a BED-formatted text file.")
