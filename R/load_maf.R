@@ -453,7 +453,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
       
       # mark previous generic exome samples as exome+
       if(cesa@samples[, .N] > 0) {
-        cesa@samples[covered_regions_name == "exome", covered_regions_name := covered_regions_name]
+        cesa@samples[covered_regions_name == "exome", covered_regions := covered_regions_name]
       }
       
       # warn if a lot of records are in uncovered areas; may indicate whole-genome data or low quality exome data
@@ -547,6 +547,9 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     message(silver("Reference alleles look good."))
   }
   
+  nt = c("A", "T", "C", "G")
+  maf[Reference_Allele %in% nt & Tumor_Allele %in% nt, Variant_Type := "SNV"]
+  maf[is.na(Variant_Type), Variant_Type := "indel"]
   
   # drop any samples that had all mutations excluded
   new_samples = new_samples[Unique_Patient_Identifier %in% maf$Unique_Patient_Identifier]
@@ -554,15 +557,14 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   setcolorder(cesa@samples, c("Unique_Patient_Identifier", "coverage", "covered_regions", "progression_name", "progression_index"))
   setkey(cesa@samples, "Unique_Patient_Identifier")
   
+  cesa@maf = rbind(cesa@maf, maf)
+  
   if (nrow(excluded) > 0) {
-    colnames(excluded) = c(colnames(maf), "Exclusion_Reason")
+    colnames(excluded) = c(colnames(maf)[1:5], "Exclusion_Reason")
     cesa@excluded = rbind(cesa@excluded, excluded) 
   }
   
-  nt = c("A", "T", "C", "G")
-  maf[Reference_Allele %in% nt & Tumor_Allele %in% nt, Variant_Type := "SNV"]
-  maf[is.na(Variant_Type), Variant_Type := "indel"]
-  cesa@maf = rbind(cesa@maf, maf)
+
   
   snv_stats = cesa@maf[Variant_Type == "SNV", .(num_samples = length(unique(Unique_Patient_Identifier)), num_snv = .N)]
   message(paste0("Loaded ", snv_stats$num_snv, " SNVs from ", snv_stats$num_samples, " samples into CESAnalysis."))
