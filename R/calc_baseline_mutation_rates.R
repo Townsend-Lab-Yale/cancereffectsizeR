@@ -26,13 +26,13 @@ calc_baseline_mutation_rates <- function(
   }
   
   # Calculate trinucleotide mutation weightings using deconstructSigs
-  cesa = cancereffectsizeR::trinucleotide_mutation_weights(cesa, signature_choice  = signatures, cores = cores)
+  cesa = trinucleotide_mutation_weights(cesa, signature_choice  = signatures, cores = cores)
 
   # Calculate gene-level mutation rates using dNdScv
-  cesa = cancereffectsizeR::gene_level_mutation_rates(cesa, covariate_file = covariate_file)
+  cesa = gene_level_mutation_rates(cesa, covariate_file = covariate_file)
 
   # Assign genes to MAF, keeping assignments consistent with dndscv when possible
-  cesa = cancereffectsizeR::annotate_gene_maf(cesa)
+  cesa = annotate_gene_maf(cesa)
 
   return(cesa)
 }

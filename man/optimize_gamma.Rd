@@ -33,3 +33,4 @@ The optimal selection intensity for the gene and variant that maximizes the like
 \description{
 Actual function to find the site specific selection intensity that maximizes the likelihood of each tumor being mutated or not. Uses site and tumor specific mutation rates. Uses Brent 1 dimensional optimization technique.optimize_gamma
 }
+\keyword{internal}

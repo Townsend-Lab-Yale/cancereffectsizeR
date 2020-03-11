@@ -12,7 +12,8 @@
 #' @param specific_mut_rates2 site and tumor specific mutation rates (matrix: rows = tumors, columns = variants; produced by mutation_rate_calc)
 #'
 #' @return A log likelihood value
-#'
+#' @export
+#' @keywords internal
 ml_objective_epistasis <- function(gamma, MAF_input1,MAF_input2, all_tumors, variant1, variant2, specific_mut_rates1,specific_mut_rates2) {
 
   tumors_with_variant1_mutated <- MAF_input1[MAF_input1$unique_variant_ID_AA==variant1,"Unique_patient_identifier"]

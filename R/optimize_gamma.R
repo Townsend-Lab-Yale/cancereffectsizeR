@@ -10,7 +10,8 @@
 #' @param specific_mut_rates A matrix of site and tumor specific mutation rates where the rows correspond to tumors and the columns to variants (produced by mutation_rate_calc)
 #'
 #' @return The optimal selection intensity for the gene and variant that maximizes the likelihood of the observations
-#'
+#' @export
+#' @keywords internal
 
 optimize_gamma <- function(MAF_input, eligible_tumors, progressions, samples, gene, variant, specific_mut_rates) {
   par_init <- rep(1000,length=length(progressions))

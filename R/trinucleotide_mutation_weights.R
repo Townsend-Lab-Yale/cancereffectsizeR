@@ -271,7 +271,7 @@ trinucleotide_mutation_weights <- function(cesa,
       normalization = tri.counts.genome / exome_counts_by_gr[[cesa@samples[tumor_name, covered_regions]]]
     }
     
-    return(cancereffectsizeR::run_deconstructSigs(tumor_trinuc_counts = tumor_trinuc_counts, tri.counts.method = normalization,
+    return(run_deconstructSigs(tumor_trinuc_counts = tumor_trinuc_counts, tri.counts.method = normalization,
                                                 signatures_df = signatures, signatures_to_remove = current_sigs_to_remove, artifact_signatures = artifact_signatures))
   }
 
@@ -335,7 +335,7 @@ trinucleotide_mutation_weights <- function(cesa,
     }
     
     rownames(mean_trinuc_prop) = "mean" # deconstructSigs crashes unless a rowname is supplied here
-    mean_ds <- cancereffectsizeR::run_deconstructSigs(tumor_trinuc_counts = mean_trinuc_prop, signatures_df = signatures, 
+    mean_ds <- run_deconstructSigs(tumor_trinuc_counts = mean_trinuc_prop, signatures_df = signatures, 
                                                       signatures_to_remove = signatures_to_remove, tri.counts.method = "default",
                                                       artifact_signatures = mean_calc_artifact_signatures)
     mean_weights <- mean_ds$weights

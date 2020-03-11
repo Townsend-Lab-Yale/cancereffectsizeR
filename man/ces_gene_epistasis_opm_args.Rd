@@ -9,3 +9,4 @@ ces_gene_epistasis_opm_args()
 \description{
 Get list of arguments to feed into optimx::opm for parameter optimization during gene-level epistasis
 }
+\keyword{internal}

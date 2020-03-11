@@ -9,6 +9,8 @@
 #' @param gene_mut_rate mutation rate at the gene-level
 #'
 #' @return
+#' @export
+#' @keywords internal
 mutation_rate_calc <- function(this_MAF,
                                gene,
                                gene_mut_rate,

@@ -38,3 +38,4 @@ A log likelihood value
 \description{
 Objective function that we will be optimizing in order to find the site specific selection intensity that maximizes the likelihood of each tumor having a mutation or not, where the mutation rates are site and tumor specific.
 }
+\keyword{internal}

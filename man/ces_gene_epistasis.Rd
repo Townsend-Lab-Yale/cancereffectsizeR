@@ -8,7 +8,7 @@ ces_gene_epistasis(
   cesa = NULL,
   genes = character(),
   cores = 1,
-  optimx_args = cancereffectsizeR:::ces_gene_epistasis_opm_args(),
+  optimx_args = ces_gene_epistasis_opm_args(),
   return_all_opm_output = FALSE
 )
 }

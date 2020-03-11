@@ -84,7 +84,7 @@ get_gene_results <- function(gene, cesa, all_tumors, find_CI) {
   snv.maf = cesa@maf[Variant_Type == "SNV"]
   current_gene_maf = snv.maf[Gene_name == gene]
   these_mutation_rates <-
-    cancereffectsizeR:::mutation_rate_calc(
+    mutation_rate_calc(
       this_MAF = current_gene_maf,
       gene = gene,
       gene_mut_rate = cesa@mutrates_list,
@@ -106,7 +106,7 @@ get_gene_results <- function(gene, cesa, all_tumors, find_CI) {
     
     # given the tumors with coverage, their mutation rates at the variant sites, and their mutation status,
     # find most likely selection intensities (by stage if applicable)
-    optimization_output <- cancereffectsizeR::optimize_gamma(
+    optimization_output <- optimize_gamma(
       MAF_input = current_gene_maf,
       eligible_tumors = eligible_tumors,
       gene=gene,
@@ -147,7 +147,7 @@ get_gene_results <- function(gene, cesa, all_tumors, find_CI) {
     
     if(length(cesa@progressions) == 1 & find_CI){
       # find CI function
-      CI_results <- cancereffectsizeR::CI_finder(gamma_max = optimization_output$par,
+      CI_results <- CI_finder(gamma_max = optimization_output$par,
                                                  MAF_input= current_gene_maf,
                                                  eligible_tumors = eligible_tumors,
                                                  samples = cesa@samples,
@@ -159,7 +159,7 @@ get_gene_results <- function(gene, cesa, all_tumors, find_CI) {
       variant_output$ci_low_999 <- CI_results$lower_CI
       variant_output$ci_high_999 <- CI_results$upper_CI
       
-      CI_results <- cancereffectsizeR::CI_finder(gamma_max = optimization_output$par,
+      CI_results <- CI_finder(gamma_max = optimization_output$par,
                                                  MAF_input= current_gene_maf,
                                                  eligible_tumors = eligible_tumors,
                                                  samples = cesa@samples,

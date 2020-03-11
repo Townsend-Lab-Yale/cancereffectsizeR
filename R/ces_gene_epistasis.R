@@ -9,7 +9,7 @@
 #' @export
 
 
-ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optimx_args = cancereffectsizeR:::ces_gene_epistasis_opm_args(), return_all_opm_output = FALSE)
+ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optimx_args = ces_gene_epistasis_opm_args(), return_all_opm_output = FALSE)
 {
   # Some optimx::opm optimization methods crash for unclear reasons: Rnmin, nmkb, newuoa, Rtnmin
   # Others should be skipped automatically because they aren't appropriate, but it's
@@ -142,7 +142,7 @@ epistasis_gene_level = function(genes_to_analyze,
     # only run the selection algorithm if there are 2 or more tumors with
     # recurrent variants of each gene present.
     these_mutation_rates1 <-
-      cancereffectsizeR:::mutation_rate_calc(
+      mutation_rate_calc(
         this_MAF = MAF_input1,
         gene = variant1,
         gene_mut_rate = mutrates_list,
@@ -151,7 +151,7 @@ epistasis_gene_level = function(genes_to_analyze,
         samples = cesa@samples)
 
     these_mutation_rates2 <-
-      cancereffectsizeR:::mutation_rate_calc(
+      mutation_rate_calc(
         this_MAF = MAF_input2,
         gene = variant2,
         gene_mut_rate = mutrates_list,
@@ -196,7 +196,7 @@ epistasis_gene_level = function(genes_to_analyze,
     with_neither = get_summed_mut_rates(tumors_with_neither_mutated)
     
     par = 1000:1003 # initialized values (rumor has it some methods come up with trivial optimizations when all parameters start the same?)
-    args = c(list(par, fn = cancereffectsizeR::ml_objective_epistasis_full_gene,with_just_1 = with_just_1,
+    args = c(list(par, fn = ml_objective_epistasis_full_gene,with_just_1 = with_just_1,
                   with_just_2 = with_just_2, with_both = with_both, with_neither = with_neither), optimx_args)
     
     # suppress warnings because opm complains too much about everything
@@ -224,6 +224,8 @@ epistasis_gene_level = function(genes_to_analyze,
 }
 
 #' Get list of arguments to feed into optimx::opm for parameter optimization during gene-level epistasis
+#' @export
+#' @keywords internal
 ces_gene_epistasis_opm_args = function() {
   # L-BFGS-B is one of the fastest methods and had very good performance in testing
   return(list(gr = "grfwd", lower=1e-3, upper=1e20, method= "L-BFGS-B"))

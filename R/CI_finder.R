@@ -11,7 +11,8 @@
 #' @param threshold tolerance threshold for the uniroot function
 #'
 #' @return
-#'
+#' @export
+#' @keywords internal
 CI_finder <- function(gamma_max,
                       eligible_tumors,
                       MAF_input,
@@ -31,7 +32,7 @@ CI_finder <- function(gamma_max,
   names(tumor_stages) = eligible_tumors
 
 
-  max_likelihood <- cancereffectsizeR::ml_objective(gamma = gamma_max, tumor_stages = tumor_stages, tumors_without_gene_mutated = tumors_without_gene_mutated,
+  max_likelihood <- ml_objective(gamma = gamma_max, tumor_stages = tumor_stages, tumors_without_gene_mutated = tumors_without_gene_mutated,
       tumors_with_pos_mutated = tumors_with_pos_mutated, variant=variant, specific_mut_rates=specific_mut_rates)
 
   max_likelihood_CI <- max_likelihood - log_units_down
@@ -40,13 +41,13 @@ CI_finder <- function(gamma_max,
 
   #find lower CI
 
-  lower_answer <- uniroot(f = cancereffectsizeR::ml_objective , lower = 0,upper = gamma_max, tumor_stages = tumor_stages, tumors_without_gene_mutated = tumors_without_gene_mutated,
+  lower_answer <- uniroot(f = ml_objective , lower = 0,upper = gamma_max, tumor_stages = tumor_stages, tumors_without_gene_mutated = tumors_without_gene_mutated,
       tumors_with_pos_mutated = tumors_with_pos_mutated, variant=variant, specific_mut_rates=specific_mut_rates, modifier = max_likelihood_CI,tol = threshold)
 
 
   #find upper CI
 
-  upper_answer <- uniroot(f = cancereffectsizeR::ml_objective , lower = gamma_max,upper = 1e20, tumor_stages = tumor_stages, tumors_without_gene_mutated = tumors_without_gene_mutated,
+  upper_answer <- uniroot(f = ml_objective , lower = gamma_max,upper = 1e20, tumor_stages = tumor_stages, tumors_without_gene_mutated = tumors_without_gene_mutated,
       tumors_with_pos_mutated = tumors_with_pos_mutated, variant=variant, specific_mut_rates=specific_mut_rates, modifier = max_likelihood_CI,tol = threshold)
 
 

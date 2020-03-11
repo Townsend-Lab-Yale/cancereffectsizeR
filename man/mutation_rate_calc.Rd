@@ -30,3 +30,4 @@ mutation_rate_calc(
 \description{
 This function calculates the mutation rates of all the unique varaints within a gene given gene-level mutation rate and tumor-specific trinucleotide contexts.
 }
+\keyword{internal}
