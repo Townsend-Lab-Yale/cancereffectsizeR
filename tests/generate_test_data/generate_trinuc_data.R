@@ -5,7 +5,7 @@ cesa = load_maf(cesa = CESAnalysis(genome = "hg19"), maf = maf_file, sample_col 
 # these samples have been chosen because they (randomly) have a fast runtime in the group average dS step
 small_maf = cesa@maf[Unique_Patient_Identifier %in% c("sample-102", "sample-1", "sample-31")]
 # add in a recurrent mutation for testing purposes
-small_maf = rbind(small_maf, list("sample-1", "7", 124404124, "G", "C"))
+small_maf = rbind(small_maf, list("sample-1", "7", 124404124, "G", "C", "SNV"))
 
 cesa = load_maf(cesa = CESAnalysis("hg19"), maf = small_maf)
 saveRDS(cesa, "cesa_for_trinuc_weighting_calc.rds")

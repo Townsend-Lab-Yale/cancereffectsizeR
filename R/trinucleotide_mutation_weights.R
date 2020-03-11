@@ -132,8 +132,7 @@ trinucleotide_mutation_weights <- function(cesa,
   }
 
   # keeping TGS data in the ds_maf until after recurrency testing
-  bases = c('A', 'T', 'C', 'G')
-  ds_maf = cesa@maf[Reference_Allele %in% bases & Tumor_Allele %in% bases]
+  ds_maf = cesa@maf[Variant_Type == "SNV"]
 
   # remove all recurrent SNVs (SNVs appearing in more than one sample)
   duplicated_vec_first <- duplicated(ds_maf[,.(Chromosome, Start_Position, Tumor_Allele)])
@@ -307,7 +306,7 @@ trinucleotide_mutation_weights <- function(cesa,
         # renormalize so rates sum to 1
         trinuc_prop = trinuc_prop / sum(trinuc_prop)
       }
-      trinuc_proportion_matrix[i,] = trinuc_prop
+      trinuc_proportion_matrix[tumor_name,] = trinuc_prop
     }
   }
 
@@ -340,24 +339,29 @@ trinucleotide_mutation_weights <- function(cesa,
                                                       signatures_to_remove = signatures_to_remove, tri.counts.method = "default",
                                                       artifact_signatures = mean_calc_artifact_signatures)
     mean_weights <- mean_ds$weights
+    mean_trinuc_prop = as.numeric(mean_trinuc_prop) # convert back to numeric for insertion into trinuc_proportion_matrix
     # this should never happen
     if(all(mean_weights == 0)) {
       stop("Somehow, mean signature weights across all well-mutated tumors are all zero.")
     }
     if (assume_identical_mutational_processes) {
-      mean_trinuc_prop = as.numeric(mean_trinuc_prop)
       for(i in 1:nrow(trinuc_proportion_matrix)) {
         trinuc_proportion_matrix[i,] = mean_trinuc_prop
       }
     } else {
       for (tumor in tumors_below_threshold) {
-        own_weighting = substitution_counts[tumor] / sig_averaging_threshold
-        group_weighting = 1 - own_weighting
-        trinuc_proportion_matrix[tumor, ] = as.numeric(trinuc_proportion_matrix[tumor, ] * own_weighting + mean_trinuc_prop * group_weighting)
-        new_ds = signatures_output_list[[tumor]]
-        new_ds$weights = new_ds$weights * own_weighting + mean_weights * group_weighting
-        new_ds$product = trinuc_proportion_matrix[tumor, , drop=F] 
-        signatures_output_list[[tumor]] = new_ds
+        # handle tumors with 0 non-recurrent SNVs
+        if(is.na(substitution_counts[tumor])) {
+          trinuc_proportion_matrix[tumor, ] = mean_trinuc_prop
+        } else {
+          own_weighting = substitution_counts[tumor] / sig_averaging_threshold
+          group_weighting = 1 - own_weighting
+          trinuc_proportion_matrix[tumor, ] = trinuc_proportion_matrix[tumor, ] * own_weighting + mean_trinuc_prop * group_weighting
+          new_ds = signatures_output_list[[tumor]]
+          new_ds$weights = new_ds$weights * own_weighting + mean_weights * group_weighting
+          new_ds$product = trinuc_proportion_matrix[tumor, , drop=F] 
+          signatures_output_list[[tumor]] = new_ds
+        }
       }  
     }
   }

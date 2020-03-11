@@ -39,12 +39,13 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optim
     message(silver("FYI, you can access full parameter optimization output in [CESAnalysis]@advanced$opm_output."))
   }
   
+  maf = cesa@maf[Variant_Type == "SNV"]
 	genes = unique(genes)
-	genes_in_dataset = unique(cesa@annotated.snv.maf$Gene_name)
+	genes_in_dataset = unique(maf$Gene_name)
 	genes_to_analyze = genes[genes %in% genes_in_dataset]
 
 
-	cesa_subset <- cesa@annotated.snv.maf[cesa@annotated.snv.maf$Gene_name %in% genes_to_analyze,]
+	cesa_subset <- maf[Gene_name %in% genes_to_analyze,]
 	cesa_subset$identifier <- cesa_subset$unique_variant_ID_AA
 	cesa_subset$identifier[
 	  which(sapply(strsplit(cesa_subset$identifier,split = " "),
@@ -97,9 +98,9 @@ epistasis_gene_level = function(genes_to_analyze,
                                 cesa,
                                 optimx_args) {
   mutrates_list = cesa@mutrates_list
-  MAF = cesa@annotated.snv.maf
+  MAF = cesa@maf[Variant_Type == "SNV"]
   trinuc_proportion_matrix = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix
-  all_tumors = unique(cesa@annotated.snv.maf$Unique_Patient_Identifier)
+  all_tumors = unique(MAF$Unique_Patient_Identifier)
 
   get_gene_results_epistasis_bygene <- function(variant_combo_list) {
 

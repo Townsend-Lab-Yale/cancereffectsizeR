@@ -9,11 +9,10 @@ annotate_gene_maf <- function(cesa) {
   RefCDS = get_genome_data(cesa, "RefCDS")
   gr_genes = get_genome_data(cesa, "gr_genes")
   
-  MAF = cesa@maf
-	bases = c("A", "C", "T", "G")
   
-	# subset to SNVs
-	MAF = MAF[MAF$Reference_Allele %in% bases & MAF$Tumor_Allele %in% bases,]
+  # non-SNVs are not supported in selection functions yet, so not bothering to annotate them correctly
+  # all non-SNV annotations will get set to NA at the end of this function
+  MAF = cesa@maf
 	dndscv_gene_names = names(cesa@mutrates_list[[1]])
 	dndscv_out_list = cesa@dndscv_out_list
 
@@ -42,7 +41,7 @@ annotate_gene_maf <- function(cesa) {
 
 	# get mutation annotations from dNdScv and subset to SNVs
 	dndscvout_annotref <- rbindlist(lapply(dndscv_out_list, function(x) x$annotmuts))
-	dndscvout_annotref <- dndscvout_annotref[ref %in% bases & mut %in% bases]
+	dndscvout_annotref <- dndscvout_annotref[ref %in% c("A", "C", "G", "T") & mut %in% c("A", "C", "G", "T")]
 
 
 	MAF$unique_variant_ID <- paste(
@@ -206,11 +205,13 @@ annotate_gene_maf <- function(cesa) {
 	# but the samples thmeslves are considered "exome+" (be careful not to double-count these if developing something new)
 	MAF[,covered_in := grs_with_coverage]
 	
+	# set all non-SNV annotation fields to NA (pending future development)
+	MAF[Variant_Type != "SNV", c(7:ncol(MAF)) := NA]
 	
 	# drop annotmuts info since it's already been used here (and it takes up a lot of memory)
 	lapply(cesa@dndscv_out_list, function(x) x$annotmuts = NULL)
 
 
-	cesa@annotated.snv.maf = MAF
+	cesa@maf = MAF
 	return(cesa)
 }

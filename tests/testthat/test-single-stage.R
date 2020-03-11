@@ -18,7 +18,7 @@ test_that("dNdScv and MAF annotation", {
   expect_equal(cesa@mutrates_list[[1]], mutrates)
   cesa = annotate_gene_maf(cesa)
   annotated_maf = get_test_data("annotated_maf_df.rds")
-  expect_equal(cesa@annotated.snv.maf, annotated_maf)
+  expect_equal(cesa@maf, annotated_maf)
 })
 
 # will use SNV-analysis-ready object for remaining tests

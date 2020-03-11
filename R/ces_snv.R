@@ -17,7 +17,7 @@ ces_snv <- function(cesa = NULL,
   }
 
   # using the "SNV" genes
-  snv.maf = cesa@annotated.snv.maf
+  snv.maf = cesa@maf[Variant_Type == "SNV"]
   genes_in_dataset = unique(snv.maf$Gene_name)
   if(length(genes_in_dataset) == 0) {
     stop("The SNV mutation data set is empty!")
@@ -81,7 +81,7 @@ ces_snv <- function(cesa = NULL,
 
 #' Single-stage SNV effect size analysis (gets called by ces_snv)
 get_gene_results <- function(gene, cesa, all_tumors, find_CI) {
-  snv.maf = cesa@annotated.snv.maf
+  snv.maf = cesa@maf[Variant_Type == "SNV"]
   current_gene_maf = snv.maf[Gene_name == gene]
   these_mutation_rates <-
     cancereffectsizeR::mutation_rate_calc(

@@ -4,7 +4,7 @@ prev_dir = setwd(system.file("tests/test_data/", package = "cancereffectsizeR"))
 luad = load_maf(cesa = CESAnalysis(genome="hg19"), maf = "luad.hg19.maf.txt", sample_col = "sample_id")
 
 # run all pre-processing and save for quick import
-luad = calc_baseline_mutation_rates(luad, covariate_file = "lung_pca", cores = 3)
+luad = calc_baseline_mutation_rates(luad, covariate_file = "lung_pca", cores = 4)
 saveRDS(luad, "cesa_for_snv.rds")
 
 # save results to serve as expected test output
@@ -19,11 +19,12 @@ saveRDS(luad@advanced$opm_output, "epistasis_opm.rds")
 
 
 # repeat with smaller data set for dndscv testing
+for_dndscv = load_maf(cesa = CESAnalysis(genome="hg19"), maf = "luad.hg19.maf.txt", sample_col = "sample_id")
 dndscv_samples = c("sample-1", "sample-106", "sample-108", "sample-11", "sample-31", "sample-33", "sample-35", 
                    "sample-40", "sample-46", "sample-6", "sample-67", "sample-68", "sample-7", "sample-71", 
                    "sample-73", "sample-74", "sample-77", "sample-82", "sample-83", "sample-95", "sample-99")
 
-maf_for_dndscv = luad@maf[Unique_Patient_Identifier %in% dndscv_samples]
+maf_for_dndscv = for_dndscv@maf[Unique_Patient_Identifier %in% dndscv_samples]
 
 for_dndscv = load_maf(cesa = CESAnalysis(genome="hg19"), maf = maf_for_dndscv, sample_col = "Unique_Patient_Identifier", tumor_allele_col = "Tumor_Allele")
 for_dndscv = trinucleotide_mutation_weights(for_dndscv)
@@ -43,7 +44,7 @@ saveRDS(dndscv_out@dndscv_out_list[[1]]$sel_cv, "sel_cv.rds")
 saveRDS(dndscv_out@mutrates_list[[1]], "mutrates.rds")
 saveRDS(dndscv_out, "single-dndscv_pre-anno.rds")
 anno_out = annotate_gene_maf(dndscv_out)
-saveRDS(anno_out@annotated.snv.maf, "annotated_maf_df.rds")
+saveRDS(anno_out@maf, "annotated_maf_df.rds")
 
 setwd(prev_dir)
 

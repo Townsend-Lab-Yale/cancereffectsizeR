@@ -549,23 +549,6 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     message(silver("Reference alleles look good."))
   }
   
-  # Count SNVs that will be included in effect size analysis
-  num.total = nrow(maf) # indels won't be filtered, but still another filtering step later
-  bases = c("A","T","G","C")
-  snv.maf = maf[Reference_Allele %in% bases & Tumor_Allele %in% bases,]
-  num.non.snv = num.total - nrow(snv.maf)
-  if (num.non.snv > 0) {
-    percent = round((num.non.snv / num.total) * 100, 1)
-    message(silver(paste0("Note: ", num.non.snv, " mutation records out of ", num.total, " (", percent, "%) are not SNVs.\n",
-                   "(That is, ref or tumor allele were something other than a single A/C/T/G.)")))
-  }
-  
-  num.good.snv = nrow(snv.maf)
-  if (num.good.snv == 0) {
-    stop("Error: No SNVs are left to analyze!")
-  }
-  num.samples = length(unique(snv.maf[,Unique_Patient_Identifier]))
-  message(paste0("Loaded ", num.good.snv, " SNVs from ", num.samples, " samples into CESAnalysis."))
   
   # drop any samples that had all mutations excluded
   new_samples = new_samples[Unique_Patient_Identifier %in% maf$Unique_Patient_Identifier]
@@ -573,15 +556,20 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   setcolorder(cesa@samples, c("Unique_Patient_Identifier", "coverage", "covered_regions", "progression_name", "progression_index"))
   setkey(cesa@samples, "Unique_Patient_Identifier")
   
-  
-  cesa@maf = rbind(cesa@maf, maf)
-  nt = c("A", "T", "C", "G")
-  snv_stats = cesa@maf[Reference_Allele %in% nt & Tumor_Allele %in% nt, .(num_samples = length(unique(Unique_Patient_Identifier)), num_snv = .N)]
-  cesa@status[["MAF data"]] = paste0(snv_stats$num_snv, " SNV records from ", snv_stats$num_samples, " samples (view with maf() and samples())")
   if (nrow(excluded) > 0) {
     colnames(excluded) = c(colnames(maf), "Exclusion_Reason")
     cesa@excluded = rbind(cesa@excluded, excluded) 
   }
+  
+  nt = c("A", "T", "C", "G")
+  maf[Reference_Allele %in% nt & Tumor_Allele %in% nt, Variant_Type := "SNV"]
+  maf[is.na(Variant_Type), Variant_Type := "indel"]
+  cesa@maf = rbind(cesa@maf, maf)
+  
+  snv_stats = cesa@maf[Variant_Type == "SNV", .(num_samples = length(unique(Unique_Patient_Identifier)), num_snv = .N)]
+  message(paste0("Loaded ", snv_stats$num_snv, " SNVs from ", snv_stats$num_samples, " samples into CESAnalysis."))
+  cesa@status[["MAF data"]] = paste0(snv_stats$num_snv, " SNV records from ", snv_stats$num_samples, " samples (view with maf() and samples())")
+  
   return(cesa)
 }
 

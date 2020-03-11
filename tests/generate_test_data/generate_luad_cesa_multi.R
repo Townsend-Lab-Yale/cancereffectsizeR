@@ -1,7 +1,7 @@
 prev_dir = setwd(system.file("tests/test_data/", package = "cancereffectsizeR"))
 luad = CESAnalysis(genome = "hg19", progression_order = 1:4)
 luad = load_maf(luad, maf = "luad.hg19.maf.txt", sample_col = "sample_id", progression_col = "fake_stage")
-luad = calc_baseline_mutation_rates(luad, covariate_file = "lung_pca")
+luad = calc_baseline_mutation_rates(luad, covariate_file = "lung_pca", cores = 4)
 saveRDS(luad, "cesa_for_snv_multi.rds")
 test_genes = c("TTN", "KRAS", "RYR2", "EGFR", "TP53", "ASXL3","IFITM2")
 luad = ces_snv(luad, genes = test_genes)
@@ -35,6 +35,6 @@ saveRDS(sel_cv, "sel_cv_multi.rds")
 saveRDS(dndscv_out@mutrates_list, "mutrates_multi.rds")
 saveRDS(dndscv_out, "multi-stage-dndscv_pre-anno.rds") # for quick testing of annotation function 
 anno_out = annotate_gene_maf(dndscv_out)
-saveRDS(anno_out@annotated.snv.maf, "multi_annotated_maf_df.rds")
+saveRDS(anno_out@maf, "multi_annotated_maf_df.rds")
 
 setwd(prev_dir)
