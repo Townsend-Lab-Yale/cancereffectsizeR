@@ -487,7 +487,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   # this is done before any other filtering to ensure catching as many of them as possible
   message(silver("Searching for possible multinucleotide variants..."))
   num.prefilter = nrow(maf)
-  dnp_tnp_results = cancereffectsizeR::DNP_TNP_remover(maf)
+  dnp_tnp_results = cancereffectsizeR:::DNP_TNP_remover(maf)
   maf = dnp_tnp_results$kept[,1:5] # To-do: fix return value of DNP_TNP
   pred.mnv.maf = dnp_tnp_results$removed
   num.pred.mnv = nrow(pred.mnv.maf)

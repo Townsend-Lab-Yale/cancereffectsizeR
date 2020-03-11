@@ -84,7 +84,7 @@ get_gene_results <- function(gene, cesa, all_tumors, find_CI) {
   snv.maf = cesa@maf[Variant_Type == "SNV"]
   current_gene_maf = snv.maf[Gene_name == gene]
   these_mutation_rates <-
-    cancereffectsizeR::mutation_rate_calc(
+    cancereffectsizeR:::mutation_rate_calc(
       this_MAF = current_gene_maf,
       gene = gene,
       gene_mut_rate = cesa@mutrates_list,

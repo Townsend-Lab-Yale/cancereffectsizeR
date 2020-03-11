@@ -1,7 +1,7 @@
 Package: cancereffectsizeR
 Type: Package
 Title: Calculate Cancer Effect Size
-Version: 0.1.1.9002
+Version: 0.1.1.9003
 Author: Vincent L. Cannataro
 Maintainer: Vincent L. Cannataro <vincent.cannataro@yale.edu>
 Description: cancereffectsizeR is an R package that may be used to calculate the effect size of single nucleotide variants (SNV) in cancer exome data.

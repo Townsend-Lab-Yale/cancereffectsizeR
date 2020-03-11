@@ -142,7 +142,7 @@ epistasis_gene_level = function(genes_to_analyze,
     # only run the selection algorithm if there are 2 or more tumors with
     # recurrent variants of each gene present.
     these_mutation_rates1 <-
-      cancereffectsizeR::mutation_rate_calc(
+      cancereffectsizeR:::mutation_rate_calc(
         this_MAF = MAF_input1,
         gene = variant1,
         gene_mut_rate = mutrates_list,
@@ -151,7 +151,7 @@ epistasis_gene_level = function(genes_to_analyze,
         samples = cesa@samples)
 
     these_mutation_rates2 <-
-      cancereffectsizeR::mutation_rate_calc(
+      cancereffectsizeR:::mutation_rate_calc(
         this_MAF = MAF_input2,
         gene = variant2,
         gene_mut_rate = mutrates_list,
