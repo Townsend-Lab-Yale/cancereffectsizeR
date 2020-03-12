@@ -129,7 +129,7 @@ get_gene_results <- function(gene, cesa, all_tumors, find_CI) {
     # This gives number of tumors of each stage with the variant (in proper progression order)
     tumors_with_variant = as.numeric(table(factor(stages, levels = cesa@progressions)))
     
-    # Also get number of eligible tumors per stage (this excludes tumors in data set with 0 SNVs)
+    # Also get number of eligible tumors per stage
     tumor_stages = cesa@samples[eligible_tumors, progression_name]
     tumors_with_coverage = as.numeric(table(factor(tumor_stages, levels = cesa@progressions)))
     

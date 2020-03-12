@@ -28,12 +28,6 @@ mutation_rate_calc <- function(this_MAF,
 
   # if there are no substitutions within a tumor after our preprocessing,
   # do not calculate the mutation rate within that tumor
-
-  if(length(which(!rownames(mutation_rate_nucs) %in% all_tumors)) > 0){
-    mutation_rate_nucs <- as.matrix(mutation_rate_nucs[-which(!rownames(mutation_rate_nucs) %in% all_tumors),])
-    colnames(mutation_rate_nucs) <- colnames(trinuc_proportion_matrix)
-  }
-
   trinuc_counts = gene_trinuc_comp[[gene]]
   if (0 %in% trinuc_counts) {
     trinuc_counts = trinuc_counts + 1
@@ -45,23 +39,17 @@ mutation_rate_calc <- function(this_MAF,
   }
   normalizers = apply(trinuc_proportion_matrix, 1, calc_normalizers) / norm_constant
 
+  
+  gene_rates_by_state = sapply(gene_mut_rate, function(x) x[[gene]])
+  gene_rates_by_sample = gene_rates_by_state[samples[rownames(mutation_rate_nucs), progression_name]]
+  mutation_rate_nucs = (trinuc_proportion_matrix / normalizers) * gene_rates_by_sample
+  
 
   
-  for(i in 1:nrow(mutation_rate_nucs)){
-    current_tumor = rownames(mutation_rate_nucs)[i]
-    mutation_rate_nucs[i,] <- (trinuc_proportion_matrix[i,] / normalizers[i]) * gene_mut_rate[[samples[current_tumor, progression_name]]][gene]
-  }
 
   # mutation_rate_nucs is now the rate of each trinucleotide in each tumor for this gene
   # need to find unique variants and then rates
-
-
   this_MAF <- this_MAF[!duplicated(this_MAF[,c("unique_variant_ID_AA")]),]
-
-  # Need to account for different nucleotide changes giving the same amino acid
-  # Assign amino acids here
-  # Need to give this information back to the main function to count total variants in population
-
 
 
   # mutation rate matrix: rows = tumors, columns = expected relative rates of amino acid changes in gene for tumor
@@ -69,11 +57,6 @@ mutation_rate_calc <- function(this_MAF,
   mutation_rate_matrix <- matrix(nrow=nrow(trinuc_proportion_matrix), ncol=nrow(this_MAF))
   rownames(mutation_rate_matrix) <- rownames(trinuc_proportion_matrix)
   colnames(mutation_rate_matrix) <- this_MAF$unique_variant_ID_AA
-
-  if(length(which(!rownames(mutation_rate_matrix) %in% all_tumors)) > 0){
-    mutation_rate_matrix <- as.matrix(mutation_rate_matrix[-which(!rownames(mutation_rate_matrix) %in% all_tumors),])
-    colnames(mutation_rate_matrix) <- this_MAF$unique_variant_ID_AA
-  }
 
 
   for(i in 1:nrow(mutation_rate_matrix)){
