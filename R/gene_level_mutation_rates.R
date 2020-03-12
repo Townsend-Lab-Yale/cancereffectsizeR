@@ -6,7 +6,7 @@
 #'
 #' @param cesa CESAnalysis object
 #' @param covariate_file Either NULL and uses dNdScv hg19 default covariates, or one of these:  "bladder_pca"  "breast_pca"
-#' "cesc_pca" "colon_pca" "esca_pca" "gbm_pca" "hnsc_pca" "kidney_pca" "lihc_pca" "lung_pca" "ov_pca" "pancreas_pca" "prostate_pca" "rectum_pca" "skin_pca"  "stomach_pca"  "thca_pca" "ucec_pca"
+#' "cesc_pca" "colon_pca" "esca_pca" "gbm_pca" "hnsc_pca" "kidney_pca" "lihc_pca" "lung_pca" "ov_pca" "pancreas_pca" "prostate_pca" "rectum_pca" "skcm_pca"  "stomach_pca"  "thca_pca" "ucec_pca"
 #' @param save_all_dndscv_output default false; when true, saves all dndscv output, not just what's needed by CES
 #' @return CESAnalysis object with gene-level mutation rates calculated
 #' @export

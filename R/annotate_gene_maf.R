@@ -182,6 +182,8 @@ annotate_gene_maf <- function(cesa) {
 
 	# If any trinucleotide mutation comes up NA--usually due to an ambiguous N in the genomic trinuc context--remove record from analysis
 	bad_trinuc_context = sapply(MAF$equivalent_aa_muts, function(x) any(is.na(x)))
+	# in the future, variant type test removed (for now, only SNV annotations really matter)
+	bad_trinuc_context = bad_trinuc_context & MAF$Variant_Type == "SNV"
 	num_bad = sum(bad_trinuc_context)
 	if (num_bad > 0) {
 	  bad_trinuc_context_maf <- MAF[bad_trinuc_context, .(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele, Tumor_Allele)]

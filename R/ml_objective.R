@@ -14,12 +14,10 @@
 ml_objective <- function(gamma, tumor_stages, tumors_without_gene_mutated, tumors_with_pos_mutated, 
   variant, specific_mut_rates, modifier=0) {
 
-  calc_gamma_sums_no_mut = function(tumor) {
-    return(sum(-1*gamma[1:tumor_stages[tumor]]))
-  }
 
-  gamma_sums = vapply(tumors_without_gene_mutated, calc_gamma_sums_no_mut, FUN.VALUE = 1.0)
-  sum_log_lik = sum(gamma_sums * specific_mut_rates[tumors_without_gene_mutated, variant])
+  sums = cumsum(gamma)
+  gamma_sums = sums[tumor_stages[tumors_without_gene_mutated]]
+  sum_log_lik = -1 * sum(gamma_sums * specific_mut_rates[tumors_without_gene_mutated, variant])
 
 
   calc_gamma_sums_mut = function(tumor) {
