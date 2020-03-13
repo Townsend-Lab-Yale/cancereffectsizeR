@@ -564,12 +564,11 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     cesa@excluded = rbind(cesa@excluded, excluded) 
   }
   
-
+  current_snv_stats = maf[Variant_Type == "SNV", .(num_samples = length(unique(Unique_Patient_Identifier)), num_snv = .N)]
+  message(paste0("Loaded ", current_snv_stats$num_snv, " SNVs from ", current_snv_stats$num_samples, " samples into CESAnalysis."))
   
   snv_stats = cesa@maf[Variant_Type == "SNV", .(num_samples = length(unique(Unique_Patient_Identifier)), num_snv = .N)]
-  message(paste0("Loaded ", snv_stats$num_snv, " SNVs from ", snv_stats$num_samples, " samples into CESAnalysis."))
   cesa@status[["MAF data"]] = paste0(snv_stats$num_snv, " SNV records from ", snv_stats$num_samples, " samples (view with maf() and samples())")
-  
   return(cesa)
 }
 
