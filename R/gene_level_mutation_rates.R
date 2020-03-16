@@ -42,10 +42,12 @@ gene_level_mutation_rates <- function(cesa, covariate_file = 'default', save_all
 dndscv_preprocess = function(cesa, covariate_file = "default") {
   if(is.null(covariate_file)){
     message("Warning: Calculating gene mutation rates with no covariate data (supply covariates if available).")
+    cv = NULL
+    genes_in_pca = NULL
     warning("Calculating gene mutation rates with no covariate data (covariates should be supplied if available)")
   } else if (is(covariate_file, "character") && covariate_file[1] == "default") {
     if(names(cesa@genome_data_dir) == "hg19") {
-      message("Loading dNdScv default covariates for hg19...")
+      message("Loading dNdScv default covariates for hg19 (stop and re-run with tissue-specific covariates if available)...")
       data("covariates_hg19",package = "dndscv", envir = environment())
       genes_in_pca <- rownames(covs)
       cv = "hg19"
