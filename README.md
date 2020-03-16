@@ -20,7 +20,7 @@ devtools::install_github("Townsend-Lab-Yale/cancereffectsizeR")
 
 # Usage
 
-## Create CESAanlysis
+## Create CESAnalysis
 Begin by declaring your CESAnalysis object, the primary data structure of cancereffectsizeR. If you have chronological tumor progression state information (e.g., stages 1-4, primary/metastatic, or pre-/post-treatment), then you can provide this information to the analysis in order to have baseline site mutation rates and selection intensities calculated per state rather than all together. You will also supply your genome build.
 
 ```R
