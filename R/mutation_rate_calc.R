@@ -7,6 +7,7 @@
 #' @param trinuc_proportion_matrix matrix constructed from deconstructSigs output, containing proportion of each trinucleotide mutated in each tumor
 #' @param samples data table with sample info
 #' @param gene_mut_rate mutation rate at the gene-level
+#' @param gene_trinuc_comp genome/transcriptome-specific gene trinuc composition
 #'
 #' @return
 #' @export
@@ -15,6 +16,7 @@ mutation_rate_calc <- function(this_MAF,
                                gene,
                                gene_mut_rate,
                                trinuc_proportion_matrix,
+                               gene_trinuc_comp,
                                all_tumors,
                                samples
                                ){

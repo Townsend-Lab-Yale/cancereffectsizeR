@@ -1,5 +1,4 @@
 #' get_genome_dirs
-#' get_genome_dirs
 #' 
 #' returns a character vector mapping genome names to their data directories
 #' @param full_paths default TRUE; returns full paths to genome data instead of just genome names 
@@ -77,5 +76,13 @@ list_genomes = function() {
     message(silver(paste0("Available genomes: ", paste(genome_names, collapse = ", "), ".")))
   }
 }
+#' 
+#' #' list_gene_mutation_covariates (coming soon)
+#' #' 
+#' #' for a given CESAnalysis (that is, the genome build it uses), prints available covariates for use with gene mutation rate calculation
+#' #' @export
+#' list_gene_mutation_covariates = function() {
+#'   
+#' }
 
 

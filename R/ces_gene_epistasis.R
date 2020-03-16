@@ -75,10 +75,11 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optim
     selection_epistasis_results <- data.frame(t(selection_epistasis_results),stringsAsFactors=F)
     rownames(selection_epistasis_results) <- c("Variant_1","Variant_2")
     selection_epistasis_results_list <- as.list(selection_epistasis_results)
-    
+    gene_trinuc_comp = get_genome_data(cesa, "gene_trinuc_comp")
     selection_results = pbapply::pblapply(X = selection_epistasis_results_list,
                                            FUN = epistasis_gene_level,
                                            cesa=cesa,
+                                           gene_trinuc_comp = gene_trinuc_comp,
                                            optimx_args = optimx_args,
                                            cl = cores)
     cesa@gene_epistasis_results = data.table::rbindlist(lapply(selection_results, function(x) x[[1]]))
@@ -94,7 +95,8 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optim
     return(cesa)
 }
 
-epistasis_gene_level = function(genes_to_analyze,
+epistasis_gene_level = function(genes_to_analyze, 
+                                gene_trinuc_comp,
                                 cesa,
                                 optimx_args) {
   mutrates_list = cesa@mutrates_list
@@ -147,6 +149,7 @@ epistasis_gene_level = function(genes_to_analyze,
         gene = variant1,
         gene_mut_rate = mutrates_list,
         trinuc_proportion_matrix = trinuc_proportion_matrix,
+        gene_trinuc_comp = gene_trinuc_comp,
         all_tumors = eligible_tumors,
         samples = cesa@samples)
 
@@ -156,6 +159,7 @@ epistasis_gene_level = function(genes_to_analyze,
         gene = variant2,
         gene_mut_rate = mutrates_list,
         trinuc_proportion_matrix = trinuc_proportion_matrix,
+        gene_trinuc_comp = gene_trinuc_comp,
         all_tumors = eligible_tumors,
         samples = cesa@samples)
 

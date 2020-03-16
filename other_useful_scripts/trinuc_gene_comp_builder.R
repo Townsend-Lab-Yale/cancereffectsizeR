@@ -1,8 +1,11 @@
 # create list of all the trinuc numbers in every gene
-data("RefCDS_TP53splice", package = "cancereffectsizeR")
 
-# Load the 92 context-specific SNV mutations, in the order used by deconstructSigs
-data("deconstructSigs_trinuc_string", package = "cancereffectsizeR")
+# Load the pre-existing RefCDS object
+hg19_dir = get_genome_data_directory("hg19")
+RefCDS = readRDS(paste0(hg19_dir, "/RefCDS.rds"))
+
+# Also using deconstructSigs_trinuc_string, part of CES sysdata
+# Contains  92 context-specific SNV mutations, in the order used by deconstructSigs
 
 # Convert stuff like "A[C>G]A" format to "ACA" (just the reference trinucleotide context)
 context_names = sub("\\[([ACTG]).*\\]", "\\1", deconstructSigs_trinuc_string)
@@ -47,11 +50,13 @@ for(i in 1:length(RefCDS)){
     start = end + 1
   }
 
-  # add to trinuc counts to environment (dropping names since they don't match deconstructSigs format)
+  # add trinuc counts to environment (dropping names since they don't match deconstructSigs format)
   gene_trinuc_comp[[RefCDS[[i]]$gene_name]] = unname(total_counts)
 }
 
-save(gene_trinuc_comp,file = "data/gene_trinuc_comp.RData")
+
+output_file = paste0(hg19_dir, "/gene_trinuc_comp.rds")
+saveRDS(gene_trinuc_comp,output_file)
 
 
 
