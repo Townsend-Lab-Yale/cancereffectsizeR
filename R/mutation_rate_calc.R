@@ -17,7 +17,6 @@ mutation_rate_calc <- function(this_MAF,
                                gene_mut_rate,
                                trinuc_proportion_matrix,
                                gene_trinuc_comp,
-                               all_tumors,
                                samples
                                ){
 

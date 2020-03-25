@@ -70,10 +70,9 @@ ces_snv <- function(cesa = NULL,
     }
   }
 
-  all_tumors = unique(snv.maf$Unique_Patient_Identifier)
   gene_trinuc_comp = get_genome_data(cesa, "gene_trinuc_comp")
   selection_results <- rbindlist(pbapply::pblapply(genes_to_analyze, get_gene_results, cesa = cesa,
-                                            all_tumors = all_tumors, gene_trinuc_comp = gene_trinuc_comp, find_CI=find_CI, cl = cores))
+                                             gene_trinuc_comp = gene_trinuc_comp, find_CI=find_CI, cl = cores))
   cesa@selection_results = selection_results
   cesa@status[["SNV selection"]] = "view effect sizes with snv_results()"
   return(cesa)
@@ -81,7 +80,7 @@ ces_snv <- function(cesa = NULL,
 
 
 #' Single-stage SNV effect size analysis (gets called by ces_snv)
-get_gene_results <- function(gene, cesa, all_tumors, find_CI, gene_trinuc_comp) {
+get_gene_results <- function(gene, cesa, find_CI, gene_trinuc_comp) {
   snv.maf = cesa@maf[Variant_Type == "SNV"]
   current_gene_maf = snv.maf[Gene_name == gene]
   these_mutation_rates <-
@@ -91,7 +90,6 @@ get_gene_results <- function(gene, cesa, all_tumors, find_CI, gene_trinuc_comp) 
       gene_mut_rate = cesa@mutrates_list,
       trinuc_proportion_matrix = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix,
       gene_trinuc_comp = gene_trinuc_comp,
-      all_tumors = all_tumors,
       samples = cesa@samples)
 
   variants = colnames(these_mutation_rates)
@@ -103,8 +101,7 @@ get_gene_results <- function(gene, cesa, all_tumors, find_CI, gene_trinuc_comp) 
     site_coverage = unlist(variant_maf[1, covered_in])
     eligible_tumors = cesa@samples[covered_regions %in% site_coverage, Unique_Patient_Identifier]
     
-    # edge case: toss out tumors that do not have any SNVs to analyze
-    eligible_tumors = eligible_tumors[eligible_tumors %in% all_tumors]
+
     
     # given the tumors with coverage, their mutation rates at the variant sites, and their mutation status,
     # find most likely selection intensities (by stage if applicable)

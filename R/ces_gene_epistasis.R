@@ -102,7 +102,6 @@ epistasis_gene_level = function(genes_to_analyze,
   mutrates_list = cesa@mutrates_list
   MAF = cesa@maf[Variant_Type == "SNV"]
   trinuc_proportion_matrix = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix
-  all_tumors = unique(MAF$Unique_Patient_Identifier)
 
   variant1 = genes_to_analyze[1]
   variant2 = genes_to_analyze[2]
@@ -113,7 +112,7 @@ epistasis_gene_level = function(genes_to_analyze,
   # this could be a problem if some of the "exome" samples are actually whole-genome if they haven't been trimmed strictly enough
   
   # this is clunky but okay for now and will change with next refactor
-  eligible_tumors = all_tumors # samples without coverage at all sites will get intersected out
+  eligible_tumors = cesa@samples$Unique_Patient_Identifier # samples without coverage at all sites will get intersected out
   for (maf in list(MAF_input1, MAF_input2)) {
     for (i in 1:nrow(maf)) {
       site_coverage = unlist(maf[i, covered_in]) # this returns a character vector naming the covered regions with coverage
@@ -139,7 +138,6 @@ epistasis_gene_level = function(genes_to_analyze,
       gene_mut_rate = mutrates_list,
       trinuc_proportion_matrix = trinuc_proportion_matrix,
       gene_trinuc_comp = gene_trinuc_comp,
-      all_tumors = eligible_tumors,
       samples = cesa@samples)
 
   these_mutation_rates2 <-
@@ -149,7 +147,6 @@ epistasis_gene_level = function(genes_to_analyze,
       gene_mut_rate = mutrates_list,
       trinuc_proportion_matrix = trinuc_proportion_matrix,
       gene_trinuc_comp = gene_trinuc_comp,
-      all_tumors = eligible_tumors,
       samples = cesa@samples)
 
 
