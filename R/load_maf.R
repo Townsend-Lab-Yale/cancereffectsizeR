@@ -404,7 +404,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
       if(! "MT" %in% names(chain) && "M" %in% names(chain)) {
         names(chain) = sub("^M$", "MT", names(chain))
         message(silver("Assuming that chrM in the chain file refers to mitochondrial DNA (aka chrMT)...."))
-        mesage(silver("If you get reference mismatches on this contig, you may need a different chain file."))
+        message(silver("If you get reference mismatches on this contig, you may need a different chain file."))
       }
     }
     maf[, rn := 1:.N] # using row number as an identifier to know which intervals fail liftover
