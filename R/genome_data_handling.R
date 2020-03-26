@@ -60,6 +60,17 @@ get_genome_data_directory = function(genome) {
 set_genome_data_directory = function(cesa, genome) {
   genome_dir = get_genome_data_directory(genome)
   cesa@genome_data_dir = genome_dir
+  
+  
+  genome_path = paste0(genome_dir, "/genome_package_name.rds")
+  if(! file.exists(genome_path)) {
+    stop(paste0("Something is wrong with the genome data installation.\n",
+                "Expected to find a reference genome at ", genome_path, "."))
+  }
+  genome_package = readRDS(genome_path)
+  genome = BSgenome::getBSgenome(genome_package)
+  GenomeInfoDb::seqlevelsStyle(genome) = "NCBI"
+  cesa@genome = genome
   return(cesa)
 }
 

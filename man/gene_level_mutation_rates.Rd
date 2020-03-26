@@ -6,17 +6,18 @@
 \usage{
 gene_level_mutation_rates(
   cesa,
-  covariate_file = NULL,
+  covariate_file = "default",
   save_all_dndscv_output = FALSE
 )
 }
 \arguments{
 \item{cesa}{CESAnalysis object}
 
-\item{covariate_file}{Either NULL and uses dNdScv hg19 default covariates, or one of these:  "bladder_pca"  "breast_pca"
-"cesc_pca" "colon_pca" "esca_pca" "gbm_pca" "hnsc_pca" "kidney_pca" "lihc_pca" "lung_pca" "ov_pca" "pancreas_pca" "prostate_pca" "rectum_pca" "skin_pca"  "stomach_pca"  "thca_pca" "ucec_pca"}
+\item{covariate_file}{"default" uses dNdScv hg19 default covariates, NULL runs without covariates, or give a custom prcomp RData file, or specify 
+one of these for hg19 tissue-specific covariate data: "bladder_pca"  "breast_pca" "cesc_pca" "colon_pca" "esca_pca" "gbm_pca" "hnsc_pca" "kidney_pca" "lihc_pca" 
+"lung_pca" "ov_pca" "pancreas_pca" "prostate_pca" "rectum_pca" "skcm_pca"  "stomach_pca"  "thca_pca" "ucec_pca"}
 
-\item{save_all_dndscv_output}{default false; when true, saves all dndscv output, not just what's needed by CES}
+\item{save_all_dndscv_output}{default false; when true, saves all dndscv output, not just what's needed by CES (will make object size very large)}
 }
 \value{
 CESAnalysis object with gene-level mutation rates calculated

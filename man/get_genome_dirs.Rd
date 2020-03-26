@@ -2,8 +2,7 @@
 % Please edit documentation in R/genome_data_handling.R
 \name{get_genome_dirs}
 \alias{get_genome_dirs}
-\title{get_genome_dirs
-get_genome_dirs}
+\title{get_genome_dirs}
 \usage{
 get_genome_dirs()
 }

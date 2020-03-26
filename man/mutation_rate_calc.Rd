@@ -9,7 +9,7 @@ mutation_rate_calc(
   gene,
   gene_mut_rate,
   trinuc_proportion_matrix,
-  all_tumors,
+  gene_trinuc_comp,
   samples
 )
 }
@@ -21,6 +21,8 @@ mutation_rate_calc(
 \item{gene_mut_rate}{mutation rate at the gene-level}
 
 \item{trinuc_proportion_matrix}{matrix constructed from deconstructSigs output, containing proportion of each trinucleotide mutated in each tumor}
+
+\item{gene_trinuc_comp}{genome/transcriptome-specific gene trinuc composition}
 
 \item{samples}{data table with sample info}
 }

@@ -46,8 +46,6 @@ mutation_rate_calc <- function(this_MAF,
   mutation_rate_nucs = (trinuc_proportion_matrix / normalizers) * gene_rates_by_sample
   
 
-  
-
   # mutation_rate_nucs is now the rate of each trinucleotide in each tumor for this gene
   # need to find unique variants and then rates
   this_MAF <- this_MAF[!duplicated(this_MAF[,c("unique_variant_ID_AA")]),]
