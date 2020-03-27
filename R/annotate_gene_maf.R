@@ -105,13 +105,23 @@ annotate_gene_maf <- function(cesa) {
 	inframe = Biostrings::DNAStringSet(lapply(RefCDS[genes], function(x) x$seq_cds))
 	downstream = Biostrings::DNAStringSet(lapply(RefCDS[genes], function(x) x$seq_cds1down))
 	
-	# get the first, second, and third nucleotides of the given codonS, and the genomic trinuc context of each
+	# get the first, second, and third nucleotides of the given codons, and the genomic trinuc context of each
 	# will shift from the given codon position to capture all three nucleotides in the codon
 	start = coding_maf$nuc_position - coding_maf$codon_pos + 1
 	upstream = Biostrings::subseq(upstream, start = start, width = 3)
 	ref_codon = Biostrings::subseq(inframe, start = start, width = 3)
 	downstream = Biostrings::subseq(downstream, start = start, width = 3)
 	
+	# trinuc context for annotation (context for the mutated position, not the codon)
+	transcript_trinuc = Biostrings::xscat(Biostrings::subseq(upstream, start = coding_maf$codon_pos, width = 1),
+	                                      Biostrings::subseq(ref_codon, start = coding_maf$codon_pos, width = 1),
+	                                      Biostrings::subseq(downstream, start = coding_maf$codon_pos, width = 1))
+	strands = sapply(RefCDS[genes], function(x) x$strand)
+	
+	# take reverse complement in order to get 5' to 3' orientation for negative-strand genes
+	genomic_trinuc = transcript_trinuc
+	genomic_trinuc[strands == -1] = Biostrings::reverseComplement(transcript_trinuc[strands == -1])
+	trinuc_dcS_coding <- trinuc_translator[paste0(genomic_trinuc,":",coding_maf$Tumor_Allele), "deconstructSigs_format"]
 	
 	# handle coding non-splice
   not_splice = coding_maf[, next_to_splice == F]
@@ -123,7 +133,6 @@ annotate_gene_maf <- function(cesa) {
   
   # handle coding splice
   splice = coding_maf[, next_to_splice == T]
-  
   
   # for splice sites, calculate all possible SNV mutations (with trinuc context) that would match the actual amino acid change
   # replace each position in the codon with all bases to get all codons that can results from an SNV mutation
@@ -172,11 +181,14 @@ annotate_gene_maf <- function(cesa) {
                              start=noncoding_maf$Start_Position-1,
                              end=noncoding_maf$Start_Position+1,
                              as.character = TRUE)
-  noncoding_trinuc_dS <- trinuc_translator[paste0(triseq,":",noncoding_maf$Tumor_Allele), "deconstructSigs_format"]
   
+  trinuc_dcS_noncoding <- trinuc_translator[paste0(triseq,":",noncoding_maf$Tumor_Allele), "deconstructSigs_format"]
+  
+  MAF[is_coding == TRUE, trinuc_dcS := trinuc_dcS_coding]
+  MAF[is_coding == FALSE, trinuc_dcS := trinuc_dcS_noncoding]
   
   # add all to the annotated MAF
-	MAF[is_coding == FALSE, equivalent_aa_muts :=.(as.list(noncoding_trinuc_dS))]
+	MAF[is_coding == FALSE, equivalent_aa_muts :=.(as.list(trinuc_dcS_noncoding))]
 	MAF[is_coding == TRUE & next_to_splice == FALSE, equivalent_aa_muts := equivalent_muts_nonsplice]
 	MAF[is_coding == TRUE & next_to_splice == TRUE, equivalent_aa_muts := equivalent_muts_splice]
 

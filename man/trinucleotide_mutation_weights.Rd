@@ -12,6 +12,7 @@ trinucleotide_mutation_weights(
   sig_averaging_threshold = 50,
   v3_artifact_accounting = TRUE,
   v3_hypermutation_rules = TRUE,
+  use_dS_exome2genome = FALSE,
   signatures_to_remove = ""
 )
 }
@@ -34,6 +35,8 @@ these group averages are blended into the signature weightings of tumors with fe
 \item{v3_artifact_accounting}{when COSMIC v3 signatures associated with sequencing artifacts are detected, renormalizes to isolate "true" sources of mutational flux.}
 
 \item{v3_hypermutation_rules}{T/F on whether to follow the mutation count rules outlined in https://doi.org/10.1101/322859, the manuscript reported the v3 COSMIC signature set.}
+
+\item{use_dS_exome2genome}{internal dev option (don't use)}
 
 \item{signatures_to_remove}{specify any signatures to exclude from analysis; some signatures automatically get excluded
 from COSMIC v3 analyses; set signatures_to_remove = "none" to prevent this behavior}

@@ -28,7 +28,7 @@
 #' @param signatures_to_remove specify any signatures to exclude from analysis; some signatures automatically get excluded
 #'     from COSMIC v3 analyses; set signatures_to_remove = "none" to prevent this behavior
 #' @param v3_hypermutation_rules T/F on whether to follow the mutation count rules outlined in https://doi.org/10.1101/322859, the manuscript reported the v3 COSMIC signature set.
-#'
+#' @param use_dS_exome2genome internal dev option (don't use)
 #' @export
 #'
 #'
@@ -40,6 +40,7 @@ trinucleotide_mutation_weights <- function(cesa,
                                            sig_averaging_threshold = 50,
                                            v3_artifact_accounting = TRUE,
                                            v3_hypermutation_rules = TRUE,
+                                           use_dS_exome2genome = FALSE,
                                            signatures_to_remove = "" # cosmic_v3 analysis gets signatures added here later unless "none"
                                            ){
 
@@ -172,7 +173,12 @@ trinucleotide_mutation_weights <- function(cesa,
   exomes_to_calc = cesa@samples[coverage == "exome", unique(covered_regions)]
   for (exome_name in exomes_to_calc) {
     if (exome_name %in% c("exome", "exome+")) {
-      exome_counts_by_gr[[exome_name]] = get_genome_data(cesa, "tri.counts.exome")
+      if (use_dS_exome2genome) {
+        data("tri.counts.exome", package = "deconstructSigs")
+        exome_counts_by_gr[[exome_name]] = tri.counts.exome
+      } else {
+        exome_counts_by_gr[[exome_name]] = get_genome_data(cesa, "tri.counts.exome")
+      }
     } else {
       exome_seq = getSeq(cesa@genome, cesa@coverage[[exome_name]])
       exome_tri_contexts = Biostrings::trinucleotideFrequency(exome_seq)
