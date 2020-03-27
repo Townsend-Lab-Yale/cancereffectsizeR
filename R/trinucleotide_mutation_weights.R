@@ -203,6 +203,11 @@ trinucleotide_mutation_weights <- function(cesa,
   # mysteriously convert two-way table to data frame
   tmp = table(ds_maf$Unique_Patient_Identifier, ds_muts)
   counts = apply(tmp, 2, rbind)
+  
+  # edge case: when just 1 sample in data set, counts comes back as integer vector but need matrix
+  if(! is.matrix(counts)) {
+    counts = t(as.matrix(counts))
+  }
   rownames(counts) = rownames(tmp)
   trinuc_breakdown_per_tumor = as.data.frame(counts)
 

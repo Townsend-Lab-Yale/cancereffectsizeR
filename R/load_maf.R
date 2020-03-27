@@ -427,7 +427,13 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
       excluded = rbind(excluded, failed_liftover[, -"rn"])
       message(silver(paste0("Note: ", num_failing, " records failed liftOver, so they will be set aside.")))
     }
+    
     maf = merged_maf[, .(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele, Tumor_Allele)]
+    
+    # different loci in one genome can get lifted to the same position in the next, due to fixes
+    # rarely, mutations at multiple matching sites can get called in a sample, resulting in duplicate records after liftOver
+    lifted_to_same = duplicated(maf[,.(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele)])
+    maf = maf[! lifted_to_same]
   }
   
   # remove any MAF records that are not in the coverage (except for generic exome data; then, just warn)
