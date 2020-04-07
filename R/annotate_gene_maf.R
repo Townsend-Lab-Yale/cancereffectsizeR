@@ -205,15 +205,22 @@ annotate_gene_maf <- function(cesa) {
 	  cesa@excluded = rbind(cesa@excluded, bad_trinuc_context_maf)
 	}
 	
+	
 	# record which covered_regions granges cover each mutation
 	maf_gr = GenomicRanges::makeGRangesFromDataFrame(MAF, seqnames.field = "Chromosome", start.field = "Start_Position",  end.field = "Start_Position")
 	
 	# test each MAF locus against all coverage grs
 	# this returns a data frame where rows match MAF rows, columns are T/F for each coverage gr
 	is_covered = as.data.table(lapply(cesa@coverage, function(x) maf_gr %within% x))
+
 	
 	# get the names of coverage grs with coverage for each site (and add in genome, which covers every site)
 	grs_with_coverage = apply(is_covered, 1, function(x) c(names(which(x == TRUE)), "genome"))
+	
+	# when all samples have same coverage apply "helpfully" returns a matrix, but we want a list
+	if(! is(grs_with_coverage, "list")) {
+	  grs_with_coverage = as.list(as.data.table(grs_with_coverage))
+	}
 	
 	# Note that when exome+ coverage (see load_maf) is used, samples can have both "exome" and "exome+" associated with their mutations,
 	# but the samples thmeslves are considered "exome+" (be careful not to double-count these if developing something new)
