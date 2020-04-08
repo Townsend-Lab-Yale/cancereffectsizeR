@@ -531,25 +531,30 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   # Could conceivably verify that the inserted bases don't match reference....
   reference.mismatch.maf = maf[Reference_Allele != reference_alleles & Reference_Allele != '-',]
   num.nonmatching = nrow(reference.mismatch.maf)
+  prefilter_total_snv = maf[Reference_Allele %in% c("A", "C", "T", "G"), .N]
   maf = maf[Reference_Allele == reference_alleles | Reference_Allele == '-',] # filter out ref mismatches
   
   # if significant numbers of SNVs don't match reference, don't run
   mismatch_snv = reference.mismatch.maf[Reference_Allele %in% c("A", "C", "T", "G"), .N]
-  total_snv = maf[Reference_Allele %in% c("A", "C", "T", "G"), .N]
-  bad_snv_frac = mismatch_snv / total_snv
+  
+  bad_snv_frac = mismatch_snv / prefilter_total_snv
   bad_snv_percent = round(bad_snv_frac * 100, 1)
-  if(bad_snv_frac > .05) {
-    stop(paste0(bad_snv_percent, "% of SNV records do not match the given reference genome. Remove or fix these records before running."))
-  }
   
   if (num.nonmatching > 0) {
     reference.mismatch.maf$Exclusion_Reason = "reference_mismatch"
     excluded = rbind(excluded, reference.mismatch.maf)
     percent = round((num.nonmatching / num.prefilter) * 100, 1)
+    
     message(silver(paste0("Note: ", num.nonmatching, " mutation records out of ", num.prefilter, " (", percent, "%, including ", bad_snv_percent,
-                    "% of SNV records) have reference alleles that do not actually match the reference genome.")))
+                          "% of SNV records) have reference alleles that do not actually match the reference genome.")))
     message(silver("These records will be excluded from effect size analysis."))
-  } else {
+    
+    if(bad_snv_frac > .01) {
+      warning(paste0(bad_snv_percent, "% of SNV records do not match the given reference genome. You should probably figure out why",
+                     " and make sure that the rest of your data set is okay to use before continuing."))
+    }
+  }
+   else {
     message(silver("Reference alleles look good."))
   }
   
