@@ -1,4 +1,6 @@
-# create list of all the trinuc numbers in every gene
+# Tabulates trinucleotide context composition of each gene
+# Example: A 98-nt gene has 100 trinuc contexts. If it has two instances of "AAT", that's 2% of total
+# If any possible trinucleotide doesn't appear, then a pseudocount is added for all trinucs
 
 # Load the pre-existing RefCDS object
 hg19_dir = get_genome_data_directory("hg19")
@@ -50,8 +52,14 @@ for(i in 1:length(RefCDS)){
     start = end + 1
   }
 
-  # add trinuc counts to environment (dropping names since they don't match deconstructSigs format)
-  gene_trinuc_comp[[RefCDS[[i]]$gene_name]] = unname(total_counts)
+  # add pseudocounts if any trinucleotides have zero occurences
+  if(0 %in% total_counts) {
+    total_counts = total_counts + 1
+  }
+  
+  # normalize and add trinuc comp to environment (dropping names since they don't match deconstructSigs format)
+  comp = total_counts / sum(total_counts)
+  gene_trinuc_comp[[RefCDS[[i]]$gene_name]] = unname(comp)
 }
 
 

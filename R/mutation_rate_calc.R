@@ -27,18 +27,11 @@ mutation_rate_calc <- function(this_MAF,
   rownames(mutation_rate_nucs) <- rownames(trinuc_proportion_matrix)
   colnames(mutation_rate_nucs) <- colnames(trinuc_proportion_matrix)
 
-  # if there are no substitutions within a tumor after our preprocessing,
-  # do not calculate the mutation rate within that tumor
-  trinuc_counts = gene_trinuc_comp[[gene]]
-  if (0 %in% trinuc_counts) {
-    trinuc_counts = trinuc_counts + 1
-  }
-  norm_constant = sum(trinuc_counts)
-
+  trinuc_comp = gene_trinuc_comp[[gene]]
   calc_normalizers = function(x) {
-    return(sum(trinuc_counts * x))
+    return(sum(trinuc_comp * x))
   }
-  normalizers = apply(trinuc_proportion_matrix, 1, calc_normalizers) / norm_constant
+  normalizers = apply(trinuc_proportion_matrix, 1, calc_normalizers)
 
   
   gene_rates_by_state = sapply(gene_mut_rate, function(x) x[[gene]])
