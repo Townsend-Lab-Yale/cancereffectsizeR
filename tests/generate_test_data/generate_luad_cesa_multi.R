@@ -1,7 +1,14 @@
 prev_dir = setwd(system.file("tests/test_data/", package = "cancereffectsizeR"))
 luad = CESAnalysis(genome = "hg19", progression_order = 1:4)
 luad = load_maf(luad, maf = "luad.hg19.maf.txt", sample_col = "sample_id", progression_col = "fake_stage")
-luad = calc_baseline_mutation_rates(luad, covariate_file = "lung_pca", cores = 4)
+
+
+# use the trinucleotide weight data saved in generate_trinuc_data (seldom a need to change that data)
+weights = readRDS("luad_trinucleotide_mutation_weights.rds")
+luad = set_trinuc_rates(luad, weights$trinuc_proportion_matrix)
+luad = gene_mutation_rates(luad, covariate_file = "lung_pca")
+luad = annotate_variants(luad)
+
 saveRDS(luad, "cesa_for_snv_multi.rds")
 test_genes = c("TTN", "KRAS", "RYR2", "EGFR", "TP53", "ASXL3","IFITM2")
 luad = ces_snv(luad, genes = test_genes)
@@ -16,7 +23,7 @@ maf_for_dndscv = data.table::fread("luad.hg19.maf.txt")
 maf_for_dndscv = maf_for_dndscv[sample_id %in% dndscv_samples]
 for_dndscv = load_maf(cesa = CESAnalysis(genome="hg19", progression_order = 1:4), maf = maf_for_dndscv, sample_col = "sample_id",
                       tumor_allele_col = "Tumor_Seq_Allele2", progression_col = "fake_stage")
-for_dndscv = trinuc_mutation_rates(for_dndscv)
+for_dndscv = set_trinuc_rates(for_dndscv, weights$trinuc_proportion_matrix[dndscv_samples,])
 saveRDS(for_dndscv, "cesa_for_multi_dndscv.rds")
 
 # long tests will actually run dNdScv; short tests will just make sure internal preprocess/postprocess functions behave as expected
