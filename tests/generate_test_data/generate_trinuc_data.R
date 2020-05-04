@@ -9,6 +9,6 @@ small_maf = rbind(small_maf, list("sample-1", "7", 124404124, "G", "C", "SNV"))
 
 cesa = load_maf(cesa = CESAnalysis("hg19"), maf = small_maf)
 saveRDS(cesa, "cesa_for_trinuc_weighting_calc.rds")
-trimut = trinucleotide_mutation_weights(cesa)
-saveRDS(trimut@trinucleotide_mutation_weights, "trinuc_mut_weighting.rds")
+trimut = trinuc_mutation_rates(cesa)
+saveRDS(trimut@trinuc_mutation_rates, "trinuc_mut_weighting.rds")
 setwd(prev_dir)

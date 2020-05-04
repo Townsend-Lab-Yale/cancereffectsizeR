@@ -37,7 +37,7 @@ CESAnalysis = function(genome = NULL, progression_order = NULL) {
   status = list("genome" = GenomeInfoDb::providerVersion(genome),
                 "progressions" = paste0(progression_order, collapse = ", "),
                 "MAF data" = "none so far (run load_maf)",
-                "trinucleotide mutation rates" = "uncalculated (run trinucleotide_mutation_weights)",
+                "trinucleotide mutation rates" = "uncalculated (run trinuc_mutation_rates)",
                 "gene mutation rates" = "uncalculated (need trinucleotide rates first)"
                 )
   if(length(progression_order) == 1) {

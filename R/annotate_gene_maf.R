@@ -1,11 +1,11 @@
-#' annotate_gene_maf
+#' annotate_variants
 #' 
 #' Annotates CESAnaysis MAF data with gene information, keeping assignments consistent with dndscv when possible
 #'
 #' @importFrom IRanges "%within%"
 #' @param cesa CESAnalysis object
 #' @export
-annotate_gene_maf <- function(cesa) {
+annotate_variants <- function(cesa) {
   RefCDS = get_genome_data(cesa, "RefCDS")
   gr_genes = get_genome_data(cesa, "gr_genes")
   

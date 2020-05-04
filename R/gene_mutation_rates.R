@@ -12,7 +12,7 @@
 #' @return CESAnalysis object with gene-level mutation rates calculated
 #' @export
 # don't change this function at all without being sure you're not messing up tests
-gene_level_mutation_rates <- function(cesa, covariate_file = 'default', save_all_dndscv_output = FALSE){
+gene_mutation_rates <- function(cesa, covariate_file = 'default', save_all_dndscv_output = FALSE){
   RefCDS = get_genome_data(cesa, "RefCDS")
   # hacky way of forcing an object of name gr_genes into the dndscv::dndscv function environment,
   # since the object is required by dndscv but there's no argument to supply your own copy of it
@@ -132,7 +132,7 @@ dndscv_postprocess = function(cesa, dndscv_raw_output, save_all_dndscv_output = 
   }
 
   # keep just the main gene-level selection output from dNdScv, unless user wanted everything
-  # currently also need annotmuts for annotate_gene_maf
+  # currently also need annotmuts for annotate_variants
   if(! save_all_dndscv_output) {
     for (i in 1:length(dndscv_out_list)) {
       # filter out genes with 0 mutations (to keep object size small, mainly for dev purposes)

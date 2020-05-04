@@ -27,7 +27,7 @@ dndscv_samples = c("sample-1", "sample-106", "sample-108", "sample-11", "sample-
 maf_for_dndscv = for_dndscv@maf[Unique_Patient_Identifier %in% dndscv_samples]
 
 for_dndscv = load_maf(cesa = CESAnalysis(genome="hg19"), maf = maf_for_dndscv, sample_col = "Unique_Patient_Identifier", tumor_allele_col = "Tumor_Allele")
-for_dndscv = trinucleotide_mutation_weights(for_dndscv)
+for_dndscv = trinuc_mutation_rates(for_dndscv)
 saveRDS(for_dndscv, "cesa_for_dndscv_and_anno.rds")
 
 # long tests will actually run dNdScv; short tests will just make sure internal preprocess/postprocess functions behave as expected
@@ -43,7 +43,7 @@ dndscv_out = dndscv_postprocess(cesa = for_dndscv, dndscv_raw_output = dndscv_ra
 saveRDS(dndscv_out@dndscv_out_list[[1]]$sel_cv, "sel_cv.rds")
 saveRDS(dndscv_out@mutrates_list[[1]], "mutrates.rds")
 saveRDS(dndscv_out, "single-dndscv_pre-anno.rds")
-anno_out = annotate_gene_maf(dndscv_out)
+anno_out = annotate_variants(dndscv_out)
 saveRDS(anno_out@maf, "annotated_maf_df.rds")
 
 setwd(prev_dir)

@@ -3,7 +3,7 @@
 #' Directly assign trinucleotide-context-specific relative SNV mutation rates to 
 #' all tumors in your CESAnalysis by supplying a matrix with this function.
 #' This is for those who want to use their own methods instead of those
-#' provided in trinucleotide_mutation_weights() and group_average_trinuc_rates().
+#' provided in trinuc_mutation_rates() and group_average_trinuc_rates().
 #' There must be one row per tumor in your data set, with row names matching
 #' sample identifiers. There must be 96 columns, with column names exactly matching
 #' the deconstructSigs naming and order (run this function with incorrect column names, 
@@ -55,7 +55,7 @@ set_trinuc_rates = function(cesa, trinuc_proportion_matrix) {
   }
   cesa@trinucleotide_mutation_weights = list(trinuc_proportion_matrix = trinuc_proportion_matrix)
   cesa@status[["trinucleotide mutation rates"]] = "User-supplied via set_trinuc_rates"
-  cesa@status[["gene mutation rates"]] = "uncalculated (run gene_level_mutation_rates)"
+  cesa@status[["gene mutation rates"]] = "uncalculated (run gene_mutation_rates)"
   return(cesa)
 }
     

@@ -65,9 +65,9 @@ If the MAF data you are loading is from a different genome build than your CESAn
 
 ## Calculate mutation rates and estimate selection
 After loading in data, run the following functions to prepare for calculation of cancer effect size. See the help messages for each function for advanced options.
-- **trinucleotide_mutation_weights**: uses deconstructSigs to assign mutational signature weightings to each tumor sample, and from there calculates trinucleotide-context-specific SNV mutation rates
-- **gene_level_mutation_rates**: uses dNdScv to calculate gene-level mutation rates. It's highly recommended to supply tissue-specific covariate data if available. For hg19, default covariates from dNdScv are also available.
-- **annotate_gene_maf**: annotates MAF data with genome/transcriptome context and gene information
+- **trinuc_mutation_rates**: uses deconstructSigs to assign mutational signature weightings to each tumor sample, and from there calculates trinucleotide-context-specific SNV mutation rates
+- **gene_mutation_rates**: uses dNdScv to calculate gene-level mutation rates. It's highly recommended to supply tissue-specific covariate data if available. For hg19, default covariates from dNdScv are also available.
+- **annotate_variants**: annotates MAF data with genome/transcriptome context and gene information
 
 Finally, use **ces_snv** to find calculate effect sizes.
 
@@ -77,9 +77,9 @@ Finally, use **ces_snv** to find calculate effect sizes.
   analysis = load_maf(analysis, maf = "luad_data.maf", progression_col = "pri_met")
   
   
-  analysis = trinucleotide_mutation_weights(analysis)
-  analysis = gene_level_mutation_rates(analysis, covariate_file = "lung_pca")
-  analysis = annotate_gene_maf(analysis)
+  analysis = trinuc_mutation_rates(analysis)
+  analysis = gene_mutation_rates(analysis, covariate_file = "lung_pca")
+  analysis = annotate_variants(analysis)
   
   
   # Calculate selection intensities
@@ -94,9 +94,9 @@ Finally, use **ces_snv** to find calculate effect sizes.
 If you are running in a MacOS or Linux environment, you can speed up processing by providing multiple computing cores using the "cores" argument. You'll also need the R package parallel, which you can easily install with install.packages if you don't already have it. Run `parallel::detectCores()` to find out how many cores you have available.
 ```R
   # assuming you've already loaded MAF data into object "cesa"
-  cesa = trinucleotide_mutation_weights(cesa, cores = 4)
-  cesa = gene_level_mutation_rates(cesa, covariate_file = "breast_pca")
-  cesa = annotate_gene_maf(cesa)
+  cesa = trinuc_mutation_rates(cesa, cores = 4)
+  cesa = gene_mutation_rates(cesa, covariate_file = "breast_pca")
+  cesa = annotate_variants(cesa)
   cesa = ces_snv(cesa, cores = 4)
 ```
 

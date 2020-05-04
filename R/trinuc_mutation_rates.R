@@ -33,7 +33,7 @@
 #'
 #'
 #'
-trinucleotide_mutation_weights <- function(cesa,
+trinuc_mutation_rates <- function(cesa,
                                            cores = 1,
                                            signature_choice = "cosmic_v3",
                                            assume_identical_mutational_processes = FALSE,
@@ -389,7 +389,7 @@ trinucleotide_mutation_weights <- function(cesa,
   }
   
   cesa@status[["trinucleotide mutation rates"]] = trinuc_method
-  cesa@status[["gene mutation rates"]] = "uncalculated (run gene_level_mutation_rates)"
+  cesa@status[["gene mutation rates"]] = "uncalculated (run gene_mutation_rates)"
   cesa@trinucleotide_mutation_weights = list(trinuc_proportion_matrix=trinuc_proportion_matrix,
                                              signatures_output_list=signatures_output_list)
   return(cesa)

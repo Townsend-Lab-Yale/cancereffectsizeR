@@ -16,7 +16,7 @@ maf_for_dndscv = data.table::fread("luad.hg19.maf.txt")
 maf_for_dndscv = maf_for_dndscv[sample_id %in% dndscv_samples]
 for_dndscv = load_maf(cesa = CESAnalysis(genome="hg19", progression_order = 1:4), maf = maf_for_dndscv, sample_col = "sample_id",
                       tumor_allele_col = "Tumor_Seq_Allele2", progression_col = "fake_stage")
-for_dndscv = trinucleotide_mutation_weights(for_dndscv)
+for_dndscv = trinuc_mutation_rates(for_dndscv)
 saveRDS(for_dndscv, "cesa_for_multi_dndscv.rds")
 
 # long tests will actually run dNdScv; short tests will just make sure internal preprocess/postprocess functions behave as expected
@@ -34,7 +34,7 @@ sel_cv = lapply(dndscv_out@dndscv_out_list, function(x) x$sel_cv)
 saveRDS(sel_cv, "sel_cv_multi.rds")
 saveRDS(dndscv_out@mutrates_list, "mutrates_multi.rds")
 saveRDS(dndscv_out, "multi-stage-dndscv_pre-anno.rds") # for quick testing of annotation function 
-anno_out = annotate_gene_maf(dndscv_out)
+anno_out = annotate_variants(dndscv_out)
 saveRDS(anno_out@maf, "multi_annotated_maf_df.rds")
 
 setwd(prev_dir)

@@ -1,7 +1,7 @@
 #' calc_baseline_mutation_rates
 #' 
-#' Wrapper to sequentially run the functions trinucleotide_mutation_weights, gene_level_mutation_rates, and
-#' annotate_gene_maf. If you want to run these functions with advanced, non-default settings, see the
+#' Wrapper to sequentially run the functions trinuc_mutation_rates, gene_mutation_rates, and
+#' annotate_variants. If you want to run these functions with advanced, non-default settings, see the
 #' documentation for each function and run the functions individually instead of using this wrapper.
 #'
 #' @param cesa CESAnalysis object
@@ -26,13 +26,13 @@ calc_baseline_mutation_rates <- function(
   }
   
   # Calculate trinucleotide mutation weightings using deconstructSigs
-  cesa = trinucleotide_mutation_weights(cesa, signature_choice  = signatures, cores = cores)
+  cesa = trinuc_mutation_rates(cesa, signature_choice  = signatures, cores = cores)
 
   # Calculate gene-level mutation rates using dNdScv
-  cesa = gene_level_mutation_rates(cesa, covariate_file = covariate_file)
+  cesa = gene_mutation_rates(cesa, covariate_file = covariate_file)
 
   # Assign genes to MAF, keeping assignments consistent with dndscv when possible
-  cesa = annotate_gene_maf(cesa)
+  cesa = annotate_variants(cesa)
 
   return(cesa)
 }

@@ -22,7 +22,7 @@ calc_baseline_mutation_rates(
 "cosmic_v2" ,or a properly-formatted user-supplied signatures data.frame}
 }
 \description{
-Wrapper to sequentially run the functions trinucleotide_mutation_weights, gene_level_mutation_rates, and
-annotate_gene_maf. If you want to run these functions with advanced, non-default settings, see the
+Wrapper to sequentially run the functions trinuc_mutation_rates, gene_mutation_rates, and
+annotate_variants. If you want to run these functions with advanced, non-default settings, see the
 documentation for each function and run the functions individually instead of using this wrapper.
 }

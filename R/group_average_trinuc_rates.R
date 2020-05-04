@@ -67,7 +67,7 @@ group_average_trinuc_rates = function(cesa) {
                                     dimnames = list(cesa@samples$Unique_Patient_Identifier, names(trinuc_prop)))
 
   cesa@status[["trinucleotide mutation rates"]] = "assigned with group_average_trinuc_rates"
-  cesa@status[["gene mutation rates"]] = "uncalculated (run gene_level_mutation_rates)"
+  cesa@status[["gene mutation rates"]] = "uncalculated (run gene_mutation_rates)"
   cesa@trinucleotide_mutation_weights = list(trinuc_proportion_matrix=trinuc_proportion_matrix)
   return(cesa)
 }

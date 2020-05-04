@@ -1,6 +1,6 @@
 test_that("Trinucleotide signature weight calculation", {
   cesa = get_test_data("cesa_for_trinuc_weighting_calc.rds")
-  cesa = trinucleotide_mutation_weights(cesa)
+  cesa = trinuc_mutation_rates(cesa)
   trinuc_ak = get_test_data("trinuc_mut_weighting.rds")
   expect_equal(cesa@trinucleotide_mutation_weights, trinuc_ak)
 })
@@ -16,7 +16,7 @@ test_that("dNdScv and MAF annotation", {
   expect_equal(cesa@dndscv_out_list[[1]]$sel_cv, sel_cv)
   mutrates = get_test_data("mutrates.rds")
   expect_equal(cesa@mutrates_list[[1]], mutrates)
-  cesa = annotate_gene_maf(cesa)
+  cesa = annotate_variants(cesa)
   annotated_maf = get_test_data("annotated_maf_df.rds")
   expect_equal(cesa@maf, annotated_maf)
 })
