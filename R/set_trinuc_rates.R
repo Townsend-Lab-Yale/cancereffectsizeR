@@ -41,9 +41,9 @@ set_trinuc_rates = function(cesa, trinuc_proportion_matrix) {
   }
   
   
-  
-  if(any(rowSums(trinuc_proportion_matrix) != 1)) {
-    stop("row sums of matrix must all be exactly 1")
+  # rows must sume to 1, but allow small tolerance 
+  if(any(abs(rowSums(trinuc_proportion_matrix) - 1) > .001)) {
+    stop("row sums of matrix must all be 1")
   }
   if (any(apply(trinuc_proportion_matrix, 1, function(x) any(x <= 0)))) {
     # rate < 0 is invalid
