@@ -1,6 +1,6 @@
 test_that("Trinucleotide signature weight calculation", {
   cesa = get_test_data("cesa_for_trinuc_weighting_calc.rds")
-  cesa = trinuc_mutation_rates(cesa)
+  cesa = trinuc_mutation_rates(cesa, signatures_to_remove = c("SBS25", "SBS31", "SBS32", "SBS35")) # for back-compatibility, these sigs to remove
   trinuc_ak = get_test_data("trinuc_mut_weighting.rds")
   expect_equal(cesa@trinucleotide_mutation_weights, trinuc_ak)
 })

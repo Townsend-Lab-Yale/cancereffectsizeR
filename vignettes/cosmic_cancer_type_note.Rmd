@@ -1,0 +1,38 @@
+---
+title: "Cancer type considerations for COSMIC signatures"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Cancer type considerations for COSMIC signatures}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+The cancereffectsizeR trinuc_mutation_rates uses mutational signature extraction to calculate relative trinucleotide-specific SNV mutation rates for each tumor in the input data. The "signatures_to_remove" option allows some signatures to be excluded from this analysis, which means each tumor will receive a weight of 0 for these signatures (i.e., 0% of the tumor's SNVs are attributable to these signatures). By default, SBS25 is excluded because it's considered dubious and is specific to Hodgkin's lymphoma cell lines. You can override this behavior by setting `signatures_to_remove = "none"`.
+
+In [Alexandrov 2020](https://doi.org/10.1038/s41586-020-1943-3), the paper introducing the latest COSMIC mutational signatures (COSMICv3),
+there are some signatures that do not appear in certain cancer types. Therefore, you may wish to exclude those signatures during
+mutational signature analysis of your data.
+
+There are also a few signatures associated with certain chemotherapy drugs (SBS31, SBS32, SBS35), so if you are confident that your sample 
+is treatment-naive, you may wish to exclude these.
+
+Note that while some COSMIC signatures are believed to represent sequencing artifacts, it's not recommended to remove these from analysis, because cancereffectsizeR already has special handling of these signatures to determine relative rates of true mutational processes in tumors.
+
+
+
+To get a list of signatures to exclude based on cancer type and treatment status, you can use `suggest_cosmic_v3_signatures_to_remove()`.
+```{r eval = F}
+  suggest_cosmic_v3_signatures_to_remove(cancer_type = "BRCA", treatment_naive = TRUE)
+  suggest_cosmic_v3_signatures_to_remove(cancer_type = "Kidney-RCC")
+```
+
+The cancer type recommendations are based on Extended Data Figure 5 of Alexandrov 2020. The first two columns of the table below, also based on that figure, give the labels accepted by the `cancer_type` argument.
+
+Before excluding signatures, make sure your data set does not contain tumors from multiple PCAWG categories. For example, TCGA HNSC (head and neck cancer) includes oral cancers, which are listed separately here as Oral-SCC, so excluding all signatures that do not appear in Head-SCC (such as SBS29, tobacco chewing) would not be appropriate.  
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+  data_source = paste0(system.file("extdata", package = "cancereffectsizeR"), '/pcawg_tcga_cancer_types.txt')
+  cancer_type = data.table::fread(data_source)
+  cancer_type[is.na(cancer_type)] = "(none)"
+  formattable::formattable(cancer_type[, .(PCAWG, Applicable_TCGA, Number_of_tumors, Description)])
+```
+

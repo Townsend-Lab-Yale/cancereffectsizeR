@@ -1,6 +1,5 @@
 #' Trinucleotide mutation weights
 #'
-#'
 #' This function calculates relative rates of trinucleotide-context-specific SNV
 #' mutations within tumors by attributing SNVs to mutational processes represented
 #' in mutation signature sets (such as COSMIC v3). This function currently uses
@@ -9,7 +8,6 @@
 #' mutation rates calculated across all exome/genome data, which means that you need at
 #' least some exome or genome data to run.
 #' 
-#'
 #' To reduce the influence of selection on the estimation of relative trinucleotide mutation
 #' rates, this function only uses non-recurrent SNVs (i.e., those that do not appear in more than one 
 #' sample in the data set).
@@ -24,9 +22,8 @@
 #' @param sig_averaging_threshold Mutational threshold (default 50) that determines which tumors inform the
 #'   calculation of group-average signature weightings. When assume_identical_mutational_processes == FALSE (the default), 
 #'   these group averages are blended into the signature weightings of tumors with few mutations (those below the threshold).
-#' @param v3_artifact_accounting when COSMIC v3 signatures associated with sequencing artifacts are detected, renormalizes to isolate "true" sources of mutational flux.
-#' @param signatures_to_remove specify any signatures to exclude from analysis; some signatures automatically get excluded
-#'     from COSMIC v3 analyses; set signatures_to_remove = "none" to prevent this behavior
+#' @param v3_artifact_accounting when COSMIC v3 signatures associated with sequencing artifacts are detected, renormalizes to isolate true sources of mutational flux.
+#' @param signatures_to_remove specify any signatures to exclude from analysis; use suggest_cosmic_v3_signatures_to_remove() for advice on COSMIC v3 signatures
 #' @param v3_hypermutation_rules T/F on whether to follow the mutation count rules outlined in https://doi.org/10.1101/322859, the manuscript reported the v3 COSMIC signature set.
 #' @param use_dS_exome2genome internal dev option (don't use)
 #' @export
@@ -34,16 +31,15 @@
 #'
 #'
 trinuc_mutation_rates <- function(cesa,
-                                           cores = 1,
-                                           signature_choice = "cosmic_v3",
-                                           assume_identical_mutational_processes = FALSE,
-                                           sig_averaging_threshold = 50,
-                                           v3_artifact_accounting = TRUE,
-                                           v3_hypermutation_rules = TRUE,
-                                           use_dS_exome2genome = FALSE,
-                                           signatures_to_remove = "" # cosmic_v3 analysis gets signatures added here later unless "none"
-                                           ){
-
+                                  cores = 1,
+                                  signature_choice = "cosmic_v3",
+                                  assume_identical_mutational_processes = FALSE,
+                                  sig_averaging_threshold = 50,
+                                  v3_artifact_accounting = TRUE,
+                                  v3_hypermutation_rules = TRUE,
+                                  use_dS_exome2genome = FALSE,
+                                  signatures_to_remove = "" # cosmic_v3 analysis gets signatures added here later unless "none"
+                                  ){  
   if(is.null(cesa) || ! is(cesa, "CESAnalysis")) {
     stop("Expected cesa to be a CESAnalysis object")
   }
@@ -88,16 +84,12 @@ trinuc_mutation_rates <- function(cesa,
         v3_artifact_accounting = TRUE
       }
       if (v3_hypermutation_rules) {
-        message(crayon::black("Samples with many variants will have special exome hypermutation rules applied (disable with v3_hypermutation_rules=FALSE)."))
+        message(crayon::black("Samples with many mutations will have hypermutation rules applied (disable with v3_hypermutation_rules=FALSE)."))
       }
       if(length(signatures_to_remove) == 1 && signatures_to_remove == "") {
-        signatures_to_remove = c("SBS25","SBS31","SBS32","SBS35")
-        message(crayon::black("The following signatures will be excluded (to include all signatures, set signatures_to_remove=\"none\"):"))
-        removed_sigs = paste0("\tSBS25 (dubious and specific to Hodgkin's lymphoma cell lines)\n",
-                              "\tSBS31 (associated with platinum drug chemotherapy)\n",
-                              "\tSBS32 (associated with azathioprine treatment)\n",
-                              "\tSBS35 (associated with platinum drug chemotherapy)")
-        message(crayon::black(removed_sigs))
+        signatures_to_remove = c("SBS25")
+        message(crayon::black("The following signature will be excluded (to include all signatures, set signatures_to_remove=\"none\"):"))
+        message(crayon::black("\tSBS25 (dubious and specific to Hodgkin's lymphoma cell lines)\n"))
       }
     } else if (signature_choice == "cosmic_v2") {
       signature_set_name = "COSMIC v2"
@@ -232,7 +224,7 @@ trinuc_mutation_rates <- function(cesa,
   artifact_signatures = NULL
   if (v3_artifact_accounting) {
     # COSMIC v3 artifact signatures are read in from package data 
-    artifact_signatures = signatures_names_matrix[startsWith(x = signatures_names_matrix[,2], prefix = "*"),1] 
+    artifact_signatures = cosmic_v3_signature_metadata[Likely_Artifact == TRUE, Signature]
     if(any(artifact_signatures %in% signatures_to_remove)) {
       warning(paste0("Warning: You are have chosen to remove at least one sequencing-artifact-associated signature from analysis,
                       which will change how artifact accounting (which has been left on) behaves."))

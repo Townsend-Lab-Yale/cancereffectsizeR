@@ -32,14 +32,13 @@ calculate group average signature weights and assign these to all tumors}
 calculation of group-average signature weightings. When assume_identical_mutational_processes == FALSE (the default), 
 these group averages are blended into the signature weightings of tumors with few mutations (those below the threshold).}
 
-\item{v3_artifact_accounting}{when COSMIC v3 signatures associated with sequencing artifacts are detected, renormalizes to isolate "true" sources of mutational flux.}
+\item{v3_artifact_accounting}{when COSMIC v3 signatures associated with sequencing artifacts are detected, renormalizes to isolate true sources of mutational flux.}
 
 \item{v3_hypermutation_rules}{T/F on whether to follow the mutation count rules outlined in https://doi.org/10.1101/322859, the manuscript reported the v3 COSMIC signature set.}
 
 \item{use_dS_exome2genome}{internal dev option (don't use)}
 
-\item{signatures_to_remove}{specify any signatures to exclude from analysis; some signatures automatically get excluded
-from COSMIC v3 analyses; set signatures_to_remove = "none" to prevent this behavior}
+\item{signatures_to_remove}{specify any signatures to exclude from analysis; use suggest_cosmic_v3_signatures_to_remove() for advice on COSMIC v3 signatures}
 }
 \description{
 This function calculates relative rates of trinucleotide-context-specific SNV

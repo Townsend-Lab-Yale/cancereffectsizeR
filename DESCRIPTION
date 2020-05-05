@@ -38,6 +38,7 @@ Suggests:
     ggplot2,
     knitr,
     rmarkdown,
+    formattable,
     parallel,
     testthat (>= 2.1.0)
 License: GPL-3

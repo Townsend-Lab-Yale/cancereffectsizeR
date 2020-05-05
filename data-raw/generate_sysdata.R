@@ -7,6 +7,8 @@ source("build_deconstructSigs_stuff.R")
 deconstructSigs_trinuc_string = build_deconstructSigs_trinuc_string()
 trinuc_translator = build_trinuc_translator(deconstructSigs_trinuc_string)
 
-usethis::use_data(codon_point_mutation_dict, deconstructSigs_trinuc_string, trinuc_translator,
-				  internal = TRUE, overwrite = TRUE)
+cosmic_v3_signature_metadata = data.table::fread("COSMIC_v3_signature_metadata.txt")
+usethis::use_data(codon_point_mutation_dict, deconstructSigs_trinuc_string, 
+                  trinuc_translator, cosmic_v3_signature_metadata, 
+                  internal = TRUE, overwrite = TRUE)
 setwd(prev_dir)
