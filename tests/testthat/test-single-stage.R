@@ -1,6 +1,11 @@
 test_that("Trinucleotide signature weight calculation", {
   cesa = get_test_data("cesa_for_trinuc_weighting_calc.rds")
-  cesa = trinuc_mutation_rates(cesa, signatures_to_remove = c("SBS25", "SBS31", "SBS32", "SBS35")) # for back-compatibility, these sigs to remove
+  to_remove = suggest_cosmic_v3_signatures_to_remove(cancer_type = "LUAD", treatment_naive = T, quiet = T)
+  expect_identical(to_remove, c("SBS7a", "SBS7b", "SBS7c", "SBS7d", "SBS8", "SBS10a", "SBS10b", "SBS11", "SBS12", "SBS14", 
+                     "SBS16", "SBS19", "SBS20", "SBS21", "SBS22", "SBS23", "SBS24", "SBS25", "SBS26", "SBS30",
+                     "SBS31", "SBS32", "SBS33", "SBS34", "SBS35", "SBS36", "SBS37", "SBS38", "SBS39", "SBS41", "SBS42", "SBS44",
+                     "SBS11", "SBS31", "SBS32", "SBS35"))
+  cesa = trinuc_mutation_rates(cesa, signatures_to_remove = to_remove)
   trinuc_ak = get_test_data("trinuc_mut_weighting.rds")
   expect_equal(cesa@trinucleotide_mutation_weights, trinuc_ak)
 })
