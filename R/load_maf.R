@@ -164,6 +164,17 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
                     "but the covered_regions do not exactly match."))
       }
     }
+    # make sure it really looks like exome data, if possible
+    if (coverage == "exome" & check_for_genome_data(cesa, "generic_exome_gr")) {
+      covered_regions_bases_covered = sum(IRanges::width(IRanges::ranges(covered_regions)))
+      generic_bases_covered = sum(IRanges::width(IRanges::ranges(get_genome_data(cesa, "generic_exome_gr"))))
+      percent_covered = 
+      if (covered_regions_bases_covered / generic_bases_covered < .5) {
+        warning(paste0("Coverage is set to exome, but your covered_regions cover less than 50% of this genome's built-in generic exome.\n",
+                       "This might make sense if the exome capture array is very lean, but if this actually targeted sequencing data,\n",
+                       "create a new CESAnalysis and run load_maf() with coverage = \"targeted\"."))
+      }
+    }
   }
   
   # genome data always has full coverage; other data has its coverage GRange saved in the @coverage list
