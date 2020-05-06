@@ -406,6 +406,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   # temporary handling of MT/M
   maf[Chromosome == "M", Chromosome:="MT"]  # changing M to MT
   
+  
   # handle liftOver to the assembly of the CESAnalysis
   if(need_to_liftOver) {
     chain = rtracklayer::import.chain(chain_file)
@@ -446,6 +447,20 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     lifted_to_same = duplicated(maf[,.(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele)])
     maf = maf[! lifted_to_same]
   }
+  
+  
+  # discard any records with chromosomes not present in reference
+  illegal_chroms = maf[! Chromosome %in% GenomeInfoDb::seqlevels(genome_info), unique(Chromosome)]
+  if (length(illegal_chroms) > 0) {
+    has_bad_chr = maf$Chromosome %in% illegal_chroms
+    bad_chr_maf = maf[has_bad_chr]
+    bad_chr_maf$Exclusion_Reason = "illegal_chromosome_name"
+    maf = maf[! has_bad_chr]
+    excluded = rbind(excluded, bad_chr_maf)
+    message(paste0("Note: ", length(illegal_chroms), " records have chromosome names that don't match the genome. ",
+                   "\nThese mutations will be excluded from analysis (view with excluded())."))
+  }
+  
   
   # remove any MAF records that are not in the coverage (except for generic exome data; then, just warn)
   if (coverage == "genome") {
