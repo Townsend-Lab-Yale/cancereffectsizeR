@@ -40,6 +40,12 @@ gene_mutation_rates <- function(cesa, covariate_file = 'default', save_all_dndsc
 
 #' Internal function to prepare for running dNdScv
 dndscv_preprocess = function(cesa, covariate_file = "default") {
+  dndscv_samples_by_stage = cesa@samples[coverage %in% c("exome", "genome"), .N, by="progression_name"]
+  progs_lacking_data = dndscv_samples_by_stage[N == 0, progression_name]
+  if(length(progs_lacking_data) > 0) {
+    stop(paste0("Cannot run dNdScv because the following tumor progression states have no whole-exome/whole-genome samples,\n",
+                "which are needed for gene mutation rate calculation: ", paste(progs_lacking_data, collapse = ", ")))
+  }
   if(is.null(covariate_file)){
     message("Warning: Calculating gene mutation rates with no covariate data (supply covariates if available).")
     cv = NULL
@@ -70,6 +76,9 @@ dndscv_preprocess = function(cesa, covariate_file = "default") {
   for (progression in cesa@progressions) {
     current_subset_tumors = cesa@samples[progression_name == progression, Unique_Patient_Identifier]
     mutations = dndscv_maf[dndscv_maf$Unique_Patient_Identifier %in% current_subset_tumors,]
+    if(nrow(mutations) == 0) {
+      stop(paste0("Can't run dNdScv because tumor progression state ", progression, " has no usable SNV mutations."))
+    }
     dndscv_input[[progression]] = list(mutations = mutations, gene_list = genes_in_pca, cv = cv)
   }
   return(dndscv_input)
