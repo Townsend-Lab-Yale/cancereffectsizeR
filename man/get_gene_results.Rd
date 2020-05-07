@@ -9,3 +9,4 @@ get_gene_results(gene, cesa, find_CI, gene_trinuc_comp)
 \description{
 Single-stage SNV effect size analysis (gets called by ces_snv)
 }
+\keyword{internal}

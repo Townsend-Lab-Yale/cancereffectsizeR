@@ -2,7 +2,7 @@
 % Please edit documentation in R/suggest_cosmic_v3_signatures_to_remove.R
 \name{suggest_cosmic_v3_signatures_to_remove}
 \alias{suggest_cosmic_v3_signatures_to_remove}
-\title{suggest_cosmic_v3_signatures_to_remove}
+\title{Identify mutational signatures to exclude from your analysis}
 \usage{
 suggest_cosmic_v3_signatures_to_remove(
   cancer_type = NULL,
@@ -11,7 +11,7 @@ suggest_cosmic_v3_signatures_to_remove(
 )
 }
 \arguments{
-\item{cancer_type}{Run vignette("cosmic_cancer_type_note") for possible cancer type labels}
+\item{cancer_type}{See chart on website for possible cancer type labels}
 
 \item{treatment_naive}{give TRUE if samples were taken pre-treatment; FALSE or leave NULL otherwise}
 
@@ -22,5 +22,5 @@ a string of signatures to feed to signatures_to_remove
 }
 \description{
 Get a list of suggested signatures_to_remove for trinuc_mutation_rates.
-For details, run vignette("cosmic_cancer_type_note").
+For details, see "Cancer type considerations for COSMIC signatures" on the website.
 }

@@ -1,6 +1,10 @@
-#' deconstructSigs wrapper
+#' cancereffectsizeR wrapper for deconstructSigs 
 #'
-#' This function gets called internally during tumor-specific trinucleotide mutation rate calculation.
+#' This function gets called internally by trinuc_mutation_rates() for each tumor in a CESAnalysis, accepting its
+#' a data.frame of mutation counts and returning deconstructSigs output.
+#' 
+#' Since this funciton implements artifact accounting and signature removal, you may find it useful for your own mutational 
+#' signature analyses. However, you may be able to just use trinuc_mutation_rates().
 #' 
 #' @param tumor_trinuc_counts one-row data.frame of trinuc variant counts (in deconstructSigs order) for one tumor
 #' @param signatures_df data.frame of signatures (see COSMIC v3 signatures included with package for format)

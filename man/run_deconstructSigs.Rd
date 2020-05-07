@@ -2,7 +2,7 @@
 % Please edit documentation in R/run_deconstructSigs.R
 \name{run_deconstructSigs}
 \alias{run_deconstructSigs}
-\title{deconstructSigs wrapper}
+\title{cancereffectsizeR wrapper for deconstructSigs}
 \usage{
 run_deconstructSigs(
   tumor_trinuc_counts,
@@ -25,5 +25,10 @@ run_deconstructSigs(
 \item{tri.counts.method}{exome/genome trinucleotide content normalization argument to pass to deconstructSigs (see its docs)}
 }
 \description{
-This function gets called internally during tumor-specific trinucleotide mutation rate calculation.
+This function gets called internally by trinuc_mutation_rates() for each tumor in a CESAnalysis, accepting its
+a data.frame of mutation counts and returning deconstructSigs output.
+}
+\details{
+Since this funciton implements artifact accounting and signature removal, you may find it useful for your own mutational 
+signature analyses. However, you may be able to just use trinuc_mutation_rates().
 }

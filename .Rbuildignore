@@ -5,3 +5,8 @@
 ^AA_mutation_matrix_builder$
 ^\.Rproj\.user$
 ^data-raw$
+^doc$
+^Meta$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$

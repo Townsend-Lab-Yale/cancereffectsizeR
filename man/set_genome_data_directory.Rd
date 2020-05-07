@@ -2,7 +2,7 @@
 % Please edit documentation in R/genome_data_handling.R
 \name{set_genome_data_directory}
 \alias{set_genome_data_directory}
-\title{set_genome_data_directory}
+\title{Assign a reference data directory to a CESAnalysis}
 \usage{
 set_genome_data_directory(cesa, genome)
 }

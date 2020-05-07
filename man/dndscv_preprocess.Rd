@@ -9,3 +9,4 @@ dndscv_preprocess(cesa, covariate_file = "default")
 \description{
 Internal function to prepare for running dNdScv
 }
+\keyword{internal}

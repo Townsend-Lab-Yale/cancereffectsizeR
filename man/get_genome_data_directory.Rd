@@ -2,7 +2,7 @@
 % Please edit documentation in R/genome_data_handling.R
 \name{get_genome_data_directory}
 \alias{get_genome_data_directory}
-\title{get_genome_data_directory}
+\title{Get the path to the reference data directory of a CESAnalysis}
 \usage{
 get_genome_data_directory(genome)
 }

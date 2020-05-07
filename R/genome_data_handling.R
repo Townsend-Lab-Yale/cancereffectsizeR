@@ -37,7 +37,7 @@ check_for_genome_data = function(cesa, datatype) {
   return(file.exists(path))
 }
 
-#' get_genome_data_directory
+#' Get the path to the reference data directory of a CESAnalysis
 #' 
 #' takes in a genome name (e.g., "hg38"), searches for an associated data directory, and returns the path
 get_genome_data_directory = function(genome) {
@@ -53,7 +53,7 @@ get_genome_data_directory = function(genome) {
   return(genome_dir)
 }
 
-#' set_genome_data_directory
+#' Assign a reference data directory to a CESAnalysis
 #' 
 #' assigns a genome data directory to a CESAnalysis; can be used when loading a saved CESAnalysis in a new envrionment
 #' @export

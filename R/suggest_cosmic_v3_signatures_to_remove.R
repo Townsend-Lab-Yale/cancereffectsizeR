@@ -1,9 +1,8 @@
-#' suggest_cosmic_v3_signatures_to_remove
+#' Identify mutational signatures to exclude from your analysis
 #'
 #' Get a list of suggested signatures_to_remove for trinuc_mutation_rates.
-#' For details, run vignette("cosmic_cancer_type_note").
-#' 
-#' @param cancer_type Run vignette("cosmic_cancer_type_note") for possible cancer type labels
+#' For details, see "Cancer type considerations for COSMIC signatures" on the website.
+#' @param cancer_type See chart on website for possible cancer type labels
 #' @param treatment_naive give TRUE if samples were taken pre-treatment; FALSE or leave NULL otherwise
 #' @param quiet (default false) for non-interactive use, suppress explanations and advice
 #' @return a string of signatures to feed to signatures_to_remove
@@ -15,8 +14,7 @@ suggest_cosmic_v3_signatures_to_remove = function(cancer_type = NULL, treatment_
   if(is.null(cancer_type)) {
     if(! quiet) {
       message("SBS25 (dubious, specific to Hodgkin's lymphoma cell lines) can usually be excluded.")
-      message("Specify cancer_type for suggestions on which signatures do not appear in specific cancers.")
-      message("(Run vignette(\"cosmic_cancer_type_note\") to see if there is this function has data for your cancer type.)")
+      message("Specify cancer_type (see documentation) for suggestions on which signatures do not appear in specific cancers.")
     }
     to_remove = "SBS25"
   } 
@@ -42,7 +40,7 @@ suggest_cosmic_v3_signatures_to_remove = function(cancer_type = NULL, treatment_
     }
     if (length(index) != 1) {
       message(paste0("Input cancer_type not recognized.\n",
-                    "Run vignette(\"cosmic_cancer_type_note\") and find your cancer type in the table. If ",
+                    "See \"Cancer type considerations for COSMIC signatures\"  on the website and find your cancer type in the table. If ",
                     "it's not there, then there is no cancer-type-specific data available."))
       stop()
     }
@@ -64,6 +62,7 @@ suggest_cosmic_v3_signatures_to_remove = function(cancer_type = NULL, treatment_
     }
     to_remove = c(to_remove, treatment_sigs)
   }
+  to_remove = unique(to_remove)
   if(! quiet) {
     sig_string = paste0("signatures_to_remove = c(\"", paste(to_remove, collapse = "\", \""), "\")")
     message(crayon::black("\nIf you want to make all suggested exclusions: "))

@@ -2,7 +2,7 @@
 % Please edit documentation in R/CESAnalysis.R
 \name{gene_epistasis_results}
 \alias{gene_epistasis_results}
-\title{gene_epistasis_results}
+\title{View results from gene-level epistasis analysis}
 \usage{
 gene_epistasis_results(cesa = NULL)
 }

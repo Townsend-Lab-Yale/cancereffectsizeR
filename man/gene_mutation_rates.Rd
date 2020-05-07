@@ -2,7 +2,7 @@
 % Please edit documentation in R/gene_mutation_rates.R
 \name{gene_mutation_rates}
 \alias{gene_mutation_rates}
-\title{Gene-level mutation rates}
+\title{Use dNdScv with tissue-specific covariates to calculate gene-level mutation rates}
 \usage{
 gene_mutation_rates(
   cesa,

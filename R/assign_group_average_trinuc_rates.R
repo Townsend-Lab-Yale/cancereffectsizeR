@@ -1,4 +1,4 @@
-#' group_average_trinuc_rates
+#' Skip mutational signature analysis and assign group average relative trinucleotide-context-specific mutation rates to all samples
 #'
 #' This function calculates the relative rates of trinucleotide-context-specific mutations across
 #' all SNV records from whole-exome and whole-genome MAF data and naively assigns these rates to all samples. 
@@ -13,7 +13,7 @@
 #' 
 #' @param cesa CESAnalysis object
 #' @export
-group_average_trinuc_rates = function(cesa) {
+assign_group_average_trinuc_rates = function(cesa) {
   if(is.null(cesa) || ! is(cesa, "CESAnalysis")) {
     stop("Expected cesa to be a CESAnalysis object")
   }
@@ -66,7 +66,7 @@ group_average_trinuc_rates = function(cesa) {
   trinuc_proportion_matrix = matrix(rep(trinuc_prop, num_samples), byrow = T, ncol = 96, 
                                     dimnames = list(cesa@samples$Unique_Patient_Identifier, names(trinuc_prop)))
 
-  cesa@status[["trinucleotide mutation rates"]] = "assigned with group_average_trinuc_rates"
+  cesa@status[["trinucleotide mutation rates"]] = "from assign_group_average_trinuc_rates"
   cesa@status[["gene mutation rates"]] = "uncalculated (run gene_mutation_rates)"
   cesa@trinucleotide_mutation_weights = list(trinuc_proportion_matrix=trinuc_proportion_matrix)
   return(cesa)

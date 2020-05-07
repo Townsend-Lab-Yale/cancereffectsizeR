@@ -1,18 +1,12 @@
 ---
-title: "Cancer type considerations for COSMIC signatures"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Cancer type considerations for COSMIC signatures}
-  %\VignetteEngine{knitr::rmarkdown}
-  \usepackage[utf8]{inputenc}
+title: "Cancer type considerations for COSMIC signature extraction"
 ---
-The cancereffectsizeR trinuc_mutation_rates uses mutational signature extraction to calculate relative trinucleotide-specific SNV mutation rates for each tumor in the input data. The "signatures_to_remove" option allows some signatures to be excluded from this analysis, which means each tumor will receive a weight of 0 for these signatures (i.e., 0% of the tumor's SNVs are attributable to these signatures). By default, SBS25 is excluded because it's considered dubious and is specific to Hodgkin's lymphoma cell lines. You can override this behavior by setting `signatures_to_remove = "none"`.
+The cancereffectsizeR `trinuc_mutation_rates()` function uses mutational signature extraction to calculate relative trinucleotide-specific SNV mutation rates for each tumor in the input data. The "signatures_to_remove" option allows some signatures to be excluded from this analysis, which means each tumor will receive a weight of 0 for these signatures (i.e., 0% of the tumor's SNVs are attributable to these signatures). By default, SBS25 is excluded because it's considered dubious and is specific to Hodgkin's lymphoma cell lines. You can override this behavior by setting `signatures_to_remove = "none"`.
 
 In [Alexandrov 2020](https://doi.org/10.1038/s41586-020-1943-3), the paper introducing the latest COSMIC mutational signatures (COSMICv3),
-there are some signatures that do not appear in certain cancer types. Therefore, you may wish to exclude those signatures during
-mutational signature analysis of your data.
+there are some signatures that do not appear in certain cancer types. Consider excluding some or all of these signatures in `trinuc_mutation_rates()`.
 
-There are also a few signatures associated with certain chemotherapy drugs (SBS31, SBS32, SBS35), so if you are confident that your sample 
+There are also a few signatures associated with certain cancer therapeutics (SBS11, SBS31, SBS32, SBS35), so if you are confident that your sample 
 is treatment-naive, you may wish to exclude these.
 
 Note that while some COSMIC signatures are believed to represent sequencing artifacts, it's not recommended to remove these from analysis, because cancereffectsizeR already has special handling of these signatures to determine relative rates of true mutational processes in tumors.

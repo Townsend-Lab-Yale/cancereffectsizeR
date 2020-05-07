@@ -1,6 +1,6 @@
-#' annotate_variants
+#' Annotate variants with data from genome and reference transcripts
 #' 
-#' Annotates CESAnaysis MAF data with gene information, keeping assignments consistent with dndscv when possible
+#' Annotates CESAnaysis MAF data with reference genome and gene data, keeping assignments consistent with dNdScv when possible
 #'
 #' @importFrom IRanges "%within%"
 #' @param cesa CESAnalysis object

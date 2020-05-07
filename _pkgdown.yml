@@ -1,0 +1,36 @@
+destination: docs
+reference:
+- title: Basic workflow
+  desc:  Functions to run sequentially in most analyses
+  contents:
+  - CESAnalysis
+  - load_maf
+  - trinuc_mutation_rates
+  - gene_mutation_rates
+  - annotate_variants
+  - ces_snv
+- title: Viewing CESAnalysis data
+  desc: functions for viewing data and 
+  contents:
+  - maf
+  - samples
+  - excluded_maf_records
+  - snv_results
+- title: trinuc_mutation_rates extensions and alternatives
+  desc: Additional functions for signature extraction and determination of tumor-specific mutational processes
+  contents:
+  - suggest_cosmic_v3_signatures_to_remove
+  - assign_group_average_trinuc_rates
+  - set_trinuc_rates
+  - run_deconstructSigs
+- title: Miscellaneous
+  contents:
+  - set_genome_data_directory
+  - get_genome_data_directory
+- title: In beta
+  contents:
+  - ces_gene_epistasis
+  - gene_epistasis_results
+
+  
+

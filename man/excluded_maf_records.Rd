@@ -2,7 +2,7 @@
 % Please edit documentation in R/CESAnalysis.R
 \name{excluded_maf_records}
 \alias{excluded_maf_records}
-\title{excluded_maf_records}
+\title{View excluded MAF data}
 \usage{
 excluded_maf_records(cesa = NULL)
 }

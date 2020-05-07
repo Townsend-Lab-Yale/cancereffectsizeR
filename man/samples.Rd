@@ -2,7 +2,7 @@
 % Please edit documentation in R/CESAnalysis.R
 \name{samples}
 \alias{samples}
-\title{samples}
+\title{View sample metadata}
 \usage{
 samples(cesa = NULL)
 }

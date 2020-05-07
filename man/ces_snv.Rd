@@ -2,7 +2,7 @@
 % Please edit documentation in R/ces_snv.R
 \name{ces_snv}
 \alias{ces_snv}
-\title{Calculate SNV selection intensity}
+\title{Calculate selection intensity for single-nucleotide variants and amino acid changes}
 \usage{
 ces_snv(
   cesa = NULL,
@@ -25,5 +25,5 @@ ces_snv(
 CESAnalysis object with selection results added for the chosen analysis
 }
 \description{
-Calculate SNV selection intensity
+Calculate selection intensity for single-nucleotide variants and amino acid changes
 }

@@ -1,4 +1,4 @@
-#' Gene-level mutation rates
+#' Use dNdScv with tissue-specific covariates to calculate gene-level mutation rates
 #'
 #' This function calculates gene-level neutral mutation rates based on counts
 #' of nonsynonymous and synonymous mutations per gene under the dNdScv package's model, 
@@ -39,6 +39,7 @@ gene_mutation_rates <- function(cesa, covariate_file = 'default', save_all_dndsc
 
 
 #' Internal function to prepare for running dNdScv
+#' @keywords internal
 dndscv_preprocess = function(cesa, covariate_file = "default") {
   progs_with_data = cesa@samples[coverage %in% c("exome", "genome"), unique(progression_name)]
   progs_lacking_data = setdiff(cesa@progressions, progs_with_data)
@@ -85,6 +86,7 @@ dndscv_preprocess = function(cesa, covariate_file = "default") {
 }
 
 #' Internal function to calculate gene-level mutation rates from dNdScv output
+#' @keywords internal
 dndscv_postprocess = function(cesa, dndscv_raw_output, save_all_dndscv_output = FALSE) {
   # load RefCDS data if it's not already in the environment
   if(! "RefCDS" %in% ls()) {

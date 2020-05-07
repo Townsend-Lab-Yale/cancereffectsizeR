@@ -1,4 +1,4 @@
-#' Trinucleotide mutation weights
+#' Calculate relative rates of trinucleotide-context-specific mutations by extracting underlying mutational processes
 #'
 #' This function calculates relative rates of trinucleotide-context-specific SNV
 #' mutations within tumors by attributing SNVs to mutational processes represented

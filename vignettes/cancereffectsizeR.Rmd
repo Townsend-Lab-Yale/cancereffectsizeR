@@ -1,0 +1,98 @@
+---
+title: "Getting started"
+---
+
+# Getting started
+Once you have installed cancereffectsizeR, you need a somatic mutation text file covering your samples in [MAF file](https://docs.gdc.cancer.gov/Data/File_Formats/MAF_Format). If you want to try out the software with publicly-available data, you can download MAFs for collections of tumors from many cancer types from the TCGA data portal.
+
+
+### MAF pre-processing
+You want to be confident that the mutations in your MAF file are real. It's hard to give detailed variant filtering advice because so much depends on the quality of the somatic variant calling pipeline used to produce the file. If your pipeline is excellent or your file has been curated by a group like TCGA, then perhaps no filtering is necessary. If you're unsure, here are a few tips:
+
+* There should be few to no mutations called at SNP sites, or at sites where population databases show frequent variation.
+* There should be few to no mutations in repetitive or poorly mapped regions of the genome, as mutations in these sites are difficult to call confidently and should be rare anyways since these regions are usually not functionally important.
+* If you have samples from different sources, check if there are recurrent mutations exclusive to each group. Or, if a large public data set is available, check if your samples have recurrent mutations absent from the public data. If a group has several mutations shared by multiple samples that don't appear anywhere else--especially if they're in unknown genes, absent from a large reference data set, and/or were all sequenced together--be suspicious of the data quality.
+
+Once you have a high-confidence set of variants, **do not** filter out records based on silent mutation status or other functional criteria. cancereffectsizeR needs the full set of high-confidence mutations from all samples. (Exception: As cancereffectsizeR currently only fully analyzes single-nucleotide variants, it's fine to filter out indels.)
+
+
+### Create CESAnalysis
+Begin by declaring your CESAnalysis object, the primary data structure of cancereffectsizeR. If you have chronological tumor progression state information (e.g., stages 1-4, primary/metastatic, or pre-/post-treatment), then you can provide this information to the analysis in order to have baseline site mutation rates and selection intensities calculated per state rather than all together. You will also supply your genome build.
+
+```R
+  # skip progression_order for a single-state selection model
+  analysis = CESAnalysis(genome = "hg19", progression_order = c("Primary", "Metastatic")) 
+```
+
+Note: Currently only hg19 is supported, but detailed instructions are coming soon for generating custom reference data to run CES with any genome build. 
+
+### Load MAF data
+Next, load [MAF](https://docs.gdc.cancer.gov/Data/File_Formats/MAF_Format/#gdc-maf-format-v100) data from a text file or a data frame into a CESAnalysis object. If column names don't match MAF format specifications, you can supply your own column names. The only required columns are those specifying chromosome, position, reference and tumor alleles, and sample ID (Tumor_Sample_Barcode, by default); any other columns in your data will be ignored. If your CESAnalysis includes chronological tumor progression states (see Create CESAnalysis, above), also specify `progression_col`. 
+
+#### Sequencing data coverage
+By default, data is assumed to be derived from whole-exome sequencing. Whole-genome data and targeted sequencing data are also supported when the `coverage` option is specified. For targeted sequencing data, you must provide the set of target regions as a BED file or GRanges object. You can also supply this information for exome data, if you have it available. See `load_maf()` for details.
+
+#### LiftOver support
+If the MAF data you are loading is from a different genome build than your CESAnalysis, you can use the `chain_file` option to supply a UCSC-style chain file, and then your MAF coordinates will be automatically converted with liftOver.
+
+#### Examples
+
+```R
+  ## Example 1
+  analysis = CESAnalysis(genome = "hg19")
+  
+  # load in some whole-exome MAF data
+  analysis = load_maf(analysis, maf = "wes_lung_adenocarcinoma.maf")
+  
+  # add some whole-genome data (and lift from hg38 to hg19 with a user-provided chain file)
+  analysis = load_maf(analysis, maf = "wgs_luad.maf", coverage = "genome", chain_file = "hg38ToHg19.over.chain")
+  
+  # add some targeted gene sequencing data
+  analysis = load_maf(analysis, maf = "cancer-gene-targeted_luad.maf", coverage = "targeted", 
+                      covered_regions = "my_target_regions.bed", covered_regions_name = "TGS1")
+  
+  
+  ## Example 2
+  # Creating an analysis for data that has samples annotated as stage 1-4
+  analysis = CESAnalysis(genome = "hg19", progression_order = c(1, 2, 3, 4))
+  analysis = load_maf(analysis, maf = "my_multistage.maf", progression_col = "stage")
+```
+
+
+### Calculate mutation rates and estimate selection
+After loading in data, run the following functions to prepare for calculation of cancer effect size. See function reference for details.
+
+* `trinuc_mutation_rates()`: uses deconstructSigs to assign mutational signature weightings to each tumor sample, and from there calculates trinucleotide-context-specific SNV mutation rates (see also `vignette("cosmic_cancer_type_note")` for advanced options)
+* `gene_mutation_rates()`: uses dNdScv to calculate gene-level mutation rates. It's highly recommended to supply tissue-specific covariate data if available. Covariates for many human tissue types are included with this package. Default hg19 covariates from dNdScv are also available.
+* `annotate_variants()`: annotates MAF data with gene and transcript information
+
+Finally, use `ces_snv()` to find calculate effect sizes.
+
+```R
+  # Create CESAnalysis object and define the chronological tumor progression states
+  analysis = CESAnalysis(genome = "hg19", progression_order = c("Primary", "Metastatic"))
+  analysis = load_maf(analysis, maf = "luad_data.maf", progression_col = "pri_met")
+  
+  
+  analysis = trinuc_mutation_rates(analysis)
+  analysis = gene_mutation_rates(analysis, covariate_file = "lung_pca")
+  analysis = annotate_variants(analysis)
+  
+  
+  # Calculate selection intensities
+  analysis = ces_snv(analysis)
+
+  # Create a filtered table of selection intensities for all recurrently mutated sites
+  results = snv_results(analysis)
+  results = results[tumors_with_variant > 1]
+```
+
+#### Note on parallel processing
+If you are running in a MacOS or Linux environment, you can speed up processing by providing multiple computing cores using the "cores" argument. You'll also need the R package parallel, which you can easily install with install.packages if you don't already have it. Run `parallel::detectCores()` to find out how many cores you have available.
+```R
+  # assuming you've already loaded MAF data into object "cesa"
+  cesa = trinuc_mutation_rates(cesa, cores = 4)
+  cesa = gene_mutation_rates(cesa, covariate_file = "breast_pca")
+  cesa = annotate_variants(cesa)
+  cesa = ces_snv(cesa, cores = 4)
+```

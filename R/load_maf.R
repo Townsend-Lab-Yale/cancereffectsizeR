@@ -1,4 +1,4 @@
-#' load_maf
+#' Load MAF-formatted somatic mutation data
 #' 
 #' Load MAF data from a text file or data.frame/data.table into a CESAnalysis object. If column names
 #' don't match MAF format specifications (Chromosome, Start_Position, etc., with Tumor_Sample_Barcode

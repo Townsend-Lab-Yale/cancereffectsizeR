@@ -2,7 +2,7 @@
 % Please edit documentation in R/CESAnalysis.R
 \name{CESAnalysis}
 \alias{CESAnalysis}
-\title{CESAnalysis}
+\title{Create a cancereffectsizeR analysis}
 \usage{
 CESAnalysis(genome = NULL, progression_order = NULL)
 }

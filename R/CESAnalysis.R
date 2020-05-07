@@ -1,4 +1,5 @@
-#' CESAnalysis
+#' Create a cancereffectsizeR analysis
+#' 
 #' @description Creates a CESAnalysis object, the central data structure of cancereffectsizeR
 #' @param progression_order evolutionary order of tumor stage progression (e.g. c("Primary", "Metastatic"))
 #' @param genome Genome build of MAF data (currently, just hg19 supported)
@@ -51,7 +52,7 @@ CESAnalysis = function(genome = NULL, progression_order = NULL) {
   return(cesa)
 }
 
-#' maf
+#' View data loaded into CESAnalysis
 #' 
 #' returns a data.table containing MAF records used in the given CESAnalysis
 #' @param cesa CESAnalysis object
@@ -66,7 +67,7 @@ maf = function(cesa = NULL) {
   return(cesa@maf)
 }
 
-#' excluded_maf_records
+#' View excluded MAF data
 #' 
 #' returns a data.table containing MAF records that were excluded from the given CESAnalysis
 #' @param cesa CESAnalysis object
@@ -84,7 +85,7 @@ excluded_maf_records = function(cesa = NULL) {
   return(cesa@excluded)
 }
 
-#' samples
+#' View sample metadata
 #' 
 #' returns a data.table with info on all samples in the CESAnalysis (at least, all samples with any valid mutations)
 #' @param cesa CESAnalysis object
@@ -106,7 +107,7 @@ samples = function(cesa = NULL) {
   return(cesa@samples)
 }
 
-#' snv_results
+#' View results from ces_snv
 #' 
 #' returns a data table of SNV effect sizes generated with ces_snv
 #' @param cesa CESAnalysis object
@@ -121,7 +122,7 @@ snv_results = function(cesa = NULL) {
   return(cesa@selection_results)
 }
 
-#' gene_epistasis_results
+#' View results from gene-level epistasis analysis
 #' 
 #' returns a data table of pairwise gene epistasis effect sizes generated with ces_gene_epistasis
 #' @param cesa CESAnalysis object

@@ -2,7 +2,7 @@
 % Please edit documentation in R/CESAnalysis.R
 \name{maf}
 \alias{maf}
-\title{maf}
+\title{View data loaded into CESAnalysis}
 \usage{
 maf(cesa = NULL)
 }

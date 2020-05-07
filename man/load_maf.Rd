@@ -2,7 +2,7 @@
 % Please edit documentation in R/load_maf.R
 \name{load_maf}
 \alias{load_maf}
-\title{load_maf}
+\title{Load MAF-formatted somatic mutation data}
 \usage{
 load_maf(
   cesa = NULL,

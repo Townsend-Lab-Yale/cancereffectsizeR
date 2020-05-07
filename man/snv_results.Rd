@@ -2,7 +2,7 @@
 % Please edit documentation in R/CESAnalysis.R
 \name{snv_results}
 \alias{snv_results}
-\title{snv_results}
+\title{View results from ces_snv}
 \usage{
 snv_results(cesa = NULL)
 }

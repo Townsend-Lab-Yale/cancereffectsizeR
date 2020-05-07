@@ -2,7 +2,7 @@
 % Please edit documentation in R/set_trinuc_rates.R
 \name{set_trinuc_rates}
 \alias{set_trinuc_rates}
-\title{set_trinuc_rates}
+\title{Assign pre-calculated relative trinucleotide mutation rates}
 \usage{
 set_trinuc_rates(cesa, trinuc_proportion_matrix)
 }
@@ -12,11 +12,11 @@ set_trinuc_rates(cesa, trinuc_proportion_matrix)
 \item{trinuc_proportion_matrix}{rows=tumors, columns=relative mutation rates (see description)}
 }
 \description{
-Directly assign trinucleotide-context-specific relative SNV mutation rates to 
-all tumors in your CESAnalysis by supplying a matrix with this function.
-This is for those who want to use their own methods instead of those
-provided in trinuc_mutation_rates() and group_average_trinuc_rates().
-There must be one row per tumor in your data set, with row names matching
+This function assigns a matrix of trinucleotide-context-specific relative 
+SNV mutation rates to a CESAnalysis. You can use this function to restore 
+previously calculated rates or to provide rates calculated using your own 
+methods (i.e., not trinuc_mutation_rates() and assign_group_average_trinuc_rates()).
+The maxtrix must cover all samples in the CESAnalysis, with row names matching
 sample identifiers. There must be 96 columns, with column names exactly matching
 the deconstructSigs naming and order (run this function with incorrect column names, 
 and the names you need to use will be printed). Since CES uses relative trinuc rates,

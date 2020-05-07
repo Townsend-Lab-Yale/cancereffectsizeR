@@ -2,7 +2,7 @@
 % Please edit documentation in R/trinuc_mutation_rates.R
 \name{trinuc_mutation_rates}
 \alias{trinuc_mutation_rates}
-\title{Trinucleotide mutation weights}
+\title{Calculate relative rates of trinucleotide-context-specific mutations by extracting underlying mutational processes}
 \usage{
 trinuc_mutation_rates(
   cesa,

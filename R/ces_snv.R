@@ -1,4 +1,4 @@
-#' Calculate SNV selection intensity
+#' Calculate selection intensity for single-nucleotide variants and amino acid changes
 #' @param cesa CESAnalysis object
 #' @param gene which genes to calculate effect sizes within; defaults to all genes with recurrent mutations in data set
 #' @param cores number of cores to use
@@ -80,6 +80,7 @@ ces_snv <- function(cesa = NULL,
 
 
 #' Single-stage SNV effect size analysis (gets called by ces_snv)
+#' @keywords internal
 get_gene_results <- function(gene, cesa, find_CI, gene_trinuc_comp) {
   snv.maf = cesa@maf[Variant_Type == "SNV"]
   current_gene_maf = snv.maf[Gene_name == gene]

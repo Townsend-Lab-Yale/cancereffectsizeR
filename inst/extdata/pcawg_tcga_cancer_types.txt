@@ -5,7 +5,7 @@ Bladder-TCC	BLCA	369	bladder transitional cell carcinoma	1	1	1	0	1	0	0	0	0	0	1	0
 Bone-Osteosarc	NA	36	"sarcoma, bone"	1	1	1	0	1	0	0	0	0	0	1	0	0	0	0	0	1	0	0	0	1	1	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	1	0	0	0
 Bone-Other	NA	18	"Paper vague; presumably bone cartilaginous neoplasm osteoblastoma, bone osteofibrous dysplasia, bone neoplasm epithelioid"	1	1	0	0	1	0	0	0	0	0	1	0	0	0	0	0	1	0	0	0	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0
 Breast	BRCA	834	"breast adenocarcinoma, ductal carcinoma in situ, breast lobular carcinoma"	1	1	1	0	1	0	0	0	0	0	1	1	1	1	0	0	1	0	1	0	1	1	1	1	0	1	0	0	0	0	1	0	1	1	0	0	0	1	0	0	1	0	1	1	1	0	1
-Cervix-AdenoCA	NA	204	cervix adenocarcinoma	1	1	0	0	1	1	0	0	0	0	0	0	1	1	0	0	1	0	1	0	1	1	1	0	0	0	0	0	0	0	1	1	0	0	0	0	1	0	0	0	0	0	0	1	0	0	1
+Cervix	CESC	204	cervical squamous cell carcinoma and adenocarcinoma	1	1	0	0	1	1	0	0	0	0	0	0	1	1	0	0	1	0	1	0	1	1	1	0	0	0	0	0	0	0	1	1	0	0	0	0	1	0	0	0	0	0	0	1	0	0	1
 CNS-GBM	GBM	100	CNS glioblastoma	1	1	0	0	1	0	0	0	0	0	0	0	1	1	1	0	1	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	1	0	0	1	0	1	0
 CNS-LGG	NA	27	CNS lower-grade glioma	1	0	0	0	1	0	0	1	1	1	0	0	0	0	1	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
 CNS-Medullo	NA	185	CNS medulloblastoma	1	0	1	0	1	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	0	0	0
