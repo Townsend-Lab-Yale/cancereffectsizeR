@@ -1,7 +1,7 @@
 #' Identify mutational signatures to exclude from your analysis
 #'
 #' Get a list of suggested signatures_to_remove for trinuc_mutation_rates.
-#' For details, see "Cancer type considerations for COSMIC signatures" on the website.
+#' For details, see \code{vignette("cosmic_cancer_type_note")}.
 #' @param cancer_type See chart on website for possible cancer type labels
 #' @param treatment_naive give TRUE if samples were taken pre-treatment; FALSE or leave NULL otherwise
 #' @param quiet (default false) for non-interactive use, suppress explanations and advice

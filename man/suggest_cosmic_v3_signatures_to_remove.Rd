@@ -22,5 +22,5 @@ a string of signatures to feed to signatures_to_remove
 }
 \description{
 Get a list of suggested signatures_to_remove for trinuc_mutation_rates.
-For details, see "Cancer type considerations for COSMIC signatures" on the website.
+For details, see \code{vignette("cosmic_cancer_type_note")}.
 }
