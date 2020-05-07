@@ -6,7 +6,7 @@ Authors@R: c(person("Vincent L.", "Cannataro", email = "cannatarov@emmanuel.edu"
              person("Jeff", "Mandell", email = "jeff.mandell@yale.edu", role = c("aut", "cre")))
 Description: cancereffectsizeR calculates selection for somatic mutations in cancer from tumor sequencing data.
     See the package website for more information.
-URL: https://github.com/Townsend-Lab-Yale/cancereffectsizeR
+URL: https://townsend-lab-yale.github.io/cancereffectsizeR, https://github.com/Townsend-Lab-Yale/cancereffectsizeR
 Depends: R (>= 3.5.0)
 biocViews:
 Remotes: im3sanger/dndscv
