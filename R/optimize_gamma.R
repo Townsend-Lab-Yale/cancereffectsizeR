@@ -14,13 +14,30 @@
 #' @keywords internal
 
 optimize_gamma <- function(MAF_input, eligible_tumors, progressions, samples, gene, variant, specific_mut_rates) {
-  par_init <- rep(1000,length=length(progressions))
   tumors_with_pos_mutated <- MAF_input$Unique_Patient_Identifier[MAF_input$unique_variant_ID_AA==variant & MAF_input$Gene_name==gene]
   # specific_mut_rates contains only tumors with some mutations in data set (some tumors with coverage may not have any mutations), so subset
   tumors_without_gene_mutated <- eligible_tumors[eligible_tumors %in% rownames(specific_mut_rates) & ! eligible_tumors %in% unique(MAF_input$Unique_Patient_Identifier[MAF_input$Gene_name==gene])]
   tumor_stages = samples[eligible_tumors, progression_index]
   names(tumor_stages) = eligible_tumors
-    return(optim(par=par_init, fn=ml_objective, tumor_stages = tumor_stages, tumors_without_gene_mutated = tumors_without_gene_mutated,
-    	tumors_with_pos_mutated = tumors_with_pos_mutated, variant=variant, specific_mut_rates=specific_mut_rates,
-                 method="L-BFGS-B", lower=1e-3, upper=1000000000, control=list(fnscale=-1e-12)))
+  fn = ml_objective(tumor_stages = tumor_stages, tumors_without_gene_mutated = tumors_without_gene_mutated,
+                    tumors_with_pos_mutated = tumors_with_pos_mutated, variant=variant, specific_mut_rates=specific_mut_rates)
+  par_names = paste0("g", 1:length(progressions), '=')
+  par_names_alist_string = paste0("alist(", paste(par_names, collapse=","), ")")
+  par_alist = eval(parse(text=par_names_alist_string))
+  formals(fn) = par_alist
+  par_init = lapply(par_alist, function(x) 1000)
+  
+  # find optimized selection intensities
+  # the selection intensity for any stage that has 0 variants will be on the lower boundary; will muffle the associated warning
+  withCallingHandlers(
+    {
+        fit = bbmle::mle2(fn, start = par_init, method="L-BFGS-B", lower=1e-3, upper=1000000000, control=list(fnscale=1e-12))
+    },
+      warning = function(w) {
+        if (startsWith(conditionMessage(w), "some parameters are on the boundary")) {
+          invokeRestart("muffleWarning")
+        }
+    }
+  )
+  return(fit)
 }

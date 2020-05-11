@@ -11,38 +11,45 @@
 #' @return A log likelihood value
 #' @export
 #' @keywords internal
+# ml_objective <- function(tumor_stages, tumors_without_gene_mutated, tumors_with_pos_mutated, 
+#   variant, specific_mut_rates, modifier=0) {
+  
 ml_objective <- function(gamma, tumor_stages, tumors_without_gene_mutated, tumors_with_pos_mutated, 
-  variant, specific_mut_rates, modifier=0) {
-
-
-  sums = cumsum(gamma)
-  gamma_sums = sums[tumor_stages[tumors_without_gene_mutated]]
-  sum_log_lik = -1 * sum(gamma_sums * specific_mut_rates[tumors_without_gene_mutated, variant])
-
-
-  calc_gamma_sums_mut = function(tumor) {
-    # stage-specific likelihoods of mutation
-    lik_no_mutation = exp(-1 * gamma * specific_mut_rates[tumor, variant])
-    lik_mutation = 1 - lik_no_mutation
-
-    this_sum = lik_mutation[1] # likelihood of mutation having occurred by stage 1 
-
-    # for tumors that are at stage > 1, add in likelihoods of mutation having occurred at later stages
-    current_stage = 2
-    while (current_stage <= tumor_stages[[tumor]]) {
-      # e.g., at current_stage = 3, take product of no mutation in stage 1, no mutation in stage 2, yes mutation in stage 3
-      this_sum = this_sum + lik_mutation[current_stage] * prod(lik_no_mutation[current_stage-1:1])
-      current_stage <- current_stage + 1
+                           variant, specific_mut_rates, modifier=0) {
+  tmp = function(...) {
+    call_args = as.list(match.call())
+    gamma = unlist(call_args[2:length(call_args)], use.names = F)
+    sums = cumsum(gamma)
+    gamma_sums = sums[tumor_stages[tumors_without_gene_mutated]]
+    sum_log_lik = -1 * sum(gamma_sums * specific_mut_rates[tumors_without_gene_mutated, variant])
+    
+    calc_gamma_sums_mut = function(tumor) {
+      # stage-specific likelihoods of mutation
+      lik_no_mutation = exp(-1 * gamma * specific_mut_rates[tumor, variant])
+      lik_mutation = 1 - lik_no_mutation
+      
+      this_sum = lik_mutation[1] # likelihood of mutation having occurred by stage 1 
+      
+      # for tumors that are at stage > 1, add in likelihoods of mutation having occurred at later stages
+      current_stage = 2
+      while (current_stage <= tumor_stages[[tumor]]) {
+        # e.g., at current_stage = 3, take product of no mutation in stage 1, no mutation in stage 2, yes mutation in stage 3
+        this_sum = this_sum + lik_mutation[current_stage] * prod(lik_no_mutation[current_stage-1:1])
+        current_stage <- current_stage + 1
+      }
+      return(log(this_sum))
     }
-    return(log(this_sum))
+    
+    gamma_sums = vapply(tumors_with_pos_mutated, calc_gamma_sums_mut, FUN.VALUE = 1.0)
+    sum_log_lik = sum_log_lik + sum(gamma_sums)
+    
+    # in case it tried all the max at once.
+    if(!is.finite(sum_log_lik)){
+      return(-1e200)
+    }
+    return(-1 * sum_log_lik - modifier)
   }
-
-  gamma_sums = vapply(tumors_with_pos_mutated, calc_gamma_sums_mut, FUN.VALUE = 1.0)
-  sum_log_lik = sum_log_lik + sum(gamma_sums)
-
-  # in case it tried all the max at once.
-  if(!is.finite(sum_log_lik)){
-    return(-1e200)
-  }
-  return(sum_log_lik - modifier)
+  
+  return(tmp)
+    
 }

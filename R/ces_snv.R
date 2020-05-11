@@ -2,6 +2,7 @@
 #' @param cesa CESAnalysis object
 #' @param gene which genes to calculate effect sizes within; defaults to all genes with recurrent mutations in data set
 #' @param cores number of cores to use
+#' @param conf width of confidence intervals to calculate for selection intensities (NULL skips calculation, speeds runtime)
 #' @param include_genes_without_recurrent_mutations default false; will increase runtime and won't find anything interesting
 #' @return CESAnalysis object with selection results added for the chosen analysis
 #' @export
@@ -10,8 +11,15 @@ ces_snv <- function(cesa = NULL,
                             genes = "all",
                             cores = 1,
                             include_genes_without_recurrent_mutations = F,
-                            find_CI=T) 
+                            conf = .95) 
 {
+  if(! is.null(conf)) {
+    if(! is(conf, "numeric") || length(conf) > 1 || conf <= 0 || conf >= 1) {
+      stop("conf should be 1-length numeric (e.g., .95 for 95% confidence intervals)")
+    }
+  }
+  
+  
   if (! "character" %in% class(genes)) {
     stop("Expected argument \"genes\" to take a character vector.")
   }
@@ -71,8 +79,8 @@ ces_snv <- function(cesa = NULL,
   }
 
   gene_trinuc_comp = get_genome_data(cesa, "gene_trinuc_comp")
-  selection_results <- rbindlist(pbapply::pblapply(genes_to_analyze, get_gene_results, cesa = cesa,
-                                             gene_trinuc_comp = gene_trinuc_comp, find_CI=find_CI, cl = cores))
+  selection_results <- rbindlist(pbapply::pblapply(genes_to_analyze, get_gene_results, cesa = cesa, conf = conf,
+                                             gene_trinuc_comp = gene_trinuc_comp, cl = cores))
   cesa@selection_results = selection_results
   cesa@status[["SNV selection"]] = "view effect sizes with snv_results()"
   return(cesa)
@@ -81,7 +89,11 @@ ces_snv <- function(cesa = NULL,
 
 #' Single-stage SNV effect size analysis (gets called by ces_snv)
 #' @keywords internal
-get_gene_results <- function(gene, cesa, find_CI, gene_trinuc_comp) {
+get_gene_results <- function(gene, cesa, conf, gene_trinuc_comp) {
+  if(! is.null(conf)) {
+    ci_high_colname = paste0("ci_high_", conf * 100)
+    ci_low_colname = paste0("ci_low_", conf * 100)
+  }
   snv.maf = cesa@maf[Variant_Type == "SNV"]
   current_gene_maf = snv.maf[Gene_name == gene]
   these_mutation_rates <-
@@ -106,7 +118,7 @@ get_gene_results <- function(gene, cesa, find_CI, gene_trinuc_comp) {
     
     # given the tumors with coverage, their mutation rates at the variant sites, and their mutation status,
     # find most likely selection intensities (by stage if applicable)
-    optimization_output <- optimize_gamma(
+    fit <- optimize_gamma(
       MAF_input = current_gene_maf,
       eligible_tumors = eligible_tumors,
       gene=gene,
@@ -115,8 +127,9 @@ get_gene_results <- function(gene, cesa, find_CI, gene_trinuc_comp) {
       samples = cesa@samples,
       specific_mut_rates=these_mutation_rates)
     
-    selection_intensity = optimization_output$par
-    loglikelihood = rep(optimization_output$value, length(selection_intensity))
+    selection_intensity =  bbmle::coef(fit)
+    loglikelihood = as.numeric(bbmle::logLik(fit))
+    loglikelihood = rep(loglikelihood, length(selection_intensity))
     unsure_gene_name = rep(variant_maf$unsure_gene_name[1], length(selection_intensity))
     progression_name = cesa@progressions
     if (length(cesa@progressions) == 1) {
@@ -145,32 +158,12 @@ get_gene_results <- function(gene, cesa, find_CI, gene_trinuc_comp) {
     variant_output = data.table(variant = variant_id, selection_intensity, unsure_gene_name, loglikelihood, gene, 
                          progression = progression_name, tumors_with_variant, tumors_with_coverage, dndscv_q)
     
-    if(length(cesa@progressions) == 1 & find_CI){
-      # find CI function
-      CI_results <- CI_finder(gamma_max = optimization_output$par,
-                                                 MAF_input= current_gene_maf,
-                                                 eligible_tumors = eligible_tumors,
-                                                 samples = cesa@samples,
-                                                 gene=gene,
-                                                 variant=variant,
-                                                 specific_mut_rates=these_mutation_rates)
-      
-      
-      variant_output$ci_low_999 <- CI_results$lower_CI
-      variant_output$ci_high_999 <- CI_results$upper_CI
-      
-      CI_results <- CI_finder(gamma_max = optimization_output$par,
-                                                 MAF_input= current_gene_maf,
-                                                 eligible_tumors = eligible_tumors,
-                                                 samples = cesa@samples,
-                                                 gene=gene,
-                                                 variant=variant,
-                                                 specific_mut_rates=these_mutation_rates,
-                                                 log_units_down = 1.92 # 95% confidence interval
-      )
-      variant_output$ci_low_95 <- CI_results$lower_CI
-      variant_output$ci_high_95 <- CI_results$upper_CI
-      
+    if(! is.null(conf) & length(cesa@progressions) == 1) {
+      # to support wide CIs (greater than 99%, maybe?), need to profile the function separately
+      prof = bbmle::profile(fit, alpha = 1 - conf)
+      ci = as.numeric(suppressWarnings(bbmle::confint(prof, level = conf)))
+      variant_output[, c(ci_low_colname) := ci[1]]
+      variant_output[, c(ci_high_colname) := ci[2]]
     }
     return(variant_output)
   }
