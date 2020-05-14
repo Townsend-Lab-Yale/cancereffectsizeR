@@ -31,7 +31,7 @@ ml_objective <- function(gamma, tumor_stages, tumors_without_gene_mutated, tumor
     current_stage = 2
     while (current_stage <= tumor_stages[[tumor]]) {
       # e.g., at current_stage = 3, take product of no mutation in stage 1, no mutation in stage 2, yes mutation in stage 3
-      this_sum = this_sum + lik_mutation[current_stage] * prod(lik_no_mutation[current_stage-1:1])
+      this_sum = this_sum + lik_mutation[current_stage] * prod(lik_no_mutation[(current_stage-1):1])
       current_stage <- current_stage + 1
     }
     return(log(this_sum))
