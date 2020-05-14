@@ -25,7 +25,6 @@ Imports:
 	GenomeInfoDbData,
 	GenomicRanges,
 	IRanges,
-	lbfgsb3,
 	magrittr,
 	MASS,
 	minqa,
