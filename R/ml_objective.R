@@ -16,13 +16,11 @@
   
 ml_objective <- function(gamma, tumor_stages, tumors_without_gene_mutated, tumors_with_pos_mutated, 
                            variant, specific_mut_rates, modifier=0) {
-  tmp = function(...) {
-    call_args = as.list(match.call())
-    gamma = unlist(call_args[2:length(call_args)], use.names = F)
+  tmp = function(gamma) {
     sums = cumsum(gamma)
     gamma_sums = sums[tumor_stages[tumors_without_gene_mutated]]
     sum_log_lik = -1 * sum(gamma_sums * specific_mut_rates[tumors_without_gene_mutated, variant])
-    
+
     calc_gamma_sums_mut = function(tumor) {
       # stage-specific likelihoods of mutation
       lik_no_mutation = exp(-1 * gamma * specific_mut_rates[tumor, variant])
@@ -34,13 +32,13 @@ ml_objective <- function(gamma, tumor_stages, tumors_without_gene_mutated, tumor
       current_stage = 2
       while (current_stage <= tumor_stages[[tumor]]) {
         # e.g., at current_stage = 3, take product of no mutation in stage 1, no mutation in stage 2, yes mutation in stage 3
-        this_sum = this_sum + lik_mutation[current_stage] * prod(lik_no_mutation[current_stage-1:1])
+        this_sum = this_sum + lik_mutation[current_stage] * prod(lik_no_mutation[(current_stage-1):1])
         current_stage <- current_stage + 1
       }
       return(log(this_sum))
     }
     
-    gamma_sums = vapply(tumors_with_pos_mutated, calc_gamma_sums_mut, FUN.VALUE = 1.0)
+    gamma_sums = sapply(tumors_with_pos_mutated, calc_gamma_sums_mut)
     sum_log_lik = sum_log_lik + sum(gamma_sums)
     
     # in case it tried all the max at once.

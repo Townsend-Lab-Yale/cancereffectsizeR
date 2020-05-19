@@ -157,13 +157,27 @@ get_gene_results <- function(gene, cesa, conf, gene_trinuc_comp) {
     
     variant_output = data.table(variant = variant_id, selection_intensity, unsure_gene_name, loglikelihood, gene, 
                          progression = progression_name, tumors_with_variant, tumors_with_coverage, dndscv_q)
-    
-    if(! is.null(conf) & length(cesa@progressions) == 1) {
-      # to support wide CIs (greater than 99%, maybe?), need to profile the function separately
-      prof = bbmle::profile(fit, alpha = 1 - conf)
-      ci = as.numeric(suppressWarnings(bbmle::confint(prof, level = conf)))
-      variant_output[, c(ci_low_colname) := ci[1]]
-      variant_output[, c(ci_high_colname) := ci[2]]
+    if(! is.null(conf)) {
+        # can't get confidence intervals for progression states that have no tumors with the variant
+        offset = qchisq(conf, 1)/2
+        max_ll = -1 * loglikelihood[1]
+        fn <<- fit@minuslogl
+        
+        for (i in 1:length(cesa@progressions)) {
+          tmp = function(x) { 
+            pars = selection_intensity
+            pars[i] = x
+            return(fn(pars) - max_ll - offset)
+          }
+          if(tmp(.001) < 0) {
+            lower = .001
+          } else {
+            lower = max(uniroot(tmp, lower = .001, upper = selection_intensity[i])$root, .001)
+          }
+          upper = uniroot(tmp, lower = selection_intensity[i], upper = 1e20)$root
+          variant_output[i, c(ci_low_colname) := lower]
+          variant_output[i, c(ci_high_colname) := upper]
+        }
     }
     return(variant_output)
   }

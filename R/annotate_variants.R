@@ -68,6 +68,7 @@ annotate_variants <- function(cesa) {
 	MAF[,c("nuc_variant","coding_variant")] <- dndscv_coding_unique[MAF, .(as.character(ntchange),as.character(aachange)), on = "unique_variant_ID"]
 	MAF[coding_variant == "-", coding_variant := NA]
 	MAF[nuc_variant=="-", nuc_variant := NA]
+	#MAF[mut_ids := ]
 
 	# get CDS intervals for every gene; potential splice sites are all the start/end positions of these
 	splice_sites = rbindlist(lapply(RefCDS, function(x) return(list(Gene_name = x$gene_name, pos = x$intervals_cds))))
@@ -96,6 +97,7 @@ annotate_variants <- function(cesa) {
 	MAF$nuc_position  <- as.numeric(gsub("\\D", "", MAF$nuc_variant))
 	MAF[, codon_pos := nuc_position %% 3]
 	MAF[codon_pos==0, codon_pos := 3] # "codon 0" obtained from  (nuc_position % 3) is actually codon 3
+	
 
 	# calculate genomic trinuc contexts for each base in the codon of each coding variant
 	# transcript reference data is used so that variants near splice sites get handled appropriately

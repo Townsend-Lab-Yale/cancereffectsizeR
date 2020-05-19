@@ -21,17 +21,16 @@ optimize_gamma <- function(MAF_input, eligible_tumors, progressions, samples, ge
   names(tumor_stages) = eligible_tumors
   fn = ml_objective(tumor_stages = tumor_stages, tumors_without_gene_mutated = tumors_without_gene_mutated,
                     tumors_with_pos_mutated = tumors_with_pos_mutated, variant=variant, specific_mut_rates=specific_mut_rates)
-  par_names = paste0("g", 1:length(progressions), '=')
-  par_names_alist_string = paste0("alist(", paste(par_names, collapse=","), ")")
-  par_alist = eval(parse(text=par_names_alist_string))
-  formals(fn) = par_alist
-  par_init = lapply(par_alist, function(x) 1000)
+  
+
+  par_init = rep(1000, length(progressions))
+  names(par_init) <- parnames(fn) <- paste0("g", 1:length(progressions))
   
   # find optimized selection intensities
   # the selection intensity for any stage that has 0 variants will be on the lower boundary; will muffle the associated warning
-  withCallingHandlers(
+   withCallingHandlers(
     {
-        fit = bbmle::mle2(fn, start = par_init, method="L-BFGS-B", lower=1e-3, upper=1000000000, control=list(fnscale=1e-12))
+        fit = bbmle::mle2(fn, start = par_init, method="L-BFGS-B", vecpar = T, lower=1e-3, upper=1e9, control=list(fnscale=1e-12), hessian.opts = list(method = "complex"))
     },
       warning = function(w) {
         if (startsWith(conditionMessage(w), "some parameters are on the boundary")) {
