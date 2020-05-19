@@ -118,6 +118,8 @@ get_gene_results <- function(gene, cesa, conf, gene_trinuc_comp) {
     
     # given the tumors with coverage, their mutation rates at the variant sites, and their mutation status,
     # find most likely selection intensities (by stage if applicable)
+    
+    
     fit <- optimize_gamma(
       MAF_input = current_gene_maf,
       eligible_tumors = eligible_tumors,
