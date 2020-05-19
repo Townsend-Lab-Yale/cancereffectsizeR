@@ -118,7 +118,6 @@ get_gene_results <- function(gene, cesa, conf, gene_trinuc_comp) {
     
     # given the tumors with coverage, their mutation rates at the variant sites, and their mutation status,
     # find most likely selection intensities (by stage if applicable)
-    
     tumors_with_pos_mutated <- variant_maf[unique_variant_ID_AA==variant, Unique_Patient_Identifier]
     tumors_without_gene_mutated <- eligible_tumors[! eligible_tumors %in% current_gene_maf$Unique_Patient_Identifier]
     tumor_stage_indices = cesa@samples[eligible_tumors, progression_index]

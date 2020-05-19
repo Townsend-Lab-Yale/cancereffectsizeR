@@ -69,7 +69,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9005</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9006</span>
       </span>
     </div>
 
@@ -134,7 +134,7 @@
   <span class='kw'>genes</span> <span class='kw'>=</span> <span class='st'>"all"</span>,
   <span class='kw'>cores</span> <span class='kw'>=</span> <span class='fl'>1</span>,
   <span class='kw'>include_genes_without_recurrent_mutations</span> <span class='kw'>=</span> <span class='no'>F</span>,
-  <span class='kw'>find_CI</span> <span class='kw'>=</span> <span class='no'>T</span>
+  <span class='kw'>conf</span> <span class='kw'>=</span> <span class='fl'>0.95</span>
 )</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
@@ -151,6 +151,10 @@
     <tr>
       <th>include_genes_without_recurrent_mutations</th>
       <td><p>default false; will increase runtime and won't find anything interesting</p></td>
+    </tr>
+    <tr>
+      <th>conf</th>
+      <td><p>width of confidence intervals to calculate for selection intensities (NULL skips calculation, speeds runtime)</p></td>
     </tr>
     <tr>
       <th>gene</th>
