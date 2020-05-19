@@ -2,8 +2,8 @@
 #' @param cesa CESAnalysis object
 #' @param gene which genes to calculate effect sizes within; defaults to all genes with recurrent mutations in data set
 #' @param cores number of cores to use
-#' @param conf width of confidence intervals to calculate for selection intensities (NULL skips calculation, speeds runtime)
-#' @param include_genes_without_recurrent_mutations default false; will increase runtime and won't find anything interesting
+#' @param conf selection intensity confidence interval width (NULL skips calculation, speeds runtime)
+#' @param include_genes_without_recurrent_mutations default false; will increase runtime and SIs at non-recurrent sites aren't very informative
 #' @return CESAnalysis object with selection results added for the chosen analysis
 #' @export
 
@@ -113,21 +113,35 @@ get_gene_results <- function(gene, cesa, conf, gene_trinuc_comp) {
     # covered_in is a 1-item list with a character vector of coverage_grs that cover the variant site
     site_coverage = unlist(variant_maf[1, covered_in])
     eligible_tumors = cesa@samples[covered_regions %in% site_coverage, Unique_Patient_Identifier]
-    
+    eligible_tumors[eligible_tumors %in% rownames(these_mutation_rates)] # To-do: This check isn't necessary if these_mutation_rates covers all tumors
 
     
     # given the tumors with coverage, their mutation rates at the variant sites, and their mutation status,
     # find most likely selection intensities (by stage if applicable)
     
+    tumors_with_pos_mutated <- variant_maf[unique_variant_ID_AA==variant, Unique_Patient_Identifier]
+    tumors_without_gene_mutated <- eligible_tumors[! eligible_tumors %in% current_gene_maf$Unique_Patient_Identifier]
+    tumor_stage_indices = cesa@samples[eligible_tumors, progression_index]
+    names(tumor_stage_indices) = eligible_tumors
+    fn = ml_objective(tumor_stages = tumor_stage_indices, tumors_without_gene_mutated = tumors_without_gene_mutated,
+                      tumors_with_pos_mutated = tumors_with_pos_mutated, variant=variant, specific_mut_rates=these_mutation_rates)
     
-    fit <- optimize_gamma(
-      MAF_input = current_gene_maf,
-      eligible_tumors = eligible_tumors,
-      gene=gene,
-      variant=variant,
-      progressions = cesa@progressions,
-      samples = cesa@samples,
-      specific_mut_rates=these_mutation_rates)
+    # initialize all gamma (SI) values at 1000; bbmle requires a parnames attribute be set to name each gamma (here, g1, g2, etc.)
+    par_init = rep(1000, length(cesa@progressions))
+    names(par_init) <- parnames(fn) <- paste0("g", 1:length(cesa@progressions))
+    
+    # find optimized selection intensities
+    # the selection intensity for any stage that has 0 variants will be on the lower boundary; will muffle the associated warning
+    withCallingHandlers(
+      {
+        fit = bbmle::mle2(fn, start = par_init, method="L-BFGS-B", vecpar = T, lower=1e-3, upper=1e9, control=list(fnscale=1e-12), hessian.opts = list(method = "complex"))
+      },
+      warning = function(w) {
+        if (startsWith(conditionMessage(w), "some parameters are on the boundary")) {
+          invokeRestart("muffleWarning")
+        }
+      }
+    )
     
     selection_intensity =  bbmle::coef(fit)
     loglikelihood = as.numeric(bbmle::logLik(fit))
@@ -138,15 +152,13 @@ get_gene_results <- function(gene, cesa, conf, gene_trinuc_comp) {
       progression_name = "Not applicable"
     }
     
-    # Note: since DNV/TNV have been removed, should not get any duplicate entries here
-    tumors_with_pos_mutated <- variant_maf$Unique_Patient_Identifier
+    # Get number of tumors of each named stage with the variant (in proper progression order)
     stages = cesa@samples[tumors_with_pos_mutated, progression_name]
-    # This gives number of tumors of each stage with the variant (in proper progression order)
     tumors_with_variant = as.numeric(table(factor(stages, levels = cesa@progressions)))
     
     # Also get number of eligible tumors per stage
-    tumor_stages = cesa@samples[eligible_tumors, progression_name]
-    tumors_with_coverage = as.numeric(table(factor(tumor_stages, levels = cesa@progressions)))
+    stages = cesa@samples[eligible_tumors, progression_name]
+    tumors_with_coverage = as.numeric(table(factor(stages, levels = cesa@progressions)))
     
     dndscv_q = sapply(cesa@dndscv_out_list, function(x) x$sel_cv[x$sel_cv$gene_name == gene, "qallsubs_cv"])
     

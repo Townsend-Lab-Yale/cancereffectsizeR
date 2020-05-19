@@ -9,7 +9,7 @@ ces_snv(
   genes = "all",
   cores = 1,
   include_genes_without_recurrent_mutations = F,
-  find_CI = T
+  conf = 0.95
 )
 }
 \arguments{
@@ -18,6 +18,8 @@ ces_snv(
 \item{cores}{number of cores to use}
 
 \item{include_genes_without_recurrent_mutations}{default false; will increase runtime and won't find anything interesting}
+
+\item{conf}{width of confidence intervals to calculate for selection intensities (NULL skips calculation, speeds runtime)}
 
 \item{gene}{which genes to calculate effect sizes within; defaults to all genes with recurrent mutations in data set}
 }
