@@ -127,7 +127,7 @@ get_gene_results <- function(gene, cesa, conf, gene_trinuc_comp) {
     
     # initialize all gamma (SI) values at 1000; bbmle requires a parnames attribute be set to name each gamma (here, g1, g2, etc.)
     par_init = rep(1000, length(cesa@progressions))
-    names(par_init) <- parnames(fn) <- paste0("g", 1:length(cesa@progressions))
+    names(par_init) <- bbmle::parnames(fn) <- paste0("g", 1:length(cesa@progressions))
     
     # find optimized selection intensities
     # the selection intensity for any stage that has 0 variants will be on the lower boundary; will muffle the associated warning
