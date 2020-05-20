@@ -159,6 +159,10 @@ get_gene_results <- function(gene, cesa, conf, gene_trinuc_comp) {
     stages = cesa@samples[eligible_tumors, progression_name]
     tumors_with_coverage = as.numeric(table(factor(stages, levels = cesa@progressions)))
     
+    # if a tumor has no coverage in a given stage, set selection intensity to NA
+    uncovered_stages = which(tumors_with_coverage == 0)
+    selection_intensity[uncovered_stages] = NA
+    
     dndscv_q = sapply(cesa@dndscv_out_list, function(x) x$sel_cv[x$sel_cv$gene_name == gene, "qallsubs_cv"])
     
     variant_id = variant
@@ -176,18 +180,34 @@ get_gene_results <- function(gene, cesa, conf, gene_trinuc_comp) {
         max_ll = -1 * loglikelihood[1]
         fn <<- fit@minuslogl
         
+        # for each SI, use uniroot to get a single-parameter confidence interval
         for (i in 1:length(cesa@progressions)) {
-          tmp = function(x) { 
-            pars = selection_intensity
-            pars[i] = x
-            return(fn(pars) - max_ll - offset)
-          }
-          if(tmp(.001) < 0) {
-            lower = .001
+          if(is.na(selection_intensity[i])) {
+            lower = NA_real_
+            upper = NA_real_
           } else {
-            lower = max(uniroot(tmp, lower = .001, upper = selection_intensity[i])$root, .001)
+            # univariate likelihood function freezes all but one SI at MLE
+            # offset makes output at MLE negative; function should be positive at lower/upper boundaries (.001, 1e20),
+            # and uniroot will find the zeroes, which should represent the lower/uppper CIs
+            ulik = function(x) { 
+              pars = selection_intensity
+              pars[i] = x
+              return(fn(pars) - max_ll - offset)
+            }
+            # if ulik(.001) is negative, no root on (.001, SI), so assigning .001 as lower bound
+            if(ulik(.001) < 0) {
+              lower = .001
+            } else {
+              # Enforcing an SI floor of .001, as in optimization
+              lower = max(uniroot(ulik, lower = .001, upper = selection_intensity[i])$root, .001)
+            }
+            if(ulik(1e20) < 0){
+              # this really shouldn't happen
+              upper = NA_real_
+            } else {
+              upper = uniroot(ulik, lower = selection_intensity[i], upper = 1e20)$root
+            }
           }
-          upper = uniroot(tmp, lower = selection_intensity[i], upper = 1e20)$root
           variant_output[i, c(ci_low_colname) := lower]
           variant_output[i, c(ci_high_colname) := upper]
         }
