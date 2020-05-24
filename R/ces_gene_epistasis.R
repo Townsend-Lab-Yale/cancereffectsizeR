@@ -14,7 +14,7 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optim
   # Some optimx::opm optimization methods crash for unclear reasons: Rnmin, nmkb, newuoa, Rtnmin
   # Others should be skipped automatically because they aren't appropriate, but it's
   # necessary to skip them manually: "subplex", "snewtonm", "snewton", "CG", "BFGS","Nelder-Mead", "nlm", "lbfgs"
-  working_methods = c("L-BFGS-B", "nlminb", "lbfgsb3", "Rcgmin", "Rvmmin","spg", "bobyqa", "hjkb", "hjn")
+  working_methods = c("L-BFGS-B", "nlminb", "Rcgmin", "Rvmmin","spg", "bobyqa", "hjkb", "hjn")
   if (is(optimx_args, "list")) {
       if(is.null(optimx_args[["method"]])) {
         warning(paste0("You specified custom optimization parameters with optimx_args, but you didn't include a \"method\" argument ",

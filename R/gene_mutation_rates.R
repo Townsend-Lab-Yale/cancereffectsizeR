@@ -111,7 +111,7 @@ dndscv_postprocess = function(cesa, dndscv_raw_output, save_all_dndscv_output = 
     dndscv_output = dndscv_out_list[[this_subset]] 
     number_of_tumors_in_this_subset <- length(unique(dndscv_output$annotmuts$sampleID))
     if(dndscv_output$nbreg$theta>1){
-
+      # see page e4 of dNdScv paper (Martincorena 2017, Cell)
       mutrates_vec <- ((dndscv_output$genemuts$n_syn +
                           dndscv_output$nbreg$theta -
                           1) /

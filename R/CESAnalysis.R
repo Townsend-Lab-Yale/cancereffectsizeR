@@ -48,7 +48,7 @@ CESAnalysis = function(genome = NULL, progression_order = NULL) {
   cesa = new("CESAnalysis", status = status, genome = genome, maf = data.table(), excluded = data.table(),
              progressions = progression_order,
              gene_epistasis_results = data.table(), selection_results = data.table(), genome_data_dir = genome_dir,
-             advanced = advanced, samples = data.table())
+             advanced = advanced, samples = data.table(), mutations = list())
   return(cesa)
 }
 

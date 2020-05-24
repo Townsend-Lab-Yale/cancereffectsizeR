@@ -7,7 +7,9 @@ Authors@R: c(person("Vincent L.", "Cannataro", email = "cannatarov@emmanuel.edu"
 Description: cancereffectsizeR calculates selection for somatic mutations in cancer from tumor sequencing data.
     See the package website for more information.
 URL: https://townsend-lab-yale.github.io/cancereffectsizeR, https://github.com/Townsend-Lab-Yale/cancereffectsizeR
-Depends: R (>= 3.5.0)
+Depends: 
+  R (>= 3.5.0),
+  data.table (>= 1.12.4)
 biocViews:
 Remotes: im3sanger/dndscv
 Imports: 
@@ -16,7 +18,6 @@ Imports:
 	BSgenome,
 	BSgenome.Hsapiens.UCSC.hg19,
 	crayon,
-	data.table,
 	deconstructSigs,
 	dfoptim,
 	dndscv,
