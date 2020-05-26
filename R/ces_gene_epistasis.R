@@ -37,6 +37,14 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optim
     stop("Supply at least two genes to analyze.")
   }
   
+  # older versions of CES used mutrates_list instead of mutrates data table; convert here for compatibility
+  if(length(cesa@mutrates_list) > 0) {
+    mutrates_dt = as.data.table(cesa@mutrates_list)
+    mutrates_dt[, gene := names(cesa@mutrates_list[[1]])]
+    setcolorder(mutrates_dt, "gene")
+    cesa@mutrates = mutrates_dt
+  }
+  
   if(return_all_opm_output) {
     message(silver("FYI, you can access full parameter optimization output in [CESAnalysis]@advanced$opm_output."))
   }
@@ -101,7 +109,7 @@ epistasis_gene_level = function(genes_to_analyze,
                                 gene_trinuc_comp,
                                 cesa,
                                 optimx_args) {
-  mutrates_list = cesa@mutrates_list
+  gene_mut_rates = cesa@mutrates
   MAF = cesa@maf[Variant_Type == "SNV"]
   trinuc_proportion_matrix = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix
 
@@ -137,7 +145,7 @@ epistasis_gene_level = function(genes_to_analyze,
     mutation_rate_calc(
       this_MAF = MAF_input1,
       gene = variant1,
-      gene_mut_rate = mutrates_list,
+      gene_mut_rate = gene_mut_rates,
       trinuc_proportion_matrix = trinuc_proportion_matrix,
       gene_trinuc_comp = gene_trinuc_comp,
       samples = cesa@samples)
@@ -146,7 +154,7 @@ epistasis_gene_level = function(genes_to_analyze,
     mutation_rate_calc(
       this_MAF = MAF_input2,
       gene = variant2,
-      gene_mut_rate = mutrates_list,
+      gene_mut_rate = gene_mut_rates,
       trinuc_proportion_matrix = trinuc_proportion_matrix,
       gene_trinuc_comp = gene_trinuc_comp,
       samples = cesa@samples)

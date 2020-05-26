@@ -138,9 +138,11 @@ dndscv_postprocess = function(cesa, dndscv_raw_output, save_all_dndscv_output = 
           number_of_tumors_in_this_subset
       }
     }
-    names(mutrates_vec) <- dndscv_output$genemuts$gene_name
     mutrates_list[[this_subset]] = mutrates_vec
   }
+  mutrates_dt = as.data.table(mutrates_list)
+  mutrates_dt[, gene := dndscv_out_list[[1]]$genemuts$gene_name] # all runs of dNdScv have same the genes in the same order
+  setcolorder(mutrates_dt, "gene")
 
   # keep just the main gene-level selection output from dNdScv, unless user wanted everything
   # currently also need annotmuts for annotate_variants
@@ -152,7 +154,7 @@ dndscv_postprocess = function(cesa, dndscv_raw_output, save_all_dndscv_output = 
       dndscv_out_list[[i]] = list(sel_cv = sel_cv, annotmuts = dndscv_out_list[[i]]$annotmuts)
     }
   }
-  cesa@mutrates_list = mutrates_list
+  cesa@mutrates = mutrates_dt
   cesa@dndscv_out_list = dndscv_out_list
   return(cesa)
 }

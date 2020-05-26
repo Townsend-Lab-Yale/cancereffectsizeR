@@ -33,6 +33,15 @@ ces_snv <- function(cesa = NULL,
   }
 
 
+  # older versions of CES used mutrates_list instead of mutrates data table; convert here for compatibility
+  if(length(cesa@mutrates_list) > 0) {
+    mutrates_dt = as.data.table(cesa@mutrates_list)
+    mutrates_dt[, gene := names(cesa@mutrates_list[[1]])]
+    setcolorder(mutrates_dt, "gene")
+    cesa@mutrates = mutrates_dt
+  }
+  
+  
   if(genes[1] =="all") {
     if (include_genes_without_recurrent_mutations) {
       genes_to_analyze <- genes_in_dataset
@@ -101,7 +110,7 @@ get_gene_results <- function(gene, cesa, conf, gene_trinuc_comp) {
     mutation_rate_calc(
       this_MAF = current_gene_maf,
       gene = gene,
-      gene_mut_rate = cesa@mutrates_list,
+      gene_mut_rate = cesa@mutrates,
       trinuc_proportion_matrix = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix,
       gene_trinuc_comp = gene_trinuc_comp,
       samples = cesa@samples)

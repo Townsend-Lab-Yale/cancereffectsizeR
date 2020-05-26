@@ -33,9 +33,10 @@ mutation_rate_calc <- function(this_MAF,
   }
   normalizers = apply(trinuc_proportion_matrix, 1, calc_normalizers)
 
-  
-  gene_rates_by_state = sapply(gene_mut_rate, function(x) x[[gene]])
-  gene_rates_by_sample = gene_rates_by_state[samples[rownames(mutation_rate_nucs), progression_name]]
+  current_gene = gene
+  gene_rates_by_state = as.numeric(gene_mut_rate[gene == current_gene, -"gene"])
+
+  gene_rates_by_sample = gene_rates_by_state[samples[rownames(mutation_rate_nucs), progression_index]]
   mutation_rate_nucs = (trinuc_proportion_matrix / normalizers) * gene_rates_by_sample
   
 

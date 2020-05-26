@@ -1,5 +1,5 @@
 setClass("CESAnalysis", representation(maf = "data.table", trinucleotide_mutation_weights = "list",
-          progressions = "character", mutrates_list = "list", dndscv_out_list = "list",
+          progressions = "character", mutrates = "data.table", mutrates_list = "list", dndscv_out_list = "list",
           excluded = "data.table", selection_results = "data.table", gene_epistasis_results = "data.table", coverage = "list",
           genome = "BSgenome", advanced = "list", genome_data_dir = "character", status = "list", samples = "data.table", 
           mutations = "list"))
@@ -21,6 +21,8 @@ setMethod("$", "CESAnalysis",
       return(x@trinucleotide_mutation_weights$trinuc_proportion_matrix)
     } else if (name == "mutational_signatures") {
       return(x@trinucleotide_mutation_weights$signature_weight_table)
+    } else if (name == "gene_rates") {
+      return(x@mutrates)
     }
   }
 )
@@ -42,6 +44,9 @@ setMethod("$", "CESAnalysis",
     if ("signature_weight_table" %in% names(x@trinucleotide_mutation_weights)) {
       features = c(features, "mutational_signatures")
     }
+  }
+  if(x@mutrates[, .N] > 0) {
+    features = c(features, "gene_rates")
   }
   grep(pattern, features, value=TRUE)
 }

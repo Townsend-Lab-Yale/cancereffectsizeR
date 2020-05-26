@@ -14,7 +14,7 @@ annotate_variants <- function(cesa) {
   # non-SNVs are not supported in selection functions yet, so not bothering to annotate them correctly
   # all non-SNV annotations will get set to NA at the end of this function
   MAF = cesa@maf
-	dndscv_gene_names = names(cesa@mutrates_list[[1]])
+	dndscv_gene_names = cesa@mutrates$gene
 	dndscv_out_list = cesa@dndscv_out_list
 
 	# Select just the reference genes that are in the data output from dNdScv

@@ -20,7 +20,7 @@ test_that("dNdScv and MAF annotation", {
   sel_cv = get_test_data("sel_cv.rds")
   expect_equal(cesa@dndscv_out_list[[1]]$sel_cv, sel_cv)
   mutrates = get_test_data("mutrates.rds")
-  expect_equal(cesa@mutrates_list[[1]], mutrates)
+  expect_equal(cesa@mutrates, mutrates)
   cesa = annotate_variants(cesa)
   annotated_maf = get_test_data("annotated_maf_df.rds")
   expect_equal(cesa@maf, annotated_maf)

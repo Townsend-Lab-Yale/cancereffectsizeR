@@ -39,9 +39,9 @@ dndscv_out = dndscv_postprocess(cesa = for_dndscv, dndscv_raw_output = dndscv_ra
 
 sel_cv = lapply(dndscv_out@dndscv_out_list, function(x) x$sel_cv)
 saveRDS(sel_cv, "sel_cv_multi.rds")
-saveRDS(dndscv_out@mutrates_list, "mutrates_multi.rds")
+saveRDS(dndscv_out@mutrates, "mutrates_multi.rds")
 saveRDS(dndscv_out, "multi-stage-dndscv_pre-anno.rds") # for quick testing of annotation function 
 anno_out = annotate_variants(dndscv_out)
-saveRDS(anno_out@maf, "multi_annotated_maf_df.rds")
+saveRDS(anno_out$maf, "multi_annotated_maf_df.rds")
 
 setwd(prev_dir)

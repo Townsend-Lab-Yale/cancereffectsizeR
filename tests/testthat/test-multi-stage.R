@@ -17,7 +17,7 @@ test_that("multi-stage dNdScv and annotation", {
   expect_equal(sel_cv, sel_cv_ak)
   
   mutrates_ak = get_test_data("mutrates_multi.rds")
-  expect_equal(cesa@mutrates_list, mutrates_ak)
+  expect_equal(cesa@mutrates, mutrates_ak)
   
   cesa = annotate_variants(cesa)
   annotated_maf = get_test_data("multi_annotated_maf_df.rds")
