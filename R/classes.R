@@ -9,7 +9,7 @@ setMethod("$", "CESAnalysis",
   {
     if(name == "maf") {
       if(x@maf[, .N] > 0) {
-        return(maf(x))
+        return(maf_records(x))
       } 
     } else if (name == "status") {
       return(x) # calls show method
@@ -19,6 +19,8 @@ setMethod("$", "CESAnalysis",
       return(excluded_maf_records(x))
     } else if (name == "trinuc_rates") {
       return(x@trinucleotide_mutation_weights$trinuc_proportion_matrix)
+    } else if (name == "mutational_signatures") {
+      return(x@trinucleotide_mutation_weights$signature_weight_table)
     }
   }
 )
@@ -37,6 +39,9 @@ setMethod("$", "CESAnalysis",
   }
   if(length(x@trinucleotide_mutation_weights) > 0) {
     features = c(features, "trinuc_rates")
+    if ("signature_weight_table" %in% names(x@trinucleotide_mutation_weights)) {
+      features = c(features, "mutational_signatures")
+    }
   }
   grep(pattern, features, value=TRUE)
 }

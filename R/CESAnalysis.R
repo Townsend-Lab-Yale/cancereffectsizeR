@@ -57,9 +57,9 @@ CESAnalysis = function(genome = NULL, progression_order = NULL) {
 #' returns a data.table containing MAF records used in the given CESAnalysis
 #' @param cesa CESAnalysis object
 #' @export
-maf = function(cesa = NULL) {
+maf_records = function(cesa = NULL) {
   if(! is(cesa, "CESAnalysis")) {
-    stop("\nUsage: maf(cesa), where cesa is a CESAnalysis")
+    stop("\nUsage: maf_records(cesa), where cesa is a CESAnalysis")
   }
   if(cesa@maf[,.N] == 0) {
     stop("No MAF data has been loaded")

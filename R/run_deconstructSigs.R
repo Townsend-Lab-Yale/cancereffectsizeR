@@ -12,6 +12,9 @@
 #' @param artifact_signatures names of signatures that should be treated as experimental (e.g., sequencing) artifacts  
 #'                            (these have weights calculated but are then normalized out when calculating true trinuc proportions)
 #' @param tri.counts.method exome/genome trinucleotide content normalization argument to pass to deconstructSigs (see its docs)
+#' @return a list with 2 items: raw_sig_output (exactly what comes out of deconstructSigs) and adjusted_sig_output, which contains
+#'         signature weights (possibly adjusted with artifact accounting) and expected relative trinuc mutation rates based on 
+#'         signature weights
 #' @export
 run_deconstructSigs = function(tumor_trinuc_counts, signatures_df, signatures_to_remove, 
                                artifact_signatures, tri.counts.method) {
@@ -28,6 +31,10 @@ run_deconstructSigs = function(tumor_trinuc_counts, signatures_df, signatures_to
                                                         tri.counts.method = tri.counts.method)
 
 
+  # put raw dS output into output list
+  output = list(raw_sig_output = signatures_output)
+
+  
   # add columns for any removed signatures into output matrix (with zero values)
   if(!is.null(signatures_to_remove)){
     zeroed_sigs = as.data.frame(matrix(data = 0,nrow = 1,ncol = length(signatures_to_remove)))
@@ -58,7 +65,25 @@ run_deconstructSigs = function(tumor_trinuc_counts, signatures_df, signatures_to
       signatures_output$product <- as.matrix(signatures_output$weights) %*% as.matrix(signatures_df)
     }
   }
+
   
-  # return signatures_output, a list which should look like normal deconstructSigs output
-  return(signatures_output)
+  # determine expected trinuc mutation proportions based on signature weights
+  # in rare cases (possibly due to artifact accounting), all weights will be 0, and in that case just leave trinuc_prop NULL
+  if(any(signatures_output$product != 0)) {
+    trinuc_prop = signatures_output$product/sum(signatures_output$product)
+    # Some trinuc SNVs have substitution rates of zero under certain signatures.
+    # In rare cases, a tumor's fitted combination of signatures can therefore also
+    # have a substitution rate of zero for particular trinucleotide contexts.
+    # If this happens, we add the lowest nonzero rate to all rates and renormalize.
+    if(any(trinuc_prop == 0)) {
+      lowest_nonzero_rate = min(trinuc_prop[trinuc_prop != 0])
+      trinuc_prop = trinuc_prop + lowest_nonzero_rate
+      # renormalize so rates sum to 1
+      trinuc_prop = trinuc_prop / sum(trinuc_prop)
+    }
+    signatures_output$trinuc_prop = trinuc_prop
+  }
+  
+  output$adjusted_sig_output = signatures_output[c("weights", "trinuc_prop")]
+  return(output)
 }

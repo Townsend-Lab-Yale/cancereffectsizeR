@@ -24,6 +24,11 @@ run_deconstructSigs(
 
 \item{tri.counts.method}{exome/genome trinucleotide content normalization argument to pass to deconstructSigs (see its docs)}
 }
+\value{
+a list with 2 items: raw_sig_output (exactly what comes out of deconstructSigs) and adjusted_sig_output, which contains
+        signature weights (possibly adjusted with artifact accounting) and expected relative trinuc mutation rates based on 
+        signature weights
+}
 \description{
 This function gets called internally by trinuc_mutation_rates() for each tumor in a CESAnalysis, accepting its
 a data.frame of mutation counts and returning deconstructSigs output.

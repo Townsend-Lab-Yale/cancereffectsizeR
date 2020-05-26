@@ -36,13 +36,12 @@
 
 
 <meta property="og:title" content="Calculate relative rates of trinucleotide-context-specific mutations by extracting underlying mutational processes — trinuc_mutation_rates" />
-<meta property="og:description" content="This function calculates relative rates of trinucleotide-context-specific SNV
+<meta property="og:description" content="This function calculates expected relative rates of trinucleotide-context-specific SNV
 mutations within tumors by attributing SNVs to mutational processes represented
-in mutation signature sets (such as COSMIC v3). This function currently uses
-deconstructSigs to assign mutational signature weightings to tumors. Tumor samples
-with targeted sequencing data are assigned the average trinucleotide
-mutation rates calculated across all exome/genome data, which means that you need at
-least some exome or genome data to run." />
+in mutation signature sets (such as COSMIC v3). deconstructSigs is used to extract mutational 
+signature weights in each tumor. Tumors with targeted sequencing data are assigned the
+average trinucleotide mutation rates calculated across all exome/genome data, 
+which means that you need at least some exome or genome data to run." />
 <meta name="twitter:card" content="summary" />
 
 
@@ -132,13 +131,12 @@ least some exome or genome data to run." />
     </div>
 
     <div class="ref-description">
-    <p>This function calculates relative rates of trinucleotide-context-specific SNV
+    <p>This function calculates expected relative rates of trinucleotide-context-specific SNV
 mutations within tumors by attributing SNVs to mutational processes represented
-in mutation signature sets (such as COSMIC v3). This function currently uses
-deconstructSigs to assign mutational signature weightings to tumors. Tumor samples
-with targeted sequencing data are assigned the average trinucleotide
-mutation rates calculated across all exome/genome data, which means that you need at
-least some exome or genome data to run.</p>
+in mutation signature sets (such as COSMIC v3). deconstructSigs is used to extract mutational 
+signature weights in each tumor. Tumors with targeted sequencing data are assigned the
+average trinucleotide mutation rates calculated across all exome/genome data, 
+which means that you need at least some exome or genome data to run.</p>
     </div>
 
     <pre class="usage"><span class='fu'>trinuc_mutation_rates</span>(
@@ -158,22 +156,16 @@ least some exome or genome data to run.</p>
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
       <th>cesa</th>
-      <td><p># CESAnalysis object</p></td>
-    </tr>
-    <tr>
-      <th>cores</th>
-      <td><p>how many cores to use to process tumor samples in parallel (requires parallel package)</p></td>
+      <td><p>CESAnalysis object</p></td>
     </tr>
     <tr>
       <th>signature_choice</th>
-      <td><p>"cosmic_v3" (default), "cosmic_v2", or a properly-formatted data frame with of trinucleotide signatures 
-(if using cosmic_v3, just leave option default instead of passing your own data frame, or you'll get improper behavior)</p></td>
+      <td><p>"cosmic_v3" (default), "cosmic_v2", or an equalivalently formatted data.frame of custom trinucleotide signatures</p></td>
     </tr>
     <tr>
       <th>assume_identical_mutational_processes</th>
-      <td><p>(default FALSE) instead of assigning different signature weights to each tumor (reflective of
-tumor-specific mutational processes), use well-mutated tumors (those with number of eligible mutations meeting sig_averaging_threshold)
-calculate group average signature weights and assign these to all tumors</p></td>
+      <td><p>use well-mutated tumors (those with number of eligible mutations meeting sig_averaging_threshold) 
+to calculate group average signature weights, and assign these to all tumors</p></td>
     </tr>
     <tr>
       <th>sig_averaging_threshold</th>
@@ -187,7 +179,7 @@ these group averages are blended into the signature weightings of tumors with fe
     </tr>
     <tr>
       <th>v3_hypermutation_rules</th>
-      <td><p>T/F on whether to follow the mutation count rules outlined in https://doi.org/10.1101/322859, the manuscript reported the v3 COSMIC signature set.</p></td>
+      <td><p>T/F on whether to follow mutation count rules outlined in https://doi.org/10.1101/322859 (COSMIC v3 manuscript)</p></td>
     </tr>
     <tr>
       <th>use_dS_exome2genome</th>
@@ -195,21 +187,27 @@ these group averages are blended into the signature weightings of tumors with fe
     </tr>
     <tr>
       <th>signatures_to_remove</th>
-      <td><p>specify any signatures to exclude from analysis; use suggest_cosmic_v3_signatures_to_remove() for advice on COSMIC v3 signatures</p></td>
+      <td><p>specify any signatures to exclude from analysis; use <code><a href='suggest_cosmic_v3_signatures_to_remove.html'>suggest_cosmic_v3_signatures_to_remove()</a></code> for advice on COSMIC v3 signatures</p></td>
     </tr>
     </table>
 
+    <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
+
+    <p>CESAnalysis with expected relative trinucleotide mutation rates ($trinuc_rates) and a table of tumor-specific 
+        signature weights ($mutational_signatures). Note that tumors with group_avg_blended = TRUE have signature
+        weights influenced by the average weights of well-mutated tumors; you may want to exclude these from some analyses.</p>
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
     <p>To reduce the influence of selection on the estimation of relative trinucleotide mutation
-rates, this function only uses non-recurrent SNVs (i.e., those that do not appear in more than one 
-sample in the data set).</p>
+rates, only non-recurrent SNVs (those that do not appear in more than one 
+sample in the data set) are used.</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
     <h2>Contents</h2>
     <ul class="nav nav-pills nav-stacked">
       <li><a href="#arguments">Arguments</a></li>
+      <li><a href="#value">Value</a></li>
       <li><a href="#details">Details</a></li>
     </ul>
 

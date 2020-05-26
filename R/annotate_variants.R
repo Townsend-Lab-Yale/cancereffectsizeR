@@ -6,6 +6,7 @@
 #' @param cesa CESAnalysis object
 #' @export
 annotate_variants <- function(cesa) {
+  
   RefCDS = get_genome_data(cesa, "RefCDS")
   gr_genes = get_genome_data(cesa, "gr_genes")
   
@@ -68,7 +69,10 @@ annotate_variants <- function(cesa) {
 	MAF[,c("nuc_variant","coding_variant")] <- dndscv_coding_unique[MAF, .(as.character(ntchange),as.character(aachange)), on = "unique_variant_ID"]
 	MAF[coding_variant == "-", coding_variant := NA]
 	MAF[nuc_variant=="-", nuc_variant := NA]
-	#MAF[mut_ids := ]
+	
+	
+	# MAF[, nt_mut_id := paste0(Chromosome, ':', Start_Position, '_', Reference_Allele, '>', Tumor_Allele)]
+	# MAF[is_coding == TRUE, aa_mut_id := paste0()]
 
 	# get CDS intervals for every gene; potential splice sites are all the start/end positions of these
 	splice_sites = rbindlist(lapply(RefCDS, function(x) return(list(Gene_name = x$gene_name, pos = x$intervals_cds))))

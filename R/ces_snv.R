@@ -13,6 +13,7 @@ ces_snv <- function(cesa = NULL,
                             include_genes_without_recurrent_mutations = F,
                             conf = .95) 
 {
+  setkey(cesa@samples, "Unique_Patient_Identifier") # in case dt has forgotten its key
   if(! is.null(conf)) {
     if(! is(conf, "numeric") || length(conf) > 1 || conf <= 0 || conf >= 1) {
       stop("conf should be 1-length numeric (e.g., .95 for 95% confidence intervals)")

@@ -11,6 +11,8 @@
 
 ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optimx_args = ces_gene_epistasis_opm_args(), return_all_opm_output = FALSE)
 {
+  setkey(cesa@samples, "Unique_Patient_Identifier") # in case dt has forgotten its key
+  
   # Some optimx::opm optimization methods crash for unclear reasons: Rnmin, nmkb, newuoa, Rtnmin
   # Others should be skipped automatically because they aren't appropriate, but it's
   # necessary to skip them manually: "subplex", "snewtonm", "snewton", "CG", "BFGS","Nelder-Mead", "nlm", "lbfgs"

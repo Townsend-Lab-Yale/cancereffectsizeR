@@ -1,31 +1,30 @@
 #' Calculate relative rates of trinucleotide-context-specific mutations by extracting underlying mutational processes
 #'
-#' This function calculates relative rates of trinucleotide-context-specific SNV
+#' This function calculates expected relative rates of trinucleotide-context-specific SNV
 #' mutations within tumors by attributing SNVs to mutational processes represented
-#' in mutation signature sets (such as COSMIC v3). This function currently uses
-#' deconstructSigs to assign mutational signature weightings to tumors. Tumor samples
-#' with targeted sequencing data are assigned the average trinucleotide
-#' mutation rates calculated across all exome/genome data, which means that you need at
-#' least some exome or genome data to run.
+#' in mutation signature sets (such as COSMIC v3). deconstructSigs is used to extract mutational 
+#' signature weights in each tumor. Tumors with targeted sequencing data are assigned the
+#' average trinucleotide mutation rates calculated across all exome/genome data, 
+#' which means that you need at least some exome or genome data to run.
 #' 
 #' To reduce the influence of selection on the estimation of relative trinucleotide mutation
-#' rates, this function only uses non-recurrent SNVs (i.e., those that do not appear in more than one 
-#' sample in the data set).
+#' rates, only non-recurrent SNVs (those that do not appear in more than one 
+#' sample in the data set) are used.
 #'
-#' @param cesa # CESAnalysis object
-#' @param cores how many cores to use to process tumor samples in parallel (requires parallel package)
-#' @param signature_choice "cosmic_v3" (default), "cosmic_v2", or a properly-formatted data frame with of trinucleotide signatures 
-#'        (if using cosmic_v3, just leave option default instead of passing your own data frame, or you'll get improper behavior)
-#' @param assume_identical_mutational_processes (default FALSE) instead of assigning different signature weights to each tumor (reflective of
-#'   tumor-specific mutational processes), use well-mutated tumors (those with number of eligible mutations meeting sig_averaging_threshold)
-#'   calculate group average signature weights and assign these to all tumors
+#' @param cesa CESAnalysis object
+#' @param signature_choice "cosmic_v3" (default), "cosmic_v2", or an equalivalently formatted data.frame of custom trinucleotide signatures
+#' @param signatures_to_remove specify any signatures to exclude from analysis; use \code{suggest_cosmic_v3_signatures_to_remove()} for advice on COSMIC v3 signatures
+#' @param assume_identical_mutational_processes use well-mutated tumors (those with number of eligible mutations meeting sig_averaging_threshold) 
+#'   to calculate group average signature weights, and assign these to all tumors
 #' @param sig_averaging_threshold Mutational threshold (default 50) that determines which tumors inform the
 #'   calculation of group-average signature weightings. When assume_identical_mutational_processes == FALSE (the default), 
 #'   these group averages are blended into the signature weightings of tumors with few mutations (those below the threshold).
 #' @param v3_artifact_accounting when COSMIC v3 signatures associated with sequencing artifacts are detected, renormalizes to isolate true sources of mutational flux.
-#' @param signatures_to_remove specify any signatures to exclude from analysis; use suggest_cosmic_v3_signatures_to_remove() for advice on COSMIC v3 signatures
-#' @param v3_hypermutation_rules T/F on whether to follow the mutation count rules outlined in https://doi.org/10.1101/322859, the manuscript reported the v3 COSMIC signature set.
+#' @param v3_hypermutation_rules T/F on whether to follow mutation count rules outlined in https://doi.org/10.1101/322859 (COSMIC v3 manuscript)
 #' @param use_dS_exome2genome internal dev option (don't use)
+#' @return CESAnalysis with expected relative trinucleotide mutation rates ($trinuc_rates) and a table of tumor-specific 
+#'         signature weights ($mutational_signatures). Note that tumors with group_avg_blended == TRUE have signature
+#'         weights influenced by the average weights of well-mutated tumors; you may want to exclude these from some analyses.
 #' @export
 #'
 #'
@@ -41,27 +40,27 @@ trinuc_mutation_rates <- function(cesa,
                                   signatures_to_remove = "" # cosmic_v3 analysis gets signatures added here later unless "none"
                                   ){  
   if(is.null(cesa) || ! is(cesa, "CESAnalysis")) {
-    stop("Expected cesa to be a CESAnalysis object")
+    stop("Expected cesa to be a CESAnalysis object", call. = F)
   }
   if(cesa@maf[, .N] == 0) {
-    stop("No MAF data in the CESAnalysis")
+    stop("No MAF data in the CESAnalysis", call. = F)
   }
   
   if(all(cesa@samples$coverage == "targeted")) {
-    stop("We can't estimate relative trinucleotide mutation rates without some exome/genome data in the CESAnalysis (all data is targeted sequencing).")
+    stop("We can't estimate relative trinucleotide mutation rates without some exome/genome data in the CESAnalysis (all data is targeted sequencing).", call. = F)
   }
   
   if(! is.logical(assume_identical_mutational_processes) || length(assume_identical_mutational_processes) != 1 || is.na(assume_identical_mutational_processes)) {
-    stop("Expected assume_identical_mutational_processes to be TRUE/FALSE (default is FALSE).")
+    stop("Expected assume_identical_mutational_processes to be TRUE/FALSE (default is FALSE).", call. = F)
   }
   
   if(! is.numeric(sig_averaging_threshold) || length(sig_averaging_threshold) != 1 || is.na(sig_averaging_threshold) || sig_averaging_threshold < 0) {
-    stop("Expected positive integer for sig_averaging_threshold")
+    stop("Expected positive integer for sig_averaging_threshold", call. = F)
   }
   sig_averaging_threshold = as.integer(sig_averaging_threshold) # below, we test that at least one tumor meets this threshold
   
   if(! "character" %in% class(signatures_to_remove)) {
-    stop("signatures_to_remove should be a character vector")
+    stop("signatures_to_remove should be a character vector", call. = F)
   }
   bad_sig_choice_msg = "signature_choice should be \"cosmic_v3\", \"cosmic_v2\", or a properly-formatted signatures data.frame"
   running_cosmic_v3 = FALSE # gets set to true when user chooses
@@ -78,7 +77,7 @@ trinuc_mutation_rates <- function(cesa,
       signature_set_name = "COSMIC v3"
       running_cosmic_v3 = TRUE
       signatures = signatures_cosmic_May2019
-      message("Analyzing tumors for COSMIC v3 (May 2019) SNV mutational signatures....")
+      message("Loaded COSMIC v3 (May 2019) mutational signatures.")
       if (v3_artifact_accounting) {
         message(crayon::black("Sequencing artifact signatures will be subtracted to isolate true mutational processes (disable with v3_artifact_accounting=FALSE)."))
         v3_artifact_accounting = TRUE
@@ -219,8 +218,6 @@ trinuc_mutation_rates <- function(cesa,
     signatures <- signatures.cosmic # v2 signatures from deconstructSigs
   }
 
-  message("Calculating mutational signature weightings...")
-
   artifact_signatures = NULL
   if (v3_artifact_accounting) {
     # COSMIC v3 artifact signatures are read in from package data 
@@ -248,7 +245,6 @@ trinuc_mutation_rates <- function(cesa,
     ### "SigProfiler_signature_assignment_rules" supp data here: https://doi.org/10.1101/322859
     current_sigs_to_remove = signatures_to_remove
     
-    # To-do: for WGS data, thresholds are 10^5 and 10^4, respectively
     if (v3_hypermutation_rules) {
       # apply hypermuation rules
       if (cesa@samples[tumor_name, coverage] == "exome") {
@@ -278,48 +274,42 @@ trinuc_mutation_rates <- function(cesa,
                                                 signatures_df = signatures, signatures_to_remove = current_sigs_to_remove, artifact_signatures = artifact_signatures))
   }
 
-  ds_output = pbapply::pblapply(tumors_eligible_for_trinuc_calc, process_tumor, cl = cores)
+  
   
   # store results
   # matrix with rows = tumors, columns = relative rates of mutation for each trinuc SNV (starts empty)
   trinuc_proportion_matrix <- matrix(data = NA, nrow = length(all_tumors), ncol = ncol(trinuc_breakdown_per_tumor),
                                      dimnames = list(all_tumors, colnames(trinuc_breakdown_per_tumor)))
   signatures_output_list = list()
+  
+  
   zeroed_out_tumors = character() # for tumors that get all zero signature weights (rare)
-  
-  
+  message("Extracting mutational signatures from SNVs...")
+  ds_output = pbapply::pblapply(tumors_eligible_for_trinuc_calc, process_tumor, cl = cores)
   for(i in 1:length(ds_output)) {
     tumor_name = tumors_eligible_for_trinuc_calc[i]
     signatures_output = ds_output[[i]]
     signatures_output_list[[tumor_name]] = signatures_output
     
-    # if all signature weights are zero (very unlikely, but would probably be due to artifact accounting),
-    # then nothing to do but return the output and let user or package deal with it downstream
-    if (all(signatures_output$product == 0)) {
+    # rarely, weights will come out all 0, so trinuc_prop will be NULL; these tumors are "zeroed-out"
+    if(is.null(signatures_output$adjusted_sig_output$trinuc_prop)) {
       zeroed_out_tumors = c(zeroed_out_tumors, tumor_name)
     } else {
-      # Some trinuc SNVs have substitution rates of zero under certain signatures.
-      # In rare cases, a tumor's fitted combination of signatures can therefore also
-      # have a substitution rate of zero for particular trinucleotide contexts.
-      # If this happens, we add the lowest nonzero rate to all rates and renormalize.
-      trinuc_prop = signatures_output$product/sum(signatures_output$product)
-      if(any(trinuc_prop == 0)) {
-        lowest_nonzero_rate = min(trinuc_prop[trinuc_prop != 0])
-        trinuc_prop = trinuc_prop + lowest_nonzero_rate
-        # renormalize so rates sum to 1
-        trinuc_prop = trinuc_prop / sum(trinuc_prop)
-      }
-      trinuc_proportion_matrix[tumor_name,] = trinuc_prop
+      trinuc_proportion_matrix[tumor_name, ] = signatures_output$adjusted_sig_output$trinuc_prop
     }
   }
-
   # in the (very rare) occurrence of zeroed-out tumors, set them aside to be assigned group average signature weightings
   tumors_above_threshold = setdiff(tumors_above_threshold, zeroed_out_tumors)
   tumors_below_threshold = setdiff(tumors_below_threshold, zeroed_out_tumors)
   tumors_needing_group_average_rates = union(tumors_needing_group_average_rates, zeroed_out_tumors)
 
 
+  if(assume_identical_mutational_processes == TRUE) {
+    tumors_needing_group_average_rates = union(tumors_needing_group_average_rates, tumors_eligible_for_trinuc_calc)
+  }
+  
   # If any samples have <50 mutations, determine weightings for those samples using method specified by user
+  mean_ds = NULL
   if(length(tumors_below_threshold) > 0 || length(tumors_needing_group_average_rates) > 0) {
     mean_trinuc_prop = colMeans(trinuc_proportion_matrix[tumors_above_threshold, , drop = F])
 
@@ -331,23 +321,26 @@ trinuc_mutation_rates <- function(cesa,
     # tumors. Therefore, they will be treated like artifact signatures: included in deconstructSigs signature weight calculation, but normalized
     # out when calculating the "true" relative trinucleotide SNV mutation rates.
     # However, they are left in for the assume_identical_mutational_processes method in the spirit of assuming all 
-    # tumors have same mutational processes.
+    # tumors have the same mutational processes.
     mean_calc_artifact_signatures = artifact_signatures
     if (v3_hypermutation_rules && assume_identical_mutational_processes == FALSE) {
       mean_calc_artifact_signatures = unique(c(artifact_signatures, cosmic_v3_modest_hm_sigs, cosmic_v3_highly_hm_sigs))
     }
     
     rownames(mean_trinuc_prop) = "mean" # deconstructSigs crashes unless a rowname is supplied here
+    message("Determining group-average signatures from well-mutated tumors....")
     mean_ds <- run_deconstructSigs(tumor_trinuc_counts = mean_trinuc_prop, signatures_df = signatures, 
                                                       signatures_to_remove = signatures_to_remove, tri.counts.method = "default",
                                                       artifact_signatures = mean_calc_artifact_signatures)
-    mean_weights <- mean_ds$weights
+    
+    mean_weights <- mean_ds$adjusted_sig_output$weights
     mean_trinuc_prop = as.numeric(mean_trinuc_prop) # convert back to numeric for insertion into trinuc_proportion_matrix
     # this should never happen
     if(all(mean_weights == 0)) {
       stop("Somehow, mean signature weights across all well-mutated tumors are all zero.")
     }
     if (assume_identical_mutational_processes) {
+      # when assume_identical_mutational_processes is TRUE, this is where trinuc_proportion_matrix gets built
       for(i in 1:nrow(trinuc_proportion_matrix)) {
         trinuc_proportion_matrix[i,] = mean_trinuc_prop
       }
@@ -359,11 +352,12 @@ trinuc_mutation_rates <- function(cesa,
         } else {
           own_weighting = substitution_counts[tumor] / sig_averaging_threshold
           group_weighting = 1 - own_weighting
-          trinuc_proportion_matrix[tumor, ] = trinuc_proportion_matrix[tumor, ] * own_weighting + mean_trinuc_prop * group_weighting
-          new_ds = signatures_output_list[[tumor]]
-          new_ds$weights = new_ds$weights * own_weighting + mean_weights * group_weighting
-          new_ds$product = trinuc_proportion_matrix[tumor, , drop=F] 
-          signatures_output_list[[tumor]] = new_ds
+          mean_blended_trinuc_prop = trinuc_proportion_matrix[tumor, ] * own_weighting + mean_trinuc_prop * group_weighting
+          ds_output = signatures_output_list[[tumor]]
+          mean_blended_weights = ds_output$adjusted_sig_output$weights * own_weighting + mean_weights * group_weighting
+          ds_output$mean_blended = list(weights = mean_blended_weights, trinuc_prop = mean_blended_trinuc_prop)
+          trinuc_proportion_matrix[tumor, ] = mean_blended_trinuc_prop
+          signatures_output_list[[tumor]] = ds_output
         }
       }  
     }
@@ -384,6 +378,28 @@ trinuc_mutation_rates <- function(cesa,
   cesa@status[["gene mutation rates"]] = "uncalculated (run gene_mutation_rates)"
   cesa@trinucleotide_mutation_weights = list(trinuc_proportion_matrix=trinuc_proportion_matrix,
                                              signatures_output_list=signatures_output_list)
+  
+  if(! assume_identical_mutational_processes) {
+    # get all signature weights into a data table (one row per sample)
+    all_weights = data.table(t(sapply(signatures_output_list, function(x) as.numeric(x$adjusted_sig_output$weights))), keep.rownames = "Unique_Patient_Identifier")
+    
+    # use first sample to set column names to signature names
+    colnames(all_weights)[2:ncol(all_weights)] = colnames(signatures_output_list[[1]]$adjusted_sig_output$weights)
+    
+    # identify tumors with weights affected by blending with above-threshold
+    blended_tumors = names(which(sapply(signatures_output_list, function(x) ! is.null(x$mean_blended))))
+    all_weights[, group_avg_blended := Unique_Patient_Identifier %in% blended_tumors]
+    all_weights[, snv_count := substitution_counts[Unique_Patient_Identifier]]
+    all_weights[is.na(snv_count), snv_count := 0] # handle rare samples with 0 non-recurrent SNVs
+    setcolorder(all_weights, c("Unique_Patient_Identifier", "snv_count", "group_avg_blended"))
+    
+    cesa@trinucleotide_mutation_weights[["signature_weight_table"]] = all_weights
+  }
+  if(! is.null(mean_ds)) {
+    cesa@trinucleotide_mutation_weights[["group_average_dS_output"]] = mean_ds
+  }
+  
+  
   return(cesa)
 }
 
