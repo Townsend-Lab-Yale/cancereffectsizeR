@@ -176,38 +176,6 @@
     </tbody><tbody>
       <tr>
         <th colspan="2">
-          <h2 id="section-viewing-cesanalysis-data" class="hasAnchor"><a href="#section-viewing-cesanalysis-data" class="anchor"></a>Viewing CESAnalysis data</h2>
-          <p class="section-desc"><p>functions for viewing data and</p></p>
-        </th>
-      </tr>
-      <tr>
-        
-        <td>
-          <p><code><a href="maf.html">maf()</a></code> </p>
-        </td>
-        <td><p>View data loaded into CESAnalysis</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="samples.html">samples()</a></code> </p>
-        </td>
-        <td><p>View sample metadata</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="excluded_maf_records.html">excluded_maf_records()</a></code> </p>
-        </td>
-        <td><p>View excluded MAF data</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="snv_results.html">snv_results()</a></code> </p>
-        </td>
-        <td><p>View results from ces_snv</p></td>
-      </tr>
-    </tbody><tbody>
-      <tr>
-        <th colspan="2">
           <h2 id="section-trinuc-mutation-rates-extensions-and-alternatives" class="hasAnchor"><a href="#section-trinuc-mutation-rates-extensions-and-alternatives" class="anchor"></a>trinuc_mutation_rates extensions and alternatives</h2>
           <p class="section-desc"><p>Additional functions for signature extraction and determination of tumor-specific mutational processes</p></p>
         </th>
@@ -236,6 +204,56 @@
           <p><code><a href="run_deconstructSigs.html">run_deconstructSigs()</a></code> </p>
         </td>
         <td><p>cancereffectsizeR wrapper for deconstructSigs</p></td>
+      </tr>
+    </tbody><tbody>
+      <tr>
+        <th colspan="2">
+          <h2 id="section-viewing-cesanalysis-data" class="hasAnchor"><a href="#section-viewing-cesanalysis-data" class="anchor"></a>Viewing CESAnalysis data</h2>
+          <p class="section-desc"><p>Data accession functions that you probably won’t need (you can use cesa$maf, cesa$samples, etc. instead)</p></p>
+        </th>
+      </tr>
+      <tr>
+        
+        <td>
+          <p><code><a href="maf_records.html">maf_records()</a></code> </p>
+        </td>
+        <td><p>View data loaded into CESAnalysis</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="excluded_maf_records.html">excluded_maf_records()</a></code> </p>
+        </td>
+        <td><p>View excluded MAF data</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="samples.html">samples()</a></code> </p>
+        </td>
+        <td><p>View sample metadata</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="get_trinuc_rates.html">get_trinuc_rates()</a></code> </p>
+        </td>
+        <td><p>Get expected relative trinucleotide-specific SNV mutation rates</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="get_signature_weights.html">get_signature_weights()</a></code> </p>
+        </td>
+        <td><p>Get table of signature weights by tumor</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="get_gene_rates.html">get_gene_rates()</a></code> </p>
+        </td>
+        <td><p>Get table of neutral gene mutation rates by progression state</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="snv_results.html">snv_results()</a></code> </p>
+        </td>
+        <td><p>View results from ces_snv</p></td>
       </tr>
     </tbody><tbody>
       <tr>
@@ -285,8 +303,8 @@
     <h2>Contents</h2>
     <ul class="nav nav-pills nav-stacked">
       <li><a href="#section-basic-workflow">Basic workflow</a></li>
-      <li><a href="#section-viewing-cesanalysis-data">Viewing CESAnalysis data</a></li>
       <li><a href="#section-trinuc-mutation-rates-extensions-and-alternatives">trinuc_mutation_rates extensions and alternatives</a></li>
+      <li><a href="#section-viewing-cesanalysis-data">Viewing CESAnalysis data</a></li>
       <li><a href="#section-miscellaneous">Miscellaneous</a></li>
       <li><a href="#section-in-beta">In beta</a></li>
     </ul>

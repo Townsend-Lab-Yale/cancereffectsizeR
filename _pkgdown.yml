@@ -9,13 +9,6 @@ reference:
   - gene_mutation_rates
   - annotate_variants
   - ces_snv
-- title: Viewing CESAnalysis data
-  desc: functions for viewing data and 
-  contents:
-  - maf
-  - samples
-  - excluded_maf_records
-  - snv_results
 - title: trinuc_mutation_rates extensions and alternatives
   desc: Additional functions for signature extraction and determination of tumor-specific mutational processes
   contents:
@@ -23,6 +16,16 @@ reference:
   - assign_group_average_trinuc_rates
   - set_trinuc_rates
   - run_deconstructSigs
+- title: Viewing CESAnalysis data
+  desc: Data accession functions that you probably won't need (you can use cesa$maf, cesa$samples, etc. instead)
+  contents:
+  - maf_records
+  - excluded_maf_records
+  - samples
+  - get_trinuc_rates
+  - get_signature_weights
+  - get_gene_rates
+  - snv_results
 - title: Miscellaneous
   contents:
   - set_genome_data_directory

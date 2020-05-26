@@ -18,11 +18,11 @@ setMethod("$", "CESAnalysis",
     } else if (name == "excluded") {
       return(excluded_maf_records(x))
     } else if (name == "trinuc_rates") {
-      return(x@trinucleotide_mutation_weights$trinuc_proportion_matrix)
+      return(get_trinuc_rates(x))
     } else if (name == "mutational_signatures") {
-      return(x@trinucleotide_mutation_weights$signature_weight_table)
+      return(get_signature_weights(x))
     } else if (name == "gene_rates") {
-      return(x@mutrates)
+      return(get_gene_rates(x))
     }
   }
 )
@@ -48,6 +48,7 @@ setMethod("$", "CESAnalysis",
   if(x@mutrates[, .N] > 0) {
     features = c(features, "gene_rates")
   }
+
   grep(pattern, features, value=TRUE)
 }
 

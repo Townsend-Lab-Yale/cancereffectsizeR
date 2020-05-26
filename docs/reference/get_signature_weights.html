@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Calculate relative rates of trinucleotide-context-specific mutations by extracting underlying mutational processes — trinuc_mutation_rates • cancereffectsizeR</title>
+<title>Get table of signature weights by tumor — get_signature_weights • cancereffectsizeR</title>
 
 
 <!-- jquery -->
@@ -35,13 +35,8 @@
 
 
 
-<meta property="og:title" content="Calculate relative rates of trinucleotide-context-specific mutations by extracting underlying mutational processes — trinuc_mutation_rates" />
-<meta property="og:description" content="This function calculates expected relative rates of trinucleotide-context-specific SNV
-mutations within tumors by attributing SNVs to mutational processes represented
-in mutation signature sets (such as COSMIC v3). deconstructSigs is used to extract mutational 
-signature weights in each tumor. Tumors with targeted sequencing data are assigned the
-average trinucleotide mutation rates calculated across all exome/genome data, 
-which means that you need at least some exome or genome data to run." />
+<meta property="og:title" content="Get table of signature weights by tumor — get_signature_weights" />
+<meta property="og:description" content="Get table of signature weights by tumor" />
 <meta name="twitter:card" content="summary" />
 
 
@@ -125,31 +120,16 @@ which means that you need at least some exome or genome data to run." />
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Calculate relative rates of trinucleotide-context-specific mutations by extracting underlying mutational processes</h1>
-    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/R/trinuc_mutation_rates.R'><code>R/trinuc_mutation_rates.R</code></a></small>
-    <div class="hidden name"><code>trinuc_mutation_rates.Rd</code></div>
+    <h1>Get table of signature weights by tumor</h1>
+    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/R/CESAnalysis.R'><code>R/CESAnalysis.R</code></a></small>
+    <div class="hidden name"><code>get_signature_weights.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>This function calculates expected relative rates of trinucleotide-context-specific SNV
-mutations within tumors by attributing SNVs to mutational processes represented
-in mutation signature sets (such as COSMIC v3). deconstructSigs is used to extract mutational 
-signature weights in each tumor. Tumors with targeted sequencing data are assigned the
-average trinucleotide mutation rates calculated across all exome/genome data, 
-which means that you need at least some exome or genome data to run.</p>
+    <p>Get table of signature weights by tumor</p>
     </div>
 
-    <pre class="usage"><span class='fu'>trinuc_mutation_rates</span>(
-  <span class='no'>cesa</span>,
-  <span class='kw'>cores</span> <span class='kw'>=</span> <span class='fl'>1</span>,
-  <span class='kw'>signature_choice</span> <span class='kw'>=</span> <span class='st'>"cosmic_v3"</span>,
-  <span class='kw'>assume_identical_mutational_processes</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>,
-  <span class='kw'>sig_averaging_threshold</span> <span class='kw'>=</span> <span class='fl'>50</span>,
-  <span class='kw'>v3_artifact_accounting</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
-  <span class='kw'>v3_hypermutation_rules</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
-  <span class='kw'>use_dS_exome2genome</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>,
-  <span class='kw'>signatures_to_remove</span> <span class='kw'>=</span> <span class='st'>""</span>
-)</pre>
+    <pre class="usage"><span class='fu'>get_signature_weights</span>(<span class='kw'>cesa</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -158,57 +138,14 @@ which means that you need at least some exome or genome data to run.</p>
       <th>cesa</th>
       <td><p>CESAnalysis object</p></td>
     </tr>
-    <tr>
-      <th>signature_choice</th>
-      <td><p>"cosmic_v3" (default), "cosmic_v2", or an equalivalently formatted data.frame of custom trinucleotide signatures</p></td>
-    </tr>
-    <tr>
-      <th>assume_identical_mutational_processes</th>
-      <td><p>use well-mutated tumors (those with number of eligible mutations meeting sig_averaging_threshold) 
-to calculate group average signature weights, and assign these to all tumors</p></td>
-    </tr>
-    <tr>
-      <th>sig_averaging_threshold</th>
-      <td><p>Mutational threshold (default 50) that determines which tumors inform the
-calculation of group-average signature weightings. When assume_identical_mutational_processes == FALSE (the default), 
-these group averages are blended into the signature weightings of tumors with few mutations (those below the threshold).</p></td>
-    </tr>
-    <tr>
-      <th>v3_artifact_accounting</th>
-      <td><p>when COSMIC v3 signatures associated with sequencing artifacts are detected, renormalizes to isolate true sources of mutational flux.</p></td>
-    </tr>
-    <tr>
-      <th>v3_hypermutation_rules</th>
-      <td><p>T/F on whether to follow mutation count rules outlined in https://doi.org/10.1101/322859 (COSMIC v3 manuscript)</p></td>
-    </tr>
-    <tr>
-      <th>use_dS_exome2genome</th>
-      <td><p>internal dev option (don't use)</p></td>
-    </tr>
-    <tr>
-      <th>signatures_to_remove</th>
-      <td><p>specify any signatures to exclude from analysis; use <code><a href='suggest_cosmic_v3_signatures_to_remove.html'>suggest_cosmic_v3_signatures_to_remove()</a></code> for advice on COSMIC v3 signatures</p></td>
-    </tr>
     </table>
 
-    <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
-
-    <p>CESAnalysis with expected relative trinucleotide mutation rates ($trinuc_rates) and a table of tumor-specific 
-        signature weights ($mutational_signatures). Note that tumors with group_avg_blended == TRUE have signature
-        weights influenced by the average weights of well-mutated tumors; you may want to exclude these from some analyses.</p>
-    <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
-
-    <p>To reduce the influence of selection on the estimation of relative trinucleotide mutation
-rates, only non-recurrent SNVs (those that do not appear in more than one 
-sample in the data set) are used.</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
     <h2>Contents</h2>
     <ul class="nav nav-pills nav-stacked">
       <li><a href="#arguments">Arguments</a></li>
-      <li><a href="#value">Value</a></li>
-      <li><a href="#details">Details</a></li>
     </ul>
 
   </div>

@@ -107,6 +107,41 @@ samples = function(cesa = NULL) {
   return(cesa@samples)
 }
 
+#' Get expected relative trinucleotide-specific SNV mutation rates
+#' 
+#' @param cesa CESAnalysis object
+#' @export
+get_trinuc_rates = function(cesa = NULL) {
+  if(! is(cesa, "CESAnalysis")) {
+    stop("\nUsage: get_trinuc_rates(cesa), where cesa is a CESAnalysis")
+  }
+  return(cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix)
+}
+
+#' Get table of signature weights by tumor
+#' 
+#' @param cesa CESAnalysis object
+#' @export
+get_signature_weights = function(cesa = NULL) {
+  if(! is(cesa, "CESAnalysis")) {
+    stop("\nUsage: get_signature_weights(cesa), where cesa is a CESAnalysis")
+  }
+  return(cesa@trinucleotide_mutation_weights$signature_weight_table)
+}
+
+#' Get table of neutral gene mutation rates by progression state
+#' 
+#' @param cesa CESAnalysis object
+#' @export
+get_gene_rates = function(cesa = NULL) {
+  if(! is(cesa, "CESAnalysis")) {
+    stop("\nUsage: get_gene_rates(cesa), where cesa is a CESAnalysis")
+  }
+  return(cesa@mutrates)
+}
+
+
+
 #' View results from ces_snv
 #' 
 #' returns a data table of SNV effect sizes generated with ces_snv
