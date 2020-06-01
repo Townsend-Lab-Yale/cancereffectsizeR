@@ -592,7 +592,6 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   setcolorder(cesa@samples, c("Unique_Patient_Identifier", "coverage", "covered_regions", "progression_name", "progression_index"))
   setkey(cesa@samples, "Unique_Patient_Identifier")
   cesa@maf = rbind(cesa@maf, maf)
-  setkey(cesa@maf, "Unique_Patient_Identifier")
   
   if (nrow(excluded) > 0) {
     colnames(excluded) = c(colnames(maf)[1:5], "Exclusion_Reason")
