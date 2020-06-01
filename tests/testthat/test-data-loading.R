@@ -4,9 +4,12 @@ test_that("MAF data loads correctly", {
   tiny = expect_warning(load_maf(cesa = CESAnalysis(genome="hg19"), maf = tiny_maf, sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2"),
                         "SNV records do not match the given reference genome")
   tiny_ak = get_test_data("tiny_hg19_maf_loaded.rds")
-  expect_equal(tiny@maf, tiny_ak@maf)
+  
+  expect_equal(tiny$maf, tiny_ak$maf)
   expect_equal(tiny@excluded, tiny_ak@excluded)
-  expect_equal(tiny@coverage, tiny_ak@coverage)
+   
+  # same ranges should be in each coverage GenomicRange (depending on BSgenome version, little contigs may vary)
+  expect_equal(lapply(tiny@coverage, IRanges::ranges), lapply(tiny_ak@coverage, IRanges::ranges))
   expect_error(load_maf(tiny, maf = tiny_maf, sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2"),
                "some sample IDs already appear in previously loaded data")
   

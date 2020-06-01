@@ -31,7 +31,6 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
                     ref_col = "Reference_Allele", tumor_allele_col = "guess", coverage = "exome", covered_regions = NULL,
                     covered_regions_name = NULL, progression_col = NULL, chain_file = NULL, enforce_generic_exome_coverage = FALSE) {
 
-  
   if (is.null(cesa)) {
     stop("You need to supply a CESAnalysis object to load the MAF data into.")
   }
@@ -208,7 +207,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
       # read in file and suppress warnings about missing columns since this function handles the validation
       withCallingHandlers(
       {
-        maf = data.table::fread(maf, sep = "\t", quote ="", blank.lines.skip = T, select = select_cols)
+        maf = fread(maf, sep = "\t", quote ="", blank.lines.skip = T, select = select_cols)
       },
       error = function(e) {
         message("Unable to read specified MAF file:")
@@ -592,8 +591,8 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   cesa@samples = rbind(cesa@samples, new_samples)
   setcolorder(cesa@samples, c("Unique_Patient_Identifier", "coverage", "covered_regions", "progression_name", "progression_index"))
   setkey(cesa@samples, "Unique_Patient_Identifier")
-  
   cesa@maf = rbind(cesa@maf, maf)
+  setkey(cesa@maf, "Unique_Patient_Identifier")
   
   if (nrow(excluded) > 0) {
     colnames(excluded) = c(colnames(maf)[1:5], "Exclusion_Reason")
