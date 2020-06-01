@@ -46,7 +46,7 @@ ces_snv <- function(cesa = NULL,
     if (include_genes_without_recurrent_mutations) {
       genes_to_analyze <- genes_in_dataset
     } else {
-      tmp = table(snv.maf$unique_variant_ID)
+      tmp = table(snv.maf$nt_mut_id)
       recurrent_variants = names(tmp[tmp > 1])
       has_recurrent = snv.maf$unique_variant_ID %in% recurrent_variants
       genes_to_analyze = unique(snv.maf$Gene_name[has_recurrent])
@@ -119,7 +119,7 @@ get_gene_results <- function(gene, cesa, conf, gene_trinuc_comp) {
   process_variant = function(variant) {
     # use the first matching record as the locus 
     # (will assume that for amino acid variants, coverage at one site in codon implies coverage for whole codon)
-    variant_maf = current_gene_maf[unique_variant_ID_AA == variant] # no need to subset further because already dealing with a gene-specific MAF
+    variant_maf = current_gene_maf[nt_mut_id == variant] # no need to subset further because already dealing with a gene-specific MAF
     # covered_in is a 1-item list with a character vector of coverage_grs that cover the variant site
     site_coverage = unlist(variant_maf[1, covered_in])
     eligible_tumors = cesa@samples[covered_regions %in% site_coverage, Unique_Patient_Identifier]
@@ -128,7 +128,7 @@ get_gene_results <- function(gene, cesa, conf, gene_trinuc_comp) {
     
     # given the tumors with coverage, their mutation rates at the variant sites, and their mutation status,
     # find most likely selection intensities (by stage if applicable)
-    tumors_with_pos_mutated <- variant_maf[unique_variant_ID_AA==variant, Unique_Patient_Identifier]
+    tumors_with_pos_mutated <- variant_maf[nt_mut_id==variant, Unique_Patient_Identifier]
     tumors_without_gene_mutated <- eligible_tumors[! eligible_tumors %in% current_gene_maf$Unique_Patient_Identifier]
     tumor_stage_indices = cesa@samples[eligible_tumors, progression_index]
     names(tumor_stage_indices) = eligible_tumors
@@ -175,15 +175,18 @@ get_gene_results <- function(gene, cesa, conf, gene_trinuc_comp) {
     
     dndscv_q = sapply(cesa@dndscv_out_list, function(x) x$sel_cv[x$sel_cv$gene_name == gene, "qallsubs_cv"])
     
-    variant_id = variant
+    legacy_id = variant_maf$unique_variant_ID[1]
     if (variant_maf$is_coding[1] == TRUE) {
-      variant_id = paste(gene, variant_id)
+      legacy_id = variant_maf[1, paste(Gene_name, unique_variant_ID_AA)]
     }
-    variant_id = rep(variant_id,  length(selection_intensity))
-    gene = rep(gene, length(selection_intensity))
+
+    variant_id = ifelse(is.na(variant_maf$aa_mut_id[1]), variant, variant_maf$aa_mut_id[1])
+    
+    
     
     variant_output = data.table(variant = variant_id, selection_intensity, unsure_gene_name, loglikelihood, gene, 
-                         progression = progression_name, tumors_with_variant, tumors_with_coverage, dndscv_q)
+                         progression = progression_name, tumors_with_variant, tumors_with_coverage, dndscv_q,
+                         legacy_id)
     if(! is.null(conf)) {
         # can't get confidence intervals for progression states that have no tumors with the variant
         offset = qchisq(conf, 1)/2

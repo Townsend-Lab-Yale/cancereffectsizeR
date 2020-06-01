@@ -42,14 +42,14 @@ mutation_rate_calc <- function(this_MAF,
 
   # mutation_rate_nucs is now the rate of each trinucleotide in each tumor for this gene
   # need to find unique variants and then rates
-  this_MAF <- this_MAF[!duplicated(this_MAF[,c("unique_variant_ID_AA")]),]
+  this_MAF <- this_MAF[!duplicated(this_MAF[,c("nt_mut_id")]),]
 
 
   # mutation rate matrix: rows = tumors, columns = expected relative rates of amino acid changes in gene for tumor
   ## this is determined by summing over the rates for different nucleotides mutations that create same amino acid changes
   mutation_rate_matrix <- matrix(nrow=nrow(trinuc_proportion_matrix), ncol=nrow(this_MAF))
   rownames(mutation_rate_matrix) <- rownames(trinuc_proportion_matrix)
-  colnames(mutation_rate_matrix) <- this_MAF$unique_variant_ID_AA
+  colnames(mutation_rate_matrix) <- this_MAF$nt_mut_id
 
 
   for(i in 1:nrow(mutation_rate_matrix)){

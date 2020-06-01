@@ -56,7 +56,7 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optim
 
 
 	cesa_subset <- maf[Gene_name %in% genes_to_analyze,]
-	cesa_subset$identifier <- cesa_subset$unique_variant_ID_AA
+	cesa_subset$identifier <- cesa_subset$nt_mut_id
 	cesa_subset$identifier[
 	  which(sapply(strsplit(cesa_subset$identifier,split = " "),
 	               function(x) length(x))==1)
@@ -136,8 +136,8 @@ epistasis_gene_level = function(genes_to_analyze,
   MAF_input1 = data.frame(MAF_input1[Unique_Patient_Identifier %in% eligible_tumors,])
   MAF_input2 = data.frame(MAF_input2[Unique_Patient_Identifier %in% eligible_tumors,])
   
-  variant_freq_1 <- table(MAF_input1$unique_variant_ID_AA)
-  variant_freq_2 <- table(MAF_input2$unique_variant_ID_AA)
+  variant_freq_1 <- table(MAF_input1$nt_mut_id)
+  variant_freq_2 <- table(MAF_input2$nt_mut_id)
 
   # only run the selection algorithm if there are 2 or more tumors with
   # recurrent variants of each gene present.
@@ -170,8 +170,8 @@ epistasis_gene_level = function(genes_to_analyze,
   # calculate tumors with and without recurrent mutations in the two genes
   # only the tumors containing a recurrent variant factor into the selection analysis
   ## MAF_input1 and MAF_input2 are already restricted to just eligible tumors
-  tumors_with_variant1_mutated <- unique(MAF_input1[which(MAF_input1$unique_variant_ID_AA %in% names(which(variant_freq_1>1))),"Unique_Patient_Identifier"])
-  tumors_with_variant2_mutated <- unique(MAF_input2[which(MAF_input2$unique_variant_ID_AA %in% names(which(variant_freq_2>1))),"Unique_Patient_Identifier"])
+  tumors_with_variant1_mutated <- unique(MAF_input1[which(MAF_input1$nt_mut_id %in% names(which(variant_freq_1>1))),"Unique_Patient_Identifier"])
+  tumors_with_variant2_mutated <- unique(MAF_input2[which(MAF_input2$nt_mut_id %in% names(which(variant_freq_2>1))),"Unique_Patient_Identifier"])
   tumors_with_both_mutated <- base::intersect(tumors_with_variant1_mutated,tumors_with_variant2_mutated)
   tumors_with_ONLY_variant1_mutated <- tumors_with_variant1_mutated[which(!tumors_with_variant1_mutated %in% tumors_with_variant2_mutated)]
   tumors_with_ONLY_variant2_mutated <- tumors_with_variant2_mutated[which(!tumors_with_variant2_mutated %in% tumors_with_variant1_mutated)]
