@@ -1,5 +1,5 @@
 setClass("CESAnalysis", representation(maf = "data.table", trinucleotide_mutation_weights = "list",
-          progressions = "character", mutrates = "data.table", mutrates_list = "list", dndscv_out_list = "list",
+          progressions = "character", mutrates = "data.table", dndscv_out_list = "list",
           excluded = "data.table", selection_results = "data.table", gene_epistasis_results = "data.table", coverage = "list",
           genome = "BSgenome", advanced = "list", genome_data_dir = "character", status = "list", samples = "data.table", 
           mutations = "list"))
@@ -23,6 +23,8 @@ setMethod("$", "CESAnalysis",
       return(get_signature_weights(x))
     } else if (name == "gene_rates") {
       return(get_gene_rates(x))
+    } else if (name == "mutations") {
+      return(get_mutations(x))
     }
   }
 )
@@ -35,6 +37,9 @@ setMethod("$", "CESAnalysis",
   }
   if(x@samples[, .N] > 0) {
     features = c(features, "samples")
+  }
+  if(length(x@mutations) > 0) {
+    features = c(features, "mutations")
   }
   if(x@excluded[, .N] > 0) {
     features = c(features, "excluded")

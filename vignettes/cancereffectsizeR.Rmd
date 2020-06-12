@@ -87,7 +87,7 @@ Finally, use `ces_snv()` to find calculate effect sizes.
 ```
 
 #### Note on parallel processing
-If you are running in a MacOS or Linux environment, you can speed up processing by providing multiple computing cores using the "cores" argument. You'll also need the R package parallel, which you can easily install with install.packages if you don't already have it. Run `parallel::detectCores()` to find out how many cores you have available.
+If you are running in a MacOS or Linux environment, you can speed up processing by providing multiple computing cores using the "cores" argument. Run `parallel::detectCores()` to find out how many cores you have available.
 ```R
   # assuming you've already loaded MAF data into object "cesa"
   cesa = trinuc_mutation_rates(cesa, cores = 4)

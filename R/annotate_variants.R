@@ -21,186 +21,233 @@ annotate_variants <- function(cesa) {
 	is_in_dndscv = (GenomicRanges::mcols(gr_genes)["names"][,1] %in% dndscv_gene_names)
 	gr_genes_in_data = gr_genes[is_in_dndscv]
 	
-	# find the closest reference gene to each MAF record (ties are possible, including one record being found in multiple genes)
-	gr_maf_data = GenomicRanges::GRanges(seqnames = MAF$Chromosome, ranges = IRanges::IRanges(start = MAF$Start_Position, end = MAF$Start_Position))
-	nearest = as.data.table(GenomicRanges::distanceToNearest(gr_maf_data, gr_genes_in_data, select = "all"))
-	
-	# convert the "subjectHits" index returned by the distanceToNearest function to the corresponding gene name
-	possible_genes = GenomicRanges::mcols(gr_genes_in_data)["names"][,1]
-	nearest[,Gene_name := nearest[, possible_genes[subjectHits]]]
-	
-	# remove all but one of multiple hits from one record to the same gene
-	# this happens, for example, when a record overlaps multiple exons in the reference data
-	nearest = nearest[! duplicated(nearest[, .(queryHits, Gene_name)])] 
-	
-	# Note that some queryHits (corresponding to MAF row numbers) may have more than 1 hit, if 
-	# a record fits in multiple genes (or, rarely, an exact tie for distance to nearest gene, if record isn't in any gene).
-	# In these cases, a duplicate row is created for each record; these duplicates will get combined into single rows to restore MAF format
-	MAF = MAF[nearest$queryHits]
-	MAF[, Gene_name := nearest$Gene_name]
-	MAF[, unsure_gene_name := TRUE][nearest$distance == 0, unsure_gene_name := FALSE]
-	
-	
-	# get mutation annotations from dNdScv and subset to SNVs (probably stop subsetting in the future)
+	# assign SNV IDs to all SNVs
+	MAF[, snv_id := paste0(Chromosome, ':', Start_Position, '_', Reference_Allele, '>', Tumor_Allele)]
+
+	# Get mutation annotations from dNdScv and subset to SNVs
+	# Note: Mutations that are tossed by dNdScv--such as those exclusive to the most hypermutated samples or likely ketaegis--
+	#       probably don't appear in annotations. This is okay for now, but someday this may be addressed.
 	dndscvout_annotref <- rbindlist(lapply(dndscv_out_list, function(x) x$annotmuts))
 	dndscvout_annotref <- dndscvout_annotref[ref %in% c("A", "C", "G", "T") & mut %in% c("A", "C", "G", "T")]
+	dndscv_coding_anno = unique(dndscvout_annotref[impact != "Essential_Splice", .(chr, pos, ref, mut, gene, pid, strand, aachange, ntchange, impact)])
+	setnames(dndscv_coding_anno, "mut", "alt")
 	
-	MAF[, nt_mut_id := paste0(Chromosome, ':', Start_Position, '_', Reference_Allele, '>', Tumor_Allele)]
-
-	coding_variant_nt_and_gene = unique(dndscvout_annotref[impact != "Essential_Splice", paste0(chr, ':', pos, '_', ref, '>', mut, gene)])
-	MAF[, is_coding := paste0(nt_mut_id, Gene_name) %in% coding_variant_nt_and_gene]
+	# build table of amino acid mutations by starting with SNVs with gene annotation
+	aac_table = unique(MAF[, .(chr = Chromosome, pos = Start_Position, ref = Reference_Allele, alt = Tumor_Allele), by = "snv_id"])
 	
-	dndscvout_annotref = dndscvout_annotref[, .(sampleID, chr, pos, ref, mut, gene, pid, strand, aachange, ntchange, impact)]
-	MAF = merge.data.table(MAF, dndscvout_annotref, 
-	                       by.x = c("Chromosome", "Start_Position", "Reference_Allele", "Tumor_Allele", "Unique_Patient_Identifier", "Gene_name"),
-	                       by.y = c("chr", "pos", "ref", "mut", "sampleID", "gene"), all.x = T, sort = F)
+	# merge in coding annotations (dropping non-coding records)
+	aac_table = merge.data.table(aac_table, dndscv_coding_anno, by = c("chr", "pos", "ref", "alt"), sort = F)
+	aac_table[, aa_mut_id := paste0(pid, "_", aachange)]
+	aac_table = unique(aac_table, by = "aa_mut_id") # will figure out associated snv_ids later
+	
+	aac_table[, aa_ref := seqinr::aaa(stringr::str_sub(aachange, start = 1, end = 1))]
+	aac_table[aa_ref == "Stp", aa_ref := "STOP"] # seqinr returns Stp for stop codons; we want STOP
+	aac_table[, aa_alt := seqinr::aaa(stringr::str_sub(aachange, start = -1, end = -1))]
+	aac_table[aa_alt == "Stp", aa_alt := "STOP"]
+	aac_table[, aa_pos := as.numeric(stringr::str_sub(aachange, start = 2, end = -2))]
 	
 	
-
-	# get CDS intervals for every gene; potential splice sites are all the start/end positions of these
-	splice_sites = rbindlist(lapply(RefCDS, function(x) return(list(Gene_name = x$gene_name, pos = x$intervals_cds))))
-	comb = merge.data.table(MAF[,.(Gene_name, Start_Position)], splice_sites, allow.cartesian = T)
-	comb[, diff:= abs(Start_Position - pos)]
-	comb = comb[, any(diff <= 3), by = .(Gene_name, Start_Position)]
-	MAF[, next_to_splice := comb[.SD, V1, on = .(Gene_name, Start_Position)]]
+	# to make things easier later, determine now which MAF records are near splice sites (within 3 bp)
+	# First, get DS intervals for every gene; potential splice sites are all the start/end positions of these
+	splice_sites = rbindlist(lapply(RefCDS, function(x) return(list(gene = x$gene_name, splice_pos = x$intervals_cds))))
+	comb = merge.data.table(aac_table[,.(aa_mut_id, gene, pos)], splice_sites, allow.cartesian = T)
+	comb[, diff:= abs(splice_pos - pos)]
+	comb = comb[, .(next_to_splice = any(diff <= 3)), by = aa_mut_id]
+	aac_table[comb, next_to_splice := next_to_splice, on = "aa_mut_id"]
 	
-	MAF[is_coding == T, aa_mut_id := paste0(pid, '_', aachange)]
-	MAF[is_coding == T, aa_ref := seqinr::aaa(stringr::str_sub(aachange, start = 1, end = 1))]
-	MAF[aa_ref == "Stp", aa_ref := "STOP"]
-	MAF[is_coding == T, aa_alt := seqinr::aaa(stringr::str_sub(aachange, start = -1, end = -1))]
-	MAF[aa_alt == "Stp", aa_alt := "STOP"]
-	MAF[is_coding == T, aa_pos := as.numeric(stringr::str_sub(aachange, start = 2, end = -2))]
-
 	# for debug, ensure dndscv's reference nt matches the MAF ref column
-	# not that dNdScv gives the nucleotide on the gene's strand (which is odd, I think)
-	MAF[is_coding == T, nt_ref := stringr::str_sub(ntchange, start = 1, end = 1)]
-	MAF[is_coding == T & strand == -1, nt_ref := seqinr::comp(nt_ref, forceToLower = F)]
-	if (! MAF[is_coding == T, identical(nt_ref, Reference_Allele)]) {
+	# note that dNdScv gives the nucleotide on the gene's strand (which is odd, I think)
+	aac_table[, nt_ref := stringr::str_sub(ntchange, start = 1, end = 1)]
+  aac_table[strand == -1, nt_ref := seqinr::comp(nt_ref, forceToLower = F)]
+	if (! aac_table[, identical(nt_ref, ref)]) {
 	  stop(paste0("dNdScv's reference allele (from RefCDS) doesn't match MAF reference allele.\n",
 	              "If you're using custom transcript data, it may not match the reference genome.\n",
 	              "If you're using cancereffectsizeR reference data, please submit a bug report."), call. = F)
 	}
-	MAF[is_coding == T, cds_nt_pos := as.numeric(stringr::str_sub(ntchange, start = 2, end = -2))]
-	MAF[is_coding == T, codon_pos := cds_nt_pos %% 3]
-	MAF[codon_pos==0, codon_pos := 3] # "codon 0" obtained from  (nuc_position % 3) is actually nt 3 of codon
+	aac_table[, cds_nt_pos := as.numeric(stringr::str_sub(ntchange, start = 2, end = -2))]
+	aac_table[, codon_pos := cds_nt_pos %% 3]
+	aac_table[codon_pos==0, codon_pos := 3] # "codon 0" obtained from  (nuc_position % 3) is actually nt 3 of codon
 	
-
-	# calculate genomic trinuc contexts for each base in the codon of each coding variant
-	# transcript reference data is used so that variants near splice sites get handled appropriately
-	coding_maf = MAF[is_coding == TRUE]
-	genes = coding_maf$Gene_name
-	upstream = Biostrings::DNAStringSet(lapply(RefCDS[genes], function(x) x$seq_cds1up))
-	inframe = Biostrings::DNAStringSet(lapply(RefCDS[genes], function(x) x$seq_cds))
-	downstream = Biostrings::DNAStringSet(lapply(RefCDS[genes], function(x) x$seq_cds1down))
-	
-	# get the first, second, and third nucleotides of the given codons, and the genomic trinuc context of each
-	# will shift from the given codon position to capture all three nucleotides in the codon
-	start = coding_maf$cds_nt_pos - coding_maf$codon_pos + 1
-	upstream = Biostrings::subseq(upstream, start = start, width = 3)
-	ref_codon = Biostrings::subseq(inframe, start = start, width = 3)
-	downstream = Biostrings::subseq(downstream, start = start, width = 3)
-	
-	# trinuc context for annotation (context for the mutated position, not the codon)
-	transcript_trinuc = Biostrings::xscat(Biostrings::subseq(upstream, start = coding_maf$codon_pos, width = 1),
-	                                      Biostrings::subseq(ref_codon, start = coding_maf$codon_pos, width = 1),
-	                                      Biostrings::subseq(downstream, start = coding_maf$codon_pos, width = 1))
-	strands = sapply(RefCDS[genes], function(x) x$strand)
-	
-	# take reverse complement in order to get 5' to 3' orientation for negative-strand genes
-	genomic_trinuc = transcript_trinuc
-	genomic_trinuc[strands == -1] = Biostrings::reverseComplement(transcript_trinuc[strands == -1])
-	trinuc_dcS_coding <- trinuc_translator[paste0(genomic_trinuc,":",coding_maf$Tumor_Allele), "deconstructSigs_format"]
-	
-	# handle coding non-splice
-  not_splice = coding_maf[, next_to_splice == F]
-  amino_acid_context = as.character(Biostrings::xscat(Biostrings::subseq(upstream[not_splice], start = 1, width = 1), 
-                                                                         ref_codon[not_splice], 
-                                                      Biostrings::subseq(downstream[not_splice], start = 3, width = 1)))
-  aa_mut_nonsplice = coding_maf[next_to_splice == F, aa_alt]
-  equivalent_muts_nonsplice = lapply(1:length(amino_acid_context), function(x) unname(unlist(AA_mutation_list[[amino_acid_context[x]]][aa_mut_nonsplice[x]])))
-  
-  # handle coding splice
-  splice = coding_maf[, next_to_splice == T]
-  
-  # for splice sites, calculate all possible SNV mutations (with trinuc context) that would match the actual amino acid change
-  # replace each position in the codon with all bases to get all codons that can results from an SNV mutation
-  first_tri = Biostrings::xscat(Biostrings::subseq(upstream[splice], start = 1, width = 1), 
-                    Biostrings::subseq(ref_codon[splice], start = 1, width = 1), 
-                    Biostrings::subseq(downstream[splice], start = 1, width = 1))
-  second_tri = Biostrings::xscat(Biostrings::subseq(upstream[splice], start = 2, width = 1),
-                     Biostrings::subseq(ref_codon[splice], start = 2, width = 1),
-                     Biostrings::subseq(downstream[splice], start = 2, width = 1))
-  third_tri = Biostrings::xscat(Biostrings::subseq(upstream[splice], start = 3, width = 1),
-                    Biostrings::subseq(ref_codon[splice], start = 3, width = 1),
-                    Biostrings::subseq(downstream[splice], start = 3, width = 1))
-	
-  coding_splice_maf = coding_maf[next_to_splice == T, ]
-  coding_splice_ref_codons = ref_codon[splice]
-  
-  equivalent_muts_splice = list()
-  for(i in 1:nrow(coding_splice_maf)) {
-    trinuc_contexts = Biostrings::DNAStringSet(list(first_tri[[i]], second_tri[[i]], third_tri[[i]]))
-    codon = coding_splice_ref_codons[[i]] # codon is a Biostring here
-
-    ## dictionary gives all codons that can be made from one point mutation to the original codon
-    ## keys = original codon; values = list where each name is a new codon, value is the resulting amino acid 
-    poss_mut = codon_point_mutation_dict[[as.character(codon)]]
-    mut_is_match = which(poss_mut == coding_splice_maf$aa_alt[i])
-    poss_mut = names(poss_mut)[mut_is_match]
-    
-	  # for each possible mutated codon, saves its trinuc-context representation in deconstructSigs format
-	  trinucs_for_rate = character()
-	  codon = strsplit(as.character(codon), "")[[1]]
-	  for (mut_codon in poss_mut) {
-	    mut_codon = strsplit(mut_codon, "")[[1]]
-	    index = which(mut_codon != codon)
-	    ref_tri = as.character(trinuc_contexts[[index]]) # get the genomic (not transcript) reference trinucleotide context for mutated site
-	    mutated_base = mut_codon[index]
-	    ds_format = trinuc_translator[paste(ref_tri, mutated_base, sep=":"), "deconstructSigs_format"]
-	    trinucs_for_rate = c(trinucs_for_rate, ds_format)
+	# function to get reference positions of every nucleotide in a codon (needed for near splice sites)
+	calc_ref_pos = function(gene, nt_pos, strand) {
+	  intervals = RefCDS[[gene]]$intervals_cds
+	  pos = apply(intervals, 1, function(x) abs(x[1]-x[2]) + 1)
+	  if(strand == -1) {
+	    pos = rev(pos)
+	    if (nrow(intervals) > 1) {
+	      intervals = apply(intervals, 2, rev) # because 1-row matrix would get coerced to vector by apply
+	    }
 	  }
-	  equivalent_muts_splice[[i]] = trinucs_for_rate
-  }
+	  
+	  nt_so_far = cumsum(pos)
+	  ind = match(TRUE, nt_so_far >= nt_pos)
+	  
+	  previous_bases = ifelse(ind == 1, 0, nt_so_far[ind - 1])
+	  if (strand == 1) {
+	    ref_pos = intervals[ind, 1] + nt_pos - previous_bases - 1
+	  } else {
+	    if(ncol(intervals) < 2 || nrow(intervals) < ind) {
+	      return(0)
+	    }
+	    ref_pos = intervals[ind, 2] - nt_pos + previous_bases + 1
+	    
+	  }
+	  return(ref_pos)
+	}
+	
+	# away from splice sites, all codon nt positions are adjacent
+	aac_table[next_to_splice == F, nt1_pos := pos - strand * (codon_pos - 1)]
+	aac_table[next_to_splice == F, nt2_pos := pos - strand * (codon_pos - 2)]
+	aac_table[next_to_splice == F, nt3_pos := pos - strand * (codon_pos - 3)]
+	
+	# figure out nt positions for codons that might span splice sites
+	aac_table[next_to_splice == T, nt1_pos := mapply(calc_ref_pos, gene, cds_nt_pos - codon_pos + 1, strand)]
+	aac_table[next_to_splice == T, nt2_pos := mapply(calc_ref_pos, gene, cds_nt_pos - codon_pos + 2, strand)]
+	aac_table[next_to_splice == T, nt3_pos := mapply(calc_ref_pos, gene, cds_nt_pos - codon_pos + 3, strand)]
+	
+	# get 5'->3' (i.e., standard genomic order) trinucleotide contexts
+	first_triseq = BSgenome::getSeq(cesa@genome, names = aac_table$chr, start =  aac_table$nt1_pos - 1, end =  aac_table$nt1_pos + 1)
+	second_triseq = BSgenome::getSeq(cesa@genome, names = aac_table$chr, start =  aac_table$nt2_pos - 1, end =  aac_table$nt2_pos + 1)
+	third_triseq = BSgenome::getSeq(cesa@genome, names = aac_table$chr, start =  aac_table$nt3_pos - 1, end =  aac_table$nt3_pos + 1)
 
-  # for non-coding mutations, query the genome to get trinuc-context point mutations in deconstructSigs format (e.g., "G[T>C]T")
-  noncoding_maf = MAF[is_coding == F]
-  triseq <- BSgenome::getSeq(cesa@genome,
-                             noncoding_maf$Chromosome,
-                             start=noncoding_maf$Start_Position-1,
-                             end=noncoding_maf$Start_Position+1,
-                             as.character = TRUE)
+	# put together the three reference nucleotides of each codon (in coding order, not genomic order)
+	coding_sequences = Biostrings::xscat(Biostrings::subseq(first_triseq, start = 2, width = 1),
+	                                     Biostrings::subseq(second_triseq, start = 2, width = 1),
+	                                     Biostrings::subseq(third_triseq, start = 2, width = 1))
+	
+	aac_table[, nt1_ref := as.character(Biostrings::subseq(coding_sequences, start = 1, width = 1))]
+	aac_table[, nt2_ref := as.character(Biostrings::subseq(coding_sequences, start = 2, width = 1))]
+	aac_table[, nt3_ref := as.character(Biostrings::subseq(coding_sequences, start = 3, width = 1))]
+	
+	
+	# take complement of negative-strand coding sequences (but no need to reverse)
+	coding_sequences[aac_table$strand == -1] = Biostrings::complement(coding_sequences[aac_table$strand == -1])
+	aac_table[, coding_seq := as.character(coding_sequences)]
+	
+	# for each aa_mut, get a three-item list representing SNVs in first, second, third positions of the reference codon
+	# that cause the same amino acid change as aa_alt (which will always include the ntchange that came from the MAF)
+	possible_snvs = mapply(function(x, y) codon_snvs_to_aa[[x]][[y]], as.character(coding_sequences), aac_table$aa_alt, SIMPLIFY = F)
+	
+	
+	## Sanity check
+	# tmp = seqinr::aaa(as.character(Biostrings::translate(coding_sequences, no.init.codon = T)))
+	# tmp[tmp == "Stp"] = "STOP"
+	# identical(tmp, aac_table$aa_ref)
+	# 
+	
+	nt1_snvs = lapply(possible_snvs, function(x) x[[1]])
+	aac_table[, nt1_snvs := nt1_snvs]
+	
+	nt2_snvs = lapply(possible_snvs, function(x) x[[2]])
+	aac_table[, nt2_snvs := nt2_snvs]
+	
+	nt3_snvs = lapply(possible_snvs, function(x) x[[3]])
+	aac_table[, nt3_snvs := nt3_snvs]
+	
+	# create table of all snv_ids, then fix strand of alt alleles
+	nt1_dt = aac_table[, .(chr, strand, pos = nt1_pos, ref = nt1_ref, alt = unlist(nt1_snvs)), by = "aa_mut_id"]
+	nt2_dt = aac_table[, .(chr, strand, pos = nt2_pos, ref = nt2_ref, alt = unlist(nt2_snvs)), by = "aa_mut_id"]
+	nt3_dt = aac_table[, .(chr, strand, pos = nt3_pos, ref = nt3_ref, alt = unlist(nt3_snvs)), by = "aa_mut_id"]
+
+	snv_table = rbind(nt1_dt, nt2_dt, nt3_dt)
+	snv_table = snv_table[! is.na(alt)] # drop positions where there is no possible SNV that causes the amino acid change of interest
+  snv_table[strand == -1, alt := seqinr::comp(alt, forceToLower = F)]
+	snv_table[, strand := NULL]
+	snv_table[, snv_id := paste0(chr, ':', pos, "_", ref, '>', alt)]
+	
+	# annotate amino acid mutations with all associated SNVs
+	snvs_by_aa_mut = snv_table[, .(all_snv_ids = list(snv_id)), by = "aa_mut_id"]
+	aac_table[snvs_by_aa_mut, all_snv_ids := all_snv_ids, on = "aa_mut_id"]
+	
+	# make SNV table records unique and annotate with all amino acid mutations
+  snv_table = snv_table[, .(chr, pos, ref, alt, assoc_aa_mut = list(aa_mut_id)), by = "snv_id"]
+
+  snv_table = unique(snv_table, by = "snv_id")
   
-  trinuc_dcS_noncoding <- trinuc_translator[paste0(triseq,":",noncoding_maf$Tumor_Allele), "deconstructSigs_format"]
+  # add in noncoding MAF SNVs
+  noncoding = MAF[Variant_Type == "SNV" & ! snv_id %in% unlist(aac_table$all_snv_ids)]
+  noncoding = noncoding[, .(chr = Chromosome, pos = Start_Position, ref = Reference_Allele, alt = Tumor_Allele)]
+  noncoding[, snv_id := paste0(chr, ':', pos, "_", ref, '>', alt)]
+  setcolorder(noncoding, "snv_id")
+  noncoding = unique(noncoding)
+  noncoding[, assoc_aa_mut := list(as.list(NA_character_))] # to match coding records
+  snv_table = rbind(snv_table, noncoding)
   
-  MAF[is_coding == TRUE, trinuc_dcS := trinuc_dcS_coding]
-  MAF[is_coding == FALSE, trinuc_dcS := trinuc_dcS_noncoding]
   
-  # add all to the annotated MAF
-	MAF[is_coding == FALSE, equivalent_aa_muts :=.(as.list(trinuc_dcS_noncoding))]
-	MAF[is_coding == TRUE & next_to_splice == FALSE, equivalent_aa_muts := equivalent_muts_nonsplice]
-	MAF[is_coding == TRUE & next_to_splice == TRUE, equivalent_aa_muts := equivalent_muts_splice]
+  
+  # find the closest reference gene to each MAF record (ties are possible, including one record being found in multiple genes)
+  snv_grs = GenomicRanges::makeGRangesFromDataFrame(snv_table, seqnames.field = "chr", start.field = "pos", end.field = "pos")
+  nearest = as.data.table(GenomicRanges::distanceToNearest(snv_grs, gr_genes_in_data, select = "all"))
+  
+  # convert the "subjectHits" index returned by the distanceToNearest function to the corresponding gene name
+  possible_genes = GenomicRanges::mcols(gr_genes_in_data)["names"][,1]
+  nearest[, gene := nearest[, possible_genes[subjectHits]]]
+  
+  # remove all but one of multiple hits from one record to the same gene
+  # this happens when a record overlaps multiple exons in the reference data from different transcripts
+  nearest = nearest[! duplicated(nearest[, .(queryHits, gene)])] 
+  
+  # queryHits column gives SNV table row row, gene gives associated gene
+  # some records have multiple matching genes; combine them into variable-length vector within each snv table row
+  # also grab the distance from the first matching gene (distances are always equal on multiple hits, since we asked for the nearest gene)
+  genes_by_snv_row = nearest[, .(genes = list(gene), dist = distance[1]), by = "queryHits"]
+  snv_table[, genes := genes_by_snv_row$genes]
+  
+  # confirm that all dNdScv gene annotations appear in our own gene annotation
+  setkey(aac_table, "aa_mut_id")
+  ## Should make this check but it needs to run faster
+  # genes_from_dndscv = lapply(snv_table$assoc_aa_mut, function(x) aac_table[x, gene])
+  # 
+  # bad_anno = which(! sapply(1:length(genes_from_dndscv), function(x) all(genes_from_dndscv[[x]] %in% snv_table$genes[[x]])))
+  # if(length(bad_anno) > 0) {
+  #   warning(paste0("The following SNVs were not annotated consistently between dNdScv and cancereffectsizeR:\n", 
+  #                  paste0(snv_table[bad_anno, snv_id], collapse = ", "), "\n",
+  #                  "This could indicate a problem with custom RefCDS data. If you are using CES's built-in RefCDS,\n",
+  #                  "please consider submitting a bug report."))
+  # }
+  # 
+  # when distance >0, call the record intergenic
+  snv_table[, intergenic := TRUE][genes_by_snv_row$dist == 0, intergenic := FALSE]
+
+  #  get deconstructSigs-style trinuc context of each SNV ID
+  genomic_context = BSgenome::getSeq(cesa@genome, snv_table$chr,start=snv_table$pos - 1,
+                                     end=snv_table$pos + 1,
+                                     as.character = TRUE)
+  trinuc_mut_ids = paste0(genomic_context,":", snv_table$alt)
+  snv_table[, trinuc_mut := trinuc_translator[trinuc_mut_ids, "deconstructSigs_format"]]
+  
+  
+  # clean up aa table
+  aac_table = aac_table[, .(aa_mut_id, gene, strand, pid, aachange, aa_ref, aa_pos, aa_alt, next_to_splice, nt1_pos, nt2_pos, nt3_pos, coding_seq, all_snv_ids)]
+  
 
 	# If any trinucleotide mutation comes up NA--usually due to an ambiguous N in the genomic trinuc context--remove record from analysis
-	bad_trinuc_context = sapply(MAF$equivalent_aa_muts, function(x) any(is.na(x)))
+	bad_trinuc_context = which(is.na(snv_table$trinuc_mut))
+	
 	# in the future, variant type test removed (for now, only SNV annotations really matter)
-	bad_trinuc_context = bad_trinuc_context & MAF$Variant_Type == "SNV"
-	num_bad = sum(bad_trinuc_context)
+	num_bad = length(bad_trinuc_context)
 	if (num_bad > 0) {
-	  bad_trinuc_context_maf <- MAF[bad_trinuc_context, .(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele, Tumor_Allele)]
-	  MAF <- MAF[!bad_trinuc_context,]
+	  bad_ids = snv_table[bad_trinuc_context, snv_id]
+	  bad_trinuc_context_maf <- MAF[snv_id %in% bad_ids, .(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele, Tumor_Allele)]
+	  MAF <- MAF[! snv_id %in% bad_ids,]
 	  message(paste("Note:", num_bad, "MAF records were excluded from analysis because of ambiguous trinucleotide context (likely N's in the reference genome)."))
 	  bad_trinuc_context_maf$Exclusion_Reason = "ambiguous_trinuc_context"
 	  cesa@excluded = rbind(cesa@excluded, bad_trinuc_context_maf)
+	  
+	  # remove the bad record from SNV and aa tables
+	  bad_aa = unlist(snv_table[bad_trinuc_context, assoc_aa_mut])
+	  snv_table = snv_table[! bad_trinuc_context]
+	  aac_table = aac_table[! aa_mut_id %in% bad_aa]
 	}
 	
 	
+	
 	# record which covered_regions granges cover each mutation
-	maf_gr = GenomicRanges::makeGRangesFromDataFrame(MAF[, -"strand"], seqnames.field = "Chromosome", start.field = "Start_Position",  
-	                                                 end.field = "Start_Position") # strand field is not right format so have to hide it!
+	snv_gr = GenomicRanges::makeGRangesFromDataFrame(snv_table, seqnames.field = "chr", start.field = "pos", end.field = "pos")
 	
 	# test each MAF locus against all coverage grs
 	# this returns a data frame where rows match MAF rows, columns are T/F for each coverage gr
-	is_covered = as.data.table(lapply(cesa@coverage, function(x) maf_gr %within% x))
+	is_covered = as.data.table(lapply(cesa@coverage, function(x) snv_gr %within% x))
 
 	
 	# get the names of coverage grs with coverage for each site (and add in genome, which covers every site)
@@ -212,55 +259,23 @@ annotate_variants <- function(cesa) {
 	}
 	
 	# Note that when exome+ coverage (see load_maf) is used, samples can have both "exome" and "exome+" associated with their mutations,
-	# but the samples thmeslves are considered "exome+" (be careful not to double-count these if developing something new)
-	MAF[,covered_in := grs_with_coverage]
+	# but the samples themselves are considered "exome+" (be careful not to double-count these if developing something new)
+	snv_table[, covered_in := grs_with_coverage]
+	snv_maf = MAF[Variant_Type == "SNV"]
+	indel_maf = MAF[Variant_Type != "SNV"]
 	
-	# function to get reference positions of every nt in codon
-	
-	calc_ref_pos = function(gene, nt_pos, strand) {
-	  nums = RefCDS[[gene]]$intervals_cds
-	  pos = apply(nums, 1, function(x) abs(x[1]-x[2]) + 1)
-	  if(strand == -1) {
-	    pos = rev(pos)
-	    if (nrow(nums) > 1) {
-	      nums = apply(nums, 2, rev) # because 1-row matrix would get coerced to vector by apply
-	    }
-	  }
-	  
-	  nt_so_far = cumsum(pos)
-	  ind = match(TRUE, nt_so_far >= nt_pos)
-	  
-	  previous_bases = ifelse(ind == 1, 0, nt_so_far[ind - 1])
-	  if (strand == 1) {
-	    ref_pos = nums[ind, 1] + nt_pos - previous_bases - 1
-	  } else {
-	    if(ncol(nums) < 2 || nrow(nums) < ind) {
-	      return(0)
-	    }
-	    ref_pos = nums[ind, 2] - nt_pos + previous_bases + 1
-	    
-	  }
-	  return(ref_pos)
-	}
-	MAF[is_coding == T, codon_nt1_pos := mapply(calc_ref_pos, Gene_name, cds_nt_pos - codon_pos + 1, strand)]
-	MAF[is_coding == T, codon_nt2_pos := mapply(calc_ref_pos, Gene_name, cds_nt_pos - codon_pos + 2, strand)]
-	MAF[is_coding == T, codon_nt3_pos := mapply(calc_ref_pos, Gene_name, cds_nt_pos - codon_pos + 3, strand)]
-	
-	MAF[, unique_variant_ID := paste(Gene_name, Chromosome, Start_Position, Tumor_Allele)]
-	
-	MAF[is_coding==TRUE, unique_variant_ID_AA := aachange]
-	MAF[is_coding==FALSE, unique_variant_ID_AA := unique_variant_ID]
-
-	
-	
+	snv_maf = cbind(snv_maf, snv_table[snv_maf, .(genes, assoc_aa_mut, trinuc_mut, covered_in) , on = "snv_id"])
+	MAF = rbind(snv_maf, indel_maf, fill = T)
 	
 	# set all non-SNV annotation fields to NA (pending future development)
 	MAF[Variant_Type != "SNV", c(7:ncol(MAF)) := NA]
+	MAF = MAF[order(Chromosome, Start_Position)]
 	
 	# drop annotmuts info since it's already been used here (and it takes up a lot of memory)
 	lapply(cesa@dndscv_out_list, function(x) x$annotmuts = NULL)
 
 
 	cesa@maf = MAF
+	cesa@mutations = list(amino_acid_change = aac_table, snv = snv_table)
 	return(cesa)
 }

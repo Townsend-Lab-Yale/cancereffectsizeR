@@ -3,59 +3,59 @@
 #' @param gene which genes to calculate effect sizes within; defaults to all genes with recurrent mutations in data set
 #' @param cores number of cores to use
 #' @param conf selection intensity confidence interval width (NULL skips calculation, speeds runtime)
-#' @param include_genes_without_recurrent_mutations default false; will increase runtime and SIs at non-recurrent sites aren't very informative
+#' @param include_nonrecurrent_variants default false; will increase runtime and SIs at non-recurrent sites aren't very informative
 #' @return CESAnalysis object with selection results added for the chosen analysis
 #' @export
 
 ces_snv <- function(cesa = NULL,
                             genes = "all",
                             cores = 1,
-                            include_genes_without_recurrent_mutations = F,
+                            include_nonrecurrent_variants = F,
                             conf = .95) 
 {
   setkey(cesa@samples, "Unique_Patient_Identifier") # in case dt has forgotten its key
   if(! is.null(conf)) {
     if(! is(conf, "numeric") || length(conf) > 1 || conf <= 0 || conf >= 1) {
-      stop("conf should be 1-length numeric (e.g., .95 for 95% confidence intervals)")
+      stop("conf should be 1-length numeric (e.g., .95 for 95% confidence intervals)", call. = F)
     }
   }
-  
   
   if (! "character" %in% class(genes)) {
-    stop("Expected argument \"genes\" to take a character vector.")
+    stop("Expected argument \"genes\" to take a character vector.", call. = F)
   }
 
-  # using the "SNV" genes
-  snv.maf = cesa@maf[Variant_Type == "SNV"]
-  genes_in_dataset = unique(snv.maf$Gene_name)
+  mutations = cesa@mutations
+  if (length(mutations) == 0) {
+    stop("There are no annotated mutations in the analysis!", call. = F)
+  }
+  
+  
+  # take all SNVs in data set, then subtract any that are a part of aac mutations
+  setkey(mutations$amino_acid_change, "aa_mut_id")
+  setkey(mutations$snv, "snv_id")
+  
   if(length(genes_in_dataset) == 0) {
-    stop("The SNV mutation data set is empty!")
-  }
-
-
-  # older versions of CES used mutrates_list instead of mutrates data table; convert here for compatibility
-  if(length(cesa@mutrates_list) > 0) {
-    mutrates_dt = as.data.table(cesa@mutrates_list)
-    mutrates_dt[, gene := names(cesa@mutrates_list[[1]])]
-    setcolorder(mutrates_dt, "gene")
-    cesa@mutrates = mutrates_dt
+    stop("There are no annotated mutations in the data set!", call. = F)
   }
   
+  # filter variants based on recurrency
+  if(include_nonrecurrent_variants == T) {
+    aac_ids = unique(mutations$amino_acid_change$aa_mut_id)
+    noncoding_snv_ids = setdiff(cesa@maf[! is.na(snv_id), snv_id], mutations$amino_acid_change[aac_ids, unlist(all_snv_ids)])
+    
+  } else {
+    aac_ids = cesa@maf[! is.na(assoc_aa_mut), .(aac_id = unlist(assoc_aa_mut))][, .N, by = aac_id][N > 1, aac_id]
+    recurrent_snvs = cesa@maf[! is.na(snv_id), .(snv_id)][, .N, by = "snv_id"][N > 1, snv_id]
+    noncoding_snv_ids = setdiff(recurrent_snvs, mutations$amino_acid_change[aac_ids, unlist(all_snv_ids)])
+  }
   
+  # filter based on gene
+  genes_in_dataset = union(mutations$amino_acid_change[aac_ids, gene], mutations$snv[noncoding_snv_ids, unlist(genes)])
   if(genes[1] =="all") {
-    if (include_genes_without_recurrent_mutations) {
-      genes_to_analyze <- genes_in_dataset
-    } else {
-      tmp = table(snv.maf$nt_mut_id)
-      recurrent_variants = names(tmp[tmp > 1])
-      has_recurrent = snv.maf$unique_variant_ID %in% recurrent_variants
-      genes_to_analyze = unique(snv.maf$Gene_name[has_recurrent])
-      message(paste(length(genes_in_dataset) - length(genes_to_analyze), "genes in the data set have no recurrent SNV mutations."))
-      message(paste("Calculating selection intensity for recurrent SNV mutations across", length(genes_to_analyze), "genes."))
-    }
+    genes_in_analysis <- genes_in_dataset
   } else{
     genes = unique(genes)
-    genes_to_analyze <- genes[genes %in% genes_in_dataset]
+    genes_in_analysis <- genes[genes %in% genes_in_dataset]
     missing_genes = genes[! genes %in% genes_in_dataset]
     gene_names = get_genome_data(cesa, "gene_names")
     invalid_genes = missing_genes[! missing_genes %in% gene_names]
@@ -70,8 +70,8 @@ ces_snv <- function(cesa = NULL,
       stop(paste0("Note: The following requested genes were not found in reference data for your genome build:\n\t",
                   list_of_invalid, additional_msg, "\n"))
     }
-    if (length(genes_to_analyze) == 0) {
-      stop("None of the requested genes have mutations in the SNV data set.")
+    if (length(genes_in_analysis) == 0) {
+      stop("None of the requested genes have eligible mutations in the SNV data set.")
     }
 
     num_missing = length(missing_genes)
@@ -83,13 +83,63 @@ ces_snv <- function(cesa = NULL,
       }
       list_of_missing = paste(missing_genes, collapse = ", ")
 
-      message(paste0("The following requested genes have no mutations in the SNV data set, so they won't be analyzed:\n\t",
+      message(paste0("The following requested genes have no eligible mutations in the SNV data set:\n\t",
         list_of_missing, additional_msg))
     }
+    aac_ids = aac_ids[mutations$amino_acid_change[aac_ids, gene %in% genes_in_analysis]]
+    
+    # determine which noncoding SNVs have a gene annotation containg the analysis genes, and include just those
+    noncoding_snv_ids = mutations$snv[noncoding_snv_ids, .(include = any(unlist(genes) %in% genes_in_analysis)), by = snv_id][include == T, snv_id]
   }
 
+  snvs_in_analysis = union(noncoding_snv_ids, mutations$amino_acid_change[aac_ids, unlist(all_snv_ids)])
+  
+  sample_gene_rates = as.data.table(expand.grid(gene = genes_in_analysis, Unique_Patient_Identifier = cesa@samples$Unique_Patient_Identifier, stringsAsFactors = F),
+                                    key = "Unique_Patient_Identifier")
+  
+  sample_gene_rates = sample_gene_rates[cesa@samples[, .(Unique_Patient_Identifier, progression_name)]]
+  
+  melted_mutrates = melt.data.table(cesa@mutrates, id.vars = c("gene"))
+  setnames(melted_mutrates, c("variable", "value"), c("progression_name", "raw_rate"))
+  
+  sample_gene_rates = melted_mutrates[sample_gene_rates, , on = c("gene", "progression_name")]
+  dt = as.data.table(cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix, keep.rownames = "Unique_Patient_Identifier")
+  setkey(dt, "Unique_Patient_Identifier")
+  
   gene_trinuc_comp = get_genome_data(cesa, "gene_trinuc_comp")
-  selection_results <- rbindlist(pbapply::pblapply(genes_to_analyze, get_gene_results, cesa = cesa, conf = conf,
+  
+  sample_gene_rates[, trinuc_comp := lapply(gene, function(x) gene_trinuc_comp[[x]])]
+  N = sample_gene_rates[, .N]
+  for (i in 1:N) {
+    # Performance note: If you don't explicitly convert the dt row with as.numeric, runs much slower
+    sample_gene_rates[i, aggregate_rate := raw_rate / sum(gene_trinuc_comp[[gene]] * as.numeric(dt[Unique_Patient_Identifier, 2:97]))]
+  }
+  
+  baseline_rates = dt[, .(Unique_Patient_Identifier)]
+  for (aac in aac_ids) {
+    curr_gene = mutations$amino_acid_change[aac, gene]
+    
+    # Get SNV IDs associated with the aac
+    snv_ids = mutations$amino_acid_change[aac, unlist(all_snv_ids)]
+    trinuc_mut = mutations$snv[snv_ids, trinuc_mut]
+    tmp = dt[, sum(as.numeric(.SD)), .SDcols = trinuc_mut, by = "Unique_Patient_Identifier"]
+    tmp = sample_gene_rates[gene == curr_gene][tmp, , on = "Unique_Patient_Identifier"]
+    baseline_rates[, (aac) := tmp$aggregate_rate * tmp$V1]
+  }
+  
+  for (snv in noncoding_snv_ids) {
+    # occasionally more than one gene annotated; in this case take the average
+    curr_genes = mutations$snv[snv, unlist(genes)]
+    trinuc_mut = mutations$snv[snv, trinuc_mut]
+    tmp = dt[, sum(as.numeric(.SD)), .SDcols = trinuc_mut, by = "Unique_Patient_Identifier"]
+    tmp =  sample_gene_rates[gene %in% curr_genes][tmp, , on = "Unique_Patient_Identifier"]
+    tmp[, per_gene_rate := tmp$aggregate_rate * tmp$V1]
+    averaged_over_genes = tmp[, mean(per_gene_rate), by = "Unique_Patient_Identifier"]
+    baseline_rates[, (snv) := averaged_over_genes$V1]
+  }
+
+  return(baseline_rates) # for now
+  selection_results <- rbindlist(pbapply::pblapply(genes_in_analysis, get_gene_results, cesa = cesa, conf = conf,
                                              gene_trinuc_comp = gene_trinuc_comp, cl = cores))
   cesa@selection_results = selection_results
   cesa@status[["SNV selection"]] = "view effect sizes with snv_results()"
@@ -175,10 +225,10 @@ get_gene_results <- function(gene, cesa, conf, gene_trinuc_comp) {
     
     dndscv_q = sapply(cesa@dndscv_out_list, function(x) x$sel_cv[x$sel_cv$gene_name == gene, "qallsubs_cv"])
     
-    legacy_id = variant_maf$unique_variant_ID[1]
-    if (variant_maf$is_coding[1] == TRUE) {
-      legacy_id = variant_maf[1, paste(Gene_name, unique_variant_ID_AA)]
-    }
+    # legacy_id = variant_maf$unique_variant_ID[1]
+    # if (variant_maf$is_coding[1] == TRUE) {
+    #   legacy_id = variant_maf[1, paste(Gene_name, unique_variant_ID_AA)]
+    # }
 
     variant_id = ifelse(is.na(variant_maf$aa_mut_id[1]), variant, variant_maf$aa_mut_id[1])
     

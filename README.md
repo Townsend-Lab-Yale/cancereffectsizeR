@@ -4,7 +4,7 @@ cancereffectsizeR quantifies selection for somatic mutations in cancer from coll
 We are continuing to develop and improve cancereffectsizeR, so please don't hesitate to contact us with any questions or suggestions.
 
 ## Installation
-Installing cancereffectsizeR requires R 3.5.0 or later and a recent version of the devtools package.
+Installing cancereffectsizeR requires R 3.5 or later and a recent version of the devtools package.
 ```R
 install.packages("devtools")
 devtools::install_github("Townsend-Lab-Yale/cancereffectsizeR")
