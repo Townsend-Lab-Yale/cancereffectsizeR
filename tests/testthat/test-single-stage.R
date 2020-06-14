@@ -51,7 +51,7 @@ test_genes = c("TTN", "EGFR", "ASXL3", "KRAS", "RYR2", "USH2A", "CSMD3", "TP53",
                "ZFHX4", "FAT3", "CNTNAP5", "PCDH15", "NEB", "RYR3", "DMD", "KATNAL1", 
                "OR13H1", "KSR1")
 test_that("SNV effect size calculation", {
-  cesa = ces_snv(cesa, genes = test_genes)
+  cesa = ces_snv(cesa, genes = test_genes, include_nonrecurrent_variants = T)
   results = cesa@selection_results
   results_ak = get_test_data("single_stage_snv_results.rds")
   

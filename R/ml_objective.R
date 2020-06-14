@@ -1,29 +1,26 @@
 #' ml_objective
 #'
-#' Objective function that we will be optimizing in order to find the site specific selection intensity that maximizes the likelihood of each tumor having a mutation or not, where the mutation rates are site and tumor specific.
+#' Log-likelihood function under a model of site-specific selection intensities at variant sites
 #'
 #' @param gamma A selection intensity at which to calculate the likelihood
 #' @param tumor_stages an environment with keys = tumor names, values = stage of tumor
-#' @param variant the unique mutation whose selection intensity is being determined
-#' @param tumors_without_gene_mutated list of tumors without any mutation in the gene of the variant
-#' @param tumors_with_pos_mutated list of tumors with the specific variant in question
-#' @param specific_mut_rates A matrix of site and tumor specific mutation rates where the rows correspond to tumors and the columns to variants (produced by mutation_rate_calc)
+#' @param tumors_without_gene_mutated vector of (eligible) tumors without any mutation in the gene of the variant
+#' @param tumors_with_variant vector of (eligible) tumors with the variant
+#' @param baseline_rates a named vector of baseline mutation rates for each eligible tumor
 #' @return A log likelihood value
 #' @export
 #' @keywords internal
-# ml_objective <- function(tumor_stages, tumors_without_gene_mutated, tumors_with_pos_mutated, 
-#   variant, specific_mut_rates, modifier=0) {
+
+ml_objective <- function(gamma, tumor_stages, tumors_with_variant, tumors_without_gene_mutated, baseline_rates, modifier = 0) {
   
-ml_objective <- function(gamma, tumor_stages, tumors_without_gene_mutated, tumors_with_pos_mutated, 
-                           variant, specific_mut_rates, modifier=0) {
-  tmp = function(gamma) {
+  fn = function(gamma) {
     sums = cumsum(gamma)
     gamma_sums = sums[tumor_stages[tumors_without_gene_mutated]]
-    sum_log_lik = -1 * sum(gamma_sums * specific_mut_rates[tumors_without_gene_mutated, variant])
+    sum_log_lik = -1 * sum(gamma_sums * baseline_rates[tumors_without_gene_mutated])
 
     calc_gamma_sums_mut = function(tumor) {
       # stage-specific likelihoods of mutation
-      lik_no_mutation = exp(-1 * gamma * specific_mut_rates[tumor, variant])
+      lik_no_mutation = exp(-1 * gamma * baseline_rates[tumor])
       lik_mutation = 1 - lik_no_mutation
       
       this_sum = lik_mutation[1] # likelihood of mutation having occurred by stage 1 
@@ -38,7 +35,7 @@ ml_objective <- function(gamma, tumor_stages, tumors_without_gene_mutated, tumor
       return(log(this_sum))
     }
     
-    gamma_sums = sapply(tumors_with_pos_mutated, calc_gamma_sums_mut)
+    gamma_sums = sapply(tumors_with_variant, calc_gamma_sums_mut)
     sum_log_lik = sum_log_lik + sum(gamma_sums)
     
     # in case it tried all the max at once.
@@ -48,6 +45,6 @@ ml_objective <- function(gamma, tumor_stages, tumors_without_gene_mutated, tumor
     return(-1 * sum_log_lik - modifier)
   }
   
-  return(tmp)
+  return(fn)
     
 }

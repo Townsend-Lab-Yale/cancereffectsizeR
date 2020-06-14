@@ -1,6 +1,6 @@
 #' Calculate selection intensity for single-nucleotide variants and amino acid changes
 #' @param cesa CESAnalysis object
-#' @param gene which genes to calculate effect sizes within; defaults to all genes with recurrent mutations in data set
+#' @param gene which genes to calculate effect sizes within; defaults to all genes in data set
 #' @param cores number of cores to use
 #' @param conf selection intensity confidence interval width (NULL skips calculation, speeds runtime)
 #' @param include_nonrecurrent_variants default false; will increase runtime and SIs at non-recurrent sites aren't very informative
@@ -31,16 +31,13 @@ ces_snv <- function(cesa = NULL,
   
   
   # take all SNVs in data set, then subtract any that are a part of aac mutations
-  setkey(mutations$amino_acid_change, "aa_mut_id")
+  setkey(mutations$amino_acid_change, "aac_id")
   setkey(mutations$snv, "snv_id")
   
-  if(length(genes_in_dataset) == 0) {
-    stop("There are no annotated mutations in the data set!", call. = F)
-  }
   
   # filter variants based on recurrency
   if(include_nonrecurrent_variants == T) {
-    aac_ids = unique(mutations$amino_acid_change$aa_mut_id)
+    aac_ids = unique(mutations$amino_acid_change$aac_id)
     noncoding_snv_ids = setdiff(cesa@maf[! is.na(snv_id), snv_id], mutations$amino_acid_change[aac_ids, unlist(all_snv_ids)])
     
   } else {
@@ -94,7 +91,8 @@ ces_snv <- function(cesa = NULL,
 
   snvs_in_analysis = union(noncoding_snv_ids, mutations$amino_acid_change[aac_ids, unlist(all_snv_ids)])
   
-  sample_gene_rates = as.data.table(expand.grid(gene = genes_in_analysis, Unique_Patient_Identifier = cesa@samples$Unique_Patient_Identifier, stringsAsFactors = F),
+  sample_gene_rates = as.data.table(expand.grid(gene = genes_in_analysis, Unique_Patient_Identifier = cesa@samples$Unique_Patient_Identifier, 
+                                                stringsAsFactors = F),
                                     key = "Unique_Patient_Identifier")
   
   sample_gene_rates = sample_gene_rates[cesa@samples[, .(Unique_Patient_Identifier, progression_name)]]
@@ -137,53 +135,35 @@ ces_snv <- function(cesa = NULL,
     averaged_over_genes = tmp[, mean(per_gene_rate), by = "Unique_Patient_Identifier"]
     baseline_rates[, (snv) := averaged_over_genes$V1]
   }
+  
+  # record eligible tumors and those with mutations
+  noncoding_table = mutations$snv[snv_id %in% noncoding_snv_ids]
 
-  return(baseline_rates) # for now
-  selection_results <- rbindlist(pbapply::pblapply(genes_in_analysis, get_gene_results, cesa = cesa, conf = conf,
-                                             gene_trinuc_comp = gene_trinuc_comp, cl = cores))
-  cesa@selection_results = selection_results
-  cesa@status[["SNV selection"]] = "view effect sizes with snv_results()"
-  return(cesa)
-}
+  coding_table = mutations$amino_acid_change[aac_id %in% aac_ids]
+  
 
-
-#' Single-stage SNV effect size analysis (gets called by ces_snv)
-#' @keywords internal
-get_gene_results <- function(gene, cesa, conf, gene_trinuc_comp) {
   if(! is.null(conf)) {
     ci_high_colname = paste0("ci_high_", conf * 100)
     ci_low_colname = paste0("ci_low_", conf * 100)
   }
-  snv.maf = cesa@maf[Variant_Type == "SNV"]
-  current_gene_maf = snv.maf[Gene_name == gene]
-  these_mutation_rates <-
-    mutation_rate_calc(
-      this_MAF = current_gene_maf,
-      gene = gene,
-      gene_mut_rate = cesa@mutrates,
-      trinuc_proportion_matrix = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix,
-      gene_trinuc_comp = gene_trinuc_comp,
-      samples = cesa@samples)
-
-  variants = colnames(these_mutation_rates)
-  process_variant = function(variant) {
-    # use the first matching record as the locus 
-    # (will assume that for amino acid variants, coverage at one site in codon implies coverage for whole codon)
-    variant_maf = current_gene_maf[nt_mut_id == variant] # no need to subset further because already dealing with a gene-specific MAF
-    # covered_in is a 1-item list with a character vector of coverage_grs that cover the variant site
-    site_coverage = unlist(variant_maf[1, covered_in])
-    eligible_tumors = cesa@samples[covered_regions %in% site_coverage, Unique_Patient_Identifier]
-    eligible_tumors[eligible_tumors %in% rownames(these_mutation_rates)] # To-do: This check isn't necessary if these_mutation_rates covers all tumors
-
-    
-    # given the tumors with coverage, their mutation rates at the variant sites, and their mutation status,
-    # find most likely selection intensities (by stage if applicable)
-    tumors_with_pos_mutated <- variant_maf[nt_mut_id==variant, Unique_Patient_Identifier]
-    tumors_without_gene_mutated <- eligible_tumors[! eligible_tumors %in% current_gene_maf$Unique_Patient_Identifier]
+  
+  process_variant = function(mut_id, snv_or_aac) {
+    if(snv_or_aac == "aac") {
+      mut_record = coding_table[mut_id]
+      tumors_with_variant = cesa@maf[sapply(cesa@maf$assoc_aa_mut, function(x)  mut_id %in% x), Unique_Patient_Identifier]
+    } else {
+      mut_record = noncoding_table[mut_id]
+      tumors_with_variant = cesa@maf[snv_id == mut_id, Unique_Patient_Identifier]
+    }
+    eligible_tumors = cesa@samples[covered_regions %in% unlist(mut_record$covered_in), Unique_Patient_Identifier]
+    tumors_with_gene_mutated = cesa@maf[sapply(cesa@maf$genes, function(x) mut_record$gene %in% x), Unique_Patient_Identifier]
+    tumors_without_gene_mutated = setdiff(eligible_tumors, tumors_with_gene_mutated)
     tumor_stage_indices = cesa@samples[eligible_tumors, progression_index]
     names(tumor_stage_indices) = eligible_tumors
+    rates = baseline_rates[, ..mut_id][[1]]
+    names(rates) = baseline_rates[, Unique_Patient_Identifier]
     fn = ml_objective(tumor_stages = tumor_stage_indices, tumors_without_gene_mutated = tumors_without_gene_mutated,
-                      tumors_with_pos_mutated = tumors_with_pos_mutated, variant=variant, specific_mut_rates=these_mutation_rates)
+                      tumors_with_variant = tumors_with_variant, baseline_rates = rates)
     
     # initialize all gamma (SI) values at 1000; bbmle requires a parnames attribute be set to name each gamma (here, g1, g2, etc.)
     par_init = rep(1000, length(cesa@progressions))
@@ -205,14 +185,13 @@ get_gene_results <- function(gene, cesa, conf, gene_trinuc_comp) {
     selection_intensity =  bbmle::coef(fit)
     loglikelihood = as.numeric(bbmle::logLik(fit))
     loglikelihood = rep(loglikelihood, length(selection_intensity))
-    unsure_gene_name = rep(variant_maf$unsure_gene_name[1], length(selection_intensity))
     progression_name = cesa@progressions
     if (length(cesa@progressions) == 1) {
       progression_name = "Not applicable"
     }
     
     # Get number of tumors of each named stage with the variant (in proper progression order)
-    stages = cesa@samples[tumors_with_pos_mutated, progression_name]
+    stages = cesa@samples[tumors_with_variant, progression_name]
     tumors_with_variant = as.numeric(table(factor(stages, levels = cesa@progressions)))
     
     # Also get number of eligible tumors per stage
@@ -223,62 +202,65 @@ get_gene_results <- function(gene, cesa, conf, gene_trinuc_comp) {
     uncovered_stages = which(tumors_with_coverage == 0)
     selection_intensity[uncovered_stages] = NA
     
-    dndscv_q = sapply(cesa@dndscv_out_list, function(x) x$sel_cv[x$sel_cv$gene_name == gene, "qallsubs_cv"])
+    #dndscv_q = sapply(cesa@dndscv_out_list, function(x) x$sel_cv[x$sel_cv$gene_name == mut_record$gene, "qallsubs_cv"])
     
-    # legacy_id = variant_maf$unique_variant_ID[1]
-    # if (variant_maf$is_coding[1] == TRUE) {
-    #   legacy_id = variant_maf[1, paste(Gene_name, unique_variant_ID_AA)]
-    # }
-
-    variant_id = ifelse(is.na(variant_maf$aa_mut_id[1]), variant, variant_maf$aa_mut_id[1])
-    
-    
-    
-    variant_output = data.table(variant = variant_id, selection_intensity, unsure_gene_name, loglikelihood, gene, 
-                         progression = progression_name, tumors_with_variant, tumors_with_coverage, dndscv_q,
-                         legacy_id)
+    variant_output = data.table(variant = mut_id, variant_type = snv_or_aac, selection_intensity, loglikelihood, 
+                                progression = progression_name, tumors_with_variant, tumors_with_coverage)
     if(! is.null(conf)) {
-        # can't get confidence intervals for progression states that have no tumors with the variant
-        offset = qchisq(conf, 1)/2
-        max_ll = -1 * loglikelihood[1]
-        fn <<- fit@minuslogl
-        
-        # for each SI, use uniroot to get a single-parameter confidence interval
-        for (i in 1:length(cesa@progressions)) {
-          if(is.na(selection_intensity[i])) {
-            lower = NA_real_
+      # can't get confidence intervals for progression states that have no tumors with the variant
+      offset = qchisq(conf, 1)/2
+      max_ll = -1 * loglikelihood[1]
+      fn <<- fit@minuslogl
+      
+      # for each SI, use uniroot to get a single-parameter confidence interval
+      for (i in 1:length(cesa@progressions)) {
+        if(is.na(selection_intensity[i])) {
+          lower = NA_real_
+          upper = NA_real_
+        } else {
+          # univariate likelihood function freezes all but one SI at MLE
+          # offset makes output at MLE negative; function should be positive at lower/upper boundaries (.001, 1e20),
+          # and uniroot will find the zeroes, which should represent the lower/uppper CIs
+          ulik = function(x) { 
+            pars = selection_intensity
+            pars[i] = x
+            return(fn(pars) - max_ll - offset)
+          }
+          # if ulik(.001) is negative, no root on (.001, SI), so assigning .001 as lower bound
+          if(ulik(.001) < 0) {
+            lower = .001
+          } else {
+            # Enforcing an SI floor of .001, as in optimization
+            lower = max(uniroot(ulik, lower = .001, upper = selection_intensity[i])$root, .001)
+          }
+          if(ulik(1e20) < 0){
+            # this really shouldn't happen
             upper = NA_real_
           } else {
-            # univariate likelihood function freezes all but one SI at MLE
-            # offset makes output at MLE negative; function should be positive at lower/upper boundaries (.001, 1e20),
-            # and uniroot will find the zeroes, which should represent the lower/uppper CIs
-            ulik = function(x) { 
-              pars = selection_intensity
-              pars[i] = x
-              return(fn(pars) - max_ll - offset)
-            }
-            # if ulik(.001) is negative, no root on (.001, SI), so assigning .001 as lower bound
-            if(ulik(.001) < 0) {
-              lower = .001
-            } else {
-              # Enforcing an SI floor of .001, as in optimization
-              lower = max(uniroot(ulik, lower = .001, upper = selection_intensity[i])$root, .001)
-            }
-            if(ulik(1e20) < 0){
-              # this really shouldn't happen
-              upper = NA_real_
-            } else {
-              upper = uniroot(ulik, lower = selection_intensity[i], upper = 1e20)$root
-            }
+            upper = uniroot(ulik, lower = selection_intensity[i], upper = 1e20)$root
           }
-          variant_output[i, c(ci_low_colname) := lower]
-          variant_output[i, c(ci_high_colname) := upper]
         }
+        variant_output[i, c(ci_low_colname) := lower]
+        variant_output[i, c(ci_high_colname) := upper]
+      }
     }
     return(variant_output)
   }
-  return(data.table::rbindlist(lapply(variants, process_variant)))
+  
+  
+  
+  
+  # start with aac SIs
+  aac_results = rbindlist(pbapply::pblapply(aac_ids, process_variant, snv_or_aac = "aac", cl = cores))
+  snv_results = rbindlist(pbapply::pblapply(noncoding_snv_ids, process_variant, snv_or_aac = "snv", cl = cores))
+  cesa@selection_results = rbind(aac_results, snv_results)
+  
+  cesa@status[["SNV selection"]] = "view effect sizes with snv_results()"
+  return(cesa)
 }
+
+
+
 
 
 

@@ -8,7 +8,7 @@ ces_snv(
   cesa = NULL,
   genes = "all",
   cores = 1,
-  include_genes_without_recurrent_mutations = F,
+  include_nonrecurrent_variants = F,
   conf = 0.95
 )
 }
@@ -17,7 +17,7 @@ ces_snv(
 
 \item{cores}{number of cores to use}
 
-\item{include_genes_without_recurrent_mutations}{default false; will increase runtime and SIs at non-recurrent sites aren't very informative}
+\item{include_nonrecurrent_variants}{default false; will increase runtime and SIs at non-recurrent sites aren't very informative}
 
 \item{conf}{selection intensity confidence interval width (NULL skips calculation, speeds runtime)}
 

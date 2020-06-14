@@ -37,8 +37,8 @@ annotate_variants <- function(cesa) {
 	
 	# merge in coding annotations (dropping non-coding records)
 	aac_table = merge.data.table(aac_table, dndscv_coding_anno, by = c("chr", "pos", "ref", "alt"), sort = F)
-	aac_table[, aa_mut_id := paste0(pid, "_", aachange)]
-	aac_table = unique(aac_table, by = "aa_mut_id") # will figure out associated snv_ids later
+	aac_table[, aac_id := paste0(gene, "_", aachange, "_", pid)]
+	aac_table = unique(aac_table, by = "aac_id") # will figure out associated snv_ids later
 	
 	aac_table[, aa_ref := seqinr::aaa(stringr::str_sub(aachange, start = 1, end = 1))]
 	aac_table[aa_ref == "Stp", aa_ref := "STOP"] # seqinr returns Stp for stop codons; we want STOP
@@ -50,10 +50,10 @@ annotate_variants <- function(cesa) {
 	# to make things easier later, determine now which MAF records are near splice sites (within 3 bp)
 	# First, get DS intervals for every gene; potential splice sites are all the start/end positions of these
 	splice_sites = rbindlist(lapply(RefCDS, function(x) return(list(gene = x$gene_name, splice_pos = x$intervals_cds))))
-	comb = merge.data.table(aac_table[,.(aa_mut_id, gene, pos)], splice_sites, allow.cartesian = T)
+	comb = merge.data.table(aac_table[,.(aac_id, gene, pos)], splice_sites, allow.cartesian = T)
 	comb[, diff:= abs(splice_pos - pos)]
-	comb = comb[, .(next_to_splice = any(diff <= 3)), by = aa_mut_id]
-	aac_table[comb, next_to_splice := next_to_splice, on = "aa_mut_id"]
+	comb = comb[, .(next_to_splice = any(diff <= 3)), by = aac_id]
+	aac_table[comb, next_to_splice := next_to_splice, on = "aac_id"]
 	
 	# for debug, ensure dndscv's reference nt matches the MAF ref column
 	# note that dNdScv gives the nucleotide on the gene's strand (which is odd, I think)
@@ -145,9 +145,9 @@ annotate_variants <- function(cesa) {
 	aac_table[, nt3_snvs := nt3_snvs]
 	
 	# create table of all snv_ids, then fix strand of alt alleles
-	nt1_dt = aac_table[, .(chr, strand, pos = nt1_pos, ref = nt1_ref, alt = unlist(nt1_snvs)), by = "aa_mut_id"]
-	nt2_dt = aac_table[, .(chr, strand, pos = nt2_pos, ref = nt2_ref, alt = unlist(nt2_snvs)), by = "aa_mut_id"]
-	nt3_dt = aac_table[, .(chr, strand, pos = nt3_pos, ref = nt3_ref, alt = unlist(nt3_snvs)), by = "aa_mut_id"]
+	nt1_dt = aac_table[, .(chr, strand, pos = nt1_pos, ref = nt1_ref, alt = unlist(nt1_snvs)), by = "aac_id"]
+	nt2_dt = aac_table[, .(chr, strand, pos = nt2_pos, ref = nt2_ref, alt = unlist(nt2_snvs)), by = "aac_id"]
+	nt3_dt = aac_table[, .(chr, strand, pos = nt3_pos, ref = nt3_ref, alt = unlist(nt3_snvs)), by = "aac_id"]
 
 	snv_table = rbind(nt1_dt, nt2_dt, nt3_dt)
 	snv_table = snv_table[! is.na(alt)] # drop positions where there is no possible SNV that causes the amino acid change of interest
@@ -156,11 +156,11 @@ annotate_variants <- function(cesa) {
 	snv_table[, snv_id := paste0(chr, ':', pos, "_", ref, '>', alt)]
 	
 	# annotate amino acid mutations with all associated SNVs
-	snvs_by_aa_mut = snv_table[, .(all_snv_ids = list(snv_id)), by = "aa_mut_id"]
-	aac_table[snvs_by_aa_mut, all_snv_ids := all_snv_ids, on = "aa_mut_id"]
+	snvs_by_aa_mut = snv_table[, .(all_snv_ids = list(snv_id)), by = "aac_id"]
+	aac_table[snvs_by_aa_mut, all_snv_ids := all_snv_ids, on = "aac_id"]
 	
 	# make SNV table records unique and annotate with all amino acid mutations
-  snv_table = snv_table[, .(chr, pos, ref, alt, assoc_aa_mut = list(aa_mut_id)), by = "snv_id"]
+  snv_table = snv_table[, .(chr, pos, ref, alt, assoc_aa_mut = list(aac_id)), by = "snv_id"]
 
   snv_table = unique(snv_table, by = "snv_id")
   
@@ -194,7 +194,7 @@ annotate_variants <- function(cesa) {
   snv_table[, genes := genes_by_snv_row$genes]
   
   # confirm that all dNdScv gene annotations appear in our own gene annotation
-  setkey(aac_table, "aa_mut_id")
+  setkey(aac_table, "aac_id")
   ## Should make this check but it needs to run faster
   # genes_from_dndscv = lapply(snv_table$assoc_aa_mut, function(x) aac_table[x, gene])
   # 
@@ -218,9 +218,8 @@ annotate_variants <- function(cesa) {
   
   
   # clean up aa table
-  aac_table = aac_table[, .(aa_mut_id, gene, strand, pid, aachange, aa_ref, aa_pos, aa_alt, next_to_splice, nt1_pos, nt2_pos, nt3_pos, coding_seq, all_snv_ids)]
-  
-
+  aac_table = aac_table[, .(aac_id, gene, strand, pid, aachange, aa_ref, aa_pos, aa_alt, next_to_splice, nt1_pos, nt2_pos, nt3_pos, coding_seq, all_snv_ids)]
+  setcolorder(aac_table, c("aac_id", "gene", "aachange", "strand"))
 	# If any trinucleotide mutation comes up NA--usually due to an ambiguous N in the genomic trinuc context--remove record from analysis
 	bad_trinuc_context = which(is.na(snv_table$trinuc_mut))
 	
@@ -237,7 +236,7 @@ annotate_variants <- function(cesa) {
 	  # remove the bad record from SNV and aa tables
 	  bad_aa = unlist(snv_table[bad_trinuc_context, assoc_aa_mut])
 	  snv_table = snv_table[! bad_trinuc_context]
-	  aac_table = aac_table[! aa_mut_id %in% bad_aa]
+	  aac_table = aac_table[! aac_id %in% bad_aa]
 	}
 	
 	
@@ -261,6 +260,14 @@ annotate_variants <- function(cesa) {
 	# Note that when exome+ coverage (see load_maf) is used, samples can have both "exome" and "exome+" associated with their mutations,
 	# but the samples themselves are considered "exome+" (be careful not to double-count these if developing something new)
 	snv_table[, covered_in := grs_with_coverage]
+	
+	# We're going to cheat and and say samples have coverage at aac sites if they have coverage on any of the three codon positions
+	# in practice, there probably is coverage even if the coverage intervals disagree
+	setkey(snv_table, "snv_id")
+	
+	# speed this up later, maybe
+	aac_table[, covered_in := .(list(snv_table[all_snv_ids, unique(unlist(covered_in))])), by = "aac_id"]
+	
 	snv_maf = MAF[Variant_Type == "SNV"]
 	indel_maf = MAF[Variant_Type != "SNV"]
 	
