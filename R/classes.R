@@ -14,7 +14,7 @@ setMethod("$", "CESAnalysis",
     } else if (name == "status") {
       return(x) # calls show method
     } else if (name == "samples") {
-      return(samples(x))
+      return(get_sample_info(x))
     } else if (name == "excluded") {
       return(excluded_maf_records(x))
     } else if (name == "trinuc_rates") {

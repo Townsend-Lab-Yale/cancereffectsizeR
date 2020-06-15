@@ -37,49 +37,32 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optim
     stop("Supply at least two genes to analyze.")
   }
   
-  # older versions of CES used mutrates_list instead of mutrates data table; convert here for compatibility
-  if(length(cesa@mutrates_list) > 0) {
-    mutrates_dt = as.data.table(cesa@mutrates_list)
-    mutrates_dt[, gene := names(cesa@mutrates_list[[1]])]
-    setcolorder(mutrates_dt, "gene")
-    cesa@mutrates = mutrates_dt
-  }
-  
   if(return_all_opm_output) {
     message(silver("FYI, you can access full parameter optimization output in [CESAnalysis]@advanced$opm_output."))
   }
   
   maf = cesa@maf[Variant_Type == "SNV"]
 	genes = unique(genes)
-	genes_in_dataset = unique(maf$Gene_name)
+	genes_in_dataset = unique(unlist(maf$genes))
 	genes_to_analyze = genes[genes %in% genes_in_dataset]
 
+	recurrent_aac_id = maf[! is.na(assoc_aa_mut), .(aac_id = unlist(assoc_aa_mut))][, .N, by = aac_id][N > 1, aac_id]
+	recurrent_snv_id = maf[! is.na(snv_id), .(snv_id)][, .N, by = "snv_id"][N > 1, snv_id]
 
-	cesa_subset <- maf[Gene_name %in% genes_to_analyze,]
-	cesa_subset$identifier <- cesa_subset$nt_mut_id
-	cesa_subset$identifier[
-	  which(sapply(strsplit(cesa_subset$identifier,split = " "),
-	               function(x) length(x))==1)
-	  ] <- paste(cesa_subset$Gene_name[
-	    which(sapply(strsplit(cesa_subset$identifier,split = " "),
-	                 function(x) length(x))==1)],
-	    cesa_subset$identifier[
-	      which(sapply(strsplit(cesa_subset$identifier,split = " "),
-	                   function(x) length(x))==1)
-	      ],sep=" ")
-
-	cesa_subset_table <- table(cesa_subset$identifier)
-	cesa_subset$recurrent_val <- cesa_subset_table[cesa_subset$identifier]
-
-	recurrently_subed_genes <- unique(cesa_subset$Gene_name[cesa_subset$recurrent_val > 1])
-
-    if(length(recurrently_subed_genes) < 2){
-     stop("Less than 2 of the 'genes' you specified have recurrent variants.
-          Choose 2 genes or more with recurrent variants to measure epistasis
-          among those recurrently substituted variants. ")
-    }
-
-    genes_to_analyze <- recurrently_subed_genes
+	setkey(cesa@mutations$amino_acid_change, "aac_id")
+	setkey(cesa@mutations$snv, "snv_id")
+	genes_with_recurrent_variants = unique(c(cesa@mutations$snv[recurrent_snv_id, unlist(genes)], cesa@mutations$amino_acid_change[recurrent_aac_id, gene]))
+	
+	passing_genes = genes_with_recurrent_variants[genes_with_recurrent_variants %in% genes_to_analyze]
+	num_genes = length(passing_genes)
+  if(num_genes == 0) {
+    stop("None of your requested genes have any recurrent variants (see docs for why this is required).", call. = F)
+  }
+	if(num_genes != length(genes_to_analyze)) {
+	  num_missing = length(genes_to_analyze) - num_genes
+	  message(paste0(num_genes, " of your requested genes had no recurrent variants, so will not be included (see docs for why this is required)."))
+	}
+  genes_to_analyze <- passing_genes
 
     selection_epistasis_results <- t(utils::combn(genes_to_analyze,2))
     selection_epistasis_results <- data.frame(t(selection_epistasis_results),stringsAsFactors=F)

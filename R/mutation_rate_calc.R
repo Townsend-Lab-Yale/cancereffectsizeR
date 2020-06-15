@@ -60,3 +60,69 @@ mutation_rate_calc <- function(this_MAF,
 
   return(mutation_rate_matrix)
 }
+
+
+#' baseline_mutation_rates
+#' 
+#' @export
+baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL) {
+  
+  samples = cesa@samples
+  mutations = cesa@mutations
+  relevant_genes = union(mutations$amino_acid_change[aac_id %in% aac_ids, gene], mutations$snv[snv_id %in% snv_ids, unlist(genes)])
+  
+  
+  sample_gene_rates = as.data.table(expand.grid(gene = relevant_genes, Unique_Patient_Identifier = samples$Unique_Patient_Identifier, 
+                                                stringsAsFactors = F),key = "Unique_Patient_Identifier")
+  
+  sample_gene_rates = sample_gene_rates[samples[, .(Unique_Patient_Identifier, progression_name)]]
+  
+  melted_mutrates = melt.data.table(cesa@mutrates[gene %in% relevant_genes], id.vars = c("gene"))
+  setnames(melted_mutrates, c("variable", "value"), c("progression_name", "raw_rate"))
+  
+  sample_gene_rates = melted_mutrates[sample_gene_rates, , on = c("gene", "progression_name")]
+  
+  gene_trinuc_comp = get_genome_data(cesa, "gene_trinuc_comp")
+  sample_gene_rates[, trinuc_comp := lapply(gene, function(x) gene_trinuc_comp[[x]])]
+  trinuc_mat = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix
+  sample_gene_rates[, aggregate_rate := raw_rate / sum(unlist(trinuc_comp) * trinuc_mat[Unique_Patient_Identifier, ]), by = c("gene", "Unique_Patient_Identifier")]
+  
+  
+  baseline_rates = samples[, .(Unique_Patient_Identifier)] # pre-keyed
+  trinuc_mut_by_aac = mutations$amino_acid_change[aac_id %in% aac_ids, .(trinuc_mut = list(mutations$snv[unlist(all_snv_ids), trinuc_mut])), by = "aac_id"]
+  setkey(sample_gene_rates, "gene")
+  
+  gene_by_aac = mutations$amino_acid_change[aac_ids, gene]
+  aac_genes = unique(gene_by_aac)
+  tmp = sample_gene_rates[aac_genes, .(list(aggregate_rate)), by = c("gene"), allow.cartesian = T, nomatch = NULL]
+  agg_rates_by_gene = tmp$V1
+  names(agg_rates_by_gene) = tmp$gene
+  agg_rates_by_gene = agg_rates_by_gene[gene_by_aac]
+  agg_rates_by_gene = lapply(agg_rates_by_gene, unlist)
+  
+  get_baseline = function(aac, agg_rates) {
+    trinuc_mut = trinuc_mut_by_aac[aac, unlist(trinuc_mut)]
+    rs = rowSums(trinuc_mat[, trinuc_mut, drop = F])
+    return(agg_rates * rs)
+  }
+  tmp = mapply(get_baseline, aac_ids, agg_rates_by_gene, SIMPLIFY = F)
+  # Watch out for changes to setalloccol in future versions of data.table
+  # Need to raise number of allocated columns high enough to add all columns at once
+  if(length(tmp) + length(baseline_rates) > truelength(baseline_rates)) {
+    invisible(suppressWarnings(setalloccol(baseline_rates, length(tmp))))
+  }
+  baseline_rates[, (aac_ids) := tmp]
+  
+  for (snv in snv_ids) {
+    # occasionally more than one gene annotated; in this case take the average
+    curr_genes = mutations$snv[snv, unlist(genes)]
+    trinuc_mut = mutations$snv[snv, trinuc_mut]
+    tmp = trinuc_mat[, trinuc_mut]
+    #tmp = dt[, sum(as.numeric(.SD)), .SDcols = trinuc_mut, by = "Unique_Patient_Identifier"]
+    tmp =  sample_gene_rates[gene %in% curr_genes][ , V1 := tmp, by = "gene"]
+    tmp[, per_gene_rate := tmp$aggregate_rate * tmp$V1]
+    averaged_over_genes = tmp[, mean(per_gene_rate), by = "Unique_Patient_Identifier"]
+    baseline_rates[, (snv) := averaged_over_genes$V1]
+  }
+  return(baseline_rates)
+}

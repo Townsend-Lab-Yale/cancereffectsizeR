@@ -37,7 +37,7 @@ set_trinuc_rates = function(cesa, trinuc_proportion_matrix) {
   }
   
   if(! identical(sort(cesa@samples$Unique_Patient_Identifier), sort(rownames(trinuc_proportion_matrix)))) {
-    stop("Row names of trinuc_proprotion_matrix must exactly match sample names (with none extra or missing); see samples([CESAnalysis])")
+    stop("Row names of trinuc_proprotion_matrix must exactly match sample names (with none extra or missing); see [CESAnalysis]$samples)")
   }
   
   

@@ -21,7 +21,7 @@ ces_snv(
 
 \item{conf}{selection intensity confidence interval width (NULL skips calculation, speeds runtime)}
 
-\item{gene}{which genes to calculate effect sizes within; defaults to all genes with recurrent mutations in data set}
+\item{gene}{which genes to calculate effect sizes within; defaults to all genes in data set}
 }
 \value{
 CESAnalysis object with selection results added for the chosen analysis

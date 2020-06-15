@@ -87,12 +87,12 @@ excluded_maf_records = function(cesa = NULL) {
 
 #' View sample metadata
 #' 
-#' returns a data.table with info on all samples in the CESAnalysis (at least, all samples with any valid mutations)
+#' returns a data.table with info on all samples in the CESAnalysis
 #' @param cesa CESAnalysis object
 #' @export
-samples = function(cesa = NULL) {
+get_sample_info = function(cesa = NULL) {
   if(! is(cesa, "CESAnalysis")) {
-    stop("\nUsage: samples(cesa), where cesa is a CESAnalysis")
+    stop("\nUsage: get_sample_info(cesa), where cesa is a CESAnalysis")
   }
   if (cesa@samples[,.N] == 0) {
     stop("No MAF data has been loaded yet, so naturally there is no sample data.")
