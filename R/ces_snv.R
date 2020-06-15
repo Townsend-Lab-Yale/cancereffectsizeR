@@ -89,6 +89,7 @@ ces_snv <- function(cesa = NULL,
     noncoding_snv_ids = mutations$snv[noncoding_snv_ids, .(include = any(unlist(genes) %in% genes_in_analysis)), by = snv_id][include == T, snv_id]
   }
 
+  message("Collecting variants and determining baseline mutation rates...")
   snvs_in_analysis = union(noncoding_snv_ids, mutations$amino_acid_change[aac_ids, unlist(all_snv_ids)])
   
   sample_gene_rates = as.data.table(expand.grid(gene = genes_in_analysis, Unique_Patient_Identifier = cesa@samples$Unique_Patient_Identifier, 
@@ -101,29 +102,41 @@ ces_snv <- function(cesa = NULL,
   setnames(melted_mutrates, c("variable", "value"), c("progression_name", "raw_rate"))
   
   sample_gene_rates = melted_mutrates[sample_gene_rates, , on = c("gene", "progression_name")]
-  dt = as.data.table(cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix, keep.rownames = "Unique_Patient_Identifier")
-  setkey(dt, "Unique_Patient_Identifier")
   
   gene_trinuc_comp = get_genome_data(cesa, "gene_trinuc_comp")
-  
   sample_gene_rates[, trinuc_comp := lapply(gene, function(x) gene_trinuc_comp[[x]])]
-  N = sample_gene_rates[, .N]
-  for (i in 1:N) {
-    # Performance note: If you don't explicitly convert the dt row with as.numeric, runs much slower
-    sample_gene_rates[i, aggregate_rate := raw_rate / sum(gene_trinuc_comp[[gene]] * as.numeric(dt[Unique_Patient_Identifier, 2:97]))]
-  }
+  trinuc_mat = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix
+  sample_gene_rates[, aggregate_rate := raw_rate / sum(unlist(trinuc_comp) * trinuc_mat[Unique_Patient_Identifier, ]), by = c("gene", "Unique_Patient_Identifier")]
   
+  
+  dt = as.data.table(cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix, keep.rownames = "Unique_Patient_Identifier")
+  setkey(dt, "Unique_Patient_Identifier")
   baseline_rates = dt[, .(Unique_Patient_Identifier)]
-  for (aac in aac_ids) {
-    curr_gene = mutations$amino_acid_change[aac, gene]
-    
-    # Get SNV IDs associated with the aac
-    snv_ids = mutations$amino_acid_change[aac, unlist(all_snv_ids)]
-    trinuc_mut = mutations$snv[snv_ids, trinuc_mut]
-    tmp = dt[, sum(as.numeric(.SD)), .SDcols = trinuc_mut, by = "Unique_Patient_Identifier"]
-    tmp = sample_gene_rates[gene == curr_gene][tmp, , on = "Unique_Patient_Identifier"]
-    baseline_rates[, (aac) := tmp$aggregate_rate * tmp$V1]
+  trinuc_mut_by_aac = mutations$amino_acid_change[aac_id %in% aac_ids, .(trinuc_mut = list(mutations$snv[unlist(all_snv_ids), trinuc_mut])), by = "aac_id"]
+  setkey(sample_gene_rates, "gene")
+  
+  gene_by_aac = mutations$amino_acid_change[aac_ids, gene]
+  aac_genes = unique(gene_by_aac)
+  tmp = sample_gene_rates[aac_genes, .(list(aggregate_rate)), by = c("gene"), allow.cartesian = T, nomatch = NULL]
+  agg_rates_by_gene = tmp$V1
+  names(agg_rates_by_gene) = tmp$gene
+  agg_rates_by_gene = agg_rates_by_gene[gene_by_aac]
+  agg_rates_by_gene = lapply(agg_rates_by_gene, unlist)
+  
+  get_baseline = function(aac, agg_rates) {
+    trinuc_mut = trinuc_mut_by_aac[aac, unlist(trinuc_mut)]
+    rs = rowSums(trinuc_mat[, trinuc_mut, drop = F])
+    return(agg_rates * rs)
   }
+  tmp = mapply(get_baseline, aac_ids, agg_rates_by_gene, SIMPLIFY = F)
+  # Watch out for changes to setalloccol in future versions of data.table
+  # Need to raise number of allocated columns high enough to add all columns at once
+  if(length(tmp) + length(baseline_rates) > truelength(baseline_rates)) {
+    invisible(setalloccol(baseline_rates, length(tmp))) 
+  }
+  baseline_rates[, (aac_ids) := tmp]
+
+  
   
   for (snv in noncoding_snv_ids) {
     # occasionally more than one gene annotated; in this case take the average
@@ -136,11 +149,20 @@ ces_snv <- function(cesa = NULL,
     baseline_rates[, (snv) := averaged_over_genes$V1]
   }
   
-  # record eligible tumors and those with mutations
+  # get SNVs and AACs of interest
   noncoding_table = mutations$snv[snv_id %in% noncoding_snv_ids]
-
   coding_table = mutations$amino_acid_change[aac_id %in% aac_ids]
   
+  # identify mutations by gene
+  tmp = cesa@maf[Variant_Type == "SNV", .(gene = unlist(genes)), by = "Unique_Patient_Identifier"][, .(samples = list(Unique_Patient_Identifier)), by = "gene"]
+  tumors_with_variants_by_gene = tmp$samples
+  names(tumors_with_variants_by_gene) = tmp$gene
+  
+  # identify mutations by variant
+  tmp = cesa@maf[! is.na(assoc_aa_mut), .(aac_id = unlist(assoc_aa_mut)), by = "Unique_Patient_Identifier"][, .(samples = list(Unique_Patient_Identifier)), by = "aac_id"]
+  tmp = tmp[aac_id %in% coding_table$aac_id]
+  aacs_by_tumor = tmp$samples
+  names(aacs_by_tumor) = tmp$aac_id
 
   if(! is.null(conf)) {
     ci_high_colname = paste0("ci_high_", conf * 100)
@@ -150,13 +172,15 @@ ces_snv <- function(cesa = NULL,
   process_variant = function(mut_id, snv_or_aac) {
     if(snv_or_aac == "aac") {
       mut_record = coding_table[mut_id]
-      tumors_with_variant = cesa@maf[sapply(cesa@maf$assoc_aa_mut, function(x)  mut_id %in% x), Unique_Patient_Identifier]
+      tumors_with_variant = aacs_by_tumor[[mut_id]]
+      tumors_with_gene_mutated = tumors_with_variants_by_gene[[mut_record$gene]]
     } else {
       mut_record = noncoding_table[mut_id]
       tumors_with_variant = cesa@maf[snv_id == mut_id, Unique_Patient_Identifier]
+      tumors_with_gene_mutated = unlist(tumors_with_variants_by_gene[unlist(mut_record$genes)], use.names = F) # for rare case of multiple gene hits, take all
     }
     eligible_tumors = cesa@samples[covered_regions %in% unlist(mut_record$covered_in), Unique_Patient_Identifier]
-    tumors_with_gene_mutated = cesa@maf[sapply(cesa@maf$genes, function(x) mut_record$gene %in% x), Unique_Patient_Identifier]
+    
     tumors_without_gene_mutated = setdiff(eligible_tumors, tumors_with_gene_mutated)
     tumor_stage_indices = cesa@samples[eligible_tumors, progression_index]
     names(tumor_stage_indices) = eligible_tumors
@@ -251,7 +275,9 @@ ces_snv <- function(cesa = NULL,
   
   
   # start with aac SIs
+  message("Estimating selection intensities for amino acid changes...")
   aac_results = rbindlist(pbapply::pblapply(aac_ids, process_variant, snv_or_aac = "aac", cl = cores))
+  message("Estimating selection intensities for noncoding SNVs...")
   snv_results = rbindlist(pbapply::pblapply(noncoding_snv_ids, process_variant, snv_or_aac = "snv", cl = cores))
   cesa@selection_results = rbind(aac_results, snv_results)
   
