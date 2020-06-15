@@ -11,7 +11,7 @@ luad = annotate_variants(luad)
 
 saveRDS(luad, "cesa_for_snv_multi.rds")
 test_genes = c("TTN", "KRAS", "RYR2", "EGFR", "TP53", "ASXL3","IFITM2")
-luad = ces_snv(luad, genes = test_genes)
+luad = ces_snv(luad, genes = test_genes, include_nonrecurrent_variants = T)
 saveRDS(luad@selection_results, "multi_stage_snv_results.rds")
 
 
@@ -41,7 +41,7 @@ sel_cv = lapply(dndscv_out@dndscv_out_list, function(x) x$sel_cv)
 saveRDS(sel_cv, "sel_cv_multi.rds")
 saveRDS(dndscv_out@mutrates, "mutrates_multi.rds")
 saveRDS(dndscv_out, "multi-stage-dndscv_pre-anno.rds") # for quick testing of annotation function 
-anno_out = annotate_variants(dndscv_out)
-saveRDS(anno_out$maf, "multi_annotated_maf_df.rds")
+#anno_out = annotate_variants(dndscv_out) ## no longer testing this in test-multi
+#saveRDS(anno_out$maf, "multi_annotated_maf_df.rds")
 
 setwd(prev_dir)

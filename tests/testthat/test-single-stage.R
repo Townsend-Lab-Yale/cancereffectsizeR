@@ -36,13 +36,13 @@ test_that("Handle missing or invalid gene choice in SNV analysis", {
 
   # AC006486.1 is not in the data set; error when no genes requested are in the data set
   expect_error(ces_snv(cesa, genes = c("AC006486.1")),
-               "None of the requested genes have mutations")
+               "None of the requested genes have eligible mutations")
 
   # Expect a message when one or more of the genes requested isn't in data set
   # This call quits early after receiving the message to save time
   expect_match(tryCatch({ces_snv(cesa, genes = c("AC006486.1", "TP53"))},
                         message = function(m) {m$message}),
-               "The following requested genes have no mutations")
+               "The following requested genes have no eligible mutations")
 })
 
 
