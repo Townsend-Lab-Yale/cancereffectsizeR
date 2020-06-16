@@ -61,29 +61,34 @@ If the MAF data you are loading is from a different genome build than your CESAn
 ### Calculate mutation rates and estimate selection
 After loading in data, run the following functions to prepare for calculation of cancer effect size. See function reference for details.
 
-* `trinuc_mutation_rates()`: uses deconstructSigs to assign mutational signature weightings to each tumor sample, and from there calculates trinucleotide-context-specific SNV mutation rates (see also `vignette("cosmic_cancer_type_note")` for advanced options)
-* `gene_mutation_rates()`: uses dNdScv to calculate gene-level mutation rates. It's highly recommended to supply tissue-specific covariate data if available. Covariates for many human tissue types are included with this package. Default hg19 covariates from dNdScv are also available.
-* `annotate_variants()`: annotates MAF data with gene and transcript information
+* `trinuc_mutation_rates()` uses deconstructSigs to extract mutational signature weightings from each tumor's SNV mutation profile, and from there calculates trinucleotide-context-specific SNV mutation rates. See also `vignette("cosmic_cancer_type_note")` for advice on excluding certain signatures that may be presumed absent from your tumors.
+* `gene_mutation_rates()` uses dNdScv to calculate gene-level mutation rates. It's highly recommended to supply tissue-specific covariate data if available. Covariates for many human tissue types are included with this package. Default hg19 covariates from dNdScv are also available.
+* `annotate_variants()` annotates all SNVs and all amino acid change mutations in the data set, producing a pair of mutation tables with useful information.
 
 Finally, use `ces_snv()` to find calculate effect sizes.
 
-```R
+```
   # Create CESAnalysis object and define the chronological tumor progression states
   analysis = CESAnalysis(genome = "hg19", progression_order = c("Primary", "Metastatic"))
   analysis = load_maf(analysis, maf = "luad_data.maf", progression_col = "pri_met")
   
+  # Before running trinuc_mutation_rates, which includes a mutational signature analysis,
+  # you can run this function to identify possible signatures to exclude. It's recommended
+  # to manually review the suggestions and decide which signatures to exclude. While this
+  # step is likely to make signature extraction more accurate, it's probably safe to
+  # skip this step if you're uncertain.
+  #
+  # Here, we decide to accept all suggestions, so we assign the output of the function
+  # (a vector of signatures to exclude) to the to_remove variable.
+  to_remove = suggest_cosmic_v3_signatures_to_remove(cancer_type = "LUAD", treatment_naive = T)
   
-  analysis = trinuc_mutation_rates(analysis)
+  analysis = trinuc_mutation_rates(analysis, signatures_to_remove = to_remove)
   analysis = gene_mutation_rates(analysis, covariate_file = "lung_pca")
   analysis = annotate_variants(analysis)
   
   
   # Calculate selection intensities
   analysis = ces_snv(analysis)
-
-  # Create a filtered table of selection intensities for all recurrently mutated sites
-  results = snv_results(analysis)
-  results = results[tumors_with_variant > 1]
 ```
 
 #### Note on parallel processing

@@ -155,29 +155,34 @@
 <p>After loading in data, run the following functions to prepare for calculation of cancer effect size. See function reference for details.</p>
 <ul>
 <li>
-<code><a href="../reference/trinuc_mutation_rates.html">trinuc_mutation_rates()</a></code>: uses deconstructSigs to assign mutational signature weightings to each tumor sample, and from there calculates trinucleotide-context-specific SNV mutation rates (see also <code><a href="../articles/cosmic_cancer_type_note.html">vignette("cosmic_cancer_type_note")</a></code> for advanced options)</li>
+<code><a href="../reference/trinuc_mutation_rates.html">trinuc_mutation_rates()</a></code> uses deconstructSigs to extract mutational signature weightings from each tumor’s SNV mutation profile, and from there calculates trinucleotide-context-specific SNV mutation rates. See also <code><a href="../articles/cosmic_cancer_type_note.html">vignette("cosmic_cancer_type_note")</a></code> for advice on excluding certain signatures that may be presumed absent from your tumors.</li>
 <li>
-<code><a href="../reference/gene_mutation_rates.html">gene_mutation_rates()</a></code>: uses dNdScv to calculate gene-level mutation rates. It’s highly recommended to supply tissue-specific covariate data if available. Covariates for many human tissue types are included with this package. Default hg19 covariates from dNdScv are also available.</li>
+<code><a href="../reference/gene_mutation_rates.html">gene_mutation_rates()</a></code> uses dNdScv to calculate gene-level mutation rates. It’s highly recommended to supply tissue-specific covariate data if available. Covariates for many human tissue types are included with this package. Default hg19 covariates from dNdScv are also available.</li>
 <li>
-<code><a href="../reference/annotate_variants.html">annotate_variants()</a></code>: annotates MAF data with gene and transcript information</li>
+<code><a href="../reference/annotate_variants.html">annotate_variants()</a></code> annotates all SNVs and all amino acid change mutations in the data set, producing a pair of mutation tables with useful information.</li>
 </ul>
 <p>Finally, use <code><a href="../reference/ces_snv.html">ces_snv()</a></code> to find calculate effect sizes.</p>
-<div class="sourceCode" id="cb3"><html><body><pre class="r">  <span class="co"># Create CESAnalysis object and define the chronological tumor progression states</span>
-  <span class="no">analysis</span> <span class="kw">=</span> <span class="fu"><a href="../reference/CESAnalysis.html">CESAnalysis</a></span>(<span class="kw">genome</span> <span class="kw">=</span> <span class="st">"hg19"</span>, <span class="kw">progression_order</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">"Primary"</span>, <span class="st">"Metastatic"</span>))
-  <span class="no">analysis</span> <span class="kw">=</span> <span class="fu"><a href="../reference/load_maf.html">load_maf</a></span>(<span class="no">analysis</span>, <span class="kw">maf</span> <span class="kw">=</span> <span class="st">"luad_data.maf"</span>, <span class="kw">progression_col</span> <span class="kw">=</span> <span class="st">"pri_met"</span>)
-
-
-  <span class="no">analysis</span> <span class="kw">=</span> <span class="fu"><a href="../reference/trinuc_mutation_rates.html">trinuc_mutation_rates</a></span>(<span class="no">analysis</span>)
-  <span class="no">analysis</span> <span class="kw">=</span> <span class="fu"><a href="../reference/gene_mutation_rates.html">gene_mutation_rates</a></span>(<span class="no">analysis</span>, <span class="kw">covariate_file</span> <span class="kw">=</span> <span class="st">"lung_pca"</span>)
-  <span class="no">analysis</span> <span class="kw">=</span> <span class="fu"><a href="../reference/annotate_variants.html">annotate_variants</a></span>(<span class="no">analysis</span>)
-
-
-  <span class="co"># Calculate selection intensities</span>
-  <span class="no">analysis</span> <span class="kw">=</span> <span class="fu"><a href="../reference/ces_snv.html">ces_snv</a></span>(<span class="no">analysis</span>)
-
-  <span class="co"># Create a filtered table of selection intensities for all recurrently mutated sites</span>
-  <span class="no">results</span> <span class="kw">=</span> <span class="fu"><a href="../reference/snv_results.html">snv_results</a></span>(<span class="no">analysis</span>)
-  <span class="no">results</span> <span class="kw">=</span> <span class="no">results</span>[<span class="no">tumors_with_variant</span> <span class="kw">&gt;</span> <span class="fl">1</span>]</pre></body></html></div>
+<pre><code>  # Create CESAnalysis object and define the chronological tumor progression states
+  analysis = CESAnalysis(genome = "hg19", progression_order = c("Primary", "Metastatic"))
+  analysis = load_maf(analysis, maf = "luad_data.maf", progression_col = "pri_met")
+  
+  # Before running trinuc_mutation_rates, which includes a mutational signature analysis,
+  # you can run this function to identify possible signatures to exclude. It's recommended
+  # to manually review the suggestions and decide which signatures to exclude. While this
+  # step is likely to make signature extraction more accurate, it's probably safe to
+  # skip this step if you're uncertain.
+  #
+  # Here, we decide to accept all suggestions, so we assign the output of the function
+  # (a vector of signatures to exclude) to the to_remove variable.
+  to_remove = suggest_cosmic_v3_signatures_to_remove(cancer_type = "LUAD", treatment_naive = T)
+  
+  analysis = trinuc_mutation_rates(analysis, signatures_to_remove = to_remove)
+  analysis = gene_mutation_rates(analysis, covariate_file = "lung_pca")
+  analysis = annotate_variants(analysis)
+  
+  
+  # Calculate selection intensities
+  analysis = ces_snv(analysis)</code></pre>
 <div id="note-on-parallel-processing" class="section level4">
 <h4 class="hasAnchor">
 <a href="#note-on-parallel-processing" class="anchor"></a>Note on parallel processing</h4>
