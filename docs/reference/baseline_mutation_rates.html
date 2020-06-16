@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Get table of signature weights by tumor — get_signature_weights • cancereffectsizeR</title>
+<title>Baseline mutation rate calculation — baseline_mutation_rates • cancereffectsizeR</title>
 
 
 <!-- jquery -->
@@ -39,8 +39,9 @@
 
 
 
-<meta property="og:title" content="Get table of signature weights by tumor — get_signature_weights" />
-<meta property="og:description" content="Get table of signature weights by tumor" />
+<meta property="og:title" content="Baseline mutation rate calculation — baseline_mutation_rates" />
+<meta property="og:description" content="Caculates neutral mutation rates at specific sites based on gene mutation rates and the relative
+trinucleotide-context-specific SNV mutation rates of each sample" />
 
 
 
@@ -123,26 +124,42 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Get table of signature weights by tumor</h1>
-    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/R/CESAnalysis.R'><code>R/CESAnalysis.R</code></a></small>
-    <div class="hidden name"><code>get_signature_weights.Rd</code></div>
+    <h1>Baseline mutation rate calculation</h1>
+    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/R/mutation_rate_calc.R'><code>R/mutation_rate_calc.R</code></a></small>
+    <div class="hidden name"><code>baseline_mutation_rates.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Get table of signature weights by tumor</p>
+    <p>Caculates neutral mutation rates at specific sites based on gene mutation rates and the relative
+trinucleotide-context-specific SNV mutation rates of each sample</p>
     </div>
 
-    <pre class="usage"><span class='fu'>get_signature_weights</span>(<span class='kw'>cesa</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)</pre>
+    <pre class="usage"><span class='fu'>baseline_mutation_rates</span>(<span class='no'>cesa</span>, <span class='kw'>aac_ids</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>snv_ids</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>samples</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
       <th>cesa</th>
-      <td><p>CESAnalysis object</p></td>
+      <td><p>CESAnalysis with gene mutation rates and tumor-specific trinucleotide-context-specific mutation rates already calculated</p></td>
+    </tr>
+    <tr>
+      <th>aac_ids</th>
+      <td><p>vector of IDs for amino acid change variants</p></td>
+    </tr>
+    <tr>
+      <th>snv_ids</th>
+      <td><p>vector of IDs for SNVs</p></td>
+    </tr>
+    <tr>
+      <th>samples</th>
+      <td><p>vector of sample IDs (Unique_Patient_Identifier) to include in mutation rate table (defaults to all samples)</p></td>
     </tr>
     </table>
 
+    <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
+
+    <p>a data table of mutation rates with one column per variant, and a Unique_Patient_Identifier column identifying each row</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

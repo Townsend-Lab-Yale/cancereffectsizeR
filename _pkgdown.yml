@@ -21,13 +21,15 @@ reference:
   contents:
   - maf_records
   - excluded_maf_records
-  - samples
+  - get_sample_info
+  - get_mutations
   - get_trinuc_rates
   - get_signature_weights
   - get_gene_rates
   - snv_results
 - title: Miscellaneous
   contents:
+  - baseline_mutation_rates
   - set_genome_data_directory
   - get_genome_data_directory
 - title: In beta
