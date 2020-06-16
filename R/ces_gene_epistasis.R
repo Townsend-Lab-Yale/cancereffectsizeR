@@ -63,27 +63,28 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optim
 	  message(paste0(num_genes, " of your requested genes had no recurrent variants, so will not be included (see docs for why this is required)."))
 	}
   genes_to_analyze <- passing_genes
-
-    selection_epistasis_results <- t(utils::combn(genes_to_analyze,2))
-    selection_epistasis_results <- data.frame(t(selection_epistasis_results),stringsAsFactors=F)
-    rownames(selection_epistasis_results) <- c("Variant_1","Variant_2")
-    selection_epistasis_results_list <- as.list(selection_epistasis_results)
-    selection_results = pbapply::pblapply(X = selection_epistasis_results_list,
-                                           FUN = epistasis_gene_level,
-                                           cesa=cesa,
-                                           optimx_args = optimx_args,
-                                           cl = cores)
-    cesa@gene_epistasis_results = data.table::rbindlist(lapply(selection_results, function(x) x[[1]]))
-    if(return_all_opm_output) {
-      opm_output = lapply(selection_results, function(x) x[[3]])
-      names(opm_output) = lapply(selection_results, function(x) x[[2]])
-      # need to take the rownames (which are the methods used) and put them as a column for conversion to data.table
-      opm_output = lapply(opm_output, function(x) {x$method = rownames(x); return(x)})
-      opm_dt = data.table::rbindlist(opm_output, idcol = "genes")
-      cesa@advanced[["opm_output"]] = opm_dt
-    }
-    cesa@status[["gene epistasis"]] = "view pairwise gene-level epistatic effect sizes with gene_epistasis_results()"
-    return(cesa)
+  if (length(genes_to_analyze) == 1) {
+    stop(sprintf("Only 1 requested gene (%s) has recurrent variants, so epistasis can't be run.", genes_to_analyze), call. = F)
+  }
+  selection_epistasis_results <- t(utils::combn(genes_to_analyze,2))
+  selection_epistasis_results <- data.frame(t(selection_epistasis_results),stringsAsFactors=F)
+  rownames(selection_epistasis_results) <- c("Variant_1","Variant_2")
+  selection_epistasis_results_list <- as.list(selection_epistasis_results)
+  selection_results = pbapply::pblapply(X = selection_epistasis_results_list,
+                                         FUN = epistasis_gene_level,
+                                         cesa=cesa,
+                                         optimx_args = optimx_args,
+                                         cl = cores)
+  cesa@gene_epistasis_results = data.table::rbindlist(lapply(selection_results, function(x) x[[1]]))
+  if(return_all_opm_output) {
+    opm_output = lapply(selection_results, function(x) x[[3]])
+    names(opm_output) = lapply(selection_results, function(x) x[[2]])
+    # need to take the rownames (which are the methods used) and put them as a column for conversion to data.table
+    opm_output = lapply(opm_output, function(x) {x$method = rownames(x); return(x)})
+    opm_dt = data.table::rbindlist(opm_output, idcol = "genes")
+    cesa@advanced[["opm_output"]] = opm_dt
+  }
+  return(cesa)
 }
 
 epistasis_gene_level = function(cesa, genes_to_analyze, optimx_args) {

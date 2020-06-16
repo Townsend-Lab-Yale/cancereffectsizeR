@@ -225,8 +225,6 @@ ces_snv <- function(cesa = NULL,
   message("Estimating selection intensities for noncoding SNVs...")
   snv_results = rbindlist(pbapply::pblapply(noncoding_snv_ids, process_variant, snv_or_aac = "snv", cl = cores))
   cesa@selection_results = rbind(aac_results, snv_results)
-  
-  cesa@status[["SNV selection"]] = "view effect sizes with snv_results()"
   return(cesa)
 }
 

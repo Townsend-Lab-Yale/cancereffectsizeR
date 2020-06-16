@@ -375,7 +375,6 @@ trinuc_mutation_rates <- function(cesa,
   }
   
   cesa@status[["trinucleotide mutation rates"]] = trinuc_method
-  cesa@status[["gene mutation rates"]] = "uncalculated (run gene_mutation_rates)"
   cesa@trinucleotide_mutation_weights = list(trinuc_proportion_matrix=trinuc_proportion_matrix,
                                              signatures_output_list=signatures_output_list)
   

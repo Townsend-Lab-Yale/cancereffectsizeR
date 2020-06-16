@@ -25,6 +25,10 @@ setMethod("$", "CESAnalysis",
       return(get_gene_rates(x))
     } else if (name == "mutations") {
       return(get_mutations(x))
+    } else if (name == "selection") {
+      return(snv_results(x))
+    } else if (name == "epistasis") {
+      return(gene_epistasis_results(x))
     }
   }
 )
@@ -40,6 +44,12 @@ setMethod("$", "CESAnalysis",
   }
   if(length(x@mutations) > 0) {
     features = c(features, "mutations")
+  }
+  if(x@selection_results[, .N] > 0) {
+    features = c(features, "selection")
+  }
+  if(x@gene_epistasis_results[, .N] > 0) {
+    features = c(features, "epistasis")
   }
   if(x@excluded[, .N] > 0) {
     features = c(features, "excluded")
@@ -61,14 +71,37 @@ setMethod("$", "CESAnalysis",
 setMethod("show", "CESAnalysis", 
   function(object) {
     steps = names(object@status)
+    if(object@maf[, .N] > 0) {
+      cat("Samples:\n")
+      print(object@samples[, .N, by = c("progression_name", "progression_index", "coverage")][order(progression_index)], row.names = F)
+    }
+    if(length(object@mutations) > 0) {
+      cat("\nAnnotated mutations:\n")
+      print(object@mutations)
+    }
+    if(! is.null(object@trinucleotide_mutation_weights$signature_weight_table)) {
+      cat("\nSNV signatures:\n")
+      print(cesa@trinucleotide_mutation_weights$signature_weight_table, topn = 5)
+    }
+    if(object@mutrates[, .N] > 0) {
+      cat("\nGene mutation rates:\n")
+      print(object@mutrates)
+    }
+    if(object@selection_results[, .N] > 0) {
+      cat("\nSelection intensities of single variants:\n")
+      print(object@selection_results, topn = 5)
+    }
+    if(object@gene_epistasis_results[, .N] > 0) {
+      cat("\nGene-level recurrent variant epistasis:\n")
+      print(object@gene_epistasis_results)
+    }
+    cat("\nRun summary:\n")
     for (step in steps) {
       cat(paste0(step,": ", object@status[[step]], "\n"))
     }
-    cat(paste0("[Created in cancereffectsizeR, version ", object@advanced$version, ".]"))
+    cat(paste0("\n[Created in cancereffectsizeR, version ", object@advanced$version, ".]"))
   }
 )
-
-
 
 setValidity("CESAnalysis",
     function(object) {
