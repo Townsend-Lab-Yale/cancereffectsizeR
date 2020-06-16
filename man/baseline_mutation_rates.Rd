@@ -2,10 +2,23 @@
 % Please edit documentation in R/mutation_rate_calc.R
 \name{baseline_mutation_rates}
 \alias{baseline_mutation_rates}
-\title{baseline_mutation_rates}
+\title{Baseline mutation rate calculation}
 \usage{
-baseline_mutation_rates(cesa, aac_ids = NULL, snv_ids = NULL)
+baseline_mutation_rates(cesa, aac_ids = NULL, snv_ids = NULL, samples = NULL)
+}
+\arguments{
+\item{cesa}{CESAnalysis with gene mutation rates and tumor-specific trinucleotide-context-specific mutation rates already calculated}
+
+\item{aac_ids}{vector of IDs for amino acid change variants}
+
+\item{snv_ids}{vector of IDs for SNVs}
+
+\item{samples}{vector of sample IDs (Unique_Patient_Identifier) to include in mutation rate table (defaults to all samples)}
+}
+\value{
+a data table of mutation rates with one column per variant, and a Unique_Patient_Identifier column identifying each row
 }
 \description{
-baseline_mutation_rates
+Caculates neutral mutation rates at specific sites based on gene mutation rates and the relative
+trinucleotide-context-specific SNV mutation rates of each sample
 }

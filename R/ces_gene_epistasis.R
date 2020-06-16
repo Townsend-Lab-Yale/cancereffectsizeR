@@ -12,6 +12,8 @@
 ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optimx_args = ces_gene_epistasis_opm_args(), return_all_opm_output = FALSE)
 {
   setkey(cesa@samples, "Unique_Patient_Identifier") # in case dt has forgotten its key
+  setkey(cesa@mutations$amino_acid_change, "aac_id")
+  setkey(cesa@mutations$snv, "snv_id")
   
   # Some optimx::opm optimization methods crash for unclear reasons: Rnmin, nmkb, newuoa, Rtnmin
   # Others should be skipped automatically because they aren't appropriate, but it's
@@ -49,8 +51,6 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optim
 	recurrent_aac_id = maf[! is.na(assoc_aa_mut), .(aac_id = unlist(assoc_aa_mut))][, .N, by = aac_id][N > 1, aac_id]
 	recurrent_snv_id = maf[! is.na(snv_id), .(snv_id)][, .N, by = "snv_id"][N > 1, snv_id]
 
-	setkey(cesa@mutations$amino_acid_change, "aac_id")
-	setkey(cesa@mutations$snv, "snv_id")
 	genes_with_recurrent_variants = unique(c(cesa@mutations$snv[recurrent_snv_id, unlist(genes)], cesa@mutations$amino_acid_change[recurrent_aac_id, gene]))
 	
 	passing_genes = genes_with_recurrent_variants[genes_with_recurrent_variants %in% genes_to_analyze]
@@ -68,11 +68,9 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optim
     selection_epistasis_results <- data.frame(t(selection_epistasis_results),stringsAsFactors=F)
     rownames(selection_epistasis_results) <- c("Variant_1","Variant_2")
     selection_epistasis_results_list <- as.list(selection_epistasis_results)
-    gene_trinuc_comp = get_genome_data(cesa, "gene_trinuc_comp")
     selection_results = pbapply::pblapply(X = selection_epistasis_results_list,
                                            FUN = epistasis_gene_level,
                                            cesa=cesa,
-                                           gene_trinuc_comp = gene_trinuc_comp,
                                            optimx_args = optimx_args,
                                            cl = cores)
     cesa@gene_epistasis_results = data.table::rbindlist(lapply(selection_results, function(x) x[[1]]))
@@ -88,87 +86,92 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optim
     return(cesa)
 }
 
-epistasis_gene_level = function(genes_to_analyze, 
-                                gene_trinuc_comp,
-                                cesa,
-                                optimx_args) {
-  gene_mut_rates = cesa@mutrates
-  MAF = cesa@maf[Variant_Type == "SNV"]
-  trinuc_proportion_matrix = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix
-
+epistasis_gene_level = function(cesa, genes_to_analyze, optimx_args) {
+  genes_to_analyze = sort(genes_to_analyze) # varies by locale, but hopefully makes them alphabetical
   variant1 = genes_to_analyze[1]
   variant2 = genes_to_analyze[2]
-  MAF_input1= MAF[Gene_name == variant1]
-  MAF_input2= MAF[Gene_name == variant2]
+
   
   # when including target gene sequencing data, need to throw out any samples that don't have coverage at ALL variant sites in these genes
   # this could be a problem if some of the "exome" samples are actually whole-genome if they haven't been trimmed strictly enough
   
-  # this is clunky but okay for now and will change with next refactor
-  eligible_tumors = cesa@samples$Unique_Patient_Identifier # samples without coverage at all sites will get intersected out
-  for (maf in list(MAF_input1, MAF_input2)) {
-    for (i in 1:nrow(maf)) {
-      site_coverage = unlist(maf[i, covered_in]) # this returns a character vector naming the covered regions with coverage
-      tumors_covering_locus = cesa@samples[covered_regions %in% site_coverage, Unique_Patient_Identifier]
-      eligible_tumors = intersect(eligible_tumors, tumors_covering_locus)
-    }
+  # Collect mutations present in MAF in the two genes (note that some AACs may be same site, different gene, but okay for coverage check)
+  maf = cesa@maf
+  maf[, `:=`(in_v1 = variant1 %in% genes, in_v2 = variant2 %in% genes), by = "snv_id"]
+  if(maf[in_v1 == T & in_v2 == T, .N] > 0) {
+    ## To-do: test behavior
+    warning(sprintf("Genes %s and %s having overlapping positions in the MAF data, so the gene pair will be skipped.",
+                    variant1, variant2))
+    return(NULL)
   }
   
-  # restrict MAFs to eligible tumors
-  # temporarily make data.frame for compatibility
-  MAF_input1 = data.frame(MAF_input1[Unique_Patient_Identifier %in% eligible_tumors,])
-  MAF_input2 = data.frame(MAF_input2[Unique_Patient_Identifier %in% eligible_tumors,])
   
-  variant_freq_1 <- table(MAF_input1$nt_mut_id)
-  variant_freq_2 <- table(MAF_input2$nt_mut_id)
-
-  # only run the selection algorithm if there are 2 or more tumors with
-  # recurrent variants of each gene present.
-  these_mutation_rates1 <-
-    mutation_rate_calc(
-      this_MAF = MAF_input1,
-      gene = variant1,
-      gene_mut_rate = gene_mut_rates,
-      trinuc_proportion_matrix = trinuc_proportion_matrix,
-      gene_trinuc_comp = gene_trinuc_comp,
-      samples = cesa@samples)
-
-  these_mutation_rates2 <-
-    mutation_rate_calc(
-      this_MAF = MAF_input2,
-      gene = variant2,
-      gene_mut_rate = gene_mut_rates,
-      trinuc_proportion_matrix = trinuc_proportion_matrix,
-      gene_trinuc_comp = gene_trinuc_comp,
-      samples = cesa@samples)
-
-
-  # since we are looking at selection at the gene level,
-  # we only consider selection at sites that are recurrently
-  # substituted.
-
-  these_mutation_rates1 <- as.matrix(these_mutation_rates1[,colnames(these_mutation_rates1) %in% names(variant_freq_1[variant_freq_1>1])])
-  these_mutation_rates2 <- as.matrix(these_mutation_rates2[,colnames(these_mutation_rates2) %in% names(variant_freq_2[variant_freq_2>1])])
+  
+  # get all amino acid changes in either gene in the data set, then subset to get just the IDs of recurrent ones
+  maf = maf[in_v1 | in_v2]
+  aac_table = maf[! is.na(assoc_aa_mut), .(aac_id = unlist(assoc_aa_mut), in_v1, in_v2)]
+  aac_table = unique(aac_table[, .(in_v1, in_v2, .N), by = aac_id][N > 1])
+  aac_v1 = aac_table[in_v1 == T, aac_id]
+  aac_v2 = aac_table[in_v2 == T, aac_id]
+  aac = c(aac_v1, aac_v2)
+  
+  # repeat with noncoding SNVs
+  noncoding_table =unique(maf[is.na(assoc_aa_mut), .(in_v1, in_v2, .N), by = "snv_id"][N > 1])
+  # remove intergenic records
+  noncoding_table[cesa@mutations$snv[, .(intergenic, snv_id)], on = "snv_id", nomatch = NULL][intergenic == F]
+  noncoding_v1 = noncoding_table[in_v1 == T, snv_id]
+  noncoding_v2 = noncoding_table[in_v2 ==T, snv_id]
+  noncoding_snv = c(noncoding_v1, noncoding_v2)
+  
+  ## restric analysis to samples that have all variants of both genes covered (that is, all remaining recurrent variants)
+  eligible_samples = unique(maf$Unique_Patient_Identifier) # these are samples in the v1/v2-only maf
+  all_region_sets_in_data = cesa@samples[eligible_samples, unique(covered_regions)]
+  eligible_regions = all_region_sets_in_data
+  num_aac_sites = length(aac)
+  num_noncoding_sites = length(noncoding_snv)
+  for (region_set in all_region_sets_in_data) {
+    if(cesa@mutations$amino_acid_change[aac, region_set %in% unlist(covered_in), by = "aac_id"][, sum(V1)] < num_aac_sites) {
+      eligible_regions = setdiff(all_region_sets_in_data, region_set)
+    } else if(cesa@mutations$snv[noncoding_snv, region_set %in% unlist(covered_in), by = "snv_id"][, sum(V1)] < num_noncoding_sites) {
+      eligible_regions = setdiff(all_region_sets_in_data, region_set)
+    }
+  }
+  if(length(eligible_regions) == 0) {
+    # To-do: test behavior
+    warning(sprintf("There are no tumors that have coverage at all recurrent variant sites in genes %s and %s, so the pair must be skipped.",
+                    variant1, variant2))
+    return(NULL)
+  }
+  eligible_tumors = cesa@samples[covered_regions %in% eligible_regions, Unique_Patient_Identifier]
+  
+  # calculate rates across all sites and sum
+  baseline_rates_v1 = baseline_mutation_rates(cesa, aac_ids = aac_v1, snv_ids = noncoding_v1, samples = eligible_tumors)
+  baseline_rates_v1 = rowSums(as.matrix(baseline_rates_v1[, -"Unique_Patient_Identifier"], rownames = baseline_rates_v1$Unique_Patient_Identifier))
+  baseline_rates_v2 = baseline_mutation_rates(cesa, aac_ids = aac_v2, snv_ids = noncoding_v2, samples = eligible_tumors)
+  baseline_rates_v2 = rowSums(as.matrix(baseline_rates_v2[, -"Unique_Patient_Identifier"], rownames = baseline_rates_v2$Unique_Patient_Identifier))
 
   # calculate tumors with and without recurrent mutations in the two genes
   # only the tumors containing a recurrent variant factor into the selection analysis
   ## MAF_input1 and MAF_input2 are already restricted to just eligible tumors
-  tumors_with_variant1_mutated <- unique(MAF_input1[which(MAF_input1$nt_mut_id %in% names(which(variant_freq_1>1))),"Unique_Patient_Identifier"])
-  tumors_with_variant2_mutated <- unique(MAF_input2[which(MAF_input2$nt_mut_id %in% names(which(variant_freq_2>1))),"Unique_Patient_Identifier"])
-  tumors_with_both_mutated <- base::intersect(tumors_with_variant1_mutated,tumors_with_variant2_mutated)
+  maf = maf[Unique_Patient_Identifier %in% eligible_tumors]
+  all_v1_snv = c(cesa@mutations$amino_acid_change[aac_v1, unlist(all_snv_ids)], noncoding_v1)
+  tumors_with_variant1_mutated = maf[snv_id %in% all_v1_snv, unique(Unique_Patient_Identifier)]
+  
+  all_v2_snv = c(cesa@mutations$amino_acid_change[aac_v2, unlist(all_snv_ids)], noncoding_v2)
+  tumors_with_variant2_mutated = maf[snv_id %in% all_v2_snv, unique(Unique_Patient_Identifier)]
+  
+  tumors_with_both_mutated = intersect(tumors_with_variant1_mutated,tumors_with_variant2_mutated)
   tumors_with_ONLY_variant1_mutated <- tumors_with_variant1_mutated[which(!tumors_with_variant1_mutated %in% tumors_with_variant2_mutated)]
   tumors_with_ONLY_variant2_mutated <- tumors_with_variant2_mutated[which(!tumors_with_variant2_mutated %in% tumors_with_variant1_mutated)]
   tumors_with_neither_mutated <- setdiff(eligible_tumors, c(tumors_with_both_mutated,tumors_with_ONLY_variant1_mutated,tumors_with_ONLY_variant2_mutated))
   
-  specific_mut_rates1=these_mutation_rates1
-  specific_mut_rates2=these_mutation_rates2
   get_summed_mut_rates = function(tumors) {
     if(length(tumors) == 0) {
       return(NULL)
     }
-    rates1 = specific_mut_rates1[tumors, , drop=F]
-    rates2 = specific_mut_rates2[tumors, , drop=F]
-    return(list(rowSums(rates1), rowSums(rates2)))
+    rates1 = baseline_rates_v1[tumors]
+    rates2 = baseline_rates_v2[tumors]
+    return(list(rates1, rates2))
   }
   
   with_just_1 = get_summed_mut_rates(tumors_with_ONLY_variant1_mutated)
