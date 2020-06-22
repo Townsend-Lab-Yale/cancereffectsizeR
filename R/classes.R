@@ -73,7 +73,7 @@ setMethod("show", "CESAnalysis",
     steps = names(object@status)
     if(object@maf[, .N] > 0) {
       cat("Samples:\n")
-      print(object@samples[, .N, by = c("progression_name", "progression_index", "coverage")][order(progression_index)], row.names = F)
+      print(object@samples[, .(num_samples = .N), by = c("progression_name", "progression_index", "coverage")][order(progression_index)], row.names = F)
     }
     if(length(object@mutations) > 0) {
       cat("\nAnnotated mutations:\n")
@@ -81,7 +81,7 @@ setMethod("show", "CESAnalysis",
     }
     if(! is.null(object@trinucleotide_mutation_weights$signature_weight_table)) {
       cat("\nSNV signatures:\n")
-      print(cesa@trinucleotide_mutation_weights$signature_weight_table, topn = 5)
+      print(object@trinucleotide_mutation_weights$signature_weight_table, topn = 5)
     }
     if(object@mutrates[, .N] > 0) {
       cat("\nGene mutation rates:\n")

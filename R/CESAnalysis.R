@@ -36,11 +36,7 @@ CESAnalysis = function(genome = NULL, progression_order = NULL) {
   
   # simple analysis status tracking; used to guide user in show(CESAnalysis)
   status = list("genome" = GenomeInfoDb::providerVersion(genome),
-                "progressions" = paste0(progression_order, collapse = ", "),
-                "MAF data" = "none so far (run load_maf)",
-                "trinucleotide mutation rates" = "uncalculated (run trinuc_mutation_rates)",
-                "gene mutation rates" = "uncalculated (need trinucleotide rates first)"
-                )
+                "progressions" = paste0(progression_order, collapse = ", "))
   if(length(progression_order) == 1) {
     status[["progressions"]] = NULL
   }

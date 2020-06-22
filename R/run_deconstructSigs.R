@@ -22,12 +22,11 @@ run_deconstructSigs = function(tumor_trinuc_counts, signatures_df, signatures_to
   # toss all the "signatures_to_remove" from the complete set of signatures
   signatures_to_include = signatures_df[! rownames(signatures_df) %in% signatures_to_remove,]
 
-  # contexts.needed indicates if trinuc normalization should happen
-  contexts.needed = ifelse(is(tri.counts.method, "character") && tri.counts.method == "default", FALSE, TRUE)
-  
+  # contexts.needed indicates if trinuc normalization should happen; even if already normalized, 
+  # harmless to normalize again
   signatures_output <- deconstructSigs::whichSignatures(tumor.ref = tumor_trinuc_counts,
                                                         signatures.ref = signatures_to_include,
-                                                        contexts.needed = contexts.needed,
+                                                        contexts.needed = T,
                                                         tri.counts.method = tri.counts.method)
 
 
