@@ -4,7 +4,9 @@ cesa = load_maf(cesa = CESAnalysis(genome = "hg19"), maf = maf_file, sample_col 
 
 cesa = trinuc_mutation_rates(cesa, cores = 4, 
                              signatures_to_remove = suggest_cosmic_v3_signatures_to_remove("LUAD", treatment_naive = TRUE, quiet = TRUE))
-saveRDS(cesa@trinucleotide_mutation_weights, "luad_trinucleotide_mutation_weights.rds")
+
+fwrite(cesa$trinuc_rates, "luad_hg19_trinuc_rates.txt", sep = "\t")
+fwrite(cesa$mutational_signatures, "luad_hg19_sig_table.txt", sep = "\t")
 
 ## Create small trinuc weight data for tests
 # these samples have been chosen because they (randomly) have a fast runtime in the group average dS step

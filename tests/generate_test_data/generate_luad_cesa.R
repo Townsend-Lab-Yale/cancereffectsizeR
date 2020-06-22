@@ -4,8 +4,8 @@ prev_dir = setwd(system.file("tests/test_data/", package = "cancereffectsizeR"))
 luad = load_maf(cesa = CESAnalysis(genome="hg19"), maf = "luad.hg19.maf.txt", sample_col = "sample_id")
 
 # use the trinucleotide weight data saved in generate_trinuc_data (seldom a need to change that data)
-weights = readRDS("luad_trinucleotide_mutation_weights.rds")
-luad = set_trinuc_rates(luad, weights$trinuc_proportion_matrix)
+trinuc_rates = fread("luad_hg19_trinuc_rates.txt")
+luad = set_trinuc_rates(luad, trinuc_rates = trinuc_rates)
 luad = gene_mutation_rates(luad, covariate_file = "lung_pca")
 luad = annotate_variants(luad)
 

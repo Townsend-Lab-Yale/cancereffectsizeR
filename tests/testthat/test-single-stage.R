@@ -1,5 +1,5 @@
+cesa = get_test_data("cesa_for_trinuc_weighting_calc.rds")
 test_that("Trinucleotide signature weight calculation", {
-  cesa = get_test_data("cesa_for_trinuc_weighting_calc.rds")
   to_remove = suggest_cosmic_v3_signatures_to_remove(cancer_type = "LUAD", treatment_naive = T, quiet = T)
   expect_identical(to_remove, c("SBS7a", "SBS7b", "SBS7c", "SBS7d", "SBS8", "SBS10a", "SBS10b", "SBS11", "SBS12", 
                                 "SBS14", "SBS16", "SBS19", "SBS20", "SBS21", "SBS22", "SBS23", "SBS24", "SBS25", 
@@ -8,7 +8,14 @@ test_that("Trinucleotide signature weight calculation", {
   cesa = trinuc_mutation_rates(cesa, signatures_to_remove = to_remove)
   trinuc_ak = get_test_data("trinuc_mut_weighting.rds")
   expect_equal(cesa@trinucleotide_mutation_weights, trinuc_ak)
+  
+  trinuc_rates = cesa$trinuc_rates
+  prev_rates_matrix = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix
+  cesa@trinucleotide_mutation_weights = list()
+  cesa2 = set_trinuc_rates(cesa, trinuc_rates = trinuc_rates)
+  expect_equal(prev_rates_matrix, cesa2@trinucleotide_mutation_weights$trinuc_proportion_matrix)
 })
+
 
 test_that("dNdScv and MAF annotation", {
   cesa = get_test_data("cesa_for_dndscv_and_anno.rds")
