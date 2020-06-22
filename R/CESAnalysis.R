@@ -111,7 +111,7 @@ get_trinuc_rates = function(cesa = NULL) {
   if(! is(cesa, "CESAnalysis")) {
     stop("\nUsage: get_trinuc_rates(cesa), where cesa is a CESAnalysis")
   }
-  return(cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix)
+  return(as.data.table(cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix, keep.rownames = "Unique_Patient_Identifier"))
 }
 
 #' Get table of signature weights by tumor

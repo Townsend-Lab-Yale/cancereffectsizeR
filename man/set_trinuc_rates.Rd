@@ -4,20 +4,24 @@
 \alias{set_trinuc_rates}
 \title{Assign pre-calculated relative trinucleotide mutation rates}
 \usage{
-set_trinuc_rates(cesa, trinuc_proportion_matrix)
+set_trinuc_rates(cesa, trinuc_rates, ignore_extra_samples = FALSE)
 }
 \arguments{
 \item{cesa}{CESAnalysis object}
 
-\item{trinuc_proportion_matrix}{rows=tumors, columns=relative mutation rates (see description)}
+\item{trinuc_rates}{a matrix or data table (see description for format)}
+
+\item{ignore_extra_samples}{skip samples in the input matrix that are not in the CESAnalysis (when false, will stop with an error)}
 }
 \description{
-This function assigns a matrix of trinucleotide-context-specific relative 
-SNV mutation rates to a CESAnalysis. You can use this function to restore 
-previously calculated rates or to provide rates calculated using your own 
-methods (i.e., not trinuc_mutation_rates() and assign_group_average_trinuc_rates()).
-The maxtrix must cover all samples in the CESAnalysis, with row names matching
-sample identifiers. There must be 96 columns, with column names exactly matching
+This function assigns trinucleotide-context-specific relative SNV mutation rates to tumors 
+in a CESAnalysis. (These could be rates previously generated with `trinuc_mutation_rates()`, or
+they could calculated using your own methods.) The input rates must be a data.table or matrix.
+If supplying a data table, there must be a Unique_Patient_Identifier column; if supplying a 
+a matrix, the identifiers should be supplied as rownames instead. Either way, all samples in the
+CESAnalysis must be represented in the input rates. To avoid user error, there cannot be any
+superfluous samples in the input rates unless ignore_extra_samples = T. Besides the identifier
+column (or matrix rownames), there must be 96 columns, with column names exactly matching
 the deconstructSigs naming and order (run this function with incorrect column names, 
 and the names you need to use will be printed). Since CES uses relative trinuc rates,
 rows must sum to 1, with all values greater than 0.
