@@ -40,12 +40,14 @@
 
 
 <meta property="og:title" content="Assign pre-calculated relative trinucleotide mutation rates — set_trinuc_rates" />
-<meta property="og:description" content="This function assigns a matrix of trinucleotide-context-specific relative 
-SNV mutation rates to a CESAnalysis. You can use this function to restore 
-previously calculated rates or to provide rates calculated using your own 
-methods (i.e., not trinuc_mutation_rates() and assign_group_average_trinuc_rates()).
-The maxtrix must cover all samples in the CESAnalysis, with row names matching
-sample identifiers. There must be 96 columns, with column names exactly matching
+<meta property="og:description" content="This function assigns trinucleotide-context-specific relative SNV mutation rates to tumors 
+in a CESAnalysis. (These could be rates previously generated with trinuc_mutation_rates(), or
+they could calculated using your own methods.) The input rates must be a data.table or matrix.
+If supplying a data table, there must be a Unique_Patient_Identifier column; if supplying a 
+a matrix, the identifiers should be supplied as rownames instead. Either way, all samples in the
+CESAnalysis must be represented in the input rates. To avoid user error, there cannot be any
+superfluous samples in the input rates unless ignore_extra_samples = T. Besides the identifier
+column (or matrix rownames), there must be 96 columns, with column names exactly matching
 the deconstructSigs naming and order (run this function with incorrect column names, 
 and the names you need to use will be printed). Since CES uses relative trinuc rates,
 rows must sum to 1, with all values greater than 0." />
@@ -80,7 +82,7 @@ rows must sum to 1, with all values greater than 0." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9007</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9008</span>
       </span>
     </div>
 
@@ -137,18 +139,20 @@ rows must sum to 1, with all values greater than 0." />
     </div>
 
     <div class="ref-description">
-    <p>This function assigns a matrix of trinucleotide-context-specific relative 
-SNV mutation rates to a CESAnalysis. You can use this function to restore 
-previously calculated rates or to provide rates calculated using your own 
-methods (i.e., not trinuc_mutation_rates() and assign_group_average_trinuc_rates()).
-The maxtrix must cover all samples in the CESAnalysis, with row names matching
-sample identifiers. There must be 96 columns, with column names exactly matching
+    <p>This function assigns trinucleotide-context-specific relative SNV mutation rates to tumors 
+in a CESAnalysis. (These could be rates previously generated with <code><a href='trinuc_mutation_rates.html'>trinuc_mutation_rates()</a></code>, or
+they could calculated using your own methods.) The input rates must be a data.table or matrix.
+If supplying a data table, there must be a Unique_Patient_Identifier column; if supplying a 
+a matrix, the identifiers should be supplied as rownames instead. Either way, all samples in the
+CESAnalysis must be represented in the input rates. To avoid user error, there cannot be any
+superfluous samples in the input rates unless <code>ignore_extra_samples = T</code>. Besides the identifier
+column (or matrix rownames), there must be 96 columns, with column names exactly matching
 the deconstructSigs naming and order (run this function with incorrect column names, 
 and the names you need to use will be printed). Since CES uses relative trinuc rates,
 rows must sum to 1, with all values greater than 0.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>set_trinuc_rates</span>(<span class='no'>cesa</span>, <span class='no'>trinuc_proportion_matrix</span>)</pre>
+    <pre class="usage"><span class='fu'>set_trinuc_rates</span>(<span class='no'>cesa</span>, <span class='no'>trinuc_rates</span>, <span class='kw'>ignore_extra_samples</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>)</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -158,8 +162,12 @@ rows must sum to 1, with all values greater than 0.</p>
       <td><p>CESAnalysis object</p></td>
     </tr>
     <tr>
-      <th>trinuc_proportion_matrix</th>
-      <td><p>rows=tumors, columns=relative mutation rates (see description)</p></td>
+      <th>trinuc_rates</th>
+      <td><p>a matrix or data table (see description for format)</p></td>
+    </tr>
+    <tr>
+      <th>ignore_extra_samples</th>
+      <td><p>skip samples in the input matrix that are not in the CESAnalysis (when false, will stop with an error)</p></td>
     </tr>
     </table>
 
