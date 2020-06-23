@@ -12,6 +12,7 @@ test_that("Trinucleotide signature weight calculation", {
   trinuc_rates = cesa$trinuc_rates
   prev_rates_matrix = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix
   cesa@trinucleotide_mutation_weights = list()
+  
   cesa2 = set_trinuc_rates(cesa, trinuc_rates = trinuc_rates)
   expect_equal(prev_rates_matrix, cesa2@trinucleotide_mutation_weights$trinuc_proportion_matrix)
 })

@@ -244,7 +244,6 @@ trinuc_mutation_rates <- function(cesa,
     ### Note: Assignment rules for hypermutator tumors found in
     ### "SigProfiler_signature_assignment_rules" supp data here: https://doi.org/10.1101/322859
     current_sigs_to_remove = signatures_to_remove
-    
     if (v3_hypermutation_rules) {
       # apply hypermuation rules
       if (cesa@samples[tumor_name, coverage] == "exome") {
@@ -366,6 +365,8 @@ trinuc_mutation_rates <- function(cesa,
   # TGS tumors, tumors with zeroed-out weights, and tumors with no non-recurrent SNVs get assigned group-average weights
   for (tumor in tumors_needing_group_average_rates) {
     trinuc_proportion_matrix[tumor, ] = mean_trinuc_prop
+    
+   ## FIX ##
   }
 
   # Update CESAnalysis status and add in trinuc results
@@ -378,19 +379,34 @@ trinuc_mutation_rates <- function(cesa,
   cesa@trinucleotide_mutation_weights = list(trinuc_proportion_matrix=trinuc_proportion_matrix,
                                              signatures_output_list=signatures_output_list)
   
-  if(! assume_identical_mutational_processes) {
+  if (! assume_identical_mutational_processes) {
+    # identify tumors with weights informed by well-mutated (above SNV threshold) tumors
+    blended_tumors = names(which(sapply(signatures_output_list, function(x) ! is.null(x$mean_blended))))
+    
+    blended_weights = data.table(t(sapply(blended_tumors, function(x) as.numeric(signatures_output_list[[x]]$mean_blended$weights))), 
+                                 keep.rownames = "Unique_Patient_Identifier")
+    
+    nonblended_tumors = setdiff(names(signatures_output_list), blended_tumors)
+    above_threshold_weights = data.table(t(sapply(nonblended_tumors, function(x) as.numeric(signatures_output_list[[x]]$adjusted_sig_output$weights))), 
+                                         keep.rownames = "Unique_Patient_Identifier")
+    
     # get all signature weights into a data table (one row per sample)
-    all_weights = data.table(t(sapply(signatures_output_list, function(x) as.numeric(x$adjusted_sig_output$weights))), keep.rownames = "Unique_Patient_Identifier")
+    all_weights = rbind(above_threshold_weights, blended_weights)
     
     # use first sample to set column names to signature names
     colnames(all_weights)[2:ncol(all_weights)] = colnames(signatures_output_list[[1]]$adjusted_sig_output$weights)
-    
-    # identify tumors with weights affected by blending with above-threshold
-    blended_tumors = names(which(sapply(signatures_output_list, function(x) ! is.null(x$mean_blended))))
     all_weights[, group_avg_blended := Unique_Patient_Identifier %in% blended_tumors]
     all_weights[, snv_count := substitution_counts[Unique_Patient_Identifier]]
-    all_weights[is.na(snv_count), snv_count := 0] # handle rare samples with 0 non-recurrent SNVs
     setcolorder(all_weights, c("Unique_Patient_Identifier", "snv_count", "group_avg_blended"))
+    
+    # Edge case: zeroed-out tumors with >0 SNVs appear in both signatures_output_list and tumors_needing_group_average_rates
+    # For these, need to update table entries
+    # row_nums = all_weights[Unique_Patient_Identifier %in% tumors_needing_group_average_rates, which = T]
+    # col_nums = 2:ncol(all_weights)
+    # replacement = unlist(list(0, T, mean_ds$adjusted_sig_output$weights), recursive = F)
+    # set(all_weights, row_nums, col_nums, replacement)
+    # 
+    # Next, add in group-average signatures for TGS samples and those with 0 non-recurrent SNVs
     
     cesa@trinucleotide_mutation_weights[["signature_weight_table"]] = all_weights
   }
