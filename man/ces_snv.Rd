@@ -9,19 +9,24 @@ ces_snv(
   genes = "all",
   cores = 1,
   include_nonrecurrent_variants = F,
+  variants = NULL,
   conf = 0.95
 )
 }
 \arguments{
 \item{cesa}{CESAnalysis object}
 
+\item{genes}{which genes to calculate effect sizes within; defaults to all genes in data set}
+
 \item{cores}{number of cores to use}
 
 \item{include_nonrecurrent_variants}{default false; will increase runtime and SIs at non-recurrent sites aren't very informative}
 
-\item{conf}{selection intensity confidence interval width (NULL skips calculation, speeds runtime)}
+\item{variants}{When specified, list of specific mutations to include, excluding all others; 
+e.g., list(aac_id = c(...), snv_id = c(...)). If "genes" is also specified, the intersection is taken. If
+you want to use this parameter to calculate SI at sites with no MAF variants, set include_nonrecurrent_variants = T.}
 
-\item{gene}{which genes to calculate effect sizes within; defaults to all genes in data set}
+\item{conf}{selection intensity confidence interval width (NULL skips calculation, speeds runtime)}
 }
 \value{
 CESAnalysis object with selection results added for the chosen analysis

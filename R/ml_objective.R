@@ -35,8 +35,11 @@ ml_objective <- function(gamma, tumor_stages, tumors_with_variant, tumors_withou
       return(log(this_sum))
     }
     
-    gamma_sums = sapply(tumors_with_variant, calc_gamma_sums_mut)
-    sum_log_lik = sum_log_lik + sum(gamma_sums)
+    if(length(tumors_with_variant) > 0) {
+      gamma_sums = sapply(tumors_with_variant, calc_gamma_sums_mut)
+      sum_log_lik = sum_log_lik + sum(gamma_sums)
+    }
+
     
     # in case it tried all the max at once.
     if(!is.finite(sum_log_lik)){

@@ -1,19 +1,27 @@
 #' Calculate selection intensity for single-nucleotide variants and amino acid changes
 #' @param cesa CESAnalysis object
-#' @param gene which genes to calculate effect sizes within; defaults to all genes in data set
+#' @param genes which genes to calculate effect sizes within; defaults to all genes in data set
 #' @param cores number of cores to use
 #' @param conf selection intensity confidence interval width (NULL skips calculation, speeds runtime)
+#' @param variants When specified, list of specific mutations to include, excluding all others; 
+#'                 e.g., list(aac_id = c(...), snv_id = c(...)). If "genes" is also specified, the intersection is taken. If
+#'                 you want to use this parameter to calculate SI at sites with no MAF variants, set include_nonrecurrent_variants = T.
 #' @param include_nonrecurrent_variants default false; will increase runtime and SIs at non-recurrent sites aren't very informative
 #' @return CESAnalysis object with selection results added for the chosen analysis
 #' @export
 
 ces_snv <- function(cesa = NULL,
-                            genes = "all",
-                            cores = 1,
-                            include_nonrecurrent_variants = F,
-                            conf = .95) 
+                    genes = "all",
+                    cores = 1,
+                    include_nonrecurrent_variants = F,
+                    variants = NULL,
+                    conf = .95) 
 {
-  setkey(cesa@samples, "Unique_Patient_Identifier") # in case dt has forgotten its key
+  # Set keys in case they've been lost
+  setkey(cesa@samples, "Unique_Patient_Identifier")
+  setkey(cesa@mutations$amino_acid_change, "aac_id")
+  setkey(cesa@mutations$snv, "snv_id")
+  mutations = cesa@mutations
   if(! is.null(conf)) {
     if(! is(conf, "numeric") || length(conf) > 1 || conf <= 0 || conf >= 1) {
       stop("conf should be 1-length numeric (e.g., .95 for 95% confidence intervals)", call. = F)
@@ -23,34 +31,69 @@ ces_snv <- function(cesa = NULL,
   if (! "character" %in% class(genes)) {
     stop("Expected argument \"genes\" to take a character vector.", call. = F)
   }
-
-  mutations = cesa@mutations
+  
   if (length(mutations) == 0) {
     stop("There are no annotated mutations in the analysis!", call. = F)
   }
   
-  
-  # take all SNVs in data set, then subtract any that are a part of aac mutations
-  setkey(mutations$amino_acid_change, "aac_id")
-  setkey(mutations$snv, "snv_id")
+  # If no list of variants is specified, take all AACs in data set and all SNVs that are not covered in AACs
+  if (is.null(variants)) {
+    aac_ids = unique(unlist(cesa@maf$assoc_aa_mut))
+    
+    # tak all SNVs in MAF, then subtract those that have AAC annotation
+    noncoding_snv_ids = setdiff(cesa@maf[! is.na(snv_id), snv_id], mutations$amino_acid_change[aac_ids, unlist(all_snv_ids)])
+  } else {
+    if(! is(variants, "list")) {
+      stop("Expected variants to be a list", call. = F)
+    }
+    if (! all(names(variants) %in% c("snv_id", "aac_id"))) {
+      stop("variants must be a named list containing snv_id and/or aac_id")
+    }
+    if(length(variants) != length(unique(names(variants)))) {
+      stop("variants must be a named list containing snv_id and/or aac_id")
+    }
+    
+    if(! unique(sapply(variants, class)) == "character") {
+      stop("Elements of variants list must be character vectors of variant IDs")
+    }
+    
+    # By noncoding, we just mean that SI will be calculate at the SNV site rather than at the AAC level,
+    # regardless of whether there's a CDS annotation. We're not going to check to see if the user's
+    # AACs and SNVs overlap (that's their problem to deal with!)
+    noncoding_snv_ids = character()
+    if (! is.null(variants$snv_id)) {
+      noncoding_snv_ids = unique(variants$snv_id)
+      num_present = mutations$snv[noncoding_snv_ids, .N, nomatch = NULL]
+      num_missing = length(noncoding_snv_ids) - num_present
+      if (num_missing > 0) {
+        stop(paste0("There are no annotations (in $mutations$snv) for ", num_missing, " of your requested SNVs."), call. = F)
+      }
+    }
+    
+    aac_ids = character()
+    if (! is.null(variants$aac_id)) {
+      aac_ids = unique(variants$aac_id)
+      num_present = mutations$amino_acid_change[aac_ids, .N, nomatch = NULL]
+      num_missing = length(aac_ids) - num_present
+      if (num_missing > 0) {
+        stop(paste0("There are no annotations (in $mutations$amino_acid_change) for ", num_missing, " of your requested coding mutations."), call. = F)
+      }
+    }
+  }
   
   
   # filter variants based on recurrency
-  if(include_nonrecurrent_variants == T) {
-    aac_ids = unique(mutations$amino_acid_change$aac_id)
-    noncoding_snv_ids = setdiff(cesa@maf[! is.na(snv_id), snv_id], mutations$amino_acid_change[aac_ids, unlist(all_snv_ids)])
+  if(include_nonrecurrent_variants == F) {
+    recurrent_aac = cesa@maf[! is.na(assoc_aa_mut), .(aac_id = unlist(assoc_aa_mut))][, .N, by = aac_id][N > 1, aac_id]
+    aac_ids = aac_ids[aac_ids %in% recurrent_aac]
     
-  } else {
-    aac_ids = cesa@maf[! is.na(assoc_aa_mut), .(aac_id = unlist(assoc_aa_mut))][, .N, by = aac_id][N > 1, aac_id]
-    recurrent_snvs = cesa@maf[! is.na(snv_id), .(snv_id)][, .N, by = "snv_id"][N > 1, snv_id]
-    noncoding_snv_ids = setdiff(recurrent_snvs, mutations$amino_acid_change[aac_ids, unlist(all_snv_ids)])
+    recurrent_snv = cesa@maf[! is.na(snv_id), .(snv_id)][, .N, by = "snv_id"][N > 1, snv_id]
+    noncoding_snv_ids = noncoding_snv_ids[noncoding_snv_ids %in% recurrent_snv]
   }
   
   # filter based on gene
-  genes_in_dataset = union(mutations$amino_acid_change[aac_ids, gene], mutations$snv[noncoding_snv_ids, unlist(genes)])
-  if(genes[1] =="all") {
-    genes_in_analysis <- genes_in_dataset
-  } else{
+  genes_in_dataset = unlist(cesa@maf$genes)
+  if(genes[1] != "all") {
     genes = unique(genes)
     genes_in_analysis <- genes[genes %in% genes_in_dataset]
     missing_genes = genes[! genes %in% genes_in_dataset]
@@ -85,8 +128,12 @@ ces_snv <- function(cesa = NULL,
     }
     aac_ids = aac_ids[mutations$amino_acid_change[aac_ids, gene %in% genes_in_analysis]]
     
-    # determine which noncoding SNVs have a gene annotation containg the analysis genes, and include just those
+    # determine which noncoding SNVs have a gene annotation containing the analysis genes, and include just those
     noncoding_snv_ids = mutations$snv[noncoding_snv_ids, .(include = any(unlist(genes) %in% genes_in_analysis)), by = snv_id][include == T, snv_id]
+  }
+  
+  if(length(aac_ids) + length(noncoding_snv_ids) == 0) {
+    stop("No variants pass filters, so there are no SIs to calculate.", call. = F)
   }
 
   message("Collecting variants and determining baseline mutation rates...")
@@ -220,9 +267,13 @@ ces_snv <- function(cesa = NULL,
   
   
   # start with aac SIs
-  message("Estimating selection intensities for amino acid changes...")
+  if (length(aac_ids) > 0) {
+    message("Estimating selection intensities for amino acid changes...")
+  }
   aac_results = rbindlist(pbapply::pblapply(aac_ids, process_variant, snv_or_aac = "aac", cl = cores))
-  message("Estimating selection intensities for noncoding SNVs...")
+  if (length(noncoding_snv_ids) > 0) {
+    message("Estimating selection intensities for noncoding SNVs...")
+  }
   snv_results = rbindlist(pbapply::pblapply(noncoding_snv_ids, process_variant, snv_or_aac = "snv", cl = cores))
   cesa@selection_results = rbind(aac_results, snv_results)
   return(cesa)

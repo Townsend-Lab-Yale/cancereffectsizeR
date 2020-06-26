@@ -64,9 +64,15 @@ test_that("SNV effect size calculation", {
   results_ak = get_test_data("single_stage_snv_results.rds")
   
   # selection results will vary slightly by machine architecture (probably due to numerical precision issues)
-  expect_equal(results, results_ak, tolerance = 1e-5)
+  expect_equal(results, results_ak, tolerance = 1e-5, ignore.row.order = T)
 })
 
+test_that("ces_snv with user-supplied variants", {
+  expect_error(ces_snv(cesa, variant = list(snv_id = "10:100190376_C>A")), "No variants pass filters")
+  expect_equal(ces_snv(cesa, variant = list(snv_id = "10:100190376_C>A"), include_nonrecurrent_variants = T)@selection_results[, .N], 1)
+  expect_error(ces_snv(cesa, genes = "TP53", variant = list(aac_id = "KRAS_G12D_ENSP00000256078"), "No variants pass filters"))
+  expect_equal(ces_snv(cesa, genes = c("TP53", "KRAS"), variant = list(aac_id = "KRAS_G12D_ENSP00000256078"))@selection_results[, .N], 1)
+})
 
 test_that("Gene-level SNV epistasis analysis", {
   cesa = ces_gene_epistasis(cesa, genes = c("EGFR", "KRAS", "TP53"), return_all_opm_output = T)
