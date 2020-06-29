@@ -396,7 +396,7 @@ trinuc_mutation_rates <- function(cesa,
     # use first sample to set column names to signature names
     colnames(all_weights)[2:ncol(all_weights)] = colnames(signatures_output_list[[1]]$adjusted_sig_output$weights)
     all_weights[, group_avg_blended := Unique_Patient_Identifier %in% blended_tumors]
-    all_weights[, snv_count := substitution_counts[Unique_Patient_Identifier]]
+    all_weights[, snv_count := as.numeric(substitution_counts[Unique_Patient_Identifier])] # otherwise will be "table" class
     setcolorder(all_weights, c("Unique_Patient_Identifier", "snv_count", "group_avg_blended"))
     
     # Edge case: zeroed-out tumors with >0 SNVs appear in both signatures_output_list and tumors_needing_group_average_rates
