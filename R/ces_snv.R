@@ -38,7 +38,7 @@ ces_snv <- function(cesa = NULL,
   
   # If no list of variants is specified, take all AACs in data set and all SNVs that are not covered in AACs
   if (is.null(variants)) {
-    aac_ids = unique(unlist(cesa@maf$assoc_aa_mut))
+    aac_ids = unique(unlist(na.omit(cesa@maf$assoc_aa_mut)))
     
     # tak all SNVs in MAF, then subtract those that have AAC annotation
     noncoding_snv_ids = setdiff(cesa@maf[! is.na(snv_id), snv_id], mutations$amino_acid_change[aac_ids, unlist(all_snv_ids)])
@@ -138,7 +138,7 @@ ces_snv <- function(cesa = NULL,
 
   message("Collecting variants and determining baseline mutation rates...")
   
-  baseline_rates = baseline_mutation_rates(cesa, aac_ids = aac_ids, snv_ids = noncoding_snv_ids)
+  baseline_rates = baseline_mutation_rates(cesa, aac_ids = aac_ids, snv_ids = noncoding_snv_ids, cores = cores)
 
   
   # get SNVs and AACs of interest
@@ -226,7 +226,6 @@ ces_snv <- function(cesa = NULL,
       # can't get confidence intervals for progression states that have no tumors with the variant
       offset = qchisq(conf, 1)/2
       max_ll = -1 * loglikelihood[1]
-      fn <<- fit@minuslogl
       
       # for each SI, use uniroot to get a single-parameter confidence interval
       for (i in 1:length(cesa@progressions)) {

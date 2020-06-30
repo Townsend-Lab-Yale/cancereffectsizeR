@@ -4,10 +4,13 @@
 \alias{get_signature_weights}
 \title{Get table of signature weights by tumor}
 \usage{
-get_signature_weights(cesa = NULL)
+get_signature_weights(cesa = NULL, include_tumors_without_data = FALSE)
 }
 \arguments{
 \item{cesa}{CESAnalysis object}
+
+\item{include_tumors_without_data}{include rows (consisting of group-average weights) for samples that did not undergo
+signature extraction, such as TGS tumors or the rare sample with no non-recurrent SNVs}
 }
 \description{
 Get table of signature weights by tumor

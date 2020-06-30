@@ -4,7 +4,13 @@
 \alias{baseline_mutation_rates}
 \title{Baseline mutation rate calculation}
 \usage{
-baseline_mutation_rates(cesa, aac_ids = NULL, snv_ids = NULL, samples = NULL)
+baseline_mutation_rates(
+  cesa,
+  aac_ids = NULL,
+  snv_ids = NULL,
+  samples = NULL,
+  cores = 1
+)
 }
 \arguments{
 \item{cesa}{CESAnalysis with gene mutation rates and tumor-specific trinucleotide-context-specific mutation rates already calculated}
@@ -14,6 +20,8 @@ baseline_mutation_rates(cesa, aac_ids = NULL, snv_ids = NULL, samples = NULL)
 \item{snv_ids}{vector of IDs for SNVs}
 
 \item{samples}{vector of sample IDs (Unique_Patient_Identifier) to include in mutation rate table (defaults to all samples)}
+
+\item{cores}{number of cores to use for mutation processing (useful for large data sets or mutation lists)}
 }
 \value{
 a data table of mutation rates with one column per variant, and a Unique_Patient_Identifier column identifying each row
