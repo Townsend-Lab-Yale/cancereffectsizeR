@@ -38,7 +38,7 @@ ces_snv <- function(cesa = NULL,
   
   # If no list of variants is specified, take all AACs in data set and all SNVs that are not covered in AACs
   if (is.null(variants)) {
-    aac_ids = unique(unlist(na.omit(cesa@maf$assoc_aa_mut)))
+    aac_ids = unique(na.omit(unlist(cesa@maf$assoc_aa_mut)))
     
     # tak all SNVs in MAF, then subtract those that have AAC annotation
     noncoding_snv_ids = setdiff(cesa@maf[! is.na(snv_id), snv_id], mutations$amino_acid_change[aac_ids, unlist(all_snv_ids)])
