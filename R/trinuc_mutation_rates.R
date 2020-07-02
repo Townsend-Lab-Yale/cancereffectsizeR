@@ -106,6 +106,7 @@ trinuc_mutation_rates <- function(cesa,
   } else {
     stop(bad_sig_choice_msg)
   }
+  cesa@advanced$snv_signatures = signatures
 
   # make sure all signatures that user has requested removed are actually valid signatures
   if(length(signatures_to_remove) != 1 || tolower(signatures_to_remove[1]) != "none") {

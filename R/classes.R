@@ -29,6 +29,8 @@ setMethod("$", "CESAnalysis",
       return(snv_results(x))
     } else if (name == "epistasis") {
       return(gene_epistasis_results(x))
+    } else if (name == "reference_data") {
+      return(list(snv_signatures = x@advanced$snv_signatures))
     }
   }
 )
@@ -62,6 +64,9 @@ setMethod("$", "CESAnalysis",
   }
   if(x@mutrates[, .N] > 0) {
     features = c(features, "gene_rates")
+  }
+  if("snv_signatures" %in% names(x@advanced)) {
+    features = c(features, "reference_data")
   }
 
   grep(pattern, features, value=TRUE)
