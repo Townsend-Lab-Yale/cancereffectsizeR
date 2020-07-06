@@ -52,8 +52,9 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, samples
   
   
   # Hash trinuc rates for faster runtime with huge data sets (where there could be millions of queries of trinuc_mat)
+  # Will also be using the trinuc_mat directly for summed rates, so need to subset it to just samples of interest
   trinuc_rates = new.env()
-  trinuc_mat = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix
+  trinuc_mat = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix[samples$Unique_Patient_Identifier,]
   for (row in rownames(trinuc_mat)) { 
     trinuc_rates[[row]] = unname(trinuc_mat[row, ])
   }
