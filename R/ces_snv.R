@@ -136,14 +136,12 @@ ces_snv <- function(cesa = NULL,
     stop("No variants pass filters, so there are no SIs to calculate.", call. = F)
   }
 
-  message("Collecting variants and determining baseline mutation rates...")
-  
-  baseline_rates = baseline_mutation_rates(cesa, aac_ids = aac_ids, snv_ids = noncoding_snv_ids, cores = cores)
 
-  
   # get SNVs and AACs of interest
-  noncoding_table = mutations$snv[snv_id %in% noncoding_snv_ids]
-  coding_table = mutations$amino_acid_change[aac_id %in% aac_ids]
+  noncoding_table = mutations$snv[noncoding_snv_ids]
+  setkey(noncoding_table, "snv_id")
+  coding_table = mutations$amino_acid_change[aac_ids]
+  setkey(coding_table, "aac_id")
   
   # identify mutations by gene
   tmp = cesa@maf[Variant_Type == "SNV", .(gene = unlist(genes)), by = "Unique_Patient_Identifier"][, .(samples = list(Unique_Patient_Identifier)), by = "gene"]
@@ -152,15 +150,17 @@ ces_snv <- function(cesa = NULL,
   
   # identify mutations by variant
   tmp = cesa@maf[! is.na(assoc_aa_mut), .(aac_id = unlist(assoc_aa_mut)), by = "Unique_Patient_Identifier"][, .(samples = list(Unique_Patient_Identifier)), by = "aac_id"]
-  tmp = tmp[aac_id %in% coding_table$aac_id]
+  tmp = tmp[coding_table[, aac_id], on = "aac_id"]
   aacs_by_tumor = tmp$samples
   names(aacs_by_tumor) = tmp$aac_id
 
+  # include upper/lower CI in column name
   if(! is.null(conf)) {
     ci_high_colname = paste0("ci_high_", conf * 100)
     ci_low_colname = paste0("ci_low_", conf * 100)
   }
   
+  # function takes in AAC or SNV ID, returns SI table output
   process_variant = function(mut_id, snv_or_aac) {
     if(snv_or_aac == "aac") {
       mut_record = coding_table[mut_id]
@@ -262,19 +262,46 @@ ces_snv <- function(cesa = NULL,
     return(variant_output)
   }
   
+
   
+  # Will process variants by coverage group (i.e., groups of variants that have the same tumors covering them)
+  selection_results = NULL
+  coverage_groups = unique(c(coding_table$covered_in, noncoding_table$covered_in))
+  num_coverage_groups = length(coverage_groups)
   
-  
-  # start with aac SIs
-  if (length(aac_ids) > 0) {
-    message("Estimating selection intensities for amino acid changes...")
+  for (i in 1:num_coverage_groups) {
+    message(sprintf("Preparing to calculate selection intensities (batch %i of %i)...", i, num_coverage_groups))
+    aac_ids = coding_table[, identical(unlist(covered_in),coverage_groups[[i]]), by = "aac_id"][V1 == T, aac_id]
+    noncoding_snv_ids = noncoding_table[, identical(unlist(covered_in),coverage_groups[[i]]), by = "snv_id"][V1 == T, snv_id]
+    covered_samples = cesa@samples[covered_regions %in% coverage_groups[[i]], Unique_Patient_Identifier]
+    
+    muts_in_group = data.table(mut_id = c(aac_ids, noncoding_snv_ids), snv_or_aac = c(rep.int("aac", length(aac_ids)), 
+                                                            rep.int("snv", length(noncoding_snv_ids))))
+    
+    # rough size of baseline rates data.table in bytes, if all included in one table
+    work_size = length(covered_samples) * nrow(muts_in_group) * 8
+    
+    # we divide into subgroups to cap basline rates table size at approx. 1 GB
+    num_proc_groups = ceiling(work_size / 1e9)
+    muts_in_group[, subgroup := ceiling(num_proc_groups * 1:.N / .N)]
+    
+    for (j in 1:num_proc_groups) {
+      if (num_proc_groups > 1) {
+        message(sprintf("Working on sub-batch %i of %i...", j, num_proc_groups))
+      }
+      muts_in_subgroup = muts_in_group[subgroup == j]
+      aac_ids = muts_in_subgroup[snv_or_aac == "aac", mut_id]
+      snv_ids = muts_in_subgroup[snv_or_aac == "snv", mut_id]
+
+      baseline_rates = baseline_mutation_rates(cesa, aac_ids = aac_ids, snv_ids = snv_ids, samples = covered_samples, cores = cores)
+      message("Calculating SIs for coding mutations...")
+      selection_results = rbind(selection_results, rbindlist(pbapply::pblapply(aac_ids, process_variant, snv_or_aac = "aac", cl = cores)))
+      message("Calculating SIs for noncoding SNVs...")
+      selection_results = rbind(selection_results, rbindlist(pbapply::pblapply(snv_ids, process_variant, snv_or_aac = "snv", cl = cores)))
+    }
   }
-  aac_results = rbindlist(pbapply::pblapply(aac_ids, process_variant, snv_or_aac = "aac", cl = cores))
-  if (length(noncoding_snv_ids) > 0) {
-    message("Estimating selection intensities for noncoding SNVs...")
-  }
-  snv_results = rbindlist(pbapply::pblapply(noncoding_snv_ids, process_variant, snv_or_aac = "snv", cl = cores))
-  cesa@selection_results = rbind(aac_results, snv_results)
+
+  cesa@selection_results = selection_results
   return(cesa)
 }
 

@@ -266,7 +266,7 @@ annotate_variants <- function(cesa) {
 	setkey(snv_table, "snv_id")
 	
 	# speed this up later, maybe
-	aac_table[, covered_in := .(list(snv_table[all_snv_ids, unique(unlist(covered_in))])), by = "aac_id"]
+	aac_table[, covered_in := .(list(snv_table[all_snv_ids, unique(sort(unlist(covered_in)))])), by = "aac_id"]
 	
 	snv_maf = MAF[Variant_Type == "SNV"]
 	indel_maf = MAF[Variant_Type != "SNV"]

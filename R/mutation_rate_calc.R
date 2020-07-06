@@ -32,11 +32,23 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, samples
   }
   mutations = cesa@mutations
   
+  # can drop AAC mutations not requested
+  mutations$amino_acid_change = mutations$amino_acid_change[aac_ids]
+  setkey(mutations$amino_acid_change, "aac_id")
+  
+  
+  # Give a progress message if this is going to take more than a few seconds
+  num_variants = length(aac_ids) + length(noncoding_snv_ids)
+  num_samples = samples[, .N]
+  if(num_variants * num_samples > 50000) {
+    num_variants = format(num_variants, big.mark = ",") # big.mark? R is so weird
+    num_samples = format(num_samples, big.mark = ",")
+    message(sprintf("Preparing to calculate baseline mutation rates in %s samples across %s sites...", num_samples, num_variants))
+  }
   
   # produce a table with all pairwise combinations of Unique_Patient_Identifier and relevant genes
   # relevant genes are those associated with one of the AACs/SNVs of interest
-  
-  relevant_genes = union(mutations$amino_acid_change[aac_id %in% aac_ids, gene], mutations$snv[snv_id %in% snv_ids, unlist(genes)])
+  relevant_genes = union(mutations$amino_acid_change$gene, mutations$snv[snv_id %in% snv_ids, unlist(genes)])
   sample_gene_rates = as.data.table(expand.grid(gene = relevant_genes, Unique_Patient_Identifier = samples$Unique_Patient_Identifier, 
                                                 stringsAsFactors = F),key = "Unique_Patient_Identifier")
   
@@ -66,7 +78,7 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, samples
   setkey(sample_gene_rates, "gene")
   
   if(length(aac_ids > 0)) {
-    trinuc_mut_by_aac = mutations$amino_acid_change[aac_id %in% aac_ids, .(trinuc_mut = list(mutations$snv[unlist(all_snv_ids), trinuc_mut])), by = "aac_id"]
+    trinuc_mut_by_aac = mutations$amino_acid_change[, .(trinuc_mut = list(mutations$snv[unlist(all_snv_ids), trinuc_mut])), by = "aac_id"]
     gene_by_aac = mutations$amino_acid_change[aac_ids, gene]
     aac_genes = unique(gene_by_aac)
     
