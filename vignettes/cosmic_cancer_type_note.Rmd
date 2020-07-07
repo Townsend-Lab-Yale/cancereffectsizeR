@@ -19,7 +19,7 @@ To get a list of signatures to exclude based on cancer type and treatment status
   suggest_cosmic_v3_signatures_to_remove(cancer_type = "Kidney-RCC")
 ```
 
-The cancer type recommendations are based on Extended Data Figure 5 of Alexandrov 2020. The first two columns of the table below, also based on that figure, give the labels accepted by the `cancer_type` argument.
+The cancer type recommendations are based on Extended Data Figure 5 of Alexandrov 2020. The first two columns of the table below, also based on that figure, give the labels accepted by the `cancer_type` argument. (Note: SBS85 and SBS85 are absent from the Alexandrov figure, but they are elsewhere described in the paper as specific to lymphoid neoplasms.)
 
 Before excluding signatures, make sure your data set does not contain tumors from multiple PCAWG categories. For example, TCGA HNSC (head and neck cancer) includes oral cancers, which are listed separately here as Oral-SCC, so excluding all signatures that do not appear in Head-SCC (such as SBS29, tobacco chewing) would not be appropriate.  
 

@@ -4,7 +4,7 @@ test_that("Trinucleotide signature weight calculation", {
   expect_identical(to_remove, c("SBS7a", "SBS7b", "SBS7c", "SBS7d", "SBS8", "SBS10a", "SBS10b", "SBS11", "SBS12", 
                                 "SBS14", "SBS16", "SBS19", "SBS20", "SBS21", "SBS22", "SBS23", "SBS24", "SBS25", 
                                 "SBS26", "SBS30", "SBS31", "SBS32", "SBS33", "SBS34", "SBS35", "SBS36", "SBS37", 
-                                "SBS38", "SBS39", "SBS41", "SBS42", "SBS44"))
+                                "SBS38", "SBS39", "SBS41", "SBS42", "SBS44", "SBS84", "SBS85"))
   cesa = trinuc_mutation_rates(cesa, signatures_to_remove = to_remove)
   trinuc_ak = get_test_data("trinuc_mut_weighting.rds")
   expect_equal(cesa@trinucleotide_mutation_weights, trinuc_ak)

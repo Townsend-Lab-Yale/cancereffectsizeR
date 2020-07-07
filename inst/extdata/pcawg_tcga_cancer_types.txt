@@ -1,44 +1,44 @@
-PCAWG	Applicable_TCGA	Number_of_tumors	Description	SBS1	SBS2	SBS3	SBS4	SBS5	SBS6	SBS7a	SBS7b	SBS7c	SBS7d	SBS8	SBS9	SBS10a	SBS10b	SBS11	SBS12	SBS13	SBS14	SBS15	SBS16	SBS17a	SBS17b	SBS18	SBS19	SBS20	SBS21	SBS22	SBS23	SBS24	SBS25	SBS26	SBS28	SBS29	SBS30	SBS31	SBS32	SBS33	SBS34	SBS35	SBS36	SBS37	SBS38	SBS39	SBS40	SBS41	SBS42	SBS44
-ALL	NA	33	acute lymphoblastic leukemia	1	1	0	0	1	0	1	1	1	1	0	0	0	0	0	0	1	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0
-Biliary-AdenoCA	NA	173	biliary adenocarcinoma	1	1	1	1	1	0	0	0	0	0	0	1	1	1	0	1	1	0	1	1	1	1	1	0	1	1	1	0	1	0	0	1	1	0	0	1	0	0	0	0	0	1	0	1	0	1	1
-Bladder-TCC	BLCA	369	bladder transitional cell carcinoma	1	1	1	0	1	0	0	0	0	0	1	0	1	1	0	0	1	0	0	0	0	0	1	1	0	0	1	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	1	0	0	0
-Bone-Osteosarc	NA	36	"sarcoma, bone"	1	1	1	0	1	0	0	0	0	0	1	0	0	0	0	0	1	0	0	0	1	1	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	1	0	0	0
-Bone-Other	NA	18	"Paper vague; presumably bone cartilaginous neoplasm osteoblastoma, bone osteofibrous dysplasia, bone neoplasm epithelioid"	1	1	0	0	1	0	0	0	0	0	1	0	0	0	0	0	1	0	0	0	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0
-Breast	BRCA	834	"breast adenocarcinoma, ductal carcinoma in situ, breast lobular carcinoma"	1	1	1	0	1	0	0	0	0	0	1	1	1	1	0	0	1	0	1	0	1	1	1	1	0	1	0	0	0	0	1	0	1	1	0	0	0	1	0	0	1	0	1	1	1	0	1
-Cervix	CESC	204	cervical squamous cell carcinoma and adenocarcinoma	1	1	0	0	1	1	0	0	0	0	0	0	1	1	0	0	1	0	1	0	1	1	1	0	0	0	0	0	0	0	1	1	0	0	0	0	1	0	0	0	0	0	0	1	0	0	1
-CNS-GBM	GBM	100	CNS glioblastoma	1	1	0	0	1	0	0	0	0	0	0	0	1	1	1	0	1	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	1	0	0	1	0	1	0
-CNS-LGG	NA	27	CNS lower-grade glioma	1	0	0	0	1	0	0	1	1	1	0	0	0	0	1	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
-CNS-Medullo	NA	185	CNS medulloblastoma	1	0	1	0	1	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	0	0	0
-CNS-Oligo	NA	18	CNS oligodenroglioma	1	0	0	0	1	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0
-CNS-PiloAstro	NA	48	CNS pilocytic astrocytomaE:E	head-and-neck squamous cell carcinoma (note HNSC also includes some Oral-SCC)	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0
-ColoRect-AdenoCA	"COAD, READ"	719	colorectal adenocarcinoma	1	1	1	0	1	1	0	0	0	0	0	1	1	1	0	0	1	0	1	0	1	1	1	0	1	1	0	0	0	0	1	1	0	1	0	0	0	0	0	0	1	0	0	1	1	0	1
-Eso-AdenoCA	ESCA	347	esophagus adenocarcinoma	1	1	1	1	1	1	0	1	1	1	0	0	0	0	0	0	1	0	0	1	1	1	1	0	1	0	0	0	0	0	1	1	0	0	0	0	0	1	0	0	0	1	0	1	0	0	1
-Eso-SCC	ESCA	160	esophagus squamous cell carcinoma	1	1	0	0	1	0	0	0	0	0	0	1	0	1	0	0	1	0	1	0	1	1	1	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	1
-Ewings	NA	85	Ewing's sarcoma	1	1	0	0	1	0	1	1	1	1	0	0	0	0	0	0	1	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	1	0	0	0
-Eye-Melanoma	UVM	13	uveal melanoma	1	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0
-Head-SCC	HNSC	313	head-and-neck squamous cell carcinoma (note HNSC also includes some oral-SCC)	1	1	1	1	1	0	1	1	1	1	0	0	1	1	0	0	1	0	1	1	1	1	1	0	0	1	0	0	0	0	0	0	0	1	0	1	1	0	0	1	0	1	1	1	0	0	1
-Kidney-ChRCC	NA	46	kidney chromophobe renal cell carcinoma	1	1	0	0	1	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	1	1	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	1	0	0	0
-Kidney-Papillary	KIRP	21	papillary renal cell carcinoma	1	1	0	0	1	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
-Kidney-RCC	KIRC	184	kidney renal cell carcinoma	1	1	0	1	1	0	0	0	0	0	0	0	0	0	0	1	1	1	0	0	0	0	0	0	0	0	1	0	0	0	1	0	1	0	0	0	0	0	0	0	0	0	0	1	1	0	0
-Liver-HCC	LIHC	489	liver hepatocellular carcinoma	1	0	1	1	1	1	0	0	0	0	0	1	0	0	0	1	0	1	0	1	1	1	1	1	0	0	1	1	1	0	1	1	1	1	1	0	0	0	1	0	1	0	0	1	0	0	0
-Lung-AdenoCA	LUAD	438	lung adenocarcinoma	1	1	1	1	1	1	0	0	0	0	0	1	0	0	0	0	1	0	1	0	1	1	1	0	0	0	0	0	0	0	0	1	1	0	0	0	0	0	0	0	0	0	0	1	0	0	0
-Lung-SCC	LUSC	350	lung squamous cell carcinoma	1	1	1	1	1	0	1	1	1	0	1	0	0	0	0	0	1	0	1	0	0	0	1	0	0	0	0	0	0	0	0	0	1	1	0	0	0	0	0	0	0	0	0	1	0	0	1
-Lymph-BNHL	NA	135	lymphoid mature B-cell lymphoma	1	1	1	0	1	1	0	0	0	0	0	1	0	0	0	0	1	0	0	0	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	1	1	0	0	1	0	1	0
-Lymph-CLL	NA	171	lymphoid chronic lymphocytic leukemia	1	0	0	0	1	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0
-Myeloid-AML	LAML	106	acute myeloid leukemia	1	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	1	0	0	0
-Myeloid-MDS/MPN	NA	43	myelodysplastic syndrome and myeloproliferative neoplasm	1	1	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	1	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0
-Oral-SCC	NA	52	oral squamous cell carcinoma (note some TCGA HNSC are oral)	1	1	0	0	1	0	1	1	1	1	0	0	0	1	0	0	1	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0
-Ovary-AdenoCA	OV	149	ovary adenocarcinoma	1	1	1	0	1	0	0	1	1	1	1	0	0	0	0	0	1	0	0	0	0	0	1	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	1	0	0	1	1	1	1	0	0
-Panc-AdenoCA	PAAD	357	pancreatic adenocarcinoma	1	1	1	0	1	1	0	0	0	0	1	0	1	1	0	0	1	1	1	0	1	1	1	0	1	0	0	0	0	0	1	1	0	1	1	0	0	1	0	0	1	0	0	1	0	0	1
-Panc-Endocrine	NA	95	pancreatic neuroendocrine tumor	1	1	1	0	1	1	0	0	0	0	1	1	0	0	1	0	1	0	0	0	1	1	0	0	0	0	0	0	0	0	1	0	0	1	0	0	0	0	0	1	0	0	1	1	0	0	0
-Prost-AdenoCA	PRAD	407	prostate adenocarcinoma	1	1	1	0	1	1	0	0	0	0	1	0	0	0	0	1	1	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	1	0	1	1	1	0	0
-Sarcoma	SARC	26	sarcoma	1	0	0	0	1	0	1	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0
-Sarcoma-bone	NA	59	paper unclear; perhaps osteosarcoma and other sarcomas combined?	1	1	0	0	1	0	1	1	1	1	0	0	0	0	0	0	1	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	1	0	0	0
-Skin-BCC	NA	117	skin basal cell carcinoma	1	1	0	0	1	0	1	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
-Skin-Melanoma	SKCM	809	skin melanoma	1	1	1	0	1	0	1	1	1	1	0	1	0	0	1	0	1	1	0	0	1	1	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	1	0	1	0	1	0	0	0
-Skin-SCC	NA	41	skin squamous cell carcinoma	1	1	0	0	1	1	1	1	1	1	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0
-SoftTissue-Leiomyo	NA	15	leiomyosarcoma soft tissue	1	1	0	0	1	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	1	1	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	1	0	0	0
-SoftTissue-Liposarc	NA	19	liposarcoma soft tissue	1	1	1	0	1	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	1	0	0	0
-Stomach-AdenoCA	NA	452	stomach adenocarcinoma	1	1	1	0	1	1	0	0	0	0	1	0	1	1	0	0	1	1	1	0	1	1	1	0	1	1	0	0	0	0	1	1	0	0	0	0	0	1	0	0	0	0	0	1	1	0	1
-Thy-AdenoCA	THCA	67	thyroid low-grade adenocarcinoma	1	1	0	0	1	1	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	1	0	0	0
-Uterus-AdenoCA	UCEC	291	uterus adenocarcinoma	1	1	1	0	1	1	1	1	0	1	0	0	1	1	0	0	1	1	1	0	0	0	0	0	1	1	0	0	0	0	1	1	0	1	0	0	0	0	0	0	0	0	0	1	0	0	1
+PCAWG	Applicable_TCGA	Number_of_tumors	Description	SBS1	SBS2	SBS3	SBS4	SBS5	SBS6	SBS7a	SBS7b	SBS7c	SBS7d	SBS8	SBS9	SBS10a	SBS10b	SBS11	SBS12	SBS13	SBS14	SBS15	SBS16	SBS17a	SBS17b	SBS18	SBS19	SBS20	SBS21	SBS22	SBS23	SBS24	SBS25	SBS26	SBS28	SBS29	SBS30	SBS31	SBS32	SBS33	SBS34	SBS35	SBS36	SBS37	SBS38	SBS39	SBS40	SBS41	SBS42	SBS44	SBS84	SBS85
+ALL	NA	33	acute lymphoblastic leukemia	1	1	0	0	1	0	1	1	1	1	0	0	0	0	0	0	1	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	1	1
+Biliary-AdenoCA	NA	173	biliary adenocarcinoma	1	1	1	1	1	0	0	0	0	0	0	1	1	1	0	1	1	0	1	1	1	1	1	0	1	1	1	0	1	0	0	1	1	0	0	1	0	0	0	0	0	1	0	1	0	1	1	0	0
+Bladder-TCC	BLCA	369	bladder transitional cell carcinoma	1	1	1	0	1	0	0	0	0	0	1	0	1	1	0	0	1	0	0	0	0	0	1	1	0	0	1	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0
+Bone-Osteosarc	NA	36	"sarcoma, bone"	1	1	1	0	1	0	0	0	0	0	1	0	0	0	0	0	1	0	0	0	1	1	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0
+Bone-Other	NA	18	"Paper vague; presumably bone cartilaginous neoplasm osteoblastoma, bone osteofibrous dysplasia, bone neoplasm epithelioid"	1	1	0	0	1	0	0	0	0	0	1	0	0	0	0	0	1	0	0	0	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0
+Breast	BRCA	834	"breast adenocarcinoma, ductal carcinoma in situ, breast lobular carcinoma"	1	1	1	0	1	0	0	0	0	0	1	1	1	1	0	0	1	0	1	0	1	1	1	1	0	1	0	0	0	0	1	0	1	1	0	0	0	1	0	0	1	0	1	1	1	0	1	0	0
+Cervix	CESC	204	cervical squamous cell carcinoma and adenocarcinoma	1	1	0	0	1	1	0	0	0	0	0	0	1	1	0	0	1	0	1	0	1	1	1	0	0	0	0	0	0	0	1	1	0	0	0	0	1	0	0	0	0	0	0	1	0	0	1	0	0
+CNS-GBM	GBM	100	CNS glioblastoma	1	1	0	0	1	0	0	0	0	0	0	0	1	1	1	0	1	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	1	0	0	1	0	1	0	0	0
+CNS-LGG	LGG	27	CNS lower-grade glioma	1	0	0	0	1	0	0	1	1	1	0	0	0	0	1	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+CNS-Medullo	NA	185	CNS medulloblastoma	1	0	1	0	1	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	0	0	0	0	0
+CNS-Oligo	NA	18	CNS oligodenroglioma	1	0	0	0	1	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0
+CNS-PiloAstro	NA	48	CNS pilocytic astrocytomaE:E	1	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0
+ColoRect-AdenoCA	"COAD, READ"	719	colorectal adenocarcinoma	1	1	1	0	1	1	0	0	0	0	0	1	1	1	0	0	1	0	1	0	1	1	1	0	1	1	0	0	0	0	1	1	0	1	0	0	0	0	0	0	1	0	0	1	1	0	1	0	0
+Eso-AdenoCA	ESCA	347	esophagus adenocarcinoma	1	1	1	1	1	1	0	1	1	1	0	0	0	0	0	0	1	0	0	1	1	1	1	0	1	0	0	0	0	0	1	1	0	0	0	0	0	1	0	0	0	1	0	1	0	0	1	0	0
+Eso-SCC	ESCA	160	esophagus squamous cell carcinoma	1	1	0	0	1	0	0	0	0	0	0	1	0	1	0	0	1	0	1	0	1	1	1	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	1	0	0
+Ewings	NA	85	Ewing's sarcoma	1	1	0	0	1	0	1	1	1	1	0	0	0	0	0	0	1	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	1	0	0	0	0	0
+Eye-Melanoma	UVM	13	uveal melanoma	1	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0
+Head-SCC	HNSC	313	head-and-neck squamous cell carcinoma (note HNSC also includes some Oral-SCC)	1	1	1	1	1	0	1	1	1	1	0	0	1	1	0	0	1	0	1	1	1	1	1	0	0	1	0	0	0	0	0	0	0	1	0	1	1	0	0	1	0	1	1	1	0	0	1	0	0
+Kidney-ChRCC	NA	46	kidney chromophobe renal cell carcinoma	1	1	0	0	1	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	1	1	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0
+Kidney-Papillary	KIRP	21	papillary renal cell carcinoma	1	1	0	0	1	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+Kidney-RCC	KIRC	184	kidney renal cell carcinoma	1	1	0	1	1	0	0	0	0	0	0	0	0	0	0	1	1	1	0	0	0	0	0	0	0	0	1	0	0	0	1	0	1	0	0	0	0	0	0	0	0	0	0	1	1	0	0	0	0
+Liver-HCC	LIHC	489	liver hepatocellular carcinoma	1	0	1	1	1	1	0	0	0	0	0	1	0	0	0	1	0	1	0	1	1	1	1	1	0	0	1	1	1	0	1	1	1	1	1	0	0	0	1	0	1	0	0	1	0	0	0	0	0
+Lung-AdenoCA	LUAD	438	lung adenocarcinoma	1	1	1	1	1	1	0	0	0	0	0	1	0	0	0	0	1	0	1	0	1	1	1	0	0	0	0	0	0	0	0	1	1	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0
+Lung-SCC	LUSC	350	lung squamous cell carcinoma	1	1	1	1	1	0	1	1	1	0	1	0	0	0	0	0	1	0	1	0	0	0	1	0	0	0	0	0	0	0	0	0	1	1	0	0	0	0	0	0	0	0	0	1	0	0	1	0	0
+Lymph-BNHL	NA	135	lymphoid mature B-cell lymphoma	1	1	1	0	1	1	0	0	0	0	0	1	0	0	0	0	1	0	0	0	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	1	1	0	0	1	0	1	0	1	1
+Lymph-CLL	NA	171	lymphoid chronic lymphocytic leukemia	1	0	0	0	1	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	1	1
+Myeloid-AML	LAML	106	acute myeloid leukemia	1	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	1	0	0	0	0	0
+Myeloid-MDS/MPN	NA	43	myelodysplastic syndrome and myeloproliferative neoplasm	1	1	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	1	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0
+Oral-SCC	NA	52	oral squamous cell carcinoma (note some TCGA HNSC are oral)	1	1	0	0	1	0	1	1	1	1	0	0	0	1	0	0	1	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+Ovary-AdenoCA	OV	149	ovary adenocarcinoma	1	1	1	0	1	0	0	1	1	1	1	0	0	0	0	0	1	0	0	0	0	0	1	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	1	0	0	1	1	1	1	0	0	0	0
+Panc-AdenoCA	PAAD	357	pancreatic adenocarcinoma	1	1	1	0	1	1	0	0	0	0	1	0	1	1	0	0	1	1	1	0	1	1	1	0	1	0	0	0	0	0	1	1	0	1	1	0	0	1	0	0	1	0	0	1	0	0	1	0	0
+Panc-Endocrine	NA	95	pancreatic neuroendocrine tumor	1	1	1	0	1	1	0	0	0	0	1	1	0	0	1	0	1	0	0	0	1	1	0	0	0	0	0	0	0	0	1	0	0	1	0	0	0	0	0	1	0	0	1	1	0	0	0	0	0
+Prost-AdenoCA	PRAD	407	prostate adenocarcinoma	1	1	1	0	1	1	0	0	0	0	1	0	0	0	0	1	1	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	1	0	1	1	1	0	0	0	0
+Sarcoma	SARC	26	sarcoma	1	0	0	0	1	0	1	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0
+Sarcoma-bone	NA	59	paper unclear; perhaps osteosarcoma and other sarcomas combined?	1	1	0	0	1	0	1	1	1	1	0	0	0	0	0	0	1	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	1	0	0	0	0	0
+Skin-BCC	NA	117	skin basal cell carcinoma	1	1	0	0	1	0	1	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+Skin-Melanoma	SKCM	809	skin melanoma	1	1	1	0	1	0	1	1	1	1	0	1	0	0	1	0	1	1	0	0	1	1	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	1	0	1	0	1	0	0	0	0	0
+Skin-SCC	NA	41	skin squamous cell carcinoma	1	1	0	0	1	1	1	1	1	1	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0
+SoftTissue-Leiomyo	NA	15	leiomyosarcoma soft tissue	1	1	0	0	1	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	1	1	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0
+SoftTissue-Liposarc	NA	19	liposarcoma soft tissue	1	1	1	0	1	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	1	0	0	0	0	0
+Stomach-AdenoCA	NA	452	stomach adenocarcinoma	1	1	1	0	1	1	0	0	0	0	1	0	1	1	0	0	1	1	1	0	1	1	1	0	1	1	0	0	0	0	1	1	0	0	0	0	0	1	0	0	0	0	0	1	1	0	1	0	0
+Thy-AdenoCA	THCA	67	thyroid low-grade adenocarcinoma	1	1	0	0	1	1	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0
+Uterus-AdenoCA	UCEC	291	uterus adenocarcinoma	1	1	1	0	1	1	1	1	0	1	0	0	1	1	0	0	1	1	1	0	0	0	0	0	1	1	0	0	0	0	1	1	0	1	0	0	0	0	0	0	0	0	0	1	0	0	1	0	0
