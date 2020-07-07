@@ -38,7 +38,7 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, samples
   
   
   # Give a progress message if this is going to take more than a few seconds
-  num_variants = length(aac_ids) + length(noncoding_snv_ids)
+  num_variants = length(aac_ids) + length(snv_ids)
   num_samples = samples[, .N]
   if(num_variants * num_samples > 50000) {
     num_variants = format(num_variants, big.mark = ",") # big.mark? R is so weird
