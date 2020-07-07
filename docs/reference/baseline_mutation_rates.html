@@ -73,7 +73,7 @@ trinucleotide-context-specific SNV mutation rates of each sample" />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9008</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9009</span>
       </span>
     </div>
 
@@ -134,7 +134,13 @@ trinucleotide-context-specific SNV mutation rates of each sample" />
 trinucleotide-context-specific SNV mutation rates of each sample</p>
     </div>
 
-    <pre class="usage"><span class='fu'>baseline_mutation_rates</span>(<span class='no'>cesa</span>, <span class='kw'>aac_ids</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>snv_ids</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>samples</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)</pre>
+    <pre class="usage"><span class='fu'>baseline_mutation_rates</span>(
+  <span class='no'>cesa</span>,
+  <span class='kw'>aac_ids</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>snv_ids</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>samples</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>cores</span> <span class='kw'>=</span> <span class='fl'>1</span>
+)</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -154,6 +160,10 @@ trinucleotide-context-specific SNV mutation rates of each sample</p>
     <tr>
       <th>samples</th>
       <td><p>vector of sample IDs (Unique_Patient_Identifier) to include in mutation rate table (defaults to all samples)</p></td>
+    </tr>
+    <tr>
+      <th>cores</th>
+      <td><p>number of cores to use for mutation processing (useful for large data sets or mutation lists)</p></td>
     </tr>
     </table>
 

@@ -31,7 +31,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9008</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9009</span>
       </span>
     </div>
 
@@ -99,7 +99,7 @@
 <p>To get a list of signatures to exclude based on cancer type and treatment status, you can use <code><a href="../reference/suggest_cosmic_v3_signatures_to_remove.html">suggest_cosmic_v3_signatures_to_remove()</a></code>.</p>
 <div class="sourceCode" id="cb1"><html><body><pre class="r">  <span class="fu"><a href="../reference/suggest_cosmic_v3_signatures_to_remove.html">suggest_cosmic_v3_signatures_to_remove</a></span>(<span class="kw">cancer_type</span> <span class="kw">=</span> <span class="st">"BRCA"</span>, <span class="kw">treatment_naive</span> <span class="kw">=</span> <span class="fl">TRUE</span>)
   <span class="fu"><a href="../reference/suggest_cosmic_v3_signatures_to_remove.html">suggest_cosmic_v3_signatures_to_remove</a></span>(<span class="kw">cancer_type</span> <span class="kw">=</span> <span class="st">"Kidney-RCC"</span>)</pre></body></html></div>
-<p>The cancer type recommendations are based on Extended Data Figure 5 of Alexandrov 2020. The first two columns of the table below, also based on that figure, give the labels accepted by the <code>cancer_type</code> argument.</p>
+<p>The cancer type recommendations are based on Extended Data Figure 5 of Alexandrov 2020. The first two columns of the table below, also based on that figure, give the labels accepted by the <code>cancer_type</code> argument. (Note: SBS85 and SBS85 are absent from the Alexandrov figure, but they are elsewhere described in the paper as specific to lymphoid neoplasms.)</p>
 <p>Before excluding signatures, make sure your data set does not contain tumors from multiple PCAWG categories. For example, TCGA HNSC (head and neck cancer) includes oral cancers, which are listed separately here as Oral-SCC, so excluding all signatures that do not appear in Head-SCC (such as SBS29, tobacco chewing) would not be appropriate.</p>
 <table class="table table table-condensed">
 <thead><tr>
@@ -366,7 +366,7 @@ HNSC
 313
 </td>
 <td style="text-align:right;">
-head-and-neck squamous cell carcinoma (note HNSC also includes some oral-SCC)
+head-and-neck squamous cell carcinoma (note HNSC also includes some Oral-SCC)
 </td>
 </tr>
 <tr>

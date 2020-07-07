@@ -72,7 +72,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9008</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9009</span>
       </span>
     </div>
 
@@ -137,6 +137,7 @@
   <span class='kw'>genes</span> <span class='kw'>=</span> <span class='st'>"all"</span>,
   <span class='kw'>cores</span> <span class='kw'>=</span> <span class='fl'>1</span>,
   <span class='kw'>include_nonrecurrent_variants</span> <span class='kw'>=</span> <span class='no'>F</span>,
+  <span class='kw'>variants</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
   <span class='kw'>conf</span> <span class='kw'>=</span> <span class='fl'>0.95</span>
 )</pre>
 
@@ -148,6 +149,10 @@
       <td><p>CESAnalysis object</p></td>
     </tr>
     <tr>
+      <th>genes</th>
+      <td><p>which genes to calculate effect sizes within; defaults to all genes in data set</p></td>
+    </tr>
+    <tr>
       <th>cores</th>
       <td><p>number of cores to use</p></td>
     </tr>
@@ -156,12 +161,14 @@
       <td><p>default false; will increase runtime and SIs at non-recurrent sites aren't very informative</p></td>
     </tr>
     <tr>
-      <th>conf</th>
-      <td><p>selection intensity confidence interval width (NULL skips calculation, speeds runtime)</p></td>
+      <th>variants</th>
+      <td><p>When specified, list of specific mutations to include, excluding all others; 
+e.g., list(aac_id = c(...), snv_id = c(...)). If "genes" is also specified, the intersection is taken. If
+you want to use this parameter to calculate SI at sites with no MAF variants, set include_nonrecurrent_variants = T.</p></td>
     </tr>
     <tr>
-      <th>gene</th>
-      <td><p>which genes to calculate effect sizes within; defaults to all genes in data set</p></td>
+      <th>conf</th>
+      <td><p>selection intensity confidence interval width (NULL skips calculation, speeds runtime)</p></td>
     </tr>
     </table>
 

@@ -72,7 +72,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9008</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9009</span>
       </span>
     </div>
 
@@ -132,7 +132,7 @@
     <p>Get table of signature weights by tumor</p>
     </div>
 
-    <pre class="usage"><span class='fu'>get_signature_weights</span>(<span class='kw'>cesa</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)</pre>
+    <pre class="usage"><span class='fu'>get_signature_weights</span>(<span class='kw'>cesa</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>include_tumors_without_data</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>)</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -140,6 +140,11 @@
     <tr>
       <th>cesa</th>
       <td><p>CESAnalysis object</p></td>
+    </tr>
+    <tr>
+      <th>include_tumors_without_data</th>
+      <td><p>include rows (consisting of group-average weights) for samples that did not undergo
+signature extraction, such as TGS tumors or the rare sample with no non-recurrent SNVs</p></td>
     </tr>
     </table>
 
