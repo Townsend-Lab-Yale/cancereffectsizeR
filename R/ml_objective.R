@@ -13,33 +13,31 @@
 
 ml_objective <- function(gamma, tumor_stages, tumors_with_variant, tumors_without_gene_mutated, baseline_rates, modifier = 0) {
   
+  stages_tumors_without = unname(tumor_stages[tumors_without_gene_mutated])
+  rates_tumors_without = unname(baseline_rates[tumors_without_gene_mutated])
+  
+  stages_tumors_with = unname(tumor_stages[tumors_with_variant])
+  sequential_stages_tumors_with = lapply(stages_tumors_with, function(x) 1:x) # e.g., 1 -> 1; 3 -> 1,2,3 (for vector subsetting)
+  rates_tumors_with = unname(baseline_rates[tumors_with_variant])
+  
   fn = function(gamma) {
     sums = cumsum(gamma)
-    gamma_sums = sums[tumor_stages[tumors_without_gene_mutated]]
-    sum_log_lik = -1 * sum(gamma_sums * baseline_rates[tumors_without_gene_mutated])
+    gamma_sums = sums[stages_tumors_without]
+    sum_log_lik = -1 * sum(gamma_sums * rates_tumors_without)
 
-    calc_gamma_sums_mut = function(tumor) {
+    calc_gamma_sums_mut = function(rate, stage_seq) {
       # stage-specific likelihoods of mutation
-      lik_no_mutation = exp(-1 * gamma * baseline_rates[tumor])
+      lik_no_mutation = exp(-1 * gamma * rate)
       lik_mutation = 1 - lik_no_mutation
       
-      this_sum = lik_mutation[1] # likelihood of mutation having occurred by stage 1 
-      
-      # for tumors that are at stage > 1, add in likelihoods of mutation having occurred at later stages
-      current_stage = 2
-      while (current_stage <= tumor_stages[[tumor]]) {
-        # e.g., at current_stage = 3, take product of no mutation in stage 1, no mutation in stage 2, yes mutation in stage 3
-        this_sum = this_sum + lik_mutation[current_stage] * prod(lik_no_mutation[(current_stage-1):1])
-        current_stage <- current_stage + 1
-      }
-      return(log(this_sum))
+      cum_lik_no_mut = c(1, cumprod(lik_no_mutation))
+      return(log(sum(cum_lik_no_mut[stage_seq] * lik_mutation[stage_seq])))
     }
     
     if(length(tumors_with_variant) > 0) {
-      gamma_sums = sapply(tumors_with_variant, calc_gamma_sums_mut)
+      gamma_sums = mapply(calc_gamma_sums_mut, rates_tumors_with, sequential_stages_tumors_with)
       sum_log_lik = sum_log_lik + sum(gamma_sums)
     }
-
     
     # in case it tried all the max at once.
     if(!is.finite(sum_log_lik)){
