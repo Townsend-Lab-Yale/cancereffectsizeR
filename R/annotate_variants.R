@@ -297,41 +297,38 @@ annotate_variants <- function(cesa) {
 #' @param cesa CESAnalysis with mutation annotations
 #' @param variants vector of AAC and/or SNV IDs; or supply a cancerffectsizeR
 #'                 table that contains IDs to use, such as $maf or $snv.
-collect_intersecting_variants <- function(cesa, variants) {
-  if (! is(cesa, "CESAnalysis")) {
-    stop("cesa should be a CESAnalysis.", call. = F)
-  }
-  if (is.null(cesa@mutations$snv)) {
-    stop("The CESAnalysis must have mutation annotations.", call. = F)
-  }
-  
-  if (is.null(variants)) {
-    stop("Variants must be supplied.", call. = F)
-  }
-  
-  snvs_to_check = character()
-  aacs_to_check = character()
-  if (is(variants, "data.table")) {
-    # Check if data.table resembles AAC table, SNV table, selection table, or MAF
-    first_col = names(variants)[1]
-    maf_cols = c("snv_id", "assoc_aa_mut")
-    if (first_col == "snv_id") {
-      snvs_to_check = variants[[first_col]]
-    } else if (first_col == "aac_id") {
-      aacs_to_check = variants[[first_col]]
-    } else if (first_col == "variant" & "variant_type" %in% names(variants)) {
-      snvs_to_check = variants[variant_type == "snv", variant]
-      aacs_to_check = variants[variant_type == "aac", variant]
-    } else if (all(maf_cols %in% names(variants))) {
-      # this is the easiest case since the MAF already lists multiple AAC IDs when they intersect
-      tmp = unique(variants[! is.na(assoc_aa_mut), .(snv_id, assoc_aa_mut)], by = "snv_id")
-      tmp[, num := sapply(assoc_aa_mut, length)]
-      return(tmp[num > 1, assoc_aa_mut])
-    } else {
-      stop("Unrecognized data table format", call. = F)
-    }
-  }
-  
-  
-  
-}
+# collect_intersecting_variants <- function(cesa, variants) {
+#   if (! is(cesa, "CESAnalysis")) {
+#     stop("cesa should be a CESAnalysis.", call. = F)
+#   }
+#   if (is.null(cesa@mutations$snv)) {
+#     stop("The CESAnalysis must have mutation annotations.", call. = F)
+#   }
+#   
+#   if (is.null(variants)) {
+#     stop("Variants must be supplied.", call. = F)
+#   }
+#   
+#   snvs_to_check = character()
+#   aacs_to_check = character()
+#   if (is(variants, "data.table")) {
+#     # Check if data.table resembles AAC table, SNV table, selection table, or MAF
+#     first_col = names(variants)[1]
+#     maf_cols = c("snv_id", "assoc_aa_mut")
+#     if (first_col == "snv_id") {
+#       snvs_to_check = variants[[first_col]]
+#     } else if (first_col == "aac_id") {
+#       aacs_to_check = variants[[first_col]]
+#     } else if (first_col == "variant" & "variant_type" %in% names(variants)) {
+#       snvs_to_check = variants[variant_type == "snv", variant]
+#       aacs_to_check = variants[variant_type == "aac", variant]
+#     } else if (all(maf_cols %in% names(variants))) {
+#       # this is the easiest case since the MAF already lists multiple AAC IDs when they intersect
+#       tmp = unique(variants[! is.na(assoc_aa_mut), .(snv_id, assoc_aa_mut)], by = "snv_id")
+#       tmp[, num := sapply(assoc_aa_mut, length)]
+#       return(tmp[num > 1, assoc_aa_mut])
+#     } else {
+#       stop("Unrecognized data table format", call. = F)
+#     }
+#   }
+# }

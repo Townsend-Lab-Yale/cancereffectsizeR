@@ -73,7 +73,7 @@ trinucleotide-context-specific SNV mutation rates of each sample" />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9009</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9010</span>
       </span>
     </div>
 
@@ -138,6 +138,7 @@ trinucleotide-context-specific SNV mutation rates of each sample</p>
   <span class='no'>cesa</span>,
   <span class='kw'>aac_ids</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
   <span class='kw'>snv_ids</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>variant_ids</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
   <span class='kw'>samples</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
   <span class='kw'>cores</span> <span class='kw'>=</span> <span class='fl'>1</span>
 )</pre>
@@ -156,6 +157,10 @@ trinucleotide-context-specific SNV mutation rates of each sample</p>
     <tr>
       <th>snv_ids</th>
       <td><p>vector of IDs for SNVs</p></td>
+    </tr>
+    <tr>
+      <th>variant_ids</th>
+      <td><p>vector of mixed IDs (faster to use snv_ids and aac_ids for large jobs, if already known)</p></td>
     </tr>
     <tr>
       <th>samples</th>

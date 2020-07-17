@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Calculate gene-level selection intensity under an assumption of pairwise gene epistasis — ces_gene_epistasis • cancereffectsizeR</title>
+<title>Gene-level epistasis — ces_gene_epistasis • cancereffectsizeR</title>
 
 
 <!-- jquery -->
@@ -39,8 +39,8 @@
 
 
 
-<meta property="og:title" content="Calculate gene-level selection intensity under an assumption of pairwise gene epistasis — ces_gene_epistasis" />
-<meta property="og:description" content="Calculate gene-level selection intensity under an assumption of pairwise gene epistasis" />
+<meta property="og:title" content="Gene-level epistasis — ces_gene_epistasis" />
+<meta property="og:description" content="Calculate selection intensity under an assumption of pairwise gene-level epistasis." />
 
 
 
@@ -72,7 +72,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9009</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9010</span>
       </span>
     </div>
 
@@ -123,20 +123,20 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Calculate gene-level selection intensity under an assumption of pairwise gene epistasis</h1>
-    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/R/ces_gene_epistasis.R'><code>R/ces_gene_epistasis.R</code></a></small>
+    <h1>Gene-level epistasis</h1>
+    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/R/pairwise_epistasis.R'><code>R/pairwise_epistasis.R</code></a></small>
     <div class="hidden name"><code>ces_gene_epistasis.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Calculate gene-level selection intensity under an assumption of pairwise gene epistasis</p>
+    <p>Calculate selection intensity under an assumption of pairwise gene-level epistasis.</p>
     </div>
 
     <pre class="usage"><span class='fu'>ces_gene_epistasis</span>(
   <span class='kw'>cesa</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
   <span class='kw'>genes</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/character.html'>character</a></span>(),
   <span class='kw'>cores</span> <span class='kw'>=</span> <span class='fl'>1</span>,
-  <span class='kw'>optimx_args</span> <span class='kw'>=</span> <span class='fu'><a href='ces_gene_epistasis_opm_args.html'>ces_gene_epistasis_opm_args</a></span>(),
+  <span class='kw'>optimx_args</span> <span class='kw'>=</span> <span class='fu'><a href='ces_epistasis_opm_args.html'>ces_epistasis_opm_args</a></span>(),
   <span class='kw'>return_all_opm_output</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>
 )</pre>
 
@@ -149,11 +149,11 @@
     </tr>
     <tr>
       <th>genes</th>
-      <td><p>which genes to calculate effect sizes within</p></td>
+      <td><p>vector of gene names; SIs will be calculated for all gene pairs</p></td>
     </tr>
     <tr>
       <th>cores</th>
-      <td><p>number of cores to use</p></td>
+      <td><p>number of cores for parallel processing of gene pairs</p></td>
     </tr>
     <tr>
       <th>optimx_args</th>
