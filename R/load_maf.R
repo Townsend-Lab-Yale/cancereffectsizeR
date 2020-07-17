@@ -129,16 +129,28 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
         "covered_regions BED file could not be found (check the path)"
       }
       covered_regions = rtracklayer::import(covered_regions, format = "bed")
-      GenomeInfoDb::seqlevelsStyle(covered_regions) = "NCBI"
-      
-      GenomeInfoDb::seqlevels(covered_regions) = GenomeInfoDb::seqlevels(genome_info)
-      # set genome to match CESAnalysis (if this fails, possibly the genome build does not match)
-      
-      GenomeInfoDb::seqinfo(covered_regions) = genome_info
     } else if (! is(covered_regions, "GRanges")) {
       stop("Argument covered_regions expected to be a GRanges object or the path to a BED-formatted text file.")
     }
     
+    # set coverage gr to match CESAnalysis genome (if this fails, possibly the genome build does not match)
+    GenomeInfoDb::seqlevelsStyle(covered_regions) = "NCBI"
+    
+    tryCatch({
+      msg = paste0("Your covered_regions don't seem compatible with the CESAnalysis reference genome.\n",
+                    "Make sure it uses the same genome assembly. It may also help to subset to just the\n",
+                    "primary chromosomes, if any obscure contigs are present in your regions.\n",
+                   "Original warning/error:")
+      GenomeInfoDb::seqlevels(covered_regions) = GenomeInfoDb::seqlevels(genome_info)
+      GenomeInfoDb::seqinfo(covered_regions) = genome_info
+    }, error = function(e) {
+      message(msg)
+      stop(conditionMessage(e))
+    }, warning = function(w) {
+      message(msg)
+      stop(conditionMessage(w))
+    })
+
     # drop any metadata
     GenomicRanges::mcols(covered_regions) = NULL
     
@@ -147,11 +159,10 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     GenomicRanges::strand(covered_regions) = "*"
     
     # require genome name to match the CESAnalysis (too many potential errors if we allow anonymous or mismatched genome)
-    GenomeInfoDb::seqlevelsStyle(covered_regions) = "NCBI"
     expected_genome = GenomeInfoDb::genome(cesa@genome)[1]
     gr_genome = GenomeInfoDb::genome(covered_regions)[1]
     if (expected_genome != gr_genome) {
-      stop(paste0("The genome of the covered_regions GRanges (", gr_genome, ") does not match the CESAnalysis (",
+      stop(paste0("The genome name of the covered_regions GRanges (", gr_genome, ") does not match the CESAnalysis (",
                   expected_genome, ")."))
     }
     
@@ -168,9 +179,9 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
       covered_regions_bases_covered = sum(IRanges::width(IRanges::ranges(covered_regions)))
       generic_bases_covered = sum(IRanges::width(IRanges::ranges(get_genome_data(cesa, "generic_exome_gr"))))
       percent_covered = 
-      if (covered_regions_bases_covered / generic_bases_covered < .5) {
-        warning(paste0("Coverage is set to exome, but your covered_regions cover less than 50% of this genome's built-in generic exome.\n",
-                       "This might make sense if the exome capture array is very lean, but if this actually targeted sequencing data,\n",
+      if (covered_regions_bases_covered / generic_bases_covered < .4) {
+        warning(paste0("Coverage is set to exome, but your covered_regions are less than 40% of the size of this genome's default exome intervals.\n",
+                       "This might make sense if your exome capture array is very lean, but if this is actually targeted sequencing data,\n",
                        "create a new CESAnalysis and run load_maf() with coverage = \"targeted\"."))
       }
     }
