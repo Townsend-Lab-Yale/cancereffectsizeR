@@ -8,6 +8,7 @@ baseline_mutation_rates(
   cesa,
   aac_ids = NULL,
   snv_ids = NULL,
+  variant_ids = NULL,
   samples = NULL,
   cores = 1
 )
@@ -18,6 +19,8 @@ baseline_mutation_rates(
 \item{aac_ids}{vector of IDs for amino acid change variants}
 
 \item{snv_ids}{vector of IDs for SNVs}
+
+\item{variant_ids}{vector of mixed IDs (faster to use snv_ids and aac_ids for large jobs, if already known)}
 
 \item{samples}{vector of sample IDs (Unique_Patient_Identifier) to include in mutation rate table (defaults to all samples)}
 
