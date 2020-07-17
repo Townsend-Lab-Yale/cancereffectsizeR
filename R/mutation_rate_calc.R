@@ -6,15 +6,22 @@
 #' @param cesa CESAnalysis with gene mutation rates and tumor-specific trinucleotide-context-specific mutation rates already calculated
 #' @param aac_ids vector of IDs for amino acid change variants
 #' @param snv_ids vector of IDs for SNVs
+#' @param variant_ids vector of mixed IDs (faster to use snv_ids and aac_ids for large jobs, if already known)
 #' @param samples vector of sample IDs (Unique_Patient_Identifier) to include in mutation rate table (defaults to all samples)
 #' @param cores number of cores to use for mutation processing (useful for large data sets or mutation lists)
 #' @return a data table of mutation rates with one column per variant, and a Unique_Patient_Identifier column identifying each row
 #' @export
-baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, samples = NULL, cores = 1) {
+baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant_ids = NULL, samples = NULL, cores = 1) {
   
   # Helping the user out
-  aac_ids = na.omit(aac_ids)
-  snv_ids = na.omit(snv_ids)
+  aac_ids = unique(na.omit(aac_ids))
+  snv_ids = unique(na.omit(snv_ids))
+  
+  if (! is.null(variant_ids)) {
+    variant_ids = na.omit(variant_ids)
+    aac_ids = unique(c(aac_ids, cesa$mutations$amino_acid_change[variant_ids, aac_id, nomatch = NULL]))
+    snv_ids = unique(c(snv_ids, cesa$mutations$snv[variant_ids, snv_id, nomatch = NULL]))
+  }
   
   # Let user specify a subset of samples to calculate rates (or, by default, use all samples)
   if(! is.null(samples)) {
