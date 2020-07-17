@@ -9,15 +9,10 @@ fwrite(cesa$trinuc_rates, "luad_hg19_trinuc_rates.txt", sep = "\t")
 fwrite(cesa$mutational_signatures, "luad_hg19_sig_table.txt", sep = "\t")
 
 ## Create small trinuc weight data for tests
-# these samples have been chosen because they (randomly) have a fast runtime in the group average dS step
-small_maf = cesa$maf[Unique_Patient_Identifier %in% c("sample-102", "sample-1", "sample-31")]
-# add in a recurrent mutation for testing purposes
-small_maf = rbind(small_maf, list("sample-1", "7", 124404124, "G", "C", "SNV"))
-
-cesa = load_maf(cesa = CESAnalysis("hg19"), maf = small_maf)
+# These samples are a mix of LUAD and fabricated data; one tumor is special because dS returns 100% artifact weightings on it
+# There is one recurrent SNV that appears in both good_A and good_B
+cesa = load_maf(cesa = CESAnalysis("hg19"), maf = get_test_file("trinuc_rate_test_maf.txt"))
 saveRDS(cesa, "cesa_for_trinuc_weighting_calc.rds")
 trimut = trinuc_mutation_rates(cesa, signatures_to_remove = suggest_cosmic_v3_signatures_to_remove("LUAD", TRUE, TRUE))
 saveRDS(trimut@trinucleotide_mutation_weights, "trinuc_mut_weighting.rds")
 
-
-setwd(prev_dir)

@@ -6,6 +6,21 @@ test_that("Trinucleotide signature weight calculation", {
                                 "SBS26", "SBS30", "SBS31", "SBS32", "SBS33", "SBS34", "SBS35", "SBS36", "SBS37", 
                                 "SBS38", "SBS39", "SBS41", "SBS42", "SBS44", "SBS84", "SBS85"))
   cesa = trinuc_mutation_rates(cesa, signatures_to_remove = to_remove)
+  
+  # Ensure SNV counts (total and used by dS) look right
+  expect_identical(cesa@trinucleotide_mutation_weights$signature_weight_table[, unlist(.(total_snvs, sig_extraction_snvs))],
+                   c(67, 181, 38, 66, 180, 38))
+  
+  
+  full_weight_table = get_signature_weights(cesa, include_tumors_without_data = T)
+  expect_equal(full_weight_table[, .N], 5)
+  expect_equal(full_weight_table[Unique_Patient_Identifier == "one_indel", unlist(.(total_snvs, sig_extraction_snvs))], c(0, 0))
+  expect_equal(full_weight_table[Unique_Patient_Identifier == "zeroed-out", unlist(.(total_snvs, sig_extraction_snvs))], c(18, 0))
+  
+  # All tumors should have an above-threshold number of usable SNVs, or they should be group-average-blended (but never both)
+  expect_true(all(full_weight_table[, xor(sig_extraction_snvs > 49, group_avg_blended == T)]))
+  
+  
   trinuc_ak = get_test_data("trinuc_mut_weighting.rds")
   expect_equal(cesa@trinucleotide_mutation_weights, trinuc_ak)
   
@@ -15,6 +30,8 @@ test_that("Trinucleotide signature weight calculation", {
   
   cesa2 = set_trinuc_rates(cesa, trinuc_rates = trinuc_rates)
   expect_equal(prev_rates_matrix, cesa2@trinucleotide_mutation_weights$trinuc_proportion_matrix)
+  
+  
 })
 
 
@@ -78,9 +95,9 @@ test_that("Gene-level SNV epistasis analysis", {
   cesa = ces_gene_epistasis(cesa, genes = c("EGFR", "KRAS", "TP53"), return_all_opm_output = T)
   results = cesa@gene_epistasis_results
   results_ak = get_test_data("epistasis_results.rds")
-  expect_equal(results, results_ak, tolerance = 1e-4)
+  expect_equal(results, results_ak, tolerance = 1e-3)
   opm_ak = get_test_data("epistasis_opm.rds")
-  expect_equal(cesa@advanced$opm_output[,!"xtime"], opm_ak[,!"xtime"], tolerance = 1e-4) # runtime will vary
+  expect_equal(cesa@advanced$opm_output[,!"xtime"], opm_ak[,!"xtime"], tolerance = 1e-3) #runtime will vary
 })
 
 

@@ -135,7 +135,7 @@ trinuc_mutation_rates <- function(cesa,
     ds_maf <- ds_maf[-duplicated_vec_pos,]
   }
 
-
+  setkey(cesa@samples, "Unique_Patient_Identifier")
   all_tumors = cesa@samples$Unique_Patient_Identifier # may include some tumors with no SNVs, or with only recurrent SNVs
   
   # can only find signatures in tumors with exome/genome data that have non-recurrent SNVs
@@ -269,7 +269,6 @@ trinuc_mutation_rates <- function(cesa,
     } else {
       normalization = tri.counts.genome / exome_counts_by_gr[[cesa@samples[tumor_name, covered_regions]]]
     }
-    
     return(run_deconstructSigs(tumor_trinuc_counts = tumor_trinuc_counts, tri.counts.method = normalization,
                                                 signatures_df = signatures, signatures_to_remove = current_sigs_to_remove, artifact_signatures = artifact_signatures))
   }
@@ -294,23 +293,27 @@ trinuc_mutation_rates <- function(cesa,
     # rarely, weights will come out all 0, so trinuc_prop will be NULL; these tumors are "zeroed-out"
     if(is.null(signatures_output$adjusted_sig_output$trinuc_prop)) {
       zeroed_out_tumors = c(zeroed_out_tumors, tumor_name)
+      substitution_counts[[tumor_name]] = 0 # no SNVs inform trinuc rates in these tumors
     } else {
       trinuc_proportion_matrix[tumor_name, ] = signatures_output$adjusted_sig_output$trinuc_prop
     }
   }
   # in the (very rare) occurrence of zeroed-out tumors, set them aside to be assigned group average signature weightings
   tumors_above_threshold = setdiff(tumors_above_threshold, zeroed_out_tumors)
-  tumors_below_threshold = setdiff(tumors_below_threshold, zeroed_out_tumors)
+  tumors_below_threshold = union(tumors_below_threshold, zeroed_out_tumors)
   tumors_needing_group_average_rates = union(tumors_needing_group_average_rates, zeroed_out_tumors)
-
 
   if(assume_identical_mutational_processes == TRUE) {
     tumors_needing_group_average_rates = union(tumors_needing_group_average_rates, tumors_eligible_for_trinuc_calc)
   }
   
-  # If any samples have <50 mutations, determine weightings for those samples using method specified by user
+  # If any samples have subthreshold number of mutations, determine weightings for those samples using method specified by user
   mean_ds = NULL
   if(length(tumors_below_threshold) > 0 || length(tumors_needing_group_average_rates) > 0) {
+    if(length(tumors_above_threshold) == 0) {
+      stop(paste0("No tumors have enough mutations to inform group-average signature extraction\n", 
+                  "(or, rarely, all such tumors have all their mutations attributed to artifacts)."))
+    }
     mean_trinuc_prop = colMeans(trinuc_proportion_matrix[tumors_above_threshold, , drop = F])
 
     # convert to data frame because that's what deconstructSigs wants
@@ -335,6 +338,12 @@ trinuc_mutation_rates <- function(cesa,
     
     mean_weights <- mean_ds$adjusted_sig_output$weights
     mean_trinuc_prop = as.numeric(mean_trinuc_prop) # convert back to numeric for insertion into trinuc_proportion_matrix
+    
+    # TGS tumors, tumors with zeroed-out weights, and tumors with no non-recurrent SNVs get assigned group-average weights
+    for (tumor in tumors_needing_group_average_rates) {
+      trinuc_proportion_matrix[tumor, ] = mean_trinuc_prop
+    }
+    
     # this should never happen
     if(all(mean_weights == 0)) {
       stop("Somehow, mean signature weights across all well-mutated tumors are all zero.")
@@ -350,7 +359,12 @@ trinuc_mutation_rates <- function(cesa,
         if(is.na(substitution_counts[tumor])) {
           trinuc_proportion_matrix[tumor, ] = mean_trinuc_prop
         } else {
-          own_weighting = substitution_counts[tumor] / sig_averaging_threshold
+          # zeroed-out tumors are sub-threshold even when sig_averaging_threshold is 0; take no weight from these
+          if (sig_averaging_threshold == 0) {
+            own_weighting = 0
+          } else {
+            own_weighting = substitution_counts[tumor] / sig_averaging_threshold
+          }
           group_weighting = 1 - own_weighting
           mean_blended_trinuc_prop = trinuc_proportion_matrix[tumor, ] * own_weighting + mean_trinuc_prop * group_weighting
           ds_output = signatures_output_list[[tumor]]
@@ -361,13 +375,6 @@ trinuc_mutation_rates <- function(cesa,
         }
       }  
     }
-  }
-
-  # TGS tumors, tumors with zeroed-out weights, and tumors with no non-recurrent SNVs get assigned group-average weights
-  for (tumor in tumors_needing_group_average_rates) {
-    trinuc_proportion_matrix[tumor, ] = mean_trinuc_prop
-    
-   ## FIX ##
   }
 
   # Update CESAnalysis status and add in trinuc results
@@ -397,17 +404,14 @@ trinuc_mutation_rates <- function(cesa,
     # use first sample to set column names to signature names
     colnames(all_weights)[2:ncol(all_weights)] = colnames(signatures_output_list[[1]]$adjusted_sig_output$weights)
     all_weights[, group_avg_blended := Unique_Patient_Identifier %in% blended_tumors]
-    all_weights[, snv_count := as.numeric(substitution_counts[Unique_Patient_Identifier])] # otherwise will be "table" class
-    setcolorder(all_weights, c("Unique_Patient_Identifier", "snv_count", "group_avg_blended"))
+    all_weights[, sig_extraction_snvs := as.numeric(substitution_counts[Unique_Patient_Identifier])] # otherwise will be "table" class
     
-    # Edge case: zeroed-out tumors with >0 SNVs appear in both signatures_output_list and tumors_needing_group_average_rates
-    # For these, need to update table entries
-    # row_nums = all_weights[Unique_Patient_Identifier %in% tumors_needing_group_average_rates, which = T]
-    # col_nums = 2:ncol(all_weights)
-    # replacement = unlist(list(0, T, mean_ds$adjusted_sig_output$weights), recursive = F)
-    # set(all_weights, row_nums, col_nums, replacement)
-    # 
-    # Next, add in group-average signatures for TGS samples and those with 0 non-recurrent SNVs
+    total_snv_counts = cesa@maf[Variant_Type == "SNV"][all_weights, .(total_snvs = .N), on = "Unique_Patient_Identifier", by = "Unique_Patient_Identifier"]
+    all_weights = all_weights[total_snv_counts, on = "Unique_Patient_Identifier"]
+    
+    # keep zeroed-out tumors out of the output; they can be reached with get_signature_weights(cesa, include_tumors_without_data = T)
+    all_weights = all_weights[sig_extraction_snvs > 0] 
+    setcolorder(all_weights, c("Unique_Patient_Identifier", "total_snvs", "sig_extraction_snvs", "group_avg_blended"))
     
     cesa@trinucleotide_mutation_weights[["signature_weight_table"]] = all_weights
   }

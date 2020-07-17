@@ -133,8 +133,10 @@ get_signature_weights = function(cesa = NULL, include_tumors_without_data = FALS
       group_avg_weights = as.numeric(cesa@trinucleotide_mutation_weights$group_average_dS_output$adjusted_sig_output$weights)
       new_rows = matrix(nrow = num_to_add, data = rep.int(group_avg_weights, num_to_add), byrow = T)
       colnames(new_rows) = colnames(cesa@trinucleotide_mutation_weights$group_average_dS_output$adjusted_sig_output$weights)
-      
-      new_table = data.table(Unique_Patient_Identifier = tumors_without_data, snv_count = 0, group_avg_blended = T)
+      total_snvs = cesa@maf[Variant_Type == "SNV"][, .N, keyby = "Unique_Patient_Identifier"][tumors_without_data, N]
+      total_snvs[is.na(total_snvs)] = 0
+      new_table = data.table(Unique_Patient_Identifier = tumors_without_data, total_snvs = total_snvs, 
+                             sig_extraction_snvs = 0, group_avg_blended = T)
       new_table = cbind(new_table, new_rows)
       sig_table = rbind(sig_table, new_table)
     }

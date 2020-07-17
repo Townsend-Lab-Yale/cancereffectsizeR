@@ -81,8 +81,9 @@ run_deconstructSigs = function(tumor_trinuc_counts, signatures_df, signatures_to
       trinuc_prop = trinuc_prop / sum(trinuc_prop)
     }
     signatures_output$trinuc_prop = trinuc_prop
+  } else {
+    signatures_output["trinuc_prop"] = list(NULL)
   }
-  
   output$adjusted_sig_output = signatures_output[c("weights", "trinuc_prop")]
   return(output)
 }
