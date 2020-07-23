@@ -64,17 +64,14 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optim
   }
 	if(num_genes != length(genes_to_analyze)) {
 	  num_missing = length(genes_to_analyze) - num_genes
-	  message(paste0(num_genes, " of your requested genes had no recurrent variants, so will not be included (see docs for why this is required)."))
+	  message(paste0(num_missing, " of your requested genes had no recurrent variants, so will not be included (see docs for why this is required)."))
 	}
   genes_to_analyze <- passing_genes
   if (length(genes_to_analyze) == 1) {
     stop(sprintf("Only 1 requested gene (%s) has recurrent variants, so epistasis can't be run.", genes_to_analyze), call. = F)
   }
-  selection_epistasis_results <- t(utils::combn(sort(genes_to_analyze),2))
-  selection_epistasis_results <- data.frame(t(selection_epistasis_results),stringsAsFactors=F)
-  rownames(selection_epistasis_results) <- c("Variant_1","Variant_2")
-  selection_epistasis_results_list <- as.list(selection_epistasis_results)
-  selection_results = pbapply::pblapply(X = selection_epistasis_results_list,
+  gene_pairs <- utils::combn(sort(genes_to_analyze),2, simplify = F)
+  selection_results = pbapply::pblapply(X = gene_pairs,
                                          FUN = pairwise_gene_epistasis,
                                          cesa=cesa,
                                          optimx_args = optimx_args,
@@ -101,7 +98,6 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optim
 #' @return a data.table with pairwise-epistatic selection intensities and variant frequency info
 #' @export
 ces_epistasis = function(cesa = NULL, variants = NULL, cores = 1) {
-  
   if(! is(cesa, "CESAnalysis")) {
     stop("cesa should specify a CESAnalysis object", call. = F)
   }
@@ -137,8 +133,6 @@ ces_epistasis = function(cesa = NULL, variants = NULL, cores = 1) {
       }
     }
   }
-  
-
   selection_results = rbindlist(pbapply::pblapply(X = variants, FUN = pairwise_variant_epistasis, cesa=cesa, cl = cores))
   return(selection_results)
   
@@ -224,8 +218,6 @@ pairwise_gene_epistasis = function(cesa, genes, optimx_args) {
     return(NULL)
   }
   
-  
-  
   # get all amino acid changes in either gene in the data set, then subset to get just the IDs of recurrent ones
   maf = maf[in_g1 | in_g2]
   aac_table = maf[! is.na(assoc_aa_mut), .(aac_id = unlist(assoc_aa_mut), in_g1, in_g2)]
@@ -288,8 +280,8 @@ pairwise_gene_epistasis = function(cesa, genes, optimx_args) {
     if(length(tumors) == 0) {
       return(NULL)
     }
-    rates1 = baseline_rates_g1[tumors]
-    rates2 = baseline_rates_g2[tumors]
+    rates1 = unname(baseline_rates_g1[tumors])
+    rates2 = unname(baseline_rates_g2[tumors])
     return(list(rates1, rates2))
   }
   
