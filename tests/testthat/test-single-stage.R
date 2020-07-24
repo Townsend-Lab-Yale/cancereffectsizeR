@@ -92,12 +92,10 @@ test_that("ces_snv with user-supplied variants", {
 })
 
 test_that("Gene-level SNV epistasis analysis", {
-  cesa = ces_gene_epistasis(cesa, genes = c("EGFR", "KRAS", "TP53"), return_all_opm_output = T)
+  cesa = ces_gene_epistasis(cesa, genes = c("EGFR", "KRAS", "TP53"))
   results = cesa@gene_epistasis_results
   results_ak = get_test_data("epistasis_results.rds")
   expect_equal(results, results_ak, tolerance = 1e-3)
-  opm_ak = get_test_data("epistasis_opm.rds")
-  expect_equal(cesa@advanced$opm_output[,!"xtime"], opm_ak[,!"xtime"], tolerance = 1e-3) #runtime will vary
 })
 
 
