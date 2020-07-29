@@ -5,32 +5,43 @@
 \title{buildref}
 \usage{
 build_RefCDS(
-  cds_data,
+  gtf,
   genome,
-  numcode = 1,
-  excludechrs = NULL,
-  onlychrs = NULL,
-  useids = F,
-  cores = 1
+  output_by = "gene",
+  cds_ranges_lack_stop_codons = T,
+  cores = 1,
+  numcode = 1
 )
 }
 \arguments{
-\item{cds_data}{data from biomaRt for the genome assembly of interest}
+\item{gtf}{Path of a Gencode-GTF-formatted text file, or an equivalently formatted data
+table. See details for required columns (features). It's possible to build a suitable
+table using data pulled from biomaRt, but it's probably easier to use a GTF.}
 
-\item{genome}{a BSgenome object corresponding to the genome assembly of interest}
+\item{genome}{genome assembly (e.g., "hg19"); an associated BSgenome object must be
+available to load.}
 
-\item{numcode}{NCBI genetic code number (default = 1; standard genetic code). To see the list of genetic codes supported use: ? seqinr::translate}
+\item{output_by}{"gene" (default) or "transcript", indicating whether the RefCDS output
+should have one CDS annotation per gene or transcript.}
 
-\item{excludechrs}{Vector or string with chromosome names to be excluded from the RefCDS object (default: no chromosome will be excluded). The mitochondrial chromosome should be excluded as it has different genetic code and mutation rates, either using the excludechrs argument or not including mitochondrial transcripts in cdsfile.}
+\item{cds_ranges_lack_stop_codons}{The CDS records in Gencode GTFs don't include the
+stop codons in their genomic intervals. If your input table does include the stop 
+codons within CDS records, set to FALSE.}
 
-\item{onlychrs}{Vector of valid chromosome names (default: all chromosomes will be included)}
+\item{cores}{how many cores to use for parallel computations}
 
-\item{useids}{Combine gene IDs and gene names (columns 1 and 2 of the input table) as long gene names (default = F)}
-
-\item{cores}{how many cores to use for parallel computations (requires parallel package)}
+\item{numcode}{(don't use) NCBI genetic code number; currently only code 1, the standard genetic code, is supported
+  
+Required columns are seqnames, start, end, strand, gene_name, gene_id, protein_id, and type. When
+output_by = "transcript", there must also be a transcript_id column.
+Only rows with type equal to "CDS" will be used. Strand should be "+" or "-".}
 }
 \description{
-Function to build a RefCDS object from a reference genome and a table of transcripts. The RefCDS object has to be precomputed for any new species or assembly prior to running dndscv. This function generates an .rda file that needs to be input into dndscv using the refdb argument. Note that when multiple CDS share the same gene name (second column of cdsfile), the longest coding CDS will be chosen for the gene. CDS with ambiguous bases (N) will not be considered.
+Function to build a dNdScv-style RefCDS object from a reference genome corresponding
+transcript data. The dNdScv package This function generates an .rda file that needs to
+be input into dndscv using the refdb argument. Note that when multiple CDS share the
+same gene name (second column of cdsfile), the longest coding CDS will be chosen for
+the gene. CDS with ambiguous bases (N) will not be considered.
 }
 \details{
 Based on the buildref function in Inigo Martincorena's package dNdScv.

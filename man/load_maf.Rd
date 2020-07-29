@@ -15,6 +15,7 @@ load_maf(
   coverage = "exome",
   covered_regions = NULL,
   covered_regions_name = NULL,
+  covered_regions_padding = 0,
   progression_col = NULL,
   chain_file = NULL,
   enforce_generic_exome_coverage = FALSE
@@ -33,23 +34,34 @@ load_maf(
 
 \item{ref_col}{column name with reference allele data (Reference_Allele)}
 
-\item{tumor_allele_col}{column name with alternate allele data (default uses Tumor_Seq_Allele2 and Tumor_Seq_Allele1 if present)}
+\item{tumor_allele_col}{column name with alternate allele data; by default,
+values from Tumor_Seq_Allele2 and Tumor_Seq_Allele1 columns are used}
 
 \item{coverage}{exome, genome, or targeted (default exome)}
 
-\item{covered_regions}{optional for exome, required for targeted: a GRanges object or a BED file of covered intervals matching the CESAnalysis genome}
+\item{covered_regions}{optional for exome, required for targeted: a GRanges object or a
+BED file of covered intervals matching the CESAnalysis genome}
 
-\item{covered_regions_name}{a name describing the covered regions (e.g., "my_custom_targeted_regions"); required when covered_regions are supplied}
+\item{covered_regions_name}{a name describing the covered regions (e.g.,
+"my_custom_targeted_regions"); required when covered_regions are supplied}
 
-\item{progression_col}{column in MAF with tumor progression state (see readme)}
+\item{covered_regions_padding}{How many bases (default 0) to expand start and end of
+each covered_regions interval, to include variants called just outside of targeted
+regions. Consider setting from 0-100bp, or up to the sequencing read length. If the
+input data has been trimmed to the targeted regions, leave set to 0.}
 
-\item{chain_file}{a chain file (text format, name ends in .chain) to convert MAF records to the genome build used in the CESAnalysis}
+\item{progression_col}{column in MAF with tumor progression state (see docs)}
 
-\item{enforce_generic_exome_coverage}{when loading generic exome data, exclude records that aren't covered in the (somewhat arbitrary)
-generic exome intervals included with CES genome reference data (default FALSE)}
+\item{chain_file}{a chain file (text format, name ends in .chain) to convert MAF
+records to the genome build used in the CESAnalysis}
+
+\item{enforce_generic_exome_coverage}{when loading generic exome data, exclude records
+that aren't covered in the (somewhat arbitrary) generic exome intervals included with
+CES genome reference data (default FALSE)}
 }
 \value{
-CESAnalysis object with the specified MAF data loaded (in addition to any previously loaded data)
+CESAnalysis object with the specified MAF data loaded (in addition to any
+  previously loaded data)
 }
 \description{
 Load MAF data from a text file or data.frame/data.table into a CESAnalysis object. If column names

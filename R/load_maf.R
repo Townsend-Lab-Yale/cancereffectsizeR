@@ -17,19 +17,29 @@
 #' @param chr_col column name with chromosome data  (Chromosome)           
 #' @param start_col column name with start position (Start_Position)
 #' @param ref_col column name with reference allele data (Reference_Allele)
-#' @param tumor_allele_col column name with alternate allele data (default uses Tumor_Seq_Allele2 and Tumor_Seq_Allele1 if present)
-#' @param progression_col column in MAF with tumor progression state (see readme)
+#' @param tumor_allele_col column name with alternate allele data; by default,
+#'   values from Tumor_Seq_Allele2 and Tumor_Seq_Allele1 columns are used
+#' @param progression_col column in MAF with tumor progression state (see docs)
 #' @param coverage exome, genome, or targeted (default exome)
-#' @param covered_regions optional for exome, required for targeted: a GRanges object or a BED file of covered intervals matching the CESAnalysis genome
-#' @param covered_regions_name a name describing the covered regions (e.g., "my_custom_targeted_regions"); required when covered_regions are supplied
-#' @param chain_file a chain file (text format, name ends in .chain) to convert MAF records to the genome build used in the CESAnalysis
-#' @param enforce_generic_exome_coverage when loading generic exome data, exclude records that aren't covered in the (somewhat arbitrary)
-#'                                       generic exome intervals included with CES genome reference data (default FALSE)
-#' @return CESAnalysis object with the specified MAF data loaded (in addition to any previously loaded data)
+#' @param covered_regions optional for exome, required for targeted: a GRanges object or a
+#'   BED file of covered intervals matching the CESAnalysis genome
+#' @param covered_regions_name a name describing the covered regions (e.g.,
+#'   "my_custom_targeted_regions"); required when covered_regions are supplied
+#' @param covered_regions_padding How many bases (default 0) to expand start and end of
+#'   each covered_regions interval, to include variants called just outside of targeted
+#'   regions. Consider setting from 0-100bp, or up to the sequencing read length. If the
+#'   input data has been trimmed to the targeted regions, leave set to 0.
+#' @param chain_file a chain file (text format, name ends in .chain) to convert MAF
+#'   records to the genome build used in the CESAnalysis
+#' @param enforce_generic_exome_coverage when loading generic exome data, exclude records
+#'   that aren't covered in the (somewhat arbitrary) generic exome intervals included with
+#'   CES genome reference data (default FALSE)
+#' @return CESAnalysis object with the specified MAF data loaded (in addition to any
+#'   previously loaded data)
 #' @export
 load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode", chr_col = "Chromosome", start_col = "Start_Position",
                     ref_col = "Reference_Allele", tumor_allele_col = "guess", coverage = "exome", covered_regions = NULL,
-                    covered_regions_name = NULL, progression_col = NULL, chain_file = NULL, enforce_generic_exome_coverage = FALSE) {
+                    covered_regions_name = NULL, covered_regions_padding = 0, progression_col = NULL, chain_file = NULL, enforce_generic_exome_coverage = FALSE) {
 
   if (is.null(cesa)) {
     stop("You need to supply a CESAnalysis object to load the MAF data into.")
@@ -133,6 +143,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
       stop("Argument covered_regions expected to be a GRanges object or the path to a BED-formatted text file.")
     }
     
+    
     # set coverage gr to match CESAnalysis genome (if this fails, possibly the genome build does not match)
     GenomeInfoDb::seqlevelsStyle(covered_regions) = "NCBI"
     
@@ -166,6 +177,31 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
                   expected_genome, ")."))
     }
     
+    # Validate and apply covered_regions_padding
+    if (! is(covered_regions_padding, "numeric") || length(covered_regions_padding) > 1 || covered_regions_padding < 0 ||
+        covered_regions_padding - as.integer(covered_regions_padding) != 0) {
+      stop("covered_regions_padding should be 1-length integer", call. = F)
+    }
+    if (covered_regions_padding > 1000) {
+      warning(sprintf("covered_regions_padding=%d is awfully high!", covered_regions_padding), call. = F)
+    }
+    if (covered_regions_padding > 0) {
+      # Suppress the out-of-range warning since we'll trim afterwards
+      withCallingHandlers(
+      {
+        GenomicRanges::start(covered_regions) = GenomicRanges::start(covered_regions) - covered_regions_padding
+        GenomicRanges::end(covered_regions) = GenomicRanges::end(covered_regions) + covered_regions_padding
+      }, warning = function(w) 
+        {
+          if (grepl("out-of-bound range", conditionMessage(w))) {
+            invokeRestart("muffleWarning")
+          }
+        }
+      )
+      covered_regions = GenomicRanges::reduce(GenomicRanges::trim(covered_regions))
+    }
+    
+    
     # if covered_regions_name was already used in a previous load_maf call, make sure granges match exactly
     # otherwise, add the coverage information to the CESAnalysis
     if (covered_regions_name %in% names(cesa@coverage)) {
@@ -178,12 +214,16 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     if (coverage == "exome" & check_for_genome_data(cesa, "generic_exome_gr")) {
       covered_regions_bases_covered = sum(IRanges::width(IRanges::ranges(covered_regions)))
       generic_bases_covered = sum(IRanges::width(IRanges::ranges(get_genome_data(cesa, "generic_exome_gr"))))
-      percent_covered = 
       if (covered_regions_bases_covered / generic_bases_covered < .4) {
         warning(paste0("Coverage is set to exome, but your covered_regions are less than 40% of the size of this genome's default exome intervals.\n",
                        "This might make sense if your exome capture array is very lean, but if this is actually targeted sequencing data,\n",
                        "create a new CESAnalysis and run load_maf() with coverage = \"targeted\"."))
       }
+    }
+  } else {
+    # don't allow covered_regions_padding when it's not being used
+    if (length(covered_regions_padding) != 1 || covered_regions_padding != 0) {
+      stop("You can't use covered_regions_padding without supplying covered_regions.", call. = F)
     }
   }
   
@@ -191,11 +231,6 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   if (coverage != "genome") {
     cesa@coverage[[covered_regions_name]] = covered_regions
   }
-  
-  
-  
-
-  
   
   
   select_cols = c(sample_col, chr_col, start_col, ref_col, progression_col)
