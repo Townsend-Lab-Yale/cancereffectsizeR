@@ -44,7 +44,7 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optim
   }
   
   if(return_all_opm_output) {
-    message(silver("FYI, you can access full parameter optimization output in [CESAnalysis]@advanced$opm_output."))
+    message("FYI, you can access full parameter optimization output in [CESAnalysis]@advanced$opm_output.")
   }
   
   maf = cesa@maf[Variant_Type == "SNV"]

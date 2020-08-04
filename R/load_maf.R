@@ -125,7 +125,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     }
     
     using_generic_exome = TRUE
-    message(silver("Assuming this data has generic exome coverage (use the covered_regions argument if this isn't accurate)...."))
+    message(crayon::silver("Assuming this data has generic exome coverage (use the covered_regions argument if this isn't accurate)...."))
   }
   
   # custom covered_regions, when used, must be a GRanges object or a path to a BED-formatted text file
@@ -287,7 +287,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   
   if (sample_col == "Tumor_Sample_Barcode" & ! sample_col %in% input_maf_cols & "Unique_Patient_Identifier" %in% input_maf_cols) {
     sample_col = "Unique_Patient_Identifier"
-    message(silver("Found column Unique_Patient_Identifier; we'll assume this is the correct sample ID column."))
+    message(crayon::silver("Found column Unique_Patient_Identifier; we'll assume this is the correct sample ID column."))
   }
   cols_to_check = c(sample_col, ref_col, chr_col, start_col, progression_col)
   if (tumor_allele_col != "guess") {
@@ -334,7 +334,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   if(tumor_allele_col == "guess") {
     tumor_allele_col = "Tumor_Allele"
     if (tumor_allele_col %in% colnames(maf)) {
-      message(silver("Found column Tumor_Allele; we'll assume this is the correct tumor allele column."))
+      message(crayon::silver("Found column Tumor_Allele; we'll assume this is the correct tumor allele column."))
     } else {
       # automated tumor allele determination requires Tumor_Seq_Allele1/Tumor_Seq_Allele2 columns
       # if these columns are present, the tumor_allele_adder function will handle capitalization and other validation
@@ -342,10 +342,10 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
       allele2_col = "Tumor_Seq_Allele2"
       
       if (allele1_col %in% colnames(maf) && ! allele2_col %in% colnames(maf)) {
-        message(silver("Found column Tumor_Seq_Allele1 but not Tumor_Seq_Allele2;\nwe'll assume Tumor_Seq_Allele1 is the correct tumor allele column."))
+        message(crayon::silver("Found column Tumor_Seq_Allele1 but not Tumor_Seq_Allele2;\nwe'll assume Tumor_Seq_Allele1 is the correct tumor allele column."))
         maf[[tumor_allele_col]] = toupper(maf[[allele1_col]])
       } else if (allele2_col %in% colnames(maf) && ! allele1_col %in% colnames(maf)) {
-        message(silver("Found column Tumor_Seq_Allele2 but not Tumor_Seq_Allele1;\nwe'll assume Tumor_Seq_Allele2 is the correct tumor allele column."))
+        message(crayon::silver("Found column Tumor_Seq_Allele2 but not Tumor_Seq_Allele1;\nwe'll assume Tumor_Seq_Allele2 is the correct tumor allele column."))
         maf[[tumor_allele_col]] = toupper(maf[[allele2_col]])
       } else if (! allele1_col %in% colnames(maf) | ! allele2_col %in% colnames(maf)) {
         stop(paste0("Tumor alleles can't be determined automatically deduced without Tumor_Seq_Allele1 ",
@@ -460,8 +460,8 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     if(any(maf$Chromosome == "MT")) {
       if(! "MT" %in% names(chain) && "M" %in% names(chain)) {
         names(chain) = sub("^M$", "MT", names(chain))
-        message(silver("Assuming that chrM in the chain file refers to mitochondrial DNA (aka chrMT)...."))
-        message(silver("If you get reference mismatches on this contig, you may need a different chain file."))
+        message(crayon::silver("Assuming that chrM in the chain file refers to mitochondrial DNA (aka chrMT)...."))
+        message(crayon::silver("If you get reference mismatches on this contig, you may need a different chain file."))
       }
     }
     maf[, rn := 1:.N] # using row number as an identifier to know which intervals fail liftover
@@ -482,7 +482,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     if (num_failing > 0) {
       failed_liftover$Exclusion_Reason = "failed liftOver"
       excluded = rbind(excluded, failed_liftover[, -"rn"])
-      message(silver(paste0("Note: ", num_failing, " records failed liftOver, so they will be set aside.")))
+      message(crayon::silver(paste0("Note: ", num_failing, " records failed liftOver, so they will be set aside.")))
     }
     
     maf = merged_maf[, .(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele, Tumor_Allele)]
@@ -559,7 +559,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   
   # check for potential DNP/TNPs and separate them from data set
   # this is done before any other filtering to ensure catching as many of them as possible
-  message(silver("Searching for possible multinucleotide variants..."))
+  message(crayon::silver("Searching for possible multinucleotide variants..."))
   num.prefilter = nrow(maf)
   dnp_tnp_results = DNP_TNP_remover(maf)
   maf = dnp_tnp_results$kept[,1:5] # To-do: fix return value of DNP_TNP
@@ -588,7 +588,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   
   
   # Ensure reference alleles of mutations match reference genome (Note: Insertions won't match if their reference allele is "-")
-  message(silver("Checking that reference alleles match reference genome..."))
+  message(crayon::silver("Checking that reference alleles match reference genome..."))
   ref_allele_lengths = nchar(maf[, Reference_Allele])
   ref_alleles_to_test = maf[, Reference_Allele]
   end_pos = maf[, Start_Position] + ref_allele_lengths - 1 # for multi-base deletions, check that all deleted bases match reference
@@ -615,9 +615,9 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     excluded = rbind(excluded, reference.mismatch.maf)
     percent = round((num.nonmatching / num.prefilter) * 100, 1)
     
-    message(silver(paste0("Note: ", num.nonmatching, " mutation records out of ", num.prefilter, " (", percent, "%, including ", bad_snv_percent,
+    message(crayon::silver(paste0("Note: ", num.nonmatching, " mutation records out of ", num.prefilter, " (", percent, "%, including ", bad_snv_percent,
                           "% of SNV records) have reference alleles that do not actually match the reference genome.")))
-    message(silver("These records will be excluded from effect size analysis."))
+    message(crayon::silver("These records will be excluded from effect size analysis."))
     
     if(bad_snv_frac > .01) {
       warning(paste0(bad_snv_percent, "% of SNV records do not match the given reference genome. You should probably figure out why",
@@ -625,7 +625,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     }
   }
    else {
-    message(silver("Reference alleles look good."))
+    message(crayon::silver("Reference alleles look good."))
   }
   
   nt = c("A", "T", "C", "G")

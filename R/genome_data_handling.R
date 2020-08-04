@@ -82,9 +82,9 @@ set_genome_data_directory = function(cesa, genome) {
 list_genomes = function() {
   genome_names = names(get_genome_dirs())
   if(length(genome_names) == 0) {
-    message(silver("No genome data found. See documentation for how to get genome data before running cancereffectsizeR."))
+    cat("No genome data found. See documentation for how to get genome data before running cancereffectsizeR.\n")
   } else {
-    message(silver(paste0("Available genomes: ", paste(genome_names, collapse = ", "), ".")))
+    cat(paste0("Available genomes: ", paste(genome_names, collapse = ", "), ".\n"))
   }
 }
 #' 
