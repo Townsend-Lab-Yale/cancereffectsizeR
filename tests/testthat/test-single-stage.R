@@ -43,12 +43,13 @@ test_that("dNdScv and MAF annotation", {
   dndscv_output = get_test_data("dndscv_raw_output_single.rds")
   cesa = cancereffectsizeR:::dndscv_postprocess(cesa, dndscv_output)
   sel_cv = get_test_data("sel_cv.rds")
-  expect_equal(cesa@dndscv_out_list[[1]]$sel_cv, sel_cv)
+  expect_equal(cesa@dndscv_out_list[[1]], sel_cv)
   mutrates = get_test_data("mutrates.rds")
   expect_equal(cesa@mutrates, mutrates)
   cesa = annotate_variants(cesa)
   annotated_maf = get_test_data("annotated_maf_df.rds")
   expect_equal(cesa@maf, annotated_maf)
+  expect_equal(cesa@mutations, get_test_data("mutations_anno.rds"))
 })
 
 # will use SNV-analysis-ready object for remaining tests
@@ -72,7 +73,7 @@ test_that("Handle missing or invalid gene choice in SNV analysis", {
 
 
 # genes to plug into ces_snv; some with high-effect-size SNVs, others random
-test_genes = c("TTN", "EGFR", "ASXL3", "KRAS", "RYR2", "USH2A", "CSMD3", "TP53", "CSMD1", "LRP1B", 
+test_genes = c("EGFR", "ASXL3", "KRAS", "RYR2", "USH2A", "CSMD3", "TP53", "CSMD1", "LRP1B", 
                "ZFHX4", "FAT3", "CNTNAP5", "PCDH15", "NEB", "RYR3", "DMD", "KATNAL1", 
                "OR13H1", "KSR1")
 test_that("SNV effect size calculation", {

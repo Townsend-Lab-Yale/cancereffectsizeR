@@ -149,9 +149,7 @@ dndscv_postprocess = function(cesa, dndscv_raw_output, save_all_dndscv_output = 
   if(! save_all_dndscv_output) {
     for (i in 1:length(dndscv_out_list)) {
       # filter out genes with 0 mutations (to keep object size small, mainly for dev purposes)
-      sel_cv = dndscv_out_list[[i]]$sel_cv
-      #no_dndscv_mutations = (sel_cv$n_syn == 0 & sel_cv$n_mis == 0 & sel_cv$n_non == 0 & sel_cv$n_spl == 0)
-      dndscv_out_list[[i]] = list(sel_cv = sel_cv, annotmuts = dndscv_out_list[[i]]$annotmuts)
+      dndscv_out_list[[i]] = dndscv_out_list[[i]]$sel_cv
     }
   }
   cesa@mutrates = mutrates_dt

@@ -12,7 +12,7 @@ luad = annotate_variants(luad)
 saveRDS(luad, "cesa_for_snv.rds")
 
 # save results to serve as expected test output
-test_genes = c("TTN", "EGFR", "ASXL3", "KRAS", "RYR2", "USH2A", "CSMD3", "TP53", "CSMD1", "LRP1B", 
+test_genes = c("EGFR", "ASXL3", "KRAS", "RYR2", "USH2A", "CSMD3", "TP53", "CSMD1", "LRP1B", 
                "ZFHX4", "FAT3", "CNTNAP5", "PCDH15", "NEB", "RYR3", "DMD", "KATNAL1", 
                "OR13H1", "KSR1")
 luad = ces_snv(luad, genes = test_genes, include_nonrecurrent_variants = T)
@@ -31,7 +31,7 @@ dndscv_samples = c("sample-1", "sample-106", "sample-108", "sample-11", "sample-
 maf_for_dndscv = for_dndscv$maf[Unique_Patient_Identifier %in% dndscv_samples]
 
 for_dndscv = load_maf(cesa = CESAnalysis(genome="hg19"), maf = maf_for_dndscv, sample_col = "Unique_Patient_Identifier", tumor_allele_col = "Tumor_Allele")
-for_dndscv = set_trinuc_rates(for_dndscv, weights$trinuc_proportion_matrix[dndscv_samples,])
+for_dndscv = set_trinuc_rates(for_dndscv, luad@trinucleotide_mutation_weights$trinuc_proportion_matrix[dndscv_samples,])
 saveRDS(for_dndscv, "cesa_for_dndscv_and_anno.rds")
 
 # long tests will actually run dNdScv; short tests will just make sure internal preprocess/postprocess functions behave as expected
@@ -44,11 +44,13 @@ dndscv_raw_output = lapply(dndscv_raw_output, function(x) { x$nbreg$terms = NULL
 saveRDS(dndscv_raw_output, "dndscv_raw_output_single.rds")
 dndscv_out = dndscv_postprocess(cesa = for_dndscv, dndscv_raw_output = dndscv_raw_output)
 
-saveRDS(dndscv_out@dndscv_out_list[[1]]$sel_cv, "sel_cv.rds")
+saveRDS(dndscv_out@dndscv_out_list[[1]], "sel_cv.rds")
 saveRDS(dndscv_out@mutrates, "mutrates.rds")
 saveRDS(dndscv_out, "single-dndscv_pre-anno.rds")
 anno_out = annotate_variants(dndscv_out)
-saveRDS(anno_out$maf, "annotated_maf_df.rds")
+
+saveRDS(anno_out@mutations, "mutations_anno.rds")
+saveRDS(anno_out@maf, "annotated_maf_df.rds")
 
 setwd(prev_dir)
 
