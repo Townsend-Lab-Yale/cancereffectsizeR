@@ -1,4 +1,4 @@
-cesa = get_test_data("cesa_for_trinuc_weighting_calc.rds")
+cesa = load_CESAnalysis(get_test_file("cesa_for_trinuc_weighting_calc.rds"))
 test_that("Trinucleotide signature weight calculation", {
   to_remove = suggest_cosmic_v3_signatures_to_remove(cancer_type = "LUAD", treatment_naive = T, quiet = T)
   expect_identical(to_remove, c("SBS7a", "SBS7b", "SBS7c", "SBS7d", "SBS8", "SBS10a", "SBS10b", "SBS11", "SBS12", 
@@ -36,7 +36,7 @@ test_that("Trinucleotide signature weight calculation", {
 
 
 test_that("dNdScv and MAF annotation", {
-  cesa = get_test_data("cesa_for_dndscv_and_anno.rds")
+  cesa = load_CESAnalysis(get_test_file("cesa_for_dndscv_and_anno.rds"))
   dndscv_input = cancereffectsizeR:::dndscv_preprocess(cesa = cesa, covariate_file = "lung_pca")
   dndscv_input_ak = get_test_data("dndscv_input_single.rds")
   expect_equal(dndscv_input[[1]][-4], dndscv_input_ak[[1]][-4]) # refdb path will very on dev/prod due to inst dir
@@ -53,7 +53,7 @@ test_that("dNdScv and MAF annotation", {
 })
 
 # will use SNV-analysis-ready object for remaining tests
-cesa = get_test_data("cesa_for_snv.rds")
+cesa = load_CESAnalysis(get_test_file("cesa_for_snv.rds"))
 
 test_that("Handle missing or invalid gene choice in SNV analysis", {
   # Error when any requested gene is not in RefCDS data

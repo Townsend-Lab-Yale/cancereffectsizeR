@@ -41,7 +41,8 @@ assign_group_average_trinuc_rates = function(cesa) {
   
   
   # get trinuc contexts of each SNV and produce a data frame of counts, organized the same way as deconstructSigs data
-  trinuc = BSgenome::getSeq(cesa@genome, snv_maf$Chromosome, snv_maf$Start_Position - 1, snv_maf$Start_Position + 1, as.character = T)
+  bsg = .ces_ref_data[[cesa@ref_key]]$genome
+  trinuc = BSgenome::getSeq(bsg, snv_maf$Chromosome, snv_maf$Start_Position - 1, snv_maf$Start_Position + 1, as.character = T)
   
   # internal dict converts trinuc/mut (e.g., GTA:C) into deconstructSigs format ("G[T>C]A")
   ds_muts = factor(trinuc_translator[paste0(trinuc, ":", snv_maf$Tumor_Allele), "deconstructSigs_format"], levels = deconstructSigs_trinuc_string)

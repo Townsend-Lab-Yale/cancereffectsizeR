@@ -4,7 +4,7 @@
 \alias{get_genome_data}
 \title{get_genome_data}
 \usage{
-get_genome_data(cesa, datatype)
+get_genome_data(data_dir_or_cesa, datatype)
 }
 \description{
 reads in the requested reference data for the genome build associated with the CESAnalysis

@@ -7,7 +7,7 @@
 CESAnalysis(genome = NULL, progression_order = NULL)
 }
 \arguments{
-\item{genome}{Genome build of MAF data (currently, just hg19 supported)}
+\item{genome}{genome assembly name (e.g., "hg19"), if using built-in reference data}
 
 \item{progression_order}{evolutionary order of tumor stage progression (e.g. c("Primary", "Metastatic"))}
 }

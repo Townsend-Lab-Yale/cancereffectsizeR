@@ -2,21 +2,18 @@
 #' 
 #' @description Creates a CESAnalysis object, the central data structure of cancereffectsizeR
 #' @param progression_order evolutionary order of tumor stage progression (e.g. c("Primary", "Metastatic"))
-#' @param genome Genome build of MAF data (currently, just hg19 supported)
+#' @param genome genome assembly name (e.g., "hg19"), if using built-in reference data
 #' @return CESAnalysis object
 #' @export
 CESAnalysis = function(genome = NULL, progression_order = NULL) {
-  genome_dir = get_genome_data_directory(genome)
-  genome_path = paste0(genome_dir, "/genome_package_name.rds")
-  if(! file.exists(genome_path)) {
-    stop(paste0("Something is wrong with the genome data installation.\n",
-                "Expected to find a reference genome at ", genome_path, "."))
-  }
-  genome_package = readRDS(genome_path)
-  genome = BSgenome::getBSgenome(genome_package)
-  GenomeInfoDb::seqlevelsStyle(genome) = "NCBI"
+  
+  # Check for and load reference data for the chosen genome/transcriptome data
+  ref_key = genome
+  preload_ref_data(ref_key)
+  genome_data_dir = cancereffectsizeR:::get_genome_dirs()[ref_key]
+  bsg = .ces_ref_data[[ref_key]]$genome
   message(crayon::black(paste0("Okay, this CES analysis will use the ", 
-                               tolower(BSgenome::commonName(genome)), " genome (", BSgenome::releaseName(genome), ").")))
+                               tolower(BSgenome::commonName(bsg)), " genome (", BSgenome::releaseName(bsg), ").")))
   message(crayon::black("Note: We'll be using NCBI-style chromosome names (i.e., no \"chr\" prefixes)."))
   
   
@@ -35,18 +32,48 @@ CESAnalysis = function(genome = NULL, progression_order = NULL) {
 
   
   # simple analysis status tracking; used to guide user in show(CESAnalysis)
-  status = list("genome" = GenomeInfoDb::providerVersion(genome),
+  status = list("genome" = GenomeInfoDb::providerVersion(bsg),
                 "progressions" = paste0(progression_order, collapse = ", "))
   if(length(progression_order) == 1) {
     status[["progressions"]] = NULL
   }
   advanced = list("version" = packageVersion("cancereffectsizeR"))
-  cesa = new("CESAnalysis", status = status, genome = genome, maf = data.table(), excluded = data.table(),
+  cesa = new("CESAnalysis", status = status, ref_key = ref_key, maf = data.table(), excluded = data.table(),
              progressions = progression_order, mutrates = data.table(),
-             gene_epistasis_results = data.table(), selection_results = data.table(), genome_data_dir = genome_dir,
+             gene_epistasis_results = data.table(), selection_results = data.table(), genome_data_dir = genome_data_dir,
              advanced = advanced, samples = data.table(), mutations = list())
+  
   return(cesa)
 }
+
+
+
+#' Load a previously saved CESAnalysis object
+#' 
+#' @param file filename/path of CESAnalysis that has been saved with saveRDS, expected to end in .rds
+#' @export
+load_CESAnalysis = function(file) {
+  if (! endsWith(file, '.rds')) {
+    stop("Expected filename to end in .rds (because saveRDS() is the recommended way to save a CESAnalysis).", call. = F)
+  }
+  
+  cesa = readRDS(file)
+  ref_key = names(cesa@genome_data_dir)[1]
+  
+  available_genome_dirs = get_genome_dirs()
+  if (! ref_key %in% names(available_genome_dirs)) {
+    warning("Reference data for ", ref_key, " not found. You can view data in this CESAnalysis,\n",
+            "but most functions will not work as expected.")
+    return(cesa)
+  }
+  
+  cesa@genome_data_dir = available_genome_dirs[ref_key]
+  preload_ref_data(ref_key)
+  cesa@ref_key = ref_key
+
+  return(cesa)
+}
+
 
 #' View data loaded into CESAnalysis
 #' 

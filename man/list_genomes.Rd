@@ -7,5 +7,5 @@
 list_genomes()
 }
 \description{
-prints names of all genome builds that are ready for use with cancereffectsizeR
+Prints names of all reference data collections that are ready for use with cancereffectsizeR
 }

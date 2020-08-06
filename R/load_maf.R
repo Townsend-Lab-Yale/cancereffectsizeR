@@ -45,6 +45,9 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     stop("You need to supply a CESAnalysis object to load the MAF data into.")
   }
   
+  # .ces_ref_data should be populated with reference data
+  bsg = .ces_ref_data[[cesa@ref_key]]$genome
+  
   # validate chain_file (presence means liftOver must run)
   need_to_liftOver = FALSE
   if(! is.null(chain_file)) {
@@ -129,7 +132,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   }
   
   # custom covered_regions, when used, must be a GRanges object or a path to a BED-formatted text file
-  genome_info = GenomeInfoDb::seqinfo(cesa@genome)
+  genome_info = GenomeInfoDb::seqinfo(bsg)
   if(coverage != "genome" && ! using_generic_exome) {
     if (is(covered_regions, "character")) {
       if (length(covered_regions) != 1) {
@@ -170,7 +173,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     GenomicRanges::strand(covered_regions) = "*"
     
     # require genome name to match the CESAnalysis (too many potential errors if we allow anonymous or mismatched genome)
-    expected_genome = GenomeInfoDb::genome(cesa@genome)[1]
+    expected_genome = GenomeInfoDb::genome(bsg)[1]
     gr_genome = GenomeInfoDb::genome(covered_regions)[1]
     if (expected_genome != gr_genome) {
       stop(paste0("The genome name of the covered_regions GRanges (", gr_genome, ") does not match the CESAnalysis (",
@@ -593,7 +596,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   ref_alleles_to_test = maf[, Reference_Allele]
   end_pos = maf[, Start_Position] + ref_allele_lengths - 1 # for multi-base deletions, check that all deleted bases match reference
   
-  reference_alleles <- as.character(BSgenome::getSeq(cesa@genome, maf[,Chromosome],
+  reference_alleles <- as.character(BSgenome::getSeq(bsg, maf[,Chromosome],
                                                      strand="+", start=maf[,Start_Position], end=end_pos))
   num.prefilter = nrow(maf)
   

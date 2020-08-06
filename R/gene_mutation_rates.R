@@ -13,11 +13,13 @@
 #' @export
 # don't change this function at all without being sure you're not messing up tests
 gene_mutation_rates <- function(cesa, covariate_file = 'default', save_all_dndscv_output = FALSE){
-  RefCDS = get_genome_data(cesa, "RefCDS")
+  RefCDS = .ces_ref_data[[cesa@ref_key]]$RefCDS
+  gr_genes = .ces_ref_data[[cesa@ref_key]]$gr_genes
+  
   # hacky way of forcing an object of name gr_genes into the dndscv::dndscv function environment,
   # since the object is required by dndscv but there's no argument to supply your own copy of it
   our_env = new.env(parent = environment(dndscv::dndscv))
-  our_env$gr_genes = get_genome_data(cesa, "gr_genes")
+  our_env$gr_genes = gr_genes
   f = dndscv::dndscv
   environment(f) = our_env
   dndscv_input = dndscv_preprocess(cesa = cesa, covariate_file = covariate_file)
@@ -88,10 +90,7 @@ dndscv_preprocess = function(cesa, covariate_file = "default") {
 #' Internal function to calculate gene-level mutation rates from dNdScv output
 #' @keywords internal
 dndscv_postprocess = function(cesa, dndscv_raw_output, save_all_dndscv_output = FALSE) {
-  # load RefCDS data if it's not already in the environment
-  if(! "RefCDS" %in% ls()) {
-    RefCDS = get_genome_data(cesa, "RefCDS")
-  }
+  RefCDS = .ces_ref_data[[cesa@ref_key]]$RefCDS
   dndscv_out_list = dndscv_raw_output
   names(dndscv_out_list) = cesa@progressions
    # Get RefCDS data on number of synonymous mutations possible at each site
@@ -145,10 +144,8 @@ dndscv_postprocess = function(cesa, dndscv_raw_output, save_all_dndscv_output = 
   setcolorder(mutrates_dt, "gene")
 
   # keep just the main gene-level selection output from dNdScv, unless user wanted everything
-  # currently also need annotmuts for annotate_variants
   if(! save_all_dndscv_output) {
     for (i in 1:length(dndscv_out_list)) {
-      # filter out genes with 0 mutations (to keep object size small, mainly for dev purposes)
       dndscv_out_list[[i]] = dndscv_out_list[[i]]$sel_cv
     }
   }

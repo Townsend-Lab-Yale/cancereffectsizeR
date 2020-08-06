@@ -42,6 +42,9 @@ trinuc_mutation_rates <- function(cesa,
   if(is.null(cesa) || ! is(cesa, "CESAnalysis")) {
     stop("Expected cesa to be a CESAnalysis object", call. = F)
   }
+  
+  bsg = .ces_ref_data[[cesa@ref_key]]$genome
+  
   if(cesa@maf[, .N] == 0) {
     stop("No MAF data in the CESAnalysis", call. = F)
   }
@@ -66,7 +69,7 @@ trinuc_mutation_rates <- function(cesa,
   running_cosmic_v3 = FALSE # gets set to true when user chooses
   signature_set_name = "custom" # gets set appropriately below for cosmic v2/v3
   if("character" %in% class(signature_choice)) {
-    if(! GenomeInfoDb::providerVersion(cesa@genome) %in% c("hg19", "hg38")) {
+    if(! GenomeInfoDb::providerVersion(bsg) %in% c("hg19", "hg38")) {
       stop("When not running with the human genome (hg38 or hg19), signatures must be supplied as a data frame (see docs).")
     }
     signature_choice = tolower(signature_choice)
@@ -172,7 +175,7 @@ trinuc_mutation_rates <- function(cesa,
         exome_counts_by_gr[[exome_name]] = get_genome_data(cesa, "tri.counts.exome")
       }
     } else {
-      exome_seq = getSeq(cesa@genome, cesa@coverage[[exome_name]])
+      exome_seq = getSeq(bsg, cesa@coverage[[exome_name]])
       exome_tri_contexts = Biostrings::trinucleotideFrequency(exome_seq)
       exome_tri_contexts = colSums(exome_tri_contexts)
       
@@ -193,7 +196,7 @@ trinuc_mutation_rates <- function(cesa,
   
   # build the data.frame required by deconstructSigs (and probably similar to what is required by most other SNV signature software)
   # rows are samples, columns are counts of each of 96 trinuc-context-specific mutations in the order expected by deconstructSigs
-  trinuc = BSgenome::getSeq(cesa@genome, ds_maf$Chromosome, ds_maf$Start_Position - 1, ds_maf$Start_Position + 1, as.character = T)
+  trinuc = BSgenome::getSeq(bsg, ds_maf$Chromosome, ds_maf$Start_Position - 1, ds_maf$Start_Position + 1, as.character = T)
   
   # internal dict converts trinuc/mut (e.g., GTA:C) into deconstructSigs format ("G[T>C]A")
   ds_muts = factor(trinuc_translator[paste0(trinuc, ":", ds_maf$Tumor_Allele), "deconstructSigs_format"], levels = deconstructSigs_trinuc_string)

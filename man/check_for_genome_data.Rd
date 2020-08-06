@@ -4,7 +4,7 @@
 \alias{check_for_genome_data}
 \title{check_genome_data}
 \usage{
-check_for_genome_data(cesa, datatype)
+check_for_genome_data(data_dir_or_cesa, datatype)
 }
 \description{
 checks if the requested reference data exists and returns T/F

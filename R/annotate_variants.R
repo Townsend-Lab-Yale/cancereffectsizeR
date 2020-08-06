@@ -7,8 +7,9 @@
 #' @export
 annotate_variants <- function(cesa) {
   
-  RefCDS = get_genome_data(cesa, "RefCDS")
-  gr_genes = get_genome_data(cesa, "gr_genes")
+  RefCDS = .ces_ref_data[[cesa@ref_key]]$RefCDS
+  gr_genes = .ces_ref_data[[cesa@ref_key]]$gr_genes
+  bsg = .ces_ref_data[[cesa@ref_key]]$genome
   
   is_in_dndscv = (GenomicRanges::mcols(gr_genes)["names"][,1] %in% cesa@mutrates$gene)
   gr_genes_in_data = gr_genes[is_in_dndscv]
@@ -161,9 +162,9 @@ annotate_variants <- function(cesa) {
 	aac[next_to_splice == T, nt3_pos := mapply(calc_ref_pos, gene, nt_pos - codon_pos + 3, strand)]
 	
 	# get 5'->3' (i.e., standard genomic order) trinucleotide contexts
-	first_triseq = BSgenome::getSeq(cesa@genome, names = aac$chr, start =  aac$nt1_pos - 1, end =  aac$nt1_pos + 1)
-	second_triseq = BSgenome::getSeq(cesa@genome, names = aac$chr, start =  aac$nt2_pos - 1, end =  aac$nt2_pos + 1)
-	third_triseq = BSgenome::getSeq(cesa@genome, names = aac$chr, start =  aac$nt3_pos - 1, end =  aac$nt3_pos + 1)
+	first_triseq = BSgenome::getSeq(bsg, names = aac$chr, start =  aac$nt1_pos - 1, end =  aac$nt1_pos + 1)
+	second_triseq = BSgenome::getSeq(bsg, names = aac$chr, start =  aac$nt2_pos - 1, end =  aac$nt2_pos + 1)
+	third_triseq = BSgenome::getSeq(bsg, names = aac$chr, start =  aac$nt3_pos - 1, end =  aac$nt3_pos + 1)
 
 	# put together the three reference nucleotides of each codon (in coding order, not genomic order)
 	coding_sequences = Biostrings::xscat(Biostrings::subseq(first_triseq, start = 2, width = 1),
@@ -249,7 +250,7 @@ annotate_variants <- function(cesa) {
   snv_table[snvs_needing_anno$snv_id, genes := list(snvs_needing_anno$genes)]
 
   #  get deconstructSigs-style trinuc context of each SNV ID
-  genomic_context = BSgenome::getSeq(cesa@genome, snv_table$chr,start=snv_table$pos - 1,
+  genomic_context = BSgenome::getSeq(bsg, snv_table$chr,start=snv_table$pos - 1,
                                      end=snv_table$pos + 1,
                                      as.character = TRUE)
   trinuc_mut_ids = paste0(genomic_context,":", snv_table$alt)
