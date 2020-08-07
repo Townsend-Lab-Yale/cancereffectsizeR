@@ -2,7 +2,7 @@
 % Please edit documentation in R/build_RefCDS.R
 \name{build_RefCDS}
 \alias{build_RefCDS}
-\title{buildref}
+\title{cancereffectsizeR's RefCDS builder}
 \usage{
 build_RefCDS(
   gtf,
@@ -18,7 +18,7 @@ build_RefCDS(
 table. See details for required columns (features). It's possible to build a suitable
 table using data pulled from biomaRt, but it's probably easier to use a GTF.}
 
-\item{genome}{genome assembly (e.g., "hg19"); an associated BSgenome object must be
+\item{genome}{genome assembly name (e.g., "hg19"); an associated BSgenome object must be
 available to load.}
 
 \item{output_by}{"gene" (default) or "transcript", indicating whether the RefCDS output
@@ -30,19 +30,16 @@ codons within CDS records, set to FALSE.}
 
 \item{cores}{how many cores to use for parallel computations}
 
-\item{numcode}{(don't use) NCBI genetic code number; currently only code 1, the standard genetic code, is supported
-  
-Required columns are seqnames, start, end, strand, gene_name, gene_id, protein_id, and type. When
-output_by = "transcript", there must also be a transcript_id column.
-Only rows with type equal to "CDS" will be used. Strand should be "+" or "-".}
+\item{numcode}{(don't use) NCBI genetic code number; currently only code 1, the standard genetic code, is supported}
 }
 \description{
-Function to build a dNdScv-style RefCDS object from a reference genome corresponding
-transcript data. The dNdScv package This function generates an .rda file that needs to
-be input into dndscv using the refdb argument. Note that when multiple CDS share the
-same gene name (second column of cdsfile), the longest coding CDS will be chosen for
-the gene. CDS with ambiguous bases (N) will not be considered.
+Based on the buildref function in Inigo Martincorena's package dNdScv, this function
+takes in gene/transcript/CDS data and creates a dNdScv-style RefCDS object and
+gr_genes, an associated GenomicRanges object also required to run dNdScv. For each gene
+or transcript, only the longest complete CDS sequence is encoded in RefCDS output.
 }
 \details{
-Based on the buildref function in Inigo Martincorena's package dNdScv.
+Required columns are seqnames, start, end, strand, gene_name, gene_id, protein_id, and
+type. When output_by = "transcript", there must also be a transcript_id column. Only
+rows that have type == "CDS" will be used. Strand should be "+" or "-".
 }

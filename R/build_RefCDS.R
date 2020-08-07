@@ -1,17 +1,19 @@
-#' buildref
+#' cancereffectsizeR's RefCDS builder
 #'
-#' Function to build a dNdScv-style RefCDS object from a reference genome corresponding
-#' transcript data. The dNdScv package This function generates an .rda file that needs to
-#' be input into dndscv using the refdb argument. Note that when multiple CDS share the
-#' same gene name (second column of cdsfile), the longest coding CDS will be chosen for
-#' the gene. CDS with ambiguous bases (N) will not be considered.
+#' Based on the buildref function in Inigo Martincorena's package dNdScv, this function
+#' takes in gene/transcript/CDS data and creates a dNdScv-style RefCDS object and
+#' gr_genes, an associated GenomicRanges object also required to run dNdScv. For each gene
+#' or transcript, only the longest complete CDS sequence is encoded in RefCDS output.
 #'
+#' Required columns are seqnames, start, end, strand, gene_name, gene_id, protein_id, and
+#' type. When output_by = "transcript", there must also be a transcript_id column. Only
+#' rows that have type == "CDS" will be used. Strand should be "+" or "-".
 #'
-#' @details Based on the buildref function in Inigo Martincorena's package dNdScv.
+#' @details 
 #' @param gtf Path of a Gencode-GTF-formatted text file, or an equivalently formatted data
 #'   table. See details for required columns (features). It's possible to build a suitable
 #'   table using data pulled from biomaRt, but it's probably easier to use a GTF.
-#' @param genome genome assembly (e.g., "hg19"); an associated BSgenome object must be
+#' @param genome genome assembly name (e.g., "hg19"); an associated BSgenome object must be
 #'   available to load.
 #' @param output_by "gene" (default) or "transcript", indicating whether the RefCDS output
 #'   should have one CDS annotation per gene or transcript.
@@ -20,14 +22,9 @@
 #'   codons within CDS records, set to FALSE.
 #' @param cores how many cores to use for parallel computations
 #' @param numcode (don't use) NCBI genetic code number; currently only code 1, the standard genetic code, is supported
-#'   
-#' Required columns are seqnames, start, end, strand, gene_name, gene_id, protein_id, and type. When
-#' output_by = "transcript", there must also be a transcript_id column.
-#' Only rows with type equal to "CDS" will be used. Strand should be "+" or "-". 
-#'
 #' @export
 
-build_RefCDS = function(gtf, genome, output_by = "gene", cds_ranges_lack_stop_codons = T, cores=1, numcode = 1) {
+build_RefCDS = function(gtf, genome, output_by = "gene", cds_ranges_lack_stop_codons = T, cores = 1, numcode = 1) {
   message("[Step 1/5] Loading data and identifying complete transcripts...")
   
   # Load genome
