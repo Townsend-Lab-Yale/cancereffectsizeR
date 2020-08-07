@@ -32,7 +32,7 @@ get_genome_data = function(data_dir_or_cesa, datatype) {
 check_for_genome_data = function(data_dir_or_cesa, datatype) {
   data_dir = data_dir_or_cesa
   if (is(data_dir_or_cesa, "CESAnalysis")) {
-    data_dir = cesa@genome_data_dir
+    data_dir = data_dir_or_cesa@genome_data_dir
   }
   if (! dir.exists(data_dir)) {
     error_message = paste0("Error: Could not locate genome data directory. This can happen when a CESAnalysis is saved and\n",
