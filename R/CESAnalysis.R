@@ -52,7 +52,7 @@ CESAnalysis = function(genome = NULL, progression_order = NULL) {
 #' 
 #' @param file filename/path of CESAnalysis that has been saved with saveRDS, expected to end in .rds
 #' @export
-load_CESAnalysis = function(file) {
+load_cesa = function(file) {
   if (! endsWith(file, '.rds')) {
     stop("Expected filename to end in .rds (because saveRDS() is the recommended way to save a CESAnalysis).", call. = F)
   }

@@ -83,7 +83,7 @@ Finally, use `ces_snv()` to find calculate effect sizes.
   to_remove = suggest_cosmic_v3_signatures_to_remove(cancer_type = "LUAD", treatment_naive = T)
   
   analysis = trinuc_mutation_rates(analysis, signatures_to_remove = to_remove)
-  analysis = gene_mutation_rates(analysis, covariate_file = "lung_pca")
+  analysis = gene_mutation_rates(analysis, covariates = "lung")
   analysis = annotate_variants(analysis)
   
   
@@ -96,7 +96,7 @@ If you are running in a MacOS or Linux environment, you can speed up processing 
 ```R
   # assuming you've already loaded MAF data into object "cesa"
   cesa = trinuc_mutation_rates(cesa, cores = 4)
-  cesa = gene_mutation_rates(cesa, covariate_file = "breast_pca")
+  cesa = gene_mutation_rates(cesa, covariates = "breast")
   cesa = annotate_variants(cesa)
   cesa = ces_snv(cesa, cores = 4)
 ```

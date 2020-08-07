@@ -3,7 +3,7 @@ test_that("MAF data loads correctly", {
   tiny_maf = get_test_file("tiny.hg19.maf.txt")
   tiny = expect_warning(load_maf(cesa = CESAnalysis(genome="hg19"), maf = tiny_maf, sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2"),
                         "SNV records do not match the given reference genome")
-  tiny_ak = load_CESAnalysis(get_test_file("tiny_hg19_maf_loaded.rds"))
+  tiny_ak = load_cesa(get_test_file("tiny_hg19_maf_loaded.rds"))
   
   expect_equal(tiny$maf, tiny_ak$maf)
   expect_equal(tiny@excluded, tiny_ak@excluded)

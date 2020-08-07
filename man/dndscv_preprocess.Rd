@@ -4,7 +4,7 @@
 \alias{dndscv_preprocess}
 \title{Internal function to prepare for running dNdScv}
 \usage{
-dndscv_preprocess(cesa, covariate_file = "default")
+dndscv_preprocess(cesa, covariates = "default")
 }
 \description{
 Internal function to prepare for running dNdScv

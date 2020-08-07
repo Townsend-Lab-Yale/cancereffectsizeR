@@ -51,13 +51,13 @@ check_for_genome_data = function(data_dir_or_cesa, datatype) {
 #' Used when loading or creating a CESAnalysis to load reference into an environment for quick access
 preload_ref_data = function(ref_key) {
   if(is.null(ref_key) || ! is(ref_key, "character") || length(ref_key) != 1) {
-    stop("Expected genomic data source to be given as character. Run list_genomes() to see available genomes.", call. = F)
+    stop("Expected genomic data source to be given as character. Run list_ces_genomes() to see available genomes.", call. = F)
   }
   genome_dirs = get_genome_dirs()
   if(ref_key %in% names(genome_dirs)) {
     data_dir = genome_dirs[ref_key]
   } else {
-    stop("Unrecognized genomic data source. Run list_genomes() to see available genomes.", call. = F)
+    stop("Unrecognized genomic data source. Run list_ces_genomes() to see available genomes.", call. = F)
   }
   
   genome_path = paste0(data_dir, "/genome_package_name.rds")
@@ -83,11 +83,11 @@ preload_ref_data = function(ref_key) {
 }
 
 
-#' list_genomes
+#' list_ces_genomes
 #' 
-#' Prints names of all reference data collections that are ready for use with cancereffectsizeR
+#' Prints names of reference data collections that are ready for use with cancereffectsizeR
 #' @export
-list_genomes = function() {
+list_ces_genomes = function() {
   genome_names = names(get_genome_dirs())
   if(length(genome_names) == 0) {
     cat("No genome data found. See documentation for how to get genome data before running cancereffectsizeR.\n")
@@ -95,13 +95,30 @@ list_genomes = function() {
     cat(paste0("Available genomes: ", paste(genome_names, collapse = ", "), ".\n"))
   }
 }
-#' 
-#' #' list_gene_mutation_covariates (coming soon)
-#' #' 
-#' #' for a given CESAnalysis (that is, the genome build it uses), prints available covariates for use with gene mutation rate calculation
-#' #' @export
-#' list_gene_mutation_covariates = function() {
-#'   
-#' }
+
+#' list_ces_covariates
+#'
+#' Prints names of available built-in covariate data sets for all loaded CES genomes
+#' @export
+list_ces_covariates = function() {
+  loaded_genomes = ls(.ces_ref_data)
+  if (length(loaded_genomes) == 0) {
+    cat("No covariates data available. Create a CESAnalysis first.\n")
+    return(invisible())
+  }
+  for (genome in loaded_genomes) {
+    # To-do: will fail for custom genomes
+    cov_files = list.files(system.file(paste0("genomes/", genome, "/covariates/"), package = "cancereffectsizeR"))
+    cov_files = gsub("\\.rds$", '', cov_files)
+    
+    if (length(cov_files) == 0) {
+      cat(genome, ": (no covariate data available)\n", sep = "")
+    } else {
+      initial = paste0(genome, ": ")
+      msg = strwrap(initial = initial, x = paste(cov_files, collapse = ", "), exdent = nchar(initial))
+      writeLines(msg)
+    }
+  }
+}
 
 

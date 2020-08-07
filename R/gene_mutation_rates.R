@@ -5,14 +5,16 @@
 #' as described in Martincorena et al. (https://doi.org/10.1016/j.cell.2017.09.042).
 #'
 #' @param cesa CESAnalysis object
-#' @param covariate_file "default" uses dNdScv hg19 default covariates, NULL runs without covariates, or give a custom prcomp RData file, or specify 
-#' one of these for hg19 tissue-specific covariate data: "bladder_pca"  "breast_pca" "cesc_pca" "colon_pca" "esca_pca" "gbm_pca" "hnsc_pca" "kidney_pca" "lihc_pca" 
-#' "lung_pca" "ov_pca" "pancreas_pca" "prostate_pca" "rectum_pca" "skcm_pca"  "stomach_pca"  "thca_pca" "ucec_pca"
-#' @param save_all_dndscv_output default false; when true, saves all dndscv output, not just what's needed by CES (will make object size very large)
+#' @param covariates Name of gene mutation rate covariates to use (run
+#'   list_ces_covariates() to see choices). For hg19 only, you can also use "default" for
+#'   dNdScv's non-tissue-specific covariates. If no covariates are available, set NULL to
+#'   run without.
+#' @param save_all_dndscv_output default false; when true, saves all dndscv output, not
+#'   just what's needed by CES (will make object size very large)
 #' @return CESAnalysis object with gene-level mutation rates calculated
 #' @export
 # don't change this function at all without being sure you're not messing up tests
-gene_mutation_rates <- function(cesa, covariate_file = 'default', save_all_dndscv_output = FALSE){
+gene_mutation_rates <- function(cesa, covariates = NULL, save_all_dndscv_output = FALSE){
   RefCDS = .ces_ref_data[[cesa@ref_key]]$RefCDS
   gr_genes = .ces_ref_data[[cesa@ref_key]]$gr_genes
   
@@ -22,7 +24,7 @@ gene_mutation_rates <- function(cesa, covariate_file = 'default', save_all_dndsc
   our_env$gr_genes = gr_genes
   f = dndscv::dndscv
   environment(f) = our_env
-  dndscv_input = dndscv_preprocess(cesa = cesa, covariate_file = covariate_file)
+  dndscv_input = dndscv_preprocess(cesa = cesa, covariates = covariates)
   dndscv_input = lapply(dndscv_input, function(x) { x[["refdb"]] = RefCDS; return(x)})
   message("Running dNdScv...")
   withCallingHandlers(
@@ -35,36 +37,43 @@ gene_mutation_rates <- function(cesa, covariate_file = 'default', save_all_dndsc
     }
   )
   cesa = dndscv_postprocess(cesa = cesa, dndscv_raw_output = dndscv_raw_output, save_all_dndscv_output = save_all_dndscv_output)
-  cesa@status[["gene mutation rates"]] = paste0("Calculated with dNdScv using \"", covariate_file, "\" covariates")
+  cesa@status[["gene mutation rates"]] = paste0("Calculated with dNdScv using \"", covariates, "\" covariates")
   return(cesa)
 }
 
 
 #' Internal function to prepare for running dNdScv
 #' @keywords internal
-dndscv_preprocess = function(cesa, covariate_file = "default") {
+dndscv_preprocess = function(cesa, covariates = "default") {
   progs_with_data = cesa@samples[coverage %in% c("exome", "genome"), unique(progression_name)]
   progs_lacking_data = setdiff(cesa@progressions, progs_with_data)
   if(length(progs_lacking_data) > 0) {
     stop(paste0("Cannot run dNdScv because the following tumor progression states have no whole-exome/whole-genome samples,\n",
                 "which are needed for gene mutation rate calculation: ", paste(progs_lacking_data, collapse = ", ")))
   }
-  if(is.null(covariate_file)){
-    message("Warning: Calculating gene mutation rates with no covariate data (supply covariates if available).")
+  if(is.null(covariates)){
     cv = NULL
     genes_in_pca = NULL
-    warning("Calculating gene mutation rates with no covariate data (covariates should be supplied if available)")
-  } else if (is(covariate_file, "character") && covariate_file[1] == "default") {
-    if(names(cesa@genome_data_dir) == "hg19") {
+    warning("Calculating gene mutation rates with no covariate data; stop and re-run with covariates if available\n",
+            "(check with list_ces_covariates())", call. = F, immediate. = T)
+  } else if (is(covariates, "character") && covariates[1] == "default") {
+    if(cesa@ref_key == "hg19") {
       message("Loading dNdScv default covariates for hg19 (stop and re-run with tissue-specific covariates if available)...")
-      data("covariates_hg19",package = "dndscv", envir = environment())
+      data("covariates_hg19", package = "dndscv", envir = environment())
       genes_in_pca <- rownames(covs)
       cv = "hg19"
     } else {
-      stop("There is no default covariates data for this genome build, so you'll need to supply your own or run without.")
+      stop("There is no default covariates data for this genome build, so you'll need to supply your own\n",
+           "or run without by setting covariates = NULL.", call. = F)
     }
+  } else if (! is(covariates, "character") || length(covariates) != 1) {
+    stop("covariates expected to be 1-length character. Check available covariates with list_ces_covariates()")
   } else {
-    this_cov_pca <- get(covariate_file) # To-do: clean this up
+    covariates = paste0("covariates/", covariates)
+    if(! check_for_genome_data(cesa, covariates)) {
+      stop("Covariates could not be found. Check available covariates with list_ces_covariates().")
+    }
+    this_cov_pca <- get_genome_data(cesa, covariates) 
     cv = this_cov_pca$rotation
     genes_in_pca = rownames(cv)
   }
