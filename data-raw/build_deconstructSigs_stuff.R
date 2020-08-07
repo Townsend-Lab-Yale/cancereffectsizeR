@@ -100,33 +100,9 @@ build_deconstructSigs_trinuc_string = function() {
 	  		 "T[T>G]T"))
 }
 
-# build the data frame translating trinuc-context SNV mutations into the format used by deconstructSigs
-# e.g.: a C>T where in the reference sequence, C is in an ACA context (i.e., ACA:T) becomes "A[C>T]A"
-# when reference is A or G, deconstructSigs represents with the reverse complement (e.g., AGT:A -> "A[C>T]T")
-build_trinuc_translator = function(deconstructSigs_trinuc_string) {
-	# create data frame where each row lists one possible combination of upstream, ref, downstream, and mutation
-	nts = c("A", "T", "G", "C")
-
-	all_trinucs <- expand.grid(nts, nts, nts, nts,stringsAsFactors = F)
-	colnames(all_trinucs) <- c("upstream","ref","downstream","mut")
-
-	# drop the rows where reference matches variant
-	all_trinucs <- all_trinucs[-which(all_trinucs$ref == all_trinucs$mut),]
-
-	# add a column with the "deconstructSigs" mutation format (e.g., A[C>T]G)
-	all_trinucs$deconstructSigs_format <- NA
-	for(i in 1:nrow(all_trinucs)){
-	  if(all_trinucs[i,"ref"] %in% c("C","T")){
-	    all_trinucs$deconstructSigs_format[i] <- paste(all_trinucs$upstream[i],"[",all_trinucs$ref[i],">",
-	    											   all_trinucs$mut[i],"]",all_trinucs$downstream[i], sep = "")
-	  }else{
-	  	# reverse compelement of mutations to A and G
-	    all_trinucs$deconstructSigs_format[i] <- paste(toupper(seqinr::comp(all_trinucs$downstream[i])),
-	                                                   "[",toupper(seqinr::comp(all_trinucs$ref[i])),">",
-	                                                   toupper(seqinr::comp(all_trinucs$mut[i])),"]",
-	                                                   toupper(seqinr::comp(all_trinucs$upstream[i])),sep="")
-	  }
-	}
-	rownames(all_trinucs) <- paste(all_trinucs$upstream,all_trinucs$ref,all_trinucs$downstream,":",all_trinucs$mut,sep="")
-	return(all_trinucs)
+# data table with context (e.g., A), central mutation (e.g., G), and corresponding deconstructSigs notation (G[C>G]C)
+build_dS_notation_table = function() {
+  dt = data.table::fread(system.file("extdata/trinuc_snv_to_deconstructSigs_ID.txt", package = "cancereffectsizeR"))
+  setkey(dt, "context", "mutation")
+  return(dt)
 }

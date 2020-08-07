@@ -254,7 +254,9 @@ annotate_variants <- function(cesa) {
                                      end=snv_table$pos + 1,
                                      as.character = TRUE)
   trinuc_mut_ids = paste0(genomic_context,":", snv_table$alt)
-  snv_table[, trinuc_mut := trinuc_translator[trinuc_mut_ids, "deconstructSigs_format"]]
+  
+  # deconstructSigs_notations is a keyed table in CES sysdata
+  snv_table[, trinuc_mut := deconstructSigs_notations[.(genomic_context, snv_table$alt), deconstructSigs_ID]] 
   
   
   # clean up aa table

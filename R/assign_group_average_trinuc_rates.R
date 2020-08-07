@@ -45,7 +45,7 @@ assign_group_average_trinuc_rates = function(cesa) {
   trinuc = BSgenome::getSeq(bsg, snv_maf$Chromosome, snv_maf$Start_Position - 1, snv_maf$Start_Position + 1, as.character = T)
   
   # internal dict converts trinuc/mut (e.g., GTA:C) into deconstructSigs format ("G[T>C]A")
-  ds_muts = factor(trinuc_translator[paste0(trinuc, ":", snv_maf$Tumor_Allele), "deconstructSigs_format"], levels = deconstructSigs_trinuc_string)
+  ds_muts = factor(deconstructSigs_notations[.(trinuc, snv_maf$Tumor_Allele), deconstructSigs_ID], levels = deconstructSigs_trinuc_string)
   
   # mysteriously convert two-way table to data frame
   tmp = table(snv_maf$Unique_Patient_Identifier, ds_muts)

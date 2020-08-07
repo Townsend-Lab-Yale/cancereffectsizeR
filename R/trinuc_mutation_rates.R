@@ -12,7 +12,7 @@
 #' sample in the data set) are used.
 #'
 #' @param cesa CESAnalysis object
-#' @param signature_choice "cosmic_v3" (default), "cosmic_v2", or an equalivalently formatted data.frame of custom trinucleotide signatures
+#' @param signature_choice "cosmic_v3" (default), "cosmic_v2", or an equivalently formatted data.frame of custom trinucleotide signatures
 #' @param signatures_to_remove specify any signatures to exclude from analysis; use \code{suggest_cosmic_v3_signatures_to_remove()} for advice on COSMIC v3 signatures
 #' @param assume_identical_mutational_processes use well-mutated tumors (those with number of eligible mutations meeting sig_averaging_threshold) 
 #'   to calculate group average signature weights, and assign these to all tumors
@@ -103,7 +103,7 @@ trinuc_mutation_rates <- function(cesa,
 
   } else if("data.frame" %in% class(signature_choice)) {
       if(! identical(colnames(signatures_cosmic_May2019), colnames(signature_choice))) {
-        stop("Your signatures data.frame is not properly formatted. See the \"signatures_cosmic_May2019\" object for a template.")
+        #stop("Your signatures data.frame is not properly formatted. See the \"signatures_cosmic_May2019\" object for a template.")
       }
       signatures = signature_choice
   } else {
@@ -198,8 +198,8 @@ trinuc_mutation_rates <- function(cesa,
   # rows are samples, columns are counts of each of 96 trinuc-context-specific mutations in the order expected by deconstructSigs
   trinuc = BSgenome::getSeq(bsg, ds_maf$Chromosome, ds_maf$Start_Position - 1, ds_maf$Start_Position + 1, as.character = T)
   
-  # internal dict converts trinuc/mut (e.g., GTA:C) into deconstructSigs format ("G[T>C]A")
-  ds_muts = factor(trinuc_translator[paste0(trinuc, ":", ds_maf$Tumor_Allele), "deconstructSigs_format"], levels = deconstructSigs_trinuc_string)
+  # internal table converts trinuc/mut (e.g., GTA:C) into deconstructSigs format ("G[T>C]A")
+  ds_muts = factor(deconstructSigs_notations[.(trinuc, ds_maf$Tumor_Allele), deconstructSigs_ID], levels = deconstructSigs_trinuc_string)
   
   # mysteriously convert two-way table to data frame
   tmp = table(ds_maf$Unique_Patient_Identifier, ds_muts)
