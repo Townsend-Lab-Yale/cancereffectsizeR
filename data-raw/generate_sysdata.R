@@ -10,6 +10,6 @@ source("build_codon_snvs_to_aa.R")
 codon_snvs_to_aa = build_codon_snvs_to_aa()
 
 usethis::use_data(deconstructSigs_trinuc_string, 
-                  deconstructSigs_notations, cosmic_v3_signature_metadata, codon_snvs_to_aa,
+                  deconstructSigs_notations, codon_snvs_to_aa,
                   internal = TRUE, overwrite = TRUE)
 setwd(prev_dir)

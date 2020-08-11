@@ -7,19 +7,19 @@
 trinuc_mutation_rates(
   cesa,
   cores = 1,
-  signature_choice = "cosmic_v3",
+  signature_set = NULL,
   assume_identical_mutational_processes = FALSE,
   sig_averaging_threshold = 50,
-  v3_artifact_accounting = TRUE,
-  v3_hypermutation_rules = TRUE,
+  cosmic_hypermutation_rules = TRUE,
   use_dS_exome2genome = FALSE,
-  signatures_to_remove = ""
+  artifact_accounting = TRUE,
+  signatures_to_remove = character()
 )
 }
 \arguments{
 \item{cesa}{CESAnalysis object}
 
-\item{signature_choice}{"cosmic_v3" (default), "cosmic_v2", or an equalivalently formatted data.frame of custom trinucleotide signatures}
+\item{signature_set}{name of built-in signature set (see \code{list_ces_signature_sets()}), or a custom signature set (see details)}
 
 \item{assume_identical_mutational_processes}{use well-mutated tumors (those with number of eligible mutations meeting sig_averaging_threshold) 
 to calculate group average signature weights, and assign these to all tumors}
@@ -28,13 +28,14 @@ to calculate group average signature weights, and assign these to all tumors}
 calculation of group-average signature weightings. When assume_identical_mutational_processes == FALSE (the default), 
 these group averages are blended into the signature weightings of tumors with few mutations (those below the threshold).}
 
-\item{v3_artifact_accounting}{when COSMIC v3 signatures associated with sequencing artifacts are detected, renormalizes to isolate true sources of mutational flux.}
-
-\item{v3_hypermutation_rules}{T/F on whether to follow mutation count rules outlined in https://doi.org/10.1101/322859 (COSMIC v3 manuscript)}
+\item{cosmic_hypermutation_rules}{T/F on whether to follow mutation count rules outlined in https://doi.org/10.1101/322859 (COSMIC v3 manuscript)
+(only applies when running with COSMIC v3/v3.1 signatures)}
 
 \item{use_dS_exome2genome}{internal dev option (don't use)}
 
-\item{signatures_to_remove}{specify any signatures to exclude from analysis; use \code{suggest_cosmic_v3_signatures_to_remove()} for advice on COSMIC v3 signatures}
+\item{artifact_accounting}{set false to disable special handling of artifact signatures (rarely recommended)}
+
+\item{signatures_to_remove}{specify any signatures to exclude from analysis; use \code{suggest_cosmic_signatures_to_remove()} for advice on COSMIC signatures}
 }
 \value{
 CESAnalysis with expected relative trinucleotide mutation rates ($trinuc_rates) and a table of tumor-specific 
@@ -53,4 +54,13 @@ which means that you need at least some exome or genome data to run.
 To reduce the influence of selection on the estimation of relative trinucleotide mutation
 rates, only non-recurrent SNVs (those that do not appear in more than one 
 sample in the data set) are used.
+
+A custom signature set should be given as a named three-item list, where "signatures"
+is a pure data.frame with signature definitions, "name" is a 1-length character naming
+the set, and "metadata" is a data.table with a "Signature" column that matches rownames
+in the signature definitions. For artifact accounting to work, there should be a
+TRUE/FALSE (logical) Likely_Artifact column; additional columns are optional. If you
+don't have artifact information, you can also just supply an empty data.table. For a
+template signature set object, run \code{sig_set = get_ces_signature_set("hg19",
+"COSMIC_v3.1")}.
 }

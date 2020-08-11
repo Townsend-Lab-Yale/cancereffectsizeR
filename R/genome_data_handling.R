@@ -121,4 +121,56 @@ list_ces_covariates = function() {
   }
 }
 
+#' list_ces_signature_sets
+#'
+#' Prints names of available mutational signature sets. Just to be clear, we're calling
+#' them ces_signature_sets because they're ready to use with cancereffectsizeR. We didn't
+#' derive any of these signature sets.
+#' @export
+list_ces_signature_sets = function() {
+  loaded_genomes = ls(.ces_ref_data)
+  if (length(loaded_genomes) == 0) {
+    cat("No signature data available. Create a CESAnalysis first.\n")
+    return(invisible())
+  }
+  for (genome in loaded_genomes) {
+    sig_files = list.files(system.file(paste0("genomes/", genome, "/signatures/"), package = "cancereffectsizeR"))
+    sig_sets = gsub("_signatures\\.rds$", '', sig_files)
+    if (length(sig_sets) == 0) {
+      cat(genome, ": (no signature sets available)\n", sep = "")
+    } else {
+      initial = paste0(genome, ": ")
+      msg = strwrap(initial = initial, x = paste(sig_sets, collapse = ", "), exdent = nchar(initial))
+      writeLines(msg)
+    }
+  }
+  cat("[Plug signature set names into the signature_set option of trinuc_mutation_rates().]\n")
+}
+
+
+#' get_ces_signature_set
+#'
+#' For a given CES reference data collection and signature set name, returns
+#' cancereffectsizeR's internal data for the signature set in a three-item list: 
+#' the signature set name, a data table of signature metadata, and a signature 
+#' definition data frame
+#' @export
+get_ces_signature_set = function(genome, name) {
+  genome_dirs = get_genome_dirs()
+  if (! is(genome, "character") | length(genome) != 1) {
+    stop("genome should be 1-length character")
+  }
+  if (! genome %in% names(genome_dirs)) {
+    stop("Could not find genome (see list_ces_genomes())")
+  }
+  genome_dir = genome_dirs[genome]
+
+  sig_file = paste0(genome_dir, "/signatures/", name, "_signatures.rds")
+  if (! file.exists(sig_file)) {
+    stop("Couldn't find signature data; expected to find it at ", sig_file)
+  }
+  return(readRDS(sig_file))
+}
+
+
 

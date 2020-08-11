@@ -1,14 +1,14 @@
-#' Identify mutational signatures to exclude from your analysis
+#' Identify mutational signatures to exclude from analysis
 #'
-#' Get a list of suggested signatures_to_remove for trinuc_mutation_rates.
+#' Get suggestions on signatures_to_remove for trinuc_mutation_rates for COSMIC v3/v3.1 signatures.
 #' For details, see \code{vignette("cosmic_cancer_type_note")}.
 #' @param cancer_type See chart on website for possible cancer type labels
 #' @param treatment_naive give TRUE if samples were taken pre-treatment; FALSE or leave NULL otherwise
 #' @param quiet (default false) for non-interactive use, suppress explanations and advice
 #' @return a string of signatures to feed to signatures_to_remove
 #' @export
-suggest_cosmic_v3_signatures_to_remove = function(cancer_type = NULL, treatment_naive = NULL, quiet = FALSE) {
-  data_source = paste0(system.file("extdata", package = "cancereffectsizeR"), '/pcawg_tcga_cancer_types.txt')
+suggest_cosmic_signatures_to_remove = function(cancer_type = NULL, treatment_naive = NULL, quiet = FALSE) {
+  data_source = paste0(system.file("extdata", package = "cancereffectsizeR"), '/COSMIC_v3_signatures_by_cancer_type.txt')
   dt = data.table::fread(data_source)
   to_remove = character()
   if(is.null(cancer_type)) {
@@ -25,6 +25,9 @@ suggest_cosmic_v3_signatures_to_remove = function(cancer_type = NULL, treatment_
     }
     treatment_naive = FALSE
   }
+  
+  sig_metadata = get_ces_signature_set("hg19", "COSMIC_v3.1")$meta
+  setkey(sig_metadata, "Signature")
   
   if(! is.null(cancer_type)) {
     if(length(cancer_type) != 1 || ! is.character(cancer_type)) {
@@ -46,19 +49,17 @@ suggest_cosmic_v3_signatures_to_remove = function(cancer_type = NULL, treatment_
     }
     to_remove = names(which(unlist(dt[index,]) == 0))
     if(! quiet) {
-      message(crayon::black(paste0("The following signatures were absent in ",
-                                   dt[index, Number_of_tumors], " tumors in ", cancer_type, " in Alexandrov 2020:")))
-      cat(to_remove, sep = ", ")
+      message(crayon::black(paste0("The following signatures are suggested absent in ", cancer_type, " by Alexandrov 2020:\n")))
+      print(sig_metadata[to_remove, .(Signature, Etiology)])
       cat("\n")
     }
   }
   
-  treatment_sigs = c("SBS11", "SBS31", "SBS32", "SBS35")
+  treatment_sigs = c("SBS11", "SBS31", "SBS32", "SBS35", "SBS86", "SBS87", "SBS90")
   if(treatment_naive == TRUE) {
     if(! quiet) {
-      message(crayon::black(paste0("\nThe following signatures were are associated with various cancer drugs:\n",
-                                   "SBS11 (alkylating agents, like temozolomide), SBS31 (platinum drugs), SBS32 ",
-                                   "(azathioprine, immunosuppressant), SBS35 (platinum drugs)")))     
+      cat("The following signatures are associated with various treatments:\n")
+      print(sig_metadata[treatment_sigs, .(Signature, Etiology)])
     }
     to_remove = c(to_remove, treatment_sigs)
   }

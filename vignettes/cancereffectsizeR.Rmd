@@ -80,7 +80,7 @@ Finally, use `ces_snv()` to find calculate effect sizes.
   #
   # Here, we decide to accept all suggestions, so we assign the output of the function
   # (a vector of signatures to exclude) to the to_remove variable.
-  to_remove = suggest_cosmic_v3_signatures_to_remove(cancer_type = "LUAD", treatment_naive = T)
+  to_remove = suggest_cosmic_signatures_to_remove(cancer_type = "LUAD", treatment_naive = T)
   
   analysis = trinuc_mutation_rates(analysis, signatures_to_remove = to_remove)
   analysis = gene_mutation_rates(analysis, covariates = "lung")

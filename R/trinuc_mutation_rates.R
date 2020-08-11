@@ -10,17 +10,27 @@
 #' To reduce the influence of selection on the estimation of relative trinucleotide mutation
 #' rates, only non-recurrent SNVs (those that do not appear in more than one 
 #' sample in the data set) are used.
+#' 
+#' A custom signature set should be given as a named three-item list, where "signatures"
+#' is a pure data.frame with signature definitions, "name" is a 1-length character naming
+#' the set, and "metadata" is a data.table with a "Signature" column that matches rownames
+#' in the signature definitions. For artifact accounting to work, there should be a
+#' TRUE/FALSE (logical) Likely_Artifact column; additional columns are optional. If you
+#' don't have artifact information, you can also just supply an empty data.table. For a
+#' template signature set object, run \code{sig_set = get_ces_signature_set("hg19",
+#' "COSMIC_v3.1")}.
 #'
 #' @param cesa CESAnalysis object
-#' @param signature_choice "cosmic_v3" (default), "cosmic_v2", or an equivalently formatted data.frame of custom trinucleotide signatures
-#' @param signatures_to_remove specify any signatures to exclude from analysis; use \code{suggest_cosmic_v3_signatures_to_remove()} for advice on COSMIC v3 signatures
+#' @param signature_set name of built-in signature set (see \code{list_ces_signature_sets()}), or a custom signature set (see details)
+#' @param signatures_to_remove specify any signatures to exclude from analysis; use \code{suggest_cosmic_signatures_to_remove()} for advice on COSMIC signatures
 #' @param assume_identical_mutational_processes use well-mutated tumors (those with number of eligible mutations meeting sig_averaging_threshold) 
 #'   to calculate group average signature weights, and assign these to all tumors
 #' @param sig_averaging_threshold Mutational threshold (default 50) that determines which tumors inform the
 #'   calculation of group-average signature weightings. When assume_identical_mutational_processes == FALSE (the default), 
 #'   these group averages are blended into the signature weightings of tumors with few mutations (those below the threshold).
-#' @param v3_artifact_accounting when COSMIC v3 signatures associated with sequencing artifacts are detected, renormalizes to isolate true sources of mutational flux.
-#' @param v3_hypermutation_rules T/F on whether to follow mutation count rules outlined in https://doi.org/10.1101/322859 (COSMIC v3 manuscript)
+#' @param cosmic_hypermutation_rules T/F on whether to follow mutation count rules outlined in https://doi.org/10.1101/322859 (COSMIC v3 manuscript)
+#'   (only applies when running with COSMIC v3/v3.1 signatures)
+#' @param artifact_accounting set false to disable special handling of artifact signatures (rarely recommended)
 #' @param use_dS_exome2genome internal dev option (don't use)
 #' @return CESAnalysis with expected relative trinucleotide mutation rates ($trinuc_rates) and a table of tumor-specific 
 #'         signature weights ($mutational_signatures). Note that tumors with group_avg_blended == TRUE have signature
@@ -31,16 +41,21 @@
 #'
 trinuc_mutation_rates <- function(cesa,
                                   cores = 1,
-                                  signature_choice = "cosmic_v3",
+                                  signature_set = NULL,
                                   assume_identical_mutational_processes = FALSE,
                                   sig_averaging_threshold = 50,
-                                  v3_artifact_accounting = TRUE,
-                                  v3_hypermutation_rules = TRUE,
+                                  cosmic_hypermutation_rules = TRUE,
                                   use_dS_exome2genome = FALSE,
-                                  signatures_to_remove = "" # cosmic_v3 analysis gets signatures added here later unless "none"
+                                  artifact_accounting = TRUE,
+                                  signatures_to_remove = character()
                                   ){  
   if(is.null(cesa) || ! is(cesa, "CESAnalysis")) {
     stop("Expected cesa to be a CESAnalysis object", call. = F)
+  }
+  
+  # If for some reason reference data is no longer in the package environment, restore it
+  if (! cesa@ref_key %in% ls(.ces_ref_data)) {
+    preload_ref_data(cesa@ref_key)
   }
   
   bsg = .ces_ref_data[[cesa@ref_key]]$genome
@@ -62,70 +77,88 @@ trinuc_mutation_rates <- function(cesa,
   }
   sig_averaging_threshold = as.integer(sig_averaging_threshold) # below, we test that at least one tumor meets this threshold
   
-  if(! "character" %in% class(signatures_to_remove)) {
+  if(! is(signatures_to_remove, "character")) {
     stop("signatures_to_remove should be a character vector", call. = F)
   }
-  bad_sig_choice_msg = "signature_choice should be \"cosmic_v3\", \"cosmic_v2\", or a properly-formatted signatures data.frame"
-  running_cosmic_v3 = FALSE # gets set to true when user chooses
-  signature_set_name = "custom" # gets set appropriately below for cosmic v2/v3
-  if("character" %in% class(signature_choice)) {
-    if(! GenomeInfoDb::providerVersion(bsg) %in% c("hg19", "hg38")) {
-      stop("When not running with the human genome (hg38 or hg19), signatures must be supplied as a data frame (see docs).")
+
+  
+  running_cosmic_v3 = FALSE # gets set to true when user loads COSMIC v3 or v3.1, so that hypermutation rules can be applied
+  if(is(signature_set, "character")) {
+    if (length(signature_set) != 1) {
+      stop("signature_set should be 1-length character; run list_ces_signature_sets() for options.\n(Or, it can a custom signature set; see docs.)", call. = F)
     }
-    signature_choice = tolower(signature_choice)
-    if (length(signature_choice) != 1 || ! signature_choice %in% c("cosmic_v3", "cosmic_v2")) {
-      stop(bad_sig_choice_msg)
-    }
-    if(signature_choice == "cosmic_v3") {
-      signature_set_name = "COSMIC v3"
+    
+    signature_set_data = get_ces_signature_set(cesa@ref_key, signature_set)
+    signature_set_name = signature_set_data$name
+    signatures = signature_set_data$signatures
+    signature_metadata = signature_set_data$meta
+
+    if(signature_set_name %in% c("COSMIC v3", "COSMIC v3.1")) {
       running_cosmic_v3 = TRUE
-      signatures = signatures_cosmic_May2019
-      message("Loaded COSMIC v3 (May 2019) mutational signatures.")
-      if (v3_artifact_accounting) {
-        message(crayon::black("Sequencing artifact signatures will be subtracted to isolate true mutational processes (disable with v3_artifact_accounting=FALSE)."))
-        v3_artifact_accounting = TRUE
+      if (cosmic_hypermutation_rules) {
+        message(crayon::black(paste0("Samples with many mutations will have hypermutation rules applied.\n",
+                                     "(Disable with cosmic_hypermutation_rules=FALSE.)")))
       }
-      if (v3_hypermutation_rules) {
-        message(crayon::black("Samples with many mutations will have hypermutation rules applied (disable with v3_hypermutation_rules=FALSE)."))
+      
+      if (signature_set_name == "COSMIC v3") {
+        # automatically strip out v3.1 signatures when running v3
+        new_in_3_1 = setdiff(rownames(get_ces_signature_set(cesa@ref_key, "COSMIC_v3.1")$signatures), rownames(signatures))
+        signatures_to_remove = signatures_to_remove[! signatures_to_remove %in% new_in_3_1]
       }
-      if(length(signatures_to_remove) == 1 && signatures_to_remove == "") {
-        signatures_to_remove = c("SBS25")
-        message(crayon::black("The following signature will be excluded (to include all signatures, set signatures_to_remove=\"none\"):"))
-        message(crayon::black("\tSBS25 (dubious and specific to Hodgkin's lymphoma cell lines)\n"))
-      }
-    } else if (signature_choice == "cosmic_v2") {
-      signature_set_name = "COSMIC v2"
-      data("signatures.cosmic", package = "deconstructSigs")
-      signatures = signatures.cosmic
-    } else {
-        stop(bad_sig_choice_msg)
     }
-
-  } else if("data.frame" %in% class(signature_choice)) {
-      if(! identical(colnames(signatures_cosmic_May2019), colnames(signature_choice))) {
-        #stop("Your signatures data.frame is not properly formatted. See the \"signatures_cosmic_May2019\" object for a template.")
+  } else if(is(signature_set, "list")) {
+      signature_set_data = signature_set
+      signature_set_name = signature_set_data$name
+      signatures = signature_set_data$signatures
+      signature_metadata = signature_set_data$meta
+      if (! is(signature_set_name, "character") || length(signature_set_name) != 1 || ! is(signatures, "data.frame") ||
+          ! is(signature_metadata, "data.table")) {
+        stop("Improperly formatted custom signature set; see documentation.", call. = F)
       }
-      signatures = signature_choice
+      if(is(signatures, "data.table") || is(signatures, "tbl")) {
+        stop("For compatibility with deconstructSigs, signature definitions must be given as a pure data.frame (see docs).", call. = F)
+      }
+      if(! identical(sort(deconstructSigs_trinuc_string), sort(colnames(signatures)))) {
+        tmp = paste0("\n", '"', paste(deconstructSigs_trinuc_string, collapse = '", "'), '"')
+        cat("Expected signature definition column names:\n")
+        writeLines(strwrap(tmp, indent = 4, exdent = 4))
+        stop("Your signature definition data frame has improper column names.", call. = F)
+      }
+      # Validate signature metadata if it's not empty
+      if (signature_metadata[, .N] > 0) {
+        if (is.null(signature_metadata$Signature)) {
+          stop("Signature metadata incorrectly formatted (see docs).")
+        }
+        if (any(! rownames(signatures) %in% signature_metadata$Signature)) {
+          stop("Improperly formatted signature set: Some signatures in your signature definitions are missing from the metadata table.")
+        }
+        if(length(signature_metadata$Signature) != length(unique(signature_metadata$Signature))) {
+          stop("Improperly formatted signature set: Some signatures are repeated in your signature metadata table")
+        }
+      }
   } else {
-    stop(bad_sig_choice_msg)
+    stop("signature_set should be type character; run list_ces_signature_sets() for options.\n",
+    "(Or, it can a custom signature set; see docs.)", call. = F)
   }
-  cesa@advanced$snv_signatures = signatures
-
+  
+  # Save signature set to CESAnalysis (leaving out other attributes for now)
+  cesa@advanced$snv_signatures = signature_set_data[c("name", "meta", "signatures")]
+  
+  # Put columns of sgnature data.frame into canonical deconstructSigs order (to match up with exome count order, etc.)
+  signatures = signatures[, deconstructSigs_trinuc_string]
+  
   # make sure all signatures that user has requested removed are actually valid signatures
-  if(length(signatures_to_remove) != 1 || tolower(signatures_to_remove[1]) != "none") {
+  if(length(signatures_to_remove) > 0) {
     if(any(! signatures_to_remove %in% rownames(signatures))) {
-      stop("One or more signatures specified in signatures_to_remove are not valid signatures")
+      stop("One or more signatures in signatures_to_remove are not in the signature set.", call. = F)
     }
   }
-  if(length(signatures_to_remove) == 1 && tolower(signatures_to_remove[1]) == "none") {
-    signatures_to_remove = character()
-  }
-
-  # can't apply our COSMIC v3 enhancements unless we're using those signatures, naturally
+  
+  # can't apply our COSMIC v3/3.1 enhancements unless we're using those signatures, naturally
   if(! running_cosmic_v3) {
-    v3_hypermutation_rules = FALSE
-    v3_artifact_accounting = FALSE
+    cosmic_hypermutation_rules = FALSE
   }
+  
 
   # keeping TGS data in the ds_maf until after recurrency testing
   ds_maf = cesa@maf[Variant_Type == "SNV"]
@@ -212,23 +245,20 @@ trinuc_mutation_rates <- function(cesa,
   rownames(counts) = rownames(tmp)
   trinuc_breakdown_per_tumor = as.data.frame(counts)
 
-  # algorithms ----
-  if(signature_choice == "signatures_cosmic_May2019"){
-    signatures <- signatures_cosmic_May2019 # part of CES data
-  }
-
-  if(signature_choice == "signatures.cosmic"){
-    data("signatures.cosmic", package = "deconstructSigs")
-    signatures <- signatures.cosmic # v2 signatures from deconstructSigs
-  }
-
   artifact_signatures = NULL
-  if (v3_artifact_accounting) {
+  if (artifact_accounting) {
     # COSMIC v3 artifact signatures are read in from package data 
-    artifact_signatures = cosmic_v3_signature_metadata[Likely_Artifact == TRUE, Signature]
+    if (! "Likely_Artifact" %in% colnames(signature_metadata)) {
+      message("Note: There is no Likely_Artifact column in the signature set metadata, so\n",
+              "artifact accounting can't be done. If you know some signatures reflect\n",
+              "sequencing error or other artifacts, you should fix this).")
+    } else if (! is(signature_metadata$Likely_Artifact, "logical")) {
+      stop("Improperly formatted signature set metadata: column Likely_Artifact should be logical.", call. = F)
+    }
+    artifact_signatures = signature_metadata[Likely_Artifact == TRUE, Signature]
     if(any(artifact_signatures %in% signatures_to_remove)) {
-      warning(paste0("Warning: You are have chosen to remove at least one sequencing-artifact-associated signature from analysis,
-                      which will change how artifact accounting (which has been left on) behaves."))
+      warning("Warning: You are have chosen to remove at least one sequencing-artifact-associated signature from analysis,\n",
+                      "which will change how artifact accounting behaves (usually, all artifact signatures should be left in).")
     }
   }
 
@@ -248,7 +278,7 @@ trinuc_mutation_rates <- function(cesa,
     ### Note: Assignment rules for hypermutator tumors found in
     ### "SigProfiler_signature_assignment_rules" supp data here: https://doi.org/10.1101/322859
     current_sigs_to_remove = signatures_to_remove
-    if (v3_hypermutation_rules) {
+    if (cosmic_hypermutation_rules) {
       # apply hypermuation rules
       if (cesa@samples[tumor_name, coverage] == "exome") {
         if(num_variants < 2000) {
@@ -329,7 +359,7 @@ trinuc_mutation_rates <- function(cesa,
     # However, they are left in for the assume_identical_mutational_processes method in the spirit of assuming all 
     # tumors have the same mutational processes.
     mean_calc_artifact_signatures = artifact_signatures
-    if (v3_hypermutation_rules && assume_identical_mutational_processes == FALSE) {
+    if (cosmic_hypermutation_rules && assume_identical_mutational_processes == FALSE) {
       mean_calc_artifact_signatures = unique(c(artifact_signatures, cosmic_v3_modest_hm_sigs, cosmic_v3_highly_hm_sigs))
     }
     

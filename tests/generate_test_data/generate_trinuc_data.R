@@ -2,7 +2,7 @@ prev_dir = setwd(system.file("tests/test_data/", package = "cancereffectsizeR"))
 maf_file = "luad.hg19.maf.txt"
 cesa = load_maf(cesa = CESAnalysis(genome = "hg19"), maf = maf_file, sample_col = "sample_id")
 
-cesa = trinuc_mutation_rates(cesa, cores = 4, 
+cesa = trinuc_mutation_rates(cesa, cores = 4, signature_set = "COSMIC_v3",
                              signatures_to_remove = suggest_cosmic_v3_signatures_to_remove("LUAD", treatment_naive = TRUE, quiet = TRUE))
 
 fwrite(cesa$trinuc_rates, "luad_hg19_trinuc_rates.txt", sep = "\t")

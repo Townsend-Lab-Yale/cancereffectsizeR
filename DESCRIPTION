@@ -1,7 +1,7 @@
 Package: cancereffectsizeR
 Type: Package
 Title: Calculate Cancer Effect Size
-Version: 0.1.1.9010.1
+Version: 0.1.1.9011
 Authors@R: c(person("Vincent L.", "Cannataro", email = "cannatarov@emmanuel.edu", role = c("aut")),
              person("Jeff", "Mandell", email = "jeff.mandell@yale.edu", role = c("aut", "cre")))
 Description: cancereffectsizeR calculates selection for somatic mutations in cancer from tumor sequencing data.
