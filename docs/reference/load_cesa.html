@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>check_genome_data — check_for_genome_data • cancereffectsizeR</title>
+<title>Load a previously saved CESAnalysis object — load_cesa • cancereffectsizeR</title>
 
 
 <!-- jquery -->
@@ -39,8 +39,8 @@
 
 
 
-<meta property="og:title" content="check_genome_data — check_for_genome_data" />
-<meta property="og:description" content="checks if the requested reference data exists and returns T/F" />
+<meta property="og:title" content="Load a previously saved CESAnalysis object — load_cesa" />
+<meta property="og:description" content="Load a previously saved CESAnalysis object" />
 
 
 
@@ -123,17 +123,25 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>check_genome_data</h1>
-    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/R/genome_data_handling.R'><code>R/genome_data_handling.R</code></a></small>
-    <div class="hidden name"><code>check_for_genome_data.Rd</code></div>
+    <h1>Load a previously saved CESAnalysis object</h1>
+    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/R/CESAnalysis.R'><code>R/CESAnalysis.R</code></a></small>
+    <div class="hidden name"><code>load_cesa.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>checks if the requested reference data exists and returns T/F</p>
+    <p>Load a previously saved CESAnalysis object</p>
     </div>
 
-    <pre class="usage"><span class='fu'>check_for_genome_data</span>(<span class='no'>data_dir_or_cesa</span>, <span class='no'>datatype</span>)</pre>
+    <pre class="usage"><span class='fu'>load_cesa</span>(<span class='no'>file</span>)</pre>
 
+    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
+    <table class="ref-arguments">
+    <colgroup><col class="name" /><col class="desc" /></colgroup>
+    <tr>
+      <th>file</th>
+      <td><p>filename/path of CESAnalysis that has been saved with saveRDS, expected to end in .rds</p></td>
+    </tr>
+    </table>
 
 
   </div>

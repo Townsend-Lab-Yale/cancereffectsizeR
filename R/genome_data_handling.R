@@ -2,6 +2,7 @@
 #' 
 #' returns a character vector mapping genome names to their data directories
 #' @param full_paths default TRUE; returns full paths to genome data instead of just genome names 
+#' @keywords internal
 get_genome_dirs = function() {
   genome_superdir = system.file("genomes", package = "cancereffectsizeR")
   genomes = list.dirs(genome_superdir, recursive = F)
@@ -12,6 +13,7 @@ get_genome_dirs = function() {
 #' get_genome_data
 #' 
 #' reads in the requested reference data for the genome build associated with the CESAnalysis
+#' @keywords internal
 get_genome_data = function(data_dir_or_cesa, datatype) {
   data_dir = data_dir_or_cesa
   if (is(data_dir_or_cesa, "CESAnalysis")) {
@@ -29,6 +31,7 @@ get_genome_data = function(data_dir_or_cesa, datatype) {
 #' check_genome_data
 #' 
 #' checks if the requested reference data exists and returns T/F
+#' @keywords internal
 check_for_genome_data = function(data_dir_or_cesa, datatype) {
   data_dir = data_dir_or_cesa
   if (is(data_dir_or_cesa, "CESAnalysis")) {
@@ -49,6 +52,7 @@ check_for_genome_data = function(data_dir_or_cesa, datatype) {
 #' preload_ref_data
 #' 
 #' Used when loading or creating a CESAnalysis to load reference into an environment for quick access
+#' @keywords internal
 preload_ref_data = function(ref_key) {
   if(is.null(ref_key) || ! is(ref_key, "character") || length(ref_key) != 1) {
     stop("Expected genomic data source to be given as character. Run list_ces_genomes() to see available genomes.", call. = F)

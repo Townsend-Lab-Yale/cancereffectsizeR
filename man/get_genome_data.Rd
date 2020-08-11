@@ -9,3 +9,4 @@ get_genome_data(data_dir_or_cesa, datatype)
 \description{
 reads in the requested reference data for the genome build associated with the CESAnalysis
 }
+\keyword{internal}

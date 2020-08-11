@@ -71,7 +71,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9010</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9011</span>
       </span>
     </div>
 
@@ -137,7 +137,7 @@
       <tr>
         <th colspan="2">
           <h2 id="section-basic-workflow" class="hasAnchor"><a href="#section-basic-workflow" class="anchor"></a>Basic workflow</h2>
-          <p class="section-desc"><p>Functions to run sequentially in most analyses</p></p>
+          <p class="section-desc"><p>Functions to run sequentially in most cancereffectsizeR analyses</p></p>
         </th>
       </tr>
       
@@ -185,8 +185,8 @@
     </tbody><tbody>
       <tr>
         <th colspan="2">
-          <h2 id="section-mutational-signatures-and-trinucleotide-context-specific-snv-mutation-rates" class="hasAnchor"><a href="#section-mutational-signatures-and-trinucleotide-context-specific-snv-mutation-rates" class="anchor"></a>Mutational signatures and trinucleotide-context specific SNV mutation rates</h2>
-          <p class="section-desc"><p>Additional functions for handling tumor-specific mutational processes and related mutation rates</p></p>
+          <h2 id="section-exploring-genomic-reference-data" class="hasAnchor"><a href="#section-exploring-genomic-reference-data" class="anchor"></a>Exploring genomic reference data</h2>
+          <p class="section-desc"></p>
         </th>
       </tr>
       
@@ -197,21 +197,58 @@
       <tr>
         
         <td>
-          <p><code><a href="suggest_cosmic_v3_signatures_to_remove.html">suggest_cosmic_v3_signatures_to_remove()</a></code> </p>
+          <p><code><a href="list_ces_genomes.html">list_ces_genomes()</a></code> </p>
         </td>
-        <td><p>Identify mutational signatures to exclude from your analysis</p></td>
+        <td><p>list_ces_genomes</p></td>
       </tr><tr>
         
         <td>
-          <p><code><a href="assign_group_average_trinuc_rates.html">assign_group_average_trinuc_rates()</a></code> </p>
+          <p><code><a href="list_ces_covariates.html">list_ces_covariates()</a></code> </p>
         </td>
-        <td><p>Skip mutational signature analysis and assign group average relative trinucleotide-context-specific mutation rates to all samples</p></td>
+        <td><p>list_ces_covariates</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="list_ces_signature_sets.html">list_ces_signature_sets()</a></code> </p>
+        </td>
+        <td><p>list_ces_signature_sets</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="get_ces_signature_set.html">get_ces_signature_set()</a></code> </p>
+        </td>
+        <td><p>get_ces_signature_set</p></td>
+      </tr>
+    </tbody><tbody>
+      <tr>
+        <th colspan="2">
+          <h2 id="section-mutational-signatures" class="hasAnchor"><a href="#section-mutational-signatures" class="anchor"></a>Mutational signatures</h2>
+          <p class="section-desc"><p>Additional methods and options for mutational signatures and trinuc mutation rates</p></p>
+        </th>
+      </tr>
+      
+      
+    </tbody><tbody>
+      
+      
+      <tr>
+        
+        <td>
+          <p><code><a href="suggest_cosmic_signatures_to_remove.html">suggest_cosmic_signatures_to_remove()</a></code> </p>
+        </td>
+        <td><p>Identify mutational signatures to exclude from analysis</p></td>
       </tr><tr>
         
         <td>
           <p><code><a href="set_trinuc_rates.html">set_trinuc_rates()</a></code> </p>
         </td>
         <td><p>Assign pre-calculated relative trinucleotide mutation rates</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="assign_group_average_trinuc_rates.html">assign_group_average_trinuc_rates()</a></code> </p>
+        </td>
+        <td><p>Skip mutational signature analysis and assign group average relative trinucleotide-context-specific mutation rates to all samples</p></td>
       </tr><tr>
         
         <td>
@@ -222,8 +259,39 @@
     </tbody><tbody>
       <tr>
         <th colspan="2">
+          <h2 id="section-miscellaneous" class="hasAnchor"><a href="#section-miscellaneous" class="anchor"></a>Miscellaneous</h2>
+          <p class="section-desc"></p>
+        </th>
+      </tr>
+      
+      
+    </tbody><tbody>
+      
+      
+      <tr>
+        
+        <td>
+          <p><code><a href="load_cesa.html">load_cesa()</a></code> </p>
+        </td>
+        <td><p>Load a previously saved CESAnalysis object</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="baseline_mutation_rates.html">baseline_mutation_rates()</a></code> </p>
+        </td>
+        <td><p>Baseline mutation rate calculation</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="build_RefCDS.html">build_RefCDS()</a></code> </p>
+        </td>
+        <td><p>cancereffectsizeR's RefCDS builder</p></td>
+      </tr>
+    </tbody><tbody>
+      <tr>
+        <th colspan="2">
           <h2 id="section-viewing-cesanalysis-data" class="hasAnchor"><a href="#section-viewing-cesanalysis-data" class="anchor"></a>Viewing CESAnalysis data</h2>
-          <p class="section-desc"><p>Data accession functions that you probably won’t need (you can use cesa$maf, cesa$samples, etc. instead)</p></p>
+          <p class="section-desc"><p>Data accession functions that you probably won’t need (use cesa$maf, cesa$samples, etc. instead)</p></p>
         </th>
       </tr>
       
@@ -283,37 +351,6 @@
     </tbody><tbody>
       <tr>
         <th colspan="2">
-          <h2 id="section-miscellaneous" class="hasAnchor"><a href="#section-miscellaneous" class="anchor"></a>Miscellaneous</h2>
-          <p class="section-desc"></p>
-        </th>
-      </tr>
-      
-      
-    </tbody><tbody>
-      
-      
-      <tr>
-        
-        <td>
-          <p><code><a href="baseline_mutation_rates.html">baseline_mutation_rates()</a></code> </p>
-        </td>
-        <td><p>Baseline mutation rate calculation</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="set_genome_data_directory.html">set_genome_data_directory()</a></code> </p>
-        </td>
-        <td><p>Assign a reference data directory to a CESAnalysis</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="get_genome_data_directory.html">get_genome_data_directory()</a></code> </p>
-        </td>
-        <td><p>Get the path to the reference data directory of a CESAnalysis</p></td>
-      </tr>
-    </tbody><tbody>
-      <tr>
-        <th colspan="2">
           <h2 id="section-in-beta" class="hasAnchor"><a href="#section-in-beta" class="anchor"></a>In beta</h2>
           <p class="section-desc"></p>
         </th>
@@ -329,6 +366,12 @@
           <p><code><a href="ces_gene_epistasis.html">ces_gene_epistasis()</a></code> </p>
         </td>
         <td><p>Gene-level epistasis</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="ces_epistasis.html">ces_epistasis()</a></code> </p>
+        </td>
+        <td><p>Variant-level pairwise epistasis</p></td>
       </tr><tr>
         
         <td>

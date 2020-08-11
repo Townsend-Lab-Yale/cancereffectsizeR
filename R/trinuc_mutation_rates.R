@@ -23,6 +23,7 @@
 #' @param cesa CESAnalysis object
 #' @param signature_set name of built-in signature set (see \code{list_ces_signature_sets()}), or a custom signature set (see details)
 #' @param signatures_to_remove specify any signatures to exclude from analysis; use \code{suggest_cosmic_signatures_to_remove()} for advice on COSMIC signatures
+#' @param cores how many cores to use for processing tumors in parallel
 #' @param assume_identical_mutational_processes use well-mutated tumors (those with number of eligible mutations meeting sig_averaging_threshold) 
 #'   to calculate group average signature weights, and assign these to all tumors
 #' @param sig_averaging_threshold Mutational threshold (default 50) that determines which tumors inform the
@@ -40,14 +41,14 @@
 #'
 #'
 trinuc_mutation_rates <- function(cesa,
-                                  cores = 1,
                                   signature_set = NULL,
+                                  signatures_to_remove = character(),
+                                  cores = 1,
                                   assume_identical_mutational_processes = FALSE,
                                   sig_averaging_threshold = 50,
                                   cosmic_hypermutation_rules = TRUE,
-                                  use_dS_exome2genome = FALSE,
                                   artifact_accounting = TRUE,
-                                  signatures_to_remove = character()
+                                  use_dS_exome2genome = FALSE
                                   ){  
   if(is.null(cesa) || ! is(cesa, "CESAnalysis")) {
     stop("Expected cesa to be a CESAnalysis object", call. = F)

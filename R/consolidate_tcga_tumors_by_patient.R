@@ -9,7 +9,7 @@
 #' all characters
 #' @param sum_stats Boolean, T prints summary() of number of mutations per tumor
 #' @param figures Boolean, T saves histogram of sum.stats and saves as "Figures/mutations_per_tumor.pdf"
-#' @export
+#' @keywords internal
 
 
 # Adds column to the MAF that contains the unique tumor ID from the $Unique_Patient_Identifier

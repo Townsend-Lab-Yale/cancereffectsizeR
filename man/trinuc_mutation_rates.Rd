@@ -6,20 +6,24 @@
 \usage{
 trinuc_mutation_rates(
   cesa,
-  cores = 1,
   signature_set = NULL,
+  signatures_to_remove = character(),
+  cores = 1,
   assume_identical_mutational_processes = FALSE,
   sig_averaging_threshold = 50,
   cosmic_hypermutation_rules = TRUE,
-  use_dS_exome2genome = FALSE,
   artifact_accounting = TRUE,
-  signatures_to_remove = character()
+  use_dS_exome2genome = FALSE
 )
 }
 \arguments{
 \item{cesa}{CESAnalysis object}
 
 \item{signature_set}{name of built-in signature set (see \code{list_ces_signature_sets()}), or a custom signature set (see details)}
+
+\item{signatures_to_remove}{specify any signatures to exclude from analysis; use \code{suggest_cosmic_signatures_to_remove()} for advice on COSMIC signatures}
+
+\item{cores}{how many cores to use for processing tumors in parallel}
 
 \item{assume_identical_mutational_processes}{use well-mutated tumors (those with number of eligible mutations meeting sig_averaging_threshold) 
 to calculate group average signature weights, and assign these to all tumors}
@@ -31,11 +35,9 @@ these group averages are blended into the signature weightings of tumors with fe
 \item{cosmic_hypermutation_rules}{T/F on whether to follow mutation count rules outlined in https://doi.org/10.1101/322859 (COSMIC v3 manuscript)
 (only applies when running with COSMIC v3/v3.1 signatures)}
 
-\item{use_dS_exome2genome}{internal dev option (don't use)}
-
 \item{artifact_accounting}{set false to disable special handling of artifact signatures (rarely recommended)}
 
-\item{signatures_to_remove}{specify any signatures to exclude from analysis; use \code{suggest_cosmic_signatures_to_remove()} for advice on COSMIC signatures}
+\item{use_dS_exome2genome}{internal dev option (don't use)}
 }
 \value{
 CESAnalysis with expected relative trinucleotide mutation rates ($trinuc_rates) and a table of tumor-specific 

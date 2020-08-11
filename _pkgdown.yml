@@ -1,7 +1,7 @@
 destination: docs
 reference:
 - title: Basic workflow
-  desc:  Functions to run sequentially in most analyses
+  desc:  Functions to run sequentially in most cancereffectsizeR analyses
   contents:
   - CESAnalysis
   - load_maf
@@ -9,15 +9,26 @@ reference:
   - gene_mutation_rates
   - annotate_variants
   - ces_snv
-- title: Mutational signatures and trinucleotide-context specific SNV mutation rates
-  desc: Additional functions for handling tumor-specific mutational processes and related mutation rates
+- title: Exploring genomic reference data
   contents:
-  - suggest_cosmic_v3_signatures_to_remove
-  - assign_group_average_trinuc_rates
+  - list_ces_genomes
+  - list_ces_covariates
+  - list_ces_signature_sets
+  - get_ces_signature_set
+- title: Mutational signatures
+  desc: Additional methods and options for mutational signatures and trinuc mutation rates
+  contents:
+  - suggest_cosmic_signatures_to_remove
   - set_trinuc_rates
+  - assign_group_average_trinuc_rates
   - run_deconstructSigs
+- title: Miscellaneous
+  contents:
+  - load_cesa
+  - baseline_mutation_rates
+  - build_RefCDS
 - title: Viewing CESAnalysis data
-  desc: Data accession functions that you probably won't need (you can use cesa\$maf, cesa\$samples, etc. instead)
+  desc: Data accession functions that you probably won't need (use cesa\$maf, cesa\$samples, etc. instead)
   contents:
   - maf_records
   - excluded_maf_records
@@ -27,14 +38,10 @@ reference:
   - get_signature_weights
   - get_gene_rates
   - snv_results
-- title: Miscellaneous
-  contents:
-  - baseline_mutation_rates
-  - set_genome_data_directory
-  - get_genome_data_directory
 - title: In beta
   contents:
   - ces_gene_epistasis
+  - ces_epistasis
   - gene_epistasis_results
 
   

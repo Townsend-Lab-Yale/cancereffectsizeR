@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>buildref — build_RefCDS • cancereffectsizeR</title>
+<title>cancereffectsizeR's RefCDS builder — build_RefCDS • cancereffectsizeR</title>
 
 
 <!-- jquery -->
@@ -39,8 +39,11 @@
 
 
 
-<meta property="og:title" content="buildref — build_RefCDS" />
-<meta property="og:description" content="Function to build a RefCDS object from a reference genome and a table of transcripts. The RefCDS object has to be precomputed for any new species or assembly prior to running dndscv. This function generates an .rda file that needs to be input into dndscv using the refdb argument. Note that when multiple CDS share the same gene name (second column of cdsfile), the longest coding CDS will be chosen for the gene. CDS with ambiguous bases (N) will not be considered." />
+<meta property="og:title" content="cancereffectsizeR's RefCDS builder — build_RefCDS" />
+<meta property="og:description" content="Based on the buildref function in Inigo Martincorena's package dNdScv, this function
+takes in gene/transcript/CDS data and creates a dNdScv-style RefCDS object and
+gr_genes, an associated GenomicRanges object also required to run dNdScv. For each gene
+or transcript, only the longest complete CDS sequence is encoded in RefCDS output." />
 
 
 
@@ -72,7 +75,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9010</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9011</span>
       </span>
     </div>
 
@@ -123,61 +126,67 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>buildref</h1>
+    <h1>cancereffectsizeR's RefCDS builder</h1>
     <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/R/build_RefCDS.R'><code>R/build_RefCDS.R</code></a></small>
     <div class="hidden name"><code>build_RefCDS.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Function to build a RefCDS object from a reference genome and a table of transcripts. The RefCDS object has to be precomputed for any new species or assembly prior to running dndscv. This function generates an .rda file that needs to be input into dndscv using the refdb argument. Note that when multiple CDS share the same gene name (second column of cdsfile), the longest coding CDS will be chosen for the gene. CDS with ambiguous bases (N) will not be considered.</p>
+    <p>Based on the buildref function in Inigo Martincorena's package dNdScv, this function
+takes in gene/transcript/CDS data and creates a dNdScv-style RefCDS object and
+gr_genes, an associated GenomicRanges object also required to run dNdScv. For each gene
+or transcript, only the longest complete CDS sequence is encoded in RefCDS output.</p>
     </div>
 
     <pre class="usage"><span class='fu'>build_RefCDS</span>(
-  <span class='no'>cds_data</span>,
+  <span class='no'>gtf</span>,
   <span class='no'>genome</span>,
-  <span class='kw'>numcode</span> <span class='kw'>=</span> <span class='fl'>1</span>,
-  <span class='kw'>excludechrs</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
-  <span class='kw'>onlychrs</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
-  <span class='kw'>useids</span> <span class='kw'>=</span> <span class='no'>F</span>,
-  <span class='kw'>cores</span> <span class='kw'>=</span> <span class='fl'>1</span>
+  <span class='kw'>output_by</span> <span class='kw'>=</span> <span class='st'>"gene"</span>,
+  <span class='kw'>cds_ranges_lack_stop_codons</span> <span class='kw'>=</span> <span class='no'>T</span>,
+  <span class='kw'>cores</span> <span class='kw'>=</span> <span class='fl'>1</span>,
+  <span class='kw'>numcode</span> <span class='kw'>=</span> <span class='fl'>1</span>
 )</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>cds_data</th>
-      <td><p>data from biomaRt for the genome assembly of interest</p></td>
+      <th>gtf</th>
+      <td><p>Path of a Gencode-GTF-formatted text file, or an equivalently formatted data
+table. See details for required columns (features). It's possible to build a suitable
+table using data pulled from biomaRt, but it's probably easier to use a GTF.</p></td>
     </tr>
     <tr>
       <th>genome</th>
-      <td><p>a BSgenome object corresponding to the genome assembly of interest</p></td>
+      <td><p>genome assembly name (e.g., "hg19"); an associated BSgenome object must be
+available to load.</p></td>
     </tr>
     <tr>
-      <th>numcode</th>
-      <td><p>NCBI genetic code number (default = 1; standard genetic code). To see the list of genetic codes supported use: ? seqinr::translate</p></td>
+      <th>output_by</th>
+      <td><p>"gene" (default) or "transcript", indicating whether the RefCDS output
+should have one CDS annotation per gene or transcript.</p></td>
     </tr>
     <tr>
-      <th>excludechrs</th>
-      <td><p>Vector or string with chromosome names to be excluded from the RefCDS object (default: no chromosome will be excluded). The mitochondrial chromosome should be excluded as it has different genetic code and mutation rates, either using the excludechrs argument or not including mitochondrial transcripts in cdsfile.</p></td>
-    </tr>
-    <tr>
-      <th>onlychrs</th>
-      <td><p>Vector of valid chromosome names (default: all chromosomes will be included)</p></td>
-    </tr>
-    <tr>
-      <th>useids</th>
-      <td><p>Combine gene IDs and gene names (columns 1 and 2 of the input table) as long gene names (default = F)</p></td>
+      <th>cds_ranges_lack_stop_codons</th>
+      <td><p>The CDS records in Gencode GTFs don't include the
+stop codons in their genomic intervals. If your input table does include the stop 
+codons within CDS records, set to FALSE.</p></td>
     </tr>
     <tr>
       <th>cores</th>
-      <td><p>how many cores to use for parallel computations (requires parallel package)</p></td>
+      <td><p>how many cores to use for parallel computations</p></td>
+    </tr>
+    <tr>
+      <th>numcode</th>
+      <td><p>(don't use) NCBI genetic code number; currently only code 1, the standard genetic code, is supported</p></td>
     </tr>
     </table>
 
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
-    <p>Based on the buildref function in Inigo Martincorena's package dNdScv.</p>
+    <p>Required columns are seqnames, start, end, strand, gene_name, gene_id, protein_id, and
+type. When output_by = "transcript", there must also be a transcript_id column. Only
+rows that have type == "CDS" will be used. Strand should be "+" or "-".</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

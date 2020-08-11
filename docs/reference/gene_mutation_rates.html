@@ -74,7 +74,7 @@ as described in Martincorena et al. (https://doi.org/10.1016/j.cell.2017.09.042)
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9010</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9011</span>
       </span>
     </div>
 
@@ -136,11 +136,7 @@ of nonsynonymous and synonymous mutations per gene under the dNdScv package's mo
 as described in Martincorena et al. (https://doi.org/10.1016/j.cell.2017.09.042).</p>
     </div>
 
-    <pre class="usage"><span class='fu'>gene_mutation_rates</span>(
-  <span class='no'>cesa</span>,
-  <span class='kw'>covariate_file</span> <span class='kw'>=</span> <span class='st'>"default"</span>,
-  <span class='kw'>save_all_dndscv_output</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>
-)</pre>
+    <pre class="usage"><span class='fu'>gene_mutation_rates</span>(<span class='no'>cesa</span>, <span class='kw'>covariates</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>save_all_dndscv_output</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>)</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -150,14 +146,16 @@ as described in Martincorena et al. (https://doi.org/10.1016/j.cell.2017.09.042)
       <td><p>CESAnalysis object</p></td>
     </tr>
     <tr>
-      <th>covariate_file</th>
-      <td><p>"default" uses dNdScv hg19 default covariates, NULL runs without covariates, or give a custom prcomp RData file, or specify 
-one of these for hg19 tissue-specific covariate data: "bladder_pca"  "breast_pca" "cesc_pca" "colon_pca" "esca_pca" "gbm_pca" "hnsc_pca" "kidney_pca" "lihc_pca" 
-"lung_pca" "ov_pca" "pancreas_pca" "prostate_pca" "rectum_pca" "skcm_pca"  "stomach_pca"  "thca_pca" "ucec_pca"</p></td>
+      <th>covariates</th>
+      <td><p>Name of gene mutation rate covariates to use (run
+list_ces_covariates() to see choices). For hg19 only, you can also use "default" for
+dNdScv's non-tissue-specific covariates. If no covariates are available, set NULL to
+run without.</p></td>
     </tr>
     <tr>
       <th>save_all_dndscv_output</th>
-      <td><p>default false; when true, saves all dndscv output, not just what's needed by CES (will make object size very large)</p></td>
+      <td><p>default false; when true, saves all dndscv output, not
+just what's needed by CES (will make object size very large)</p></td>
     </tr>
     </table>
 

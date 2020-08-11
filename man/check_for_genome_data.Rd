@@ -9,3 +9,4 @@ check_for_genome_data(data_dir_or_cesa, datatype)
 \description{
 checks if the requested reference data exists and returns T/F
 }
+\keyword{internal}

@@ -31,7 +31,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9010</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9011</span>
       </span>
     </div>
 
@@ -174,10 +174,10 @@
   #
   # Here, we decide to accept all suggestions, so we assign the output of the function
   # (a vector of signatures to exclude) to the to_remove variable.
-  to_remove = suggest_cosmic_v3_signatures_to_remove(cancer_type = "LUAD", treatment_naive = T)
+  to_remove = suggest_cosmic_signatures_to_remove(cancer_type = "LUAD", treatment_naive = T)
   
-  analysis = trinuc_mutation_rates(analysis, signatures_to_remove = to_remove)
-  analysis = gene_mutation_rates(analysis, covariate_file = "lung_pca")
+  analysis = trinuc_mutation_rates(analysis, signature_set = "COSMIC_v3.1", signatures_to_remove = to_remove)
+  analysis = gene_mutation_rates(analysis, covariates = "lung")
   analysis = annotate_variants(analysis)
   
   
@@ -188,8 +188,8 @@
 <a href="#note-on-parallel-processing" class="anchor"></a>Note on parallel processing</h4>
 <p>If you are running in a MacOS or Linux environment, you can speed up processing by providing multiple computing cores using the “cores” argument. Run <code><a href="https://rdrr.io/r/parallel/detectCores.html">parallel::detectCores()</a></code> to find out how many cores you have available.</p>
 <div class="sourceCode" id="cb4"><html><body><pre class="r">  <span class="co"># assuming you've already loaded MAF data into object "cesa"</span>
-  <span class="no">cesa</span> <span class="kw">=</span> <span class="fu"><a href="../reference/trinuc_mutation_rates.html">trinuc_mutation_rates</a></span>(<span class="no">cesa</span>, <span class="kw">cores</span> <span class="kw">=</span> <span class="fl">4</span>)
-  <span class="no">cesa</span> <span class="kw">=</span> <span class="fu"><a href="../reference/gene_mutation_rates.html">gene_mutation_rates</a></span>(<span class="no">cesa</span>, <span class="kw">covariate_file</span> <span class="kw">=</span> <span class="st">"breast_pca"</span>)
+  <span class="no">cesa</span> <span class="kw">=</span> <span class="fu"><a href="../reference/trinuc_mutation_rates.html">trinuc_mutation_rates</a></span>(<span class="no">cesa</span>, <span class="kw">signature_set</span> <span class="kw">=</span> <span class="st">"COSMIC_v3.1"</span>, <span class="kw">cores</span> <span class="kw">=</span> <span class="fl">4</span>)
+  <span class="no">cesa</span> <span class="kw">=</span> <span class="fu"><a href="../reference/gene_mutation_rates.html">gene_mutation_rates</a></span>(<span class="no">cesa</span>, <span class="kw">covariates</span> <span class="kw">=</span> <span class="st">"breast"</span>)
   <span class="no">cesa</span> <span class="kw">=</span> <span class="fu"><a href="../reference/annotate_variants.html">annotate_variants</a></span>(<span class="no">cesa</span>)
   <span class="no">cesa</span> <span class="kw">=</span> <span class="fu"><a href="../reference/ces_snv.html">ces_snv</a></span>(<span class="no">cesa</span>, <span class="kw">cores</span> <span class="kw">=</span> <span class="fl">4</span>)</pre></body></html></div>
 </div>

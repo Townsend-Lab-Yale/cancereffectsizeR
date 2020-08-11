@@ -77,7 +77,7 @@ which means that you need at least some exome or genome data to run." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9010</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9011</span>
       </span>
     </div>
 
@@ -144,14 +144,14 @@ which means that you need at least some exome or genome data to run.</p>
 
     <pre class="usage"><span class='fu'>trinuc_mutation_rates</span>(
   <span class='no'>cesa</span>,
+  <span class='kw'>signature_set</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>signatures_to_remove</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/character.html'>character</a></span>(),
   <span class='kw'>cores</span> <span class='kw'>=</span> <span class='fl'>1</span>,
-  <span class='kw'>signature_choice</span> <span class='kw'>=</span> <span class='st'>"cosmic_v3"</span>,
   <span class='kw'>assume_identical_mutational_processes</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>,
   <span class='kw'>sig_averaging_threshold</span> <span class='kw'>=</span> <span class='fl'>50</span>,
-  <span class='kw'>v3_artifact_accounting</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
-  <span class='kw'>v3_hypermutation_rules</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
-  <span class='kw'>use_dS_exome2genome</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>,
-  <span class='kw'>signatures_to_remove</span> <span class='kw'>=</span> <span class='st'>""</span>
+  <span class='kw'>cosmic_hypermutation_rules</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
+  <span class='kw'>artifact_accounting</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
+  <span class='kw'>use_dS_exome2genome</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>
 )</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
@@ -162,8 +162,16 @@ which means that you need at least some exome or genome data to run.</p>
       <td><p>CESAnalysis object</p></td>
     </tr>
     <tr>
-      <th>signature_choice</th>
-      <td><p>"cosmic_v3" (default), "cosmic_v2", or an equalivalently formatted data.frame of custom trinucleotide signatures</p></td>
+      <th>signature_set</th>
+      <td><p>name of built-in signature set (see <code><a href='list_ces_signature_sets.html'>list_ces_signature_sets()</a></code>), or a custom signature set (see details)</p></td>
+    </tr>
+    <tr>
+      <th>signatures_to_remove</th>
+      <td><p>specify any signatures to exclude from analysis; use <code><a href='suggest_cosmic_signatures_to_remove.html'>suggest_cosmic_signatures_to_remove()</a></code> for advice on COSMIC signatures</p></td>
+    </tr>
+    <tr>
+      <th>cores</th>
+      <td><p>how many cores to use for processing tumors in parallel</p></td>
     </tr>
     <tr>
       <th>assume_identical_mutational_processes</th>
@@ -177,20 +185,17 @@ calculation of group-average signature weightings. When assume_identical_mutatio
 these group averages are blended into the signature weightings of tumors with few mutations (those below the threshold).</p></td>
     </tr>
     <tr>
-      <th>v3_artifact_accounting</th>
-      <td><p>when COSMIC v3 signatures associated with sequencing artifacts are detected, renormalizes to isolate true sources of mutational flux.</p></td>
+      <th>cosmic_hypermutation_rules</th>
+      <td><p>T/F on whether to follow mutation count rules outlined in https://doi.org/10.1101/322859 (COSMIC v3 manuscript)
+(only applies when running with COSMIC v3/v3.1 signatures)</p></td>
     </tr>
     <tr>
-      <th>v3_hypermutation_rules</th>
-      <td><p>T/F on whether to follow mutation count rules outlined in https://doi.org/10.1101/322859 (COSMIC v3 manuscript)</p></td>
+      <th>artifact_accounting</th>
+      <td><p>set false to disable special handling of artifact signatures (rarely recommended)</p></td>
     </tr>
     <tr>
       <th>use_dS_exome2genome</th>
       <td><p>internal dev option (don't use)</p></td>
-    </tr>
-    <tr>
-      <th>signatures_to_remove</th>
-      <td><p>specify any signatures to exclude from analysis; use <code><a href='suggest_cosmic_v3_signatures_to_remove.html'>suggest_cosmic_v3_signatures_to_remove()</a></code> for advice on COSMIC v3 signatures</p></td>
     </tr>
     </table>
 
@@ -204,6 +209,14 @@ these group averages are blended into the signature weightings of tumors with fe
     <p>To reduce the influence of selection on the estimation of relative trinucleotide mutation
 rates, only non-recurrent SNVs (those that do not appear in more than one 
 sample in the data set) are used.</p>
+<p>A custom signature set should be given as a named three-item list, where "signatures"
+is a pure data.frame with signature definitions, "name" is a 1-length character naming
+the set, and "metadata" is a data.table with a "Signature" column that matches rownames
+in the signature definitions. For artifact accounting to work, there should be a
+TRUE/FALSE (logical) Likely_Artifact column; additional columns are optional. If you
+don't have artifact information, you can also just supply an empty data.table. For a
+template signature set object, run <code>sig_set = get_ces_signature_set("hg19",
+"COSMIC_v3.1")</code>.</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

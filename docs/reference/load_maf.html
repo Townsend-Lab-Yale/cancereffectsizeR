@@ -79,7 +79,7 @@ to supply a UCSC-style chain file, and then your MAF coordinates will be automat
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9010</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9011</span>
       </span>
     </div>
 
@@ -157,6 +157,7 @@ to supply a UCSC-style chain file, and then your MAF coordinates will be automat
   <span class='kw'>coverage</span> <span class='kw'>=</span> <span class='st'>"exome"</span>,
   <span class='kw'>covered_regions</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
   <span class='kw'>covered_regions_name</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>covered_regions_padding</span> <span class='kw'>=</span> <span class='fl'>0</span>,
   <span class='kw'>progression_col</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
   <span class='kw'>chain_file</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
   <span class='kw'>enforce_generic_exome_coverage</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>
@@ -191,7 +192,8 @@ to supply a UCSC-style chain file, and then your MAF coordinates will be automat
     </tr>
     <tr>
       <th>tumor_allele_col</th>
-      <td><p>column name with alternate allele data (default uses Tumor_Seq_Allele2 and Tumor_Seq_Allele1 if present)</p></td>
+      <td><p>column name with alternate allele data; by default,
+values from Tumor_Seq_Allele2 and Tumor_Seq_Allele1 columns are used</p></td>
     </tr>
     <tr>
       <th>coverage</th>
@@ -199,30 +201,42 @@ to supply a UCSC-style chain file, and then your MAF coordinates will be automat
     </tr>
     <tr>
       <th>covered_regions</th>
-      <td><p>optional for exome, required for targeted: a GRanges object or a BED file of covered intervals matching the CESAnalysis genome</p></td>
+      <td><p>optional for exome, required for targeted: a GRanges object or a
+BED file of covered intervals matching the CESAnalysis genome</p></td>
     </tr>
     <tr>
       <th>covered_regions_name</th>
-      <td><p>a name describing the covered regions (e.g., "my_custom_targeted_regions"); required when covered_regions are supplied</p></td>
+      <td><p>a name describing the covered regions (e.g.,
+"my_custom_targeted_regions"); required when covered_regions are supplied</p></td>
+    </tr>
+    <tr>
+      <th>covered_regions_padding</th>
+      <td><p>How many bases (default 0) to expand start and end of
+each covered_regions interval, to include variants called just outside of targeted
+regions. Consider setting from 0-100bp, or up to the sequencing read length. If the
+input data has been trimmed to the targeted regions, leave set to 0.</p></td>
     </tr>
     <tr>
       <th>progression_col</th>
-      <td><p>column in MAF with tumor progression state (see readme)</p></td>
+      <td><p>column in MAF with tumor progression state (see docs)</p></td>
     </tr>
     <tr>
       <th>chain_file</th>
-      <td><p>a chain file (text format, name ends in .chain) to convert MAF records to the genome build used in the CESAnalysis</p></td>
+      <td><p>a chain file (text format, name ends in .chain) to convert MAF
+records to the genome build used in the CESAnalysis</p></td>
     </tr>
     <tr>
       <th>enforce_generic_exome_coverage</th>
-      <td><p>when loading generic exome data, exclude records that aren't covered in the (somewhat arbitrary)
-generic exome intervals included with CES genome reference data (default FALSE)</p></td>
+      <td><p>when loading generic exome data, exclude records
+that aren't covered in the (somewhat arbitrary) generic exome intervals included with
+CES genome reference data (default FALSE)</p></td>
     </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>CESAnalysis object with the specified MAF data loaded (in addition to any previously loaded data)</p>
+    <p>CESAnalysis object with the specified MAF data loaded (in addition to any
+  previously loaded data)</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

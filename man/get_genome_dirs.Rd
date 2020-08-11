@@ -12,3 +12,4 @@ get_genome_dirs()
 \description{
 returns a character vector mapping genome names to their data directories
 }
+\keyword{internal}

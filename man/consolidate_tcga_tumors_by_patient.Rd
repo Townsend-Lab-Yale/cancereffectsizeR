@@ -30,3 +30,4 @@ Reads TCGA Tumor Sample Barcodes and consolidates barcodes into patient-specific
 identifiers, such patients with multiple distinct tumors in the analysis share
 share just one identifer. Sample barcodes that don't start with "TCGA" are unaltered.
 }
+\keyword{internal}

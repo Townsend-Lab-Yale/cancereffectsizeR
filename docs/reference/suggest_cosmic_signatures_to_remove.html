@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>check_genome_data — check_for_genome_data • cancereffectsizeR</title>
+<title>Identify mutational signatures to exclude from analysis — suggest_cosmic_signatures_to_remove • cancereffectsizeR</title>
 
 
 <!-- jquery -->
@@ -39,8 +39,9 @@
 
 
 
-<meta property="og:title" content="check_genome_data — check_for_genome_data" />
-<meta property="og:description" content="checks if the requested reference data exists and returns T/F" />
+<meta property="og:title" content="Identify mutational signatures to exclude from analysis — suggest_cosmic_signatures_to_remove" />
+<meta property="og:description" content="Get suggestions on signatures_to_remove for trinuc_mutation_rates for COSMIC v3/v3.1 signatures.
+For details, see vignette(&quot;cosmic_cancer_type_note&quot;)." />
 
 
 
@@ -123,18 +124,42 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>check_genome_data</h1>
-    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/R/genome_data_handling.R'><code>R/genome_data_handling.R</code></a></small>
-    <div class="hidden name"><code>check_for_genome_data.Rd</code></div>
+    <h1>Identify mutational signatures to exclude from analysis</h1>
+    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/R/suggest_cosmic_v3_signatures_to_remove.R'><code>R/suggest_cosmic_v3_signatures_to_remove.R</code></a></small>
+    <div class="hidden name"><code>suggest_cosmic_signatures_to_remove.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>checks if the requested reference data exists and returns T/F</p>
+    <p>Get suggestions on signatures_to_remove for trinuc_mutation_rates for COSMIC v3/v3.1 signatures.
+For details, see <code><a href='../articles/cosmic_cancer_type_note.html'>vignette("cosmic_cancer_type_note")</a></code>.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>check_for_genome_data</span>(<span class='no'>data_dir_or_cesa</span>, <span class='no'>datatype</span>)</pre>
+    <pre class="usage"><span class='fu'>suggest_cosmic_signatures_to_remove</span>(
+  <span class='kw'>cancer_type</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>treatment_naive</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>quiet</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>
+)</pre>
 
+    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
+    <table class="ref-arguments">
+    <colgroup><col class="name" /><col class="desc" /></colgroup>
+    <tr>
+      <th>cancer_type</th>
+      <td><p>See chart on website for possible cancer type labels</p></td>
+    </tr>
+    <tr>
+      <th>treatment_naive</th>
+      <td><p>give TRUE if samples were taken pre-treatment; FALSE or leave NULL otherwise</p></td>
+    </tr>
+    <tr>
+      <th>quiet</th>
+      <td><p>(default false) for non-interactive use, suppress explanations and advice</p></td>
+    </tr>
+    </table>
 
+    <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
+
+    <p>a string of signatures to feed to signatures_to_remove</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
