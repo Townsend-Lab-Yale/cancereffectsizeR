@@ -252,14 +252,15 @@ trinuc_mutation_rates <- function(cesa,
     if (! "Likely_Artifact" %in% colnames(signature_metadata)) {
       message("Note: There is no Likely_Artifact column in the signature set metadata, so\n",
               "artifact accounting can't be done. If you know some signatures reflect\n",
-              "sequencing error or other artifacts, you should fix this).")
+              "sequencing error or other artifacts, you should fix this.")
     } else if (! is(signature_metadata$Likely_Artifact, "logical")) {
       stop("Improperly formatted signature set metadata: column Likely_Artifact should be logical.", call. = F)
-    }
-    artifact_signatures = signature_metadata[Likely_Artifact == TRUE, Signature]
-    if(any(artifact_signatures %in% signatures_to_remove)) {
-      warning("Warning: You are have chosen to remove at least one sequencing-artifact-associated signature from analysis,\n",
-                      "which will change how artifact accounting behaves (usually, all artifact signatures should be left in).")
+    } else {
+      artifact_signatures = signature_metadata[Likely_Artifact == TRUE, Signature]
+      if(any(artifact_signatures %in% signatures_to_remove)) {
+        warning("Warning: You are have chosen to remove at least one sequencing-artifact-associated signature from analysis,\n",
+                "which will change how artifact accounting behaves (usually, all artifact signatures should be left in).")
+      }
     }
   }
 
