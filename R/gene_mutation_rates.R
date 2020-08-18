@@ -37,6 +37,10 @@ gene_mutation_rates <- function(cesa, covariates = NULL, save_all_dndscv_output 
       if (startsWith(conditionMessage(e), "bad 'file' argument"))  {
         stop("You need to update dNdScv. Try running \"devtools::update_packages(packages = \"dndscv\")\".")
       }
+    }, warning = function(w) {
+      if (startsWith(conditionMessage(w), "Same mutations observed in different sampleIDs")) {
+        invokeRestart("muffleWarning")
+      }
     }
   )
   cesa = dndscv_postprocess(cesa = cesa, dndscv_raw_output = dndscv_raw_output, save_all_dndscv_output = save_all_dndscv_output)
@@ -57,8 +61,9 @@ dndscv_preprocess = function(cesa, covariates = "default") {
   if(is.null(covariates)){
     cv = NULL
     genes_in_pca = NULL
-    warning("Calculating gene mutation rates with no covariate data; stop and re-run with covariates if available\n",
-            "(check with list_ces_covariates())", call. = F, immediate. = T)
+    warning("Calculating gene mutation rates with no covariate data; stop and re-run with covariates if available.\n",
+            "(Check with list_ces_covariates(); for hg19 only, you can also specify \"default\" for dNdScv default\n",
+            "covariates.)", call. = F, immediate. = T)
   } else if (is(covariates, "character") && covariates[1] == "default") {
     if(cesa@ref_key == "hg19") {
       message("Loading dNdScv default covariates for hg19 (stop and re-run with tissue-specific covariates if available)...")

@@ -13,6 +13,14 @@
 #' @export
 baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant_ids = NULL, samples = NULL, cores = 1) {
   
+  if(cesa@mutrates[, .N] == 0) {
+    stop("No gene mutation rates found, so can't calculate variant-level mutation rates.")
+  }
+  
+  if(is.null(cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix)) {
+    stop("No trinucleotide mutation rates found, so can't calculate variant-level mutation rates.")
+  }
+  
   # Helping the user out
   aac_ids = unique(na.omit(aac_ids))
   snv_ids = unique(na.omit(snv_ids))
