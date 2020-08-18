@@ -1,16 +1,38 @@
 # get_test_file and get_test_data are loaded automatically from helpers.R by testthat
-test_that("MAF data loads correctly", {
-  tiny_maf = get_test_file("tiny.hg19.maf.txt")
-  tiny = expect_warning(load_maf(cesa = CESAnalysis(genome="hg19"), maf = tiny_maf, sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2"),
+tiny_maf = get_test_file("tiny.hg19.maf.txt")
+test_that("load_maf and variant annotation", {
+  tiny = expect_warning(load_maf(cesa = CESAnalysis(genome="hg19"), annotate = T, maf = tiny_maf,
+                                 sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2"),
                         "SNV records do not match the given reference genome")
   tiny_ak = load_cesa(get_test_file("tiny_hg19_maf_loaded.rds"))
   
   expect_equal(tiny$maf, tiny_ak$maf)
   expect_equal(tiny@excluded, tiny_ak@excluded)
+  expect_equal(tiny@mutations, tiny_ak@mutations)
+  expect_equal(tiny@mutations$snv[, .N], 120)
+  expect_equal(tiny@mutations$amino_acid_change[, .N], 76)
    
   # same ranges should be in each coverage GenomicRange (depending on BSgenome version, little contigs may vary)
   expect_equal(lapply(tiny@coverage, IRanges::ranges), lapply(tiny_ak@coverage, IRanges::ranges))
-  expect_error(load_maf(tiny, maf = tiny_maf, sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2"),
+  
+  # undo annotations, verify annotate_variants works the same when called directly
+  tiny@maf = tiny@maf[, .(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele, Tumor_Allele, Variant_Type)]
+  tiny@mutations = list()
+  tiny
+  tiny = annotate_variants(tiny)
+  expect_equal(tiny@mutations, tiny_ak@mutations)
+  expect_equal(tiny@maf, tiny_ak@maf)
+})
+
+test_that("load_maf edge cases", {
+  # already annotated data, so should get an error when trying to load new data without annotating
+  # will test the opposite situation later (see progression tests)
+  tiny = load_cesa(get_test_file("tiny_hg19_maf_loaded.rds"))
+  expect_error(load_maf(tiny, maf = tiny_maf, annotate = F, sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2"),
+               "already contains annotated variants")
+  
+  # you can't reload the same MAF
+  expect_error(load_maf(tiny, maf = tiny_maf, annotate = T, sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2"),
                "some sample IDs already appear in previously loaded data")
   
   # try loading empty/non-existent files and data
@@ -26,7 +48,7 @@ test_that("Progression stage handling", {
   tiny_maf = get_test_file("tiny.hg19.maf.txt")
   
   # You can't supply a progression_col to a CESAnalysis that is not stage-specific
-  expect_error(load_maf(cesa = CESAnalysis(genome="hg19"), maf = tiny_maf, sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2", progression_col = "nonexistent-column"),
+  expect_error(load_maf(cesa = CESAnalysis(genome="hg19"), annotate = F, maf = tiny_maf, sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2", progression_col = "nonexistent-column"),
                "This CESAnalysis does not incorporate tumor progression")
   
   # If CESAnalysis is stage-specific, calls to load_maf must include progression_col
@@ -42,8 +64,10 @@ test_that("Progression stage handling", {
   expect_error(load_maf(multistage, maf = bad_maf, progression_col = "stage"), "samples are associated with multiple progressions")
   
   # Absence of a declared progression state in the data triggers a warning
-  expect_warning(load_maf(multistage, maf = fread(bad_maf)[2:4,], progression_col = "stage"), "they weren't present in the MAF data")
+  multistage = expect_warning(load_maf(multistage, annotate = F, maf = fread(bad_maf)[2:4], progression_col = "stage"), "they weren't present in the MAF data")
   
+  # Can't load with annotate = T if data has previously been loaded without annotating
+  multistage = expect_error(load_maf(multistage, maf = tiny, annotate = T), "already contains unannotated records")
 })
 
 
@@ -62,5 +86,5 @@ test_that("Coverage arguments", {
                "covered_regions should be left NULL when coverage is \"genome")
   expect_error(load_maf(tiny, maf = maf, coverage = "targeted"), 
                "can't load targeted data without covered_regions")
-  
 })
+

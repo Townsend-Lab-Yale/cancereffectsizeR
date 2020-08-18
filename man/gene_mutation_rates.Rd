@@ -15,7 +15,7 @@ dNdScv's non-tissue-specific covariates. If no covariates are available, set NUL
 run without.}
 
 \item{save_all_dndscv_output}{default false; when true, saves all dndscv output, not
-just what's needed by CES (will make object size very large)}
+just what's needed by cancereffectsizeR (will make object size very large)}
 }
 \value{
 CESAnalysis object with gene-level mutation rates calculated

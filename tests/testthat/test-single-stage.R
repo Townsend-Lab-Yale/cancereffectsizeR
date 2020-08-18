@@ -4,8 +4,10 @@ test_that("Trinucleotide signature weight calculation", {
   expect_identical(to_remove, c("SBS7a", "SBS7b", "SBS7c", "SBS7d", "SBS8", "SBS10a", "SBS10b", "SBS11", "SBS12", 
                                 "SBS14", "SBS16", "SBS19", "SBS20", "SBS21", "SBS22", "SBS23", "SBS24", "SBS25", 
                                 "SBS26", "SBS30", "SBS31", "SBS32", "SBS33", "SBS34", "SBS35", "SBS36", "SBS37", 
-                                "SBS38", "SBS39", "SBS41", "SBS42", "SBS44", "SBS84", "SBS85", "SBS86", "SBS87", "SBS90"))
-  cesa = trinuc_mutation_rates(cesa, signatures_to_remove = to_remove, signature_set = "COSMIC_v3")
+                                "SBS38", "SBS39", "SBS41", "SBS42", "SBS44", "SBS84", "SBS85", "SBS86", "SBS87", 
+                                "SBS88", "SBS90"))
+  
+  cesa = trinuc_mutation_rates(cesa, signatures_to_remove = to_remove, signature_set = "COSMIC_v3.1")
   
   # Ensure SNV counts (total and used by dS) look right
   expect_identical(cesa@trinucleotide_mutation_weights$signature_weight_table[, unlist(.(total_snvs, sig_extraction_snvs))],
@@ -34,26 +36,21 @@ test_that("Trinucleotide signature weight calculation", {
   
 })
 
+# will use SNV-analysis-ready object for remaining tests
+cesa = load_cesa(get_test_file("cesa_for_snv.rds"))
 
-test_that("dNdScv and MAF annotation", {
-  cesa = load_cesa(get_test_file("cesa_for_dndscv_and_anno.rds"))
+test_that("gene mutation rates", {
   dndscv_input = cancereffectsizeR:::dndscv_preprocess(cesa = cesa, covariates = "lung")
   dndscv_input_ak = get_test_data("dndscv_input_single.rds")
   expect_equal(dndscv_input[[1]][-4], dndscv_input_ak[[1]][-4]) # refdb path will very on dev/prod due to inst dir
   dndscv_output = get_test_data("dndscv_raw_output_single.rds")
-  cesa = cancereffectsizeR:::dndscv_postprocess(cesa, dndscv_output)
+  dndscv_output = cancereffectsizeR:::dndscv_postprocess(cesa, dndscv_output)
   sel_cv = get_test_data("sel_cv.rds")
-  expect_equal(cesa@dndscv_out_list[[1]], sel_cv)
+  expect_equal(dndscv_output@dndscv_out_list[[1]], sel_cv)
   mutrates = get_test_data("mutrates.rds")
-  expect_equal(cesa@mutrates, mutrates)
-  cesa = annotate_variants(cesa)
-  annotated_maf = get_test_data("annotated_maf_df.rds")
-  expect_equal(cesa@maf, annotated_maf)
-  expect_equal(cesa@mutations, get_test_data("mutations_anno.rds"))
+  expect_equal(dndscv_output@mutrates, mutrates)
 })
 
-# will use SNV-analysis-ready object for remaining tests
-cesa = load_cesa(get_test_file("cesa_for_snv.rds"))
 
 test_that("Handle missing or invalid gene choice in SNV analysis", {
   # Error when any requested gene is not in RefCDS data

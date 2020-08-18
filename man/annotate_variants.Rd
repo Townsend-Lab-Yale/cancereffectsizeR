@@ -10,5 +10,5 @@ annotate_variants(cesa)
 \item{cesa}{CESAnalysis object}
 }
 \description{
-Annotates CESAnaysis MAF data with reference genome and gene data, keeping assignments consistent with dNdScv when possible
+Annotates CESAnaysis MAF data with reference genome and gene data
 }

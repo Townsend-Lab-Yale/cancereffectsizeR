@@ -6,7 +6,7 @@ test_that("multi-stage gene mutation rate calculation", {
   dndscv_input = cancereffectsizeR:::dndscv_preprocess(cesa = cesa, covariates = "lung")
   dndscv_input_ak = get_test_data("dndscv_input_multi.rds")
   # leaving out the refdb temporary filename, which will vary
-  expect_equal(lapply(dndscv_input, function(x) x[-4]), lapply(dndscv_input_ak, function(x) x[-4])) # refdb path will very on dev/prod due to inst dir
+  expect_equal(lapply(dndscv_input, function(x) x[-4]), lapply(dndscv_input_ak, function(x) x[-4]))
   
   dndscv_output = get_test_data("dndscv_raw_output_multi.rds")
   cesa = dndscv_postprocess(cesa, dndscv_output)

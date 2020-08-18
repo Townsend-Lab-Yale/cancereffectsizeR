@@ -10,11 +10,14 @@
 #'   dNdScv's non-tissue-specific covariates. If no covariates are available, set NULL to
 #'   run without.
 #' @param save_all_dndscv_output default false; when true, saves all dndscv output, not
-#'   just what's needed by CES (will make object size very large)
+#'   just what's needed by cancereffectsizeR (will make object size very large)
 #' @return CESAnalysis object with gene-level mutation rates calculated
 #' @export
 # don't change this function at all without being sure you're not messing up tests
 gene_mutation_rates <- function(cesa, covariates = NULL, save_all_dndscv_output = FALSE){
+  if (! cesa@ref_key %in% ls(.ces_ref_data)) {
+    preload_ref_data(cesa@ref_key)
+  }
   RefCDS = .ces_ref_data[[cesa@ref_key]]$RefCDS
   gr_genes = .ces_ref_data[[cesa@ref_key]]$gr_genes
   
@@ -100,6 +103,7 @@ dndscv_preprocess = function(cesa, covariates = "default") {
 #' @keywords internal
 dndscv_postprocess = function(cesa, dndscv_raw_output, save_all_dndscv_output = FALSE) {
   RefCDS = .ces_ref_data[[cesa@ref_key]]$RefCDS
+  gr_genes = .ces_ref_data[[cesa@ref_key]]$gr_genes
   dndscv_out_list = dndscv_raw_output
   names(dndscv_out_list) = cesa@progressions
    # Get RefCDS data on number of synonymous mutations possible at each site
@@ -112,7 +116,6 @@ dndscv_postprocess = function(cesa, dndscv_raw_output, save_all_dndscv_output = 
 
   mutrates_list <- vector(mode = "list",length = length(cesa@progressions))
   names(mutrates_list) <- cesa@progressions
-
 
   message("Using dNdScv output to calculate gene-level mutation rates...")
   for(this_subset in 1:length(mutrates_list)){
@@ -151,6 +154,29 @@ dndscv_postprocess = function(cesa, dndscv_raw_output, save_all_dndscv_output = 
   mutrates_dt = as.data.table(mutrates_list)
   mutrates_dt[, gene := dndscv_out_list[[1]]$genemuts$gene_name] # all runs of dNdScv have same the genes in the same order
   setcolorder(mutrates_dt, "gene")
+  
+  # Genes in gr_genes that are not present in the covariates data (a few are missing, usually),
+  # won't get rates calcualted by dNdScv. Here, we assign them the rate of the nearest gene,
+  # as measured by center-to-center distance.
+  missing_genes = setdiff(GenomicRanges::mcols(gr_genes)["names"][,1], mutrates_dt$gene)
+  
+  tmp = as.data.table(gr_genes)
+  gene_intervals = tmp[, .(chr = as.character(seqnames[1]), start = min(start), end = max(end)), by = "names"]
+  setnames(gene_intervals, "names", "gene")
+  gene_intervals[, center := start + trunc((end - start)/2)]
+  gene_intervals = gene_intervals[order(chr, center)]
+  present_genes = gene_intervals[! gene %in% missing_genes]
+  not_present = gene_intervals[gene %in% missing_genes]
+  
+  # find nearest genes by chr/center to the missing genes from the present genes,
+  # and eliminate the rare tie by taking the first match for each gene
+  nearest_genes = present_genes[not_present, on = c("chr", "center"), roll = "nearest"]
+  nearest_genes = nearest_genes[! duplicated(i.gene)]
+  
+  setkey(mutrates_dt, "gene")
+  nearest_rates = mutrates_dt[nearest_genes$gene, -"gene"]
+  missing_rates = cbind(gene = nearest_genes$i.gene, nearest_rates)
+  mutrates_dt = rbind(mutrates_dt, missing_rates)
 
   # keep just the main gene-level selection output from dNdScv, unless user wanted everything
   if(! save_all_dndscv_output) {

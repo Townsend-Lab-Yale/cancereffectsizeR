@@ -27,6 +27,7 @@ suggest_cosmic_signatures_to_remove = function(cancer_type = NULL, treatment_nai
   }
   
   sig_metadata = get_ces_signature_set("hg19", "COSMIC_v3.1")$meta
+  original_sig_order = copy(sig_metadata$Signature)
   setkey(sig_metadata, "Signature")
   
   if(! is.null(cancer_type)) {
@@ -53,6 +54,19 @@ suggest_cosmic_signatures_to_remove = function(cancer_type = NULL, treatment_nai
       print(sig_metadata[to_remove, .(Signature, Etiology)])
       cat("\n")
     }
+    
+    # COSMIC v3.1 Colibactin exposure (SBS88)
+    colibactin_cancers = c("Head-SCC", "ColoRect-AdenoCA", "Oral-SCC", "Bladder-TCC")
+    if (! cancer_type %in% colibactin_cancers) {
+      to_remove = c(to_remove, "SBS88")
+      if (! quiet) {
+        ## UPDATE MESSAGE if the signature is found in more cancers
+        message(crayon::black(paste0("According to the COSMIC v3.1 site, the following signature has only been\n",
+                                     "seen in head and neck, oral, urinary tract, and colorectal cancers:\n")))
+        print(sig_metadata["SBS88", .(Signature, Etiology)])
+        cat("\n")
+      }
+    }
   }
   
   treatment_sigs = c("SBS11", "SBS31", "SBS32", "SBS35", "SBS86", "SBS87", "SBS90")
@@ -63,11 +77,14 @@ suggest_cosmic_signatures_to_remove = function(cancer_type = NULL, treatment_nai
     }
     to_remove = c(to_remove, treatment_sigs)
   }
+  
+  # make unique and put signatures in numeric order
   to_remove = unique(to_remove)
+  to_remove = original_sig_order[original_sig_order %in% to_remove]
   if(! quiet) {
     sig_string = paste0("signatures_to_remove = c(\"", paste(to_remove, collapse = "\", \""), "\")")
     message(crayon::black("\nIf you want to make all suggested exclusions: "))
-    message(crayon::black(sig_string))   
+    message(crayon::black(sig_string))
   }
   return(invisible(to_remove))
 }

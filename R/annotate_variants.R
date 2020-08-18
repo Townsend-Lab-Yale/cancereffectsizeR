@@ -1,18 +1,18 @@
 #' Annotate variants with data from genome and reference transcripts
 #' 
-#' Annotates CESAnaysis MAF data with reference genome and gene data, keeping assignments consistent with dNdScv when possible
+#' Annotates CESAnaysis MAF data with reference genome and gene data
 #'
 #' @importFrom IRanges "%within%"
 #' @param cesa CESAnalysis object
 #' @export
 annotate_variants <- function(cesa) {
-  
+  # Load reference data if not already present
+  if (! cesa@ref_key %in% ls(.ces_ref_data)) {
+    preload_ref_data(cesa@ref_key)
+  }
   RefCDS = .ces_ref_data[[cesa@ref_key]]$RefCDS
   gr_genes = .ces_ref_data[[cesa@ref_key]]$gr_genes
   bsg = .ces_ref_data[[cesa@ref_key]]$genome
-  
-  is_in_dndscv = (GenomicRanges::mcols(gr_genes)["names"][,1] %in% cesa@mutrates$gene)
-  gr_genes_in_data = gr_genes[is_in_dndscv]
   
   # non-SNVs are not supported in selection functions yet, so not bothering to annotate them correctly
   # all non-SNV annotations will get set to NA at the end of this function
@@ -24,10 +24,10 @@ annotate_variants <- function(cesa) {
   
   # Get gene annotations
   ## Note: If RefCDS/gr_genes are transcript-level, the ranges and annotations will refer to transcripts, not genes
-  nearest = as.data.table(GenomicRanges::distanceToNearest(snv_grs, gr_genes_in_data, select = "all"))
+  nearest = as.data.table(GenomicRanges::distanceToNearest(snv_grs, gr_genes, select = "all"))
   
   # convert the "subjectHits" index returned by the distanceToNearest function to the corresponding gene name
-  gr_gene_names = GenomicRanges::mcols(gr_genes_in_data)["names"][,1]
+  gr_gene_names = GenomicRanges::mcols(gr_genes)["names"][,1]
   nearest[, gene := nearest[, gr_gene_names[subjectHits]]]
   
   # remove all but one of multiple hits from one record to the same gene
@@ -237,8 +237,8 @@ annotate_variants <- function(cesa) {
   snv_gr_round2 = GenomicRanges::makeGRangesFromDataFrame(snvs_needing_anno,  seqnames.field = "chr", 
                                                           start.field = "pos", end.field = "pos")
   
-  nearest = as.data.table(GenomicRanges::distanceToNearest(snv_gr_round2, gr_genes_in_data, select = "all"))
-  possible_genes = GenomicRanges::mcols(gr_genes_in_data)["names"][,1]
+  nearest = as.data.table(GenomicRanges::distanceToNearest(snv_gr_round2, gr_genes, select = "all"))
+  possible_genes = GenomicRanges::mcols(gr_genes)["names"][,1]
   nearest[, gene := nearest[, possible_genes[subjectHits]]]
   nearest = nearest[! duplicated(nearest[, .(queryHits, gene)])] 
   genes_by_snv_row = nearest[, .(genes = list(gene), dist = distance[1]), by = "queryHits"]
@@ -282,6 +282,8 @@ annotate_variants <- function(cesa) {
 	  aac_table = aac_table[! aac_id %in% bad_aa]
 	}
 	
+	
+	
 	# record which covered_regions granges cover each mutation
 	snv_gr = GenomicRanges::makeGRangesFromDataFrame(snv_table, seqnames.field = "chr", start.field = "pos", end.field = "pos")
 	
@@ -302,17 +304,18 @@ annotate_variants <- function(cesa) {
 	# but the samples themselves are considered "exome+" (be careful not to double-count these if developing something new)
 	snv_table[, covered_in := grs_with_coverage]
 	
-	# We're going to cheat and and say samples have coverage at aac sites if they have coverage on any of the three codon positions
+	# We're going to cheat and say samples have coverage at aac sites if they have coverage on any of the three codon positions
 	# in practice, there probably is coverage even if the coverage intervals disagree
+	aac_coverage = snv_table[, .(aac_id = unlist(assoc_aa_mut), covered_in), by = "snv_id"]
+	aac_coverage = aac_coverage[, .(covered_in = list(sort(unique(unlist(covered_in))))), by = "aac_id"]
+	aac_table[aac_coverage, covered_in := covered_in, on = "aac_id"]
+
 	setkey(snv_table, "snv_id")
-	
-	# speed this up later, maybe
-	aac_table[, covered_in := .(list(snv_table[all_snv_ids, unique(sort(unlist(covered_in)))])), by = "aac_id"]
-	
+	setkey(aac_table, "aac_id")
 	maf = cesa@maf
 	maf[Variant_Type == "SNV", snv_id := paste0(Chromosome, ':', Start_Position, '_', Reference_Allele, '>', Tumor_Allele)]
-	maf = snv_table[, .(snv_id, genes, assoc_aa_mut, trinuc_mut, covered_in)][maf, , on = "snv_id"]
-	maf[Variant_Type != "SNV", c("genes", "assoc_aa_mut", "trinuc_mut", "covered_in") := NA] # pending indel support
+	maf = snv_table[, .(snv_id, genes, assoc_aa_mut)][maf, , on = "snv_id"]
+	maf[Variant_Type != "SNV", c("genes", "assoc_aa_mut") := NA] # pending indel support
 	setcolorder(maf, colnames(cesa@maf)) # put original columns back in the front
   cesa@maf = maf
 

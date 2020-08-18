@@ -13,6 +13,7 @@
 #' @importFrom IRanges "%within%"
 #' @param cesa the CESAnalysis object to load the data into
 #' @param maf Path of tab-delimited text file in MAF format, or an MAF in data.table or data.frame format
+#' @param annotate Annotate mutations with gene and other reference information (required for effect size analysis)
 #' @param sample_col column name with sample ID data (Tumor_Sample_Barcode or Unique_Patient_Identifier)
 #' @param chr_col column name with chromosome data  (Chromosome)           
 #' @param start_col column name with start position (Start_Position)
@@ -37,12 +38,16 @@
 #' @return CESAnalysis object with the specified MAF data loaded (in addition to any
 #'   previously loaded data)
 #' @export
-load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode", chr_col = "Chromosome", start_col = "Start_Position",
+load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumor_Sample_Barcode", chr_col = "Chromosome", start_col = "Start_Position",
                     ref_col = "Reference_Allele", tumor_allele_col = "guess", coverage = "exome", covered_regions = NULL,
                     covered_regions_name = NULL, covered_regions_padding = 0, progression_col = NULL, chain_file = NULL, enforce_generic_exome_coverage = FALSE) {
-
+  
   if (is.null(cesa)) {
     stop("You need to supply a CESAnalysis object to load the MAF data into.")
+  }
+  
+  if (! cesa@ref_key %in% ls(.ces_ref_data)) {
+    preload_ref_data(cesa@ref_key)
   }
   
   # .ces_ref_data should be populated with reference data
@@ -60,7 +65,24 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     }
   }
   
+  if (! is(annotate, "logical") || length(annotate) != 1) {
+    stop("annotate should be T/F", call. = F)
+  }
+  
+  # We're not allowing a mix of annotated and unannotated records
+  # The purpose of annotate = FALSE is to allow quick MAF loading for scratch work, etc.
+  cesa_anno_status = cesa@advanced$annotated
+  if (is.null(cesa_anno_status) || identical(logical(0), cesa_anno_status)) {
+    cesa@advanced$annotated = annotate
+  } else if (cesa_anno_status == T & annotate == F){
+    stop("The CESAnalysis already contains annotated variants, so you need to run with annotate = T.", call. = F)
+  } else if (cesa_anno_status == F & annotate == T) {
+    stop("The CESAnalysis already contains unannotated records. Either run annotate_variants() to annotate\n",
+         "them, or re-run load_maf with annotate = F.", call. = F)
+  }
 
+  
+  
   if (is.null(maf)) {
     stop("Supply MAF data via maf=[file path or data.table/data.frame].")
   }
@@ -75,6 +97,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   }
   
   # validate coverage
+  previous_covered_regions_names = names(cesa@coverage) # may be NULL
   if (! is.character(coverage) || ! coverage %in% c("exome", "genome", "targeted") || length(coverage) > 1) {
     stop("Argument coverage must be \"exome\", \"genome\", or \"targeted\"")
   }
@@ -209,8 +232,9 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     # otherwise, add the coverage information to the CESAnalysis
     if (covered_regions_name %in% names(cesa@coverage)) {
       if (! identical(covered_regions, cesa@coverage[[covered_regions_name]])) {
-        stop(paste0("MAF data was previously loaded in using the same covered_regions_name (", covered_regions_name, ")\n",
-                    "but the covered_regions do not exactly match."))
+        stop("MAF data was previously loaded in using the same covered_regions_name (", covered_regions_name, "),\n",
+             "but the covered_regions do not exactly match. Perhaps the input BED files (or GRanges) are from\n",
+             "different sources, or different values of covered_regions_padding were used.")
       }
     }
     # make sure it really looks like exome data, if possible
@@ -247,7 +271,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     select_cols = c(select_cols, "Unique_Patient_Identifier")
   }
   
-  bad_maf_msg = "Input MAF is expected to be a data.frame or the filename of an MAF-formatted tab-delimited text file."
+  bad_maf_msg = "Input MAF is expected to be a data frame or the filename of an MAF-formatted tab-delimited text file."
   if ("character" %in% class(maf)) {
     if(length(maf) > 1) {
       stop(bad_maf_msg)
@@ -369,7 +393,6 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   
   # uppercase bases only
   maf[[tumor_allele_col]] = toupper(maf[[tumor_allele_col]])
-
   
   # drop records where tumor allele is equal to reference allele
   no_variant = maf[[ref_col]] == maf[[tumor_allele_col]]
@@ -397,14 +420,8 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   
   # select only the necessary columns and give column names that will stay consistent
   maf = maf[,c(..sample_col, ..chr_col, ..start_col, ..ref_col, ..tumor_allele_col)]
-  sample_col = "Unique_Patient_Identifier"
-  chr_col = "Chromosome"
-  start_col = "Start_Position"
-  ref_col = "Reference_Allele"
-  tumor_allele_col = "Tumor_Allele"
-  colnames(maf) =  c(sample_col, chr_col, start_col, ref_col, tumor_allele_col)
+  colnames(maf) = c("Unique_Patient_Identifier", "Chromosome", "Start_Position", "Reference_Allele", "Tumor_Allele")
   
-
   new_samples = data.table(Unique_Patient_Identifier = maf$Unique_Patient_Identifier, progression_name = sample_progressions)
   new_samples = new_samples[, .(progression_name = unique(progression_name)), by = "Unique_Patient_Identifier"]
 
@@ -443,17 +460,14 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
                      paste(missing_progressions, collapse = ", ")))
     }    
   }
-
-
   
-  # create MAF df to hold excluded records
+  # create separate table for excluded records
   excluded = data.table()
   
   # strip chr prefixes from chr column, if present ("NCBI-style")
   maf[, Chromosome := sub('^chr', '', Chromosome)]
   # temporary handling of MT/M
   maf[Chromosome == "M", Chromosome:="MT"]  # changing M to MT
-  
   
   # handle liftOver to the assembly of the CESAnalysis
   if(need_to_liftOver) {
@@ -513,8 +527,8 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   if (coverage == "genome") {
     num_uncovered = 0
   } else {
-    maf_grange = GenomicRanges::makeGRangesFromDataFrame(maf, seqnames.field = chr_col, start.field = start_col, 
-                                                         end.field = start_col, seqinfo = genome_info)
+    maf_grange = GenomicRanges::makeGRangesFromDataFrame(maf, seqnames.field = "Chromosome", start.field = "Start_Position", 
+                                                         end.field = "Start_Position", seqinfo = genome_info)
     is_uncovered = ! maf_grange %within% covered_regions
     num_uncovered = sum(is_uncovered)
   }
@@ -640,12 +654,67 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   cesa@samples = rbind(cesa@samples, new_samples)
   setcolorder(cesa@samples, c("Unique_Patient_Identifier", "coverage", "covered_regions", "progression_name", "progression_index"))
   setkey(cesa@samples, "Unique_Patient_Identifier")
-  cesa@maf = rbind(cesa@maf, maf)
   
   if (nrow(excluded) > 0) {
     colnames(excluded) = c(colnames(maf)[1:5], "Exclusion_Reason")
     cesa@excluded = rbind(cesa@excluded, excluded) 
   }
+  
+  
+  if(annotate) {
+    if (length(cesa@mutations) == 0) {
+      message("Annotating variants...")
+    } else {
+      message("Annotating new variants...")
+    }
+    
+    maf[Variant_Type == "SNV", snv_id := paste0(Chromosome, ':', Start_Position, '_', Reference_Allele, '>', Tumor_Allele)]
+    
+    # A key point here is that if an AAC is already annotated, all its constituent SNVs are, too; also,
+    # when an SNV has been annotated using CES, any associated AACs are always put in the AAC table. 
+    # Therefore, only SNVs that are in the new data that aren't already in the SNV table need to be annotated,
+    # and there associated AACs are new, too
+    new_variants = setdiff(na.omit(maf$snv_id), cesa@mutations$snv$snv_id)
+    maf_to_annotate = maf[snv_id %in% new_variants]
+    cesa_for_anno = suppressMessages(CESAnalysis(genome = cesa@ref_key))
+    cesa_for_anno@maf = maf_to_annotate
+    cesa_for_anno@samples = cesa@samples
+    cesa_for_anno@coverage = cesa@coverage
+    cesa_for_anno = annotate_variants(cesa_for_anno)
+    
+    # Add the pair of annotation columns from annotate_variants
+    maf[cesa_for_anno@maf,  c("genes", "assoc_aa_mut") := .(genes, assoc_aa_mut), on = "snv_id"]
+    maf[Variant_Type != "SNV", c("genes", "assoc_aa_mut") := NA] # set to NA instead of 1-item list containing NULL
+
+    # Rarely, variants get thrown out during annotation if their trinuc contexts are non-specific (N's)
+    if (cesa_for_anno@excluded[, .N] > 0) {
+      snvs_excluded_in_anno = cesa_for_anno@excluded[, paste0(Chromosome, ':', Start_Position, '_', Reference_Allele, '>', Tumor_Allele)]
+      maf = maf[! snv_id %in% snvs_excluded_in_anno]
+      cesa@excluded = rbind(cesa@excluded, cesa_for_anno@excluded)
+    }
+    
+    # Update coverage of existing mutations, if there any and if the new MAF data uses new covered regions
+    if(cesa@maf[, .N] > 0 & ! covered_regions_name %in% previous_covered_regions_names) {
+      prev_snv = cesa@mutations$snv
+      snv_gr = GenomicRanges::makeGRangesFromDataFrame(prev_snv, seqnames.field = "chr", start.field = "pos", end.field = "pos")
+      is_covered = snv_gr %within% cesa@coverage[[covered_regions_name]]
+      prev_snv[is_covered, covered_in := list(lapply(covered_in, function(x) c(x, covered_regions_name))), by = "snv_id"]
+      cesa@mutations$snv = prev_snv
+      
+      # Apply to amino acid changes
+      aac_coverage = prev_snv[, .(aac_id = unlist(assoc_aa_mut), covered_in), by = "snv_id"]
+      aac_coverage = aac_coverage[, .(covered_in = list(sort(unique(unlist(covered_in))))), by = "aac_id"]
+      cesa@mutations$amino_acid_change[aac_coverage, covered_in := covered_in, on = "aac_id"]
+    }
+    cesa@mutations$amino_acid_change = rbind(cesa@mutations$amino_acid_change, cesa_for_anno@mutations$amino_acid_change)
+    cesa@mutations$snv = rbind(cesa@mutations$snv, cesa_for_anno@mutations$snv)
+    setkey(cesa@mutations$amino_acid_change, 'aac_id')
+    setkey(cesa@mutations$snv, 'snv_id')
+  }
+  
+  cesa@maf = rbind(cesa@maf, maf)
+  
+  
   
   current_snv_stats = maf[Variant_Type == "SNV", .(num_samples = length(unique(Unique_Patient_Identifier)), num_snv = .N)]
   message(paste0("Loaded ", current_snv_stats$num_snv, " SNVs from ", current_snv_stats$num_samples, " samples into CESAnalysis."))

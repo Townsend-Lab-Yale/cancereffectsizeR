@@ -209,7 +209,7 @@ pairwise_gene_epistasis = function(cesa, genes, optimx_args) {
   
   # Collect mutations present in MAF in the two genes (note that some AACs may
   # be same site, different gene, but okay for coverage check)
-  maf = cesa@maf
+  maf = copy(cesa@maf)
   maf[, `:=`(in_g1 = gene1 %in% genes, in_g2 = gene2 %in% genes), by = "snv_id"]
   if(maf[in_g1 == T & in_g2 == T, .N] > 0) {
     ## To-do: test behavior

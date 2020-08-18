@@ -7,6 +7,7 @@
 load_maf(
   cesa = NULL,
   maf = NULL,
+  annotate = TRUE,
   sample_col = "Tumor_Sample_Barcode",
   chr_col = "Chromosome",
   start_col = "Start_Position",
@@ -25,6 +26,8 @@ load_maf(
 \item{cesa}{the CESAnalysis object to load the data into}
 
 \item{maf}{Path of tab-delimited text file in MAF format, or an MAF in data.table or data.frame format}
+
+\item{annotate}{Annotate mutations with gene and other reference information (required for effect size analysis)}
 
 \item{sample_col}{column name with sample ID data (Tumor_Sample_Barcode or Unique_Patient_Identifier)}
 
