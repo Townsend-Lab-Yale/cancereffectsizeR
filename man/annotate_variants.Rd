@@ -2,7 +2,7 @@
 % Please edit documentation in R/annotate_variants.R
 \name{annotate_variants}
 \alias{annotate_variants}
-\title{Annotate variants with data from genome and reference transcripts}
+\title{Annotate variants}
 \usage{
 annotate_variants(cesa)
 }

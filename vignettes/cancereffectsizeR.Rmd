@@ -26,7 +26,9 @@ Begin by declaring your CESAnalysis object, the primary data structure of cancer
 Note: Currently only hg19 is supported, but detailed instructions are coming soon for generating custom reference data to run CES with any genome build. 
 
 ### Load MAF data
-Next, load [MAF](https://docs.gdc.cancer.gov/Data/File_Formats/MAF_Format/#gdc-maf-format-v100) data from a text file or a data frame into a CESAnalysis object. If column names don't match MAF format specifications, you can supply your own column names. The only required columns are those specifying chromosome, position, reference and tumor alleles, and sample ID (Tumor_Sample_Barcode, by default); any other columns in your data will be ignored. If your CESAnalysis includes chronological tumor progression states (see Create CESAnalysis, above), also specify `progression_col`. 
+Next, use `load_maf()` to load [MAF](https://docs.gdc.cancer.gov/Data/File_Formats/MAF_Format/#gdc-maf-format-v100) data from a text file or a data table into a CESAnalysis object. If column names don't match MAF format specifications, you can supply your own column names. The only required columns are those specifying chromosome, position, reference and tumor alleles, and sample ID (Tumor_Sample_Barcode, by default); any other columns in your data will be ignored. If your CESAnalysis includes chronological tumor progression states (see Create CESAnalysis, above), also specify `progression_col`.
+
+Most of the runtime of `load_maf` goes to producing tables of mutation annotations. These annotations are required for cancereffectsizeR functions and may also be useful for other analyses. Still, you can sometimes save time by setting `annotate = FALSE`. You'll have to reload the data in a new CESAnalysis later, or you can run `annotate_variants()`.
 
 #### Sequencing data coverage
 By default, data is assumed to be derived from whole-exome sequencing. Whole-genome data and targeted sequencing data are also supported when the `coverage` option is specified. For targeted sequencing data, you must provide the set of target regions as a BED file or GRanges object. You can also supply this information for exome data, if you have it available. See `load_maf()` for details.
@@ -63,7 +65,6 @@ After loading in data, run the following functions to prepare for calculation of
 
 * `trinuc_mutation_rates()` uses deconstructSigs to extract mutational signature weightings from each tumor's SNV mutation profile, and from there calculates trinucleotide-context-specific SNV mutation rates. See also `vignette("cosmic_cancer_type_note")` for advice on excluding certain signatures that may be presumed absent from your tumors.
 * `gene_mutation_rates()` uses dNdScv to calculate gene-level mutation rates. It's highly recommended to supply tissue-specific covariate data if available. Covariates for many human tissue types are included with this package. Default hg19 covariates from dNdScv are also available.
-* `annotate_variants()` annotates all SNVs and all amino acid change mutations in the data set, producing a pair of mutation tables with useful information.
 
 Finally, use `ces_snv()` to find calculate effect sizes.
 
@@ -84,7 +85,6 @@ Finally, use `ces_snv()` to find calculate effect sizes.
   
   analysis = trinuc_mutation_rates(analysis, signature_set = "COSMIC_v3.1", signatures_to_remove = to_remove)
   analysis = gene_mutation_rates(analysis, covariates = "lung")
-  analysis = annotate_variants(analysis)
   
   
   # Calculate selection intensities
@@ -97,6 +97,5 @@ If you are running in a MacOS or Linux environment, you can speed up processing 
   # assuming you've already loaded MAF data into object "cesa"
   cesa = trinuc_mutation_rates(cesa, signature_set = "COSMIC_v3.1", cores = 4)
   cesa = gene_mutation_rates(cesa, covariates = "breast")
-  cesa = annotate_variants(cesa)
   cesa = ces_snv(cesa, cores = 4)
 ```

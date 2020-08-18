@@ -7,7 +7,6 @@ reference:
   - load_maf
   - trinuc_mutation_rates
   - gene_mutation_rates
-  - annotate_variants
   - ces_snv
 - title: Exploring genomic reference data
   contents:
@@ -25,6 +24,7 @@ reference:
 - title: Miscellaneous
   contents:
   - load_cesa
+  - annotate_variants
   - baseline_mutation_rates
   - build_RefCDS
 - title: Viewing CESAnalysis data

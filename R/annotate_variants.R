@@ -1,4 +1,4 @@
-#' Annotate variants with data from genome and reference transcripts
+#' Annotate variants
 #' 
 #' Annotates CESAnaysis MAF data with reference genome and gene data
 #'

@@ -87,7 +87,7 @@ to supply a UCSC-style chain file, and then your MAF coordinates will be automat
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9011</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9012</span>
       </span>
     </div>
 
@@ -157,6 +157,7 @@ to supply a UCSC-style chain file, and then your MAF coordinates will be automat
     <pre class="usage"><span class='fu'>load_maf</span>(
   <span class='kw'>cesa</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
   <span class='kw'>maf</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>annotate</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
   <span class='kw'>sample_col</span> <span class='kw'>=</span> <span class='st'>"Tumor_Sample_Barcode"</span>,
   <span class='kw'>chr_col</span> <span class='kw'>=</span> <span class='st'>"Chromosome"</span>,
   <span class='kw'>start_col</span> <span class='kw'>=</span> <span class='st'>"Start_Position"</span>,
@@ -181,6 +182,10 @@ to supply a UCSC-style chain file, and then your MAF coordinates will be automat
     <tr>
       <th>maf</th>
       <td><p>Path of tab-delimited text file in MAF format, or an MAF in data.table or data.frame format</p></td>
+    </tr>
+    <tr>
+      <th>annotate</th>
+      <td><p>Annotate mutations with gene and other reference information (required for effect size analysis)</p></td>
     </tr>
     <tr>
       <th>sample_col</th>

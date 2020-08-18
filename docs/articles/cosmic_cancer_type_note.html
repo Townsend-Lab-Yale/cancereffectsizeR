@@ -38,7 +38,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9011</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9012</span>
       </span>
     </div>
 
@@ -99,11 +99,11 @@
 
     
     
-<p>The cancereffectsizeR <code><a href="../reference/trinuc_mutation_rates.html">trinuc_mutation_rates()</a></code> function uses mutational signature extraction to calculate relative trinucleotide-specific SNV mutation rates in tumors. The “signatures_to_remove” option allows some signatures to be excluded from this analysis, which means each tumor will receive a weight of 0 for these signatures, indicating that none of the tumor’s SNVs are attributable to these signatures.</p>
-<p>In <a href="https://doi.org/10.1038/s41586-020-1943-3">Alexandrov 2020</a>, the paper introducing the latest COSMIC mutational signatures (COSMICv3), there are some signatures that do not appear in certain cancer types. Consider excluding some or all of these signatures in <code><a href="../reference/trinuc_mutation_rates.html">trinuc_mutation_rates()</a></code>.</p>
-<p>There are also a few signatures associated with cancer treatment (SBS11, SBS31, SBS32, SBS35, SBS86, SBS87, SBS90), so if you are confident that your sample is treatment-naive, or at least hasn’t been exposed to some of the implicated drugs, you may want to exclude the signatures.</p>
-<p>Note that while some COSMIC signatures are attributed sequencing artifacts, you shouldn’t exclude these because cancereffectsizeR already handles these signatures specially.</p>
-<p>To get a list of signatures to exclude based on cancer type and treatment status, you can use <code><a href="../reference/suggest_cosmic_signatures_to_remove.html">suggest_cosmic_signatures_to_remove()</a></code>.</p>
+<p>The <code><a href="../reference/trinuc_mutation_rates.html">trinuc_mutation_rates()</a></code> function uses mutational signature extraction to calculate relative trinucleotide-specific SNV mutation rates in tumors. The “signatures_to_remove” option allows some signatures to be excluded from this analysis, which means each tumor will receive a weight of 0 for these signatures, indicating that none of the tumor’s SNVs are attributable to these signatures. This page describes the behavior of the helper function <code><a href="../reference/suggest_cosmic_signatures_to_remove.html">suggest_cosmic_signatures_to_remove()</a></code> and the reasoning behind it.</p>
+<p>In <a href="https://doi.org/10.1038/s41586-020-1943-3">Alexandrov 2020</a>, the developers of the COSMIC mutational signatures sets say that some signatures that do not appear in certain cancer types. Consider excluding some or all of these signatures in <code><a href="../reference/trinuc_mutation_rates.html">trinuc_mutation_rates()</a></code>.</p>
+<p>There are also some signatures associated with various cancer treatments (SBS11, SBS31, SBS32, SBS35, SBS86, SBS87, SBS90), so you if you know that your sample is treatment-naive or hasn’t been exposed to the implicated drugs, some or all of these signatures can be excluded.</p>
+<p>Note that while some COSMIC signatures are attributed to sequencing artifacts, you shouldn’t exclude these because cancereffectsizeR already handles these signatures specially.</p>
+<p>The <code><a href="../reference/suggest_cosmic_signatures_to_remove.html">suggest_cosmic_signatures_to_remove()</a></code> function will identify possible signature exclusions based on cancer type and treatment status.</p>
 <div class="sourceCode" id="cb1"><html><body><pre class="r">  <span class="fu"><a href="../reference/suggest_cosmic_signatures_to_remove.html">suggest_cosmic_signatures_to_remove</a></span>(<span class="kw">cancer_type</span> <span class="kw">=</span> <span class="st">"BRCA"</span>, <span class="kw">treatment_naive</span> <span class="kw">=</span> <span class="fl">TRUE</span>)
   <span class="fu"><a href="../reference/suggest_cosmic_signatures_to_remove.html">suggest_cosmic_signatures_to_remove</a></span>(<span class="kw">cancer_type</span> <span class="kw">=</span> <span class="st">"Kidney-RCC"</span>)</pre></body></html></div>
 <p>The cancer type recommendations are based on Extended Data Figure 5 of Alexandrov 2020. The first two columns of the table below, also based on that figure, give the labels accepted by the <code>cancer_type</code> argument. (Note: SBS84 and SBS85 are absent from the Alexandrov figure, but they are elsewhere described in the paper as specific to lymphoid neoplasms.)</p>
@@ -289,7 +289,7 @@ CNS-PiloAstro
 48
 </td>
 <td style="text-align:right;">
-CNS pilocytic astrocytomaE:E
+CNS pilocytic astrocytoma
 </td>
 </tr>
 <tr>
@@ -728,7 +728,12 @@ uterus adenocarcinoma
 </tr>
 </tbody>
 </table>
+<div id="cosmic-3-1-update" class="section level3">
+<h3 class="hasAnchor">
+<a href="#cosmic-3-1-update" class="anchor"></a>COSMIC 3.1 Update</h3>
+<p>The new treament-associated signatures introduced in COSMIC 3.1 in July 2020 have been added to this page. Additionally, SBS88, associated with colibactin exposure, is not in the above table, but the COSMIC signature site says that it is found in head and neck, oral, urinary tract, and colorectal cancers.</p>
 </div>
+  </div>
 
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
 

@@ -10,7 +10,7 @@ CNS-GBM	GBM	100	CNS glioblastoma	1	1	0	0	1	0	0	0	0	0	0	0	1	1	1	0	1	0	1	0	0	0	0	0
 CNS-LGG	LGG	27	CNS lower-grade glioma	1	0	0	0	1	0	0	1	1	1	0	0	0	0	1	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
 CNS-Medullo	NA	185	CNS medulloblastoma	1	0	1	0	1	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	0	0	0	0	0
 CNS-Oligo	NA	18	CNS oligodenroglioma	1	0	0	0	1	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0
-CNS-PiloAstro	NA	48	CNS pilocytic astrocytomaE:E	1	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0
+CNS-PiloAstro	NA	48	CNS pilocytic astrocytoma	1	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0
 ColoRect-AdenoCA	"COAD, READ"	719	colorectal adenocarcinoma	1	1	1	0	1	1	0	0	0	0	0	1	1	1	0	0	1	0	1	0	1	1	1	0	1	1	0	0	0	0	1	1	0	1	0	0	0	0	0	0	1	0	0	1	1	0	1	0	0
 Eso-AdenoCA	ESCA	347	esophagus adenocarcinoma	1	1	1	1	1	1	0	1	1	1	0	0	0	0	0	0	1	0	0	1	1	1	1	0	1	0	0	0	0	0	1	1	0	0	0	0	0	1	0	0	0	1	0	1	0	0	1	0	0
 Eso-SCC	ESCA	160	esophagus squamous cell carcinoma	1	1	0	0	1	0	0	0	0	0	0	1	0	1	0	0	1	0	1	0	1	1	1	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	1	0	0
