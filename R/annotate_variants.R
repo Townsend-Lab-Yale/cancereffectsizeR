@@ -211,15 +211,15 @@ annotate_variants <- function(cesa) {
 	snv_table = snvs[, .(snv_id, genes, intergenic)][snv_table, , on = "snv_id"]
 	
 	# annotate amino acid mutations with all associated SNVs
-	snvs_by_aa_mut = snv_table[, .(all_snv_ids = list(snv_id)), by = "aac_id"]
-	aac[snvs_by_aa_mut, all_snv_ids := all_snv_ids, on = "aac_id"]
+	snvs_by_aa_mut = snv_table[, .(constituent_snvs = list(snv_id)), by = "aac_id"]
+	aac[snvs_by_aa_mut, constituent_snvs := constituent_snvs, on = "aac_id"]
 	
 	# make SNV table records unique and annotate with all amino acid mutations
   snv_table = snv_table[, .(chr, pos, ref, alt, genes, intergenic, assoc_aa_mut = list(sort(aac_id))), by = "snv_id"]
   snv_table = unique(snv_table, by = "snv_id")
   
   # add in noncoding MAF SNVs
-  noncoding = snvs[! snv_id %in% unlist(aac$all_snv_ids)]
+  noncoding = snvs[! snv_id %in% unlist(aac$constituent_snvs)]
   noncoding = noncoding[, .(chr = Chromosome, pos = Start_Position, ref = Reference_Allele, alt = Tumor_Allele,
                             genes, intergenic)]
   noncoding[, snv_id := paste0(chr, ':', pos, "_", ref, '>', alt)]
@@ -261,7 +261,7 @@ annotate_variants <- function(cesa) {
   
   # clean up aa table
   aac_table = aac
-  aac_table = aac_table[, .(aac_id, gene, strand, pid, aachange, aa_ref, aa_pos, aa_alt, next_to_splice, nt1_pos, nt2_pos, nt3_pos, coding_seq, all_snv_ids)]
+  aac_table = aac_table[, .(aac_id, chr, gene, strand, pid, aachange, aa_ref, aa_pos, aa_alt, next_to_splice, nt1_pos, nt2_pos, nt3_pos, coding_seq, constituent_snvs)]
   setcolorder(aac_table, c("aac_id", "gene", "aachange", "strand"))
 	# If any trinucleotide mutation comes up NA--usually due to an ambiguous N in the genomic trinuc context--remove record from analysis
 	bad_trinuc_context = which(is.na(snv_table$trinuc_mut))

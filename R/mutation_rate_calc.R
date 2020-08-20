@@ -93,7 +93,7 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
   setkey(sample_gene_rates, "gene")
   
   if(length(aac_ids > 0)) {
-    trinuc_mut_by_aac = mutations$amino_acid_change[, .(trinuc_mut = list(mutations$snv[unlist(all_snv_ids), trinuc_mut])), by = "aac_id"]
+    trinuc_mut_by_aac = mutations$amino_acid_change[, .(trinuc_mut = list(mutations$snv[unlist(constituent_snvs), trinuc_mut])), by = "aac_id"]
     gene_by_aac = mutations$amino_acid_change[aac_ids, gene]
     aac_genes = unique(gene_by_aac)
     

@@ -265,10 +265,10 @@ pairwise_gene_epistasis = function(cesa, genes, optimx_args) {
   # only the tumors containing a recurrent variant factor into the selection analysis
   ## MAF_input1 and MAF_input2 are already restricted to just eligible tumors
   maf = maf[Unique_Patient_Identifier %in% eligible_tumors]
-  all_g1_snv = c(cesa@mutations$amino_acid_change[aac_v1, unlist(all_snv_ids)], noncoding_v1)
+  all_g1_snv = c(cesa@mutations$amino_acid_change[aac_v1, unlist(constituent_snvs)], noncoding_v1)
   tumors_with_gene1_mutated = maf[snv_id %in% all_g1_snv, unique(Unique_Patient_Identifier)]
   
-  all_g2_snv = c(cesa@mutations$amino_acid_change[aac_v2, unlist(all_snv_ids)], noncoding_v2)
+  all_g2_snv = c(cesa@mutations$amino_acid_change[aac_v2, unlist(constituent_snvs)], noncoding_v2)
   tumors_with_gene2_mutated = maf[snv_id %in% all_g2_snv, unique(Unique_Patient_Identifier)]
   
   tumors_with_both_mutated = intersect(tumors_with_gene1_mutated,tumors_with_gene2_mutated)

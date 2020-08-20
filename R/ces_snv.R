@@ -41,7 +41,7 @@ ces_snv <- function(cesa = NULL,
     aac_ids = unique(na.omit(unlist(cesa@maf$assoc_aa_mut)))
     
     # tak all SNVs in MAF, then subtract those that have AAC annotation
-    noncoding_snv_ids = setdiff(cesa@maf[! is.na(snv_id), snv_id], mutations$amino_acid_change[aac_ids, unlist(all_snv_ids)])
+    noncoding_snv_ids = setdiff(cesa@maf[! is.na(snv_id), snv_id], mutations$amino_acid_change[aac_ids, unlist(constituent_snvs)])
   } else {
     if(! is(variants, "list")) {
       stop("Expected variants to be a list", call. = F)

@@ -70,6 +70,13 @@ load_cesa = function(file) {
   cesa@genome_data_dir = available_genome_dirs[ref_key]
   preload_ref_data(ref_key)
   cesa@ref_key = ref_key
+  
+  # Back-compatibility (column name changes)
+  if(! is.null(cesa@mutations$amino_acid_change)) {
+    setnames(cesa@mutations$amino_acid_change, 'all_snv_ids', 'constituent_snvs', skip_absent = T)
+  }
+  
+  
 
   return(cesa)
 }
