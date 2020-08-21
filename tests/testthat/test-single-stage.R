@@ -42,6 +42,10 @@ cesa = load_cesa(get_test_file("cesa_for_snv.rds"))
 test_that("gene mutation rates", {
   dndscv_input = cancereffectsizeR:::dndscv_preprocess(cesa = cesa, covariates = "lung")
   dndscv_input_ak = get_test_data("dndscv_input_single.rds")
+  
+  # all but first five columns of mutations ignored by dndscv (later, should get rid of those columns in gene_mutation_rates)
+  dndscv_input[[1]]$mutations = dndscv_input[[1]]$mutations[, 1:5]
+  dndscv_input_ak[[1]]$mutations = dndscv_input_ak[[1]]$mutations[, 1:5]
   expect_equal(dndscv_input[[1]][-4], dndscv_input_ak[[1]][-4]) # refdb path will very on dev/prod due to inst dir
   dndscv_output = get_test_data("dndscv_raw_output_single.rds")
   dndscv_output = cancereffectsizeR:::dndscv_postprocess(cesa, dndscv_output)

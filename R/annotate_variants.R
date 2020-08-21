@@ -87,15 +87,17 @@ annotate_variants <- function(cesa) {
   cds_hits[, aa_pos := ceiling(nt_pos / 3)]
   cds_hits[, codon_pos := nt_pos %% 3 ] # note this gives 0-based codon index 
   cds_hits[codon_pos == 0, codon_pos := 3]
-  ref_seqs = Biostrings::DNAStringSet(mapply(function(cds, nt_pos, codon_pos) Biostrings::subseq(RefCDS[[cds]]$seq_cds, nt_pos - codon_pos + 1, width = 3), 
-                                 cds_hits$gene, cds_hits$nt_pos, cds_hits$codon_pos))
+  
+  cds_genes = unique(cds_hits$gene)
+  seqs = DNAStringSet(lapply(cds_genes, function(x) RefCDS[[x]]$seq_cds))
+  names(seqs) = cds_genes
+  ref_seqs = Biostrings::subseq(seqs[cds_hits$gene], start = cds_hits$nt_pos - cds_hits$codon_pos + 1, width = 3)
   
   # Records that don't overlap a CDS are not coding mutations
   aac = cds_hits
   
-  aa_ref = as.character(Biostrings::translate(ref_seqs, no.init.codon = T), use.names = F)
-  
   # For efficiency, convert to character, and then substitute in the tumor allele and get aa_alt
+  aa_ref = as.character(Biostrings::translate(ref_seqs, no.init.codon = T), use.names = F)
   aac_alt_allele = Biostrings::DNAStringSet(cds_hits$Tumor_Allele)
   aac_alt_allele[cds_hits$strand == -1] = Biostrings::complement(aac_alt_allele[cds_hits$strand == -1])
   alt_seqs = as.character(ref_seqs)
@@ -110,18 +112,22 @@ annotate_variants <- function(cesa) {
   
   setnames(aac, old = c("cds", "Chromosome", "Start_Position"), new = c("pid", "chr", "pos"))
   aac[, aac_id := paste0(gene, "_", aachange, "_", pid)]
-  aac[, c("tmp_end_pos", "start", "end", "cds_order", "cum_cds_width") := NULL]
+  aac[, c("start", "end", "cds_order", "cum_cds_width") := NULL]
   
   # Some AACs will come from >1 distinct SNV in the MAF data; only need one of each for annotation purposes
   aac = unique(aac, by = "aac_id")
 	
-	# to make things easier later, determine now which MAF records are near splice sites (within 3 bp)
-	# First, get CDS intervals for every gene; potential splice sites are all the start/end positions of these
-	splice_sites = rbindlist(lapply(RefCDS[genes_with_aac], function(x) return(list(gene = x$gene_name, splice_pos = x$intervals_cds))))
-	comb = merge.data.table(aac[,.(aac_id, gene, pos)], splice_sites, allow.cartesian = T)
-	comb[, diff:= abs(splice_pos - pos)]
-	comb = comb[, .(next_to_splice = any(diff <= 3)), by = aac_id]
-	aac[comb, next_to_splice := next_to_splice, on = "aac_id"]
+	# To make things easier later, determine which AAC records are possibly spanning splice sites
+  # Genomically, all bases must be within 3bp of a splice position
+  # Later, we'll do a more careful annotation of splice site distance
+	# For now, get CDS intervals for relevant genes; potential splice sites will be included in the start/end positions of these
+	approx_splice_sites = unique(rbindlist(lapply(RefCDS[genes_with_aac], function(x) return(list(chr = x$chr, splice_pos = x$intervals_cds)))))
+	approx_splice_sites[, start := splice_pos - 3]
+	approx_splice_sites[, end := splice_pos + 3]
+	setkey(aac, "chr", "pos", "tmp_end_pos")
+	possible_splice_aac_id = foverlaps(approx_splice_sites, aac, by.x = c("chr", "start", "end"), type = "any", nomatch = NULL)[, aac_id]
+	setkey(aac, "aac_id")
+	aac[, possible_splice := F][possible_splice_aac_id, possible_splice := T]
 	
 	
 	# function to get reference positions of every nucleotide in a codon (needed for near splice sites)
@@ -152,14 +158,14 @@ annotate_variants <- function(cesa) {
 	}
 	
 	# away from splice sites, all codon nt positions are adjacent
-	aac[next_to_splice == F, nt1_pos := pos - strand * (codon_pos - 1)]
-	aac[next_to_splice == F, nt2_pos := pos - strand * (codon_pos - 2)]
-	aac[next_to_splice == F, nt3_pos := pos - strand * (codon_pos - 3)]
+	aac[possible_splice == F, nt1_pos := pos - strand * (codon_pos - 1)]
+	aac[possible_splice == F, nt2_pos := pos - strand * (codon_pos - 2)]
+	aac[possible_splice == F, nt3_pos := pos - strand * (codon_pos - 3)]
 	
 	# figure out nt positions for codons that might span splice sites
-	aac[next_to_splice == T, nt1_pos := mapply(calc_ref_pos, gene, nt_pos - codon_pos + 1, strand)]
-	aac[next_to_splice == T, nt2_pos := mapply(calc_ref_pos, gene, nt_pos - codon_pos + 2, strand)]
-	aac[next_to_splice == T, nt3_pos := mapply(calc_ref_pos, gene, nt_pos - codon_pos + 3, strand)]
+	aac[possible_splice == T, nt1_pos := mapply(calc_ref_pos, gene, nt_pos - codon_pos + 1, strand)]
+	aac[possible_splice == T, nt2_pos := mapply(calc_ref_pos, gene, nt_pos - codon_pos + 2, strand)]
+	aac[possible_splice == T, nt3_pos := mapply(calc_ref_pos, gene, nt_pos - codon_pos + 3, strand)]
 	
 	# get 5'->3' (i.e., standard genomic order) trinucleotide contexts
 	first_triseq = BSgenome::getSeq(bsg, names = aac$chr, start =  aac$nt1_pos - 1, end =  aac$nt1_pos + 1)
@@ -215,7 +221,7 @@ annotate_variants <- function(cesa) {
 	aac[snvs_by_aa_mut, constituent_snvs := constituent_snvs, on = "aac_id"]
 	
 	# make SNV table records unique and annotate with all amino acid mutations
-  snv_table = snv_table[, .(chr, pos, ref, alt, genes, intergenic, assoc_aa_mut = list(sort(aac_id))), by = "snv_id"]
+  snv_table = snv_table[, .(chr, pos, ref, alt, genes, intergenic, assoc_aac = list(sort(aac_id))), by = "snv_id"]
   snv_table = unique(snv_table, by = "snv_id")
   
   # add in noncoding MAF SNVs
@@ -226,9 +232,8 @@ annotate_variants <- function(cesa) {
   setcolorder(noncoding, "snv_id")
   # dt can't handle list columns in unique call, but if it could result would be the same
   noncoding = unique(noncoding, by = c("chr", "pos", "ref", "alt")) 
-  noncoding[, assoc_aa_mut := list(as.list(NA_character_))] # to match coding records
+  noncoding[, assoc_aac := list(as.list(NA_character_))] # to match coding records
   snv_table = rbind(snv_table, noncoding)
-  
   
   
   # Get gene annotations for those that don't have it yet (identified by intergenic == NA)
@@ -261,7 +266,7 @@ annotate_variants <- function(cesa) {
   
   # clean up aa table
   aac_table = aac
-  aac_table = aac_table[, .(aac_id, chr, gene, strand, pid, aachange, aa_ref, aa_pos, aa_alt, next_to_splice, nt1_pos, nt2_pos, nt3_pos, coding_seq, constituent_snvs)]
+  aac_table = aac_table[, .(aac_id, chr, gene, strand, pid, aachange, aa_ref, aa_pos, aa_alt, possible_splice, nt1_pos, nt2_pos, nt3_pos, coding_seq, constituent_snvs)]
   setcolorder(aac_table, c("aac_id", "gene", "aachange", "strand"))
 	# If any trinucleotide mutation comes up NA--usually due to an ambiguous N in the genomic trinuc context--remove record from analysis
 	bad_trinuc_context = which(is.na(snv_table$trinuc_mut))
@@ -277,7 +282,7 @@ annotate_variants <- function(cesa) {
 	  cesa@excluded = rbind(cesa@excluded, bad_trinuc_context_maf)
 	  
 	  # remove the bad record from SNV and aa tables
-	  bad_aa = unlist(snv_table[bad_trinuc_context, assoc_aa_mut])
+	  bad_aa = unlist(snv_table[bad_trinuc_context, assoc_aac])
 	  snv_table = snv_table[! bad_trinuc_context]
 	  aac_table = aac_table[! aac_id %in% bad_aa]
 	}
@@ -306,16 +311,36 @@ annotate_variants <- function(cesa) {
 	
 	# We're going to cheat and say samples have coverage at aac sites if they have coverage on any of the three codon positions
 	# in practice, there probably is coverage even if the coverage intervals disagree
-	aac_coverage = snv_table[, .(aac_id = unlist(assoc_aa_mut), covered_in), by = "snv_id"]
+	aac_coverage = snv_table[, .(aac_id = unlist(assoc_aac), covered_in), by = "snv_id"]
 	aac_coverage = aac_coverage[, .(covered_in = list(sort(unique(unlist(covered_in))))), by = "aac_id"]
 	aac_table[aac_coverage, covered_in := covered_in, on = "aac_id"]
 
+	
+	
+	# Annotate SNVs that are at essential splice sites accroding to RefCDS, and then apply to any associated AACs
+	# Note that we're not keeping track of which genes these splice site positions apply to
+	genes_in_data = unique(unlist(snv_table$genes))
+	ind_no_splice = sapply(RefCDS[genes_in_data], function(x) length(x$intervals_splice) == 0)
+	genes_with_splice_sites = genes_in_data[! ind_no_splice]
+	essential_splice_sites = unique(rbindlist(lapply(RefCDS[genes_with_splice_sites], function(x) return(list(chr = x$chr, start = x$intervals_splice)))))
+	essential_splice_sites[, end := start]
+	snv_table[, tmp_end_pos := pos]
+	setkey(snv_table, "chr", "pos", "tmp_end_pos")
+	essential_splice_snv_id = foverlaps(essential_splice_sites, snv_table, by.x = c("chr", "start", "end"), type = "any", nomatch = NULL)[, snv_id]
+	snv_table[, tmp_end_pos := NULL]
 	setkey(snv_table, "snv_id")
+	snv_table[, essential_splice := F][essential_splice_snv_id, essential_splice := T]
+	
+	# If an AAC has any constituent SNV at an essential splice site, we'll say the AAC is at an essential splice site
 	setkey(aac_table, "aac_id")
+	essential_splice_aac_id = snv_table[essential_splice == T & ! is.na(assoc_aac), unique(unlist(assoc_aac))]
+	aac_table[, essential_splice := F][essential_splice_aac_id, essential_splice := T]
+	aac_table[, possible_splice := NULL]
+	
 	maf = cesa@maf
 	maf[Variant_Type == "SNV", snv_id := paste0(Chromosome, ':', Start_Position, '_', Reference_Allele, '>', Tumor_Allele)]
-	maf = snv_table[, .(snv_id, genes, assoc_aa_mut)][maf, , on = "snv_id"]
-	maf[Variant_Type != "SNV", c("genes", "assoc_aa_mut") := NA] # pending indel support
+	maf = snv_table[, .(snv_id, genes, assoc_aac)][maf, , on = "snv_id"]
+	maf[Variant_Type != "SNV", c("genes", "assoc_aac") := NA] # pending indel support
 	setcolorder(maf, colnames(cesa@maf)) # put original columns back in the front
   cesa@maf = maf
 

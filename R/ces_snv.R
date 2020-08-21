@@ -38,7 +38,7 @@ ces_snv <- function(cesa = NULL,
   
   # If no list of variants is specified, take all AACs in data set and all SNVs that are not covered in AACs
   if (is.null(variants)) {
-    aac_ids = unique(na.omit(unlist(cesa@maf$assoc_aa_mut)))
+    aac_ids = unique(na.omit(unlist(cesa@maf$assoc_aac)))
     
     # tak all SNVs in MAF, then subtract those that have AAC annotation
     noncoding_snv_ids = setdiff(cesa@maf[! is.na(snv_id), snv_id], mutations$amino_acid_change[aac_ids, unlist(constituent_snvs)])
@@ -84,7 +84,7 @@ ces_snv <- function(cesa = NULL,
   
   # filter variants based on recurrency
   if(include_nonrecurrent_variants == F) {
-    recurrent_aac = cesa@maf[! is.na(assoc_aa_mut), .(aac_id = unlist(assoc_aa_mut))][, .N, by = aac_id][N > 1, aac_id]
+    recurrent_aac = cesa@maf[! is.na(assoc_aac), .(aac_id = unlist(assoc_aac))][, .N, by = aac_id][N > 1, aac_id]
     aac_ids = aac_ids[aac_ids %in% recurrent_aac]
     
     recurrent_snv = cesa@maf[! is.na(snv_id), .(snv_id)][, .N, by = "snv_id"][N > 1, snv_id]
@@ -149,7 +149,7 @@ ces_snv <- function(cesa = NULL,
   names(tumors_with_variants_by_gene) = tmp$gene
   
   # identify mutations by variant
-  tmp = cesa@maf[! is.na(assoc_aa_mut), .(aac_id = unlist(assoc_aa_mut)), by = "Unique_Patient_Identifier"][, .(samples = list(Unique_Patient_Identifier)), by = "aac_id"]
+  tmp = cesa@maf[! is.na(assoc_aac), .(aac_id = unlist(assoc_aac)), by = "Unique_Patient_Identifier"][, .(samples = list(Unique_Patient_Identifier)), by = "aac_id"]
   tmp = tmp[coding_table[, aac_id], on = "aac_id"]
   aacs_by_tumor = tmp$samples
   names(aacs_by_tumor) = tmp$aac_id

@@ -52,7 +52,7 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optim
 	genes_in_dataset = unique(unlist(maf$genes))
 	genes_to_analyze = genes[genes %in% genes_in_dataset]
 
-	recurrent_aac_id = maf[! is.na(assoc_aa_mut), .(aac_id = unlist(assoc_aa_mut))][, .N, by = aac_id][N > 1, aac_id]
+	recurrent_aac_id = maf[! is.na(assoc_aac), .(aac_id = unlist(assoc_aac))][, .N, by = aac_id][N > 1, aac_id]
 	recurrent_snv_id = maf[! is.na(snv_id), .(snv_id)][, .N, by = "snv_id"][N > 1, snv_id]
 
 	genes_with_recurrent_variants = unique(c(cesa@mutations$snv[recurrent_snv_id, unlist(genes)], cesa@mutations$amino_acid_change[recurrent_aac_id, gene]))
@@ -161,8 +161,8 @@ pairwise_variant_epistasis = function(cesa, variant_pair, variant_types, optimx_
   setcolorder(all_rates, c("Unique_Patient_Identifier", v1, v2))
   setkey(all_rates, "Unique_Patient_Identifier")
   
-  tumors_with_v1 = cesa@maf[, v1 %in% c(snv_id, assoc_aa_mut), by = "Unique_Patient_Identifier"][V1 == T, Unique_Patient_Identifier]
-  tumors_with_v2 = cesa@maf[, v2 %in% c(snv_id, assoc_aa_mut), by = "Unique_Patient_Identifier"][V1 == T, Unique_Patient_Identifier]
+  tumors_with_v1 = cesa@maf[, v1 %in% c(snv_id, assoc_aac), by = "Unique_Patient_Identifier"][V1 == T, Unique_Patient_Identifier]
+  tumors_with_v2 = cesa@maf[, v2 %in% c(snv_id, assoc_aac), by = "Unique_Patient_Identifier"][V1 == T, Unique_Patient_Identifier]
   tumors_with_both = intersect(tumors_with_v1, tumors_with_v2)
   tumors_just_v1 = setdiff(tumors_with_v1, tumors_with_both)
   tumors_just_v2 = setdiff(tumors_with_v2, tumors_with_both)
@@ -220,14 +220,14 @@ pairwise_gene_epistasis = function(cesa, genes, optimx_args) {
   
   # get all amino acid changes in either gene in the data set, then subset to get just the IDs of recurrent ones
   maf = maf[in_g1 | in_g2]
-  aac_table = maf[! is.na(assoc_aa_mut), .(aac_id = unlist(assoc_aa_mut), in_g1, in_g2)]
+  aac_table = maf[! is.na(assoc_aac), .(aac_id = unlist(assoc_aac), in_g1, in_g2)]
   aac_table = unique(aac_table[, .(in_g1, in_g2, .N), by = aac_id][N > 1])
   aac_v1 = aac_table[in_g1 == T, aac_id]
   aac_v2 = aac_table[in_g2 == T, aac_id]
   aac = c(aac_v1, aac_v2)
   
   # repeat with noncoding SNVs
-  noncoding_table = unique(maf[is.na(assoc_aa_mut), .(in_g1, in_g2, .N), by = "snv_id"][N > 1])
+  noncoding_table = unique(maf[is.na(assoc_aac), .(in_g1, in_g2, .N), by = "snv_id"][N > 1])
   # remove intergenic records
   noncoding_table[cesa@mutations$snv[, .(intergenic, snv_id)], on = "snv_id", nomatch = NULL][intergenic == F]
   noncoding_v1 = noncoding_table[in_g1 == T, snv_id]

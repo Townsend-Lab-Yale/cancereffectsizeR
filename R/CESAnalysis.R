@@ -71,9 +71,13 @@ load_cesa = function(file) {
   preload_ref_data(ref_key)
   cesa@ref_key = ref_key
   
-  # Back-compatibility (column name changes)
+  # Allow back-compatibility with column name changes
   if(! is.null(cesa@mutations$amino_acid_change)) {
     setnames(cesa@mutations$amino_acid_change, 'all_snv_ids', 'constituent_snvs', skip_absent = T)
+  }
+  if(! is.null(cesa@mutations$snv)) {
+    setnames(cesa@mutations$snv, 'assoc_aa_mut', 'assoc_aac', skip_absent = T)
+    setnames(cesa@maf, 'assoc_aa_mut', 'assoc_aac', skip_absent = T)
   }
   
   

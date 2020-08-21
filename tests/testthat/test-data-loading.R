@@ -18,7 +18,6 @@ test_that("load_maf and variant annotation", {
   # undo annotations, verify annotate_variants works the same when called directly
   tiny@maf = tiny@maf[, .(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele, Tumor_Allele, Variant_Type)]
   tiny@mutations = list()
-  tiny
   tiny = annotate_variants(tiny)
   expect_equal(tiny@mutations, tiny_ak@mutations)
   expect_equal(tiny@maf, tiny_ak@maf)

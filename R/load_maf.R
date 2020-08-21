@@ -683,8 +683,8 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     cesa_for_anno = annotate_variants(cesa_for_anno)
     
     # Add the pair of annotation columns from annotate_variants
-    maf[cesa_for_anno@maf,  c("genes", "assoc_aa_mut") := .(genes, assoc_aa_mut), on = "snv_id"]
-    maf[Variant_Type != "SNV", c("genes", "assoc_aa_mut") := NA] # set to NA instead of 1-item list containing NULL
+    maf[cesa_for_anno@maf,  c("genes", "assoc_aac") := .(genes, assoc_aac), on = "snv_id"]
+    maf[Variant_Type != "SNV", c("genes", "assoc_aac") := NA] # set to NA instead of 1-item list containing NULL
 
     # Rarely, variants get thrown out during annotation if their trinuc contexts are non-specific (N's)
     if (cesa_for_anno@excluded[, .N] > 0) {
@@ -702,7 +702,7 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
       cesa@mutations$snv = prev_snv
       
       # Apply to amino acid changes
-      aac_coverage = prev_snv[, .(aac_id = unlist(assoc_aa_mut), covered_in), by = "snv_id"]
+      aac_coverage = prev_snv[, .(aac_id = unlist(assoc_aac), covered_in), by = "snv_id"]
       aac_coverage = aac_coverage[, .(covered_in = list(sort(unique(unlist(covered_in))))), by = "aac_id"]
       cesa@mutations$amino_acid_change[aac_coverage, covered_in := covered_in, on = "aac_id"]
     }
