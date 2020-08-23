@@ -694,7 +694,7 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     }
     
     # Update coverage of existing mutations, if there any and if the new MAF data uses new covered regions
-    if(cesa@maf[, .N] > 0 & ! covered_regions_name %in% previous_covered_regions_names) {
+    if(cesa@maf[, .N] > 0 & ! covered_regions_name %in% previous_covered_regions_names & covered_regions_name != "genome") {
       prev_snv = cesa@mutations$snv
       snv_gr = GenomicRanges::makeGRangesFromDataFrame(prev_snv, seqnames.field = "chr", start.field = "pos", end.field = "pos")
       is_covered = snv_gr %within% cesa@coverage[[covered_regions_name]]
