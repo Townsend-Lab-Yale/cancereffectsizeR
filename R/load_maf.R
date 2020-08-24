@@ -152,7 +152,7 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     }
     
     using_generic_exome = TRUE
-    message(crayon::silver("Assuming this data has generic exome coverage (use the covered_regions argument if this isn't accurate)...."))
+    writeLines(strwrap("Assuming this data has generic exome coverage (it's better to supply covered intervals if you have them; see docs)..."))
   }
   
   # custom covered_regions, when used, must be a GRanges object or a path to a BED-formatted text file
@@ -281,6 +281,7 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
       # read in file and suppress warnings about missing columns since this function handles the validation
       withCallingHandlers(
       {
+        
         maf = fread(maf, sep = "\t", quote ="", blank.lines.skip = T, select = select_cols)
       },
       error = function(e) {
@@ -556,12 +557,13 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
                        "Could this be whole-genome data? Or if you know the true covered regions, supply them\n",
                        "with the covered_regions argument."))
       }
-      message(paste0("Note: ", num_uncovered, " MAF records out of ", total, " (", percent, 
-                     "%) are at loci not covered by the generic exome capture regions\n",
-                     "in this genome's CES reference data. It will be assumed that all generic exome samples in this\n",
-                     "CESAnalysis, including those from previous or future load_maf calls, have coverage at\n",
-                     "all of these sites; we'll call this \"exome+\" coverage.\n",
-                     "To instead exclude uncovered records, re-run with enforce_generic_exome_coverage = TRUE."))
+      msg = paste0("Note: ", num_uncovered, " MAF records (", percent, 
+                   "%) are at loci not covered by the default exome capture regions ",
+                   "in this CESAnalysis's reference data. This data (and all other exome data loaded ",
+                   "with enforce_generic_exome_coverage = FALSE) will be assumed to share the same coverage, ",
+                   "which we'll call \"exome+\". To instead exclude uncovered records, re-run with ",
+                   "enforce_generic_exome_coverage = TRUE.")
+      writeLines(strwrap(msg))
     } else {
       uncovered.maf = maf[is_uncovered,]
       uncovered.maf$Exclusion_Reason = paste0("uncovered_in_", covered_regions_name)
@@ -577,7 +579,6 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
   
   # check for potential DNP/TNPs and separate them from data set
   # this is done before any other filtering to ensure catching as many of them as possible
-  message(crayon::silver("Searching for possible multinucleotide variants..."))
   num.prefilter = nrow(maf)
   dnp_tnp_results = DNP_TNP_remover(maf)
   maf = dnp_tnp_results$kept[,1:5] # To-do: fix return value of DNP_TNP
@@ -589,9 +590,10 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     excluded = rbind(excluded, pred.mnv.maf)
     # To-do: move message to DNP_TNP_remover or otherwise ensure this description remains accurate
     percent = round((num.pred.mnv / num.prefilter) * 100, 1)
-    message(paste0("Note: ", num.pred.mnv, " mutation records out of ", num.prefilter, " (", percent, "%) ",
-                   "are within 2 bp of other mutations in the same tumors. "))
-    message("These records will be excluded since they may be multi-nucleotide mutation events rather than independent SNVs.")
+    msg = paste0("Note: ", num.pred.mnv, " MAF records (", percent, "%) ",
+                   "are within 2 bp of other mutations in the same tumors. These records will not be counted as SNVs ",
+                 "since they likely did not arise from independent events (i.e., they're multi-nucleotide variants).")
+    writeLines(strwrap(msg))
   }
   
   # No support for mitochondrial mutations yet
@@ -601,12 +603,12 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     mt_maf$Exclusion_Reason = "mitochondrial"
     excluded = rbind(excluded, mt_maf)
     maf <- maf[! is_mt,]
-    message(paste("Note:", sum(is_mt), "mitochondrial mutations have been removed from the data (mitochondrial analysis not yet supported)."))
+    writeLines(strwrap(paste("Note:", sum(is_mt), "mitochondrial variants have been excluded (sadly, mitochondrial analysis is not yet supported).")))
   }
   
   
   # Ensure reference alleles of mutations match reference genome (Note: Insertions won't match if their reference allele is "-")
-  message(crayon::silver("Checking that reference alleles match reference genome..."))
+  message("Checking that reference alleles match the reference genome...")
   ref_allele_lengths = nchar(maf[, Reference_Allele])
   ref_alleles_to_test = maf[, Reference_Allele]
   end_pos = maf[, Start_Position] + ref_allele_lengths - 1 # for multi-base deletions, check that all deleted bases match reference
@@ -633,10 +635,9 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     excluded = rbind(excluded, reference.mismatch.maf)
     percent = round((num.nonmatching / num.prefilter) * 100, 1)
     
-    message(crayon::silver(paste0("Note: ", num.nonmatching, " mutation records out of ", num.prefilter, " (", percent, "%, including ", bad_snv_percent,
-                          "% of SNV records) have reference alleles that do not actually match the reference genome.")))
-    message(crayon::silver("These records will be excluded from effect size analysis."))
-    
+    msg = paste0("Note: ", num.nonmatching, " MAF records out of ", num.prefilter, " (", percent, "%, including ", bad_snv_percent,
+                          "% of SNV records) are excluded for having reference alleles that do not match the reference genome.")
+    writeLines(strwrap(msg))
     if(bad_snv_frac > .01) {
       warning(paste0(bad_snv_percent, "% of SNV records do not match the given reference genome. You should probably figure out why",
                      " and make sure that the rest of your data set is okay to use before continuing."))

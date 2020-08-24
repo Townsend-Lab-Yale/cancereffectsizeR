@@ -165,6 +165,8 @@ ces_snv <- function(cesa = NULL,
     ci_low_colname = paste0("ci_low_", conf * 100)
   }
   
+  wgs_samples = cesa@samples[covered_regions == "genome", Unique_Patient_Identifier]
+  
   # function takes in AAC or SNV ID, returns SI table output
   process_variant = function(mut_id, snv_or_aac) {
     if(snv_or_aac == "aac") {
@@ -176,7 +178,9 @@ ces_snv <- function(cesa = NULL,
       tumors_with_variant = cesa@maf[snv_id == mut_id, Unique_Patient_Identifier]
       tumors_with_gene_mutated = unlist(tumors_with_variants_by_gene[unlist(mut_record$genes)], use.names = F) # for rare case of multiple gene hits, take all
     }
+    
     eligible_tumors = cesa@samples[covered_regions %in% unlist(mut_record$covered_in), Unique_Patient_Identifier]
+    eligible_tumors = union(eligible_tumors, wgs_samples)
     
     tumors_without_gene_mutated = setdiff(eligible_tumors, tumors_with_gene_mutated)
     tumor_stage_indices = cesa@samples[eligible_tumors, progression_index]

@@ -16,7 +16,7 @@
 #' @param variant_ids include variants
 #' @param granges include all variants overlapping this GRanges object
 #' @param min_freq filter out variants that occur in fewer than this many samples in the
-#'   MAF data (Defaults to 1; set to 0 to include all passing variants that are in the
+#'   MAF data Defaults to 1; set to 0 to include all passing variants that are in the
 #'   annotation tables. Note that variants that are not in the annotation tables will
 #'   never be returned. Use \code{generate_variants()} to annotate variants absent from the
 #'   data.
@@ -164,7 +164,8 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
   setkey(cov_counts, "covered_regions")
   combo_counts = sapply(unique_combos, function(x) sum(cov_counts[x, N], na.rm = T))
   names(combo_counts) = sapply(unique_combos, function(x) paste0(x, collapse = "_"))
-  combined[, maf_samples_covering := combo_counts[paste0(unlist(covered_in), collapse = "_")], by = "variant_id"]
+  num_wgs_samples = cesa@samples[covered_regions == "genome", .N]
+  combined[, maf_samples_covering := combo_counts[paste0(unlist(covered_in), collapse = "_")] + num_wgs_samples, by = "variant_id"]
   
   combined[, tmp := paste(unlist(covered_in), collapse = ","), by = "variant_id"]
   combined[, covered_in := NULL][, covered_in := tmp][, tmp := NULL]
@@ -183,7 +184,7 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
   
   
   if(notify_multi_genes) {
-    message("Take note: Some of the returned SNVs have more than one gene/transcript annotation. There are comma-delimited\n",
+    message("Take note: Some of the returned SNVs have more than one gene/transcript annotation. These are comma-delimited\n",
             "in the \"all_genes\" column. The single gene in the \"gene\" field for these is just the first gene\n",
             "alphbetically (even if you selected variants by gene and didn't include this gene.) You can find these by\n",
             "filtering on the multi_gene_hit column.")
@@ -191,47 +192,54 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
   return(combined)
 }
 
-##' Add variant annotations
-##' @param target_cesa CESAnalysis to receive variant annotations
-##' @param snv_id character vector of CES-style snv_ids to validate, annotate (including
-##'   finding and adding associated amino-acid-change mutations), and add to the target
-##'   CESAnalysis
-##' @param source_cesa source CESAnalysis whose snv_ids will be used to create new
-##'   annotations in the target CESAnalysis
-##' @export
-# add_variants = function(target_cesa = NULL, snv_id = NULL, source_cesa = NULL) {
-#   if(! is(target_cesa, "CESAnalysis")) {
-#     stop("target_cesa should be a CESAnalysis", call. = F)
-#   }
-#   
-#   if(! xor(is.null(snv_id, source_cesa))) {
-#     stop("Add annotations via snv_id or source_cesa, but not both", call. = F)
-#   }
-#   
-#   if (! is.null(source_cesa)) {
-#     if(! is(source_cesa, "CESAnalysis")) {
-#       stop("source_cesa should be a CESAnalysis", call. = F)
-#     }
-#     source_snv_table = source_cesa@mutations$snv
-#     if (is.null(source_snv_table)) {
-#       stop("source_cesa has no SNV annotations", call. = F)
-#     }
-#     snvs_to_annotate = source_cesa@mutations$snv$snv_id
-#   }
-#   
-#   if(! is(snv_id, "character") | length(snv_id) == 0) {
-#     stop("Expected snv_id to be character vector of snv_ids (e.g., 1:100_A>G", call. = F)
-#   }
-#   
-#   # Load reference data if not already present
-#   if (! target_cesa@ref_key %in% ls(.ces_ref_data)) {
-#     preload_ref_data(target_cesa@ref_key)
-#   }
-#   
-#   # will stop with errror if any IDs fail validation
-#   validate_snv_ids(snv_ids, .ces_ref_data[[target_cesa@ref_key]]$genome)
-#   
-# }
+#' Add variant annotations
+#' @param target_cesa CESAnalysis to receive variant annotations
+#' @param snv_id character vector of CES-style snv_ids to validate, annotate (including
+#'   finding and adding associated amino-acid-change mutations), and add to the target
+#'   CESAnalysis
+#' @param source_cesa source CESAnalysis whose snv_ids will be used to create new
+#'   annotations in the target CESAnalysis
+#' @export
+add_variants = function(target_cesa = NULL, snv_id = NULL, source_cesa = NULL) {
+  if(! is(target_cesa, "CESAnalysis")) {
+    stop("target_cesa should be a CESAnalysis", call. = F)
+  }
+
+  if(! xor(is.null(snv_id, source_cesa))) {
+    stop("Add annotations via snv_id or source_cesa, but not both", call. = F)
+  }
+
+  if (! is.null(source_cesa)) {
+    if(! is(source_cesa, "CESAnalysis")) {
+      stop("source_cesa should be a CESAnalysis", call. = F)
+    }
+    source_snv_table = source_cesa@mutations$snv
+    if (is.null(source_snv_table)) {
+      stop("source_cesa has no SNV annotations", call. = F)
+    }
+    snvs_to_annotate = source_cesa@mutations$snv$snv_id
+  }
+  
+  # Load reference data if not already present
+  if (! target_cesa@ref_key %in% ls(.ces_ref_data)) {
+    preload_ref_data(target_cesa@ref_key)
+  }
+  
+  if(! is.null(snv_id)) {
+    if(! is(snv_id, "character") | length(snv_id) == 0) {
+      stop("Expected snv_id to be character vector of snv_ids (e.g., 1:100_A>G", call. = F)
+    }
+    # will stop with errror if any IDs fail validation
+    validate_snv_ids(snv_id, .ces_ref_data[[target_cesa@ref_key]]$genome)
+    snvs_to_annotate = snv_id
+  }
+
+  maf = as.data.table(tstrsplit(snv_id, split = '[:_>]'))
+  colnames(maf) = c("Chromosome", "Start_Position", "Reference_Allele", "Tumor_Allele")
+  maf$Unique_Patient_Identifier = NA
+  
+
+}
 
 
 #' validate_snv_ids

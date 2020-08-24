@@ -2,7 +2,7 @@
 % Please edit documentation in R/variant_handling.R
 \name{validate_snv_ids}
 \alias{validate_snv_ids}
-\title{Add variant annotations}
+\title{validate_snv_ids}
 \usage{
 validate_snv_ids(snv_ids, bsg)
 }
@@ -10,17 +10,8 @@ validate_snv_ids(snv_ids, bsg)
 \item{snv_ids}{charcter vector of snv_ids}
 
 \item{bsg}{BSgenome for getting reference sequence}
-
-\item{target_cesa}{CESAnalysis to receive variant annotations}
-
-\item{snv_id}{character vector of CES-style snv_ids to validate, annotate (including
-finding and adding associated amino-acid-change mutations), and add to the target
-CESAnalysis}
-
-\item{source_cesa}{source CESAnalysis whose snv_ids will be used to create new
-annotations in the target CESAnalysis}
 }
 \description{
-Add variant annotations
+Ensures SNV IDs are valid for the given genome
 }
 \keyword{internal}

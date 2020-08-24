@@ -300,7 +300,7 @@ annotate_variants <- function(cesa) {
 
 	
 	# get the names of coverage grs with coverage for each site (and add in genome, which covers every site)
-	grs_with_coverage = apply(is_covered, 1, function(x) c(names(which(x == TRUE)), "genome"))
+	grs_with_coverage = apply(is_covered, 1, function(x) c(names(which(x == TRUE))))
 	
 	# when all samples have same coverage apply "helpfully" returns a matrix, but we want a list
 	if(! is(grs_with_coverage, "list")) {
@@ -308,7 +308,7 @@ annotate_variants <- function(cesa) {
 	}
 	
 	# Note that when exome+ coverage (see load_maf) is used, samples can have both "exome" and "exome+" associated with their mutations,
-	# but the samples themselves are considered "exome+" (be careful not to double-count these if developing something new)
+	# but the samples themselves are considered "exome+" (be careful not to double-count these)
 	snv_table[, covered_in := grs_with_coverage]
 	
 	# We're going to cheat and say samples have coverage at aac sites if they have coverage on any of the three codon positions

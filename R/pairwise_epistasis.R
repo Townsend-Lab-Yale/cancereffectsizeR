@@ -149,7 +149,8 @@ pairwise_variant_epistasis = function(cesa, variant_pair, variant_types, optimx_
   v2_coverage = c(cesa$mutations$amino_acid_change[v2, unlist(covered_in), nomatch = NULL], 
                   cesa$mutations$snv[v2, unlist(covered_in), nomatch = NULL])
   
-  joint_coverage = intersect(v1_coverage, v2_coverage)
+  # Samples have to have v1 and v2 coverage (and samples with covered_regions == "genome" always have coverage)
+  joint_coverage = c("genome", intersect(v1_coverage, v2_coverage))
   
   eligible_tumors = cesa@samples[covered_regions %in% joint_coverage, Unique_Patient_Identifier]
   
@@ -235,6 +236,7 @@ pairwise_gene_epistasis = function(cesa, genes, optimx_args) {
   noncoding_snv = c(noncoding_v1, noncoding_v2)
   
   ## restrict analysis to samples that have all variants of both genes covered (that is, all remaining recurrent variants)
+  ## Note that if any samples have covered_regions = "genome", at least those samples will always pass
   eligible_samples = unique(maf$Unique_Patient_Identifier) # these are samples in the v1/v2-only maf
   all_region_sets_in_data = cesa@samples[eligible_samples, unique(covered_regions)]
   eligible_regions = all_region_sets_in_data
