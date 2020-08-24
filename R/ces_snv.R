@@ -17,6 +17,11 @@ ces_snv <- function(cesa = NULL,
                     variants = NULL,
                     conf = .95) 
 {
+  if(! is(cesa, "CESAnalysis")) {
+    stop("cesa should be a CESAnalysis", call. = F)
+  }
+  cesa@run_history =  c(cesa@run_history, deparse(match.call(), width.cutoff = 500))
+  
   # Set keys in case they've been lost
   setkey(cesa@samples, "Unique_Patient_Identifier")
   setkey(cesa@mutations$amino_acid_change, "aac_id")

@@ -30,15 +30,9 @@ CESAnalysis = function(genome = NULL, progression_order = NULL) {
     stop("progression_order should be a character vector of chronological tumor states (e.g., Primary, Metastatic)")
   }
 
-  
-  # simple analysis status tracking; used to guide user in show(CESAnalysis)
-  status = list("genome" = GenomeInfoDb::providerVersion(bsg),
-                "progressions" = paste0(progression_order, collapse = ", "))
-  if(length(progression_order) == 1) {
-    status[["progressions"]] = NULL
-  }
+  run_history = deparse(match.call(), width.cutoff = 500)
   advanced = list("version" = packageVersion("cancereffectsizeR"), annotated = logical())
-  cesa = new("CESAnalysis", status = status, ref_key = ref_key, maf = data.table(), excluded = data.table(),
+  cesa = new("CESAnalysis", run_history = run_history,  ref_key = ref_key, maf = data.table(), excluded = data.table(),
              progressions = progression_order, mutrates = data.table(),
              gene_epistasis_results = data.table(), selection_results = data.table(), genome_data_dir = genome_data_dir,
              advanced = advanced, samples = data.table(), mutations = list())
@@ -80,8 +74,9 @@ load_cesa = function(file) {
     setnames(cesa@maf, 'assoc_aa_mut', 'assoc_aac', skip_absent = T)
   }
   
-  
-
+  if (! .hasSlot(cesa, "run_history")) {
+    cesa@run_history = character()
+  }
   return(cesa)
 }
 

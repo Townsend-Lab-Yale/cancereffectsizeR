@@ -1,8 +1,9 @@
 setClass("CESAnalysis", representation(maf = "data.table", trinucleotide_mutation_weights = "list",
           progressions = "character", mutrates = "data.table", dndscv_out_list = "list",
           excluded = "data.table", selection_results = "data.table", gene_epistasis_results = "data.table", coverage = "list",
-          ref_key = "character", advanced = "list", genome_data_dir = "character", status = "list", samples = "data.table", 
+          ref_key = "character", advanced = "list", genome_data_dir = "character", run_history = "character", samples = "data.table", 
           mutations = "list"))
+
 
 setMethod("$", "CESAnalysis",
   function(x, name)
@@ -11,8 +12,6 @@ setMethod("$", "CESAnalysis",
       if(x@maf[, .N] > 0) {
         return(maf_records(x))
       } 
-    } else if (name == "status") {
-      return(x) # calls show method
     } else if (name == "samples") {
       return(get_sample_info(x))
     } else if (name == "excluded") {
@@ -30,14 +29,26 @@ setMethod("$", "CESAnalysis",
     } else if (name == "epistasis") {
       return(gene_epistasis_results(x))
     } else if (name == "reference_data") {
-      return(list(snv_signatures = x@advanced$snv_signatures))
+      if (! x@ref_key %in% ls(.ces_ref_data)) {
+        preload_ref_data(x@ref_key)
+      }
+      ref_data = list(RefCDS = .ces_ref_data[[x@ref_key]]$RefCDS, gene_ranges = .ces_ref_data[[x@ref_key]]$gr_genes)
+      snv_signatures = x@advanced$snv_signatures
+      if (! is.null(snv_signatures)) {
+        ref_data = c(ref_data, list(snv_signatures = snv_signatures))
+      }
+      return(invisible(ref_data))
+    } else if (name == "run_history") {
+      ces_version = paste0("[Version: cancereffectsizeR ", as.character(x@advanced$version), ']')
+      run_history = c(x@run_history, "", ces_version)
+      CES_Run_History(run_history)
     }
   }
 )
 
 #' @export
 .DollarNames.CESAnalysis <- function(x, pattern = "") {
-  features = c("status")
+  features = character()
   if(x@maf[, .N] > 0) {
     features = c(features, "maf")
   }
@@ -65,45 +76,32 @@ setMethod("$", "CESAnalysis",
   if(x@mutrates[, .N] > 0) {
     features = c(features, "gene_rates")
   }
-  if("snv_signatures" %in% names(x@advanced)) {
-    features = c(features, "reference_data")
-  }
-
+  features = c(features, "reference_data")
+  features = c(features, "run_history")
   grep(pattern, features, value=TRUE)
 }
 
 
 setMethod("show", "CESAnalysis", 
   function(object) {
-    steps = names(object@status)
     if(object@maf[, .N] > 0) {
       cat("Samples:\n")
       print(object@samples[, .(num_samples = .N), by = c("progression_name", "progression_index", "coverage")][order(progression_index)], row.names = F)
+      num_snvs = object@maf[Variant_Type == "SNV", .N]
+      cat("\nMAF data: ", num_snvs, " SNVs loaded", sep = "")
+      if (identical(object@advanced$annotated, TRUE)) {
+        cat(" and annotated.\n")
+      } else {
+        cat(" (but not annotated).\n")
+      }
     }
-    if(length(object@mutations) > 0) {
-      cat("\nAnnotated mutations:\n")
-      print(object@mutations)
+    signature_set = cesa@advanced$snv_signatures
+    if (! is.null(signature_set)) {
+      signature_set_name = signature_set$name
+      cat("Mutational processes: Sample-level extraction of ", signature_set_name, " SNV signatures.\n", sep = "")
     }
-    if(! is.null(object@trinucleotide_mutation_weights$signature_weight_table)) {
-      cat("\nSNV signatures:\n")
-      print(object@trinucleotide_mutation_weights$signature_weight_table, topn = 5)
-    }
-    if(object@mutrates[, .N] > 0) {
-      cat("\nGene mutation rates:\n")
-      print(object@mutrates)
-    }
-    if(object@selection_results[, .N] > 0) {
-      cat("\nSelection intensities of single variants:\n")
-      print(object@selection_results, topn = 5)
-    }
-    if(object@gene_epistasis_results[, .N] > 0) {
-      cat("\nGene-level recurrent variant epistasis:\n")
-      print(object@gene_epistasis_results)
-    }
-    cat("\nRun summary:\n")
-    for (step in steps) {
-      cat(paste0(step,": ", object@status[[step]], "\n"))
-    }
+    cat("CES reference data set: ", object@ref_key, "\n", sep = "")
+    cat("Run history: See [CESAnalysis]$run_history.\n")
     cat(paste0("\n[Created in cancereffectsizeR, version ", object@advanced$version, ".]"))
   }
 )
@@ -119,3 +117,21 @@ setValidity("CESAnalysis",
      TRUE
     }
 )
+
+setClass("CES_Run_History", representation(history = "character"))
+CES_Run_History = function(history) {
+  new("CES_Run_History", history = history)
+  
+}
+
+setMethod("show", "CES_Run_History",
+  function(object) {
+    run_history = strwrap(object@history, exdent = 4)
+    writeLines(run_history)
+  }
+)
+
+as.character.CES_Run_History = function(object) {
+  history = object@history[object@history != ""]
+}
+

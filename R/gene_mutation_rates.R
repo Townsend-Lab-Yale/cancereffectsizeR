@@ -15,6 +15,10 @@
 #' @export
 # don't change this function at all without being sure you're not messing up tests
 gene_mutation_rates <- function(cesa, covariates = NULL, save_all_dndscv_output = FALSE){
+  if (! is(cesa, "CESAnalysis")) {
+    stop("cesa expected to be a CESAnalysis object", call. = F)
+  }
+  cesa@run_history =  c(cesa@run_history, deparse(match.call(), width.cutoff = 500))
   if (! cesa@ref_key %in% ls(.ces_ref_data)) {
     preload_ref_data(cesa@ref_key)
   }
@@ -44,7 +48,6 @@ gene_mutation_rates <- function(cesa, covariates = NULL, save_all_dndscv_output 
     }
   )
   cesa = dndscv_postprocess(cesa = cesa, dndscv_raw_output = dndscv_raw_output, save_all_dndscv_output = save_all_dndscv_output)
-  cesa@status[["gene mutation rates"]] = paste0("Calculated with dNdScv using \"", covariates, "\" covariates")
   return(cesa)
 }
 

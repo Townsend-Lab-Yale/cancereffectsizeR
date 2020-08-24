@@ -45,6 +45,7 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
   if (is.null(cesa)) {
     stop("You need to supply a CESAnalysis object to load the MAF data into.")
   }
+  cesa@run_history =  c(cesa@run_history, deparse(match.call(), width.cutoff = 500))
   
   if (! cesa@ref_key %in% ls(.ces_ref_data)) {
     preload_ref_data(cesa@ref_key)

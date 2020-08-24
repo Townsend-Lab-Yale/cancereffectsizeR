@@ -17,6 +17,7 @@ assign_group_average_trinuc_rates = function(cesa) {
   if(is.null(cesa) || ! is(cesa, "CESAnalysis")) {
     stop("Expected cesa to be a CESAnalysis object")
   }
+  cesa@run_history =  c(cesa@run_history, deparse(match.call(), width.cutoff = 500))
   if(cesa@maf[, .N] == 0) {
     stop("No MAF data in the CESAnalysis")
   }
@@ -67,8 +68,6 @@ assign_group_average_trinuc_rates = function(cesa) {
   trinuc_proportion_matrix = matrix(rep(trinuc_prop, num_samples), byrow = T, ncol = 96, 
                                     dimnames = list(cesa@samples$Unique_Patient_Identifier, names(trinuc_prop)))
 
-  cesa@status[["trinucleotide mutation rates"]] = "from assign_group_average_trinuc_rates"
-  cesa@status[["gene mutation rates"]] = "uncalculated (run gene_mutation_rates)"
   cesa@trinucleotide_mutation_weights = list(trinuc_proportion_matrix=trinuc_proportion_matrix)
   return(cesa)
 }

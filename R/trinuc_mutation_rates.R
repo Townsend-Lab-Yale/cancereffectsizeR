@@ -53,6 +53,7 @@ trinuc_mutation_rates <- function(cesa,
   if(is.null(cesa) || ! is(cesa, "CESAnalysis")) {
     stop("Expected cesa to be a CESAnalysis object", call. = F)
   }
+  cesa@run_history =  c(cesa@run_history, deparse(match.call(), width.cutoff = 500))
   
   # If for some reason reference data is no longer in the package environment, restore it
   if (! cesa@ref_key %in% ls(.ces_ref_data)) {
@@ -418,7 +419,6 @@ trinuc_mutation_rates <- function(cesa,
     trinuc_method = paste0(trinuc_method, " (assume_identical_mutation_processes = TRUE)")
   }
   
-  cesa@status[["trinucleotide mutation rates"]] = trinuc_method
   cesa@trinucleotide_mutation_weights = list(trinuc_proportion_matrix=trinuc_proportion_matrix,
                                              signatures_output_list=signatures_output_list)
   

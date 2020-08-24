@@ -6,10 +6,14 @@
 #' @param cesa CESAnalysis object
 #' @export
 annotate_variants <- function(cesa) {
+  if (! is(cesa, "CESAnalysis")) {
+    stop("cesa should be a CESAnalysis", call. = F)
+  }
   # Load reference data if not already present
   if (! cesa@ref_key %in% ls(.ces_ref_data)) {
     preload_ref_data(cesa@ref_key)
   }
+  cesa@run_history =  c(cesa@run_history, deparse(match.call(), width.cutoff = 500))
   RefCDS = .ces_ref_data[[cesa@ref_key]]$RefCDS
   gr_genes = .ces_ref_data[[cesa@ref_key]]$gr_genes
   bsg = .ces_ref_data[[cesa@ref_key]]$genome
@@ -286,8 +290,6 @@ annotate_variants <- function(cesa) {
 	  snv_table = snv_table[! bad_trinuc_context]
 	  aac_table = aac_table[! aac_id %in% bad_aa]
 	}
-	
-	
 	
 	# record which covered_regions granges cover each mutation
 	snv_gr = GenomicRanges::makeGRangesFromDataFrame(snv_table, seqnames.field = "chr", start.field = "pos", end.field = "pos")

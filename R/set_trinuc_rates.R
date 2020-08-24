@@ -21,6 +21,7 @@ set_trinuc_rates = function(cesa, trinuc_rates, ignore_extra_samples = FALSE) {
   if(is.null(cesa) || ! is(cesa, "CESAnalysis")) {
     stop("Expected cesa to be a CESAnalysis object", call. = F)
   }
+  cesa@run_history =  c(cesa@run_history, deparse(match.call(), width.cutoff = 500))
   if(cesa@samples[, .N] == 0) {
     stop("There are no samples in the CESAnalysis", call. = F)
   }
@@ -75,7 +76,6 @@ set_trinuc_rates = function(cesa, trinuc_rates, ignore_extra_samples = FALSE) {
                    "any \"impossible\" mutations are in the data set. Consider tweaking your method!"))
   }
   cesa@trinucleotide_mutation_weights = list(trinuc_proportion_matrix = trinuc_proportion_matrix)
-  cesa@status[["trinucleotide mutation rates"]] = "User-supplied via set_trinuc_rates"
   return(cesa)
 }
     
