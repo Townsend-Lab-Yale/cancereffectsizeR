@@ -8,13 +8,17 @@ test_that("Trinucleotide signature weight calculation", {
                                 "SBS88", "SBS90"))
   
   cesa = trinuc_mutation_rates(cesa, signatures_to_remove = to_remove, signature_set = "COSMIC_v3.1")
+  trinuc_ak = get_test_data("trinuc_mut_weighting.rds")
+  expect_equal(cesa@trinucleotide_mutation_weights, trinuc_ak)
+  
+  
   
   # Ensure SNV counts (total and used by dS) look right
   expect_identical(cesa@trinucleotide_mutation_weights$signature_weight_table[, unlist(.(total_snvs, sig_extraction_snvs))],
-                   c(67, 181, 38, 66, 180, 38))
+                   c(67, 181, 38, 18, 0, 66, 180, 38, 0, 0))
   
   
-  full_weight_table = get_signature_weights(cesa, include_tumors_without_data = T)
+  full_weight_table = get_signature_weights(cesa)
   expect_equal(full_weight_table[, .N], 5)
   expect_equal(full_weight_table[Unique_Patient_Identifier == "one_indel", unlist(.(total_snvs, sig_extraction_snvs))], c(0, 0))
   expect_equal(full_weight_table[Unique_Patient_Identifier == "zeroed-out", unlist(.(total_snvs, sig_extraction_snvs))], c(18, 0))
@@ -22,9 +26,6 @@ test_that("Trinucleotide signature weight calculation", {
   # All tumors should have an above-threshold number of usable SNVs, or they should be group-average-blended (but never both)
   expect_true(all(full_weight_table[, xor(sig_extraction_snvs > 49, group_avg_blended == T)]))
   
-  
-  trinuc_ak = get_test_data("trinuc_mut_weighting.rds")
-  expect_equal(cesa@trinucleotide_mutation_weights, trinuc_ak)
   
   trinuc_rates = cesa$trinuc_rates
   prev_rates_matrix = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix

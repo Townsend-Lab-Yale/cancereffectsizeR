@@ -150,31 +150,12 @@ get_trinuc_rates = function(cesa = NULL) {
 #' Get table of signature weights by tumor
 #' 
 #' @param cesa CESAnalysis object
-#' @param include_tumors_without_data include rows (consisting of group-average weights) for samples that did not undergo
-#'                                    signature extraction, such as TGS tumors or the rare sample with no non-recurrent SNVs
 #' @export
-get_signature_weights = function(cesa = NULL, include_tumors_without_data = FALSE) {
+get_signature_weights = function(cesa = NULL) {
   if(! is(cesa, "CESAnalysis")) {
     stop("\nUsage: get_signature_weights(cesa), where cesa is a CESAnalysis")
   }
-  sig_table = cesa@trinucleotide_mutation_weights$signature_weight_table
-  
-  if (include_tumors_without_data) {
-    tumors_without_data = setdiff(cesa@samples$Unique_Patient_Identifier, sig_table$Unique_Patient_Identifier)
-    num_to_add = length(tumors_without_data)
-    if (num_to_add > 0) {
-      group_avg_weights = as.numeric(cesa@trinucleotide_mutation_weights$group_average_dS_output$adjusted_sig_output$weights)
-      new_rows = matrix(nrow = num_to_add, data = rep.int(group_avg_weights, num_to_add), byrow = T)
-      colnames(new_rows) = colnames(cesa@trinucleotide_mutation_weights$group_average_dS_output$adjusted_sig_output$weights)
-      total_snvs = cesa@maf[Variant_Type == "SNV"][, .N, keyby = "Unique_Patient_Identifier"][tumors_without_data, N]
-      total_snvs[is.na(total_snvs)] = 0
-      new_table = data.table(Unique_Patient_Identifier = tumors_without_data, total_snvs = total_snvs, 
-                             sig_extraction_snvs = 0, group_avg_blended = T)
-      new_table = cbind(new_table, new_rows)
-      sig_table = rbind(sig_table, new_table)
-    }
-  }
-  return(sig_table)
+  return(cesa@trinucleotide_mutation_weights$signature_weight_table)
 }
 
 #' Get table of neutral gene mutation rates by progression state

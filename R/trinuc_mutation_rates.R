@@ -375,7 +375,7 @@ trinuc_mutation_rates <- function(cesa,
     mean_weights <- mean_ds$adjusted_sig_output$weights
     mean_trinuc_prop = as.numeric(mean_trinuc_prop) # convert back to numeric for insertion into trinuc_proportion_matrix
     
-    # TGS tumors, tumors with zeroed-out weights, and tumors with no non-recurrent SNVs get assigned group-average weights
+    # TGS tumors, tumors with zeroed-out weights, and tumors with no non-recurrent SNVs get assigned group-average rates
     for (tumor in tumors_needing_group_average_rates) {
       trinuc_proportion_matrix[tumor, ] = mean_trinuc_prop
     }
@@ -413,12 +413,6 @@ trinuc_mutation_rates <- function(cesa,
     }
   }
 
-  # Update CESAnalysis status and add in trinuc results
-  trinuc_method = paste0("Calculated using ", signature_set_name, " signatures")
-  if (assume_identical_mutational_processes) {
-    trinuc_method = paste0(trinuc_method, " (assume_identical_mutation_processes = TRUE)")
-  }
-  
   cesa@trinucleotide_mutation_weights = list(trinuc_proportion_matrix=trinuc_proportion_matrix,
                                              signatures_output_list=signatures_output_list)
   
@@ -434,27 +428,37 @@ trinuc_mutation_rates <- function(cesa,
                                          keep.rownames = "Unique_Patient_Identifier")
     
     # get all signature weights into a data table (one row per sample)
-    all_weights = rbind(above_threshold_weights, blended_weights)
+    sig_table = rbind(above_threshold_weights, blended_weights)
     
     # use first sample to set column names to signature names
-    colnames(all_weights)[2:ncol(all_weights)] = colnames(signatures_output_list[[1]]$adjusted_sig_output$weights)
-    all_weights[, group_avg_blended := Unique_Patient_Identifier %in% blended_tumors]
-    all_weights[, sig_extraction_snvs := as.numeric(substitution_counts[Unique_Patient_Identifier])] # otherwise will be "table" class
+    colnames(sig_table)[2:ncol(sig_table)] = colnames(signatures_output_list[[1]]$adjusted_sig_output$weights)
+    sig_table[, group_avg_blended := Unique_Patient_Identifier %in% blended_tumors]
+    sig_table[, sig_extraction_snvs := as.numeric(substitution_counts[Unique_Patient_Identifier])] # otherwise will be "table" class
     
-    total_snv_counts = cesa@maf[Variant_Type == "SNV"][all_weights, .(total_snvs = .N), on = "Unique_Patient_Identifier", by = "Unique_Patient_Identifier"]
-    all_weights = all_weights[total_snv_counts, on = "Unique_Patient_Identifier"]
+    total_snv_counts = cesa@maf[Variant_Type == "SNV"][sig_table, .(total_snvs = .N), on = "Unique_Patient_Identifier", by = "Unique_Patient_Identifier"]
+    sig_table = sig_table[total_snv_counts, on = "Unique_Patient_Identifier"]
     
-    # keep zeroed-out tumors out of the output; they can be reached with get_signature_weights(cesa, include_tumors_without_data = T)
-    all_weights = all_weights[sig_extraction_snvs > 0] 
-    setcolorder(all_weights, c("Unique_Patient_Identifier", "total_snvs", "sig_extraction_snvs", "group_avg_blended"))
     
-    cesa@trinucleotide_mutation_weights[["signature_weight_table"]] = all_weights
+    tumors_without_data = setdiff(cesa@samples$Unique_Patient_Identifier, sig_table$Unique_Patient_Identifier)
+    num_to_add = length(tumors_without_data)
+    if (num_to_add > 0) {
+      group_avg_weights = as.numeric(mean_ds$adjusted_sig_output$weights)
+      new_rows = matrix(nrow = num_to_add, data = rep.int(group_avg_weights, num_to_add), byrow = T)
+      colnames(new_rows) = colnames(mean_ds$adjusted_sig_output$weights)
+      total_snvs = cesa@maf[Variant_Type == "SNV"][, .N, keyby = "Unique_Patient_Identifier"][tumors_without_data, N]
+      total_snvs[is.na(total_snvs)] = 0
+      new_table = data.table(Unique_Patient_Identifier = tumors_without_data, total_snvs = total_snvs, 
+                             sig_extraction_snvs = 0, group_avg_blended = T)
+      new_table = cbind(new_table, new_rows)
+      sig_table = rbind(sig_table, new_table)
+    }
+    setcolorder(sig_table, c("Unique_Patient_Identifier", "total_snvs", "sig_extraction_snvs", "group_avg_blended"))
+    cesa@trinucleotide_mutation_weights[["signature_weight_table"]] = sig_table
   }
+  
   if(! is.null(mean_ds)) {
     cesa@trinucleotide_mutation_weights[["group_average_dS_output"]] = mean_ds
   }
-  
-  
   return(cesa)
 }
 
