@@ -42,8 +42,8 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
                     ref_col = "Reference_Allele", tumor_allele_col = "guess", coverage = "exome", covered_regions = NULL,
                     covered_regions_name = NULL, covered_regions_padding = 0, progression_col = NULL, chain_file = NULL, enforce_generic_exome_coverage = FALSE) {
   
-  if (is.null(cesa)) {
-    stop("You need to supply a CESAnalysis object to load the MAF data into.")
+  if (! is(cesa, "CESAnalysis")) {
+    stop("cesa should be a CESAnalysis")
   }
   cesa@run_history =  c(cesa@run_history, deparse(match.call(), width.cutoff = 500))
   
@@ -638,9 +638,9 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     msg = paste0("Note: ", num.nonmatching, " MAF records out of ", num.prefilter, " (", percent, "%, including ", bad_snv_percent,
                           "% of SNV records) are excluded for having reference alleles that do not match the reference genome.")
     writeLines(strwrap(msg))
-    if(bad_snv_frac > .01) {
-      warning(paste0(bad_snv_percent, "% of SNV records do not match the given reference genome. You should probably figure out why",
-                     " and make sure that the rest of your data set is okay to use before continuing."))
+    if(mismatch_snv > 0) {
+      warning(mismatch_snv, " SNV records do not match the given reference genome. You should probably figure out why",
+                     " and make sure that the rest of your data set is okay to use before continuing.")
     }
   }
    else {

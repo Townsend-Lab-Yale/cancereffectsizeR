@@ -7,6 +7,11 @@ luad = load_maf(cesa = CESAnalysis(genome="hg19"), maf = "luad.hg19.maf.txt", sa
 trinuc_rates = fread("luad_hg19_trinuc_rates.txt")
 luad = set_trinuc_rates(luad, trinuc_rates = trinuc_rates)
 
+# pending a set_signature_weights function...
+sig_weights = fread("luad_hg19_sig_table.txt")
+luad@trinucleotide_mutation_weights$signature_weight_table = sig_weights
+luad@advanced$snv_signatures = get_ces_signature_set("hg19", "COSMIC_v3.1")
+
 
 # Save gene_mutation_rates intermediary stuff so that tests don't need to run dNdScv
 # This will not be the same as running gene_mutation_rates directly due to dNdScv gr_genes stuff
@@ -33,13 +38,6 @@ saveRDS(luad@selection_results, "single_stage_snv_results.rds")
 luad = ces_gene_epistasis(luad, genes = c("EGFR", "KRAS", "TP53"), return_all_opm_output = T)
 saveRDS(luad@gene_epistasis_results, "epistasis_results.rds")
 saveRDS(luad@advanced$opm_output, "epistasis_opm.rds")
-
-
-
-anno_out = annotate_variants(dndscv_out)
-
-saveRDS(anno_out@mutations, "mutations_anno.rds")
-saveRDS(anno_out@maf, "annotated_maf_df.rds")
 
 setwd(prev_dir)
 

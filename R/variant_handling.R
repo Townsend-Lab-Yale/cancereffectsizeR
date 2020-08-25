@@ -109,7 +109,9 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
   }
   
   selected_snv = cesa@mutations$snv[selected_snv_ids]
+  setkey(selected_snv, "snv_id")
   selected_aac = cesa@mutations$amino_acid_change[selected_aac_ids]
+  setkey(selected_aac, "aac_id")
   
   # Tabulate variants in MAF data and apply frequency filter
   snv_counts = cesa@maf[! is.na(snv_id), .N, by = "snv_id"][N >= min_freq]
@@ -184,10 +186,11 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
   
   
   if(notify_multi_genes) {
-    message("Take note: Some of the returned SNVs have more than one gene/transcript annotation. These are comma-delimited\n",
-            "in the \"all_genes\" column. The single gene in the \"gene\" field for these is just the first gene\n",
-            "alphbetically (even if you selected variants by gene and didn't include this gene.) You can find these by\n",
-            "filtering on the multi_gene_hit column.")
+    msg = paste0("Take note: Some of the returned SNVs have more than one gene/transcript annotation. These are comma-delimited ",
+    "in the \"all_genes\" column. The single gene in the \"gene\" field for these is just the first gene ",
+    "alphabetically (even if you selected variants by gene and didn't include this gene). You can find these by ",
+    "filtering on the multi_gene_hit column.")
+    message(paste(strwrap(msg), collapse = "\n"))
   }
   return(combined)
 }

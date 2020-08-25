@@ -9,8 +9,8 @@ test_that("load_maf and variant annotation", {
   expect_equal(tiny$maf, tiny_ak$maf)
   expect_equal(tiny@excluded, tiny_ak@excluded)
   expect_equal(tiny@mutations, tiny_ak@mutations)
-  expect_equal(tiny@mutations$snv[, .N], 120)
-  expect_equal(tiny@mutations$amino_acid_change[, .N], 76)
+  expect_equal(tiny@mutations$snv[, .N], 264)
+  expect_equal(tiny@mutations$amino_acid_change[, .N], 128)
    
   # same ranges should be in each coverage GenomicRange (depending on BSgenome version, little contigs may vary)
   expect_equal(lapply(tiny@coverage, IRanges::ranges), lapply(tiny_ak@coverage, IRanges::ranges))

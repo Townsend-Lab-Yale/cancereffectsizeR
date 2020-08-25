@@ -1,92 +1,254 @@
-sample_id	Chromosome	Start_Position	Reference_Allele	Tumor_Seq_Allele2	Match_Norm_Seq_Allele1	Entrez_Gene_Id_answerkey	Hugo_Symbol_answerkey	Variant_Classification_answerkey	Note
-sample-A	X	2000000	C	G	C	.	.	.	bad ref allele (actually G)
-sample-A	chr2	50000003	T	A	A	.	.	.	bad ref allele (actually A)
-Sample-B	chr2	50000003	AA	-	A	.	.	.	valid deletion
-sample-C	chr2	50000003	AC	-	A	.	.	.	bad ref (should be AA)
-sample-D	17	41107177	T	A	T	.	.	.	DNV
-sample-D	17	41107179	T	A	T	.	.	.	DNV
-sample-E	17	41107179	T	A	T	.	.	.	Not DNV
-sample-E	17	41107176	T	C	T	.	.	.	Not DNV
-sample-F	chrMT	100	T	A	T	.	.	.	chrM not supported
-sample-F	M	2	A	C	A	.	.	.	chrM not supported
-sample-68	6	44240870	T	C	T	441151	TMEM151B	Missense_Mutation	
-sample-52	6	44241069	C	A	C	441151	TMEM151B	Nonsense_Mutation	
-sample-70	6	74079412	C	A	C	441161	OOEP	Missense_Mutation	
-sample-20	7	57522791	C	A	C	441234	ZNF716	Missense_Mutation	
-sample-70	7	57529492	G	T	G	441234	ZNF716	Missense_Mutation	
-sample-29	7	57528530	G	T	G	441234	ZNF716	Missense_Mutation	
-sample-18	7	57529455	C	A	C	441234	ZNF716	Missense_Mutation	
-sample-22	7	99917263	C	A	C	441272	SPDYE3	Silent	
-sample-26	7	99917345	C	G	C	441272	SPDYE3	Missense_Mutation	
-sample-52	7	134262504	T	A	T	441282	AKR1B15	Missense_Mutation	
-sample-42	7	134260646	C	G	C	441282	AKR1B15	Missense_Mutation	
-sample-70	7	134262523	C	A	C	441282	AKR1B15	Missense_Mutation	
-sample-42	7	134254183	G	T	G	441282	AKR1B15	Nonsense_Mutation	
-sample-20	7	134260645	G	T	G	441282	AKR1B15	Missense_Mutation	
-sample-42	7	134262489	G	A	G	441282	AKR1B15	Missense_Mutation	
-sample-86	9	90537219	G	T	G	441452	SPATA31C1	RNA	
-sample-10	9	99701145	C	A	C	441457	NUTM2G	Nonsense_Mutation	
-sample-12	X	102977191	C	A	C	441509	GLRA4	Nonsense_Mutation	
-sample-86	X	102979105	A	T	A	441509	GLRA4	Missense_Mutation	
-sample-87	X	102979032	C	G	C	441509	GLRA4	Missense_Mutation	
-sample-23	X	102978839	C	A	C	441509	GLRA4	Missense_Mutation	
-sample-92	X	134947996	C	A	C	441521	CT45A5	Missense_Mutation	
-sample-70	X	77224504	G	t	G	441531	PGAM4	Missense_Mutation	
-sample-75	10	135438871	A	T	A	441581	FRG2B	Missense_Mutation	
-sample-23	11	58170120	A	T	A	441608	OR5B3	Missense_Mutation	
-sample-32	12	55524274	T	C	T	441639	OR9K2	Missense_Mutation	
-sample-79	12	55524102	C	T	C	441639	OR9K2	Nonsense_Mutation	
-sample-33	14	20215631	G	T	G	441669	OR4Q3	Silent	
-sample-92	14	20216002	C	A	C	441669	OR4Q3	Missense_Mutation	
-sample-39	14	20216391	G	T	G	441669	OR4Q3	Missense_Mutation	
-sample-29	14	20249099	C	T	C	441670	OR4M1	Silent	
-sample-26	14	20248803	G	A	G	441670	OR4M1	Missense_Mutation	
-sample-51	14	20248803	G	C	G	441670	OR4M1	Missense_Mutation	
-sample-29	19	54578119	G	T	G	441864	TARM1	Missense_Mutation	
-sample-98	1	159283705	C	T	C	441911	OR10J3	Missense_Mutation	
-sample-104	1	159283703	G	T	G	441911	OR10J3	Silent	
-sample-84	1	247654827	T	A	T	441932	OR2W5	RNA	
-sample-70	1	247654938	G	T	G	441932	OR2W5	RNA	
-sample-29	1	247655036	G	T	G	441932	OR2W5	RNA	
-sample-12	1	247655171	G	T	G	441932	OR2W5	RNA	
-sample-12	1	247654867	T	C	T	441932	OR2W5	RNA	
-sample-3	1	247654903	C	T	C	441932	OR2W5	RNA	
-sample-23	1	247655263	A	G	A	441932	OR2W5	RNA	
-sample-23	1	247654768	C	A	C	441932	OR2W5	RNA	
-sample-56	1	247836033	G	T	G	441933	OR13G1	Missense_Mutation	
-sample-86	1	247835990	G	T	G	441933	OR13G1	Missense_Mutation	
-sample-29	1	247836066	C	G	C	441933	OR13G1	Missense_Mutation	
-sample-27	1	247835620	G	C	G	441933	OR13G1	Missense_Mutation	
-sample-42	4	173942640	G	T	G	442117	GALNTL6	Missense_Mutation	
-sample-76	4	172735779	G	T	G	442117	GALNTL6	Silent	
-sample-9	6	29054537	A	G	A	442184	OR2B3	Silent	
-sample-22	6	29054601	A	C	A	442184	OR2B3	Missense_Mutation	
-sample-73	6	29054907	A	T	A	442184	OR2B3	Missense_Mutation	
-sample-79	6	47847044	G	C	G	442213	PTCHD4	Missense_Mutation	
-sample-58	6	48036161	G	T	G	442213	PTCHD4	Missense_Mutation	
-sample-87	6	47976394	G	T	G	442213	PTCHD4	Missense_Mutation	
-sample-17	6	47846396	G	A	G	442213	PTCHD4	Silent	
-sample-92	6	47847449	C	G	C	442213	PTCHD4	Missense_Mutation	
-sample-23	6	112670913	G	T	G	442247	RFPL4B	Translation_Start_Site	
-sample-66	7	63538191	C	A	C	442319	ZNF727	Missense_Mutation	
-sample-44	7	63537724	C	A	C	442319	ZNF727	Silent	
-sample-13	7	63529295	T	A	T	442319	ZNF727	Silent	
-sample-32	7	63537904	C	A	C	442319	ZNF727	Silent	
-sample-85	7	143807274	C	A	C	442361	OR2A2	Missense_Mutation	
-sample-3	X	37027586	A	T	A	442444	FAM47C	Missense_Mutation	
-sample-62	X	37028698	C	A	C	442444	FAM47C	Missense_Mutation	
-sample-70	X	37026976	T	A	T	442444	FAM47C	Missense_Mutation	
-sample-35	X	37028096	C	A	C	442444	FAM47C	Missense_Mutation	
-sample-39	X	37026732	C	T	C	442444	FAM47C	Silent	
-sample-29	X	37028197	C	A	C	442444	FAM47C	Missense_Mutation	
-sample-29	X	37028738	C	A	C	442444	FAM47C	Missense_Mutation	
-sample-87	9	96097799	C	T	C	445577	C9orf129	Silent	
-sample-98	2	132010564	C	A	C	445582	POTEE	Missense_Mutation	
-sample-57	2	132010592	T	C	T	445582	POTEE	Silent	
-sample-72	2	132010524	A	T	A	445582	POTEE	Nonsense_Mutation	
-sample-58	2	131981173	G	T	G	445582	POTEE	Missense_Mutation	
-sample-42	9	112899025	C	G	C	445815	PALM2-AKAP2	Missense_Mutation	
-sample-53	1	152733631	C	G	C	448834	KPRP	Missense_Mutation	
-sample-76	1	152732894	C	T	C	448834	KPRP	Missense_Mutation	
-sample-98	1	152733570	G	T	G	448834	KPRP	Missense_Mutation	
-sample-92	1	152732424	G	T	G	448834	KPRP	Silent	
+sample_id	Chromosome	Start_Position	Reference_Allele	Tumor_Seq_Allele2
+sample-A	X	2e+06	C	G
+sample-A	chr2	50000003	T	A
+Sample-B	chr2	50000003	AA	-
+sample-C	chr2	50000003	AC	-
+sample-D	17	41107177	T	A
+sample-D	17	41107179	T	A
+sample-E	17	41107179	T	A
+sample-E	17	41107176	T	C
+sample-F	chrMT	100	T	A
+sample-F	M	2	A	C
+sample-1	13	19752521	T	A
+sample-1	4	109746358	A	T
+sample-1	9	21971050	C	A
+sample-10	1	186302463	C	A
+sample-10	10	55568642	G	C
+sample-10	12	25398284	C	T
+sample-10	3	93603684	A	G
+sample-10	4	46305558	G	A
+sample-101	7	55259515	T	G
+sample-102	12	25398284	C	A
+sample-105	12	25398285	C	A
+sample-105	12	115114241	C	A
+sample-105	4	164393222	G	A
+sample-105	X	47041442	G	T
+sample-107	1	26140634	G	T
+sample-107	4	170999709	C	A
+sample-107	7	130000983	G	T
+sample-108	10	94712091	A	G
+sample-108	12	25398285	C	A
+sample-108	14	60581889	G	A
+sample-108	3	193854783	A	T
+sample-108	6	70589476	C	T
+sample-11	12	25398284	C	A
+sample-12	1	26073241	G	A
+sample-12	1	247655171	G	T
+sample-12	10	1230918	G	C
+sample-12	12	25398285	C	A
+sample-12	17	39190698	C	A
+sample-12	2	179664252	C	A
+sample-12	4	162307432	C	A
+sample-12	5	170883780	C	T
+sample-12	6	8097667	G	T
+sample-12	X	71356943	G	T
+sample-13	1	153658598	G	C
+sample-13	12	25398284	C	A
+sample-13	20	30385259	C	T
+sample-14	17	7577121	G	A
+sample-16	11	67353967	C	T
+sample-16	12	25398284	C	A
+sample-16	5	149214862	A	T
+sample-17	17	7579312	C	G
+sample-17	6	25916012	T	A
+sample-18	7	55242475	G	A
+sample-19	12	25398285	C	A
+sample-2	1	159033338	A	G
+sample-2	11	14992659	G	A
+sample-2	2	179501221	T	C
+sample-2	8	10690486	C	A
+sample-20	11	124253082	G	T
+sample-22	1	152326419	G	C
+sample-22	16	1411799	G	A
+sample-22	19	50243377	G	T
+sample-22	3	14711497	C	A
+sample-23	1	170136728	G	T
+sample-23	17	7578461	C	A
+sample-23	17	71223405	T	C
+sample-23	2	31215745	C	A
+sample-23	20	36641296	A	T
+sample-23	5	85915169	G	C
+sample-23	8	124714978	T	C
+sample-24	7	55259515	T	G
+sample-25	7	55242475	G	A
+sample-26	12	25398284	C	A
+sample-26	12	100476913	C	A
+sample-26	14	81945955	C	A
+sample-27	1	166974623	T	C
+sample-27	11	73627706	G	A
+sample-27	17	7577121	G	A
+sample-27	20	61443581	G	T
+sample-29	14	24806457	C	G
+sample-29	21	47642543	C	A
+sample-29	7	7484121	C	A
+sample-29	7	132169627	C	G
+sample-29	X	135477576	G	T
+sample-31	17	27075058	C	T
+sample-31	7	55259515	T	G
+sample-32	16	66802073	T	C
+sample-32	18	61602071	G	C
+sample-32	5	168233449	A	T
+sample-33	12	25398284	C	T
+sample-38	12	25398284	C	A
+sample-39	14	23792213	C	A
+sample-39	14	39628728	C	A
+sample-39	17	7579312	C	G
+sample-39	19	50397524	C	A
+sample-39	2	179255798	A	T
+sample-40	13	25823631	C	A
+sample-42	1	247582380	G	T
+sample-42	10	134660780	C	T
+sample-42	11	67353967	C	T
+sample-42	16	3639812	C	T
+sample-42	19	12776266	G	A
+sample-42	20	57568687	G	A
+sample-42	3	97367139	C	T
+sample-42	9	35044216	C	G
+sample-42	9	107624017	G	C
+sample-43	12	113400708	G	T
+sample-44	12	25398285	C	A
+sample-44	16	30495248	G	A
+sample-44	17	12656129	T	A
+sample-47	7	55259515	T	G
+sample-5	11	123847485	C	A
+sample-5	7	81596484	C	A
+sample-50	1	70900861	G	T
+sample-50	18	44101145	C	G
+sample-52	1	63876925	G	A
+sample-52	1	237804196	G	T
+sample-52	4	71027301	A	T
+sample-53	11	103056970	G	A
+sample-53	13	31330121	G	T
+sample-53	13	36767760	G	T
+sample-53	15	81440697	G	T
+sample-53	16	46958383	G	T
+sample-53	6	80747765	G	T
+sample-53	8	71053635	C	G
+sample-53	8	76465379	G	T
+sample-55	7	55259515	T	G
+sample-56	12	100774638	C	G
+sample-56	15	34016285	G	T
+sample-56	4	9784853	C	G
+sample-57	15	27188360	A	C
+sample-57	19	1206974	G	C
+sample-57	3	85775672	C	A
+sample-58	10	89711874	G	T
+sample-58	2	50573921	G	C
+sample-58	3	169639124	C	A
+sample-58	4	164393222	G	T
+sample-58	7	149509661	C	A
+sample-58	9	13216817	C	A
+sample-58	X	50121109	C	T
+sample-59	12	25398285	C	A
+sample-61	12	25398284	C	A
+sample-61	7	106822829	G	A
+sample-62	1	71418646	C	A
+sample-62	13	29898849	G	A
+sample-62	21	45810794	G	T
+sample-62	6	28117403	G	T
+sample-63	7	55259515	T	G
+sample-64	1	55148349	G	T
+sample-64	10	15729936	C	A
+sample-64	17	7579312	C	A
+sample-65	1	206331203	G	C
+sample-65	10	1230918	G	C
+sample-65	10	122334654	G	C
+sample-65	12	4705354	G	A
+sample-65	12	45410313	C	A
+sample-65	14	101348921	G	T
+sample-65	16	3593472	C	A
+sample-65	16	27895828	C	A
+sample-65	19	47706927	G	T
+sample-65	19	55365503	T	A
+sample-65	2	24484538	C	A
+sample-65	3	14172457	G	T
+sample-65	4	25366642	A	T
+sample-65	8	93017343	C	A
+sample-65	X	79960281	T	C
+sample-66	21	32201790	C	A
+sample-66	5	102895814	C	A
+sample-66	8	113241103	C	G
+sample-66	X	47040904	A	G
+sample-67	1	34052102	A	T
+sample-68	17	7910376	A	T
+sample-68	7	55259515	T	G
+sample-69	16	48226529	C	T
+sample-69	20	35288777	T	G
+sample-7	16	2156265	G	A
+sample-70	10	26446445	G	A
+sample-70	12	69991455	A	C
+sample-70	13	29600875	C	G
+sample-70	2	30965190	A	T
+sample-70	7	103197608	T	A
+sample-70	7	149519610	T	C
+sample-70	X	135278977	G	C
+sample-71	10	50740646	C	A
+sample-71	X	65414939	G	T
+sample-71	X	135313883	C	T
+sample-72	1	161680703	G	T
+sample-72	2	54149704	C	G
+sample-72	7	87069720	T	A
+sample-75	12	25398285	C	A
+sample-75	13	48547528	C	A
+sample-75	4	22394314	C	A
+sample-76	17	42232653	G	T
+sample-76	3	112968747	G	T
+sample-76	4	9784853	C	G
+sample-76	7	99032547	C	A
+sample-76	7	101183277	C	A
+sample-77	1	27177723	G	A
+sample-77	12	25398284	C	T
+sample-79	11	67353967	C	T
+sample-79	17	8791487	C	A
+sample-79	18	48512988	G	T
+sample-79	20	47845350	G	T
+sample-79	5	176816722	C	A
+sample-79	7	7459585	C	T
+sample-79	8	3224663	C	A
+sample-8	12	21030812	C	G
+sample-8	12	25398285	C	A
+sample-8	12	54799653	C	A
+sample-8	4	2062778	G	T
+sample-8	5	110448772	G	T
+sample-8	5	145197619	T	G
+sample-8	X	83389789	C	A
+sample-80	12	25398284	C	T
+sample-80	3	9920189	G	T
+sample-83	12	103872146	G	A
+sample-83	X	119037542	A	T
+sample-84	6	66094395	T	A
+sample-85	12	78573463	G	T
+sample-86	2	55882089	C	A
+sample-86	X	134427704	C	A
+sample-87	1	67236156	A	T
+sample-87	10	95140994	T	A
+sample-87	2	202512549	C	A
+sample-87	20	43138576	C	A
+sample-87	3	71021828	C	T
+sample-87	3	85775671	G	T
+sample-89	7	55259515	T	G
+sample-9	1	158548845	C	A
+sample-9	1	180241143	T	C
+sample-9	12	104031016	T	C
+sample-9	19	36233564	G	C
+sample-9	20	3218306	C	A
+sample-91	7	55259515	T	G
+sample-92	1	185891598	G	A
+sample-92	2	48936117	G	T
+sample-92	2	219350467	C	A
+sample-92	7	24932050	C	A
+sample-92	7	127253936	C	A
+sample-94	1	22188297	G	A
+sample-94	12	25398285	C	A
+sample-94	17	7578461	C	A
+sample-94	18	22805499	C	A
+sample-94	2	216190859	A	T
+sample-95	4	108984821	T	A
+sample-96	5	137504314	G	A
+sample-98	11	123484162	G	T
+sample-98	12	25398285	C	A
+sample-98	18	22805499	C	A
+sample-98	X	134427704	C	G
+sample-98	X	153667488	T	C
+sample-99	7	55242475	G	A
+sample-999	9	21971050	C	A
