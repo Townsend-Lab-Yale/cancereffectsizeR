@@ -1,20 +1,24 @@
 #' Select and filter variants
 #'
-#' This is a lightweight function to help you search for and organization variant data
-#' that is present in your CESAnalysis's MAF data and mutation annotation tables. You can
-#' specify genes by name as well as CES-style variant IDs, and all variants matching
-#' either will be returned. Or, leave both empty and all available variants will be
-#' returned. The frequency of each variant in the MAF data will also be reported, and you
-#' can filter output on this frequency.
+#' This is a lightweight function to help you find and manipulate variant data from your
+#' CESAnalysis's MAF data and mutation annotation tables. This function has a variant
+#' gathering step followed by a filtering step. For gathering, you can specify genes by
+#' name or supply CES-style variant IDs to get all variants matching either. Or, leave
+#' both empty and all available variants will be gathered. For filtering, use the granges
+#' parameter to filter out variants that don't intersect an input GRanges object. Use
+#' min_freq to filter out variants by frequency in the MAF data. 
 #'
-#' Note that while intergenic SNVs have their nearest genes annotated in the SNV tables,
-#' these variants will not be captured by gene-based selection with this function, since
-#' they're not actually in any gene.
-#'
+#' To collect all available variant data, set min_freq = 0, include_subvariants = T, and
+#' no other options. Output will include additional rows for SNVs that are already
+#' annotated as constituent SNVs of amino-acid-change mutations. Note that while
+#' intergenic SNVs have their nearest genes annotated in the SNV tables, these variants
+#' will not be captured by gene-based selection with this function, since they're not
+#' actually in any gene.
+#' 
 #' @param cesa CESAnalysis with MAF data loaded and annotated (e.g., with \code{load_maf()})
 #' @param genes include variants (coding and noncoding) within these genes
-#' @param variant_ids include variants
-#' @param granges include all variants overlapping this GRanges object
+#' @param variant_ids include variants by ID (vector of snv_id and/or aac_id)
+#' @param granges filter out any variants not within input GRanges
 #' @param min_freq filter out variants that occur in fewer than this many samples in the
 #'   MAF data Defaults to 1; set to 0 to include all passing variants that are in the
 #'   annotation tables. Note that variants that are not in the annotation tables will
@@ -26,14 +30,18 @@
 #'   When include_subvariants = F (the default), and genes = "KRAS", output will be
 #'   returned for KRAS_Q61H but not for the two SNVs (although their IDs will appear in
 #'   the Q61H output). Set to true, and all three variants will be included in output, 
-#'   assuming they don't get filtered out by min_freq or otherwise.
+#'   assuming they don't get filtered out.
 #' @param gr_padding add +/- this many bases to every range specified in "granges"
 #'   (stopping at chromsome ends, naturally)
 #' @export
-select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NULL, min_freq = 1, include_subvariants = F) {
+select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NULL, min_freq = 1, 
+                           include_subvariants = F, gr_padding = 0) {
   if(! is(cesa, "CESAnalysis")) {
     stop("cesa should be a CESAnalysis object")
   }
+  bsg = BSgenome::getBSgenome(readRDS(paste0(cesa@genome_data_dir, '/genome_package_name.rds')))
+  GenomeInfoDb::seqlevelsStyle(bsg) = "NCBI"
+  
   if(cesa@maf[, .N] == 0) {
     stop("There are no variants in the CESAnalysis.")
   }
@@ -55,9 +63,24 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
     stop("include_subvariants should be T/F")
   }
   
-  
   selected_snv_ids = character()
   selected_aac_ids = character()
+  
+  if(! is.null(granges)) {
+    if(! is(granges, "GRanges")) {
+      stop("granges should be a GRanges object", call. = F)
+    }
+    granges = clean_granges_for_bsg(bsg = bsg, gr = granges, padding = gr_padding)
+    genome_info = GenomeInfoDb::seqinfo(bsg)
+    mutations_gr = GenomicRanges::makeGRangesFromDataFrame(cesa@mutations$snv, seqnames.field = "chr", start.field = "pos", 
+                                                         end.field = "pos", seqinfo = genome_info)
+    captured = cesa@mutations$snv[mutations_gr %within% granges]
+    if (captured[, .N] == 0) {
+      stop("No mutations captured by input granges.", call. = F)
+    }
+    gr_passing_snv_id = captured$snv_id
+    gr_passing_aac_id = captured[!is.na(assoc_aac), unique(unlist(assoc_aac))]
+  }
   
   if (length(variant_ids) > 0) {
     variant_ids = unique(variant_ids)
@@ -103,6 +126,11 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
     selected_snv_ids = cesa@mutations$snv$snv_id
   }
   
+  if (! is.null(granges)) {
+    selected_snv_ids = intersect(selected_snv_ids, gr_passing_snv_id)
+    selected_aac_ids = intersect(selected_aac_ids, gr_passing_aac_id) 
+  }
+
   if (include_subvariants == FALSE) {
     subvariant_snv_ids = cesa@mutations$amino_acid_change[selected_aac_ids, unlist(constituent_snvs)]
     selected_snv_ids = setdiff(selected_snv_ids, subvariant_snv_ids)
@@ -174,9 +202,6 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
   setkey(combined, "chr")
   
   # order output in chr/pos order
-  bsg = BSgenome::getBSgenome(readRDS(paste0(cesa@genome_data_dir, '/genome_package_name.rds')))
-  GenomeInfoDb::seqlevelsStyle(bsg) = "NCBI"
-  
   combined = combined[BSgenome::seqnames(bsg), nomatch = NULL][, .SD[order(start)], by = "chr"]
   
   setcolorder(combined, c("variant_id", "variant_type", "chr", "start", "end", "ref", "alt", "gene", 
@@ -196,6 +221,12 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
 }
 
 #' Add variant annotations
+#' 
+#' Use this function to add variant annotations to your CESAnalysis, either using
+#' a vector of CES-style snv_ids or a source CESAnalysis. Either way, the variants 
+#' will be re-annotated using the target CESAnalysis's associated reference data. In other words,
+#' when you use source_cesa, only the snv_ids are extracted, not any other information, in order
+#' to avoid ugly situations involving conflicting reference data within a CESAnalysis. 
 #' @param target_cesa CESAnalysis to receive variant annotations
 #' @param snv_id character vector of CES-style snv_ids to validate, annotate (including
 #'   finding and adding associated amino-acid-change mutations), and add to the target
@@ -243,7 +274,6 @@ add_variants = function(target_cesa = NULL, snv_id = NULL, source_cesa = NULL) {
   
 
 }
-
 
 #' validate_snv_ids
 #' 

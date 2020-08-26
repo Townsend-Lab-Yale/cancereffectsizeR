@@ -10,7 +10,8 @@ select_variants(
   variant_ids = NULL,
   granges = NULL,
   min_freq = 1,
-  include_subvariants = F
+  include_subvariants = F,
+  gr_padding = 0
 )
 }
 \arguments{
@@ -18,9 +19,9 @@ select_variants(
 
 \item{genes}{include variants (coding and noncoding) within these genes}
 
-\item{variant_ids}{include variants}
+\item{variant_ids}{include variants by ID (vector of snv_id and/or aac_id)}
 
-\item{granges}{include all variants overlapping this GRanges object}
+\item{granges}{filter out any variants not within input GRanges}
 
 \item{min_freq}{filter out variants that occur in fewer than this many samples in the
 MAF data Defaults to 1; set to 0 to include all passing variants that are in the
@@ -34,21 +35,25 @@ SNVs that both cause the same amino acid change: 12:25380275_T>G and 12:25380275
 When include_subvariants = F (the default), and genes = "KRAS", output will be
 returned for KRAS_Q61H but not for the two SNVs (although their IDs will appear in
 the Q61H output). Set to true, and all three variants will be included in output, 
-assuming they don't get filtered out by min_freq or otherwise.}
+assuming they don't get filtered out.}
 
 \item{gr_padding}{add +/- this many bases to every range specified in "granges"
 (stopping at chromsome ends, naturally)}
 }
 \description{
-This is a lightweight function to help you search for and organization variant data
-that is present in your CESAnalysis's MAF data and mutation annotation tables. You can
-specify genes by name as well as CES-style variant IDs, and all variants matching
-either will be returned. Or, leave both empty and all available variants will be
-returned. The frequency of each variant in the MAF data will also be reported, and you
-can filter output on this frequency.
+This is a lightweight function to help you find and manipulate variant data from your
+CESAnalysis's MAF data and mutation annotation tables. This function has a variant
+gathering step followed by a filtering step. For gathering, you can specify genes by
+name or supply CES-style variant IDs to get all variants matching either. Or, leave
+both empty and all available variants will be gathered. For filtering, use the granges
+parameter to filter out variants that don't intersect an input GRanges object. Use
+min_freq to filter out variants by frequency in the MAF data.
 }
 \details{
-Note that while intergenic SNVs have their nearest genes annotated in the SNV tables,
-these variants will not be captured by gene-based selection with this function, since
-they're not actually in any gene.
+To collect all available variant data, set min_freq = 0, include_subvariants = T, and
+no other options. Output will include additional rows for SNVs that are already
+annotated as constituent SNVs of amino-acid-change mutations. Note that while
+intergenic SNVs have their nearest genes annotated in the SNV tables, these variants
+will not be captured by gene-based selection with this function, since they're not
+actually in any gene.
 }

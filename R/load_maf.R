@@ -97,7 +97,18 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
                 "Create a new CESAnalysis with \"progression_order\" specified to include this information."))
   }
   
-  # validate coverage
+  
+  # Validate covered_regions_padding
+  if (! is(covered_regions_padding, "numeric") || length(covered_regions_padding) > 1 || covered_regions_padding < 0 ||
+      covered_regions_padding - as.integer(covered_regions_padding) != 0) {
+    stop("covered_regions_padding should be 1-length integer", call. = F)
+  }
+  if (covered_regions_padding > 1000) {
+    warning(sprintf("covered_regions_padding=%d is awfully high!", covered_regions_padding), call. = F)
+  }
+  
+  
+  # Validate covered_regions
   previous_covered_regions_names = names(cesa@coverage) # may be NULL
   if (! is.character(coverage) || ! coverage %in% c("exome", "genome", "targeted") || length(coverage) > 1) {
     stop("Argument coverage must be \"exome\", \"genome\", or \"targeted\"")
@@ -170,64 +181,7 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
       stop("Argument covered_regions expected to be a GRanges object or the path to a BED-formatted text file.")
     }
     
-    
-    # set coverage gr to match CESAnalysis genome (if this fails, possibly the genome build does not match)
-    GenomeInfoDb::seqlevelsStyle(covered_regions) = "NCBI"
-    
-    tryCatch({
-      msg = paste0("Your covered_regions don't seem compatible with the CESAnalysis reference genome.\n",
-                    "Make sure it uses the same genome assembly. It may also help to subset to just the\n",
-                    "primary chromosomes, if any obscure contigs are present in your regions.\n",
-                   "Original warning/error:")
-      GenomeInfoDb::seqlevels(covered_regions) = GenomeInfoDb::seqlevels(genome_info)
-      GenomeInfoDb::seqinfo(covered_regions) = genome_info
-    }, error = function(e) {
-      message(msg)
-      stop(conditionMessage(e))
-    }, warning = function(w) {
-      message(msg)
-      stop(conditionMessage(w))
-    })
-
-    # drop any metadata
-    GenomicRanges::mcols(covered_regions) = NULL
-    
-    # sort, reduce, unstrand
-    covered_regions = GenomicRanges::reduce(GenomicRanges::sort(covered_regions), drop.empty.ranges = T)
-    GenomicRanges::strand(covered_regions) = "*"
-    
-    # require genome name to match the CESAnalysis (too many potential errors if we allow anonymous or mismatched genome)
-    expected_genome = GenomeInfoDb::genome(bsg)[1]
-    gr_genome = GenomeInfoDb::genome(covered_regions)[1]
-    if (expected_genome != gr_genome) {
-      stop(paste0("The genome name of the covered_regions GRanges (", gr_genome, ") does not match the CESAnalysis (",
-                  expected_genome, ")."))
-    }
-    
-    # Validate and apply covered_regions_padding
-    if (! is(covered_regions_padding, "numeric") || length(covered_regions_padding) > 1 || covered_regions_padding < 0 ||
-        covered_regions_padding - as.integer(covered_regions_padding) != 0) {
-      stop("covered_regions_padding should be 1-length integer", call. = F)
-    }
-    if (covered_regions_padding > 1000) {
-      warning(sprintf("covered_regions_padding=%d is awfully high!", covered_regions_padding), call. = F)
-    }
-    if (covered_regions_padding > 0) {
-      # Suppress the out-of-range warning since we'll trim afterwards
-      withCallingHandlers(
-      {
-        GenomicRanges::start(covered_regions) = GenomicRanges::start(covered_regions) - covered_regions_padding
-        GenomicRanges::end(covered_regions) = GenomicRanges::end(covered_regions) + covered_regions_padding
-      }, warning = function(w) 
-        {
-          if (grepl("out-of-bound range", conditionMessage(w))) {
-            invokeRestart("muffleWarning")
-          }
-        }
-      )
-      covered_regions = GenomicRanges::reduce(GenomicRanges::trim(covered_regions))
-    }
-    
+    covered_regions = clean_granges_for_bsg(bsg = bsg, gr = covered_regions, padding = covered_regions_padding)
     
     # if covered_regions_name was already used in a previous load_maf call, make sure granges match exactly
     # otherwise, add the coverage information to the CESAnalysis
@@ -525,8 +479,8 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
   }
   
   
-  # remove any MAF records that are not in the coverage (except for generic exome data; then, just warn)
-  if (coverage == "genome") {
+  # remove any MAF records that are not in the coverage, unless generic exome with enforce_generic_exome_coverage = FALSE
+  if (covered_regions_name == "genome") {
     num_uncovered = 0
   } else {
     maf_grange = GenomicRanges::makeGRangesFromDataFrame(maf, seqnames.field = "Chromosome", start.field = "Start_Position", 
@@ -534,7 +488,6 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     is_uncovered = ! maf_grange %within% covered_regions
     num_uncovered = sum(is_uncovered)
   }
-
 
   if (num_uncovered > 0) {
     total = nrow(maf)
@@ -545,12 +498,7 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
       cesa@coverage[["exome+"]] = GenomicRanges::reduce(GenomicRanges::union(covered_regions, maf_grange[is_uncovered]))
       covered_regions_name = "exome+"
       new_samples[, covered_regions := covered_regions_name]
-      
-      # mark previous generic exome samples as exome+
-      if(cesa@samples[, .N] > 0) {
-        cesa@samples[covered_regions_name == "exome", covered_regions := covered_regions_name]
-      }
-      
+
       # warn if a lot of records are in uncovered areas; may indicate whole-genome data or low quality exome data
       if (percent > 10) {
         warning(paste0("More than 10% of MAF records are not within the CES genome's generic exome intervals.\n",
@@ -559,11 +507,11 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
       }
       msg = paste0("Note: ", num_uncovered, " MAF records (", percent, 
                    "%) are at loci not covered by the default exome capture regions ",
-                   "in this CESAnalysis's reference data. This data (and all other exome data loaded ",
+                   "in this CESAnalysis's reference data. This data (along with all other exome data loaded ",
                    "with enforce_generic_exome_coverage = FALSE) will be assumed to share the same coverage, ",
                    "which we'll call \"exome+\". To instead exclude uncovered records, re-run with ",
                    "enforce_generic_exome_coverage = TRUE.")
-      writeLines(strwrap(msg))
+      message(paste0(writeLines(strwrap(msg)), collapse = "\n"))
     } else {
       uncovered.maf = maf[is_uncovered,]
       uncovered.maf$Exclusion_Reason = paste0("uncovered_in_", covered_regions_name)
@@ -715,8 +663,6 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
   }
   
   cesa@maf = rbind(cesa@maf, maf)
-  
-  
   
   current_snv_stats = maf[Variant_Type == "SNV", .(num_samples = length(unique(Unique_Patient_Identifier)), num_snv = .N)]
   message(paste0("Loaded ", current_snv_stats$num_snv, " SNVs from ", current_snv_stats$num_samples, " samples into CESAnalysis."))

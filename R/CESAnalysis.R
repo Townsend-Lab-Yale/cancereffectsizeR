@@ -212,3 +212,71 @@ gene_epistasis_results = function(cesa = NULL) {
   return(cesa@gene_epistasis_results)
 }
 
+
+#' clean_granges_for_bsg
+#' 
+#' Tries to format an input GRanges object to be compatible with a CESAnalysis's reference
+#' genome. Optionally also applies padding to start and end positions of ranges, stopping
+#' at chromosome ends. Either stops with an error or returns a clean granges object.
+#' 
+#' @param bsg BSgenome object (CES-formatted, typically)
+#' @param gr GRanges object
+#' @param padding How many bases to expand start and end of each position
+#' @keywords internal
+clean_granges_for_bsg = function(bsg = NULL, gr = NULL, padding = 0) {
+  stopifnot(is(padding, "numeric"),
+            length(padding) == 1,
+            padding >= 0,
+            padding - as.integer(padding) == 0)
+
+  # set coverage gr to match CESAnalysis genome (if this fails, possibly the genome build does not match)
+  GenomeInfoDb::seqlevelsStyle(gr) = "NCBI"
+  
+  tryCatch({
+    msg = paste0("An input granges (or converted BED file) does't seem compatible with the current reference genome.\n",
+                 "Make sure it uses the same genome assembly. It may also help to subset to just the\n",
+                 "primary chromosomes, if any obscure contigs are present in your regions.\n",
+                 "Original warning/error:")
+    GenomeInfoDb::seqlevels(gr) = GenomeInfoDb::seqlevels(genome_info)
+    GenomeInfoDb::seqinfo(gr) = genome_info
+  }, error = function(e) {
+    message(msg)
+    stop(conditionMessage(e))
+  }, warning = function(w) {
+    message(msg)
+    stop(conditionMessage(w))
+  })
+  
+  # drop any metadata
+  GenomicRanges::mcols(gr) = NULL
+  
+  # sort, reduce, unstrand
+  gr = GenomicRanges::reduce(GenomicRanges::sort(gr), drop.empty.ranges = T)
+  GenomicRanges::strand(gr) = "*"
+  
+  # require genome name to match the reference genome (too many potential errors if we allow anonymous or mismatched genome)
+  expected_genome = GenomeInfoDb::genome(bsg)[1]
+  gr_genome = GenomeInfoDb::genome(gr)[1]
+  if (expected_genome != gr_genome) {
+    stop(paste0("The genome name of an input granges object (", gr_genome, ") does not match the current reference genome (",
+                expected_genome, ")."))
+  }
+  
+  
+  if (padding > 0) {
+    # Suppress the out-of-range warning since we'll trim afterwards
+    withCallingHandlers(
+      {
+        GenomicRanges::start(gr) = GenomicRanges::start(gr) - padding
+        GenomicRanges::end(gr) = GenomicRanges::end(gr) + padding
+      }, warning = function(w) 
+      {
+        if (grepl("out-of-bound range", conditionMessage(w))) {
+          invokeRestart("muffleWarning")
+        }
+      }
+    )
+    gr = GenomicRanges::reduce(GenomicRanges::trim(gr))
+  }
+  return(gr)
+}

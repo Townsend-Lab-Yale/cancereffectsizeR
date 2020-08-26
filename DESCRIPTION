@@ -15,36 +15,25 @@ Depends:
 biocViews:
 Remotes: im3sanger/dndscv
 Imports: 
-	BB,
 	bbmle,
 	Biostrings,
 	BSgenome,
-	BSgenome.Hsapiens.UCSC.hg19,
 	crayon,
 	deconstructSigs,
-	dfoptim,
 	dndscv,
-	dplyr,
 	GenomeInfoDb,
-	GenomeInfoDbData,
 	GenomicRanges,
 	IRanges,
-	magrittr,
-	MASS,
-	minqa,
 	optimx,
 	pbapply,
-	reshape2,
 	rtracklayer,
 	S4Vectors,
 	seqinr,
-	tidyr
 Suggests: 
     ggplot2,
     knitr,
     rmarkdown,
     formattable,
-    parallel,
     testthat (>= 2.1.0)
 License: GPL-3
 Encoding: UTF-8

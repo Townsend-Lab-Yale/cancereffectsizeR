@@ -17,5 +17,9 @@ CESAnalysis}
 annotations in the target CESAnalysis}
 }
 \description{
-Add variant annotations
+Use this function to add variant annotations to your CESAnalysis, either using
+a vector of CES-style snv_ids or a source CESAnalysis. Either way, the variants 
+will be re-annotated using the target CESAnalysis's associated reference data. In other words,
+when you use source_cesa, only the snv_ids are extracted, not any other information, in order
+to avoid ugly situations involving conflicting reference data within a CESAnalysis.
 }
