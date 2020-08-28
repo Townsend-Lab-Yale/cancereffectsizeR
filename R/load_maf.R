@@ -47,12 +47,11 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
   }
   cesa@run_history =  c(cesa@run_history, deparse(match.call(), width.cutoff = 500))
   
-  if (! cesa@ref_key %in% ls(.ces_ref_data)) {
+  # Need RefCDS if annotating
+  if (! cesa@ref_key %in% ls(.ces_ref_data) & annotate == T) {
     preload_ref_data(cesa@ref_key)
   }
-  
-  # .ces_ref_data should be populated with reference data
-  bsg = .ces_ref_data[[cesa@ref_key]]$genome
+  bsg = get_cesa_bsg(cesa)
   
   # validate chain_file (presence means liftOver must run)
   need_to_liftOver = FALSE
@@ -109,7 +108,7 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
   
   
   # Validate covered_regions
-  previous_covered_regions_names = names(cesa@coverage) # may be NULL
+  previous_covered_regions_names = c(names(cesa@coverage$exome), names(cesa@coverage$targeted)) # may be NULL
   if (! is.character(coverage) || ! coverage %in% c("exome", "genome", "targeted") || length(coverage) > 1) {
     stop("Argument coverage must be \"exome\", \"genome\", or \"targeted\"")
   }
@@ -154,9 +153,9 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
       stop("This genome has no generic exome intervals, so to load exome data you must supply covered_regions (see docs)")
     }
     
-    if("exome+" %in% names(cesa@coverage)) {
+    if("exome+" %in% names(cesa@coverage$exome)) {
       covered_regions_name = "exome+"
-      covered_regions = cesa@coverage[["exome+"]]
+      covered_regions = cesa@coverage$exome[["exome+"]]
     } else {
       covered_regions_name = "exome"
       covered_regions = get_genome_data(cesa, "generic_exome_gr")
@@ -185,14 +184,19 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     
     # if covered_regions_name was already used in a previous load_maf call, make sure granges match exactly
     # otherwise, add the coverage information to the CESAnalysis
-    if (covered_regions_name %in% names(cesa@coverage)) {
-      if (! identical(covered_regions, cesa@coverage[[covered_regions_name]])) {
+    other_coverage_types = setdiff(c("exome", "targeted"), coverage)
+    if (covered_regions_name %in% unlist(lapply(cesa@coverage[other_coverage_types], names))) {
+      stop("The covered_regions_name (", covered_regions_name, ")", " has already been used for a different type of sequencing data.")
+    } 
+    else if (covered_regions_name %in% names(cesa@coverage[[coverage]])) {
+      if (! identical(covered_regions, cesa@coverage[[coverage]][[covered_regions_name]])) {
         stop("MAF data was previously loaded in using the same covered_regions_name (", covered_regions_name, "),\n",
              "but the covered_regions do not exactly match. Perhaps the input BED files (or GRanges) are from\n",
              "different sources, or different values of covered_regions_padding were used.")
       }
     }
     # make sure it really looks like exome data, if possible
+    # Note: Same check used in add_covered_regions
     if (coverage == "exome" & check_for_genome_data(cesa, "generic_exome_gr")) {
       covered_regions_bases_covered = sum(IRanges::width(IRanges::ranges(covered_regions)))
       generic_bases_covered = sum(IRanges::width(IRanges::ranges(get_genome_data(cesa, "generic_exome_gr"))))
@@ -211,7 +215,9 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
   
   # genome data always has full coverage; other data has its coverage GRange saved in the @coverage list
   if (coverage != "genome") {
-    cesa@coverage[[covered_regions_name]] = covered_regions
+    current_covered_regions = list(covered_regions)
+    names(current_covered_regions) = covered_regions_name
+    cesa@coverage[[coverage]] = c(cesa@coverage[[coverage]], current_covered_regions)
   }
   
   
@@ -495,7 +501,7 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     if (using_generic_exome && enforce_generic_exome_coverage == FALSE) {
       # covered_regions is generic exome; take union with the sample data and call that exome+
       # when there is already an "exome+" covered_regions, included those in the intersection
-      cesa@coverage[["exome+"]] = GenomicRanges::reduce(GenomicRanges::union(covered_regions, maf_grange[is_uncovered]))
+      cesa@coverage[[coverage]][["exome+"]] = GenomicRanges::reduce(GenomicRanges::union(covered_regions, maf_grange[is_uncovered]))
       covered_regions_name = "exome+"
       new_samples[, covered_regions := covered_regions_name]
 
@@ -645,15 +651,16 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     
     # Update coverage of existing mutations, if there any and if the new MAF data uses new covered regions
     if(cesa@maf[, .N] > 0 & ! covered_regions_name %in% previous_covered_regions_names & covered_regions_name != "genome") {
-      prev_snv = cesa@mutations$snv
+      prev_snv = cesa@mutations$snv[! new_variants]
       snv_gr = GenomicRanges::makeGRangesFromDataFrame(prev_snv, seqnames.field = "chr", start.field = "pos", end.field = "pos")
-      is_covered = snv_gr %within% cesa@coverage[[covered_regions_name]]
+      is_covered = snv_gr %within% cesa@coverage[[coverage]][[covered_regions_name]]
       prev_snv[is_covered, covered_in := list(lapply(covered_in, function(x) c(x, covered_regions_name))), by = "snv_id"]
       cesa@mutations$snv = prev_snv
       
       # Apply to amino acid changes
-      aac_coverage = prev_snv[, .(aac_id = unlist(assoc_aac), covered_in), by = "snv_id"]
+      aac_coverage = prev_snv[! is.na(assoc_aac), .(aac_id = unlist(assoc_aac), covered_in), by = "snv_id"]
       aac_coverage = aac_coverage[, .(covered_in = list(sort(unique(unlist(covered_in))))), by = "aac_id"]
+      cesa@mutations$amino_acid_change[, covered_in := NULL] # need to remove old column due to list column quirks
       cesa@mutations$amino_acid_change[aac_coverage, covered_in := covered_in, on = "aac_id"]
     }
     cesa@mutations$amino_acid_change = rbind(cesa@mutations$amino_acid_change, cesa_for_anno@mutations$amino_acid_change)

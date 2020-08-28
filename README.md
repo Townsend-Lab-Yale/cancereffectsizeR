@@ -5,14 +5,21 @@ cancereffectsizeR quantifies somatic selection for single-nucleotide variants in
 For an overview of core features, see [Get Started](articles/cancereffectsizeR.html). Briefly, trinucleotide-context-specific SNV mutation rates are calculated by extracting mutational signatures from each tumor's SNV mutation profile using [deconstructSigs](https://github.com/raerose01/deconstructSigs). Cohort-wide neutral gene mutation rates are calculated using [dNdScv](https://github.com/im3sanger/dndscv), with support for tissue-specific covariates. (Covariates data are included in cancereffectsizeR for many tissue types, and user-supplied data is also supported.) Combining this information, the rate of neutral mutation at a particular variant site in a tumor is the context-specific mutation rate normalized by the gene mutation rate. By comparing the observed frequency of variants with their expected frequencies, cancereffectsizeR infers selection intensities.
 
 ## Installation
-Installing cancereffectsizeR requires R 3.5 or later and can be installed via the remotes or devtools packages. ()
+cancereffectsizeR requires R 3.5 or later and can be installed from its GitHub repository via the remotes package. Since we're not able to test all possible installation environments, please help by letting us know if you have any installation problems.
+
+#### R 4.0 and later
+On R 4.0 or later, run this:
 ```R
-install.packages("devtools")
-devtools::install_github("Townsend-Lab-Yale/cancereffectsizeR")
+install.packages("remotes")
+remotes::install_github("Townsend-Lab-Yale/cancereffectsizeR")
 ```
 
-If you would like to contribute 
-
+#### R 3.5 and 3.6
+Install as above, but first you need to install an archived version of a missing dependency:
+```R
+install.packages("https://cran.r-project.org/src/contrib/Archive/XML/XML_3.99-0.3.tar.gz", 
+                 type = "source", repos = NULL)
+```
 
 
 ## Publications and version note

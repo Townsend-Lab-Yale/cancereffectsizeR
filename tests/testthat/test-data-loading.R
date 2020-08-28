@@ -13,7 +13,7 @@ test_that("load_maf and variant annotation", {
   expect_equal(tiny@mutations$amino_acid_change[, .N], 128)
    
   # same ranges should be in each coverage GenomicRange (depending on BSgenome version, little contigs may vary)
-  expect_equal(lapply(tiny@coverage, IRanges::ranges), lapply(tiny_ak@coverage, IRanges::ranges))
+  expect_equal(lapply(tiny@coverage$exome, IRanges::ranges), lapply(tiny_ak@coverage$exome, IRanges::ranges))
   
   # undo annotations, verify annotate_variants works the same when called directly
   tiny@maf = tiny@maf[, .(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele, Tumor_Allele, Variant_Type)]

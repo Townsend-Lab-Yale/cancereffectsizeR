@@ -3,6 +3,7 @@
 S3method(.DollarNames,CESAnalysis)
 export(CESAnalysis)
 export(DNP_TNP_remover)
+export(add_covered_regions)
 export(add_variants)
 export(annotate_variants)
 export(assign_group_average_trinuc_rates)

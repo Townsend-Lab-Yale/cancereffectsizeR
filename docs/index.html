@@ -39,7 +39,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9012</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9012.1</span>
       </span>
     </div>
 
@@ -98,9 +98,21 @@
 <div id="installation" class="section level2">
 <h2 class="hasAnchor">
 <a href="#installation" class="anchor"></a>Installation</h2>
-<p>Installing cancereffectsizeR requires R 3.5 or later and a recent version of the devtools package.</p>
-<div class="sourceCode" id="cb1"><pre class="r"><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html">install.packages</a></span>(<span class="st">"devtools"</span>)
-<span class="kw pkg">devtools</span><span class="kw ns">::</span><span class="fu"><a href="https://devtools.r-lib.org//reference/remote-reexports.html">install_github</a></span>(<span class="st">"Townsend-Lab-Yale/cancereffectsizeR"</span>)</pre></div>
+<p>cancereffectsizeR requires R 3.5 or later and can be installed from its GitHub repository via the remotes package.</p>
+<div id="r-40-and-later" class="section level4">
+<h4 class="hasAnchor">
+<a href="#r-40-and-later" class="anchor"></a>R 4.0 and later</h4>
+<p>On R 4.0 or later, run this:</p>
+<div class="sourceCode" id="cb1"><pre class="r"><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html">install.packages</a></span>(<span class="st">"remotes"</span>)
+<span class="kw pkg">remotes</span><span class="kw ns">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html">install_github</a></span>(<span class="st">"Townsend-Lab-Yale/cancereffectsizeR"</span>)</pre></div>
+</div>
+<div id="r-35-and-36" class="section level4">
+<h4 class="hasAnchor">
+<a href="#r-35-and-36" class="anchor"></a>R 3.5 and 3.6</h4>
+<p>Use the same installation commands as above, but first you need to install an archived version of a missing dependency:</p>
+<div class="sourceCode" id="cb2"><pre class="r"><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html">install.packages</a></span>(<span class="st">"https://cran.r-project.org/src/contrib/Archive/XML/XML_3.99-0.3.tar.gz"</span>,
+                 <span class="kw">type</span> <span class="kw">=</span> <span class="st">"source"</span>, <span class="kw">repos</span> <span class="kw">=</span> <span class="kw">NULL</span>)</pre></div>
+</div>
 </div>
 <div id="publications-and-version-note" class="section level2">
 <h2 class="hasAnchor">

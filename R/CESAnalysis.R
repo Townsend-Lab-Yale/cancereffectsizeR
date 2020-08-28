@@ -213,6 +213,9 @@ gene_epistasis_results = function(cesa = NULL) {
 }
 
 
+
+
+
 #' clean_granges_for_bsg
 #' 
 #' Tries to format an input GRanges object to be compatible with a CESAnalysis's reference
@@ -237,8 +240,8 @@ clean_granges_for_bsg = function(bsg = NULL, gr = NULL, padding = 0) {
                  "Make sure it uses the same genome assembly. It may also help to subset to just the\n",
                  "primary chromosomes, if any obscure contigs are present in your regions.\n",
                  "Original warning/error:")
-    GenomeInfoDb::seqlevels(gr) = GenomeInfoDb::seqlevels(genome_info)
-    GenomeInfoDb::seqinfo(gr) = genome_info
+    GenomeInfoDb::seqlevels(gr) = GenomeInfoDb::seqlevels(bsg)
+    GenomeInfoDb::seqinfo(gr) = GenomeInfoDb::seqinfo(bsg)
   }, error = function(e) {
     message(msg)
     stop(conditionMessage(e))

@@ -28,7 +28,7 @@ Imports:
 	pbapply,
 	rtracklayer,
 	S4Vectors,
-	seqinr,
+	seqinr
 Suggests: 
     ggplot2,
     knitr,

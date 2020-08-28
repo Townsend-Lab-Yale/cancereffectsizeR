@@ -84,7 +84,7 @@ test_that("SNV effect size calculation", {
   results_ak = get_test_data("single_stage_snv_results.rds")
   
   # selection results will vary slightly by machine architecture (probably due to numerical precision issues)
-  expect_equal(results, results_ak, tolerance = 1e-5, ignore.row.order = T)
+  expect_equal(results, results_ak, tolerance = 1e-5)
 })
 
 test_that("ces_snv with user-supplied variants", {

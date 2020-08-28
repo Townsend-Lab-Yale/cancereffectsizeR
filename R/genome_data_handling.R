@@ -176,5 +176,22 @@ get_ces_signature_set = function(genome, name) {
   return(readRDS(sig_file))
 }
 
+#' get_cesa_bsg 
+#' 
+#' Loads the right BSgenome for a CESAnalysis, formatted NCBI-style
+#' @param cesa CESAnalysis
+#' @keywords internal
+get_cesa_bsg = function(cesa) {
+  ref_key = cesa@ref_key
+  if (ref_key %in% ls(.ces_ref_data)) {
+    return(.ces_ref_data[[ref_key]]$genome)
+  }
+  bsg_pkg_name = get_genome_data(cesa, "genome_package_name")
+  bsg = BSgenome::getBSgenome(bsg_pkg_name)
+  GenomeInfoDb::seqlevelsStyle(bsg) = "NCBI"
+  return(bsg)
+}
+
+
 
 

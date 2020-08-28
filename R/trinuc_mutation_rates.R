@@ -210,7 +210,7 @@ trinuc_mutation_rates <- function(cesa,
         exome_counts_by_gr[[exome_name]] = get_genome_data(cesa, "tri.counts.exome")
       }
     } else {
-      exome_seq = getSeq(bsg, cesa@coverage[[exome_name]])
+      exome_seq = getSeq(bsg, cesa@coverage$exome[[exome_name]])
       exome_tri_contexts = Biostrings::trinucleotideFrequency(exome_seq)
       exome_tri_contexts = colSums(exome_tri_contexts)
       

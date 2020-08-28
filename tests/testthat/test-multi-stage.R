@@ -28,5 +28,5 @@ test_that("multi-stage SNV effect size calculation", {
   cesa = ces_snv(cesa, genes = test_genes, include_nonrecurrent_variants = T)
   results = cesa@selection_results
   results_ak = get_test_data("multi_stage_snv_results.rds")
-  expect_equal(results_ak, results, tolerance = 1e-5, ignore.row.order = T)
+  expect_equal(results_ak, results, tolerance = 1e-5)
 })

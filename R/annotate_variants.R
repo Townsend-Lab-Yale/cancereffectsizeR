@@ -296,20 +296,32 @@ annotate_variants <- function(cesa) {
 	
 	# test each MAF locus against all coverage grs
 	# this returns a data frame where rows match MAF rows, columns are T/F for each coverage gr
-	is_covered = as.data.table(lapply(cesa@coverage, function(x) snv_gr %within% x))
-
+	all_coverage = c(cesa@coverage[["exome"]], cesa@coverage[["targeted"]]) # names shouldn't overlap due to add_covered_regions validation
 	
-	# get the names of coverage grs with coverage for each site (and add in genome, which covers every site)
-	grs_with_coverage = apply(is_covered, 1, function(x) c(names(which(x == TRUE))))
 	
-	# when all samples have same coverage apply "helpfully" returns a matrix, but we want a list
-	if(! is(grs_with_coverage, "list")) {
-	  grs_with_coverage = as.list(as.data.table(grs_with_coverage))
+	# all_coverage will be NULL if there's only WGS data
+	if(is.null(all_coverage)) {
+	  snv_table[, covered_in := list()]
+	} else {
+	  is_covered = as.data.table(lapply(all_coverage, function(x) snv_gr %within% x))
+	  
+	  # get the names of coverage grs with coverage for each site
+	  grs_with_coverage = apply(is_covered, 1, function(x) c(names(which(x == TRUE))))
+	  
+	  # when all samples have same coverage apply "helpfully" returns a matrix or vector, but we want a list
+	  if(is(grs_with_coverage, "character")) {
+	    grs_with_coverage = as.list(grs_with_coverage)
+	  }
+	  else if (! is(grs_with_coverage, "list")) {
+	    grs_with_coverage = as.list(as.data.table(grs_with_coverage))
+	  }
+	  
+	  # Note that when exome+ coverage (see load_maf) is used, samples can have both "exome" and "exome+" associated with their mutations,
+	  # but the samples themselves are considered "exome+" (be careful not to double-count these)
+	  snv_table[, covered_in := list(grs_with_coverage)]
 	}
 	
-	# Note that when exome+ coverage (see load_maf) is used, samples can have both "exome" and "exome+" associated with their mutations,
-	# but the samples themselves are considered "exome+" (be careful not to double-count these)
-	snv_table[, covered_in := grs_with_coverage]
+	
 	
 	# We're going to cheat and say samples have coverage at aac sites if they have coverage on any of the three codon positions
 	# in practice, there probably is coverage even if the coverage intervals disagree
