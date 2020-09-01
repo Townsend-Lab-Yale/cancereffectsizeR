@@ -7,7 +7,7 @@
 validate_snv_ids(snv_ids, bsg)
 }
 \arguments{
-\item{snv_ids}{charcter vector of snv_ids}
+\item{snv_ids}{character vector of snv_ids}
 
 \item{bsg}{BSgenome for getting reference sequence}
 }

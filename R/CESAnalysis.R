@@ -31,7 +31,9 @@ CESAnalysis = function(genome = NULL, progression_order = NULL) {
   }
 
   run_history = deparse(match.call(), width.cutoff = 500)
-  advanced = list("version" = packageVersion("cancereffectsizeR"), annotated = logical())
+  
+  # advanced is a grab bag of additional stuff to keep track of
+  advanced = list("version" = packageVersion("cancereffectsizeR"), annotated = F, using_exome_plus = F)
   cesa = new("CESAnalysis", run_history = run_history,  ref_key = ref_key, maf = data.table(), excluded = data.table(),
              progressions = progression_order, mutrates = data.table(),
              gene_epistasis_results = data.table(), selection_results = data.table(), genome_data_dir = genome_data_dir,
@@ -76,6 +78,11 @@ load_cesa = function(file) {
   
   if (! .hasSlot(cesa, "run_history")) {
     cesa@run_history = character()
+  }
+  
+  # temporary
+  if (is.null(cesa@advanced$using_exome_plus)) {
+    cesa@advanced$using_exome_plus = F
   }
   return(cesa)
 }
@@ -232,7 +239,7 @@ clean_granges_for_bsg = function(bsg = NULL, gr = NULL, padding = 0) {
             padding >= 0,
             padding - as.integer(padding) == 0)
 
-  # set coverage gr to match CESAnalysis genome (if this fails, possibly the genome build does not match)
+  # try to make gr style/seqlevels match bsg (if this fails, possibly the genome build does not match)
   GenomeInfoDb::seqlevelsStyle(gr) = "NCBI"
   
   tryCatch({

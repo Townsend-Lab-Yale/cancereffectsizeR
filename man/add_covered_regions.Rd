@@ -14,7 +14,7 @@ add_covered_regions(
 )
 }
 \arguments{
-\item{target_cesa}{CESAnalysis that the covered regions will be added to}
+\item{target_cesa}{CESAnalysis with annotated variants that the covered regions will be added to}
 
 \item{source_cesa}{Another CESAnalysis to copy all covered regions from}
 

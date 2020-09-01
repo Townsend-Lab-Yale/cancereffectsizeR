@@ -52,6 +52,7 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     preload_ref_data(cesa@ref_key)
   }
   bsg = get_cesa_bsg(cesa)
+  genome_info = GenomeInfoDb::seqinfo(bsg)
   
   # validate chain_file (presence means liftOver must run)
   need_to_liftOver = FALSE
@@ -71,17 +72,16 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
   
   # We're not allowing a mix of annotated and unannotated records
   # The purpose of annotate = FALSE is to allow quick MAF loading for scratch work, etc.
-  cesa_anno_status = cesa@advanced$annotated
-  if (is.null(cesa_anno_status) || identical(logical(0), cesa_anno_status)) {
-    cesa@advanced$annotated = annotate
-  } else if (cesa_anno_status == T & annotate == F){
+  cesa_anno_status = cesa@advanced$annotated # starts false until first annotated data is loaded
+  if(cesa_anno_status == F & annotate == T & cesa@samples[, .N] == 0) {
+    cesa@advanced$annotated = TRUE
+  } else if(cesa_anno_status == T & annotate == F){
     stop("The CESAnalysis already contains annotated variants, so you need to run with annotate = T.", call. = F)
   } else if (cesa_anno_status == F & annotate == T) {
     stop("The CESAnalysis already contains unannotated records. Either run annotate_variants() to annotate\n",
          "them, or re-run load_maf with annotate = F.", call. = F)
   }
 
-  
   
   if (is.null(maf)) {
     stop("Supply MAF data via maf=[file path or data.table/data.frame].")
@@ -96,22 +96,21 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
                 "Create a new CESAnalysis with \"progression_order\" specified to include this information."))
   }
   
-  
-  # Validate covered_regions_padding
-  if (! is(covered_regions_padding, "numeric") || length(covered_regions_padding) > 1 || covered_regions_padding < 0 ||
-      covered_regions_padding - as.integer(covered_regions_padding) != 0) {
-    stop("covered_regions_padding should be 1-length integer", call. = F)
-  }
+  # give a warning if interval padding is really high
   if (covered_regions_padding > 1000) {
     warning(sprintf("covered_regions_padding=%d is awfully high!", covered_regions_padding), call. = F)
   }
-  
   
   # Validate covered_regions
   previous_covered_regions_names = c(names(cesa@coverage$exome), names(cesa@coverage$targeted)) # may be NULL
   if (! is.character(coverage) || ! coverage %in% c("exome", "genome", "targeted") || length(coverage) > 1) {
     stop("Argument coverage must be \"exome\", \"genome\", or \"targeted\"")
   }
+  
+  if (! coverage %in% names(cesa@coverage)) {
+    cesa@coverage[[coverage]] = list()
+  }
+  
   
   # validate covered_regions_name (supplied if and only if covered_regions is)
   if (! is.null(covered_regions) & is.null(covered_regions_name)) {
@@ -124,14 +123,10 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     if (! is(covered_regions_name, "character") || length(covered_regions_name) > 1) {
       stop("covered_regions_name should be a 1-length character vector, just a name to use for your covered_regions")
     }
-    # require letter/number in the name to avoid input mistakes
-    if (! grepl("[0-9a-zA-Z]", covered_regions_name)) {
-      stop("check your covered_regions_name (looks like just punctuation?)")
-    }
-    # don't allow user to name covered regions genome, exome, or exome+, since they have reserved use
-    if(tolower(covered_regions_name) %in% c("exome", "exome+", "genome")) {
-      stop("Sorry, your covered_regions_name is reserved for internal use. Please pick another name.")
-    }
+  }
+  
+  if(is.null(covered_regions) && (length(covered_regions_padding) != 1 || covered_regions_padding != 0)) {
+    stop("You can't use covered_regions_padding without supplying covered_regions.", call. = F)
   }
   
   # validate covered_regions (required for targeted, optional for exome, prohibited for genome)
@@ -146,78 +141,59 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     stop("can't load targeted data without covered_regions (see docs)")
   }
   
-  # exome data can take covered_regions from a "generic exome" if one is present in the genome data directory
-  using_generic_exome = FALSE
-  if (coverage == "exome" && is.null(covered_regions)) {
+  if (! is(enforce_generic_exome_coverage, "logical") || length(enforce_generic_exome_coverage) != 1) {
+    stop("enforce_generic_exome_coverage should be T/F")
+  }
+  
+  if (coverage == "exome" & is.null(covered_regions)) {
+    covered_regions_name = "exome"
     if(! check_for_genome_data(cesa, "generic_exome_gr")) {
       stop("This genome has no generic exome intervals, so to load exome data you must supply covered_regions (see docs)")
     }
-    
-    if("exome+" %in% names(cesa@coverage$exome)) {
-      covered_regions_name = "exome+"
-      covered_regions = cesa@coverage$exome[["exome+"]]
-    } else {
-      covered_regions_name = "exome"
+  }
+  
+  # Determine whether we're using "exome" or "exome+" for generic exome data
+  # Usually, the lenient exome+ option is used, but the choice must be consistent throughout a CESAnalysis
+  if(covered_regions_name == "exome") {
+    # Whether or not CESAnalysis uses "exome+", once the first generic exome data has been loaded,
+    # there will always be generic exome intervals under "exome" in the coverage list
+    if (! "exome" %in% names(cesa@coverage[["exome"]])) {
+      cesa@advanced$using_exome_plus = ! enforce_generic_exome_coverage
       covered_regions = get_genome_data(cesa, "generic_exome_gr")
+      cesa@coverage$exome[["exome"]] = covered_regions
+      
+    } else if (enforce_generic_exome_coverage == TRUE & cesa@advanced$using_exome_plus) {
+      stop("You can't have enforce_generic_exome_coverage = TRUE because you previously loaded generic exome data\n",
+           "with enforce_generic_exome_coverage = FALSE")
+    } else if (enforce_generic_exome_coverage == FALSE & ! cesa@advanced$using_exome_plus) {
+      stop("You can't have enforce_generic_exome_coverage == FALSE because you previously loaded generic exome data\n",
+           "with enforce_generic_exome_coverage = TRUE.")
+    } else {
+      covered_regions = cesa@coverage$exome[["exome"]]
     }
     
-    using_generic_exome = TRUE
-    writeLines(strwrap("Assuming this data has generic exome coverage (it's better to supply covered intervals if you have them; see docs)..."))
-  }
-  
-  # custom covered_regions, when used, must be a GRanges object or a path to a BED-formatted text file
-  genome_info = GenomeInfoDb::seqinfo(bsg)
-  if(coverage != "genome" && ! using_generic_exome) {
-    if (is(covered_regions, "character")) {
-      if (length(covered_regions) != 1) {
-        stop("covered_regions expected to be either a GRanges object or the path to a BED file.")
+    # For exome+, use GRanges if available
+    # Otherwise, for exome or exome+, load the generic exome intervals
+    if (! enforce_generic_exome_coverage) {
+      covered_regions_name = "exome+"
+      if("exome+" %in% names(cesa@coverage$exome)) {
+        covered_regions = cesa@coverage$exome[["exome+"]]
+      } else {
+        cesa@coverage[["exome"]][["exome+"]] = covered_regions # that is, the generic exome regions
       }
-      if (! file.exists(covered_regions)) {
-        "covered_regions BED file could not be found (check the path)"
-      }
-      covered_regions = rtracklayer::import(covered_regions, format = "bed")
-    } else if (! is(covered_regions, "GRanges")) {
-      stop("Argument covered_regions expected to be a GRanges object or the path to a BED-formatted text file.")
-    }
-    
-    covered_regions = clean_granges_for_bsg(bsg = bsg, gr = covered_regions, padding = covered_regions_padding)
-    
-    # if covered_regions_name was already used in a previous load_maf call, make sure granges match exactly
-    # otherwise, add the coverage information to the CESAnalysis
-    other_coverage_types = setdiff(c("exome", "targeted"), coverage)
-    if (covered_regions_name %in% unlist(lapply(cesa@coverage[other_coverage_types], names))) {
-      stop("The covered_regions_name (", covered_regions_name, ")", " has already been used for a different type of sequencing data.")
-    } 
-    else if (covered_regions_name %in% names(cesa@coverage[[coverage]])) {
-      if (! identical(covered_regions, cesa@coverage[[coverage]][[covered_regions_name]])) {
-        stop("MAF data was previously loaded in using the same covered_regions_name (", covered_regions_name, "),\n",
-             "but the covered_regions do not exactly match. Perhaps the input BED files (or GRanges) are from\n",
-             "different sources, or different values of covered_regions_padding were used.")
+    } else {
+      if("exome" %in% names(cesa@coverage$exome)) {
+        covered_regions = cesa@coverage$exome[["exome"]]
+      } else {
+        covered_regions = get_genome_data(cesa, "generic_exome_gr")
+        cesa@coverage$exome[["exome"]] = covered_regions
       }
     }
-    # make sure it really looks like exome data, if possible
-    # Note: Same check used in add_covered_regions
-    if (coverage == "exome" & check_for_genome_data(cesa, "generic_exome_gr")) {
-      covered_regions_bases_covered = sum(IRanges::width(IRanges::ranges(covered_regions)))
-      generic_bases_covered = sum(IRanges::width(IRanges::ranges(get_genome_data(cesa, "generic_exome_gr"))))
-      if (covered_regions_bases_covered / generic_bases_covered < .4) {
-        warning(paste0("Coverage is set to exome, but your covered_regions are less than 40% of the size of this genome's default exome intervals.\n",
-                       "This might make sense if your exome capture array is very lean, but if this is actually targeted sequencing data,\n",
-                       "create a new CESAnalysis and run load_maf() with coverage = \"targeted\"."))
-      }
-    }
-  } else {
-    # don't allow covered_regions_padding when it's not being used
-    if (length(covered_regions_padding) != 1 || covered_regions_padding != 0) {
-      stop("You can't use covered_regions_padding without supplying covered_regions.", call. = F)
-    }
-  }
-  
-  # genome data always has full coverage; other data has its coverage GRange saved in the @coverage list
-  if (coverage != "genome") {
-    current_covered_regions = list(covered_regions)
-    names(current_covered_regions) = covered_regions_name
-    cesa@coverage[[coverage]] = c(cesa@coverage[[coverage]], current_covered_regions)
+    pretty_message("Assuming this data has generic exome coverage (it's better to supply covered intervals if you have them; see docs)...")
+  } else if (! is.null(covered_regions)) {
+    # Use internal function to avoid updating covered_in now (annotate_variants step will handle this larger)
+    cesa = .add_covered_regions(target_cesa = cesa, covered_regions = covered_regions, covered_regions_padding = covered_regions_padding, 
+                               coverage_type = coverage, covered_regions_name = covered_regions_name, update_anno = FALSE)
   }
   
   
@@ -276,19 +252,14 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
   
   if (sample_col == "Tumor_Sample_Barcode" & ! sample_col %in% input_maf_cols & "Unique_Patient_Identifier" %in% input_maf_cols) {
     sample_col = "Unique_Patient_Identifier"
-    message(crayon::silver("Found column Unique_Patient_Identifier; we'll assume this is the correct sample ID column."))
+    pretty_message("Found column Unique_Patient_Identifier; we'll assume this is the correct sample ID column.")
   }
   cols_to_check = c(sample_col, ref_col, chr_col, start_col, progression_col)
   if (tumor_allele_col != "guess") {
     cols_to_check = c(cols_to_check, tumor_allele_col)
   }
-  
-  for (col in cols_to_check) {
-    if (! col %in% input_maf_cols) {
-      missing_cols = c(missing_cols, col)
-    }
-  }
-  
+  missing_cols = setdiff(cols_to_check, input_maf_cols)
+
   if (length(missing_cols) > 0) {
     missing_cols = paste(missing_cols, collapse = ", " )
     msg = "The following MAF columns couldn't be found:"
@@ -306,7 +277,7 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
   nrow_curr = nrow(maf)
   if(nrow_curr != nrow_orig) {
     diff = nrow_orig - nrow_curr
-    warning(paste0(diff, " records in the input MAF had NA values in required columns. These have been dropped from analysis."))
+    warning(paste0(diff, " rows in the input MAF had NA values in required columns, so they were dropped."))
   }
   looks_empty = apply(maf, 1, function(x) any(grepl("^[.\"\' ]*$", x)))
   num_empty = sum(looks_empty)
@@ -323,18 +294,17 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
   if(tumor_allele_col == "guess") {
     tumor_allele_col = "Tumor_Allele"
     if (tumor_allele_col %in% colnames(maf)) {
-      message(crayon::silver("Found column Tumor_Allele; we'll assume this is the correct tumor allele column."))
+      pretty_message("Found column Tumor_Allele; we'll assume this is the correct tumor allele column.")
     } else {
       # automated tumor allele determination requires Tumor_Seq_Allele1/Tumor_Seq_Allele2 columns
-      # if these columns are present, the tumor_allele_adder function will handle capitalization and other validation
       allele1_col = "Tumor_Seq_Allele1"
       allele2_col = "Tumor_Seq_Allele2"
       
       if (allele1_col %in% colnames(maf) && ! allele2_col %in% colnames(maf)) {
-        message(crayon::silver("Found column Tumor_Seq_Allele1 but not Tumor_Seq_Allele2;\nwe'll assume Tumor_Seq_Allele1 is the correct tumor allele column."))
+        pretty_message("Found column Tumor_Seq_Allele1 but not Tumor_Seq_Allele2; we'll assume Tumor_Seq_Allele1 is the correct tumor allele column.")
         maf[[tumor_allele_col]] = toupper(maf[[allele1_col]])
       } else if (allele2_col %in% colnames(maf) && ! allele1_col %in% colnames(maf)) {
-        message(crayon::silver("Found column Tumor_Seq_Allele2 but not Tumor_Seq_Allele1;\nwe'll assume Tumor_Seq_Allele2 is the correct tumor allele column."))
+        pretty_message("Found column Tumor_Seq_Allele2 but not Tumor_Seq_Allele1;\nwe'll assume Tumor_Seq_Allele2 is the correct tumor allele column.")
         maf[[tumor_allele_col]] = toupper(maf[[allele2_col]])
       } else if (! allele1_col %in% colnames(maf) | ! allele2_col %in% colnames(maf)) {
         stop(paste0("Tumor alleles can't be determined automatically deduced without Tumor_Seq_Allele1 ",
@@ -362,15 +332,15 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
   if(num_unvaried > 0) {
     maf = maf[!no_variant]
     warning(paste0(num_unvaried, " MAF records had tumor alleles identical to reference alleles; these were removed from analysis.\n"))
-    # To-do: put BSGenome reference check before this check, and then put failing records from this check into the excluded table
+    # To-do: put BSgenome reference check before this check, and then put failing records from this check into the excluded table
   }
   
   # collect tumor progression information
   if (! is.null(progression_col)) {
     if (is.factor(maf[[progression_col]])) {
-      message("Warning: You supplied tumor progression as a factor, but it will be converted to character.")
-      message("The progression ordering will be what you supplied to CESAnalysis() with \"progression_order\",")
-      message("regardless of your factor ordering.")
+      warning("You supplied tumor progression as a factor, but it was converted to character.\n",
+              "The progression ordering will be what you supplied to CESAnalysis() with \"progression_order\",\n",
+              "regardless of factor ordering.")
     }
     sample_progressions = as.character(maf[[progression_col]])
     if(any(is.na(sample_progressions))) {
@@ -439,8 +409,8 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     if(any(maf$Chromosome == "MT")) {
       if(! "MT" %in% names(chain) && "M" %in% names(chain)) {
         names(chain) = sub("^M$", "MT", names(chain))
-        message(crayon::silver("Assuming that chrM in the chain file refers to mitochondrial DNA (aka chrMT)...."))
-        message(crayon::silver("If you get reference mismatches on this contig, you may need a different chain file."))
+        pretty_message("Assuming that chrM in the chain file refers to mitochondrial DNA (aka chrMT)....")
+        pretty_message("If you get reference mismatches on this contig, you may need a different chain file.")
       }
     }
     maf[, rn := 1:.N] # using row number as an identifier to know which intervals fail liftover
@@ -461,7 +431,7 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     if (num_failing > 0) {
       failed_liftover$Exclusion_Reason = "failed liftOver"
       excluded = rbind(excluded, failed_liftover[, -"rn"])
-      message(crayon::silver(paste0("Note: ", num_failing, " records failed liftOver, so they will be set aside.")))
+      pretty_message(paste0("Note: ", num_failing, " records failed liftOver, so they will be set aside."))
     }
     
     maf = merged_maf[, .(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele, Tumor_Allele)]
@@ -471,7 +441,6 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     lifted_to_same = duplicated(maf[,.(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele)])
     maf = maf[! lifted_to_same]
   }
-  
   
   # discard any records with chromosomes not present in reference
   illegal_chroms = maf[! Chromosome %in% GenomeInfoDb::seqlevels(genome_info), unique(Chromosome)]
@@ -491,19 +460,23 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
   } else {
     maf_grange = GenomicRanges::makeGRangesFromDataFrame(maf, seqnames.field = "Chromosome", start.field = "Start_Position", 
                                                          end.field = "Start_Position", seqinfo = genome_info)
-    is_uncovered = ! maf_grange %within% covered_regions
+    
+    # In an "exome+" data set, compare coverage to default exome instead of whatever the current exome+ intervals are
+    if (covered_regions_name == "exome+") {
+      is_uncovered = ! maf_grange %within% cesa@coverage[["exome"]][["exome"]]
+    } else {
+      is_uncovered = ! maf_grange %within% covered_regions
+    }
     num_uncovered = sum(is_uncovered)
   }
 
   if (num_uncovered > 0) {
     total = nrow(maf)
     percent = round((num_uncovered / total) * 100, 1)
-    if (using_generic_exome && enforce_generic_exome_coverage == FALSE) {
-      # covered_regions is generic exome; take union with the sample data and call that exome+
-      # when there is already an "exome+" covered_regions, included those in the intersection
-      cesa@coverage[[coverage]][["exome+"]] = GenomicRanges::reduce(GenomicRanges::union(covered_regions, maf_grange[is_uncovered]))
-      covered_regions_name = "exome+"
-      new_samples[, covered_regions := covered_regions_name]
+    if (covered_regions_name == "exome+") {
+      # merge previous exome+ covered_regions with the coverage of the new data
+      covered_regions =  GenomicRanges::reduce(GenomicRanges::union(covered_regions, maf_grange[is_uncovered]))
+      cesa@coverage[[coverage]][["exome+"]] = covered_regions
 
       # warn if a lot of records are in uncovered areas; may indicate whole-genome data or low quality exome data
       if (percent > 10) {
@@ -512,12 +485,12 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
                        "with the covered_regions argument."))
       }
       msg = paste0("Note: ", num_uncovered, " MAF records (", percent, 
-                   "%) are at loci not covered by the default exome capture regions ",
-                   "in this CESAnalysis's reference data. This data (along with all other exome data loaded ",
-                   "with enforce_generic_exome_coverage = FALSE) will be assumed to share the same coverage, ",
-                   "which we'll call \"exome+\". To instead exclude uncovered records, re-run with ",
-                   "enforce_generic_exome_coverage = TRUE.")
-      message(paste0(writeLines(strwrap(msg)), collapse = "\n"))
+                   "%) are at loci not covered in the default exome intervals ",
+                   "in this CESAnalysis's reference data. The samples in this MAF (along with along other MAFs ",
+                   "loaded as generic exome data), will be assumed to all share the same coverage, ",
+                   "which we'll call \"exome+\". To instead exclude uncovered records across all generic WES data, ",
+                   "create a new CESAnalysis and load data with enforce_generic_exome_coverage = TRUE.")
+      pretty_message(msg)
     } else {
       uncovered.maf = maf[is_uncovered,]
       uncovered.maf$Exclusion_Reason = paste0("uncovered_in_", covered_regions_name)
@@ -528,7 +501,6 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
                      "\nThese mutations will be excluded from analysis."))
     }
   }
-  
   
   
   # check for potential DNP/TNPs and separate them from data set
@@ -547,7 +519,7 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     msg = paste0("Note: ", num.pred.mnv, " MAF records (", percent, "%) ",
                    "are within 2 bp of other mutations in the same tumors. These records will not be counted as SNVs ",
                  "since they likely did not arise from independent events (i.e., they're multi-nucleotide variants).")
-    writeLines(strwrap(msg))
+    pretty_message(msg)
   }
   
   # No support for mitochondrial mutations yet
@@ -557,7 +529,8 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     mt_maf$Exclusion_Reason = "mitochondrial"
     excluded = rbind(excluded, mt_maf)
     maf <- maf[! is_mt,]
-    writeLines(strwrap(paste("Note:", sum(is_mt), "mitochondrial variants have been excluded (sadly, mitochondrial analysis is not yet supported).")))
+    msg = paste("Note:", sum(is_mt), "mitochondrial variants have been excluded (sadly, mitochondrial analysis is not yet supported).")
+    pretty_message(msg)
   }
   
   
@@ -591,14 +564,14 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     
     msg = paste0("Note: ", num.nonmatching, " MAF records out of ", num.prefilter, " (", percent, "%, including ", bad_snv_percent,
                           "% of SNV records) are excluded for having reference alleles that do not match the reference genome.")
-    writeLines(strwrap(msg))
+    pretty_message(msg)
     if(mismatch_snv > 0) {
       warning(mismatch_snv, " SNV records do not match the given reference genome. You should probably figure out why",
                      " and make sure that the rest of your data set is okay to use before continuing.")
     }
   }
    else {
-    message(crayon::silver("Reference alleles look good."))
+    pretty_message("Reference alleles look good.")
   }
   
   nt = c("A", "T", "C", "G")
@@ -616,61 +589,12 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     cesa@excluded = rbind(cesa@excluded, excluded) 
   }
   
-  
-  if(annotate) {
-    if (length(cesa@mutations) == 0) {
-      message("Annotating variants...")
-    } else {
-      message("Annotating new variants...")
-    }
-    
-    maf[Variant_Type == "SNV", snv_id := paste0(Chromosome, ':', Start_Position, '_', Reference_Allele, '>', Tumor_Allele)]
-    
-    # A key point here is that if an AAC is already annotated, all its constituent SNVs are, too; also,
-    # when an SNV has been annotated using CES, any associated AACs are always put in the AAC table. 
-    # Therefore, only SNVs that are in the new data that aren't already in the SNV table need to be annotated,
-    # and there associated AACs are new, too
-    new_variants = setdiff(na.omit(maf$snv_id), cesa@mutations$snv$snv_id)
-    maf_to_annotate = maf[snv_id %in% new_variants]
-    cesa_for_anno = suppressMessages(CESAnalysis(genome = cesa@ref_key))
-    cesa_for_anno@maf = maf_to_annotate
-    cesa_for_anno@samples = cesa@samples
-    cesa_for_anno@coverage = cesa@coverage
-    cesa_for_anno = annotate_variants(cesa_for_anno)
-    
-    # Add the pair of annotation columns from annotate_variants
-    maf[cesa_for_anno@maf,  c("genes", "assoc_aac") := .(genes, assoc_aac), on = "snv_id"]
-    maf[Variant_Type != "SNV", c("genes", "assoc_aac") := NA] # set to NA instead of 1-item list containing NULL
-
-    # Rarely, variants get thrown out during annotation if their trinuc contexts are non-specific (N's)
-    if (cesa_for_anno@excluded[, .N] > 0) {
-      snvs_excluded_in_anno = cesa_for_anno@excluded[, paste0(Chromosome, ':', Start_Position, '_', Reference_Allele, '>', Tumor_Allele)]
-      maf = maf[! snv_id %in% snvs_excluded_in_anno]
-      cesa@excluded = rbind(cesa@excluded, cesa_for_anno@excluded)
-    }
-    
-    # Update coverage of existing mutations, if there any and if the new MAF data uses new covered regions
-    if(cesa@maf[, .N] > 0 & ! covered_regions_name %in% previous_covered_regions_names & covered_regions_name != "genome") {
-      prev_snv = cesa@mutations$snv[! new_variants]
-      snv_gr = GenomicRanges::makeGRangesFromDataFrame(prev_snv, seqnames.field = "chr", start.field = "pos", end.field = "pos")
-      is_covered = snv_gr %within% cesa@coverage[[coverage]][[covered_regions_name]]
-      prev_snv[is_covered, covered_in := list(lapply(covered_in, function(x) c(x, covered_regions_name))), by = "snv_id"]
-      cesa@mutations$snv = prev_snv
-      
-      # Apply to amino acid changes
-      aac_coverage = prev_snv[! is.na(assoc_aac), .(aac_id = unlist(assoc_aac), covered_in), by = "snv_id"]
-      aac_coverage = aac_coverage[, .(covered_in = list(sort(unique(unlist(covered_in))))), by = "aac_id"]
-      cesa@mutations$amino_acid_change[, covered_in := NULL] # need to remove old column due to list column quirks
-      cesa@mutations$amino_acid_change[aac_coverage, covered_in := covered_in, on = "aac_id"]
-    }
-    cesa@mutations$amino_acid_change = rbind(cesa@mutations$amino_acid_change, cesa_for_anno@mutations$amino_acid_change)
-    cesa@mutations$snv = rbind(cesa@mutations$snv, cesa_for_anno@mutations$snv)
-    setkey(cesa@mutations$amino_acid_change, 'aac_id')
-    setkey(cesa@mutations$snv, 'snv_id')
-  }
-  
   cesa@maf = rbind(cesa@maf, maf)
-  
+  if(annotate) {
+    message("Annotating variants...")
+    cesa = annotate_variants(cesa)
+  }
+
   current_snv_stats = maf[Variant_Type == "SNV", .(num_samples = length(unique(Unique_Patient_Identifier)), num_snv = .N)]
   message(paste0("Loaded ", current_snv_stats$num_snv, " SNVs from ", current_snv_stats$num_samples, " samples into CESAnalysis."))
   

@@ -19,4 +19,7 @@ add_clean_coverage_gr(cesa, gr, covered_regions_name, coverage_type)
 Adds a validated GRanges object as a CESAnalysis's coverage set. Called by 
 add_covered_regions() after various checks pass.
 }
+\details{
+Special handling occurs if covered_regions_name is "exome+".
+}
 \keyword{internal}

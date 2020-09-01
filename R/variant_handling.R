@@ -142,14 +142,13 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
   
   # Tabulate variants in MAF data and apply frequency filter
   snv_counts = cesa@maf[! is.na(snv_id), .N, by = "snv_id"][N >= min_freq]
-  aac_counts = cesa@maf[! is.na(assoc_aac), .(aac_id = unlist(assoc_aac))][, .N, by = aac_id][N >= min_freq]
+  aac_counts = cesa@maf[! is.na(assoc_aac), .(aac_id = unlist(assoc_aac))][, .N, by = "aac_id"][N >= min_freq]
   selected_snv[, maf_frequency := 0]
   selected_snv = selected_snv[snv_counts, maf_frequency := N][maf_frequency >= min_freq]
   selected_snv[, assoc_aac2 := paste(unlist(assoc_aac), collapse = ","), by = "snv_id"]
   selected_snv[, assoc_aac := NULL][, assoc_aac := assoc_aac2][, assoc_aac2 := NULL]
   selected_aac[, maf_frequency := 0]
   selected_aac = selected_aac[aac_counts, maf_frequency := N][maf_frequency >= min_freq]
-  
   
   # Create a combined, simplified table, with list columns collapsed
   selected_aac[, cs2 := paste(unlist(constituent_snvs), collapse = ","), by = "aac_id"]
@@ -201,6 +200,7 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
     combined[, maf_samples_covering := combo_counts[paste0(unlist(covered_in), collapse = "_")] + num_wgs_samples, by = "variant_id"]
     combined[, tmp := paste(unlist(covered_in), collapse = ","), by = "variant_id"]
     combined[, covered_in := NULL][, covered_in := tmp][, tmp := NULL]
+    combined[covered_in == "", covered_in :=  NA_character_] # variants may be covered by nothing if add_variants was used
   } else {
     combined[, covered_in := NULL][, covered_in := NA_character_]
     combined[, maf_samples_covering := num_wgs_samples]
@@ -229,7 +229,7 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
 
 
 #' add_covered_regions
-#' @param target_cesa CESAnalysis that the covered regions will be added to
+#' @param target_cesa CESAnalysis with annotated variants that the covered regions will be added to
 #' @param source_cesa Another CESAnalysis to copy all covered regions from
 #' @param covered_regions A GRanges object or BED file path with genome build matching the target_cesa,
 #'                      if not using source_cesa
@@ -264,6 +264,9 @@ add_covered_regions = function(target_cesa = NULL, source_cesa = NULL, covered_r
       stop("source_cesa should be a CESAnalysis")
     }
     
+    if (! identical(target_cesa@advanced$annotated, T)) {
+      stop("target_cesa should be annotated")
+    }
     if(! identical(get_cesa_bsg(target_cesa), get_cesa_bsg(source_cesa))) {
       stop("target_cesa and source_cesa have different reference genomes")
     }
@@ -271,72 +274,120 @@ add_covered_regions = function(target_cesa = NULL, source_cesa = NULL, covered_r
       stop("covered_regions_padding can't be used with source_cesa (leave it unspecified).")
     }
     exome_sets = names(source_cesa@coverage$exome)
-    sets_to_copy = 
     if (any(c("exome", "exome+")) %in% exome_sets) {
       warning("Generic exome/exome+ covered regions sets found in source_cesa. These will not be copied to the target\n",
               "CESAnalysis. If you really want to copy them over, extract their GRanges from the CESAnalysis and add\n",
               "them individually. (As the \"exome\" set is a set of default coverage intervals for generic exome\n",
-              "data, and \"exome+\" is an expanded version of exome, specific to a CESAnalysis, that covers all\n",
+              "data, and \"exome+\" is an expanded version of that set, specific to a CESAnalysis, that covers all\n",
               "variants loaded as generic exome data, they're probably not useful to copy.)")
       exome_sets = setdiff(exome_sets, c("exome", "exome+"))
     }
     for (exome_set in exome_sets) {
-      target_cesa = add_clean_coverage_gr(target_cesa, gr = source_cesa@coverage$exome[[exome_set]], 
+      target_cesa = assign_gr_to_coverage(target_cesa, gr = source_cesa@coverage$exome[[exome_set]], 
                                           covered_regions_name = exome_set, coverage_type = "exome")
     }
     tgs_sets = names(source_cesa@coverage$targeted)
     for (tgs_set in tgs_sets) {
-      target_cesa = add_clean_coverage_gr(target_cesa, gr = source_cesa@coverage$targeted[[tgs_set]],
+      target_cesa = assign_gr_to_coverage(target_cesa, gr = source_cesa@coverage$targeted[[tgs_set]],
                                           covered_regions_name = tgs_set, coverage_type =" targeted")
     }
-    return(target_cesa)
+    return(update_covered_in(target_cesa))
   } else {
-    if (! is.character(covered_regions_name) | length(covered_regions_name) != 1) {
-      stop("covered_regions_name should be 1-length character.")
-    }
-    if (tolower(covered_regions_name) %in% c("exome", "exome+", "genome")) {
-      stop("Please pick a different covered_regions_name; you chose one reserved for internal use.")
-    }
-    if (! is.character(coverage_type) | length(coverage_type) != 1 |
-        ! coverage_type %in% c("exome", "targeted")) {
-      stop("coverage_type should be exome or targeted.", call. = F)
-    }
-    bad_covered_regions_msg = "covered_regions should be GRanges or BED file path."
-    if (is.character(covered_regions)) {
-      if (length(covered_regions) != 1) {
-        stop(bad_covered_regions_msg, call. = F)
-      }
-      if (! file.exists(covered_regions)) {
-        stop("BED file not found; check path?", call. = F)
-      }
-      gr = rtracklayer::import.bed(covered_regions)
-    } else if (is(covered_regions, 'GRanges')) {
-      gr = covered_regions
-    } else {
-      stop(bad_covered_regions_msg, call. = F)
-    }
-    gr = clean_granges_for_bsg(bsg = get_cesa_bsg(target_cesa), gr = gr, padding = covered_regions_padding)
-    return(add_clean_coverage_gr(target_cesa, gr = gr, covered_regions_name = covered_regions_name, coverage_type = coverage_type))
+    return(.add_covered_regions(cesa = target_cesa, coverage_type = coverage_type, covered_regions = covered_regions,
+                     covered_regions_name = covered_regions_name,covered_regions_padding = covered_regions_padding, 
+                     update_anno = cesa@advanced$annotated))
   }
 }
 
-#' add_clean_coverage_gr
+#' .add_covered_regions
+#' @param covered_regions A GRanges object or BED file path with genome build matching the target_cesa,
+#'                      if not using source_cesa
+#' @param covered_regions_name A name to identify the covered regions, if not using source_cesa
+#' @param coverage_type exome or targeted, if not using source_cesa
+#' @param covered_regions_padding optionally, add +/- this many bp to each interval in covered_regions
+#' @param update_anno T/F, whether to update the covered_in fields in variant annotations
+#' @return CESAnalysis given in target_cesa, with the new covered regions added
+.add_covered_regions = function(cesa, coverage_type, covered_regions, covered_regions_name, covered_regions_padding, update_anno) {
+  if (! is.character(coverage_type) | length(coverage_type) != 1 | ! coverage_type %in% c("exome", "targeted")) {
+    stop("coverage_type should be exome or targeted.", call. = F)
+  }
+  if (! is.character(covered_regions_name) | length(covered_regions_name) != 1) {
+    stop("covered_regions_name should be 1-length character.")
+  }
+  if (tolower(covered_regions_name) %in% c("exome", "exome+", "genome")) {
+    stop("Please pick a different covered_regions_name; you chose one reserved for internal use.")
+  }
+  # covered_regions_name must start with letter, contain only letters, numbers, underscores, hyphen, period
+  legal_name = '^[a-z][0-9a-z\\_\\-\\.]*$'
+  if (! grepl(legal_name, tolower(covered_regions_name), perl = T)) {
+    stop("Invalid covered_regions_name. The name must start with a letter and contain only letters, numbers, and '-', '_', '.'.")
+  }
+  bad_covered_regions_msg = "covered_regions should be GRanges or BED file path."
+  if (is.character(covered_regions)) {
+    if (length(covered_regions) != 1) {
+      stop(bad_covered_regions_msg, call. = F)
+    }
+    if (! file.exists(covered_regions)) {
+      stop("BED file not found; check path?", call. = F)
+    }
+    gr = rtracklayer::import.bed(covered_regions)
+  } else if (is(covered_regions, 'GRanges')) {
+    gr = covered_regions
+  } else {
+    stop(bad_covered_regions_msg, call. = F)
+  }
+  gr = clean_granges_for_bsg(bsg = get_cesa_bsg(cesa), gr = gr, padding = covered_regions_padding)
+  cesa = assign_gr_to_coverage(cesa, gr = gr, covered_regions_name = covered_regions_name, coverage_type = coverage_type)
+  if (update_anno) {
+    cesa = update_covered_in(cesa)
+  }
+  return(cesa)
+}
+
+
+#' assign_gr_to_coverage
 #' 
 #' Adds a validated GRanges object as a CESAnalysis's coverage set. Called by 
 #' add_covered_regions() after various checks pass.
+#' 
+#' Special handling occurs if covered_regions_name is "exome+".
 #' @param cesa CESAnalysis to receive the gr
 #' @param gr GRanges
 #' @param covered_regions_name unique name for the covered regions
 #' @param coverage_type "exome" or "targeted"
 #' @keywords internal
-add_clean_coverage_gr = function(cesa, gr, covered_regions_name, coverage_type) {
-  if (covered_regions_name %in% names(target_cesa@coverage)) {
-    if (! identical(covered_regions, target_cesa@coverage[[covered_regions_name]])) {
-      stop("The CESAnalysis already contains a covered regions set with the same covered_regions_name (", covered_regions_name, "),\n",
-           "but the covered intervals do not exactly match. Perhaps the input BED files (or GRanges) are from\n",
-           "different sources, or different values of covered_regions_padding were used.")
+assign_gr_to_coverage = function(cesa, gr, covered_regions_name, coverage_type) {
+  # if covered_regions_name was already used in a previous load_maf call, it must have
+  # have been the same data type (exome, targeted), and the grs must match exactly
+  other_coverage_types = setdiff(c("exome", "targeted", "genome"), coverage_type)
+  if (covered_regions_name %in% unlist(lapply(cesa@coverage[other_coverage_types], names))) {
+    stop("The covered_regions_name (", covered_regions_name, ")", " has already been used for a different type of sequencing data.")
+  } 
+  else if (covered_regions_name %in% names(cesa@coverage[[coverage_type]])) {
+    if (! identical(gr, cesa@coverage[[coverage_type]][[covered_regions_name]])) {
+      stop("MAF data was previously loaded in using the same covered_regions_name (", covered_regions_name, "),\n",
+           "but the covered_regions do not exactly match. Perhaps the input BED files (or GRanges) are from\n",
+           "different sources, or different amounts of interval padding were used.")
+    } else {
+      # nothing more to do if the covered regions are already present
+      return(cesa)
     }
   }
+  
+  # If possible, see if covered regions size resembles exome data
+  # Skip this check if covered_regions_name is "exome" or "exome+"
+  if (coverage_type == "exome" & check_for_genome_data(cesa, "generic_exome_gr")) {
+    covered_regions_bases_covered = sum(IRanges::width(IRanges::ranges(gr)))
+    generic_bases_covered = sum(IRanges::width(IRanges::ranges(get_genome_data(cesa, "generic_exome_gr"))))
+    if (covered_regions_bases_covered / generic_bases_covered < .4) {
+      warning(paste0("Input coverage ranges are described as exome but are less than 40% of the size of this genome's default exome intervals.\n",
+                     "This might make sense if your exome capture array is  lean, but if this is actually targeted sequencing data,\n",
+                     "start over with the coverage=\"targeted\"."))
+    }
+  }
+  
+  cesa@coverage[[coverage_type]][[covered_regions_name]] = gr
+  return(cesa)
 }
 
 
@@ -360,7 +411,7 @@ add_variants = function(target_cesa = NULL, snv_id = NULL, source_cesa = NULL) {
     stop("target_cesa should be a CESAnalysis", call. = F)
   }
 
-  if(! xor(is.null(snv_id, source_cesa))) {
+  if(! xor(is.null(snv_id), is.null(source_cesa))) {
     stop("Add annotations via snv_id or source_cesa, but not both", call. = F)
   }
 
@@ -389,18 +440,24 @@ add_variants = function(target_cesa = NULL, snv_id = NULL, source_cesa = NULL) {
     snvs_to_annotate = snv_id
   }
 
-  maf = as.data.table(tstrsplit(snv_id, split = '[:_>]'))
+  maf = as.data.table(tstrsplit(snvs_to_annotate, split = '[:_>]'))
   colnames(maf) = c("Chromosome", "Start_Position", "Reference_Allele", "Tumor_Allele")
-  maf$Unique_Patient_Identifier = NA
+  maf$Unique_Patient_Identifier = NA_character_
+  setcolorder(maf, "Unique_Patient_Identifier")
+  maf$Variant_Type = "SNV"
+  maf[, Start_Position := as.numeric(Start_Position)]
   
-
+  target_cesa@maf = rbind(target_cesa@maf, maf, fill = T)
+  target_cesa = annotate_variants(target_cesa)
+  target_cesa@maf = target_cesa@maf[! is.na(Unique_Patient_Identifier)]
+  return(target_cesa)
 }
 
 #' validate_snv_ids
 #' 
 #' Ensures SNV IDs are valid for the given genome
 #' 
-#' @param snv_ids charcter vector of snv_ids
+#' @param snv_ids character vector of snv_ids
 #' @param bsg BSgenome for getting reference sequence
 #' @keywords internal
 validate_snv_ids = function(snv_ids, bsg) {

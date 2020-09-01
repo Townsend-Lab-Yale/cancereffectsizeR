@@ -18,12 +18,18 @@ annotate_variants <- function(cesa) {
   gr_genes = .ces_ref_data[[cesa@ref_key]]$gr_genes
   bsg = .ces_ref_data[[cesa@ref_key]]$genome
   
+  
   # non-SNVs are not supported in selection functions yet, so not bothering to annotate them correctly
-  # all non-SNV annotations will get set to NA at the end of this function
+  # all non-SNV annotations will get set to NA at the end
   snvs = unique(cesa@maf[Variant_Type == "SNV", .(Chromosome, Start_Position, Reference_Allele, Tumor_Allele)])
   snvs[, snv_id := paste0(Chromosome, ':', Start_Position, '_', Reference_Allele, '>', Tumor_Allele)]
   
-  snv_grs = GenomicRanges::makeGRangesFromDataFrame(snvs, seqnames.field = "Chromosome", 
+  # Don't need to re-annotate variants previously annotated in the CESAnalysis (on previous load_maf calls, usually)
+  if(! is.null(cesa@maf$snv_id)) {
+    snvs = snvs[! snv_id %in% unique(cesa@maf$snv_id) ]
+  }
+  
+  snv_grs = GenomicRanges::makeGRangesFromDataFrame(snvs , seqnames.field = "Chromosome", 
                                                     start.field = "Start_Position", end.field = "Start_Position")
   
   # Get gene annotations
@@ -243,20 +249,23 @@ annotate_variants <- function(cesa) {
   # Get gene annotations for those that don't have it yet (identified by intergenic == NA)
   # See comments from round 1
   snvs_needing_anno = snv_table[is.na(intergenic)]
-  snv_gr_round2 = GenomicRanges::makeGRangesFromDataFrame(snvs_needing_anno,  seqnames.field = "chr", 
-                                                          start.field = "pos", end.field = "pos")
+  if (snvs_needing_anno[, .N] > 0) {
+    snv_gr_round2 = GenomicRanges::makeGRangesFromDataFrame(snvs_needing_anno,  seqnames.field = "chr", 
+                                                            start.field = "pos", end.field = "pos")
+    
+    nearest = as.data.table(GenomicRanges::distanceToNearest(snv_gr_round2, gr_genes, select = "all"))
+    possible_genes = GenomicRanges::mcols(gr_genes)["names"][,1]
+    nearest[, gene := nearest[, possible_genes[subjectHits]]]
+    nearest = nearest[! duplicated(nearest[, .(queryHits, gene)])] 
+    genes_by_snv_row = nearest[, .(genes = list(gene), dist = distance[1]), by = "queryHits"]
+    snvs_needing_anno[, genes := genes_by_snv_row$genes]
+    snvs_needing_anno[, intergenic := genes_by_snv_row$dist > 0]
+    
+    setkey(snv_table, "snv_id")
+    snv_table[snvs_needing_anno$snv_id, intergenic := snvs_needing_anno$intergenic]
+    snv_table[snvs_needing_anno$snv_id, genes := list(snvs_needing_anno$genes)]
+  }
   
-  nearest = as.data.table(GenomicRanges::distanceToNearest(snv_gr_round2, gr_genes, select = "all"))
-  possible_genes = GenomicRanges::mcols(gr_genes)["names"][,1]
-  nearest[, gene := nearest[, possible_genes[subjectHits]]]
-  nearest = nearest[! duplicated(nearest[, .(queryHits, gene)])] 
-  genes_by_snv_row = nearest[, .(genes = list(gene), dist = distance[1]), by = "queryHits"]
-  snvs_needing_anno[, genes := genes_by_snv_row$genes]
-  snvs_needing_anno[, intergenic := genes_by_snv_row$dist > 0]
-  
-  setkey(snv_table, "snv_id")
-  snv_table[snvs_needing_anno$snv_id, intergenic := snvs_needing_anno$intergenic]
-  snv_table[snvs_needing_anno$snv_id, genes := list(snvs_needing_anno$genes)]
 
   #  get deconstructSigs-style trinuc context of each SNV ID
   genomic_context = BSgenome::getSeq(bsg, snv_table$chr,start=snv_table$pos - 1,
@@ -290,47 +299,7 @@ annotate_variants <- function(cesa) {
 	  snv_table = snv_table[! bad_trinuc_context]
 	  aac_table = aac_table[! aac_id %in% bad_aa]
 	}
-	
-	# record which covered_regions granges cover each mutation
-	snv_gr = GenomicRanges::makeGRangesFromDataFrame(snv_table, seqnames.field = "chr", start.field = "pos", end.field = "pos")
-	
-	# test each MAF locus against all coverage grs
-	# this returns a data frame where rows match MAF rows, columns are T/F for each coverage gr
-	all_coverage = c(cesa@coverage[["exome"]], cesa@coverage[["targeted"]]) # names shouldn't overlap due to add_covered_regions validation
-	
-	
-	# all_coverage will be NULL if there's only WGS data
-	if(is.null(all_coverage)) {
-	  snv_table[, covered_in := list()]
-	} else {
-	  is_covered = as.data.table(lapply(all_coverage, function(x) snv_gr %within% x))
-	  
-	  # get the names of coverage grs with coverage for each site
-	  grs_with_coverage = apply(is_covered, 1, function(x) c(names(which(x == TRUE))))
-	  
-	  # when all samples have same coverage apply "helpfully" returns a matrix or vector, but we want a list
-	  if(is(grs_with_coverage, "character")) {
-	    grs_with_coverage = as.list(grs_with_coverage)
-	  }
-	  else if (! is(grs_with_coverage, "list")) {
-	    grs_with_coverage = as.list(as.data.table(grs_with_coverage))
-	  }
-	  
-	  # Note that when exome+ coverage (see load_maf) is used, samples can have both "exome" and "exome+" associated with their mutations,
-	  # but the samples themselves are considered "exome+" (be careful not to double-count these)
-	  snv_table[, covered_in := list(grs_with_coverage)]
-	}
-	
-	
-	
-	# We're going to cheat and say samples have coverage at aac sites if they have coverage on any of the three codon positions
-	# in practice, there probably is coverage even if the coverage intervals disagree
-	aac_coverage = snv_table[, .(aac_id = unlist(assoc_aac), covered_in), by = "snv_id"]
-	aac_coverage = aac_coverage[, .(covered_in = list(sort(unique(unlist(covered_in))))), by = "aac_id"]
-	aac_table[aac_coverage, covered_in := covered_in, on = "aac_id"]
 
-	
-	
 	# Annotate SNVs that are at essential splice sites accroding to RefCDS, and then apply to any associated AACs
 	# Note that we're not keeping track of which genes these splice site positions apply to
 	genes_in_data = unique(unlist(snv_table$genes))
@@ -353,12 +322,79 @@ annotate_variants <- function(cesa) {
 	
 	maf = cesa@maf
 	maf[Variant_Type == "SNV", snv_id := paste0(Chromosome, ':', Start_Position, '_', Reference_Allele, '>', Tumor_Allele)]
-	maf = snv_table[, .(snv_id, genes, assoc_aac)][maf, , on = "snv_id"]
-	maf[Variant_Type != "SNV", c("genes", "assoc_aac") := NA] # pending indel support
-	setcolorder(maf, colnames(cesa@maf)) # put original columns back in the front
-  cesa@maf = maf
 
-	cesa@mutations = list(amino_acid_change = aac_table, snv = snv_table)
-	return(cesa)
+  cesa@mutations = list(amino_acid_change = rbind(cesa@mutations$amino_acid_change, aac_table, fill = T),
+                          snv = rbind(cesa@mutations$snv, snv_table, fill = T))
+  setkey(cesa@mutations$amino_acid_change, "aac_id")
+  setkey(cesa@mutations$snv, "snv_id")
+  
+  # clear fields that come from annotate_variants (if previously any annotations)
+  if (! is.null(maf$genes)) {
+    maf[, c("genes", "assoc_aac") := NULL]
+  }
+  
+  # add genes and assoc_aac to MAF records
+  maf = cesa@mutations$snv[, .(snv_id, genes, assoc_aac)][maf, , on = "snv_id"]
+  maf[Variant_Type != "SNV", c("genes", "assoc_aac") := NA] # pending indel support
+  setcolorder(maf, colnames(cesa@maf)) # put original columns back in the front
+  cesa@maf = maf
+  
+  # add covered_in to annotation tables
+	return(update_covered_in(cesa))
 }
 
+
+#' update_covered_in
+#' 
+#' Updates the covered_in annotation for all variants
+#' to include all covered regions in the CESAnalysis
+#' 
+#' @param cesa CESAnalysis
+#' @return CESAnalysis with regenerated covered-in annotations
+#' @keywords internal
+update_covered_in = function(cesa) {
+  snv_table = cesa@mutations$snv
+  aac_table = cesa@mutations$amino_acid_change
+  
+  # if already existing coverage annotation, simpler to delete old annotations and re-do rather than updating
+  if ("covered_in" %in% colnames(snv_table)) {
+    snv_table[, covered_in := NULL]
+    aac_table[, covered_in := NULL]
+  }
+  
+  snv_gr = GenomicRanges::makeGRangesFromDataFrame(snv_table, seqnames.field = "chr", start.field = "pos", end.field = "pos")
+  
+  # test each MAF locus against all coverage grs
+  # this returns a data frame where rows match MAF rows, columns are T/F for each coverage gr
+  all_coverage = c(cesa@coverage[["exome"]], cesa@coverage[["targeted"]]) # names shouldn't overlap due to add_covered_regions validation
+  
+  # all_coverage will be NULL if there's only WGS data
+  if(is.null(all_coverage)) {
+    snv_table[, covered_in := list()]
+  } else {
+    all_coverage = all_coverage[sort(names(all_coverage))] # sort by covered regions name
+    is_covered = as.data.table(lapply(all_coverage, function(x) snv_gr %within% x))
+    all_names = names(all_coverage)
+    
+    covered_in = vector(mode = "list", length = snv_table[, .N])
+    for (i in 1:nrow(is_covered)) {
+      covered_in[[i]] = all_names[is_covered[i, as.logical(.SD)]]
+    }
+    
+    # Note that when exome+ coverage (see load_maf) is used, samples can have both "exome" and "exome+" associated with their mutations,
+    # but the samples themselves are considered "exome+" (be careful not to double-count these)
+    snv_table[, covered_in := covered_in]
+  }
+  
+  # We're going to cheat and say samples have coverage at aac sites if they have coverage on any of the three codon positions
+  # in practice, there probably is coverage even if the coverage intervals disagree
+  aac_coverage = snv_table[, .(aac_id = unlist(assoc_aac), covered_in), by = "snv_id"]
+  aac_coverage = aac_coverage[, .(covered_in = list(sort(unique(unlist(covered_in))))), by = "aac_id"]
+  aac_table[aac_coverage, covered_in := covered_in, on = "aac_id"]
+  
+  cesa@mutations$snv = snv_table
+  cesa@mutations$amino_acid_change = aac_table
+  setkey(cesa@mutations$amino_acid_change, 'aac_id')
+  setkey(cesa@mutations$snv, 'snv_id')
+  return(cesa)
+}
