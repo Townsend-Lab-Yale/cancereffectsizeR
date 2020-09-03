@@ -2,7 +2,7 @@
 % Please edit documentation in R/variant_handling.R
 \name{.add_covered_regions}
 \alias{.add_covered_regions}
-\title{.add_coverage_gr}
+\title{.add_covered_regions}
 \usage{
 .add_covered_regions(
   cesa,
@@ -13,6 +13,22 @@
   update_anno
 )
 }
-\description{
-.add_coverage_gr
+\arguments{
+\item{coverage_type}{exome or targeted, if not using source_cesa}
+
+\item{covered_regions}{A GRanges object or BED file path with genome build matching the target_cesa,
+if not using source_cesa}
+
+\item{covered_regions_name}{A name to identify the covered regions, if not using source_cesa}
+
+\item{covered_regions_padding}{optionally, add +/- this many bp to each interval in covered_regions}
+
+\item{update_anno}{T/F, whether to update the covered_in fields in variant annotations}
 }
+\value{
+CESAnalysis given in target_cesa, with the new covered regions added
+}
+\description{
+.add_covered_regions
+}
+\keyword{internal}

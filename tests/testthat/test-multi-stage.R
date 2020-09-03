@@ -9,7 +9,7 @@ test_that("multi-stage gene mutation rate calculation", {
   expect_equal(lapply(dndscv_input, function(x) x[-4]), lapply(dndscv_input_ak, function(x) x[-4]))
   
   dndscv_output = get_test_data("dndscv_raw_output_multi.rds")
-  cesa = dndscv_postprocess(cesa, dndscv_output)
+  cesa = cancereffectsizeR:::dndscv_postprocess(cesa, dndscv_output)
   
   sel_cv = lapply(cesa@dndscv_out_list, function(x) as.data.table(x))
   sel_cv_ak = get_test_data("sel_cv_multi.rds")
@@ -25,7 +25,7 @@ test_that("multi-stage gene mutation rate calculation", {
 test_that("multi-stage SNV effect size calculation", {
   cesa = load_cesa(get_test_file("cesa_for_snv_multi.rds"))
   test_genes = c("TTN", "KRAS", "RYR2", "EGFR", "TP53", "ASXL3","IFITM2")
-  cesa = ces_snv(cesa, genes = test_genes, include_nonrecurrent_variants = T)
+  cesa = ces_snv(cesa, genes = test_genes, min_freq = 1)
   results = cesa@selection_results
   results_ak = get_test_data("multi_stage_snv_results.rds")
   expect_equal(results_ak, results, tolerance = 1e-5)

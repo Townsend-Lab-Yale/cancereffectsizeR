@@ -9,7 +9,6 @@
 #' you are loading is from a different genome build than your CESAnalysis, you can use the "chain_file" option 
 #' to supply a UCSC-style chain file, and then your MAF coordinates will be automatically converted with liftOver.
 #' 
-#' 
 #' @importFrom IRanges "%within%"
 #' @param cesa the CESAnalysis object to load the data into
 #' @param maf Path of tab-delimited text file in MAF format, or an MAF in data.table or data.frame format
@@ -45,7 +44,8 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
   if (! is(cesa, "CESAnalysis")) {
     stop("cesa should be a CESAnalysis")
   }
-  cesa@run_history =  c(cesa@run_history, deparse(match.call(), width.cutoff = 500))
+  
+  cesa = update_cesa_history(cesa, match.call())
   
   # Need RefCDS if annotating
   if (! cesa@ref_key %in% ls(.ces_ref_data) & annotate == T) {
@@ -147,7 +147,7 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
   
   if (coverage == "exome" & is.null(covered_regions)) {
     covered_regions_name = "exome"
-    if(! check_for_genome_data(cesa, "generic_exome_gr")) {
+    if(! check_for_ref_data(cesa, "generic_exome_gr")) {
       stop("This genome has no generic exome intervals, so to load exome data you must supply covered_regions (see docs)")
     }
   }
@@ -159,7 +159,7 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     # there will always be generic exome intervals under "exome" in the coverage list
     if (! "exome" %in% names(cesa@coverage[["exome"]])) {
       cesa@advanced$using_exome_plus = ! enforce_generic_exome_coverage
-      covered_regions = get_genome_data(cesa, "generic_exome_gr")
+      covered_regions = get_ref_data(cesa, "generic_exome_gr")
       cesa@coverage$exome[["exome"]] = covered_regions
       
     } else if (enforce_generic_exome_coverage == TRUE & cesa@advanced$using_exome_plus) {
@@ -185,7 +185,7 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
       if("exome" %in% names(cesa@coverage$exome)) {
         covered_regions = cesa@coverage$exome[["exome"]]
       } else {
-        covered_regions = get_genome_data(cesa, "generic_exome_gr")
+        covered_regions = get_ref_data(cesa, "generic_exome_gr")
         cesa@coverage$exome[["exome"]] = covered_regions
       }
     }
@@ -453,6 +453,36 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     message(paste0("Note: ", length(illegal_chroms), " records excluding for having chromosome names that don't match the genome. "))
   }
   
+  # check for multi-nucleotide variants and separate them from MAF data
+  # MNVs are only possible in sample/chromosome combinations with more than one MAF record
+  poss_mnv = maf[order(Unique_Patient_Identifier, 
+                       Chromosome, Start_Position)][, .SD[.N > 1] , by = c("Unique_Patient_Identifier", "Chromosome")]
+  
+  if (poss_mnv[, .N] > 0) {
+    poss_mnv[, dist_to_prev := c(Inf, diff(Start_Position)), by = c("Unique_Patient_Identifier", "Chromosome")]
+    poss_mnv[, dist_to_next := c(dist_to_prev[2:.N], Inf), by = c("Unique_Patient_Identifier", "Chromosome")]
+    poss_mnv[dist_to_prev < 3 | dist_to_next < 3, is_mnv := T]
+    maf[poss_mnv, is_mnv := is_mnv, on = c("Unique_Patient_Identifier", "Chromosome", "Start_Position")]
+    mnv_rows = maf[is_mnv == T, which = T]
+    num_prefilter = nrow(maf)
+    num_mnv = length(mnv_rows)
+    
+    if (num_mnv > 0) {
+      mnv_records = maf[mnv_rows, 1:5]
+      mnv_records$Exclusion_Reason = "predicted_MNV"
+      maf = maf[! mnv_rows][, is_mnv := NULL]
+      excluded = rbind(excluded, mnv_records)
+      # To-do: move message to DNP_TNP_remover or otherwise ensure this description remains accurate
+      percent = round((num_mnv / num_prefilter) * 100, 1)
+      msg = paste0("Note: ", num_mnv, " MAF records (", percent, "%) ",
+                   "are within 2 bp of other mutations in the same tumors. These records will not be counted as SNVs ",
+                   "since they likely did not arise from independent events (i.e., they're multi-nucleotide variants).")
+      pretty_message(msg)
+    }
+  }
+  
+  
+  
   
   # remove any MAF records that are not in the coverage, unless generic exome with enforce_generic_exome_coverage = FALSE
   if (covered_regions_name == "genome") {
@@ -503,25 +533,6 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
   }
   
   
-  # check for potential DNP/TNPs and separate them from data set
-  # this is done before any other filtering to ensure catching as many of them as possible
-  num.prefilter = nrow(maf)
-  dnp_tnp_results = DNP_TNP_remover(maf)
-  maf = dnp_tnp_results$kept[,1:5] # To-do: fix return value of DNP_TNP
-  pred.mnv.maf = dnp_tnp_results$removed
-  num.pred.mnv = nrow(pred.mnv.maf)
-  
-  if (num.pred.mnv > 0) {
-    pred.mnv.maf$Exclusion_Reason = "predicted_MNV"
-    excluded = rbind(excluded, pred.mnv.maf)
-    # To-do: move message to DNP_TNP_remover or otherwise ensure this description remains accurate
-    percent = round((num.pred.mnv / num.prefilter) * 100, 1)
-    msg = paste0("Note: ", num.pred.mnv, " MAF records (", percent, "%) ",
-                   "are within 2 bp of other mutations in the same tumors. These records will not be counted as SNVs ",
-                 "since they likely did not arise from independent events (i.e., they're multi-nucleotide variants).")
-    pretty_message(msg)
-  }
-  
   # No support for mitochondrial mutations yet
   is_mt <- maf[,Chromosome] == "MT"
   if (any(is_mt)) {
@@ -542,27 +553,27 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
   
   reference_alleles <- as.character(BSgenome::getSeq(bsg, maf[,Chromosome],
                                                      strand="+", start=maf[,Start_Position], end=end_pos))
-  num.prefilter = nrow(maf)
+  num_prefilter = nrow(maf)
   
   # For insertions, can't evaluate if record matches reference since MAF reference will be just "-"
   # Could conceivably verify that the inserted bases don't match reference....
-  reference.mismatch.maf = maf[Reference_Allele != reference_alleles & Reference_Allele != '-',]
-  num.nonmatching = nrow(reference.mismatch.maf)
+  ref_mismatch_records = maf[Reference_Allele != reference_alleles & Reference_Allele != '-',]
+  num_ref_mismatch = nrow(ref_mismatch_records)
   prefilter_total_snv = maf[Reference_Allele %in% c("A", "C", "T", "G"), .N]
   maf = maf[Reference_Allele == reference_alleles | Reference_Allele == '-',] # filter out ref mismatches
   
   # if significant numbers of SNVs don't match reference, don't run
-  mismatch_snv = reference.mismatch.maf[Reference_Allele %in% c("A", "C", "T", "G"), .N]
+  mismatch_snv = ref_mismatch_records[Reference_Allele %in% c("A", "C", "T", "G"), .N]
   
   bad_snv_frac = mismatch_snv / prefilter_total_snv
   bad_snv_percent = round(bad_snv_frac * 100, 1)
   
-  if (num.nonmatching > 0) {
-    reference.mismatch.maf$Exclusion_Reason = "reference_mismatch"
-    excluded = rbind(excluded, reference.mismatch.maf)
-    percent = round((num.nonmatching / num.prefilter) * 100, 1)
+  if (num_ref_mismatch > 0) {
+    ref_mismatch_records$Exclusion_Reason = "reference_mismatch"
+    excluded = rbind(excluded, ref_mismatch_records)
+    percent = round((num_ref_mismatch / num_prefilter) * 100, 1)
     
-    msg = paste0("Note: ", num.nonmatching, " MAF records out of ", num.prefilter, " (", percent, "%, including ", bad_snv_percent,
+    msg = paste0("Note: ", num_ref_mismatch, " MAF records out of ", num_prefilter, " (", percent, "%, including ", bad_snv_percent,
                           "% of SNV records) are excluded for having reference alleles that do not match the reference genome.")
     pretty_message(msg)
     if(mismatch_snv > 0) {
@@ -575,8 +586,8 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
   }
   
   nt = c("A", "T", "C", "G")
-  maf[Reference_Allele %in% nt & Tumor_Allele %in% nt, Variant_Type := "SNV"]
-  maf[is.na(Variant_Type), Variant_Type := "indel"]
+  maf[Reference_Allele %in% nt & Tumor_Allele %in% nt, variant_type := "snv"]
+  maf[is.na(variant_type), variant_type := "indel"]
   
   # drop any samples that had all mutations excluded
   new_samples = new_samples[Unique_Patient_Identifier %in% maf$Unique_Patient_Identifier]
@@ -589,13 +600,15 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     cesa@excluded = rbind(cesa@excluded, excluded) 
   }
   
-  cesa@maf = rbind(cesa@maf, maf)
+  cesa@maf = rbind(cesa@maf, maf, fill = T)
   if(annotate) {
     message("Annotating variants...")
+    cesa@advanced$recording = F
     cesa = annotate_variants(cesa)
+    cesa@advanced$recording = T
   }
 
-  current_snv_stats = maf[Variant_Type == "SNV", .(num_samples = length(unique(Unique_Patient_Identifier)), num_snv = .N)]
+  current_snv_stats = maf[variant_type == "snv", .(num_samples = length(unique(Unique_Patient_Identifier)), num_snv = .N)]
   message(paste0("Loaded ", current_snv_stats$num_snv, " SNVs from ", current_snv_stats$num_samples, " samples into CESAnalysis."))
   
   return(cesa)

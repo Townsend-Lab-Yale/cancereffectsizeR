@@ -4,10 +4,10 @@
 \alias{CESAnalysis}
 \title{Create a cancereffectsizeR analysis}
 \usage{
-CESAnalysis(genome = NULL, progression_order = NULL)
+CESAnalysis(ref_set = "ces_hg19_v1", progression_order = NULL)
 }
 \arguments{
-\item{genome}{genome assembly name (e.g., "hg19"), if using built-in reference data}
+\item{ref_set}{reference data to use (e.g. "ces_hg19_v1")}
 
 \item{progression_order}{evolutionary order of tumor stage progression (e.g. c("Primary", "Metastatic"))}
 }
@@ -15,5 +15,5 @@ CESAnalysis(genome = NULL, progression_order = NULL)
 CESAnalysis object
 }
 \description{
-Creates a CESAnalysis object, the central data structure of cancereffectsizeR
+Creates a CESAnalysis object, the central data structure of cancereffectsizeR.
 }

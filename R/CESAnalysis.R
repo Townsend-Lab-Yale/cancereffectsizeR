@@ -1,20 +1,19 @@
 #' Create a cancereffectsizeR analysis
 #' 
-#' @description Creates a CESAnalysis object, the central data structure of cancereffectsizeR
+#' Creates a CESAnalysis object, the central data structure of cancereffectsizeR.
+#' @param ref_set reference data to use (e.g. "ces_hg19_v1")
 #' @param progression_order evolutionary order of tumor stage progression (e.g. c("Primary", "Metastatic"))
-#' @param genome genome assembly name (e.g., "hg19"), if using built-in reference data
 #' @return CESAnalysis object
 #' @export
-CESAnalysis = function(genome = NULL, progression_order = NULL) {
+CESAnalysis = function(ref_set = "ces_hg19_v1", progression_order = NULL) {
   
   # Check for and load reference data for the chosen genome/transcriptome data
-  ref_key = genome
+  ref_key = ref_set
   preload_ref_data(ref_key)
-  genome_data_dir = cancereffectsizeR:::get_genome_dirs()[ref_key]
+  ref_data_dir = get_ref_set_dirs()[ref_key]
   bsg = .ces_ref_data[[ref_key]]$genome
   message(crayon::black(paste0("Okay, this CES analysis will use the ", 
                                tolower(BSgenome::commonName(bsg)), " genome (", BSgenome::releaseName(bsg), ").")))
-  message(crayon::black("Note: We'll be using NCBI-style chromosome names (i.e., no \"chr\" prefixes)."))
   
   
   # Validate progression_order
@@ -29,16 +28,19 @@ CESAnalysis = function(genome = NULL, progression_order = NULL) {
   if (! is(progression_order, "character")) {
     stop("progression_order should be a character vector of chronological tumor states (e.g., Primary, Metastatic)")
   }
-
-  run_history = deparse(match.call(), width.cutoff = 500)
+  
   
   # advanced is a grab bag of additional stuff to keep track of
-  advanced = list("version" = packageVersion("cancereffectsizeR"), annotated = F, using_exome_plus = F)
-  cesa = new("CESAnalysis", run_history = run_history,  ref_key = ref_key, maf = data.table(), excluded = data.table(),
+  ## annotated: whether loaded MAF records are annotated
+  ## using_exome_plus: whether previously loaded and any future generic exome data uses the "exome+" coverage option 
+  ##  (either all generic data must, or none of it, based on choice of enforce_generic_exome_coverage on first load_maf call)
+  ## recording: whether "run_history" is currently being recorded (gets set to false during some internal steps for clarity)
+  advanced = list("version" = packageVersion("cancereffectsizeR"), annotated = F, using_exome_plus = F, recording = T)
+  cesa = new("CESAnalysis", run_history = character(),  ref_key = ref_key, maf = data.table(), excluded = data.table(),
              progressions = progression_order, mutrates = data.table(),
-             gene_epistasis_results = data.table(), selection_results = data.table(), genome_data_dir = genome_data_dir,
+             gene_epistasis_results = data.table(), selection_results = data.table(), ref_data_dir = ref_data_dir,
              advanced = advanced, samples = data.table(), mutations = list())
-  
+  cesa = update_cesa_history(cesa, match.call())
   return(cesa)
 }
 
@@ -54,16 +56,23 @@ load_cesa = function(file) {
   }
   
   cesa = readRDS(file)
-  ref_key = names(cesa@genome_data_dir)[1]
   
-  available_genome_dirs = get_genome_dirs()
-  if (! ref_key %in% names(available_genome_dirs)) {
+  if (! .hasSlot(cesa, "ref_data_dir")) {
+    ## TEMPORARY
+    cesa@ref_data_dir = c(ces_hg19_v1 = "/Users/Jeff/cancereffectsizeR/inst/ref_sets/ces_hg19_v1")
+  }
+  
+  
+  ref_key = names(cesa@ref_data_dir)[1]
+  
+  available_ref_sets = get_ref_set_dirs()
+  if (! ref_key %in% names(available_ref_sets)) {
     warning("Reference data for ", ref_key, " not found. You can view data in this CESAnalysis,\n",
             "but most functions will not work as expected.")
     return(cesa)
   }
   
-  cesa@genome_data_dir = available_genome_dirs[ref_key]
+  cesa@ref_data_dir = available_ref_sets[ref_key]
   preload_ref_data(ref_key)
   cesa@ref_key = ref_key
   
@@ -75,10 +84,14 @@ load_cesa = function(file) {
     setnames(cesa@mutations$snv, 'assoc_aa_mut', 'assoc_aac', skip_absent = T)
     setnames(cesa@maf, 'assoc_aa_mut', 'assoc_aac', skip_absent = T)
   }
+  setnames(cesa@maf, c("Variant_Type", "snv_id"), c("variant_type", "variant_id"), skip_absent = T)
+  cesa@maf[variant_type == "SNV", variant_type := "snv"]
   
   if (! .hasSlot(cesa, "run_history")) {
     cesa@run_history = character()
   }
+  
+  cesa = update_cesa_history(cesa, match.call())
   
   # temporary
   if (is.null(cesa@advanced$using_exome_plus)) {
@@ -289,4 +302,11 @@ clean_granges_for_bsg = function(bsg = NULL, gr = NULL, padding = 0) {
     gr = GenomicRanges::reduce(GenomicRanges::trim(gr))
   }
   return(gr)
+}
+
+update_cesa_history = function(cesa, comm) {
+  if (identical(cesa@advanced$recording, TRUE)) {
+    cesa@run_history =  c(cesa@run_history, deparse(comm, width.cutoff = 500))
+  }
+  return(cesa)
 }

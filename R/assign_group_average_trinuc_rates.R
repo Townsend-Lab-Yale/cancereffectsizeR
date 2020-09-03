@@ -17,7 +17,7 @@ assign_group_average_trinuc_rates = function(cesa) {
   if(is.null(cesa) || ! is(cesa, "CESAnalysis")) {
     stop("Expected cesa to be a CESAnalysis object")
   }
-  cesa@run_history =  c(cesa@run_history, deparse(match.call(), width.cutoff = 500))
+  cesa = update_cesa_history(cesa, match.call())
   if(cesa@maf[, .N] == 0) {
     stop("No MAF data in the CESAnalysis")
   }
@@ -26,7 +26,7 @@ assign_group_average_trinuc_rates = function(cesa) {
   }
   
   # Take just SNVs
-  snv_maf = cesa@maf[Variant_Type == "SNV"]
+  snv_maf = cesa@maf[variant_type == "snv"]
   
   # Remove all recurrent SNVs (SNVs appearing in more than one sample)
   duplicated_vec_first <- duplicated(snv_maf[,.(Chromosome, Start_Position, Tumor_Allele)])

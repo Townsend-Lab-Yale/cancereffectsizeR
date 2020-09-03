@@ -30,7 +30,7 @@ never be returned. Use \code{generate_variants()} to annotate variants absent fr
 data.}
 
 \item{include_subvariants}{Some mutations "contain" other mutations. For example, in
-cancereffectsizeR's, default hg19 reference data, KRAS_Q61H contains two constituent
+cancereffectsizeR's default hg19 reference data, KRAS_Q61H contains two constituent
 SNVs that both cause the same amino acid change: 12:25380275_T>G and 12:25380275_T>A.
 When include_subvariants = F (the default), and genes = "KRAS", output will be
 returned for KRAS_Q61H but not for the two SNVs (although their IDs will appear in

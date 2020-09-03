@@ -1,7 +1,7 @@
 prev_dir = setwd(system.file("tests/test_data/", package = "cancereffectsizeR"))
 
 # read in the MAF used for all the testing
-luad = load_maf(cesa = CESAnalysis(genome="hg19"), maf = "luad.hg19.maf.txt", sample_col = "sample_id")
+luad = load_maf(cesa = CESAnalysis(ref_set = "ces_hg19_v1"), maf = "luad.hg19.maf.txt", sample_col = "sample_id")
 
 # use the trinucleotide weight data saved in generate_trinuc_data (seldom a need to change that data)
 trinuc_rates = fread("luad_hg19_trinuc_rates.txt")
@@ -10,7 +10,7 @@ luad = set_trinuc_rates(luad, trinuc_rates = trinuc_rates)
 # pending a set_signature_weights function...
 sig_weights = fread("luad_hg19_sig_table.txt")
 luad@trinucleotide_mutation_weights$signature_weight_table = sig_weights
-luad@advanced$snv_signatures = get_ces_signature_set("hg19", "COSMIC_v3.1")
+luad@advanced$snv_signatures = get_ces_signature_set("ces_hg19_v1", "COSMIC_v3.1")
 
 
 # Save gene_mutation_rates intermediary stuff so that tests don't need to run dNdScv

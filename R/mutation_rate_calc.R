@@ -74,7 +74,7 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
   sample_gene_rates = melted_mutrates[sample_gene_rates, , on = c("gene", "progression_name")]
   
   # Load trinuc composition of each gene (composition is a 96-length numeric, deconstructSigs order)
-  gene_trinuc_comp = get_genome_data(cesa, "gene_trinuc_comp")
+  gene_trinuc_comp = get_ref_data(cesa, "gene_trinuc_comp")
   
   
   

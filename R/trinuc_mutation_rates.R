@@ -53,7 +53,7 @@ trinuc_mutation_rates <- function(cesa,
   if(is.null(cesa) || ! is(cesa, "CESAnalysis")) {
     stop("Expected cesa to be a CESAnalysis object", call. = F)
   }
-  cesa@run_history =  c(cesa@run_history, deparse(match.call(), width.cutoff = 500))
+  cesa = update_cesa_history(cesa, match.call())
   
   # If for some reason reference data is no longer in the package environment, restore it
   if (! cesa@ref_key %in% ls(.ces_ref_data)) {
@@ -163,7 +163,7 @@ trinuc_mutation_rates <- function(cesa,
   
 
   # keeping TGS data in the ds_maf until after recurrency testing
-  ds_maf = cesa@maf[Variant_Type == "SNV"]
+  ds_maf = cesa@maf[variant_type == "snv"]
 
   # remove all recurrent SNVs (SNVs appearing in more than one sample)
   duplicated_vec_first <- duplicated(ds_maf[,.(Chromosome, Start_Position, Tumor_Allele)])
@@ -196,7 +196,7 @@ trinuc_mutation_rates <- function(cesa,
   tumors_below_threshold = names(which(substitution_counts < sig_averaging_threshold))
 
 
-  tri.counts.genome = get_genome_data(cesa, "tri.counts.genome")
+  tri.counts.genome = get_ref_data(cesa, "tri.counts.genome")
   
   # for each exome coverage gr (besides default generic, which is pre-calculated), tabulate trinucs
   exome_counts_by_gr = list()
@@ -207,7 +207,7 @@ trinuc_mutation_rates <- function(cesa,
         data("tri.counts.exome", package = "deconstructSigs")
         exome_counts_by_gr[[exome_name]] = tri.counts.exome
       } else {
-        exome_counts_by_gr[[exome_name]] = get_genome_data(cesa, "tri.counts.exome")
+        exome_counts_by_gr[[exome_name]] = get_ref_data(cesa, "tri.counts.exome")
       }
     } else {
       exome_seq = getSeq(bsg, cesa@coverage$exome[[exome_name]])
@@ -435,7 +435,7 @@ trinuc_mutation_rates <- function(cesa,
     sig_table[, group_avg_blended := Unique_Patient_Identifier %in% blended_tumors]
     sig_table[, sig_extraction_snvs := as.numeric(substitution_counts[Unique_Patient_Identifier])] # otherwise will be "table" class
     
-    total_snv_counts = cesa@maf[Variant_Type == "SNV"][sig_table, .(total_snvs = .N), on = "Unique_Patient_Identifier", by = "Unique_Patient_Identifier"]
+    total_snv_counts = cesa@maf[variant_type == "snv"][sig_table, .(total_snvs = .N), on = "Unique_Patient_Identifier", by = "Unique_Patient_Identifier"]
     sig_table = sig_table[total_snv_counts, on = "Unique_Patient_Identifier"]
     
     
@@ -445,7 +445,7 @@ trinuc_mutation_rates <- function(cesa,
       group_avg_weights = as.numeric(mean_ds$adjusted_sig_output$weights)
       new_rows = matrix(nrow = num_to_add, data = rep.int(group_avg_weights, num_to_add), byrow = T)
       colnames(new_rows) = colnames(mean_ds$adjusted_sig_output$weights)
-      total_snvs = cesa@maf[Variant_Type == "SNV"][, .N, keyby = "Unique_Patient_Identifier"][tumors_without_data, N]
+      total_snvs = cesa@maf[variant_type == "snv"][, .N, keyby = "Unique_Patient_Identifier"][tumors_without_data, N]
       total_snvs[is.na(total_snvs)] = 0
       new_table = data.table(Unique_Patient_Identifier = tumors_without_data, total_snvs = total_snvs, 
                              sig_extraction_snvs = 0, group_avg_blended = T)

@@ -1,27 +1,70 @@
 # get_test_file and get_test_data are loaded automatically from helpers.R by testthat
 tiny_maf = get_test_file("tiny.hg19.maf.txt")
 test_that("load_maf and variant annotation", {
-  tiny = expect_warning(load_maf(cesa = CESAnalysis(genome="hg19"), annotate = T, maf = tiny_maf,
+  tiny = expect_warning(load_maf(cesa = CESAnalysis(ref_set = "ces_hg19_v1"), annotate = T, maf = tiny_maf,
                                  sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2"),
                         "SNV records do not match the given reference genome")
   tiny_ak = load_cesa(get_test_file("tiny_hg19_maf_loaded.rds"))
   
-  expect_equal(tiny$maf, tiny_ak$maf)
-  expect_equal(tiny@excluded, tiny_ak@excluded)
+  expect_equal(tiny$maf[order(variant_id)], tiny_ak$maf[order(variant_id)])
+  expect_equal(tiny@excluded, tiny_ak@excluded, ignore.row.order = T)
   expect_equal(tiny@mutations, tiny_ak@mutations)
-  expect_equal(tiny@mutations$snv[, .N], 264)
-  expect_equal(tiny@mutations$amino_acid_change[, .N], 128)
+  expect_equal(tiny@mutations$snv[, .N], 268)
+  expect_equal(tiny@mutations$amino_acid_change[, .N], 129)
    
   # same ranges should be in each coverage GenomicRange (depending on BSgenome version, little contigs may vary)
   expect_equal(lapply(tiny@coverage$exome, IRanges::ranges), lapply(tiny_ak@coverage$exome, IRanges::ranges))
   
   # undo annotations, verify annotate_variants works the same when called directly
-  tiny@maf = tiny@maf[, .(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele, Tumor_Allele, Variant_Type)]
+  tiny@maf = tiny@maf[, .(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele, Tumor_Allele, variant_type)]
   tiny@mutations = list()
   tiny = annotate_variants(tiny)
   expect_equal(tiny@mutations, tiny_ak@mutations)
-  expect_equal(tiny@maf, tiny_ak@maf)
+  expect_equal(tiny@maf[order(variant_id)], tiny_ak@maf[order(variant_id)])
+  
+  # expect warning when adding a variant already covered
+  tiny = expect_warning(add_variants(target_cesa = tiny, snv_id = "13:19752521_T>A"), "no variants required annotation")
+  
+  # add an a variant that isn't covered by any covered regions
+  tiny = add_variants(target_cesa = tiny, snv_id = "12:132824581_C>A")
+  
+  
+  expect_null(select_variants(tiny, variant_ids = "12:132824581_C>A"))
+  selected = select_variants(tiny, variant_ids = "12:132824581_C>A", genes = "TTN", min_freq = 0)
+  expect_equal(selected[variant_id == "12:132824581_C>A", covered_in], NA_character_)
+  expect_equal(selected[, .N], 3)
+  selected = select_variants(tiny, variant_ids = "12:132824581_C>A", genes = "TTN", min_freq = 0, include_subvariants = T)
+  expect_equal(selected[, .N], 7)
+  selected = select_variants(tiny, min_freq = 2)
+  expect_equal(sum(selected$maf_frequency), 57)
+  expect_equal(selected[variant_id == "TP53_T125T_ENSP00000269305", essential_splice], T)
+  
+  
+  # test adding covered regions and covered_regions_padding
+  tiny = add_covered_regions(target_cesa = tiny, covered_regions = GRanges("chr12:132824580"), 
+                      covered_regions_name = "precise_target_1", coverage_type = "targeted")
+  expect_equal(tiny$mutations$snv["12:132824581_C>A", unlist(covered_in)], character())
+  
+  # load again, with different ranges
+  expect_error(add_covered_regions(target_cesa = tiny, covered_regions = GRanges("chr12:100"), 
+                             covered_regions_name = "precise_target_1", coverage_type = "targeted"),
+                             "covered_regions do not exactly match")
+  
+  # load again, same ranges, but call it "exome"
+  expect_error(add_covered_regions(target_cesa = tiny, covered_regions = GRanges("chr12:132824580"), 
+                      covered_regions_name = "precise_target_1", coverage_type = "exome"), "already been used")
+  
+  # bad covered_regions_name
+  expect_error(add_covered_regions(target_cesa = tiny, covered_regions = GRanges("chr12:1-100"),
+                      covered_regions_name = "bad***", coverage_type = "exome"), "Invalid covered_regions_name")
+  
+  # load again with padding
+  tiny = add_covered_regions(target_cesa = tiny, covered_regions = GRanges("chr12:132824580"), 
+                      covered_regions_name = "precise_target_2", coverage_type = "targeted", covered_regions_padding = 10)
+  expect_equal(tiny$mutations$snv["12:132824581_C>A", unlist(covered_in)], "precise_target_2")
 })
+
+
 
 test_that("load_maf edge cases", {
   # already annotated data, so should get an error when trying to load new data without annotating
@@ -35,7 +78,7 @@ test_that("load_maf edge cases", {
                "some sample IDs already appear in previously loaded data")
   
   # try loading empty/non-existent files and data
-  cesa = CESAnalysis(genome = "hg19")
+  cesa = CESAnalysis(ref_set = "ces_hg19_v1")
   expect_error(load_maf(cesa = cesa, maf = ""), "MAF not found")
   # data.table gives a warning, but load_maf throws its own error
   expect_error(expect_warning(load_maf(cesa = cesa, maf = get_test_file("empty.maf.txt")), "Input MAF data set is empty"))
@@ -43,23 +86,23 @@ test_that("load_maf edge cases", {
 })
 
 test_that("Progression stage handling", {
-  tiny = CESAnalysis(genome="hg19")
+  tiny = CESAnalysis(ref_set = "ces_hg19_v1")
   tiny_maf = get_test_file("tiny.hg19.maf.txt")
   
   # You can't supply a progression_col to a CESAnalysis that is not stage-specific
-  expect_error(load_maf(cesa = CESAnalysis(genome="hg19"), annotate = F, maf = tiny_maf, sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2", progression_col = "nonexistent-column"),
+  expect_error(load_maf(cesa = CESAnalysis(ref_set = "ces_hg19_v1"), annotate = F, maf = tiny_maf, sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2", progression_col = "nonexistent-column"),
                "This CESAnalysis does not incorporate tumor progression")
   
   # If CESAnalysis is stage-specific, calls to load_maf must include progression_col
   bad_maf = get_test_file("bad_stages_1.maf.txt")
-  multistage = CESAnalysis(progression_order = 1:2, genome = "hg19")
+  multistage = CESAnalysis(progression_order = 1:2, ref_set = "ces_hg19_v1")
   expect_error(load_maf(multistage, maf = bad_maf), "You must specify progression_col")
   
   # Ensuring that MAF data triggers error if progressions are out of bounds
   expect_error(load_maf(multistage, maf = bad_maf, progression_col = "stage"), "The following progressions were not declared")
   
   # Error if one sample has multiple stages listed in MAF data
-  multistage = CESAnalysis(progression_order = 1:4, genome = "hg19")
+  multistage = CESAnalysis(progression_order = 1:4, ref_set = "ces_hg19_v1")
   expect_error(load_maf(multistage, maf = bad_maf, progression_col = "stage"), "samples are associated with multiple progressions")
   
   # Absence of a declared progression state in the data triggers a warning
@@ -71,7 +114,7 @@ test_that("Progression stage handling", {
 
 
 test_that("Coverage arguments", {
-  tiny = CESAnalysis("hg19")
+  tiny = CESAnalysis(ref_set = "ces_hg19_v1")
   maf = data.table() # coverage arguments get validated before data actually loaded in load_maf 
   expect_error(load_maf(tiny, maf = maf, coverage = c("genome", "hi")), 
                "coverage must be \"exome")

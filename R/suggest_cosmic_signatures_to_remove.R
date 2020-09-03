@@ -26,7 +26,7 @@ suggest_cosmic_signatures_to_remove = function(cancer_type = NULL, treatment_nai
     treatment_naive = FALSE
   }
   
-  sig_metadata = get_ces_signature_set("hg19", "COSMIC_v3.1")$meta
+  sig_metadata = get_ces_signature_set("ces_hg19_v1", "COSMIC_v3.1")$meta
   original_sig_order = copy(sig_metadata$Signature)
   setkey(sig_metadata, "Signature")
   

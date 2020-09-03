@@ -25,7 +25,7 @@
 #'   never be returned. Use \code{generate_variants()} to annotate variants absent from the
 #'   data.
 #' @param include_subvariants Some mutations "contain" other mutations. For example, in
-#'   cancereffectsizeR's, default hg19 reference data, KRAS_Q61H contains two constituent
+#'   cancereffectsizeR's default hg19 reference data, KRAS_Q61H contains two constituent
 #'   SNVs that both cause the same amino acid change: 12:25380275_T>G and 12:25380275_T>A.
 #'   When include_subvariants = F (the default), and genes = "KRAS", output will be
 #'   returned for KRAS_Q61H but not for the two SNVs (although their IDs will appear in
@@ -104,7 +104,7 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
   
   if (length(genes) > 0) {
     genes = unique(genes)
-    gene_names = get_genome_data(cesa, "gene_names")
+    gene_names = get_ref_data(cesa, "gene_names")
     invalid_genes = genes[! genes %in% gene_names]
     num_invalid_genes = length(invalid_genes)
     if (num_invalid_genes > 0) {
@@ -141,7 +141,7 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
   setkey(selected_aac, "aac_id")
   
   # Tabulate variants in MAF data and apply frequency filter
-  snv_counts = cesa@maf[! is.na(snv_id), .N, by = "snv_id"][N >= min_freq]
+  snv_counts = cesa@maf[variant_type == "snv", .N, by = "variant_id"][N >= min_freq]
   aac_counts = cesa@maf[! is.na(assoc_aac), .(aac_id = unlist(assoc_aac))][, .N, by = "aac_id"][N >= min_freq]
   selected_snv[, maf_frequency := 0]
   selected_snv = selected_snv[snv_counts, maf_frequency := N][maf_frequency >= min_freq]
@@ -153,14 +153,14 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
   # Create a combined, simplified table, with list columns collapsed
   selected_aac[, cs2 := paste(unlist(constituent_snvs), collapse = ","), by = "aac_id"]
   selected_aac[, constituent_snvs := NULL][, constituent_snvs := cs2][, cs2 := NULL]
-  selected_aac[, variant_type := "AAC"]
+  selected_aac[, variant_type := "aac"]
   selected_aac[, intergenic := FALSE]
   selected_aac[, start := pmin(nt1_pos, nt3_pos)]
   selected_aac[, end := pmax(nt1_pos, nt3_pos)]
   selected_aac[, center_nt_pos := nt2_pos]
   selected_aac[, c("nt1_pos", "nt2_pos", "nt3_pos") := NULL]
   
-  selected_snv[, variant_type := "SNV"]
+  selected_snv[, variant_type := "snv"]
   selected_snv[, constituent_snvs := NA_character_]
   selected_snv[, strand := NA_integer_] # because AAC table is +1/-1
   selected_snv[, c("start", "end") := .(pos, pos)]
@@ -188,23 +188,68 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
   }
   
   
-  num_wgs_samples = cesa@samples[covered_regions == "genome", .N]
-  cov_counts = cesa@samples[, .N, by = "covered_regions"]
-  unique_combos = setdiff(unique(combined$covered_in), list(NULL)) # NULL entries in sites just covered in WGS
-  setkey(cov_counts, "covered_regions")
-  
-  # If all full-coverage WGS data, then there will be no unique_combos
-  if (length(unique_combos) > 0) {
-    combo_counts = sapply(unique_combos, function(x) sum(cov_counts[x, N], na.rm = T))
-    names(combo_counts) = sapply(unique_combos, function(x) paste0(x, collapse = "_"))
-    combined[, maf_samples_covering := combo_counts[paste0(unlist(covered_in), collapse = "_")] + num_wgs_samples, by = "variant_id"]
-    combined[, tmp := paste(unlist(covered_in), collapse = ","), by = "variant_id"]
-    combined[, covered_in := NULL][, covered_in := tmp][, tmp := NULL]
-    combined[covered_in == "", covered_in :=  NA_character_] # variants may be covered by nothing if add_variants was used
-  } else {
-    combined[, covered_in := NULL][, covered_in := NA_character_]
-    combined[, maf_samples_covering := num_wgs_samples]
+  all_cov_cols = character() # for output column name ordering
+  for (group in cesa@progressions) {
+    curr_samples = cesa@samples[progression_name == group]
+    num_wgs_samples = curr_samples[covered_regions == "genome", .N]
+    cov_counts = curr_samples[, .N, by = "covered_regions"]
+    
+    # this should be made more elegant at some point
+    unique_combos = setdiff(unique(combined$covered_in), c(list(character()), list(NULL))) # various empty entries in sites just covered in WGS
+    setkey(cov_counts, "covered_regions")
+    
+    # If all full-coverage WGS data, then there will be no unique_combos
+    cov_count_colname = ifelse(length(cesa@progressions) == 1, "samples_covering", paste0("samples_covering_in_", group))
+    all_cov_cols = c(all_cov_cols, cov_count_colname)
+    if (length(unique_combos) > 0) {
+      combo_counts = sapply(unique_combos, function(x) sum(cov_counts[x, N], na.rm = T))
+      names(combo_counts) = sapply(unique_combos, function(x) paste0(x, collapse = "_"))
+      combined[, (cov_count_colname) := combo_counts[paste0(unlist(covered_in), collapse = "_")], by = "variant_id"]
+      repl = combined[[cov_count_colname]]
+      repl[is.na(repl)] = 0
+      combined[, (cov_count_colname) := repl]
+      combined[, (cov_count_colname) := combined[[cov_count_colname]] + num_wgs_samples]
+    } else {
+      combined[, (cov_count_colname) := num_wgs_samples]
+    }
   }
+  
+  if (length(cesa@progressions) > 1) {
+    combined[, total_samples_covering := rowSums(.SD), .SDcols = all_cov_cols]
+    all_cov_cols = c(all_cov_cols, "total_samples_covering")
+  }
+  
+  combined[, tmp := paste(unlist(covered_in), collapse = ","), by = "variant_id"]
+  combined[, covered_in := NULL][, covered_in := tmp][, tmp := NULL]
+  combined[covered_in == "", covered_in :=  NA_character_] # variants may be covered by nothing if add_variants was used
+  
+  
+  # Break down frequency counts
+  maf_freq_cols = character()
+  if (length(cesa@progressions) > 1) {
+    for (group in cesa@progressions) {
+      curr_col = paste0("maf_freq_in_", group)
+      maf_freq_cols = c(maf_freq_cols, curr_col)
+      group_maf = cesa@maf[Unique_Patient_Identifier %in% cesa@samples[progression_name == group, Unique_Patient_Identifier]]
+      combined[, (curr_col) := 0]
+      snv_counts = group_maf[variant_type == "snv", .N, by = "variant_id"][N >= min_freq]
+      if(snv_counts[, .N] > 0) {
+        combined[snv_counts, (curr_col) := N, on = "variant_id"]
+        
+        # can't be AACs unless there are SNVs, hence nested
+        aac_counts = group_maf[! is.na(assoc_aac), .(variant_id = unlist(assoc_aac)), by = "variant_id"]
+        if(aac_counts[, .N] > 0) {
+          aac_counts = aac_counts[, .N, by = "variant_id"][N >= min_freq]
+          combined[aac_counts, (curr_col) := N, on = "variant_id"]
+        }
+      }
+    }
+    setnames(combined, "maf_frequency", "total_maf_freq")
+    maf_freq_cols = c(maf_freq_cols, "total_maf_freq")
+  } else {
+    maf_freq_cols = "maf_frequency"
+  }
+
 
   setkey(combined, "chr")
   
@@ -214,7 +259,7 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
   setcolorder(combined, c("variant_id", "variant_type", "chr", "start", "end", "ref", "alt", "gene", 
                           "strand", "aachange", "essential_splice", "intergenic", "assoc_aac", "trinuc_mut", "constituent_snvs",
                           "multi_gene_hit", "all_genes", "aa_ref", "aa_pos", "aa_alt", "coding_seq", "center_nt_pos", "pid", 
-                          "covered_in", "maf_samples_covering", "maf_frequency"))
+                          "covered_in", unlist(zipup(all_cov_cols, maf_freq_cols))))
   
   
   if(notify_multi_genes) {
@@ -222,7 +267,7 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
     "in the \"all_genes\" column. The single gene in the \"gene\" field for these is just the first gene ",
     "alphabetically (even if you selected variants by gene and didn't include this gene). You can find these by ",
     "filtering on the multi_gene_hit column.")
-    message(paste(strwrap(msg), collapse = "\n"))
+    pretty_message(msg)
   }
   return(combined)
 }
@@ -240,6 +285,9 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
 #' @export
 add_covered_regions = function(target_cesa = NULL, source_cesa = NULL, covered_regions = NULL, 
                                covered_regions_name = NULL, coverage_type = NULL, covered_regions_padding = 0) {
+  prev_recording_status = target_cesa@advanced$recording
+  target_cesa = update_cesa_history(target_cesa, match.call())
+  target_cesa@advanced$recording = F
   if (! is(target_cesa, "CESAnalysis")) {
     stop("target_cesa should be a CESAnalysis", call. = F)
   }
@@ -274,7 +322,7 @@ add_covered_regions = function(target_cesa = NULL, source_cesa = NULL, covered_r
       stop("covered_regions_padding can't be used with source_cesa (leave it unspecified).")
     }
     exome_sets = names(source_cesa@coverage$exome)
-    if (any(c("exome", "exome+")) %in% exome_sets) {
+    if (any(c("exome", "exome+") %in% exome_sets)) {
       warning("Generic exome/exome+ covered regions sets found in source_cesa. These will not be copied to the target\n",
               "CESAnalysis. If you really want to copy them over, extract their GRanges from the CESAnalysis and add\n",
               "them individually. (As the \"exome\" set is a set of default coverage intervals for generic exome\n",
@@ -289,13 +337,15 @@ add_covered_regions = function(target_cesa = NULL, source_cesa = NULL, covered_r
     tgs_sets = names(source_cesa@coverage$targeted)
     for (tgs_set in tgs_sets) {
       target_cesa = assign_gr_to_coverage(target_cesa, gr = source_cesa@coverage$targeted[[tgs_set]],
-                                          covered_regions_name = tgs_set, coverage_type =" targeted")
+                                          covered_regions_name = tgs_set, coverage_type ="targeted")
     }
+    target_cesa@advanced$recording = prev_recording_status
     return(update_covered_in(target_cesa))
   } else {
+    target_cesa@advanced$recording = prev_recording_status
     return(.add_covered_regions(cesa = target_cesa, coverage_type = coverage_type, covered_regions = covered_regions,
                      covered_regions_name = covered_regions_name,covered_regions_padding = covered_regions_padding, 
-                     update_anno = cesa@advanced$annotated))
+                     update_anno = target_cesa@advanced$annotated))
   }
 }
 
@@ -306,6 +356,7 @@ add_covered_regions = function(target_cesa = NULL, source_cesa = NULL, covered_r
 #' @param coverage_type exome or targeted, if not using source_cesa
 #' @param covered_regions_padding optionally, add +/- this many bp to each interval in covered_regions
 #' @param update_anno T/F, whether to update the covered_in fields in variant annotations
+#' @keywords internal
 #' @return CESAnalysis given in target_cesa, with the new covered regions added
 .add_covered_regions = function(cesa, coverage_type, covered_regions, covered_regions_name, covered_regions_padding, update_anno) {
   if (! is.character(coverage_type) | length(coverage_type) != 1 | ! coverage_type %in% c("exome", "targeted")) {
@@ -375,10 +426,9 @@ assign_gr_to_coverage = function(cesa, gr, covered_regions_name, coverage_type) 
   }
   
   # If possible, see if covered regions size resembles exome data
-  # Skip this check if covered_regions_name is "exome" or "exome+"
-  if (coverage_type == "exome" & check_for_genome_data(cesa, "generic_exome_gr")) {
+  if (coverage_type == "exome" & check_for_ref_data(cesa, "generic_exome_gr")) {
     covered_regions_bases_covered = sum(IRanges::width(IRanges::ranges(gr)))
-    generic_bases_covered = sum(IRanges::width(IRanges::ranges(get_genome_data(cesa, "generic_exome_gr"))))
+    generic_bases_covered = sum(IRanges::width(IRanges::ranges(get_ref_data(cesa, "generic_exome_gr"))))
     if (covered_regions_bases_covered / generic_bases_covered < .4) {
       warning(paste0("Input coverage ranges are described as exome but are less than 40% of the size of this genome's default exome intervals.\n",
                      "This might make sense if your exome capture array is  lean, but if this is actually targeted sequencing data,\n",
@@ -386,6 +436,9 @@ assign_gr_to_coverage = function(cesa, gr, covered_regions_name, coverage_type) 
     }
   }
   
+  if (! coverage_type %in% names(cesa@coverage)) {
+    cesa@coverage[[coverage_type]] = list()
+  }
   cesa@coverage[[coverage_type]][[covered_regions_name]] = gr
   return(cesa)
 }
@@ -409,6 +462,10 @@ assign_gr_to_coverage = function(cesa, gr, covered_regions_name, coverage_type) 
 add_variants = function(target_cesa = NULL, snv_id = NULL, source_cesa = NULL) {
   if(! is(target_cesa, "CESAnalysis")) {
     stop("target_cesa should be a CESAnalysis", call. = F)
+  }
+  target_cesa = update_cesa_history(target_cesa, match.call())
+  if(! identical(target_cesa@advanced$annotated, T)) {
+    stop("target_cesa should be annotated", call. = F)
   }
 
   if(! xor(is.null(snv_id), is.null(source_cesa))) {
@@ -444,11 +501,14 @@ add_variants = function(target_cesa = NULL, snv_id = NULL, source_cesa = NULL) {
   colnames(maf) = c("Chromosome", "Start_Position", "Reference_Allele", "Tumor_Allele")
   maf$Unique_Patient_Identifier = NA_character_
   setcolorder(maf, "Unique_Patient_Identifier")
-  maf$Variant_Type = "SNV"
+  maf$variant_type = "snv"
   maf[, Start_Position := as.numeric(Start_Position)]
   
   target_cesa@maf = rbind(target_cesa@maf, maf, fill = T)
+  prev_recording_status = target_cesa@advanced$recording
+  target_cesa@advanced$recording = F
   target_cesa = annotate_variants(target_cesa)
+  target_cesa@advanced$recording = prev_recording_status
   target_cesa@maf = target_cesa@maf[! is.na(Unique_Patient_Identifier)]
   return(target_cesa)
 }

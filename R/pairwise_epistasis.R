@@ -10,7 +10,7 @@
 #' @param cores number of cores for parallel processing of gene pairs
 #' @param optimx_args list of optimization parameters to feed into optimx::opm (see optimx docs); if you use this argument,
 #'                    none of the CES default values will be used (opm defaults will be used for parameters you don't provide)
-#' @param  return_all_opm_output whether to include full parameter optimization report with output (default false)
+#' @param return_all_opm_output whether to include full parameter optimization report with output (default false)
 #' @return CESAnalysis object with selection results added for the chosen analysis
 #' @export
 ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optimx_args = ces_epistasis_opm_args(), return_all_opm_output = FALSE)
@@ -47,13 +47,13 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optim
     message("FYI, you can access full parameter optimization output in [CESAnalysis]@advanced$opm_output.")
   }
   
-  maf = cesa@maf[Variant_Type == "SNV"]
+  maf = cesa@maf[variant_type == "snv"]
 	genes = unique(genes)
 	genes_in_dataset = unique(unlist(maf$genes))
 	genes_to_analyze = genes[genes %in% genes_in_dataset]
 
 	recurrent_aac_id = maf[! is.na(assoc_aac), .(aac_id = unlist(assoc_aac))][, .N, by = aac_id][N > 1, aac_id]
-	recurrent_snv_id = maf[! is.na(snv_id), .(snv_id)][, .N, by = "snv_id"][N > 1, snv_id]
+	recurrent_snv_id = maf[variant_type == "snv", .(variant_id)][, .N, by = "variant_id"][N > 1, variant_id]
 
 	genes_with_recurrent_variants = unique(c(cesa@mutations$snv[recurrent_snv_id, unlist(genes)], cesa@mutations$amino_acid_change[recurrent_aac_id, gene]))
 	
@@ -162,8 +162,8 @@ pairwise_variant_epistasis = function(cesa, variant_pair, variant_types, optimx_
   setcolorder(all_rates, c("Unique_Patient_Identifier", v1, v2))
   setkey(all_rates, "Unique_Patient_Identifier")
   
-  tumors_with_v1 = cesa@maf[, v1 %in% c(snv_id, assoc_aac), by = "Unique_Patient_Identifier"][V1 == T, Unique_Patient_Identifier]
-  tumors_with_v2 = cesa@maf[, v2 %in% c(snv_id, assoc_aac), by = "Unique_Patient_Identifier"][V1 == T, Unique_Patient_Identifier]
+  tumors_with_v1 = cesa@maf[, v1 %in% c(variant_id, assoc_aac), by = "Unique_Patient_Identifier"][V1 == T, Unique_Patient_Identifier]
+  tumors_with_v2 = cesa@maf[, v2 %in% c(variant_id, assoc_aac), by = "Unique_Patient_Identifier"][V1 == T, Unique_Patient_Identifier]
   tumors_with_both = intersect(tumors_with_v1, tumors_with_v2)
   tumors_just_v1 = setdiff(tumors_with_v1, tumors_with_both)
   tumors_just_v2 = setdiff(tumors_with_v2, tumors_with_both)
@@ -211,7 +211,7 @@ pairwise_gene_epistasis = function(cesa, genes, optimx_args) {
   # Collect mutations present in MAF in the two genes (note that some AACs may
   # be same site, different gene, but okay for coverage check)
   maf = copy(cesa@maf)
-  maf[, `:=`(in_g1 = gene1 %in% genes, in_g2 = gene2 %in% genes), by = "snv_id"]
+  maf[, `:=`(in_g1 = gene1 %in% genes, in_g2 = gene2 %in% genes), by = "variant_id"]
   if(maf[in_g1 == T & in_g2 == T, .N] > 0) {
     ## To-do: test behavior
     warning(sprintf("Genes %s and %s having overlapping positions in the MAF data, so the gene pair will be skipped.",
@@ -228,11 +228,11 @@ pairwise_gene_epistasis = function(cesa, genes, optimx_args) {
   aac = c(aac_v1, aac_v2)
   
   # repeat with noncoding SNVs
-  noncoding_table = unique(maf[is.na(assoc_aac), .(in_g1, in_g2, .N), by = "snv_id"][N > 1])
+  noncoding_table = unique(maf[variant_type == "snv" & is.na(assoc_aac), .(in_g1, in_g2, .N), by = "variant_id"][N > 1])
   # remove intergenic records
-  noncoding_table[cesa@mutations$snv[, .(intergenic, snv_id)], on = "snv_id", nomatch = NULL][intergenic == F]
-  noncoding_v1 = noncoding_table[in_g1 == T, snv_id]
-  noncoding_v2 = noncoding_table[in_g2 ==T, snv_id]
+  noncoding_table[cesa@mutations$snv[, .(intergenic, variant_id = snv_id)], on = "variant_id", nomatch = NULL][intergenic == F]
+  noncoding_v1 = noncoding_table[in_g1 == T, variant_id]
+  noncoding_v2 = noncoding_table[in_g2 ==T, variant_id]
   noncoding_snv = c(noncoding_v1, noncoding_v2)
   
   ## restrict analysis to samples that have all variants of both genes covered (that is, all remaining recurrent variants)
@@ -268,10 +268,10 @@ pairwise_gene_epistasis = function(cesa, genes, optimx_args) {
   ## MAF_input1 and MAF_input2 are already restricted to just eligible tumors
   maf = maf[Unique_Patient_Identifier %in% eligible_tumors]
   all_g1_snv = c(cesa@mutations$amino_acid_change[aac_v1, unlist(constituent_snvs)], noncoding_v1)
-  tumors_with_gene1_mutated = maf[snv_id %in% all_g1_snv, unique(Unique_Patient_Identifier)]
+  tumors_with_gene1_mutated = maf[variant_id %in% all_g1_snv, unique(Unique_Patient_Identifier)]
   
   all_g2_snv = c(cesa@mutations$amino_acid_change[aac_v2, unlist(constituent_snvs)], noncoding_v2)
-  tumors_with_gene2_mutated = maf[snv_id %in% all_g2_snv, unique(Unique_Patient_Identifier)]
+  tumors_with_gene2_mutated = maf[variant_id %in% all_g2_snv, unique(Unique_Patient_Identifier)]
   
   tumors_with_both_mutated = intersect(tumors_with_gene1_mutated,tumors_with_gene2_mutated)
   tumors_with_ONLY_gene1_mutated <- tumors_with_gene1_mutated[which(!tumors_with_gene1_mutated %in% tumors_with_gene2_mutated)]

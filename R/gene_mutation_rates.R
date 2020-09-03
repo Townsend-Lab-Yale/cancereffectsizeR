@@ -18,7 +18,7 @@ gene_mutation_rates <- function(cesa, covariates = NULL, save_all_dndscv_output 
   if (! is(cesa, "CESAnalysis")) {
     stop("cesa expected to be a CESAnalysis object", call. = F)
   }
-  cesa@run_history =  c(cesa@run_history, deparse(match.call(), width.cutoff = 500))
+  cesa = update_cesa_history(cesa, match.call())
   if (! cesa@ref_key %in% ls(.ces_ref_data)) {
     preload_ref_data(cesa@ref_key)
   }
@@ -42,7 +42,11 @@ gene_mutation_rates <- function(cesa, covariates = NULL, save_all_dndscv_output 
         stop("You need to update dNdScv. Try running \"devtools::update_packages(packages = \"dndscv\")\".")
       }
     }, warning = function(w) {
-      if (startsWith(conditionMessage(w), "Same mutations observed in different sampleIDs")) {
+      dndscv_msg = conditionMessage(w)
+      # Recurrent mutations are presumed real in CES
+      # As of 09/03/20, dNdScv's MNV check is flawed (and CES has already handled them in load_maf())
+      if (startsWith(dndscv_msg, "Same mutations observed in different sampleIDs") || 
+          startsWith(dndscv_msg, "Mutations observed in contiguous sites")) {
         invokeRestart("muffleWarning")
       }
     }
@@ -81,10 +85,10 @@ dndscv_preprocess = function(cesa, covariates = "default") {
     stop("covariates expected to be 1-length character. Check available covariates with list_ces_covariates()")
   } else {
     covariates = paste0("covariates/", covariates)
-    if(! check_for_genome_data(cesa, covariates)) {
+    if(! check_for_ref_data(cesa, covariates)) {
       stop("Covariates could not be found. Check available covariates with list_ces_covariates().")
     }
-    this_cov_pca <- get_genome_data(cesa, covariates) 
+    this_cov_pca <- get_ref_data(cesa, covariates) 
     cv = this_cov_pca$rotation
     genes_in_pca = rownames(cv)
   }

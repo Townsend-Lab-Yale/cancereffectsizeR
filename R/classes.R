@@ -1,7 +1,7 @@
 setClass("CESAnalysis", representation(maf = "data.table", trinucleotide_mutation_weights = "list",
           progressions = "character", mutrates = "data.table", dndscv_out_list = "list",
           excluded = "data.table", selection_results = "data.table", gene_epistasis_results = "data.table", coverage = "list",
-          ref_key = "character", advanced = "list", genome_data_dir = "character", run_history = "character", samples = "data.table", 
+          ref_key = "character", advanced = "list", ref_data_dir = "character", run_history = "character", samples = "data.table", 
           mutations = "list"))
 
 
@@ -89,7 +89,7 @@ setMethod("show", "CESAnalysis",
     if(object@maf[, .N] > 0) {
       cat("Samples:\n")
       print(object@samples[, .(num_samples = .N), by = c("progression_name", "progression_index", "coverage")][order(progression_index)], row.names = F)
-      num_snvs = object@maf[Variant_Type == "SNV", .N]
+      num_snvs = object@maf[variant_type == "snv", .N]
       cat("\nMAF data: ", num_snvs, " SNVs loaded", sep = "")
       if (identical(object@advanced$annotated, TRUE)) {
         cat(" and annotated.\n")
@@ -97,7 +97,7 @@ setMethod("show", "CESAnalysis",
         cat(" (but not annotated).\n")
       }
     }
-    signature_set = cesa@advanced$snv_signatures
+    signature_set = object@advanced$snv_signatures
     if (! is.null(signature_set)) {
       signature_set_name = signature_set$name
       cat("Mutational processes: Sample-level extraction of ", signature_set_name, " SNV signatures.\n", sep = "")
