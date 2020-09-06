@@ -214,7 +214,17 @@ snv_results = function(cesa = NULL) {
   if (cesa@selection_results[, .N] == 0) {
     stop("No results yet from ces_snv in this CESAnalysis")
   }
-  return(cesa@selection_results)
+  annotations = select_variants(cesa, variant_ids = cesa@selection_results$variant_id, min_freq = 0)
+  results = cesa@selection_results[annotations, on = c("variant_id", "variant_type")]
+  results_cols = colnames(results)
+  # try to flip variant_name and variant_id columns
+  if(results_cols[1] == "variant_id") {
+    name_col = which(results_cols == "variant_name")[1]
+    setcolorder(results, c("variant_name", 
+                           results_cols[2:(name_col - 1)], "variant_id", 
+                           results_cols[(name_col + 1):length(results_cols)]))
+  }
+  return(results)
 }
 
 #' View results from gene-level epistasis analysis

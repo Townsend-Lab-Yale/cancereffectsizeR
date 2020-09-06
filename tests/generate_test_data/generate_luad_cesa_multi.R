@@ -10,7 +10,7 @@ luad = gene_mutation_rates(luad, covariates = "lung")
 
 saveRDS(luad, "cesa_for_snv_multi.rds")
 test_genes = c("TTN", "KRAS", "RYR2", "EGFR", "TP53", "ASXL3","IFITM2")
-luad = ces_snv(luad, genes = test_genes, include_nonrecurrent_variants = T)
+luad = ces_snv(luad, genes = test_genes, min_freq = 1)
 saveRDS(luad@selection_results, "multi_stage_snv_results.rds")
 
 

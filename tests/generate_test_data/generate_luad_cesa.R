@@ -33,7 +33,7 @@ saveRDS(luad, "cesa_for_snv.rds")
 test_genes = c("EGFR", "ASXL3", "KRAS", "RYR2", "USH2A", "CSMD3", "TP53", "CSMD1", "LRP1B", 
                "ZFHX4", "FAT3", "CNTNAP5", "PCDH15", "NEB", "RYR3", "DMD", "KATNAL1", 
                "OR13H1", "KSR1")
-luad = ces_snv(luad, genes = test_genes, include_nonrecurrent_variants = T)
+luad = ces_snv(luad, genes = test_genes, min_freq = 1)
 saveRDS(luad@selection_results, "single_stage_snv_results.rds")
 luad = ces_gene_epistasis(luad, genes = c("EGFR", "KRAS", "TP53"), return_all_opm_output = T)
 saveRDS(luad@gene_epistasis_results, "epistasis_results.rds")

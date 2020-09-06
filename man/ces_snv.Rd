@@ -21,9 +21,10 @@ ces_snv(
 \item{min_freq}{default 2; setting to 0 or 1 can be useful for
 comparing sample groups or analyzing SIs across genomic regions}
 
-\item{variant_ids}{When specified, CES-style variant IDs of variants to include. If "genes" is also specified,
-the union is taken. If you want to use this parameter to calculate SI
-confidence intervals at sites with no MAF variants, set min_freq = 0}
+\item{variant_ids}{When specified, CES-style variant IDs of variants to include, or
+short names like "KRAS G12C" (or KRAS_G12C). If "genes" is also specified, the union
+is taken. If you want to use this parameter to calculate SI confidence intervals at
+sites with no MAF variants, set min_freq = 0.}
 
 \item{cores}{number of cores to use}
 

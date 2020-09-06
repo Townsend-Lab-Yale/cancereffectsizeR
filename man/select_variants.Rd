@@ -19,7 +19,8 @@ select_variants(
 
 \item{genes}{include variants (coding and noncoding) within these genes}
 
-\item{variant_ids}{include variants by ID (vector of snv_id and/or aac_id)}
+\item{variant_ids}{include variants by ID: vectors of snv_id and/or aac_id, or short
+(potentially non-unique) names like KRAS_G12C (or "KRAS G12C")}
 
 \item{granges}{filter out any variants not within input GRanges}
 
@@ -35,7 +36,7 @@ SNVs that both cause the same amino acid change: 12:25380275_T>G and 12:25380275
 When include_subvariants = F (the default), and genes = "KRAS", output will be
 returned for KRAS_Q61H but not for the two SNVs (although their IDs will appear in
 the Q61H output). Set to true, and all three variants will be included in output, 
-assuming they don't get filtered out.}
+assuming they don't get filtered out by min_freq or granges.}
 
 \item{gr_padding}{add +/- this many bases to every range specified in "granges"
 (stopping at chromsome ends, naturally)}

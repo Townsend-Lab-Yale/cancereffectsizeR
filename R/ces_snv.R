@@ -3,9 +3,10 @@
 #' @param genes limit analysis to just these genes (otherwise, all genes, unless variants is specified)
 #' @param cores number of cores to use
 #' @param conf selection intensity confidence interval width (NULL skips calculation, speeds runtime)
-#' @param variant_ids When specified, CES-style variant IDs of variants to include. If "genes" is also specified,
-#'   the union is taken. If you want to use this parameter to calculate SI
-#'   confidence intervals at sites with no MAF variants, set min_freq = 0
+#' @param variant_ids When specified, CES-style variant IDs of variants to include, or
+#'   short names like "KRAS G12C" (or KRAS_G12C). If "genes" is also specified, the union
+#'   is taken. If you want to use this parameter to calculate SI confidence intervals at
+#'   sites with no MAF variants, set min_freq = 0.
 #' @param min_freq default 2; setting to 0 or 1 can be useful for
 #'   comparing sample groups or analyzing SIs across genomic regions
 #' @return CESAnalysis object with selection results added for the chosen analysis
@@ -101,7 +102,7 @@ ces_snv <- function(cesa = NULL,
     
     # initialize all gamma (SI) values at 1000; bbmle requires a parnames attribute be set to name each gamma (here, g1, g2, etc.)
     par_init = rep(1000, length(cesa@progressions))
-    names(par_init) <- bbmle::parnames(fn) <- paste0("g", 1:length(cesa@progressions))
+    names(par_init) <- bbmle::parnames(fn) <- paste0("si_", 1:length(cesa@progressions))
     
     # find optimized selection intensities
     # the selection intensity for any stage that has 0 variants will be on the lower boundary; will muffle the associated warning
@@ -116,30 +117,18 @@ ces_snv <- function(cesa = NULL,
       }
     )
     
-    selection_intensity =  bbmle::coef(fit)
-    loglikelihood = as.numeric(bbmle::logLik(fit))
-    loglikelihood = rep(loglikelihood, length(selection_intensity))
-    progression_name = cesa@progressions
-    if (length(cesa@progressions) == 1) {
-      progression_name = "Not applicable"
+    selection_intensity = bbmle::coef(fit)
+    single_stage = length(cesa@progressions) == 1
+    if (length(selection_intensity) == 1) {
+      names(selection_intensity) = "selection_intensity"
     }
-    
-    # Get number of tumors of each named stage with the variant (in proper progression order)
-    stages = cesa@samples[tumors_with_variant, progression_name]
-    tumors_with_variant = as.numeric(table(factor(stages, levels = cesa@progressions)))
-    
-    # Also get number of eligible tumors per stage
-    stages = cesa@samples[eligible_tumors, progression_name]
-    tumors_with_coverage = as.numeric(table(factor(stages, levels = cesa@progressions)))
-    
-    # if a tumor has no coverage in a given stage, set selection intensity to NA
-    uncovered_stages = which(tumors_with_coverage == 0)
-    selection_intensity[uncovered_stages] = NA
+    loglikelihood = as.numeric(bbmle::logLik(fit))
     
     #dndscv_q = sapply(cesa@dndscv_out_list, function(x) x$sel_cv[x$sel_cv$gene_name == mut_record$gene, "qallsubs_cv"])
-    
-    variant_output = data.table(variant_id = mut_id, variant_type = snv_or_aac, selection_intensity, loglikelihood, 
-                                progression = progression_name, tumors_with_variant, tumors_with_coverage)
+    variant_output = c(list(variant_id = mut_id, variant_type = snv_or_aac), 
+                       as.list(selection_intensity),
+                       list(loglikelihood = loglikelihood))
+
     if(! is.null(conf)) {
       # can't get confidence intervals for progression states that have no tumors with the variant
       offset = qchisq(conf, 1)/2
@@ -173,8 +162,12 @@ ces_snv <- function(cesa = NULL,
             upper = uniroot(ulik, lower = selection_intensity[i], upper = 1e20)$root
           }
         }
-        variant_output[i, c(ci_low_colname) := lower]
-        variant_output[i, c(ci_high_colname) := upper]
+        curr_low_col = ifelse(single_stage, ci_low_colname, paste(ci_low_colname, cesa@progressions[i], sep = "_"))
+        curr_high_col = ifelse(single_stage, ci_high_colname, paste(ci_high_colname, cesa@progressions[i], sep = "_"))
+        
+        ci = list(lower, upper)
+        names(ci) = c(curr_low_col, curr_high_col)
+        variant_output = c(variant_output, ci)
       }
     }
     return(variant_output)
@@ -220,6 +213,7 @@ ces_snv <- function(cesa = NULL,
   }
 
   cesa@selection_results = selection_results
+  
   return(cesa)
 }
 
