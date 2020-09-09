@@ -9,7 +9,7 @@ ces_gene_epistasis(
   genes = character(),
   cores = 1,
   optimx_args = ces_epistasis_opm_args(),
-  return_all_opm_output = FALSE
+  include_opm_report = FALSE
 )
 }
 \arguments{
@@ -22,11 +22,21 @@ ces_gene_epistasis(
 \item{optimx_args}{list of optimization parameters to feed into optimx::opm (see optimx docs); if you use this argument,
 none of the CES default values will be used (opm defaults will be used for parameters you don't provide)}
 
-\item{return_all_opm_output}{whether to include full parameter optimization report with output (default false)}
+\item{include_opm_report}{dev option to include full parameter optimization report with output (default false)}
 }
 \value{
-CESAnalysis object with selection results added for the chosen analysis
+a table of gene-level epistasis results
 }
 \description{
 Calculate selection intensity under an assumption of pairwise gene-level epistasis.
+More specifically, selection at the gene level is assumed to act through all recurrent
+variants (variants that appear in just one sample are ignored), with selection
+intensity of each gene assumed to vary based on mutational status of the other gene.
+Returns a table of results, \strong{NOT} a CESAnalysis, so be careful not to overwrite
+your CESAnalysis.
+}
+\details{
+Only samples that have coverage at all recurrent sites can be included in analysis
+since samples lacking full coverage may or may not have mutations at the uncovered
+sites
 }

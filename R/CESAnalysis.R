@@ -12,9 +12,6 @@ CESAnalysis = function(ref_set = "ces_hg19_v1", progression_order = NULL) {
   preload_ref_data(ref_key)
   ref_data_dir = get_ref_set_dirs()[ref_key]
   bsg = .ces_ref_data[[ref_key]]$genome
-  message(crayon::black(paste0("Okay, this CES analysis will use the ", 
-                               tolower(BSgenome::commonName(bsg)), " genome (", BSgenome::releaseName(bsg), ").")))
-  
   
   # Validate progression_order
   if (is.null(progression_order)) {
@@ -29,7 +26,6 @@ CESAnalysis = function(ref_set = "ces_hg19_v1", progression_order = NULL) {
     stop("progression_order should be a character vector of chronological tumor states (e.g., Primary, Metastatic)")
   }
   
-  
   # advanced is a grab bag of additional stuff to keep track of
   ## annotated: whether loaded MAF records are annotated
   ## using_exome_plus: whether previously loaded and any future generic exome data uses the "exome+" coverage option 
@@ -38,9 +34,13 @@ CESAnalysis = function(ref_set = "ces_hg19_v1", progression_order = NULL) {
   advanced = list("version" = packageVersion("cancereffectsizeR"), annotated = F, using_exome_plus = F, recording = T)
   cesa = new("CESAnalysis", run_history = character(),  ref_key = ref_key, maf = data.table(), excluded = data.table(),
              progressions = progression_order, mutrates = data.table(),
-             gene_epistasis_results = data.table(), selection_results = data.table(), ref_data_dir = ref_data_dir,
+             selection_results = data.table(), ref_data_dir = ref_data_dir,
              advanced = advanced, samples = data.table(), mutations = list())
   cesa = update_cesa_history(cesa, match.call())
+  
+  msg = paste0("This CESAnalysis will use ", ref_set, " reference data and the ", tolower(BSgenome::commonName(bsg)),
+               " genome, assembly ", BSgenome::providerVersion(bsg), '.')
+  pretty_message(msg)
   return(cesa)
 }
 
@@ -225,21 +225,6 @@ snv_results = function(cesa = NULL) {
                            results_cols[(name_col + 1):length(results_cols)]))
   }
   return(results)
-}
-
-#' View results from gene-level epistasis analysis
-#' 
-#' returns a data table of pairwise gene epistasis effect sizes generated with ces_gene_epistasis
-#' @param cesa CESAnalysis object
-#' @export
-gene_epistasis_results = function(cesa = NULL) {
-  if(! is(cesa, "CESAnalysis")) {
-    stop("\nUsage: gene_epistasis_results(cesa), where cesa is a CESAnalysis")
-  }
-  if (cesa@gene_epistasis_results[, .N] == 0) {
-    stop("No results yet from ces_gene_epistasis in this CESAnalysis")
-  }
-  return(cesa@gene_epistasis_results)
 }
 
 

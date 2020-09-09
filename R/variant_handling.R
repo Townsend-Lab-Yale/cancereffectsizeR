@@ -7,13 +7,43 @@
 #' both empty and all available variants will be gathered. For filtering, use the granges
 #' parameter to filter out variants that don't intersect an input GRanges object. Use
 #' min_freq to filter out variants by frequency in the MAF data. 
-#'
-#' To collect all available variant data, set min_freq = 0, include_subvariants = T, and
-#' no other options. Output will include additional rows for SNVs that are already
-#' annotated as constituent SNVs of amino-acid-change mutations. Note that while
-#' intergenic SNVs have their nearest genes annotated in the SNV tables, these variants
-#' will not be captured by gene-based selection with this function, since they're not
-#' actually in any gene.
+#' 
+#' 
+#' To collect all available
+#' variant data, set min_freq = 0, include_subvariants = T, and no other options. Output
+#' will include additional rows for SNVs that are already annotated as constituent SNVs of
+#' amino-acid-change mutations. Note that while intergenic SNVs have their nearest genes
+#' annotated in the SNV tables, these variants will not be captured by gene-based
+#' selection with this function, since they're not actually in any gene.
+#' 
+#' Definitions of some less self-explanatory columns:
+#' \itemize{
+#'   \item variant_name: short, often but not necessarily uniquely identifying name (use
+#'   variant_id to guarantee uniqueness) 
+#'   \item start/end: lowest/highest genomic positions overlapping variant
+#'   \item variant_id: unique IDs for variants given the associated genome assembly version and the transcript data
+#'   \item ref/alt: genomic reference and alternate alleles (for genomic
+#'   variants; NA for AACs) 
+#'   \item gene: the affected gene in AACs; for SNVs, the
+#'   overlapping gene (or an abitrary gene if more than one overlaps), or the nearest gene
+#'   for intergenic SNVs
+#'   \item strand: for AACs, 1 if the reference sequence strand is the coding strand; -1 otherwise
+#'   \item essential_splice: Variant is 1,2 bp upstream or
+#'   1,2,5 bp downstream of an annotated splice position (edge case: if an SNV has
+#'   multiple gene/transcript annotations, this doesn't say which one it's essential for)
+#'   \item intergenic: variant does not overlap any gene ranges in the reference data
+#'   \item trinuc_mut: for SNVs, the reference trinucleotide context, in deconstructSigs notation
+#'   \item coding_seq: coding strand nucleotides in order of transcription
+#'   \item center_nt_pos: regardless of strand, start/end give positions of two out of three AAC nucleotides; this
+#'                       gives the position of the center nucleotide (maybe useful if the AAC spans a splice site)
+#'   \item constituent_snvs: all SNVs that can produce a given variant 
+#'   \item multi_anno_site: T/F whether variant has multiple gene/transcript/AAC annotations
+#'   \item all_aac: For SNVs, all AACs that the variant is annotated as producing; for
+#'   AACs, all of the AACs that are annotated for all of the constituent SNVs
+#'   \item all_genes: all genes overlapping the variant in reference data
+#'   \item covered_in: the names of all "covered regions" sets in the CESAnalysis that have coverage at the variant site
+#'   \item maf_freq: number of occurrences of the variant in MAF data
+#' }
 #' 
 #' @param cesa CESAnalysis with MAF data loaded and annotated (e.g., with \code{load_maf()})
 #' @param genes include variants (coding and noncoding) within these genes
@@ -31,12 +61,23 @@
 #'   When include_subvariants = F (the default), and genes = "KRAS", output will be
 #'   returned for KRAS_Q61H but not for the two SNVs (although their IDs will appear in
 #'   the Q61H output). Set to true, and all three variants will be included in output, 
-#'   assuming they don't get filtered out by min_freq or granges.
+#'   assuming they don't get filtered out by other other options, like min_freq
 #' @param gr_padding add +/- this many bases to every range specified in "granges"
 #'   (stopping at chromsome ends, naturally)
+#' @param ids_only instead of outputting a table of variant information, return a list
+#' of selected variant IDs organized by variant type, without any annotations
+#' @param collapse_lists Some output columns may have multiple elements per variant row.
+#'   For example, all_genes may include multiple genes. When collapse_lists = T, these
+#'   columns have their values collapsed into single comma-delimited strings (e.g.
+#'   "Gene1,Gene2"), which are good for visual inspection of data. When collapse_lists =
+#'   F, these columns are returned as "list columns", each element of which is a
+#'   variable-length vector. These are better for advanced scripting, but the syntax to
+#'   manipulate them is a little tricky, so the default is to collapse.
+#' @return a data table with info on selected variants (see details), or a list of IDs
 #' @export
 select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NULL, min_freq = 1, 
-                           include_subvariants = F, gr_padding = 0) {
+                           include_subvariants = F, gr_padding = 0, ids_only = F, collapse_lists = T) {
+  
   if(! is(cesa, "CESAnalysis")) {
     stop("cesa should be a CESAnalysis object")
   }
@@ -62,6 +103,19 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
   if(! is.logical(include_subvariants) | length(include_subvariants) != 1) {
     stop("include_subvariants should be T/F")
   }
+  
+  if (! is.logical(collapse_lists) || length(collapse_lists) != 1) {
+    stop("collapse_lists should be T/F")
+  }
+  
+  if (! is.logical(ids_only) || length(ids_only) != 1) {
+    stop("ids_only should be T/F")
+  }
+  
+  if (ids_only == TRUE & collapse_lists == FALSE) {
+    stop("There is no use setting collapse_list = FALSE when ids_only = TRUE")
+  }
+  
   
   selected_snv_ids = character()
   selected_aac_ids = character()
@@ -157,8 +211,6 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
       message("FYI, some of the variants specified with variant_ids were filtered out by your input GRanges.")
     }
   }
-
-
   
   selected_snv = cesa@mutations$snv[selected_snv_ids]
   setkey(selected_snv, "snv_id")
@@ -170,15 +222,28 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
   aac_counts = cesa@maf[! is.na(assoc_aac), .(aac_id = unlist(assoc_aac))][, .N, by = "aac_id"][N >= min_freq]
   selected_snv[, maf_frequency := 0]
   selected_snv = selected_snv[snv_counts, maf_frequency := N][maf_frequency >= min_freq]
-  selected_snv[, multi_anno_site := F][which(sapply(assoc_aac, length) > 1), multi_anno_site := T]
-  selected_snv[, overlapping_annotations := S4Vectors::unstrsplit(assoc_aac, sep = ",")]
-  selected_snv[, assoc_aac := NULL]
   selected_aac[, maf_frequency := 0]
   selected_aac = selected_aac[aac_counts, maf_frequency := N][maf_frequency >= min_freq]
   
-  # Create a combined, simplified table, with list columns collapsed
-  selected_aac[, cs2 := S4Vectors::unstrsplit(constituent_snvs, sep = ",")]
-  selected_aac[, constituent_snvs := NULL][, constituent_snvs := cs2][, cs2 := NULL]
+  # Return just the IDs if requested
+  if (ids_only) {
+    return(list(aac = selected_aac$aac_id, snv = selected_snv$snv_id))
+  }
+  
+  # Annotate SNV table and prepare to merge with AACs
+  selected_snv[, variant_type := "snv"]
+  selected_snv[, variant_name := snv_id] # SNV IDs are already short and uniquely identifying
+  selected_snv[, constituent_snvs := list(NA_character_)]
+  selected_snv[, strand := NA_integer_] # because AAC table is +1/-1
+  selected_snv[, c("start", "end") := .(pos, pos)]
+  selected_snv[, pos := NULL]
+  # for convenience, take 1 gene per SNV for the output gene column (all will appear in all_genes column)
+  selected_snv[, gene := sapply(genes, function(x) x[1])] 
+  selected_snv[intergenic == T, genes := list(NA_character_)]
+  selected_snv[, multi_anno_site := F][which(sapply(assoc_aac, length) > 1 | sapply(genes, length) > 1), multi_anno_site := T]
+  setnames(selected_snv, c("genes", "assoc_aac", "snv_id"), c("all_genes", "all_aac", "variant_id"))
+  # AACs get a short variant name that might not be uniquely identifying if a gene has more than one CDS
+  selected_aac[, variant_name := paste(gene, aachange, sep = "_")]
   selected_aac[, variant_type := "aac"]
   selected_aac[, intergenic := FALSE]
   selected_aac[, start := pmin(nt1_pos, nt3_pos)]
@@ -186,44 +251,26 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
   selected_aac[, center_nt_pos := nt2_pos]
   selected_aac[, c("nt1_pos", "nt2_pos", "nt3_pos") := NULL]
   
-  selected_snv[, variant_type := "snv"]
-  selected_snv[, constituent_snvs := NA_character_]
-  selected_snv[, strand := NA_integer_] # because AAC table is +1/-1
-  selected_snv[, c("start", "end") := .(pos, pos)]
-  selected_snv[, pos := NULL]
-  # take just 1 gene per SNV for the output gene column
-  selected_snv[, gene := sapply(genes, function(x) x[1])]
-  # get overlapping AACs from all constituent SNVs of every AAC
-  const_snv = unique(selected_aac[, unlist(constituent_snvs)])
-  aac_by_snv = cesa@mutations$snv[const_snv, assoc_aac, by = "snv_id"]
-  aac_by_snv = aac_by_snv[which(sapply(aac_by_snv$assoc_aac, length) > 1)]
-  if (aac_by_snv[, .N] > 0) {
-    co_aac = new.env()
-    for (i in 1:length(aac_by_snv$assoc_aac)) {
-      combos = utils::combn(aac_by_snv$assoc_aac[[i]], 2, simplify = F)
-      for (j in 1:length(combos)) {
-        co_aac[[combos[[j]][1]]] = c(co_aac[[combos[[j]][1]]], combos[[j]][2])
-        co_aac[[combos[[j]][2]]] = c(co_aac[[combos[[j]][2]]], combos[[j]][1])
-      }
-    }
-    selected_aac[, overlapping_annotations := paste0(co_aac[[aac_id]], collapse = ","), by = "aac_id"]
-    selected_aac[overlapping_annotations == "", overlapping_annotations := NA_character_]
+  if (selected_aac[, .N] > 0) {
+    aac_to_snv = selected_aac[, .(snv_id = unlist(constituent_snvs)), by = "aac_id"]
+    aac_to_snv[, c("genes", "assoc_aac") := cesa$mutations$snv[aac_to_snv$snv_id, .(genes, assoc_aac)]]
+    all_genes_by_aac_id = aac_to_snv[, .(genes = .(unique(unlist(genes)))), by = "aac_id"]
+    assoc_aac_by_aac_id = aac_to_snv[, .(assoc_aac = .(unique(unlist(assoc_aac)))), by = "aac_id"]
+    selected_aac[all_genes_by_aac_id, all_genes := genes, on = "aac_id"]
+    selected_aac[assoc_aac_by_aac_id, all_aac := assoc_aac, on = "aac_id"]
   } else {
-    selected_aac[, overlapping_annotations := NA_character_]
+    selected_aac[, all_genes := list(NA_character_)]
+    selected_aac[, all_aac := list(NA_character_)]
   }
-  selected_aac[, multi_anno_site := F][! is.na(overlapping_annotations), multi_anno_site := T]
-  
-  selected_snv[, genes := NULL]
-  setnames(selected_snv, "snv_id", "variant_id")
+  selected_aac[, multi_anno_site := F][which(sapply(all_aac, length) > 1 | sapply(all_genes, length) > 1), multi_anno_site := T]
   setnames(selected_aac, "aac_id", "variant_id")
-  
-  
+
+  # Combine SNV and AAC tables
   combined = rbindlist(list(selected_aac, selected_snv), use.names = T, fill = T)
   if(combined[, .N] == 0) {
     message("No variants passed selection criteria!")
     return(NULL)
   }
-  
   
   all_cov_cols = character() # for output column name ordering
   for (group in cesa@progressions) {
@@ -255,9 +302,8 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
     combined[, total_samples_covering := rowSums(.SD), .SDcols = all_cov_cols]
     all_cov_cols = c(all_cov_cols, "total_samples_covering")
   }
-  combined[, tmp := S4Vectors::unstrsplit(covered_in, sep = ",")]
-  combined[, covered_in := NULL][, covered_in := tmp][, tmp := NULL]
-  combined[covered_in == "", covered_in :=  NA_character_] # variants may be covered by nothing if add_variants was used
+  # convert 0-length covered_in to NA
+  combined[which(sapply(covered_in, length) == 0), covered_in := list(NA_character_)]
   
   
   # Break down frequency counts
@@ -271,12 +317,11 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
       snv_counts = group_maf[variant_type == "snv", .N, by = "variant_id"][N >= min_freq]
       if(snv_counts[, .N] > 0) {
         combined[snv_counts, (curr_col) := N, on = "variant_id"]
-        
         # can't be AACs unless there are SNVs, hence nested
-        aac_counts = group_maf[! is.na(assoc_aac), .(variant_id = unlist(assoc_aac)), by = "variant_id"]
+        aac_counts = group_maf[! is.na(assoc_aac), .(aac_id = unlist(assoc_aac)), by = "variant_id"]
         if(aac_counts[, .N] > 0) {
-          aac_counts = aac_counts[, .N, by = "variant_id"][N >= min_freq]
-          combined[aac_counts, (curr_col) := N, on = "variant_id"]
+          aac_counts = aac_counts[, .N, by = "aac_id"][N >= min_freq]
+          combined[aac_counts, (curr_col) := N, on = c(variant_id = "aac_id")]
         }
       }
     }
@@ -285,31 +330,34 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
   } else {
     maf_freq_cols = "maf_frequency"
   }
+  # collapse list columns, if specified
+  if (collapse_lists) {
+    # Problem: unstrsplit converts NA to "NA"
+    # "NA" is not a valid value for any of these except all_genes, and going to assume there is not a gene called "NA"
+    list_cols = c("constituent_snvs", "covered_in", "all_genes", "all_aac")
+    combined[, (list_cols) := lapply(.SD, function(x) S4Vectors::unstrsplit(x, sep = ",")), .SDcols = list_cols]
+    combined[, (list_cols) := lapply(.SD, function(x) gsub('NA', NA_character_, x)), .SDcols = list_cols]
 
+  }
 
-  setkey(combined, "chr")
-  
   # order output in chr/pos order
+  setkey(combined, "chr")
   combined = combined[BSgenome::seqnames(bsg), nomatch = NULL][, .SD[order(start)], by = "chr"]
-  
-  # put in short IDs (no protein ID) for AAC mutations (SNVs use same name)
-  combined[variant_type == "aac", variant_name := paste(gene, aachange, sep = "_")]
-  combined[variant_type == "snv", variant_name := variant_id]
-  
   setcolorder(combined, c("variant_name", "variant_type", "chr", "start", "end", "variant_id", "ref", "alt", "gene", 
-                          "strand", "aachange", "essential_splice", "intergenic", "trinuc_mut", "constituent_snvs",
-                          "multi_anno_site", "overlapping_annotations", "aa_ref", "aa_pos", "aa_alt", "coding_seq", "center_nt_pos", "pid", 
+                          "strand", "aachange", "essential_splice", "intergenic", "trinuc_mut", "aa_ref", "aa_pos", "aa_alt", "coding_seq", 
+                          "center_nt_pos", "pid", "constituent_snvs", "multi_anno_site", "all_aac", "all_genes",
                           "covered_in", unlist(zipup(all_cov_cols, maf_freq_cols))))
   
-  
+  # notify about sites with multiple genes/CDS
   if(any(combined$multi_anno_site)) {
     gene_note = ifelse(is.null(genes), "", ", regardless of your \"genes\" input")
-    msg = paste0("Note: Some of your variants cover sites with more than one gene/transcript annotation. These are comma-delimited ",
-    "in the \"overlapping_annotations\" column. (The gene column gives one of the genes arbitrarily", gene_note, 
-    ". You can find these variants by filtering on the multi_anno_site column.")
+    collapse_note = ifelse(collapse_lists == T,  'comma-delimited', 'listed')
+    msg = paste0("Note: Some of your variants cover sites that overlap more than one gene, transcript or coding sequence. These are ",
+                 collapse_note, " in the \"all_genes\" and \"all_aac\" columns. (For SNVs, the gene column gives a single gene arbitrarily", 
+                 gene_note, ".) You can find these variants by filtering on the multi_anno_site column.")
     pretty_message(msg)
   }
-  return(combined[]) # brackets avoid output potentially not printing (sort of a DT issue)
+  return(combined[]) # brackets force the output to print when unassigned (should automatically, but this is a known data.table issue)
 }
 
 
@@ -402,10 +450,11 @@ add_covered_regions = function(target_cesa = NULL, source_cesa = NULL, covered_r
   if (! is.character(coverage_type) | length(coverage_type) != 1 | ! coverage_type %in% c("exome", "targeted")) {
     stop("coverage_type should be exome or targeted.", call. = F)
   }
-  if (! is.character(covered_regions_name) | length(covered_regions_name) != 1) {
+  if (! is.character(covered_regions_name) | length(covered_regions_name) != 1 | is.na(covered_regions_name)) {
     stop("covered_regions_name should be 1-length character.")
   }
-  if (tolower(covered_regions_name) %in% c("exome", "exome+", "genome")) {
+  # exome, exome+, genome are reserved, and we don't want "NA" to be the name
+  if (tolower(covered_regions_name) %in% c("exome", "exome+", "genome", "na")) {
     stop("Please pick a different covered_regions_name; you chose one reserved for internal use.")
   }
   # covered_regions_name must start with letter, contain only letters, numbers, underscores, hyphen, period

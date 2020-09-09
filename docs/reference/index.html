@@ -79,7 +79,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9012</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9012.1</span>
       </span>
     </div>
 
@@ -145,7 +145,7 @@
       <tr>
         <th colspan="2">
           <h2 id="section-basic-workflow" class="hasAnchor"><a href="#section-basic-workflow" class="anchor"></a>Basic workflow</h2>
-          <p class="section-desc"><p>Functions to run sequentially in most cancereffectsizeR analyses</p></p>
+          <p class="section-desc"><p>Core functions for cancereffectsizeR analyses</p></p>
         </th>
       </tr>
       
@@ -187,7 +187,32 @@
     </tbody><tbody>
       <tr>
         <th colspan="2">
-          <h2 id="section-exploring-genomic-reference-data" class="hasAnchor"><a href="#section-exploring-genomic-reference-data" class="anchor"></a>Exploring genomic reference data</h2>
+          <h2 id="section-epistasis" class="hasAnchor"><a href="#section-epistasis" class="anchor"></a>Epistasis</h2>
+          <p class="section-desc"><p>Assess pairwise epistasis between variants or genes</p></p>
+        </th>
+      </tr>
+      
+      
+    </tbody><tbody>
+      
+      
+      <tr>
+        
+        <td>
+          <p><code><a href="ces_gene_epistasis.html">ces_gene_epistasis()</a></code> </p>
+        </td>
+        <td><p>Gene-level epistasis</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="ces_epistasis.html">ces_epistasis()</a></code> </p>
+        </td>
+        <td><p>Variant-level pairwise epistasis</p></td>
+      </tr>
+    </tbody><tbody>
+      <tr>
+        <th colspan="2">
+          <h2 id="section-get-variant-info" class="hasAnchor"><a href="#section-get-variant-info" class="anchor"></a>Get variant info</h2>
           <p class="section-desc"></p>
         </th>
       </tr>
@@ -199,9 +224,71 @@
       <tr>
         
         <td>
-          <p><code><a href="list_ces_genomes.html">list_ces_genomes()</a></code> </p>
+          <p><code><a href="select_variants.html">select_variants()</a></code> </p>
         </td>
-        <td><p>list_ces_genomes</p></td>
+        <td><p>Select and filter variants</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="baseline_mutation_rates.html">baseline_mutation_rates()</a></code> </p>
+        </td>
+        <td><p>Baseline mutation rate calculation</p></td>
+      </tr>
+    </tbody><tbody>
+      <tr>
+        <th colspan="2">
+          <h2 id="section-data-management" class="hasAnchor"><a href="#section-data-management" class="anchor"></a>Data management</h2>
+          <p class="section-desc"></p>
+        </th>
+      </tr>
+      
+      
+    </tbody><tbody>
+      
+      
+      <tr>
+        
+        <td>
+          <p><code><a href="load_cesa.html">load_cesa()</a></code> </p>
+        </td>
+        <td><p>Load a previously saved CESAnalysis object</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="add_variants.html">add_variants()</a></code> </p>
+        </td>
+        <td><p>Add variant annotations</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="add_covered_regions.html">add_covered_regions()</a></code> </p>
+        </td>
+        <td><p>add_covered_regions</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="annotate_variants.html">annotate_variants()</a></code> </p>
+        </td>
+        <td><p>Annotate variants</p></td>
+      </tr>
+    </tbody><tbody>
+      <tr>
+        <th colspan="2">
+          <h2 id="section-explore-reference-data" class="hasAnchor"><a href="#section-explore-reference-data" class="anchor"></a>Explore reference data</h2>
+          <p class="section-desc"></p>
+        </th>
+      </tr>
+      
+      
+    </tbody><tbody>
+      
+      
+      <tr>
+        
+        <td>
+          <p><code><a href="list_ces_ref_sets.html">list_ces_ref_sets()</a></code> </p>
+        </td>
+        <td><p>list_ces_ref_sets</p></td>
       </tr><tr>
         
         <td>
@@ -220,6 +307,25 @@
           <p><code><a href="get_ces_signature_set.html">get_ces_signature_set()</a></code> </p>
         </td>
         <td><p>get_ces_signature_set</p></td>
+      </tr>
+    </tbody><tbody>
+      <tr>
+        <th colspan="2">
+          <h2 id="section-create-custom-reference-data" class="hasAnchor"><a href="#section-create-custom-reference-data" class="anchor"></a>Create custom reference data</h2>
+          <p class="section-desc"><p>More coming soon!</p></p>
+        </th>
+      </tr>
+      
+      
+    </tbody><tbody>
+      
+      
+      <tr>
+        
+        <td>
+          <p><code><a href="build_RefCDS.html">build_RefCDS()</a></code> </p>
+        </td>
+        <td><p>cancereffectsizeR's RefCDS builder</p></td>
       </tr>
     </tbody><tbody>
       <tr>
@@ -261,44 +367,7 @@
     </tbody><tbody>
       <tr>
         <th colspan="2">
-          <h2 id="section-miscellaneous" class="hasAnchor"><a href="#section-miscellaneous" class="anchor"></a>Miscellaneous</h2>
-          <p class="section-desc"></p>
-        </th>
-      </tr>
-      
-      
-    </tbody><tbody>
-      
-      
-      <tr>
-        
-        <td>
-          <p><code><a href="load_cesa.html">load_cesa()</a></code> </p>
-        </td>
-        <td><p>Load a previously saved CESAnalysis object</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="annotate_variants.html">annotate_variants()</a></code> </p>
-        </td>
-        <td><p>Annotate variants</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="baseline_mutation_rates.html">baseline_mutation_rates()</a></code> </p>
-        </td>
-        <td><p>Baseline mutation rate calculation</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="build_RefCDS.html">build_RefCDS()</a></code> </p>
-        </td>
-        <td><p>cancereffectsizeR's RefCDS builder</p></td>
-      </tr>
-    </tbody><tbody>
-      <tr>
-        <th colspan="2">
-          <h2 id="section-viewing-cesanalysis-data" class="hasAnchor"><a href="#section-viewing-cesanalysis-data" class="anchor"></a>Viewing CESAnalysis data</h2>
+          <h2 id="section-accessors" class="hasAnchor"><a href="#section-accessors" class="anchor"></a>Accessors</h2>
           <p class="section-desc"><p>Data accession functions that you probably won’t need (use cesa$maf, cesa$samples, etc. instead)</p></p>
         </th>
       </tr>
@@ -355,37 +424,6 @@
           <p><code><a href="snv_results.html">snv_results()</a></code> </p>
         </td>
         <td><p>View results from ces_snv</p></td>
-      </tr>
-    </tbody><tbody>
-      <tr>
-        <th colspan="2">
-          <h2 id="section-in-beta" class="hasAnchor"><a href="#section-in-beta" class="anchor"></a>In beta</h2>
-          <p class="section-desc"></p>
-        </th>
-      </tr>
-      
-      
-    </tbody><tbody>
-      
-      
-      <tr>
-        
-        <td>
-          <p><code><a href="ces_gene_epistasis.html">ces_gene_epistasis()</a></code> </p>
-        </td>
-        <td><p>Gene-level epistasis</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="ces_epistasis.html">ces_epistasis()</a></code> </p>
-        </td>
-        <td><p>Variant-level pairwise epistasis</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="gene_epistasis_results.html">gene_epistasis_results()</a></code> </p>
-        </td>
-        <td><p>View results from gene-level epistasis analysis</p></td>
       </tr>
     </tbody>
     </table>

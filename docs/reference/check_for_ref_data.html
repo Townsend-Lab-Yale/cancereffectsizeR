@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>cancereffectsizeR wrapper for deconstructSigs — run_deconstructSigs • cancereffectsizeR</title>
+<title>check_for_ref_data — check_for_ref_data • cancereffectsizeR</title>
 
 <!-- favicons -->
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
@@ -46,9 +46,8 @@
 
 
 
-<meta property="og:title" content="cancereffectsizeR wrapper for deconstructSigs — run_deconstructSigs" />
-<meta property="og:description" content="This function gets called internally by trinuc_mutation_rates() for each tumor in a CESAnalysis, accepting its
-a data.frame of mutation counts and returning deconstructSigs output." />
+<meta property="og:title" content="check_for_ref_data — check_for_ref_data" />
+<meta property="og:description" content="checks if the requested reference data exists and returns T/F" />
 <meta property="og:image" content="/logo.png" />
 
 
@@ -132,59 +131,26 @@ a data.frame of mutation counts and returning deconstructSigs output." />
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>cancereffectsizeR wrapper for deconstructSigs</h1>
-    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/R/run_deconstructSigs.R'><code>R/run_deconstructSigs.R</code></a></small>
-    <div class="hidden name"><code>run_deconstructSigs.Rd</code></div>
+    <h1>check_for_ref_data</h1>
+    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/R/genome_data_handling.R'><code>R/genome_data_handling.R</code></a></small>
+    <div class="hidden name"><code>check_for_ref_data.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>This function gets called internally by trinuc_mutation_rates() for each tumor in a CESAnalysis, accepting its
-a data.frame of mutation counts and returning deconstructSigs output.</p>
+    <p>checks if the requested reference data exists and returns T/F</p>
     </div>
 
-    <pre class="usage"><span class='fu'>run_deconstructSigs</span>(
-  <span class='no'>tumor_trinuc_counts</span>,
-  <span class='no'>signatures_df</span>,
-  <span class='no'>signatures_to_remove</span>,
-  <span class='no'>artifact_signatures</span>,
-  <span class='no'>tri.counts.method</span>
-)</pre>
+    <pre class="usage"><span class='fu'>check_for_ref_data</span>(<span class='no'>data_dir_or_cesa</span>, <span class='no'>datatype</span>)</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>tumor_trinuc_counts</th>
-      <td><p>one-row data.frame of trinuc variant counts (in deconstructSigs order) for one tumor</p></td>
-    </tr>
-    <tr>
-      <th>signatures_df</th>
-      <td><p>data.frame of signatures (see COSMIC v3 signatures included with package for format)</p></td>
-    </tr>
-    <tr>
-      <th>signatures_to_remove</th>
-      <td><p>names of signatures in signatures_df to keep out of deconstructSigs and assign zero weights</p></td>
-    </tr>
-    <tr>
-      <th>artifact_signatures</th>
-      <td><p>names of signatures that should be treated as experimental (e.g., sequencing) artifacts
-(these have weights calculated but are then normalized out when calculating true trinuc proportions)</p></td>
-    </tr>
-    <tr>
-      <th>tri.counts.method</th>
-      <td><p>exome/genome trinucleotide content normalization argument to pass to deconstructSigs (see its docs)</p></td>
+      <th>data_dir_or_cesa</th>
+      <td><p>CESAnalysis, or file path for reference data directory</p></td>
     </tr>
     </table>
 
-    <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
-
-    <p>a list with 2 items: raw_sig_output (exactly what comes out of deconstructSigs) and adjusted_sig_output, which contains
-        signature weights (possibly adjusted with artifact accounting) and expected relative trinuc mutation rates based on 
-        signature weights</p>
-    <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
-
-    <p>Since this funciton implements artifact accounting and signature removal, you may find it useful for your own mutational 
-signature analyses. However, you may be able to just use trinuc_mutation_rates().</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

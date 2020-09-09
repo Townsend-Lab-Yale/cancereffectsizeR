@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>cancereffectsizeR wrapper for deconstructSigs — run_deconstructSigs • cancereffectsizeR</title>
+<title>add_covered_regions — add_covered_regions • cancereffectsizeR</title>
 
 <!-- favicons -->
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
@@ -46,9 +46,8 @@
 
 
 
-<meta property="og:title" content="cancereffectsizeR wrapper for deconstructSigs — run_deconstructSigs" />
-<meta property="og:description" content="This function gets called internally by trinuc_mutation_rates() for each tumor in a CESAnalysis, accepting its
-a data.frame of mutation counts and returning deconstructSigs output." />
+<meta property="og:title" content="add_covered_regions — add_covered_regions" />
+<meta property="og:description" content="add_covered_regions" />
 <meta property="og:image" content="/logo.png" />
 
 
@@ -132,59 +131,57 @@ a data.frame of mutation counts and returning deconstructSigs output." />
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>cancereffectsizeR wrapper for deconstructSigs</h1>
-    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/R/run_deconstructSigs.R'><code>R/run_deconstructSigs.R</code></a></small>
-    <div class="hidden name"><code>run_deconstructSigs.Rd</code></div>
+    <h1>add_covered_regions</h1>
+    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/R/variant_handling.R'><code>R/variant_handling.R</code></a></small>
+    <div class="hidden name"><code>add_covered_regions.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>This function gets called internally by trinuc_mutation_rates() for each tumor in a CESAnalysis, accepting its
-a data.frame of mutation counts and returning deconstructSigs output.</p>
+    <p>add_covered_regions</p>
     </div>
 
-    <pre class="usage"><span class='fu'>run_deconstructSigs</span>(
-  <span class='no'>tumor_trinuc_counts</span>,
-  <span class='no'>signatures_df</span>,
-  <span class='no'>signatures_to_remove</span>,
-  <span class='no'>artifact_signatures</span>,
-  <span class='no'>tri.counts.method</span>
+    <pre class="usage"><span class='fu'>add_covered_regions</span>(
+  <span class='kw'>target_cesa</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>source_cesa</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>covered_regions</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>covered_regions_name</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>coverage_type</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>covered_regions_padding</span> <span class='kw'>=</span> <span class='fl'>0</span>
 )</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>tumor_trinuc_counts</th>
-      <td><p>one-row data.frame of trinuc variant counts (in deconstructSigs order) for one tumor</p></td>
+      <th>target_cesa</th>
+      <td><p>CESAnalysis with annotated variants that the covered regions will be added to</p></td>
     </tr>
     <tr>
-      <th>signatures_df</th>
-      <td><p>data.frame of signatures (see COSMIC v3 signatures included with package for format)</p></td>
+      <th>source_cesa</th>
+      <td><p>Another CESAnalysis to copy all covered regions from</p></td>
     </tr>
     <tr>
-      <th>signatures_to_remove</th>
-      <td><p>names of signatures in signatures_df to keep out of deconstructSigs and assign zero weights</p></td>
+      <th>covered_regions</th>
+      <td><p>A GRanges object or BED file path with genome build matching the target_cesa,
+if not using source_cesa</p></td>
     </tr>
     <tr>
-      <th>artifact_signatures</th>
-      <td><p>names of signatures that should be treated as experimental (e.g., sequencing) artifacts
-(these have weights calculated but are then normalized out when calculating true trinuc proportions)</p></td>
+      <th>covered_regions_name</th>
+      <td><p>A name to identify the covered regions, if not using source_cesa</p></td>
     </tr>
     <tr>
-      <th>tri.counts.method</th>
-      <td><p>exome/genome trinucleotide content normalization argument to pass to deconstructSigs (see its docs)</p></td>
+      <th>coverage_type</th>
+      <td><p>exome or targeted, if not using source_cesa</p></td>
+    </tr>
+    <tr>
+      <th>covered_regions_padding</th>
+      <td><p>optionally, add +/- this many bp to each interval in covered_regions</p></td>
     </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>a list with 2 items: raw_sig_output (exactly what comes out of deconstructSigs) and adjusted_sig_output, which contains
-        signature weights (possibly adjusted with artifact accounting) and expected relative trinuc mutation rates based on 
-        signature weights</p>
-    <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
-
-    <p>Since this funciton implements artifact accounting and signature removal, you may find it useful for your own mutational 
-signature analyses. However, you may be able to just use trinuc_mutation_rates().</p>
+    <p>CESAnalysis given in target_cesa, with the new covered regions added</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

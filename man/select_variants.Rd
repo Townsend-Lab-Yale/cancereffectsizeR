@@ -11,7 +11,9 @@ select_variants(
   granges = NULL,
   min_freq = 1,
   include_subvariants = F,
-  gr_padding = 0
+  gr_padding = 0,
+  ids_only = F,
+  collapse_lists = T
 )
 }
 \arguments{
@@ -36,10 +38,24 @@ SNVs that both cause the same amino acid change: 12:25380275_T>G and 12:25380275
 When include_subvariants = F (the default), and genes = "KRAS", output will be
 returned for KRAS_Q61H but not for the two SNVs (although their IDs will appear in
 the Q61H output). Set to true, and all three variants will be included in output, 
-assuming they don't get filtered out by min_freq or granges.}
+assuming they don't get filtered out by other other options, like min_freq}
 
 \item{gr_padding}{add +/- this many bases to every range specified in "granges"
 (stopping at chromsome ends, naturally)}
+
+\item{ids_only}{instead of outputting a table of variant information, return a list
+of selected variant IDs organized by variant type, without any annotations}
+
+\item{collapse_lists}{Some output columns may have multiple elements per variant row.
+For example, all_genes may include multiple genes. When collapse_lists = T, these
+columns have their values collapsed into single comma-delimited strings (e.g.
+"Gene1,Gene2"), which are good for visual inspection of data. When collapse_lists =
+F, these columns are returned as "list columns", each element of which is a
+variable-length vector. These are better for advanced scripting, but the syntax to
+manipulate them is a little tricky, so the default is to collapse.}
+}
+\value{
+a data table with info on selected variants (see details), or a list of IDs
 }
 \description{
 This is a lightweight function to help you find and manipulate variant data from your
@@ -51,10 +67,39 @@ parameter to filter out variants that don't intersect an input GRanges object. U
 min_freq to filter out variants by frequency in the MAF data.
 }
 \details{
-To collect all available variant data, set min_freq = 0, include_subvariants = T, and
-no other options. Output will include additional rows for SNVs that are already
-annotated as constituent SNVs of amino-acid-change mutations. Note that while
-intergenic SNVs have their nearest genes annotated in the SNV tables, these variants
-will not be captured by gene-based selection with this function, since they're not
-actually in any gene.
+To collect all available
+variant data, set min_freq = 0, include_subvariants = T, and no other options. Output
+will include additional rows for SNVs that are already annotated as constituent SNVs of
+amino-acid-change mutations. Note that while intergenic SNVs have their nearest genes
+annotated in the SNV tables, these variants will not be captured by gene-based
+selection with this function, since they're not actually in any gene.
+
+Definitions of some less self-explanatory columns:
+\itemize{
+  \item variant_name: short, often but not necessarily uniquely identifying name (use
+  variant_id to guarantee uniqueness) 
+  \item start/end: lowest/highest genomic positions overlapping variant
+  \item variant_id: unique IDs for variants given the associated genome assembly version and the transcript data
+  \item ref/alt: genomic reference and alternate alleles (for genomic
+  variants; NA for AACs) 
+  \item gene: the affected gene in AACs; for SNVs, the
+  overlapping gene (or an abitrary gene if more than one overlaps), or the nearest gene
+  for intergenic SNVs
+  \item strand: for AACs, 1 if the reference sequence strand is the coding strand; -1 otherwise
+  \item essential_splice: Variant is 1,2 bp upstream or
+  1,2,5 bp downstream of an annotated splice position (edge case: if an SNV has
+  multiple gene/transcript annotations, this doesn't say which one it's essential for)
+  \item intergenic: variant does not overlap any gene ranges in the reference data
+  \item trinuc_mut: for SNVs, the reference trinucleotide context, in deconstructSigs notation
+  \item coding_seq: coding strand nucleotides in order of transcription
+  \item center_nt_pos: regardless of strand, start/end give positions of two out of three AAC nucleotides; this
+                      gives the position of the center nucleotide (maybe useful if the AAC spans a splice site)
+  \item constituent_snvs: all SNVs that can produce a given variant 
+  \item multi_anno_site: T/F whether variant has multiple gene/transcript/AAC annotations
+  \item all_aac: For SNVs, all AACs that the variant is annotated as producing; for
+  AACs, all of the AACs that are annotated for all of the constituent SNVs
+  \item all_genes: all genes overlapping the variant in reference data
+  \item covered_in: the names of all "covered regions" sets in the CESAnalysis that have coverage at the variant site
+  \item maf_freq: number of occurrences of the variant in MAF data
+}
 }

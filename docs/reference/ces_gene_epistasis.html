@@ -47,7 +47,12 @@
 
 
 <meta property="og:title" content="Gene-level epistasis — ces_gene_epistasis" />
-<meta property="og:description" content="Calculate selection intensity under an assumption of pairwise gene-level epistasis." />
+<meta property="og:description" content="Calculate selection intensity under an assumption of pairwise gene-level epistasis.
+More specifically, selection at the gene level is assumed to act through all recurrent
+variants (variants that appear in just one sample are ignored), with selection
+intensity of each gene assumed to vary based on mutational status of the other gene.
+Returns a table of results, NOT a CESAnalysis, so be careful not to overwrite
+your CESAnalysis." />
 <meta property="og:image" content="/logo.png" />
 
 
@@ -80,7 +85,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9012</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9012.1</span>
       </span>
     </div>
 
@@ -137,7 +142,12 @@
     </div>
 
     <div class="ref-description">
-    <p>Calculate selection intensity under an assumption of pairwise gene-level epistasis.</p>
+    <p>Calculate selection intensity under an assumption of pairwise gene-level epistasis.
+More specifically, selection at the gene level is assumed to act through all recurrent
+variants (variants that appear in just one sample are ignored), with selection
+intensity of each gene assumed to vary based on mutational status of the other gene.
+Returns a table of results, <strong>NOT</strong> a CESAnalysis, so be careful not to overwrite
+your CESAnalysis.</p>
     </div>
 
     <pre class="usage"><span class='fu'>ces_gene_epistasis</span>(
@@ -145,7 +155,7 @@
   <span class='kw'>genes</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/character.html'>character</a></span>(),
   <span class='kw'>cores</span> <span class='kw'>=</span> <span class='fl'>1</span>,
   <span class='kw'>optimx_args</span> <span class='kw'>=</span> <span class='fu'><a href='ces_epistasis_opm_args.html'>ces_epistasis_opm_args</a></span>(),
-  <span class='kw'>return_all_opm_output</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>
+  <span class='kw'>include_opm_report</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>
 )</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
@@ -169,14 +179,19 @@
 none of the CES default values will be used (opm defaults will be used for parameters you don't provide)</p></td>
     </tr>
     <tr>
-      <th>return_all_opm_output</th>
-      <td><p>whether to include full parameter optimization report with output (default false)</p></td>
+      <th>include_opm_report</th>
+      <td><p>dev option to include full parameter optimization report with output (default false)</p></td>
     </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>CESAnalysis object with selection results added for the chosen analysis</p>
+    <p>a table of gene-level epistasis results</p>
+    <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
+
+    <p>Only samples that have coverage at all recurrent sites can be included in analysis
+since samples lacking full coverage may or may not have mutations at the uncovered
+sites</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

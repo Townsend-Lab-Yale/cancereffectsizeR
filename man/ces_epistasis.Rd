@@ -9,13 +9,16 @@ ces_epistasis(cesa = NULL, variants = NULL, cores = 1)
 \arguments{
 \item{cesa}{CESAnalysis}
 
-\item{variants}{list where each element is a character-type pair of variant IDs (either amino-acid-change (coding) variant IDs or SNV IDs)}
+\item{variants}{list where each element is a character-type pair of variant IDs (either
+amino-acid-change (coding) variant IDs or SNV IDs)}
 
 \item{cores}{number of cores for parallel processing of gene pairs}
 }
 \value{
-a data.table with pairwise-epistatic selection intensities and variant frequency info
+a data table with pairwise-epistatic selection intensities and variant
+  frequencies for in tumors that have coverage at both variants in each pair
 }
 \description{
-Calculate selection intensity under an assumption of pairwise epistasis between pairs of variants
+Calculate selection intensity under an assumption of pairwise epistasis between pairs of variants.
+Return a table, \strong{NOT} a CESAnalysis, so be careful not to overwrite your analysis.
 }

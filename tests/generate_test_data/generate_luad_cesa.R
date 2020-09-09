@@ -35,9 +35,8 @@ test_genes = c("EGFR", "ASXL3", "KRAS", "RYR2", "USH2A", "CSMD3", "TP53", "CSMD1
                "OR13H1", "KSR1")
 luad = ces_snv(luad, genes = test_genes, min_freq = 1)
 saveRDS(luad@selection_results, "single_stage_snv_results.rds")
-luad = ces_gene_epistasis(luad, genes = c("EGFR", "KRAS", "TP53"), return_all_opm_output = T)
-saveRDS(luad@gene_epistasis_results, "epistasis_results.rds")
-saveRDS(luad@advanced$opm_output, "epistasis_opm.rds")
+results = ces_gene_epistasis(luad, genes = c("EGFR", "KRAS", "TP53"))
+saveRDS(results, "epistasis_results.rds")
 
 setwd(prev_dir)
 

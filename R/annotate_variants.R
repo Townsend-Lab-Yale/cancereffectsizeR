@@ -68,35 +68,39 @@ annotate_variants <- function(cesa) {
   # We'll handle this situation by making note of the true gene and transcript names.
   
   # To-do: test this
-  if (! is.null(RefCDS[[1]]$real_gene_name)) {
-    # for efficiency, pull out all the necessary RefCDS data together, then split it up
-    ref_subset = lapply(RefCDS[genes_with_aac], function(x) list(meta = list(strand = x$strand, cds = x$protein_id, gene = x$real_gene_name), 
-                                                                 intervals_cds = x$intervals_cds))
-    meta = rbindlist(lapply(lapply(ref_subset, function(x) x$meta), as.data.table))
-    meta[, transcript_id := genes_with_aac]
-    coding_ints = rbindlist(lapply(lapply(ref_subset, function(x) x$intervals_cds), as.data.table), idcol = "transcript_id")
-    setnames(coding_ints, old = c("V1", "V2"), new = c("start", "end"))
-    coding_ints = meta[coding_ints, on = "transcript_id" ]
+  if (aac[, .N] > 0) {
+    if (! is.null(RefCDS[[1]]$real_gene_name)) {
+      # for efficiency, pull out all the necessary RefCDS data together, then split it up
+      ref_subset = lapply(RefCDS[genes_with_aac], function(x) list(meta = list(strand = x$strand, cds = x$protein_id, gene = x$real_gene_name), 
+                                                                   intervals_cds = x$intervals_cds))
+      meta = rbindlist(lapply(lapply(ref_subset, function(x) x$meta), as.data.table))
+      meta[, transcript_id := genes_with_aac]
+      coding_ints = rbindlist(lapply(lapply(ref_subset, function(x) x$intervals_cds), as.data.table), idcol = "transcript_id")
+      setnames(coding_ints, old = c("V1", "V2"), new = c("start", "end"))
+      coding_ints = meta[coding_ints, on = "transcript_id" ]
+    } else {
+      ref_subset = lapply(RefCDS[genes_with_aac], function(x) list(meta = list(strand = x$strand, cds = x$protein_id, gene = x$gene_name), 
+                                                                   intervals_cds = x$intervals_cds))
+      coding_ints = rbindlist(lapply(lapply(ref_subset, function(x) x$intervals_cds), as.data.table), idcol = "gene")
+      setnames(coding_ints, old = c("V1", "V2"), new = c("start", "end"))
+      meta = rbindlist(lapply(lapply(ref_subset, function(x) x$meta), as.data.table))
+      coding_ints = meta[coding_ints, on = "gene" ]
+    } 
+    # CDS intervals should be in genomic order within each cds
+    coding_ints[strand == 1, cds_order :=  seq_len(.N), by = "cds"]
+    coding_ints[strand == -1, cds_order := rev(seq_len(.N)), by = "cds"]
+    coding_ints = coding_ints[order(cds, cds_order)]
+    coding_ints[, cum_cds_width := cumsum(end - start + 1), by = "cds" ]
+    
+    aac[, tmp_end_pos := Start_Position] # need two columns for foverlaps
+    setkey(aac, "gene", "Start_Position", "tmp_end_pos") # yeah, it's called gene for transcript_id currently, too
+    
+    ## To-do: switch gene/transcript_id here
+    cds_hits = foverlaps(coding_ints, aac, by.x = c("gene", "start", "end"), type = "any", nomatch = NULL)
   } else {
-    ref_subset = lapply(RefCDS[genes_with_aac], function(x) list(meta = list(strand = x$strand, cds = x$protein_id, gene = x$gene_name), 
-                                                                 intervals_cds = x$intervals_cds))
-    coding_ints = rbindlist(lapply(lapply(ref_subset, function(x) x$intervals_cds), as.data.table), idcol = "gene")
-    setnames(coding_ints, old = c("V1", "V2"), new = c("start", "end"))
-    meta = rbindlist(lapply(lapply(ref_subset, function(x) x$meta), as.data.table))
-    coding_ints = meta[coding_ints, on = "gene" ]
+    cds_hits = data.table()
   }
-  
-  # CDS intervals should be in genomic order within each cds
-  coding_ints[strand == 1, cds_order :=  seq_len(.N), by = "cds"]
-  coding_ints[strand == -1, cds_order := rev(seq_len(.N)), by = "cds"]
-  coding_ints = coding_ints[order(cds, cds_order)]
-  coding_ints[, cum_cds_width := cumsum(end - start + 1), by = "cds" ]
-  
-  aac[, tmp_end_pos := Start_Position] # need two columns for foverlaps
-  setkey(aac, "gene", "Start_Position", "tmp_end_pos") # yeah, it's called gene for transcript_id currently, too
-  
-  ## To-do: switch gene/transcript_id here
-  cds_hits = foverlaps(coding_ints, aac, by.x = c("gene", "start", "end"), type = "any", nomatch = NULL)
+
   
   if (cds_hits[, .N] > 0) {
     cds_hits[strand == -1, nt_pos := cum_cds_width - (Start_Position - start)]
@@ -320,14 +324,17 @@ annotate_variants <- function(cesa) {
 	genes_in_data = unique(unlist(snv_table$genes))
 	ind_no_splice = sapply(RefCDS[genes_in_data], function(x) length(x$intervals_splice) == 0)
 	genes_with_splice_sites = genes_in_data[! ind_no_splice]
-	essential_splice_sites = unique(rbindlist(lapply(RefCDS[genes_with_splice_sites], function(x) return(list(chr = x$chr, start = x$intervals_splice)))))
-	essential_splice_sites[, end := start]
-	snv_table[, tmp_end_pos := pos]
-	setkey(snv_table, "chr", "pos", "tmp_end_pos")
-	essential_splice_snv_id = foverlaps(essential_splice_sites, snv_table, by.x = c("chr", "start", "end"), type = "any", nomatch = NULL)[, snv_id]
-	snv_table[, tmp_end_pos := NULL]
-	setkey(snv_table, "snv_id")
-	snv_table[, essential_splice := F][essential_splice_snv_id, essential_splice := T]
+	if (length(genes_with_splice_sites) > 0) {
+	  essential_splice_sites = unique(rbindlist(lapply(RefCDS[genes_with_splice_sites], function(x) return(list(chr = x$chr, start = x$intervals_splice)))))
+	  essential_splice_sites[, end := start]
+	  snv_table[, tmp_end_pos := pos]
+	  setkey(snv_table, "chr", "pos", "tmp_end_pos")
+	  essential_splice_snv_id = foverlaps(essential_splice_sites, snv_table, by.x = c("chr", "start", "end"), type = "any", nomatch = NULL)[, snv_id]
+	  snv_table[, tmp_end_pos := NULL]
+	  setkey(snv_table, "snv_id")
+	  snv_table[, essential_splice := F][essential_splice_snv_id, essential_splice := T]
+	}
+
 	
 	# If an AAC has any constituent SNV at an essential splice site, we'll say the AAC is at an essential splice site
 	if (aac[, .N] > 0) {

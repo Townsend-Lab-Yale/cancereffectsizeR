@@ -1,19 +1,38 @@
 destination: docs
 reference:
 - title: Basic workflow
-  desc:  Functions to run sequentially in most cancereffectsizeR analyses
+  desc:  Core functions for cancereffectsizeR analyses
   contents:
   - CESAnalysis
   - load_maf
   - trinuc_mutation_rates
   - gene_mutation_rates
   - ces_snv
-- title: Exploring genomic reference data
+- title: Epistasis
+  desc: Assess pairwise epistasis between variants or genes
   contents:
-  - list_ces_genomes
+  - ces_gene_epistasis
+  - ces_epistasis
+- title: Get variant info
+  contents:
+  - select_variants
+  - baseline_mutation_rates
+- title: Data management
+  contents:
+  - load_cesa
+  - add_variants
+  - add_covered_regions
+  - annotate_variants
+- title: Explore reference data
+  contents:
+  - list_ces_ref_sets
   - list_ces_covariates
   - list_ces_signature_sets
   - get_ces_signature_set
+- title: Create custom reference data
+  desc: More coming soon!
+  contents:
+  - build_RefCDS
 - title: Mutational signatures
   desc: Additional methods and options for mutational signatures and trinuc mutation rates
   contents:
@@ -21,13 +40,7 @@ reference:
   - set_trinuc_rates
   - assign_group_average_trinuc_rates
   - run_deconstructSigs
-- title: Miscellaneous
-  contents:
-  - load_cesa
-  - annotate_variants
-  - baseline_mutation_rates
-  - build_RefCDS
-- title: Viewing CESAnalysis data
+- title: Accessors
   desc: Data accession functions that you probably won't need (use cesa\$maf, cesa\$samples, etc. instead)
   contents:
   - maf_records
@@ -38,11 +51,6 @@ reference:
   - get_signature_weights
   - get_gene_rates
   - snv_results
-- title: In beta
-  contents:
-  - ces_gene_epistasis
-  - ces_epistasis
-  - gene_epistasis_results
 home:
   description: >
       cancereffectsizeR, an R package from the Townsend Lab at Yale School of Public Health

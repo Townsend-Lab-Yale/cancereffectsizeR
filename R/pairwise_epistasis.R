@@ -1,19 +1,26 @@
-
-
-
 #' Gene-level epistasis
 #' 
-#' Calculate selection intensity under an assumption of pairwise gene-level epistasis. 
+#' Calculate selection intensity under an assumption of pairwise gene-level epistasis.
+#' More specifically, selection at the gene level is assumed to act through all recurrent
+#' variants (variants that appear in just one sample are ignored), with selection
+#' intensity of each gene assumed to vary based on mutational status of the other gene.
+#' Returns a table of results, \strong{NOT} a CESAnalysis, so be careful not to overwrite
+#' your CESAnalysis.
+#' 
+#' Only samples that have coverage at all recurrent sites can be included in analysis
+#' since samples lacking full coverage may or may not have mutations at the uncovered
+#' sites
+#' 
 #' 
 #' @param cesa CESAnalysis object
 #' @param genes vector of gene names; SIs will be calculated for all gene pairs 
 #' @param cores number of cores for parallel processing of gene pairs
 #' @param optimx_args list of optimization parameters to feed into optimx::opm (see optimx docs); if you use this argument,
 #'                    none of the CES default values will be used (opm defaults will be used for parameters you don't provide)
-#' @param return_all_opm_output whether to include full parameter optimization report with output (default false)
-#' @return CESAnalysis object with selection results added for the chosen analysis
+#' @param include_opm_report dev option to include full parameter optimization report with output (default false)
+#' @return a table of gene-level epistasis results
 #' @export
-ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optimx_args = ces_epistasis_opm_args(), return_all_opm_output = FALSE)
+ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optimx_args = ces_epistasis_opm_args(), include_opm_report = FALSE)
 {
   setkey(cesa@samples, "Unique_Patient_Identifier") # in case dt has forgotten its key
   setkey(cesa@mutations$amino_acid_change, "aac_id")
@@ -43,19 +50,16 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optim
     stop("Supply at least two genes to analyze.")
   }
   
-  if(return_all_opm_output) {
-    message("FYI, you can access full parameter optimization output in [CESAnalysis]@advanced$opm_output.")
-  }
-  
   maf = cesa@maf[variant_type == "snv"]
 	genes = unique(genes)
 	genes_in_dataset = unique(unlist(maf$genes))
 	genes_to_analyze = genes[genes %in% genes_in_dataset]
 
-	recurrent_aac_id = maf[! is.na(assoc_aac), .(aac_id = unlist(assoc_aac))][, .N, by = aac_id][N > 1, aac_id]
-	recurrent_snv_id = maf[variant_type == "snv", .(variant_id)][, .N, by = "variant_id"][N > 1, variant_id]
+	recurrent_variants = select_variants(cesa = cesa, genes = genes_to_analyze, min_freq = 2, collapse_lists = F)
+	recurrent_snv_id = recurrent_variants[variant_type == "snv", variant_id]
+	recurrent_aac_id = recurrent_variants[variant_type == "aac", variant_id]
 
-	genes_with_recurrent_variants = unique(c(cesa@mutations$snv[recurrent_snv_id, unlist(genes)], cesa@mutations$amino_acid_change[recurrent_aac_id, gene]))
+	genes_with_recurrent_variants = unique(unlist(recurrent_variants$all_genes))
 	
 	passing_genes = genes_with_recurrent_variants[genes_with_recurrent_variants %in% genes_to_analyze]
 	num_genes = length(passing_genes)
@@ -70,32 +74,35 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optim
   if (length(genes_to_analyze) == 1) {
     stop(sprintf("Only 1 requested gene (%s) has recurrent variants, so epistasis can't be run.", genes_to_analyze), call. = F)
   }
-  gene_pairs <- utils::combn(sort(genes_to_analyze),2, simplify = F)
+  gene_pairs <- utils::combn(sort(genes_to_analyze), 2, simplify = F)
   selection_results = pbapply::pblapply(X = gene_pairs,
                                          FUN = pairwise_gene_epistasis,
                                          cesa=cesa,
                                          optimx_args = optimx_args,
                                          cl = cores)
-  cesa@gene_epistasis_results = data.table::rbindlist(lapply(selection_results, function(x) x[[1]]))
-  if(return_all_opm_output) {
+  results = data.table::rbindlist(lapply(selection_results, function(x) x[[1]]))
+  if(include_opm_report) {
     opm_output = lapply(selection_results, function(x) x[[3]])
     names(opm_output) = lapply(selection_results, function(x) x[[2]])
     # need to take the rownames (which are the methods used) and put them as a column for conversion to data.table
     opm_output = lapply(opm_output, function(x) {x$method = rownames(x); return(x)})
     opm_dt = data.table::rbindlist(opm_output, idcol = "genes")
-    cesa@advanced[["opm_output"]] = opm_dt
+    results = list(results = results, opm_report = opm_dt)
   }
-  return(cesa)
+  return(results)
 }
 
 #' Variant-level pairwise epistasis
 #' 
-#' Calculate selection intensity under an assumption of pairwise epistasis between pairs of variants
+#' Calculate selection intensity under an assumption of pairwise epistasis between pairs of variants.
+#' Return a table, \strong{NOT} a CESAnalysis, so be careful not to overwrite your analysis.
 #' 
 #' @param cesa CESAnalysis
-#' @param variants list where each element is a character-type pair of variant IDs (either amino-acid-change (coding) variant IDs or SNV IDs)
+#' @param variants list where each element is a character-type pair of variant IDs (either
+#'   amino-acid-change (coding) variant IDs or SNV IDs)
 #' @param cores number of cores for parallel processing of gene pairs
-#' @return a data.table with pairwise-epistatic selection intensities and variant frequency info
+#' @return a data table with pairwise-epistatic selection intensities and variant
+#'   frequencies for in tumors that have coverage at both variants in each pair
 #' @export
 ces_epistasis = function(cesa = NULL, variants = NULL, cores = 1) {
   if(! is(cesa, "CESAnalysis")) {
@@ -123,15 +130,14 @@ ces_epistasis = function(cesa = NULL, variants = NULL, cores = 1) {
   setkey(cesa@mutations$snv, "snv_id")
   
   # validate that all variant IDs appear in mutation annotations
-  for (pair in variants) {
+  validated_variants = character()
+  for (i in 1:length(variants)) {
+    pair = variants[[i]]
     if (! is(pair, "character") || length(pair) != 2) {
-      stop("All elements of variants list must be character vectors of length 2 (for two variant IDs)", call. = F)
+      stop("All elements of variants list must be character vectors of length 2 (for two variant IDs)")
     }
-    for (variant in pair) {
-      if (cesa@mutations$snv[variant, .N, nomatch = NULL] + cesa@mutations$amino_acid_change[variant, .N, nomatch = NULL] == 0) {
-        stop(sprintf("Requested variant %s is not in the mutation annotation tables.", variant), call. = F)
-      }
-    }
+    # this is to allow short IDs in the variants list
+    variants[[i]] = unlist(suppressMessages(select_variants(cesa, variant_ids = pair, ids_only = T)), use.names = F)
   }
   selection_results = rbindlist(pbapply::pblapply(X = variants, FUN = pairwise_variant_epistasis, cesa=cesa, cl = cores))
   return(selection_results)
@@ -189,10 +195,10 @@ pairwise_variant_epistasis = function(cesa, variant_pair, variant_types, optimx_
   
   ces_results = list(variant1 = v1, variant2 = v2, ces_v1 = params[1], ces_v2 = params[2],
                      ces_v1_after_v2 = params[3], ces_v2_after_v1 = params[4], 
-                     tumors_just_v1 = length(tumors_just_v1),
-                     tumors_just_v2 = length(tumors_just_v2),
-                     tumors_with_both = length(tumors_with_both),
-                     tumors_with_neither = length(tumors_with_neither))
+                     covered_tumors_just_v1 = length(tumors_just_v1),
+                     covered_tumors_just_v2 = length(tumors_just_v2),
+                     covered_tumors_with_both = length(tumors_with_both),
+                     covered_tumors_with_neither = length(tumors_with_neither))
   return(ces_results)
 }
 
@@ -203,10 +209,11 @@ pairwise_gene_epistasis = function(cesa, genes, optimx_args) {
   gene1 = genes[1]
   gene2 = genes[2]
 
-  # when including target gene sequencing data, we need to throw out any samples
-  # that don't have coverage at ALL recurrent variant sites in these genesthis
+  # When including targeted gene sequencing data, we need to throw out any samples
+  # that don't have coverage at ALL recurrent variant sites in these genes. This
   # could be a problem if some of the "exome" samples are actually whole-genome
-  # if they haven't been trimmed strictly enough
+  # if they haven't been trimmed strictly enough, especially if some of those
+  # sites are low-complexity and filled with calling errors
   
   # Collect mutations present in MAF in the two genes (note that some AACs may
   # be same site, different gene, but okay for coverage check)
@@ -214,7 +221,7 @@ pairwise_gene_epistasis = function(cesa, genes, optimx_args) {
   maf[, `:=`(in_g1 = gene1 %in% genes, in_g2 = gene2 %in% genes), by = "variant_id"]
   if(maf[in_g1 == T & in_g2 == T, .N] > 0) {
     ## To-do: test behavior
-    warning(sprintf("Genes %s and %s having overlapping positions in the MAF data, so the gene pair will be skipped.",
+    warning(sprintf("Genes %s and %s have overlapping positions in the MAF data, so the gene pair will be skipped.",
                     gene1, gene2))
     return(NULL)
   }
