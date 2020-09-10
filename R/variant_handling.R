@@ -128,7 +128,7 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
     genome_info = GenomeInfoDb::seqinfo(bsg)
     mutations_gr = GenomicRanges::makeGRangesFromDataFrame(cesa@mutations$snv, seqnames.field = "chr", start.field = "pos", 
                                                          end.field = "pos", seqinfo = genome_info)
-    captured = cesa@mutations$snv[mutations_gr %within% granges]
+    captured = cesa@mutations$snv[IRanges::overlapsAny(mutations_gr, granges, type = "within")]
     if (captured[, .N] == 0) {
       stop("No mutations captured by input granges.", call. = F)
     }
@@ -273,8 +273,8 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
   }
   
   all_cov_cols = character() # for output column name ordering
-  for (group in cesa@progressions) {
-    curr_samples = cesa@samples[progression_name == group]
+  for (group in cesa@groups) {
+    curr_samples = cesa@samples[group == group]
     num_wgs_samples = curr_samples[covered_regions == "genome", .N]
     cov_counts = curr_samples[, .N, by = "covered_regions"]
     
@@ -283,7 +283,7 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
     setkey(cov_counts, "covered_regions")
     
     # If all full-coverage WGS data, then there will be no unique_combos
-    cov_count_colname = ifelse(length(cesa@progressions) == 1, "samples_covering", paste0("samples_covering_in_", group))
+    cov_count_colname = ifelse(length(cesa@groups) == 1, "samples_covering", paste0("samples_covering_in_", group))
     all_cov_cols = c(all_cov_cols, cov_count_colname)
     if (length(unique_combos) > 0) {
       combo_counts = sapply(unique_combos, function(x) sum(cov_counts[x, N], na.rm = T))
@@ -298,7 +298,7 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
     }
   }
   
-  if (length(cesa@progressions) > 1) {
+  if (length(cesa@groups) > 1) {
     combined[, total_samples_covering := rowSums(.SD), .SDcols = all_cov_cols]
     all_cov_cols = c(all_cov_cols, "total_samples_covering")
   }
@@ -308,11 +308,11 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
   
   # Break down frequency counts
   maf_freq_cols = character()
-  if (length(cesa@progressions) > 1) {
-    for (group in cesa@progressions) {
+  if (length(cesa@groups) > 1) {
+    for (group in cesa@groups) {
       curr_col = paste0("maf_freq_in_", group)
       maf_freq_cols = c(maf_freq_cols, curr_col)
-      group_maf = cesa@maf[Unique_Patient_Identifier %in% cesa@samples[progression_name == group, Unique_Patient_Identifier]]
+      group_maf = cesa@maf[Unique_Patient_Identifier %in% cesa@samples[group == group, Unique_Patient_Identifier]]
       combined[, (curr_col) := 0]
       snv_counts = group_maf[variant_type == "snv", .N, by = "variant_id"][N >= min_freq]
       if(snv_counts[, .N] > 0) {

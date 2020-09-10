@@ -42,7 +42,7 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optim
   }
   # check for custom optimx arguments
   # can't combine epistasis analysis with multi-stage yet
-	if (length(cesa@progressions) > 1) {
+	if (length(cesa@groups) > 1) {
 	  stop("Epistasis analysis is not compatible yet with multi-stage analyses. You'll have to create a new single-stage analysis.")
 	}
 
@@ -110,7 +110,7 @@ ces_epistasis = function(cesa = NULL, variants = NULL, cores = 1) {
   }
   
   # can't combine epistasis analysis with multi-stage yet
-  if (length(cesa@progressions) > 1) {
+  if (length(cesa@groups) > 1) {
     stop("Epistasis analysis is not compatible yet with multi-stage analyses. You'll have to create a new single-stage analysis.", call. = F)
   }
   

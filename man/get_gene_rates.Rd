@@ -2,7 +2,7 @@
 % Please edit documentation in R/CESAnalysis.R
 \name{get_gene_rates}
 \alias{get_gene_rates}
-\title{Get table of neutral gene mutation rates by progression state}
+\title{Get table of neutral gene mutation rates}
 \usage{
 get_gene_rates(cesa = NULL)
 }
@@ -10,5 +10,5 @@ get_gene_rates(cesa = NULL)
 \item{cesa}{CESAnalysis object}
 }
 \description{
-Get table of neutral gene mutation rates by progression state
+Get table of neutral gene mutation rates
 }

@@ -59,11 +59,11 @@ gene_mutation_rates <- function(cesa, covariates = NULL, save_all_dndscv_output 
 #' Internal function to prepare for running dNdScv
 #' @keywords internal
 dndscv_preprocess = function(cesa, covariates = "default") {
-  progs_with_data = cesa@samples[coverage %in% c("exome", "genome"), unique(progression_name)]
-  progs_lacking_data = setdiff(cesa@progressions, progs_with_data)
-  if(length(progs_lacking_data) > 0) {
-    stop(paste0("Cannot run dNdScv because the following tumor progression states have no whole-exome/whole-genome samples,\n",
-                "which are needed for gene mutation rate calculation: ", paste(progs_lacking_data, collapse = ", ")))
+  groups_with_data = cesa@samples[coverage %in% c("exome", "genome"), unique(group)]
+  groups_without_data = setdiff(cesa@groups, groups_with_data)
+  if(length(groups_without_data) > 0) {
+    stop(paste0("Cannot run dNdScv by sample group because the following groups have no whole-exome/whole-genome samples,\n",
+                "which are needed for gene mutation rate calculation: ", paste(groups_without_data, collapse = ", ")))
   }
   if(is.null(covariates)){
     cv = NULL
@@ -100,13 +100,13 @@ dndscv_preprocess = function(cesa, covariates = "default") {
   dndscv_maf = cesa@maf[Unique_Patient_Identifier %in% dndscv_samples,]
 
   dndscv_input = list()
-  for (progression in cesa@progressions) {
-    current_subset_tumors = cesa@samples[progression_name == progression, Unique_Patient_Identifier]
+  for (curr_group in cesa@groups) {
+    current_subset_tumors = cesa@samples[group == curr_group, Unique_Patient_Identifier]
     mutations = dndscv_maf[dndscv_maf$Unique_Patient_Identifier %in% current_subset_tumors,]
     if(nrow(mutations) == 0) {
-      stop(paste0("Can't run dNdScv because tumor progression state ", progression, " has no usable SNV mutations."))
+      stop(paste0("Can't run dNdScv because sample group ", curr_group, " has no usable SNV mutations."))
     }
-    dndscv_input[[progression]] = list(mutations = mutations, gene_list = genes_in_pca, cv = cv)
+    dndscv_input[[curr_group]] = list(mutations = mutations, gene_list = genes_in_pca, cv = cv)
   }
   return(dndscv_input)
 }
@@ -117,7 +117,7 @@ dndscv_postprocess = function(cesa, dndscv_raw_output, save_all_dndscv_output = 
   RefCDS = .ces_ref_data[[cesa@ref_key]]$RefCDS
   gr_genes = .ces_ref_data[[cesa@ref_key]]$gr_genes
   dndscv_out_list = dndscv_raw_output
-  names(dndscv_out_list) = cesa@progressions
+  names(dndscv_out_list) = cesa@groups
    # Get RefCDS data on number of synonymous mutations possible at each site
   # Per dNdScv docs, L matrices list "number of synonymous, missense, nonsense and splice sites in each CDS at each trinucleotide context"
   num_syn = sapply(RefCDS, function(x) colSums(x$L)[1])
@@ -126,8 +126,8 @@ dndscv_postprocess = function(cesa, dndscv_raw_output, save_all_dndscv_output = 
   dndscv_genes = dndscv_out_list[[1]]$genemuts$gene_name # dndscv uses same set of genes for each stage
   num_syn = num_syn[names(num_syn) %in% dndscv_genes]
 
-  mutrates_list <- vector(mode = "list",length = length(cesa@progressions))
-  names(mutrates_list) <- cesa@progressions
+  mutrates_list <- vector(mode = "list",length = length(cesa@groups))
+  names(mutrates_list) <- cesa@groups
 
   message("Using dNdScv output to calculate gene-level mutation rates...")
   for(this_subset in 1:length(mutrates_list)){

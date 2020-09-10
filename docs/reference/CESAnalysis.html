@@ -140,18 +140,21 @@
     <p>Creates a CESAnalysis object, the central data structure of cancereffectsizeR.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>CESAnalysis</span>(<span class='kw'>ref_set</span> <span class='kw'>=</span> <span class='st'>"ces_hg19_v1"</span>, <span class='kw'>progression_order</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)</pre>
+    <pre class="usage"><span class='fu'>CESAnalysis</span>(<span class='kw'>ref_set</span> <span class='kw'>=</span> <span class='st'>"ces_hg19_v1"</span>, <span class='kw'>sample_groups</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
       <th>ref_set</th>
-      <td><p>reference data to use (e.g. "ces_hg19_v1")</p></td>
+      <td><p>reference data to use; run <code><a href='list_ces_ref_sets.html'>list_ces_ref_sets()</a></code> for available ref sets.</p></td>
     </tr>
     <tr>
-      <th>progression_order</th>
-      <td><p>evolutionary order of tumor stage progression (e.g. c("Primary", "Metastatic"))</p></td>
+      <th>sample_groups</th>
+      <td><p>Optionally, supply labels identifying different groups of samples.
+To be able to perform analyses that require ordered groups of samples, give the
+labels in proper order: e.g., c("Primary", "Metastatic"). If you will not be doing
+such analyses, ordering doesn't matter.</p></td>
     </tr>
     </table>
 

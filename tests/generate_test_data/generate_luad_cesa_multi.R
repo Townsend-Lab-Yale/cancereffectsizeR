@@ -1,6 +1,6 @@
 prev_dir = setwd(system.file("tests/test_data/", package = "cancereffectsizeR"))
-luad = CESAnalysis(ref_set = "ces_hg19_v1", progression_order = 1:4)
-luad = load_maf(luad, maf = "luad.hg19.maf.txt", sample_col = "sample_id", progression_col = "fake_stage")
+luad = CESAnalysis(ref_set = "ces_hg19_v1", sample_groups = 1:4)
+luad = load_maf(luad, maf = "luad.hg19.maf.txt", sample_col = "sample_id", group_col = "fake_stage")
 
 
 # use the trinucleotide weight data saved in generate_trinuc_data (seldom a need to change that data)
@@ -20,8 +20,8 @@ dndscv_samples = c("sample-1", "sample-106", "sample-108", "sample-11", "sample-
                    "sample-73", "sample-74", "sample-77", "sample-82", "sample-83", "sample-95", "sample-99")
 maf_for_dndscv = data.table::fread("luad.hg19.maf.txt")
 maf_for_dndscv = maf_for_dndscv[sample_id %in% dndscv_samples]
-for_dndscv = load_maf(cesa = CESAnalysis(ref_set = "ces_hg19_v1", progression_order = 1:4), maf = maf_for_dndscv, sample_col = "sample_id",
-                      tumor_allele_col = "Tumor_Seq_Allele2", progression_col = "fake_stage")
+for_dndscv = load_maf(cesa = CESAnalysis(ref_set = "ces_hg19_v1", sample_groups = 1:4), maf = maf_for_dndscv, sample_col = "sample_id",
+                      tumor_allele_col = "Tumor_Seq_Allele2", group_col = "fake_stage")
 for_dndscv = set_trinuc_rates(for_dndscv, trinuc_rates, ignore_extra_samples = T)
 saveRDS(for_dndscv, "cesa_for_multi_dndscv.rds")
 

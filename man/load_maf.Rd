@@ -17,7 +17,7 @@ load_maf(
   covered_regions = NULL,
   covered_regions_name = NULL,
   covered_regions_padding = 0,
-  progression_col = NULL,
+  group_col = NULL,
   chain_file = NULL,
   enforce_generic_exome_coverage = FALSE
 )
@@ -53,7 +53,7 @@ each covered_regions interval, to include variants called just outside of target
 regions. Consider setting from 0-100bp, or up to the sequencing read length. If the
 input data has been trimmed to the targeted regions, leave set to 0.}
 
-\item{progression_col}{column in MAF with tumor progression state (see docs)}
+\item{group_col}{column in MAF with sample group labels (see \code{?CESAnalysis})}
 
 \item{chain_file}{a chain file (text format, name ends in .chain) to convert MAF
 records to the genome build used in the CESAnalysis}
@@ -63,16 +63,16 @@ that aren't covered in the (somewhat arbitrary) generic exome intervals included
 CES genome reference data (default FALSE)}
 }
 \value{
-CESAnalysis object with the specified MAF data loaded (in addition to any
-  previously loaded data)
+CESAnalysis with the specified MAF data loaded
 }
 \description{
-Load MAF data from a text file or data.frame/data.table into a CESAnalysis object. If column names
-don't match MAF format specifications (Chromosome, Start_Position, etc., with Tumor_Sample_Barcode
-used as the sample ID column), you can supply your own column names. When your CESAnalysis includes
-chronological tumor progression states (e.g., pre- vs. post-treatment, stages 1-4, primary vs. metastatic),
-specify "progression_col". By default, data is assumed to be derived from whole-exome sequencing. Whole-genome
-data and targeted sequencing data are also supported when the "coverage" option is specified. If the data
-you are loading is from a different genome build than your CESAnalysis, you can use the "chain_file" option 
-to supply a UCSC-style chain file, and then your MAF coordinates will be automatically converted with liftOver.
+Load MAF data from a text file or data.frame/data.table into a CESAnalysis object. If
+column names don't match MAF format specifications (Chromosome, Start_Position, etc.,
+with Tumor_Sample_Barcode used as the sample ID column), you can supply your own column
+names. When your CESAnalysis has defined sample groups specify "group_col". By default,
+data is assumed to be derived from whole-exome sequencing. Whole-genome data and
+targeted sequencing data are also supported when the "coverage" option is specified. If
+the data you are loading is from a different genome build than your CESAnalysis, you
+can use the "chain_file" option to supply a UCSC-style chain file, and then your MAF
+coordinates will be automatically converted with liftOver.
 }

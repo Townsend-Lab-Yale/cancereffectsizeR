@@ -1,15 +1,15 @@
 #' Load MAF-formatted somatic mutation data
 #' 
-#' Load MAF data from a text file or data.frame/data.table into a CESAnalysis object. If column names
-#' don't match MAF format specifications (Chromosome, Start_Position, etc., with Tumor_Sample_Barcode
-#' used as the sample ID column), you can supply your own column names. When your CESAnalysis includes
-#' chronological tumor progression states (e.g., pre- vs. post-treatment, stages 1-4, primary vs. metastatic),
-#' specify "progression_col". By default, data is assumed to be derived from whole-exome sequencing. Whole-genome
-#' data and targeted sequencing data are also supported when the "coverage" option is specified. If the data
-#' you are loading is from a different genome build than your CESAnalysis, you can use the "chain_file" option 
-#' to supply a UCSC-style chain file, and then your MAF coordinates will be automatically converted with liftOver.
+#' Load MAF data from a text file or data.frame/data.table into a CESAnalysis object. If
+#' column names don't match MAF format specifications (Chromosome, Start_Position, etc.,
+#' with Tumor_Sample_Barcode used as the sample ID column), you can supply your own column
+#' names. When your CESAnalysis has defined sample groups specify "group_col". By default,
+#' data is assumed to be derived from whole-exome sequencing. Whole-genome data and
+#' targeted sequencing data are also supported when the "coverage" option is specified. If
+#' the data you are loading is from a different genome build than your CESAnalysis, you
+#' can use the "chain_file" option to supply a UCSC-style chain file, and then your MAF
+#' coordinates will be automatically converted with liftOver.
 #' 
-#' @importFrom IRanges "%within%"
 #' @param cesa the CESAnalysis object to load the data into
 #' @param maf Path of tab-delimited text file in MAF format, or an MAF in data.table or data.frame format
 #' @param annotate Annotate mutations with gene and other reference information (required for effect size analysis)
@@ -19,7 +19,7 @@
 #' @param ref_col column name with reference allele data (Reference_Allele)
 #' @param tumor_allele_col column name with alternate allele data; by default,
 #'   values from Tumor_Seq_Allele2 and Tumor_Seq_Allele1 columns are used
-#' @param progression_col column in MAF with tumor progression state (see docs)
+#' @param group_col column in MAF with sample group labels (see \code{?CESAnalysis})
 #' @param coverage exome, genome, or targeted (default exome)
 #' @param covered_regions optional for exome, required for targeted: a GRanges object or a
 #'   BED file of covered intervals matching the CESAnalysis genome
@@ -34,12 +34,11 @@
 #' @param enforce_generic_exome_coverage when loading generic exome data, exclude records
 #'   that aren't covered in the (somewhat arbitrary) generic exome intervals included with
 #'   CES genome reference data (default FALSE)
-#' @return CESAnalysis object with the specified MAF data loaded (in addition to any
-#'   previously loaded data)
+#' @return CESAnalysis with the specified MAF data loaded
 #' @export
 load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumor_Sample_Barcode", chr_col = "Chromosome", start_col = "Start_Position",
                     ref_col = "Reference_Allele", tumor_allele_col = "guess", coverage = "exome", covered_regions = NULL,
-                    covered_regions_name = NULL, covered_regions_padding = 0, progression_col = NULL, chain_file = NULL, enforce_generic_exome_coverage = FALSE) {
+                    covered_regions_name = NULL, covered_regions_padding = 0, group_col = NULL, chain_file = NULL, enforce_generic_exome_coverage = FALSE) {
   
   if (! is(cesa, "CESAnalysis")) {
     stop("cesa should be a CESAnalysis")
@@ -87,13 +86,13 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     stop("Supply MAF data via maf=[file path or data.table/data.frame].")
   }
   
-  if (is.null(progression_col) & length(cesa@progressions) != 1) {
-    stop("You must specify progression_col in the MAF since this CESAnalysis incorporates chronological tumor progression states.")
+  if (is.null(group_col) & length(cesa@groups) != 1) {
+    stop("You must specify group_col in the MAF since this CESAnalysis specifies sample groups.")
   }
   
-  if (! is.null(progression_col) & length(cesa@progressions) == 1) {
-    stop(paste0("This CESAnalysis does not incorporate tumor progression states, so you can't use the \"progression_col\" argument.\n",
-                "Create a new CESAnalysis with \"progression_order\" specified to include this information."))
+  if (! is.null(group_col) & length(cesa@groups) == 1) {
+    stop(paste0("This CESAnalysis does not specify sample groups, so you can't use the \"group_col\" argument.\n",
+                "Create a new CESAnalysis with \"sample_groups\" specified to include this information."))
   }
   
   # give a warning if interval padding is really high
@@ -197,7 +196,7 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
   }
   
   
-  select_cols = c(sample_col, chr_col, start_col, ref_col, progression_col)
+  select_cols = c(sample_col, chr_col, start_col, ref_col, group_col)
   if (tumor_allele_col == "guess") {
     select_cols = c(select_cols, "Tumor_Seq_Allele1", "Tumor_Seq_Allele2", "Tumor_Allele")
   } else {
@@ -254,7 +253,7 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     sample_col = "Unique_Patient_Identifier"
     pretty_message("Found column Unique_Patient_Identifier; we'll assume this is the correct sample ID column.")
   }
-  cols_to_check = c(sample_col, ref_col, chr_col, start_col, progression_col)
+  cols_to_check = c(sample_col, ref_col, chr_col, start_col, group_col)
   if (tumor_allele_col != "guess") {
     cols_to_check = c(cols_to_check, tumor_allele_col)
   }
@@ -335,43 +334,43 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     # To-do: put BSgenome reference check before this check, and then put failing records from this check into the excluded table
   }
   
-  # collect tumor progression information
-  if (! is.null(progression_col)) {
-    if (is.factor(maf[[progression_col]])) {
-      warning("You supplied tumor progression as a factor, but it was converted to character.\n",
-              "The progression ordering will be what you supplied to CESAnalysis() with \"progression_order\",\n",
+  # collect sample group information
+  if (! is.null(group_col)) {
+    if (is.factor(maf[[group_col]])) {
+      warning("You supplied a sample group column as a factor, but it was converted to character.\n",
+              "The group ordering will be what you supplied to CESAnalysis() with \"sample_groups\",\n",
               "regardless of factor ordering.")
     }
-    sample_progressions = as.character(maf[[progression_col]])
-    if(any(is.na(sample_progressions))) {
-      stop("Error: There are NA values in your sample progressions column.")
+    sample_groups = as.character(maf[[group_col]])
+    if(any(is.na(sample_groups))) {
+      stop("Error: There are NA values in your sample groups column.")
     }
   } else {
-    sample_progressions = cesa@progressions[1] # indicates a stageless analysis
+    sample_groups = cesa@groups[1] # indicates a stageless analysis
   }
   
   # select only the necessary columns and give column names that will stay consistent
   maf = maf[,c(..sample_col, ..chr_col, ..start_col, ..ref_col, ..tumor_allele_col)]
   colnames(maf) = c("Unique_Patient_Identifier", "Chromosome", "Start_Position", "Reference_Allele", "Tumor_Allele")
   
-  new_samples = data.table(Unique_Patient_Identifier = maf$Unique_Patient_Identifier, progression_name = sample_progressions)
-  new_samples = new_samples[, .(progression_name = unique(progression_name)), by = "Unique_Patient_Identifier"]
+  new_samples = data.table(Unique_Patient_Identifier = maf$Unique_Patient_Identifier, group = sample_groups)
+  new_samples = new_samples[, .(group = unique(group)), by = "Unique_Patient_Identifier"]
 
-  # associate each progression name with its chronological index (first progression stage is 1, next is 2, etc.)
-  new_samples[, progression_index := sapply(progression_name, function(x) which(cesa@progressions == x)[1])]
+  # associate each group name with its order (for analyses with unordered groupings, this may be arbitrary)
+  new_samples[, group_index := sapply(group, function(x) which(cesa@groups == x)[1])]
   new_samples[, coverage := coverage]
   new_samples[, covered_regions := covered_regions_name]
   
-  # ensure no sample has an illegal progression
-  bad_progressions = setdiff(new_samples[, unique(progression_name)], cesa@progressions)
-  if(length(bad_progressions) > 0) {
-    stop(paste0("The following progressions were not declared in your CESAnalysis, but they were found in your MAF progressions column:\n",
-                paste(bad_progressions, collapse = ", ")))
+  # ensure no sample has an illegal group
+  bad_groups = setdiff(new_samples[, unique(group)], cesa@groups)
+  if(length(bad_groups) > 0) {
+    stop(paste0("The following groups were not declared in your CESAnalysis, but they were found in your MAF groups column:\n",
+                paste(bad_groups, collapse = ", ")))
   }
-  # see if any sample appears more than once in sample table (happens when one sample has multiple listed progressions)
+  # see if any sample appears more than once in sample table (happens when one sample has multiple listed groups)
   repeated_samples = new_samples[duplicated(Unique_Patient_Identifier), unique(Unique_Patient_Identifier)]
   if(length(repeated_samples) > 0) {
-    stop(paste0("The following samples are associated with multiple progressions in the input data:\n", paste(repeated_samples, collapse=", ")))
+    stop(paste0("The following samples are associated with multiple groups in the input data:\n", paste(repeated_samples, collapse=", ")))
   }
   
   # make sure no new samples were already in the previously loaded MAF data
@@ -384,12 +383,12 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     }
   }
   
-  # warn the user if some of the declared progressions don't appear in the data at all
-  if(length(cesa@progressions) > 1) {
-    missing_progressions = cesa@progressions[! cesa@progressions %in% new_samples[,unique(progression_name)]]
-    if (length(missing_progressions) > 0) {
-      warning(paste0("The following tumor progression states were declared in your CESAnalysis, but they weren't present in the MAF data:\n",
-                     paste(missing_progressions, collapse = ", ")))
+  # warn the user if some of the declared groups don't appear in the data at all
+  if(length(cesa@groups) > 1) {
+    missing_groups = cesa@groups[! cesa@groups %in% new_samples[,unique(group)]]
+    if (length(missing_groups) > 0) {
+      warning(paste0("The following groups were declared in your CESAnalysis, but they weren't present in the MAF data:\n",
+                     paste(missing_groups, collapse = ", ")), call. = F)
     }    
   }
   
@@ -493,9 +492,10 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     
     # In an "exome+" data set, compare coverage to default exome instead of whatever the current exome+ intervals are
     if (covered_regions_name == "exome+") {
-      is_uncovered = ! maf_grange %within% cesa@coverage[["exome"]][["exome"]]
+      # equivalent to %within%, but avoids importing
+      is_uncovered = ! IRanges::overlapsAny(maf_grange, cesa@coverage[["exome"]][["exome"]], type = "within")
     } else {
-      is_uncovered = ! maf_grange %within% covered_regions
+      is_uncovered = ! IRanges::overlapsAny(maf_grange, covered_regions, type = "within")
     }
     num_uncovered = sum(is_uncovered)
   }
@@ -592,7 +592,7 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
   # drop any samples that had all mutations excluded
   new_samples = new_samples[Unique_Patient_Identifier %in% maf$Unique_Patient_Identifier]
   cesa@samples = rbind(cesa@samples, new_samples)
-  setcolorder(cesa@samples, c("Unique_Patient_Identifier", "coverage", "covered_regions", "progression_name", "progression_index"))
+  setcolorder(cesa@samples, c("Unique_Patient_Identifier", "coverage", "covered_regions", "group", "group_index"))
   setkey(cesa@samples, "Unique_Patient_Identifier")
   
   if (nrow(excluded) > 0) {

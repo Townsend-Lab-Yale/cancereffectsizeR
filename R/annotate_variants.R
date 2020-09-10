@@ -2,7 +2,6 @@
 #' 
 #' Annotates CESAnaysis MAF data with reference genome and gene data
 #'
-#' @importFrom IRanges "%within%"
 #' @param cesa CESAnalysis object
 #' @export
 annotate_variants <- function(cesa) {
@@ -399,7 +398,7 @@ update_covered_in = function(cesa) {
     snv_table[, covered_in := list()]
   } else {
     all_coverage = all_coverage[sort(names(all_coverage))] # sort by covered regions name
-    is_covered = as.data.table(lapply(all_coverage, function(x) snv_gr %within% x))
+    is_covered = as.data.table(lapply(all_coverage, function(x) IRanges::overlapsAny(snv_gr, x, type = "within")))
     all_names = names(all_coverage)
     
     covered_in = vector(mode = "list", length = snv_table[, .N])

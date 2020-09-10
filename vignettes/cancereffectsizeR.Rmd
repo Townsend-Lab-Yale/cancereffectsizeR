@@ -16,22 +16,28 @@ Once you have a high-confidence set of variants, **do not** filter out records b
 
 
 ### Create CESAnalysis
-Begin by declaring your CESAnalysis object, the primary data structure of cancereffectsizeR. If you have chronological tumor progression state information (e.g., stages 1-4, primary/metastatic, or pre-/post-treatment), then you can provide this information to the analysis in order to have baseline site mutation rates and selection intensities calculated per state rather than all together. You will also supply your genome build.
-
+Begin by declaring your CESAnalysis object, the primary data structure of cancereffectsizeR. A CESAnalysis always
+has associated reference data. Optionally, you can also define sample groupings for the data that will be loaded.
 ```R
-  # skip progression_order for a single-state selection model
-  analysis = CESAnalysis(genome = "hg19", progression_order = c("Primary", "Metastatic")) 
+  # Standard CESAnalysis with built-in reference data
+  cesa = CESAnalysis(ref_set = "ces_hg19_v1")
+  
+  # Same, but with pre-defined sample groups (specific to the data/experiment)
+  cesa = CESAnalysis(ref_set = "ces_hg19_v1", sample_groups = c("smoking", "nonsmoking"))
+  
+  # Same, but with sample groups that arguably have an evolutionary ordering, 
+  # suppliedin proper order for analyses that take ordering into account. 
+  # (Keep in mind that only 1 sample per individual can be included in analysis.)
+  cesa = CESAnalysis(ref_set = "ces_hg19_v1", sample_groups = c("early", "stage3", "stage4"))
+  
 ```
-
-Note: Currently only hg19 is supported, but detailed instructions are coming soon for generating custom reference data to run CES with any genome build. 
+Note: Currently, there is built-in reference data for hg19, which may be updated periodically. Detailed instructions are coming soon for generating custom reference data for any genome.
 
 ### Load MAF data
-Next, use `load_maf()` to load [MAF](https://docs.gdc.cancer.gov/Data/File_Formats/MAF_Format/#gdc-maf-format-v100) data from a text file or a data table into a CESAnalysis object. If column names don't match MAF format specifications, you can supply your own column names. The only required columns are those specifying chromosome, position, reference and tumor alleles, and sample ID (Tumor_Sample_Barcode, by default); any other columns in your data will be ignored. If your CESAnalysis includes chronological tumor progression states (see Create CESAnalysis, above), also specify `progression_col`.
-
-Most of the runtime of `load_maf` goes to producing tables of mutation annotations. These annotations are required for cancereffectsizeR functions and may also be useful for other analyses. Still, you can sometimes save time by setting `annotate = FALSE`. You'll have to reload the data in a new CESAnalysis later, or you can run `annotate_variants()`.
+Next, use `load_maf()` to load [MAF](https://docs.gdc.cancer.gov/Data/File_Formats/MAF_Format/#gdc-maf-format-v100) data from a text file or a data table into a CESAnalysis object. If column names don't match MAF format specifications, you can supply your own column names. The only required columns are those specifying chromosome, position, reference and tumor alleles, and sample ID (Tumor_Sample_Barcode, by default); any other columns in your data will be ignored. If your CESAnalyses specifies sample groups (see Create CESAnalysis, above), also specify `group_col`.
 
 #### Sequencing data coverage
-By default, data is assumed to be derived from whole-exome sequencing. Whole-genome data and targeted sequencing data are also supported when the `coverage` option is specified. For targeted sequencing data, you must provide the set of target regions as a BED file or GRanges object. You can also supply this information for exome data, if you have it available. See `load_maf()` for details.
+By default, data is assumed to be derived from whole-exome sequencing. Whole-genome data and targeted sequencing data are also supported when the `coverage` option is specified. For targeted sequencing data, you must provide the set of target regions as a BED file or GRanges object. You can (and should) also supply this information for exome data, if you have it available. See `load_maf()` for details.
 
 #### LiftOver support
 If the MAF data you are loading is from a different genome build than your CESAnalysis, you can use the `chain_file` option to supply a UCSC-style chain file, and then your MAF coordinates will be automatically converted with liftOver.
@@ -40,23 +46,28 @@ If the MAF data you are loading is from a different genome build than your CESAn
 
 ```R
   ## Example 1
-  analysis = CESAnalysis(genome = "hg19")
+  cesa = CESAnalysis(ref_set = "ces_hg19_v1")
   
   # load in some whole-exome MAF data
-  analysis = load_maf(analysis, maf = "wes_lung_adenocarcinoma.maf")
+  cesa = load_maf(cesa, maf = "wes_lung_adenocarcinoma.maf")
   
   # add some whole-genome data (and lift from hg38 to hg19 with a user-provided chain file)
-  analysis = load_maf(analysis, maf = "wgs_luad.maf", coverage = "genome", chain_file = "hg38ToHg19.over.chain")
+  cesa = load_maf(cesa, maf = "wgs_luad.maf", coverage = "genome", chain_file = "hg38ToHg19.over.chain")
   
-  # add some targeted gene sequencing data
-  analysis = load_maf(analysis, maf = "cancer-gene-targeted_luad.maf", coverage = "targeted", 
+  # Add some targeted gene sequencing data, supplying a name for the coverage intervals (targeted regions)
+  cesa = load_maf(cesa, maf = "cancer-gene-targeted_luad.maf", coverage = "targeted", 
                       covered_regions = "my_target_regions.bed", covered_regions_name = "TGS1")
   
   
   ## Example 2
-  # Creating an analysis for data that has samples annotated as stage 1-4
-  analysis = CESAnalysis(genome = "hg19", progression_order = c(1, 2, 3, 4))
-  analysis = load_maf(analysis, maf = "my_multistage.maf", progression_col = "stage")
+  # Create a CESAnalysis with samples divided into tumor stage groups
+  cesa = CESAnalysis(ref_set = "ces_hg19_v1", sample_groups = 1:4)
+  
+  # Load exome data with known target regions, and (based on knowledge of variant calling methods),
+  # supply some interval padding to variants within 100bp of covered intervals
+  cesa = load_maf(cesa, maf = "my_multistage.maf", group_col = "stage",
+                  coverage = "exome", covered_regions = "my_exome_targets.bed", 
+                  covered_regions_name = "my_exome", covered_regions_padding = 100)
 ```
 
 
@@ -66,12 +77,12 @@ After loading in data, run the following functions to prepare for calculation of
 * `trinuc_mutation_rates()` uses deconstructSigs to extract mutational signature weightings from each tumor's SNV mutation profile, and from there calculates trinucleotide-context-specific SNV mutation rates. See also `vignette("cosmic_cancer_type_note")` for advice on excluding certain signatures that may be presumed absent from your tumors.
 * `gene_mutation_rates()` uses dNdScv to calculate gene-level mutation rates. It's highly recommended to supply tissue-specific covariate data if available. Covariates for many human tissue types are included with this package. Default hg19 covariates from dNdScv are also available.
 
-Finally, use `ces_snv()` to find calculate effect sizes.
+Finally, use `ces_snv()` to find calculate effect size.
 
 ```
   # Create CESAnalysis object and define the chronological tumor progression states
-  analysis = CESAnalysis(genome = "hg19", progression_order = c("Primary", "Metastatic"))
-  analysis = load_maf(analysis, maf = "luad_data.maf", progression_col = "pri_met")
+  analysis = CESAnalysis(ref_set = "ces_hg19_v1", sample_groups = c("Primary", "Metastatic"))
+  analysis = load_maf(analysis, maf = "luad_data.maf", group_col = "pri_met")
   
   # Before running trinuc_mutation_rates, which includes a mutational signature analysis,
   # you can run this function to identify possible signatures to exclude. It's recommended
@@ -92,7 +103,8 @@ Finally, use `ces_snv()` to find calculate effect sizes.
 ```
 
 #### Note on parallel processing
-If you are running in a MacOS or Linux environment, you can speed up processing by providing multiple computing cores using the "cores" argument. Run `parallel::detectCores()` to find out how many cores you have available.
+If you are running in a MacOS or Linux environment, you can speed up processing by providing multiple computing cores using the "cores" argument. Run `parallel::detectCores()` to find out how many cores you have available. (On a personal computer, you'll often get faster runtimes when you leave a core or two free
+for background task.)
 ```R
   # assuming you've already loaded MAF data into object "cesa"
   cesa = trinuc_mutation_rates(cesa, signature_set = "COSMIC_v3.1", cores = 4)

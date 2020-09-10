@@ -1,5 +1,5 @@
 setClass("CESAnalysis", representation(maf = "data.table", trinucleotide_mutation_weights = "list",
-          progressions = "character", mutrates = "data.table", dndscv_out_list = "list",
+          groups = "character", mutrates = "data.table", dndscv_out_list = "list",
           excluded = "data.table", selection_results = "data.table", coverage = "list",
           ref_key = "character", advanced = "list", ref_data_dir = "character", run_history = "character", samples = "data.table", 
           mutations = "list"))
@@ -83,7 +83,7 @@ setMethod("show", "CESAnalysis",
   function(object) {
     if(object@maf[, .N] > 0) {
       cat("Samples:\n")
-      print(object@samples[, .(num_samples = .N), by = c("progression_name", "progression_index", "coverage")][order(progression_index)], row.names = F)
+      print(object@samples[, .(num_samples = .N), by = c("group", "group_index", "coverage")][order(group_index)], row.names = F)
       num_snvs = object@maf[variant_type == "snv", .N]
       cat("\nMAF data: ", num_snvs, " SNVs loaded", sep = "")
       if (identical(object@advanced$annotated, TRUE)) {

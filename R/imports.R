@@ -1,5 +1,4 @@
 #' @import data.table
-#' @import BSgenome
 .datatable.aware=TRUE
 .ces_ref_data = new.env()
 
@@ -11,4 +10,5 @@ pretty_message = function(msg, black = T) {
   }
   message(msg)
 }
+
 NULL

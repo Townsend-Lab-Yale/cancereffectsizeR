@@ -85,28 +85,28 @@ test_that("load_maf edge cases", {
   expect_error(load_maf(cesa = cesa, maf = data.frame()), "Input MAF data set is empty")
 })
 
-test_that("Progression stage handling", {
+test_that("Sample group handling", {
   tiny = CESAnalysis(ref_set = "ces_hg19_v1")
   tiny_maf = get_test_file("tiny.hg19.maf.txt")
   
-  # You can't supply a progression_col to a CESAnalysis that is not stage-specific
-  expect_error(load_maf(cesa = CESAnalysis(ref_set = "ces_hg19_v1"), annotate = F, maf = tiny_maf, sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2", progression_col = "nonexistent-column"),
-               "This CESAnalysis does not incorporate tumor progression")
+  # You can't supply a group_col to a CESAnalysis that is not stage-specific
+  expect_error(load_maf(cesa = CESAnalysis(ref_set = "ces_hg19_v1"), annotate = F, maf = tiny_maf, sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2", group_col = "nonexistent-column"),
+               "This CESAnalysis does not specify sample groups")
   
-  # If CESAnalysis is stage-specific, calls to load_maf must include progression_col
+  # If CESAnalysis is stage-specific, calls to load_maf must include group_col
   bad_maf = get_test_file("bad_stages_1.maf.txt")
-  multistage = CESAnalysis(progression_order = 1:2, ref_set = "ces_hg19_v1")
-  expect_error(load_maf(multistage, maf = bad_maf), "You must specify progression_col")
+  multistage = CESAnalysis(sample_groups = 1:2, ref_set = "ces_hg19_v1")
+  expect_error(load_maf(multistage, maf = bad_maf), "You must specify group_col")
   
   # Ensuring that MAF data triggers error if progressions are out of bounds
-  expect_error(load_maf(multistage, maf = bad_maf, progression_col = "stage"), "The following progressions were not declared")
+  expect_error(load_maf(multistage, maf = bad_maf, group_col = "stage"), "The following groups were not declared")
   
   # Error if one sample has multiple stages listed in MAF data
-  multistage = CESAnalysis(progression_order = 1:4, ref_set = "ces_hg19_v1")
-  expect_error(load_maf(multistage, maf = bad_maf, progression_col = "stage"), "samples are associated with multiple progressions")
+  multistage = CESAnalysis(sample_groups = 1:4, ref_set = "ces_hg19_v1")
+  expect_error(load_maf(multistage, maf = bad_maf, group_col = "stage"), "samples are associated with multiple groups")
   
   # Absence of a declared progression state in the data triggers a warning
-  multistage = expect_warning(load_maf(multistage, annotate = F, maf = fread(bad_maf)[2:4], progression_col = "stage"), "they weren't present in the MAF data")
+  multistage = expect_warning(load_maf(multistage, annotate = F, maf = fread(bad_maf)[2:4], group_col = "stage"), "they weren't present in the MAF data")
   
   # Can't load with annotate = T if data has previously been loaded without annotating
   multistage = expect_error(load_maf(multistage, maf = tiny, annotate = T), "already contains unannotated records")

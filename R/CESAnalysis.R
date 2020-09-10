@@ -1,11 +1,14 @@
 #' Create a cancereffectsizeR analysis
 #' 
 #' Creates a CESAnalysis object, the central data structure of cancereffectsizeR.
-#' @param ref_set reference data to use (e.g. "ces_hg19_v1")
-#' @param progression_order evolutionary order of tumor stage progression (e.g. c("Primary", "Metastatic"))
+#' @param ref_set reference data to use; run \code{list_ces_ref_sets()} for available ref sets.
+#' @param sample_groups Optionally, supply labels identifying different groups of samples.
+#'   To be able to perform analyses that require ordered groups of samples, give the
+#'   labels in proper order: e.g., c("Primary", "Metastatic"). If you will not be doing
+#'   such analyses, ordering doesn't matter.
 #' @return CESAnalysis object
 #' @export
-CESAnalysis = function(ref_set = "ces_hg19_v1", progression_order = NULL) {
+CESAnalysis = function(ref_set = "ces_hg19_v1", sample_groups = NULL) {
   
   # Check for and load reference data for the chosen genome/transcriptome data
   ref_key = ref_set
@@ -13,17 +16,17 @@ CESAnalysis = function(ref_set = "ces_hg19_v1", progression_order = NULL) {
   ref_data_dir = get_ref_set_dirs()[ref_key]
   bsg = .ces_ref_data[[ref_key]]$genome
   
-  # Validate progression_order
-  if (is.null(progression_order)) {
-    progression_order = c("stageless")
+  # Validate sample_groups
+  if (is.null(sample_groups)) {
+    sample_groups = c("stageless")
   }
   
-  if (is.numeric(progression_order)) {
-    progression_order = as.character(progression_order)
+  if (is.numeric(sample_groups)) {
+    sample_groups = as.character(sample_groups)
   }
 
-  if (! is(progression_order, "character")) {
-    stop("progression_order should be a character vector of chronological tumor states (e.g., Primary, Metastatic)")
+  if (! is(sample_groups, "character")) {
+    stop("sample_groups should be a character vector of chronological tumor states (e.g., Primary, Metastatic)")
   }
   
   # advanced is a grab bag of additional stuff to keep track of
@@ -33,7 +36,7 @@ CESAnalysis = function(ref_set = "ces_hg19_v1", progression_order = NULL) {
   ## recording: whether "run_history" is currently being recorded (gets set to false during some internal steps for clarity)
   advanced = list("version" = packageVersion("cancereffectsizeR"), annotated = F, using_exome_plus = F, recording = T)
   cesa = new("CESAnalysis", run_history = character(),  ref_key = ref_key, maf = data.table(), excluded = data.table(),
-             progressions = progression_order, mutrates = data.table(),
+             groups = sample_groups, mutrates = data.table(),
              selection_results = data.table(), ref_data_dir = ref_data_dir,
              advanced = advanced, samples = data.table(), mutations = list())
   cesa = update_cesa_history(cesa, match.call())
@@ -60,6 +63,12 @@ load_cesa = function(file) {
   if (! .hasSlot(cesa, "ref_data_dir")) {
     ## TEMPORARY
     cesa@ref_data_dir = c(ces_hg19_v1 = "/Users/Jeff/cancereffectsizeR/inst/ref_sets/ces_hg19_v1")
+  }
+  if(.hasSlot(cesa, "progressions")) {
+    cesa@groups = cesa@progressions
+    if(cesa@samples[, .N] > 0) {
+      setnames(cesa@samples, c("progression_name", "progression_index"), c("group", "group_index"))
+    }
   }
   
   
@@ -147,13 +156,12 @@ get_sample_info = function(cesa = NULL) {
     stop("No MAF data has been loaded yet, so naturally there is no sample data.")
   }
   
-  # user doesn't need progression columns for single-progression-state analyses
-  if(length(cesa@progressions) == 1) {
-    return(cesa@samples[, -c("progression_index", "progression_name")])
+  # user doesn't need group columns for single-group analyses
+  if(length(cesa@groups) == 1) {
+    return(cesa@samples[, -c("group_index", "group")])
   } else {
     return(cesa@samples)
   }
-  return(cesa@samples)
 }
 
 #' Get expected relative trinucleotide-specific SNV mutation rates
@@ -178,7 +186,7 @@ get_signature_weights = function(cesa = NULL) {
   return(cesa@trinucleotide_mutation_weights$signature_weight_table)
 }
 
-#' Get table of neutral gene mutation rates by progression state
+#' Get table of neutral gene mutation rates
 #' 
 #' @param cesa CESAnalysis object
 #' @export

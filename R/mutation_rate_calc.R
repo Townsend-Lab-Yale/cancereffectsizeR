@@ -67,11 +67,11 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
   sample_gene_rates = as.data.table(expand.grid(gene = relevant_genes, Unique_Patient_Identifier = samples$Unique_Patient_Identifier, 
                                                 stringsAsFactors = F),key = "Unique_Patient_Identifier")
   
-  # add gene mutation rates to the table by using @mutrates and the progressions of each samples
-  sample_gene_rates = sample_gene_rates[samples[, .(Unique_Patient_Identifier, progression_name)]]
+  # add gene mutation rates to the table by using @mutrates and the groups of each samples
+  sample_gene_rates = sample_gene_rates[samples[, .(Unique_Patient_Identifier, group)]]
   melted_mutrates = melt.data.table(cesa@mutrates[gene %in% relevant_genes], id.vars = c("gene"))
-  setnames(melted_mutrates, c("variable", "value"), c("progression_name", "raw_rate"))
-  sample_gene_rates = melted_mutrates[sample_gene_rates, , on = c("gene", "progression_name")]
+  setnames(melted_mutrates, c("variable", "value"), c("group", "raw_rate"))
+  sample_gene_rates = melted_mutrates[sample_gene_rates, , on = c("gene", "group")]
   
   # Load trinuc composition of each gene (composition is a 96-length numeric, deconstructSigs order)
   gene_trinuc_comp = get_ref_data(cesa, "gene_trinuc_comp")

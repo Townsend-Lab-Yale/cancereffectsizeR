@@ -93,7 +93,7 @@ ces_snv <- function(cesa = NULL,
     eligible_tumors = union(eligible_tumors, wgs_samples)
     
     tumors_without_gene_mutated = setdiff(eligible_tumors, tumors_with_gene_mutated)
-    tumor_stage_indices = cesa@samples[eligible_tumors, progression_index]
+    tumor_stage_indices = cesa@samples[eligible_tumors, group_index]
     names(tumor_stage_indices) = eligible_tumors
     rates = baseline_rates[, ..mut_id][[1]]
     names(rates) = baseline_rates[, Unique_Patient_Identifier]
@@ -101,8 +101,8 @@ ces_snv <- function(cesa = NULL,
                       tumors_with_variant = tumors_with_variant, baseline_rates = rates)
     
     # initialize all gamma (SI) values at 1000; bbmle requires a parnames attribute be set to name each gamma (here, g1, g2, etc.)
-    par_init = rep(1000, length(cesa@progressions))
-    names(par_init) <- bbmle::parnames(fn) <- paste0("si_", 1:length(cesa@progressions))
+    par_init = rep(1000, length(cesa@groups))
+    names(par_init) <- bbmle::parnames(fn) <- paste0("si_", 1:length(cesa@groups))
     
     # find optimized selection intensities
     # the selection intensity for any stage that has 0 variants will be on the lower boundary; will muffle the associated warning
@@ -118,7 +118,7 @@ ces_snv <- function(cesa = NULL,
     )
     
     selection_intensity = bbmle::coef(fit)
-    single_stage = length(cesa@progressions) == 1
+    single_stage = length(cesa@groups) == 1
     if (length(selection_intensity) == 1) {
       names(selection_intensity) = "selection_intensity"
     }
@@ -135,7 +135,7 @@ ces_snv <- function(cesa = NULL,
       max_ll = -1 * loglikelihood[1]
       
       # for each SI, use uniroot to get a single-parameter confidence interval
-      for (i in 1:length(cesa@progressions)) {
+      for (i in 1:length(cesa@groups)) {
         if(is.na(selection_intensity[i])) {
           lower = NA_real_
           upper = NA_real_
@@ -162,8 +162,8 @@ ces_snv <- function(cesa = NULL,
             upper = uniroot(ulik, lower = selection_intensity[i], upper = 1e20)$root
           }
         }
-        curr_low_col = ifelse(single_stage, ci_low_colname, paste(ci_low_colname, cesa@progressions[i], sep = "_"))
-        curr_high_col = ifelse(single_stage, ci_high_colname, paste(ci_high_colname, cesa@progressions[i], sep = "_"))
+        curr_low_col = ifelse(single_stage, ci_low_colname, paste(ci_low_colname, cesa@groups[i], sep = "_"))
+        curr_high_col = ifelse(single_stage, ci_high_colname, paste(ci_high_colname, cesa@groups[i], sep = "_"))
         
         ci = list(lower, upper)
         names(ci) = c(curr_low_col, curr_high_col)

@@ -4,12 +4,15 @@
 \alias{CESAnalysis}
 \title{Create a cancereffectsizeR analysis}
 \usage{
-CESAnalysis(ref_set = "ces_hg19_v1", progression_order = NULL)
+CESAnalysis(ref_set = "ces_hg19_v1", sample_groups = NULL)
 }
 \arguments{
-\item{ref_set}{reference data to use (e.g. "ces_hg19_v1")}
+\item{ref_set}{reference data to use; run \code{list_ces_ref_sets()} for available ref sets.}
 
-\item{progression_order}{evolutionary order of tumor stage progression (e.g. c("Primary", "Metastatic"))}
+\item{sample_groups}{Optionally, supply labels identifying different groups of samples.
+To be able to perform analyses that require ordered groups of samples, give the
+labels in proper order: e.g., c("Primary", "Metastatic"). If you will not be doing
+such analyses, ordering doesn't matter.}
 }
 \value{
 CESAnalysis object
