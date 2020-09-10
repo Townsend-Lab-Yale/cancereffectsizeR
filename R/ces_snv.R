@@ -128,8 +128,9 @@ ces_snv <- function(cesa = NULL,
     variant_output = c(list(variant_id = mut_id, variant_type = snv_or_aac), 
                        as.list(selection_intensity),
                        list(loglikelihood = loglikelihood))
-
+    
     if(! is.null(conf)) {
+      
       # can't get confidence intervals for progression states that have no tumors with the variant
       offset = qchisq(conf, 1)/2
       max_ll = -1 * loglikelihood[1]
@@ -148,9 +149,9 @@ ces_snv <- function(cesa = NULL,
             pars[i] = x
             return(fn(pars) - max_ll - offset)
           }
-          # if ulik(.001) is negative, no root on (.001, SI), so assigning .001 as lower bound
+          # if ulik(.001) is negative, no root on (.001, SI), so setting an NA lower bound
           if(ulik(.001) < 0) {
-            lower = .001
+            lower = NA_real_
           } else {
             # Enforcing an SI floor of .001, as in optimization
             lower = max(uniroot(ulik, lower = .001, upper = selection_intensity[i])$root, .001)
