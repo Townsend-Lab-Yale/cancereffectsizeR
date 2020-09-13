@@ -191,7 +191,7 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     pretty_message("Assuming this data has generic exome coverage (it's better to supply covered intervals if you have them; see docs)...")
   } else if (! is.null(covered_regions)) {
     # Use internal function to avoid updating covered_in now (annotate_variants step will handle this larger)
-    cesa = .add_covered_regions(target_cesa = cesa, covered_regions = covered_regions, covered_regions_padding = covered_regions_padding, 
+    cesa = .add_covered_regions(cesa = cesa, covered_regions = covered_regions, covered_regions_padding = covered_regions_padding, 
                                coverage_type = coverage, covered_regions_name = covered_regions_name, update_anno = FALSE)
   }
   
@@ -482,7 +482,6 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
   
   
   
-  
   # remove any MAF records that are not in the coverage, unless generic exome with enforce_generic_exome_coverage = FALSE
   if (covered_regions_name == "genome") {
     num_uncovered = 0
@@ -495,7 +494,7 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
       # equivalent to %within%, but avoids importing
       is_uncovered = ! IRanges::overlapsAny(maf_grange, cesa@coverage[["exome"]][["exome"]], type = "within")
     } else {
-      is_uncovered = ! IRanges::overlapsAny(maf_grange, covered_regions, type = "within")
+      is_uncovered = ! IRanges::overlapsAny(maf_grange, cesa@coverage[[coverage]][[covered_regions_name]], type = "within")
     }
     num_uncovered = sum(is_uncovered)
   }

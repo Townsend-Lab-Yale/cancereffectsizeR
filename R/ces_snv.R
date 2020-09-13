@@ -68,14 +68,10 @@ ces_snv <- function(cesa = NULL,
   tmp = tmp[coding_table[, aac_id], on = "aac_id"]
   aacs_by_tumor = tmp$samples
   names(aacs_by_tumor) = tmp$aac_id
-
-  # include upper/lower CI in column name
-  if(! is.null(conf)) {
-    ci_high_colname = paste0("ci_high_", conf * 100)
-    ci_low_colname = paste0("ci_low_", conf * 100)
-  }
   
   wgs_samples = cesa@samples[covered_regions == "genome", Unique_Patient_Identifier]
+  
+
   
   # function takes in AAC or SNV ID, returns SI table output
   process_variant = function(mut_id, snv_or_aac) {
@@ -97,18 +93,18 @@ ces_snv <- function(cesa = NULL,
     names(tumor_stage_indices) = eligible_tumors
     rates = baseline_rates[, ..mut_id][[1]]
     names(rates) = baseline_rates[, Unique_Patient_Identifier]
+    
     fn = ml_objective(tumor_stages = tumor_stage_indices, tumors_without_gene_mutated = tumors_without_gene_mutated,
                       tumors_with_variant = tumors_with_variant, baseline_rates = rates)
     
-    # initialize all gamma (SI) values at 1000; bbmle requires a parnames attribute be set to name each gamma (here, g1, g2, etc.)
-    par_init = rep(1000, length(cesa@groups))
-    names(par_init) <- bbmle::parnames(fn) <- paste0("si_", 1:length(cesa@groups))
+    par_init = formals(fn)[[1]]
+    names(par_init) = bbmle::parnames(fn)
     
     # find optimized selection intensities
     # the selection intensity for any stage that has 0 variants will be on the lower boundary; will muffle the associated warning
     withCallingHandlers(
       {
-        fit = bbmle::mle2(fn, start = par_init, method="L-BFGS-B", vecpar = T, lower=1e-3, upper=1e9, control=list(fnscale=1e-12), hessian.opts = list(method = "complex"))
+        fit = bbmle::mle2(fn, method="L-BFGS-B", start = par_init, vecpar = T, lower=1e-3, upper=1e9, control=list(fnscale=1e-12))
       },
       warning = function(w) {
         if (startsWith(conditionMessage(w), "some parameters are on the boundary")) {
@@ -130,52 +126,12 @@ ces_snv <- function(cesa = NULL,
                        list(loglikelihood = loglikelihood))
     
     if(! is.null(conf)) {
-      
-      # can't get confidence intervals for progression states that have no tumors with the variant
-      offset = qchisq(conf, 1)/2
-      max_ll = -1 * loglikelihood[1]
-      
-      # for each SI, use uniroot to get a single-parameter confidence interval
-      for (i in 1:length(cesa@groups)) {
-        if(is.na(selection_intensity[i])) {
-          lower = NA_real_
-          upper = NA_real_
-        } else {
-          # univariate likelihood function freezes all but one SI at MLE
-          # offset makes output at MLE negative; function should be positive at lower/upper boundaries (.001, 1e20),
-          # and uniroot will find the zeroes, which should represent the lower/uppper CIs
-          ulik = function(x) { 
-            pars = selection_intensity
-            pars[i] = x
-            return(fn(pars) - max_ll - offset)
-          }
-          # if ulik(.001) is negative, no root on (.001, SI), so setting an NA lower bound
-          if(ulik(.001) < 0) {
-            lower = NA_real_
-          } else {
-            # Enforcing an SI floor of .001, as in optimization
-            lower = max(uniroot(ulik, lower = .001, upper = selection_intensity[i])$root, .001)
-          }
-          if(ulik(1e20) < 0){
-            # this really shouldn't happen
-            upper = NA_real_
-          } else {
-            upper = uniroot(ulik, lower = selection_intensity[i], upper = 1e20)$root
-          }
-        }
-        curr_low_col = ifelse(single_stage, ci_low_colname, paste(ci_low_colname, cesa@groups[i], sep = "_"))
-        curr_high_col = ifelse(single_stage, ci_high_colname, paste(ci_high_colname, cesa@groups[i], sep = "_"))
-        
-        ci = list(lower, upper)
-        names(ci) = c(curr_low_col, curr_high_col)
-        variant_output = c(variant_output, ci)
-      }
+      variant_output = c(variant_output, univariate_si_conf_ints(fit, fn, .001, 1e20, conf))
     }
     return(variant_output)
   }
   
 
-  
   # Will process variants by coverage group (i.e., groups of variants that have the same tumors covering them)
   selection_results = NULL
   coverage_groups = unique(c(coding_table$covered_in, noncoding_table$covered_in))
@@ -212,7 +168,6 @@ ces_snv <- function(cesa = NULL,
       selection_results = rbind(selection_results, rbindlist(pbapply::pblapply(snv_ids, process_variant, snv_or_aac = "snv", cl = cores)))
     }
   }
-
   cesa@selection_results = selection_results
   
   return(cesa)

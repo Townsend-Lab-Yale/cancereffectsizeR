@@ -238,7 +238,11 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
   selected_snv[, c("start", "end") := .(pos, pos)]
   selected_snv[, pos := NULL]
   # for convenience, take 1 gene per SNV for the output gene column (all will appear in all_genes column)
-  selected_snv[, gene := sapply(genes, function(x) x[1])] 
+  if (selected_snv[, .N] > 0) {
+    selected_snv[, gene := sapply(genes, function(x) x[1])] 
+  } else {
+    selected_snv[, gene := character()]
+  }
   selected_snv[intergenic == T, genes := list(NA_character_)]
   selected_snv[, multi_anno_site := F][which(sapply(assoc_aac, length) > 1 | sapply(genes, length) > 1), multi_anno_site := T]
   setnames(selected_snv, c("genes", "assoc_aac", "snv_id"), c("all_genes", "all_aac", "variant_id"))
@@ -273,8 +277,8 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
   }
   
   all_cov_cols = character() # for output column name ordering
-  for (group in cesa@groups) {
-    curr_samples = cesa@samples[group == group]
+  for (curr_group in cesa@groups) {
+    curr_samples = cesa@samples[group == curr_group]
     num_wgs_samples = curr_samples[covered_regions == "genome", .N]
     cov_counts = curr_samples[, .N, by = "covered_regions"]
     
@@ -283,7 +287,7 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
     setkey(cov_counts, "covered_regions")
     
     # If all full-coverage WGS data, then there will be no unique_combos
-    cov_count_colname = ifelse(length(cesa@groups) == 1, "samples_covering", paste0("samples_covering_in_", group))
+    cov_count_colname = ifelse(length(cesa@groups) == 1, "samples_covering", paste0("samples_covering_in_", curr_group))
     all_cov_cols = c(all_cov_cols, cov_count_colname)
     if (length(unique_combos) > 0) {
       combo_counts = sapply(unique_combos, function(x) sum(cov_counts[x, N], na.rm = T))
@@ -309,10 +313,10 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
   # Break down frequency counts
   maf_freq_cols = character()
   if (length(cesa@groups) > 1) {
-    for (group in cesa@groups) {
-      curr_col = paste0("maf_freq_in_", group)
+    for (curr_group in cesa@groups) {
+      curr_col = paste0("maf_freq_in_", curr_group)
       maf_freq_cols = c(maf_freq_cols, curr_col)
-      group_maf = cesa@maf[Unique_Patient_Identifier %in% cesa@samples[group == group, Unique_Patient_Identifier]]
+      group_maf = cesa@maf[Unique_Patient_Identifier %in% cesa@samples[group == curr_group, Unique_Patient_Identifier]]
       combined[, (curr_col) := 0]
       snv_counts = group_maf[variant_type == "snv", .N, by = "variant_id"][N >= min_freq]
       if(snv_counts[, .N] > 0) {

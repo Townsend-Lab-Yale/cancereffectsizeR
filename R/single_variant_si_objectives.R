@@ -2,17 +2,15 @@
 #'
 #' Log-likelihood function under a model of site-specific selection intensities at variant sites
 #'
-#' @param gamma A selection intensity at which to calculate the likelihood
 #' @param tumor_stages an environment with keys = tumor names, values = stage of tumor
 #' @param tumors_without_gene_mutated vector of (eligible) tumors without any mutation in the gene of the variant
 #' @param tumors_with_variant vector of (eligible) tumors with the variant
 #' @param baseline_rates a named vector of baseline mutation rates for each eligible tumor
-#' @return A log likelihood value
+#' @return loglikelihood value
 #' @export
 #' @keywords internal
 
-ml_objective <- function(gamma, tumor_stages, tumors_with_variant, tumors_without_gene_mutated, baseline_rates, modifier = 0) {
-  
+ml_objective <- function(tumor_stages, tumors_with_variant, tumors_without_gene_mutated, baseline_rates) {
   stages_tumors_without = unname(tumor_stages[tumors_without_gene_mutated])
   rates_tumors_without = unname(baseline_rates[tumors_without_gene_mutated])
   
@@ -20,7 +18,9 @@ ml_objective <- function(gamma, tumor_stages, tumors_with_variant, tumors_withou
   sequential_stages_tumors_with = lapply(stages_tumors_with, function(x) 1:x) # e.g., 1 -> 1; 3 -> 1,2,3 (for vector subsetting)
   rates_tumors_with = unname(baseline_rates[tumors_with_variant])
   
+  num_pars = length(unique(c(stages_tumors_with, stages_tumors_without)))
   fn = function(gamma) {
+    gamma = unname(gamma)
     sums = cumsum(gamma)
     gamma_sums = sums[stages_tumors_without]
     sum_log_lik = -1 * sum(gamma_sums * rates_tumors_without)
@@ -43,9 +43,15 @@ ml_objective <- function(gamma, tumor_stages, tumors_with_variant, tumors_withou
     if(!is.finite(sum_log_lik)){
       return(-1e200)
     }
-    return(-1 * sum_log_lik - modifier)
+    return(-1 * sum_log_lik)
   }
+
+  # Set default values for all parameters, which ces_snv will use to set starting values of optimization
+  formals(fn)[["gamma"]] = rep.int(1000, num_pars)
   
+  # Optimization tool, bbmle::mle, requires that vector of parameters to optimize have named elements
+  bbmle::parnames(fn) = paste0("si_", 1:num_pars)
   return(fn)
-    
 }
+
+
