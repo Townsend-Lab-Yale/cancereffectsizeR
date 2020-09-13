@@ -15,35 +15,17 @@
 #' @param cesa CESAnalysis object
 #' @param genes vector of gene names; SIs will be calculated for all gene pairs 
 #' @param cores number of cores for parallel processing of gene pairs
-#' @param optimx_args list of optimization parameters to feed into optimx::opm (see optimx docs); if you use this argument,
-#'                    none of the CES default values will be used (opm defaults will be used for parameters you don't provide)
-#' @param include_opm_report dev option to include full parameter optimization report with output (default false)
 #' @return a table of gene-level epistasis results
 #' @export
-ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optimx_args = ces_epistasis_opm_args(), include_opm_report = FALSE)
+ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1)
 {
   setkey(cesa@samples, "Unique_Patient_Identifier") # in case dt has forgotten its key
   setkey(cesa@mutations$amino_acid_change, "aac_id")
   setkey(cesa@mutations$snv, "snv_id")
   
-  # Some optimx::opm optimization methods crash for unclear reasons: Rnmin, nmkb, newuoa, Rtnmin
-  # Others should be skipped automatically because they aren't appropriate, but it's
-  # necessary to skip them manually: "subplex", "snewtonm", "snewton", "CG", "BFGS","Nelder-Mead", "nlm", "lbfgs"
-  working_methods = c("L-BFGS-B", "nlminb", "Rcgmin", "Rvmmin","spg", "bobyqa", "hjkb", "hjn")
-  if (is(optimx_args, "list")) {
-      if(is.null(optimx_args[["method"]])) {
-        warning(paste0("You specified custom optimization parameters with optimx_args, but you didn't include a \"method\" argument ",
-                        "(see optimx docs), which means all optimx methods will be used. However, several of these tend to crash this function, ",
-                        "and running many methods will substantially slow runtime. The following methods, while not all useful, are believed ",
-                        "to not crash: ", paste(working_methods, collapse = ", "), "."))
-      } 
-  } else {
-      stop("optimx_args should of type list (typically, leave out this argument to use CES default parameters)")
-  }
-  # check for custom optimx arguments
   # can't combine epistasis analysis with multi-stage yet
 	if (length(cesa@groups) > 1) {
-	  stop("Epistasis analysis is not compatible yet with multi-stage analyses. You'll have to create a new single-stage analysis.")
+	  stop("Epistasis analysis is not compatible yet with multi-group analyses. You'll have to create a new single-group analysis.")
 	}
 
   if (length(genes) < 2) {
@@ -103,17 +85,8 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, optim
   selection_results = pbapply::pblapply(X = gene_pairs,
                                          FUN = pairwise_gene_epistasis,
                                          cesa=cesa,
-                                         optimx_args = optimx_args,
                                          cl = cores)
-  results = data.table::rbindlist(lapply(selection_results, function(x) x[[1]]))
-  if(include_opm_report) {
-    opm_output = lapply(selection_results, function(x) x[[3]])
-    names(opm_output) = lapply(selection_results, function(x) x[[2]])
-    # need to take the rownames (which are the methods used) and put them as a column for conversion to data.table
-    opm_output = lapply(opm_output, function(x) {x$method = rownames(x); return(x)})
-    opm_dt = data.table::rbindlist(opm_output, idcol = "genes")
-    results = list(results = results, opm_report = opm_dt)
-  }
+  results = data.table::rbindlist(selection_results)
   return(results)
 }
 
@@ -171,7 +144,7 @@ ces_epistasis = function(cesa = NULL, variants = NULL, cores = 1) {
 
 #' Calculate SIs at variant level under pairwise epistasis model
 #' @keywords internal
-pairwise_variant_epistasis = function(cesa, variant_pair, variant_types, optimx_args = ces_epistasis_opm_args()) {
+pairwise_variant_epistasis = function(cesa, variant_pair) {
   v1 = variant_pair[1]
   v2 = variant_pair[2]
   
@@ -206,17 +179,24 @@ pairwise_variant_epistasis = function(cesa, variant_pair, variant_types, optimx_
   with_both = as.list(all_rates[tumors_with_both])[2:3]
   with_neither = as.list(all_rates[tumors_with_neither])[2:3]
   
-  par = 1000:1003 # initialized values
-  args = c(list(par, fn = ml_objective_pairwise_epistasis,with_just_1 = with_just_1,
-                with_just_2 = with_just_2, with_both = with_both, with_neither = with_neither), optimx_args)
   
-  # suppress warnings because opm complains too much about everything
-  opm_output = suppressWarnings(do.call(optimx::opm, args = args))
-  opm_output$value <- -opm_output$value # we did a minimization of the negative, so need to take the negative again to find the maximum
+  fn = ml_objective_pairwise_epistasis(with_just_1, with_just_2, with_both, with_neither)
+  par_init = formals(fn)[[1]]
+  names(par_init) = bbmle::parnames(fn)
   
-  # each row corresponds to the output from one optimization method; sort from best to worst result
-  optimization <- opm_output[order(opm_output$value,decreasing = T),]
-  params = as.numeric(optimization[1,1:4]) # take best set of parameters
+  # find optimized selection intensities
+  # the selection intensity when some group has 0 variants will be on the lower boundary; will muffle the associated warning
+  withCallingHandlers(
+    {
+      fit = bbmle::mle2(fn, method="L-BFGS-B", start = par_init, vecpar = T, lower=1e-3, upper=1e9)
+    },
+    warning = function(w) {
+      if (startsWith(conditionMessage(w), "some parameters are on the boundary")) {
+        invokeRestart("muffleWarning")
+      }
+    }
+  )
+  params = bbmle::coef(fit)
   
   ces_results = list(variant1 = v1, variant2 = v2, ces_v1 = params[1], ces_v2 = params[2],
                      ces_v1_after_v2 = params[3], ces_v2_after_v1 = params[4], 
@@ -233,7 +213,7 @@ pairwise_variant_epistasis = function(cesa, variant_pair, variant_types, optimx_
 #' The genes are assumed to not overlap in any ranges (the calling
 #' function checks for this).
 #' @keywords internal
-pairwise_gene_epistasis = function(cesa, genes, optimx_args) {
+pairwise_gene_epistasis = function(cesa, genes) {
   gene1 = genes[1]
   gene2 = genes[2]
 
@@ -303,19 +283,24 @@ pairwise_gene_epistasis = function(cesa, genes, optimx_args) {
   with_both = get_summed_mut_rates(tumors_with_both_mutated)
   with_neither = get_summed_mut_rates(tumors_with_neither_mutated)
   
-  par = 1000:1003 # initialized values (rumor has it some methods come up with trivial optimizations when all parameters start the same?)
-  args = c(list(par, fn = ml_objective_pairwise_epistasis,with_just_1 = with_just_1,
-                with_just_2 = with_just_2, with_both = with_both, with_neither = with_neither), optimx_args)
+  fn = ml_objective_pairwise_epistasis(with_just_1, with_just_2, with_both, with_neither)
+  par_init = formals(fn)[[1]]
+  names(par_init) = bbmle::parnames(fn)
   
-  # suppress warnings because opm complains too much about everything
-  opm_output = suppressWarnings(do.call(optimx::opm, args = args))
-  opm_output$value <- -opm_output$value # we did a minimization of the negative, so need to take the negative again to find the maximum
+  # find optimized selection intensities
+  # the selection intensity when some group has 0 variants will be on the lower boundary; will muffle the associated warning
+  withCallingHandlers(
+    {
+      fit = bbmle::mle2(fn, method="L-BFGS-B", start = par_init, vecpar = T, lower=1e-3, upper=1e9)
+    },
+    warning = function(w) {
+      if (startsWith(conditionMessage(w), "some parameters are on the boundary")) {
+        invokeRestart("muffleWarning")
+      }
+    }
+  )
   
-  # each row corresponds to the output from one optimization method; sort from best to worst result
-  optimization <- opm_output[order(opm_output$value,decreasing = T),]
-  params = as.numeric(optimization[1,1:4]) # take best set of parameters
-
-  gene_pair = paste(gene1, gene2, sep=",")
+  params = bbmle::coef(fit)
   ces_results = list(gene_1 = gene1, gene_2 = gene2, ces_g1 = params[1], ces_g2 = params[2],
               ces_g1_after_g2 = params[3], ces_g2_after_g1 = params[4], 
               tumors_with_recurrent_muts_only_g1 = length(tumors_with_ONLY_gene1_mutated),
@@ -323,14 +308,5 @@ pairwise_gene_epistasis = function(cesa, genes, optimx_args) {
               tumors_with_recurrent_muts_in_both = length(tumors_with_both_mutated),
               tumors_with_recurrent_muts_in_neither = length(tumors_with_neither_mutated))
   
-  return(list(ces_results, gene_pair, optimization))
-}
-
-
-#' Get recommended optimx optimization parameters for epistasis functions
-#' @export
-#' @keywords internal
-ces_epistasis_opm_args = function() {
-  # L-BFGS-B is one of the fastest methods and had very good performance in testing
-  return(list(gr = "grfwd", lower=1e-3, upper=1e20, method= "L-BFGS-B"))
+  return(ces_results)
 }

@@ -5,7 +5,6 @@
 \title{ml_objective for pairwise epistasis between variants or genes}
 \usage{
 ml_objective_pairwise_epistasis(
-  par,
   with_just_1,
   with_just_2,
   with_both,
@@ -13,8 +12,6 @@ ml_objective_pairwise_epistasis(
 )
 }
 \arguments{
-\item{par}{A selection intensity at which to calculate the likelihood}
-
 \item{with_just_1}{two-item list of baseline rates in v1/v2 for tumors with mutation in just the first variant(s)}
 
 \item{with_just_2}{two-item list of baseline rates in v1/v2 for tumors with mutation in just the second variant(s)}
@@ -22,6 +19,8 @@ ml_objective_pairwise_epistasis(
 \item{with_both}{two-item list of baseline rates in v1/v2 for tumors with mutation in both}
 
 \item{with_neither}{two-item list of baseline rates in v1/v2 for tumors with mutation n neither}
+
+\item{par}{A selection intensity at which to calculate the likelihood}
 }
 \value{
 A log likelihood value

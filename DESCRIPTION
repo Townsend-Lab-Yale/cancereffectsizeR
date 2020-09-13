@@ -24,7 +24,6 @@ Imports:
 	GenomeInfoDb,
 	GenomicRanges,
 	IRanges,
-	optimx,
 	pbapply,
 	rtracklayer,
 	S4Vectors,

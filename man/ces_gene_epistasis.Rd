@@ -4,13 +4,7 @@
 \alias{ces_gene_epistasis}
 \title{Gene-level epistasis}
 \usage{
-ces_gene_epistasis(
-  cesa = NULL,
-  genes = character(),
-  cores = 1,
-  optimx_args = ces_epistasis_opm_args(),
-  include_opm_report = FALSE
-)
+ces_gene_epistasis(cesa = NULL, genes = character(), cores = 1)
 }
 \arguments{
 \item{cesa}{CESAnalysis object}
@@ -18,11 +12,6 @@ ces_gene_epistasis(
 \item{genes}{vector of gene names; SIs will be calculated for all gene pairs}
 
 \item{cores}{number of cores for parallel processing of gene pairs}
-
-\item{optimx_args}{list of optimization parameters to feed into optimx::opm (see optimx docs); if you use this argument,
-none of the CES default values will be used (opm defaults will be used for parameters you don't provide)}
-
-\item{include_opm_report}{dev option to include full parameter optimization report with output (default false)}
 }
 \value{
 a table of gene-level epistasis results

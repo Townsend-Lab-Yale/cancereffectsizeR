@@ -99,7 +99,7 @@ test_that("Variant-level epistasis", {
   results = ces_epistasis(cesa, variants = list(c("KRAS G12V", "GSTP1_L184L")))
   to_test = results[, as.numeric(.(ces_v1, ces_v2, ces_v1_after_v2, ces_v2_after_v1, covered_tumors_just_v1, 
                                    covered_tumors_just_v2, covered_tumors_with_both, covered_tumors_with_neither))]
-  expect_equal(to_test, c(1322.616, 9033.237, 0.001, 678294.664, 2, 6, 1, 100))
+  expect_equal(to_test, c(1322.616, 9033.237, 0.001, 678294.664, 2, 6, 1, 100), tolerance = 1e-3)
 })
 
 
