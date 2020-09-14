@@ -86,7 +86,7 @@ min_freq to filter out variants by frequency in the MAF data." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9012.1</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9013</span>
       </span>
     </div>
 
@@ -157,7 +157,7 @@ min_freq to filter out variants by frequency in the MAF data.</p>
   <span class='kw'>genes</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
   <span class='kw'>variant_ids</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
   <span class='kw'>granges</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
-  <span class='kw'>min_freq</span> <span class='kw'>=</span> <span class='fl'>1</span>,
+  <span class='kw'>min_freq</span> <span class='kw'>=</span> <span class='fl'>0</span>,
   <span class='kw'>include_subvariants</span> <span class='kw'>=</span> <span class='no'>F</span>,
   <span class='kw'>gr_padding</span> <span class='kw'>=</span> <span class='fl'>0</span>,
   <span class='kw'>ids_only</span> <span class='kw'>=</span> <span class='no'>F</span>,
@@ -229,12 +229,9 @@ manipulate them is a little tricky, so the default is to collapse.</p></td>
     <p>a data table with info on selected variants (see details), or a list of IDs</p>
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
-    <p>To collect all available
-variant data, set min_freq = 0, include_subvariants = T, and no other options. Output
-will include additional rows for SNVs that are already annotated as constituent SNVs of
-amino-acid-change mutations. Note that while intergenic SNVs have their nearest genes
-annotated in the SNV tables, these variants will not be captured by gene-based
-selection with this function, since they're not actually in any gene.</p>
+    <p>Note that while intergenic SNVs have their nearest genes annotated in the SNV tables,
+these variants will not be captured by gene-based selection with this function, since
+they're not actually in any gene.</p>
 <p>Definitions of some less self-explanatory columns:</p><ul>
 <li><p>variant_name: short, often but not necessarily uniquely identifying name (use
   variant_id to guarantee uniqueness)</p></li>

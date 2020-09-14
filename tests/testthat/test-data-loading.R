@@ -29,8 +29,8 @@ test_that("load_maf and variant annotation", {
   tiny = add_variants(target_cesa = tiny, snv_id = "12:132824581_C>A")
   
   
-  expect_null(select_variants(tiny, variant_ids = "12:132824581_C>A"))
-  selected = select_variants(tiny, variant_ids = "12:132824581_C>A", genes = "TTN", min_freq = 0)
+  expect_null(select_variants(tiny, variant_ids = "12:132824581_C>A", min_freq = 1))
+  selected = select_variants(tiny, variant_ids = "12:132824581_C>A", genes = "TTN")
   expect_equal(selected[variant_id == "12:132824581_C>A", covered_in], NA_character_)
   expect_equal(selected[, .N], 3)
   selected = select_variants(tiny, variant_ids = "12:132824581_C>A", genes = "TTN", min_freq = 0, include_subvariants = T)
@@ -43,7 +43,7 @@ test_that("load_maf and variant annotation", {
   # test adding covered regions and covered_regions_padding
   tiny = add_covered_regions(target_cesa = tiny, covered_regions = GRanges("chr12:132824580"), 
                       covered_regions_name = "precise_target_1", coverage_type = "targeted")
-  expect_equal(tiny$mutations$snv["12:132824581_C>A", unlist(covered_in)], character())
+  expect_equal(tiny@mutations$snv["12:132824581_C>A", unlist(covered_in)], character())
   
   # load again, with different ranges
   expect_error(add_covered_regions(target_cesa = tiny, covered_regions = GRanges("chr12:100"), 
@@ -61,7 +61,7 @@ test_that("load_maf and variant annotation", {
   # load again with padding
   tiny = add_covered_regions(target_cesa = tiny, covered_regions = GRanges("chr12:132824580"), 
                       covered_regions_name = "precise_target_2", coverage_type = "targeted", covered_regions_padding = 10)
-  expect_equal(tiny$mutations$snv["12:132824581_C>A", unlist(covered_in)], "precise_target_2")
+  expect_equal(tiny@mutations$snv["12:132824581_C>A", unlist(covered_in)], "precise_target_2")
 })
 
 
@@ -110,6 +110,7 @@ test_that("Sample group handling", {
   
   # Can't load with annotate = T if data has previously been loaded without annotating
   multistage = expect_error(load_maf(multistage, maf = tiny, annotate = T), "already contains unannotated records")
+  
 })
 
 

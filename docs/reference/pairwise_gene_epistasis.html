@@ -47,7 +47,8 @@
 
 
 <meta property="og:title" content="Calculate SIs at gene level under pairwise epistasis model — pairwise_gene_epistasis" />
-<meta property="og:description" content="Calculate SIs at gene level under pairwise epistasis model" />
+<meta property="og:description" content="The genes are assumed to not overlap in any ranges (the calling
+function checks for this)." />
 <meta property="og:image" content="/logo.png" />
 
 
@@ -80,7 +81,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9012.1</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9013</span>
       </span>
     </div>
 
@@ -137,10 +138,11 @@
     </div>
 
     <div class="ref-description">
-    <p>Calculate SIs at gene level under pairwise epistasis model</p>
+    <p>The genes are assumed to not overlap in any ranges (the calling
+function checks for this).</p>
     </div>
 
-    <pre class="usage"><span class='fu'>pairwise_gene_epistasis</span>(<span class='no'>cesa</span>, <span class='no'>genes</span>, <span class='no'>optimx_args</span>)</pre>
+    <pre class="usage"><span class='fu'>pairwise_gene_epistasis</span>(<span class='no'>cesa</span>, <span class='no'>genes</span>, <span class='no'>conf</span>)</pre>
 
 
 

@@ -27,8 +27,8 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
   
   if (! is.null(variant_ids)) {
     variant_ids = na.omit(variant_ids)
-    aac_ids = unique(c(aac_ids, cesa$mutations$amino_acid_change[variant_ids, aac_id, nomatch = NULL]))
-    snv_ids = unique(c(snv_ids, cesa$mutations$snv[variant_ids, snv_id, nomatch = NULL]))
+    aac_ids = unique(c(aac_ids, cesa@mutations$amino_acid_change[variant_ids, aac_id, nomatch = NULL]))
+    snv_ids = unique(c(snv_ids, cesa@mutations$snv[variant_ids, snv_id, nomatch = NULL]))
   }
   
   # Let user specify a subset of samples to calculate rates (or, by default, use all samples)

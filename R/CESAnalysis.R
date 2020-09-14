@@ -197,18 +197,6 @@ get_gene_rates = function(cesa = NULL) {
   return(cesa@mutrates)
 }
 
-#' Get lists of mutations and annotations
-#' 
-#' @param cesa CESAnalysis object
-#' @export
-get_mutations = function(cesa = NULL) {
-  if(! is(cesa, "CESAnalysis")) {
-    stop("\nUsage: get_mutations(cesa), where cesa is a CESAnalysis")
-  }
-  return(cesa@mutations)
-}
-
-
 
 #' View results from ces_snv
 #' 

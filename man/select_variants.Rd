@@ -9,7 +9,7 @@ select_variants(
   genes = NULL,
   variant_ids = NULL,
   granges = NULL,
-  min_freq = 1,
+  min_freq = 0,
   include_subvariants = F,
   gr_padding = 0,
   ids_only = F,
@@ -67,12 +67,9 @@ parameter to filter out variants that don't intersect an input GRanges object. U
 min_freq to filter out variants by frequency in the MAF data.
 }
 \details{
-To collect all available
-variant data, set min_freq = 0, include_subvariants = T, and no other options. Output
-will include additional rows for SNVs that are already annotated as constituent SNVs of
-amino-acid-change mutations. Note that while intergenic SNVs have their nearest genes
-annotated in the SNV tables, these variants will not be captured by gene-based
-selection with this function, since they're not actually in any gene.
+Note that while intergenic SNVs have their nearest genes annotated in the SNV tables,
+these variants will not be captured by gene-based selection with this function, since
+they're not actually in any gene.
 
 Definitions of some less self-explanatory columns:
 \itemize{

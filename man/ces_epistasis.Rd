@@ -4,7 +4,7 @@
 \alias{ces_epistasis}
 \title{Variant-level pairwise epistasis}
 \usage{
-ces_epistasis(cesa = NULL, variants = NULL, cores = 1)
+ces_epistasis(cesa = NULL, variants = NULL, cores = 1, conf = NULL)
 }
 \arguments{
 \item{cesa}{CESAnalysis}
@@ -13,6 +13,9 @@ ces_epistasis(cesa = NULL, variants = NULL, cores = 1)
 amino-acid-change (coding) variant IDs or SNV IDs)}
 
 \item{cores}{number of cores for parallel processing of gene pairs}
+
+\item{conf}{confidence interval size from 0 to 1 (.95 -> 95%); NULL skips calculation,
+significantly reducing runtime}
 }
 \value{
 a data table with pairwise-epistatic selection intensities and variant

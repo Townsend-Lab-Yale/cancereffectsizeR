@@ -13,15 +13,23 @@
 #' 
 #' 
 #' @param cesa CESAnalysis object
-#' @param genes vector of gene names; SIs will be calculated for all gene pairs 
+#' @param genes vector of gene names; SIs will be calculated for all gene pairs
+#' @param conf confidence interval size from 0 to 1 (.95 -> 95%); NULL skips calculation,
+#'   significantly reducing runtime
 #' @param cores number of cores for parallel processing of gene pairs
 #' @return a table of gene-level epistasis results
 #' @export
-ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1)
+ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, conf = NULL)
 {
   setkey(cesa@samples, "Unique_Patient_Identifier") # in case dt has forgotten its key
   setkey(cesa@mutations$amino_acid_change, "aac_id")
   setkey(cesa@mutations$snv, "snv_id")
+  
+  if(! is.null(conf)) {
+    if(! is(conf, "numeric") || length(conf) > 1 || conf <= 0 || conf >= 1) {
+      stop("conf should be 1-length numeric (e.g., .95 for 95% confidence intervals)", call. = F)
+    }
+  }
   
   # can't combine epistasis analysis with multi-stage yet
 	if (length(cesa@groups) > 1) {
@@ -82,11 +90,12 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1)
     }
   }
   
-  selection_results = pbapply::pblapply(X = gene_pairs,
-                                         FUN = pairwise_gene_epistasis,
-                                         cesa=cesa,
-                                         cl = cores)
+  selection_results = pbapply::pblapply(X = gene_pairs, FUN = pairwise_gene_epistasis, cesa=cesa, conf = conf, cl = cores)
   results = data.table::rbindlist(selection_results)
+  
+  # pairwise epistasis function uses v1/v2 in parameter names (as in, variants); sub in g1/g2 for gene
+  colnames(results) = gsub("_v1", "_g1", colnames(results))
+  colnames(results) = gsub("_v2", "_g2", colnames(results))
   return(results)
 }
 
@@ -98,13 +107,21 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1)
 #' @param cesa CESAnalysis
 #' @param variants list where each element is a character-type pair of variant IDs (either
 #'   amino-acid-change (coding) variant IDs or SNV IDs)
+#' @param conf confidence interval size from 0 to 1 (.95 -> 95%); NULL skips calculation,
+#'   significantly reducing runtime
 #' @param cores number of cores for parallel processing of gene pairs
 #' @return a data table with pairwise-epistatic selection intensities and variant
 #'   frequencies for in tumors that have coverage at both variants in each pair
 #' @export
-ces_epistasis = function(cesa = NULL, variants = NULL, cores = 1) {
+ces_epistasis = function(cesa = NULL, variants = NULL, cores = 1, conf = NULL) {
   if(! is(cesa, "CESAnalysis")) {
     stop("cesa should specify a CESAnalysis object", call. = F)
+  }
+  
+  if(! is.null(conf)) {
+    if(! is(conf, "numeric") || length(conf) > 1 || conf <= 0 || conf >= 1) {
+      stop("conf should be 1-length numeric (e.g., .95 for 95% confidence intervals)", call. = F)
+    }
   }
   
   # can't combine epistasis analysis with multi-stage yet
@@ -137,21 +154,21 @@ ces_epistasis = function(cesa = NULL, variants = NULL, cores = 1) {
     # this is to allow short IDs in the variants list
     variants[[i]] = unlist(suppressMessages(select_variants(cesa, variant_ids = pair, ids_only = T)), use.names = F)
   }
-  selection_results = rbindlist(pbapply::pblapply(X = variants, FUN = pairwise_variant_epistasis, cesa=cesa, cl = cores))
+  selection_results = rbindlist(pbapply::pblapply(X = variants, FUN = pairwise_variant_epistasis, cesa=cesa, conf = conf, cl = cores))
   return(selection_results)
   
 }
 
 #' Calculate SIs at variant level under pairwise epistasis model
 #' @keywords internal
-pairwise_variant_epistasis = function(cesa, variant_pair) {
+pairwise_variant_epistasis = function(cesa, variant_pair, conf) {
   v1 = variant_pair[1]
   v2 = variant_pair[2]
   
-  v1_coverage = c(cesa$mutations$amino_acid_change[v1, unlist(covered_in), nomatch = NULL], 
-                  cesa$mutations$snv[v1, unlist(covered_in), nomatch = NULL])
-  v2_coverage = c(cesa$mutations$amino_acid_change[v2, unlist(covered_in), nomatch = NULL], 
-                  cesa$mutations$snv[v2, unlist(covered_in), nomatch = NULL])
+  v1_coverage = c(cesa@mutations$amino_acid_change[v1, unlist(covered_in), nomatch = NULL], 
+                  cesa@mutations$snv[v1, unlist(covered_in), nomatch = NULL])
+  v2_coverage = c(cesa@mutations$amino_acid_change[v2, unlist(covered_in), nomatch = NULL], 
+                  cesa@mutations$snv[v2, unlist(covered_in), nomatch = NULL])
   
   # Samples have to have v1 and v2 coverage (and samples with covered_regions == "genome" always have coverage)
   joint_coverage = c("genome", intersect(v1_coverage, v2_coverage))
@@ -179,7 +196,7 @@ pairwise_variant_epistasis = function(cesa, variant_pair) {
   with_both = as.list(all_rates[tumors_with_both])[2:3]
   with_neither = as.list(all_rates[tumors_with_neither])[2:3]
   
-  
+  # call factory function to get variant-specific likelihood function
   fn = ml_objective_pairwise_epistasis(with_just_1, with_just_2, with_both, with_neither)
   par_init = formals(fn)[[1]]
   names(par_init) = bbmle::parnames(fn)
@@ -198,13 +215,15 @@ pairwise_variant_epistasis = function(cesa, variant_pair) {
   )
   params = bbmle::coef(fit)
   
-  ces_results = list(variant1 = v1, variant2 = v2, ces_v1 = params[1], ces_v2 = params[2],
+  variant_ep_results = list(variant1 = v1, variant2 = v2, ces_v1 = params[1], ces_v2 = params[2],
                      ces_v1_after_v2 = params[3], ces_v2_after_v1 = params[4], 
                      covered_tumors_just_v1 = length(tumors_just_v1),
                      covered_tumors_just_v2 = length(tumors_just_v2),
                      covered_tumors_with_both = length(tumors_with_both),
                      covered_tumors_with_neither = length(tumors_with_neither))
-  return(ces_results)
+  if(! is.null(conf)) {
+    variant_ep_results = c(variant_ep_results, univariate_si_conf_ints(fit, fn, .001, 1e9, conf))
+  }
 }
 
 
@@ -213,7 +232,7 @@ pairwise_variant_epistasis = function(cesa, variant_pair) {
 #' The genes are assumed to not overlap in any ranges (the calling
 #' function checks for this).
 #' @keywords internal
-pairwise_gene_epistasis = function(cesa, genes) {
+pairwise_gene_epistasis = function(cesa, genes, conf) {
   gene1 = genes[1]
   gene2 = genes[2]
 
@@ -301,12 +320,17 @@ pairwise_gene_epistasis = function(cesa, genes) {
   )
   
   params = bbmle::coef(fit)
-  ces_results = list(gene_1 = gene1, gene_2 = gene2, ces_g1 = params[1], ces_g2 = params[2],
+  gene_ep_results = list(gene_1 = gene1, gene_2 = gene2, ces_g1 = params[1], ces_g2 = params[2],
               ces_g1_after_g2 = params[3], ces_g2_after_g1 = params[4], 
               tumors_with_recurrent_muts_only_g1 = length(tumors_with_ONLY_gene1_mutated),
               tumors_with_recurrent_muts_only_g2 = length(tumors_with_ONLY_gene2_mutated),
               tumors_with_recurrent_muts_in_both = length(tumors_with_both_mutated),
               tumors_with_recurrent_muts_in_neither = length(tumors_with_neither_mutated))
   
-  return(ces_results)
+  
+  if(! is.null(conf)) {
+     gene_ep_results = c(gene_ep_results, univariate_si_conf_ints(fit, fn, .001, 1e9, conf))
+  }
+  
+  return(gene_ep_results)
 }

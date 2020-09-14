@@ -82,7 +82,7 @@ where the mutation rates are site and tumor specific." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9012.1</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9013</span>
       </span>
     </div>
 
@@ -145,7 +145,6 @@ where the mutation rates are site and tumor specific.</p>
     </div>
 
     <pre class="usage"><span class='fu'>ml_objective_pairwise_epistasis</span>(
-  <span class='no'>par</span>,
   <span class='no'>with_just_1</span>,
   <span class='no'>with_just_2</span>,
   <span class='no'>with_both</span>,
@@ -155,10 +154,6 @@ where the mutation rates are site and tumor specific.</p>
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
-    <tr>
-      <th>par</th>
-      <td><p>A selection intensity at which to calculate the likelihood</p></td>
-    </tr>
     <tr>
       <th>with_just_1</th>
       <td><p>two-item list of baseline rates in v1/v2 for tumors with mutation in just the first variant(s)</p></td>
@@ -174,6 +169,10 @@ where the mutation rates are site and tumor specific.</p>
     <tr>
       <th>with_neither</th>
       <td><p>two-item list of baseline rates in v1/v2 for tumors with mutation n neither</p></td>
+    </tr>
+    <tr>
+      <th>par</th>
+      <td><p>A selection intensity at which to calculate the likelihood</p></td>
     </tr>
     </table>
 

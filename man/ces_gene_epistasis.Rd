@@ -4,7 +4,7 @@
 \alias{ces_gene_epistasis}
 \title{Gene-level epistasis}
 \usage{
-ces_gene_epistasis(cesa = NULL, genes = character(), cores = 1)
+ces_gene_epistasis(cesa = NULL, genes = character(), cores = 1, conf = NULL)
 }
 \arguments{
 \item{cesa}{CESAnalysis object}
@@ -12,6 +12,9 @@ ces_gene_epistasis(cesa = NULL, genes = character(), cores = 1)
 \item{genes}{vector of gene names; SIs will be calculated for all gene pairs}
 
 \item{cores}{number of cores for parallel processing of gene pairs}
+
+\item{conf}{confidence interval size from 0 to 1 (.95 -> 95%); NULL skips calculation,
+significantly reducing runtime}
 }
 \value{
 a table of gene-level epistasis results

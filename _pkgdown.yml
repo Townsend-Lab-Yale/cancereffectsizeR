@@ -11,8 +11,8 @@ reference:
 - title: Epistasis
   desc: Assess pairwise epistasis between variants or genes
   contents:
-  - ces_gene_epistasis
   - ces_epistasis
+  - ces_gene_epistasis
 - title: Get variant info
   contents:
   - select_variants
@@ -30,7 +30,7 @@ reference:
   - list_ces_signature_sets
   - get_ces_signature_set
 - title: Create custom reference data
-  desc: More coming soon!
+  desc: More info coming soon!
   contents:
   - build_RefCDS
 - title: Mutational signatures
@@ -41,12 +41,11 @@ reference:
   - assign_group_average_trinuc_rates
   - run_deconstructSigs
 - title: Accessors
-  desc: Data accession functions that you probably won't need (use cesa\$maf, cesa\$samples, etc. instead)
+  desc: Data accessors that you probably won't need (use cesa\$maf, cesa\$samples, etc. instead)
   contents:
   - maf_records
   - excluded_maf_records
   - get_sample_info
-  - get_mutations
   - get_trinuc_rates
   - get_signature_weights
   - get_gene_rates

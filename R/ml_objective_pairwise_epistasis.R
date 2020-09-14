@@ -79,6 +79,6 @@ ml_objective_pairwise_epistasis  <- function(with_just_1, with_just_2, with_both
   formals(fn)[["par"]] = 1000:1003
   
   # Optimization tool, bbmle::mle, requires that vector of parameters to optimize have named elements
-  bbmle::parnames(fn) = c("ces_g1", "ces_g2", "ces_g1_after_g2", "ces_g2_after_g1")
+  bbmle::parnames(fn) = c("ces_v1", "ces_v2", "ces_v1_after_v2", "ces_v2_after_v1")
   return(fn)
 }

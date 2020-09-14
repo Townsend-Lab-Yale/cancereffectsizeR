@@ -90,16 +90,18 @@ test_that("ces_snv with user-supplied variants", {
 })
 
 test_that("Gene-level SNV epistasis analysis", {
-  results = ces_gene_epistasis(cesa, genes = c("EGFR", "KRAS", "TP53"))
+  results = ces_gene_epistasis(cesa, genes = c("EGFR", "KRAS", "TP53"), conf = .95)
   results_ak = get_test_data("epistasis_results.rds")
   expect_equal(results, results_ak, tolerance = 1e-3)
 })
 
 test_that("Variant-level epistasis", {
-  results = ces_epistasis(cesa, variants = list(c("KRAS G12V", "GSTP1_L184L")))
+  results = ces_epistasis(cesa, variants = list(c("KRAS G12V", "GSTP1_L184L")), conf = .9)
   to_test = results[, as.numeric(.(ces_v1, ces_v2, ces_v1_after_v2, ces_v2_after_v1, covered_tumors_just_v1, 
                                    covered_tumors_just_v2, covered_tumors_with_both, covered_tumors_with_neither))]
   expect_equal(to_test, c(1322.616, 9033.237, 0.001, 678294.664, 2, 6, 1, 100), tolerance = 1e-3)
+  ci = as.numeric(results[, .SD, .SDcols = patterns("ci")])
+  expect_equal(ci, c(428.398, 3006.452, 2141.717, 23952.37, NA, 23787.39, 64637.21, 3670101), tolerance = 1e-3)
 })
 
 

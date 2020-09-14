@@ -4,7 +4,7 @@
 \alias{pairwise_variant_epistasis}
 \title{Calculate SIs at variant level under pairwise epistasis model}
 \usage{
-pairwise_variant_epistasis(cesa, variant_pair)
+pairwise_variant_epistasis(cesa, variant_pair, conf)
 }
 \description{
 Calculate SIs at variant level under pairwise epistasis model

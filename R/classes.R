@@ -22,8 +22,8 @@ setMethod("$", "CESAnalysis",
       return(get_signature_weights(x))
     } else if (name == "gene_rates") {
       return(get_gene_rates(x))
-    } else if (name == "mutations") {
-      return(get_mutations(x))
+    } else if (name == "variants") {
+      return(select_variants(cesa = x, min_freq = 0))
     } else if (name == "selection") {
       return(snv_results(x))
     } else if (name == "reference_data") {
@@ -57,7 +57,7 @@ setMethod("$", "CESAnalysis",
     features = c(features, "samples")
   }
   if(length(x@mutations) > 0) {
-    features = c(features, "mutations")
+    features = c(features, "variants")
   }
   if(x@selection_results[, .N] > 0) {
     features = c(features, "selection")

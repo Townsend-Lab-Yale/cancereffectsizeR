@@ -1,9 +1,10 @@
 #' Calculate uniroot CIs on selection intensities
+#' 
 #' @param fit From bbmle
 #' @param lik_fn likelihood function
 #' @param min_si lower limit on SI/CI
 #' @param max_si upper limit on SI/CI
-#' @param conf e.g., .95 -> 95% CIs
+#' @param conf e.g., .95 -> 95\% CIs
 #' @keywords internal
 univariate_si_conf_ints = function(fit, lik_fn, min_si, max_si, conf) {
   max_ll = -1 * as.numeric(bbmle::logLik(fit))

@@ -85,7 +85,7 @@ your CESAnalysis." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9012.1</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9013</span>
       </span>
     </div>
 
@@ -150,13 +150,7 @@ Returns a table of results, <strong>NOT</strong> a CESAnalysis, so be careful no
 your CESAnalysis.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>ces_gene_epistasis</span>(
-  <span class='kw'>cesa</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
-  <span class='kw'>genes</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/character.html'>character</a></span>(),
-  <span class='kw'>cores</span> <span class='kw'>=</span> <span class='fl'>1</span>,
-  <span class='kw'>optimx_args</span> <span class='kw'>=</span> <span class='fu'><a href='ces_epistasis_opm_args.html'>ces_epistasis_opm_args</a></span>(),
-  <span class='kw'>include_opm_report</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>
-)</pre>
+    <pre class="usage"><span class='fu'>ces_gene_epistasis</span>(<span class='kw'>cesa</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>genes</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/character.html'>character</a></span>(), <span class='kw'>cores</span> <span class='kw'>=</span> <span class='fl'>1</span>, <span class='kw'>conf</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -174,13 +168,9 @@ your CESAnalysis.</p>
       <td><p>number of cores for parallel processing of gene pairs</p></td>
     </tr>
     <tr>
-      <th>optimx_args</th>
-      <td><p>list of optimization parameters to feed into optimx::opm (see optimx docs); if you use this argument,
-none of the CES default values will be used (opm defaults will be used for parameters you don't provide)</p></td>
-    </tr>
-    <tr>
-      <th>include_opm_report</th>
-      <td><p>dev option to include full parameter optimization report with output (default false)</p></td>
+      <th>conf</th>
+      <td><p>confidence interval size from 0 to 1 (.95 -&gt; 95<!-- %); NULL skips calculation, -->
+significantly reducing runtime</p></td>
     </tr>
     </table>
 

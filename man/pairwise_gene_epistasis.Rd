@@ -4,7 +4,7 @@
 \alias{pairwise_gene_epistasis}
 \title{Calculate SIs at gene level under pairwise epistasis model}
 \usage{
-pairwise_gene_epistasis(cesa, genes)
+pairwise_gene_epistasis(cesa, genes, conf)
 }
 \description{
 The genes are assumed to not overlap in any ranges (the calling

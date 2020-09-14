@@ -6,9 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Reads TCGA Tumor Sample Barcodes and consolidates barcodes into patient-specific
-identifiers, such patients with multiple distinct tumors in the analysis share
-share just one identifer. Sample barcodes that don't start with "TCGA" are unaltered. — consolidate_tcga_tumors_by_patient • cancereffectsizeR</title>
+<title>Calculate uniroot CIs on selection intensities — univariate_si_conf_ints • cancereffectsizeR</title>
 
 <!-- favicons -->
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
@@ -48,12 +46,8 @@ share just one identifer. Sample barcodes that don't start with "TCGA" are unalt
 
 
 
-<meta property="og:title" content="Reads TCGA Tumor Sample Barcodes and consolidates barcodes into patient-specific
-identifiers, such patients with multiple distinct tumors in the analysis share
-share just one identifer. Sample barcodes that don't start with "TCGA" are unaltered. — consolidate_tcga_tumors_by_patient" />
-<meta property="og:description" content="Reads TCGA Tumor Sample Barcodes and consolidates barcodes into patient-specific
-identifiers, such patients with multiple distinct tumors in the analysis share
-share just one identifer. Sample barcodes that don't start with &quot;TCGA&quot; are unaltered." />
+<meta property="og:title" content="Calculate uniroot CIs on selection intensities — univariate_si_conf_ints" />
+<meta property="og:description" content="Calculate uniroot CIs on selection intensities" />
 <meta property="og:image" content="/logo.png" />
 
 
@@ -137,47 +131,39 @@ share just one identifer. Sample barcodes that don't start with &quot;TCGA&quot;
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Reads TCGA Tumor Sample Barcodes and consolidates barcodes into patient-specific
-identifiers, such patients with multiple distinct tumors in the analysis share
-share just one identifer. Sample barcodes that don't start with "TCGA" are unaltered.</h1>
-    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/R/consolidate_tcga_tumors_by_patient.R'><code>R/consolidate_tcga_tumors_by_patient.R</code></a></small>
-    <div class="hidden name"><code>consolidate_tcga_tumors_by_patient.Rd</code></div>
+    <h1>Calculate uniroot CIs on selection intensities</h1>
+    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/R/si_uniroot_conf_int.R'><code>R/si_uniroot_conf_int.R</code></a></small>
+    <div class="hidden name"><code>univariate_si_conf_ints.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Reads TCGA Tumor Sample Barcodes and consolidates barcodes into patient-specific
-identifiers, such patients with multiple distinct tumors in the analysis share
-share just one identifer. Sample barcodes that don't start with "TCGA" are unaltered.</p>
+    <p>Calculate uniroot CIs on selection intensities</p>
     </div>
 
-    <pre class="usage"><span class='fu'>consolidate_tcga_tumors_by_patient</span>(
-  <span class='no'>tumor_sample_barcodes</span>,
-  <span class='kw'>non_TCGA_characters_to_keep</span> <span class='kw'>=</span> <span class='st'>"all"</span>,
-  <span class='kw'>sum_stats</span> <span class='kw'>=</span> <span class='no'>T</span>,
-  <span class='kw'>figures</span> <span class='kw'>=</span> <span class='no'>F</span>
-)</pre>
+    <pre class="usage"><span class='fu'>univariate_si_conf_ints</span>(<span class='no'>fit</span>, <span class='no'>lik_fn</span>, <span class='no'>min_si</span>, <span class='no'>max_si</span>, <span class='no'>conf</span>)</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>tumor_sample_barcodes</th>
-      <td><p>an MAF-style Tumor_Sample_Barcode vector, of which some or all are TCGA samples</p></td>
+      <th>fit</th>
+      <td><p>From bbmle</p></td>
     </tr>
     <tr>
-      <th>non_TCGA_characters_to_keep</th>
-      <td><p>numeric number of characters to keep
-in "Unique_Patient_Identifier" column for sample names that
-do not start with "TCGA". If non-numeric object then defaults to
-all characters</p></td>
+      <th>lik_fn</th>
+      <td><p>likelihood function</p></td>
     </tr>
     <tr>
-      <th>sum_stats</th>
-      <td><p>Boolean, T prints summary() of number of mutations per tumor</p></td>
+      <th>min_si</th>
+      <td><p>lower limit on SI/CI</p></td>
     </tr>
     <tr>
-      <th>figures</th>
-      <td><p>Boolean, T saves histogram of sum.stats and saves as "Figures/mutations_per_tumor.pdf"</p></td>
+      <th>max_si</th>
+      <td><p>upper limit on SI/CI</p></td>
+    </tr>
+    <tr>
+      <th>conf</th>
+      <td><p>e.g., .95 -&gt; 95% CIs</p></td>
     </tr>
     </table>
 

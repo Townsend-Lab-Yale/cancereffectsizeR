@@ -15,7 +15,7 @@ univariate_si_conf_ints(fit, lik_fn, min_si, max_si, conf)
 
 \item{max_si}{upper limit on SI/CI}
 
-\item{conf}{e.g., .95 -> 95% CIs}
+\item{conf}{e.g., .95 -> 95\% CIs}
 }
 \description{
 Calculate uniroot CIs on selection intensities

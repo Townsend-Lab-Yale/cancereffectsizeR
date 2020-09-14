@@ -80,7 +80,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9012.1</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9013</span>
       </span>
     </div>
 
@@ -132,7 +132,7 @@
   <div class="col-md-9 contents">
     <div class="page-header">
     <h1>ml_objective</h1>
-    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/R/ml_objective.R'><code>R/ml_objective.R</code></a></small>
+    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/R/single_variant_si_objectives.R'><code>R/single_variant_si_objectives.R</code></a></small>
     <div class="hidden name"><code>ml_objective.Rd</code></div>
     </div>
 
@@ -141,21 +141,15 @@
     </div>
 
     <pre class="usage"><span class='fu'>ml_objective</span>(
-  <span class='no'>gamma</span>,
   <span class='no'>tumor_stages</span>,
   <span class='no'>tumors_with_variant</span>,
   <span class='no'>tumors_without_gene_mutated</span>,
-  <span class='no'>baseline_rates</span>,
-  <span class='kw'>modifier</span> <span class='kw'>=</span> <span class='fl'>0</span>
+  <span class='no'>baseline_rates</span>
 )</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
-    <tr>
-      <th>gamma</th>
-      <td><p>A selection intensity at which to calculate the likelihood</p></td>
-    </tr>
     <tr>
       <th>tumor_stages</th>
       <td><p>an environment with keys = tumor names, values = stage of tumor</p></td>
@@ -176,7 +170,7 @@
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>A log likelihood value</p>
+    <p>loglikelihood value</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

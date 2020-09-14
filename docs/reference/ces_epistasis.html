@@ -81,7 +81,7 @@ Return a table, NOT a CESAnalysis, so be careful not to overwrite your analysis.
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9012.1</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9013</span>
       </span>
     </div>
 
@@ -142,7 +142,7 @@ Return a table, NOT a CESAnalysis, so be careful not to overwrite your analysis.
 Return a table, <strong>NOT</strong> a CESAnalysis, so be careful not to overwrite your analysis.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>ces_epistasis</span>(<span class='kw'>cesa</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>variants</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>cores</span> <span class='kw'>=</span> <span class='fl'>1</span>)</pre>
+    <pre class="usage"><span class='fu'>ces_epistasis</span>(<span class='kw'>cesa</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>variants</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>cores</span> <span class='kw'>=</span> <span class='fl'>1</span>, <span class='kw'>conf</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -159,6 +159,11 @@ amino-acid-change (coding) variant IDs or SNV IDs)</p></td>
     <tr>
       <th>cores</th>
       <td><p>number of cores for parallel processing of gene pairs</p></td>
+    </tr>
+    <tr>
+      <th>conf</th>
+      <td><p>confidence interval size from 0 to 1 (.95 -&gt; 95<!-- %); NULL skips calculation, -->
+significantly reducing runtime</p></td>
     </tr>
     </table>
 

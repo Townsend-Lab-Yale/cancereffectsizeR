@@ -9,12 +9,9 @@
 #' min_freq to filter out variants by frequency in the MAF data. 
 #' 
 #' 
-#' To collect all available
-#' variant data, set min_freq = 0, include_subvariants = T, and no other options. Output
-#' will include additional rows for SNVs that are already annotated as constituent SNVs of
-#' amino-acid-change mutations. Note that while intergenic SNVs have their nearest genes
-#' annotated in the SNV tables, these variants will not be captured by gene-based
-#' selection with this function, since they're not actually in any gene.
+#' Note that while intergenic SNVs have their nearest genes annotated in the SNV tables,
+#' these variants will not be captured by gene-based selection with this function, since
+#' they're not actually in any gene.
 #' 
 #' Definitions of some less self-explanatory columns:
 #' \itemize{
@@ -75,7 +72,7 @@
 #'   manipulate them is a little tricky, so the default is to collapse.
 #' @return a data table with info on selected variants (see details), or a list of IDs
 #' @export
-select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NULL, min_freq = 1, 
+select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NULL, min_freq = 0, 
                            include_subvariants = F, gr_padding = 0, ids_only = F, collapse_lists = T) {
   
   if(! is(cesa, "CESAnalysis")) {
@@ -145,7 +142,7 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
     # if any IDs are missing, try to interpret them as "short" AAC names (i.e., without protein ID)
     if (length(missing_ids) > 0) {
       missing_ids = gsub(' ', '_', missing_ids)
-      tmp = cesa$mutations$amino_acid_change[, .(aac_id, variant_name = paste(gene, aachange, sep = "_"))]
+      tmp = cesa@mutations$amino_acid_change[, .(aac_id, variant_name = paste(gene, aachange, sep = "_"))]
       aac_matches = tmp[missing_ids, on = "variant_name"]
       
       missing_ids = aac_matches[is.na(aac_id), variant_name]
@@ -257,7 +254,7 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
   
   if (selected_aac[, .N] > 0) {
     aac_to_snv = selected_aac[, .(snv_id = unlist(constituent_snvs)), by = "aac_id"]
-    aac_to_snv[, c("genes", "assoc_aac") := cesa$mutations$snv[aac_to_snv$snv_id, .(genes, assoc_aac)]]
+    aac_to_snv[, c("genes", "assoc_aac") := cesa@mutations$snv[aac_to_snv$snv_id, .(genes, assoc_aac)]]
     all_genes_by_aac_id = aac_to_snv[, .(genes = .(unique(unlist(genes)))), by = "aac_id"]
     assoc_aac_by_aac_id = aac_to_snv[, .(assoc_aac = .(unique(unlist(assoc_aac)))), by = "aac_id"]
     selected_aac[all_genes_by_aac_id, all_genes := genes, on = "aac_id"]
