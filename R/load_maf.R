@@ -48,7 +48,7 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
   
   # Need RefCDS if annotating
   if (! cesa@ref_key %in% ls(.ces_ref_data) & annotate == T) {
-    preload_ref_data(cesa@ref_key)
+    preload_ref_data(cesa@ref_data_dir)
   }
   bsg = get_cesa_bsg(cesa)
   genome_info = GenomeInfoDb::seqinfo(bsg)

@@ -575,7 +575,7 @@ add_variants = function(target_cesa = NULL, snv_id = NULL, source_cesa = NULL) {
   
   # Load reference data if not already present
   if (! target_cesa@ref_key %in% ls(.ces_ref_data)) {
-    preload_ref_data(target_cesa@ref_key)
+    preload_ref_data(target_cesa@ref_data_dir)
   }
   
   if(! is.null(snv_id)) {

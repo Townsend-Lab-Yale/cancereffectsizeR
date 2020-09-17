@@ -7,7 +7,8 @@
 CESAnalysis(ref_set = "ces_hg19_v1", sample_groups = NULL)
 }
 \arguments{
-\item{ref_set}{reference data to use; run \code{list_ces_ref_sets()} for available ref sets.}
+\item{ref_set}{name of reference data set to use; run \code{list_ces_ref_sets()} for
+available ref sets. Alternatively, the path to a custom reference data directory.}
 
 \item{sample_groups}{Optionally, supply labels identifying different groups of samples.
 To be able to perform analyses that require ordered groups of samples, give the

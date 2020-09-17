@@ -28,7 +28,7 @@ setMethod("$", "CESAnalysis",
       return(snv_results(x))
     } else if (name == "reference_data") {
       if (! x@ref_key %in% ls(.ces_ref_data)) {
-        preload_ref_data(x@ref_key)
+        preload_ref_data(x@ref_data_dir)
       }
       ref_data = list(RefCDS = .ces_ref_data[[x@ref_key]]$RefCDS, gene_ranges = .ces_ref_data[[x@ref_key]]$gr_genes,
                       genome = .ces_ref_data[[x@ref_key]]$genome)

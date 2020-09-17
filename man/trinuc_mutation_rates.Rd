@@ -63,6 +63,6 @@ the set, and "metadata" is a data.table with a "Signature" column that matches r
 in the signature definitions. For artifact accounting to work, there should be a
 TRUE/FALSE (logical) Likely_Artifact column; additional columns are optional. If you
 don't have artifact information, you can also just supply an empty data.table. For a
-template signature set object, run \code{sig_set = get_ces_signature_set("hg19",
+template signature set object, run \code{sig_set = get_ces_signature_set("ces_hg19_v1",
 "COSMIC_v3.1")}.
 }

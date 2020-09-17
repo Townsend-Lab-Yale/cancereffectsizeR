@@ -4,7 +4,7 @@
 \alias{preload_ref_data}
 \title{preload_ref_data}
 \usage{
-preload_ref_data(ref_key)
+preload_ref_data(data_dir)
 }
 \description{
 Used when loading or creating a CESAnalysis to load reference into an environment for quick access

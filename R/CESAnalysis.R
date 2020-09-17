@@ -1,7 +1,8 @@
 #' Create a cancereffectsizeR analysis
 #' 
 #' Creates a CESAnalysis object, the central data structure of cancereffectsizeR.
-#' @param ref_set reference data to use; run \code{list_ces_ref_sets()} for available ref sets.
+#' @param ref_set name of reference data set to use; run \code{list_ces_ref_sets()} for
+#'   available ref sets. Alternatively, the path to a custom reference data directory.
 #' @param sample_groups Optionally, supply labels identifying different groups of samples.
 #'   To be able to perform analyses that require ordered groups of samples, give the
 #'   labels in proper order: e.g., c("Primary", "Metastatic"). If you will not be doing
@@ -11,10 +12,40 @@
 CESAnalysis = function(ref_set = "ces_hg19_v1", sample_groups = NULL) {
   
   # Check for and load reference data for the chosen genome/transcriptome data
-  ref_key = ref_set
-  preload_ref_data(ref_key)
-  ref_data_dir = get_ref_set_dirs()[ref_key]
-  bsg = .ces_ref_data[[ref_key]]$genome
+  ref_set_name = ref_set
+  if(is.null(ref_set_name) || ! is(ref_set_name, "character") || length(ref_set_name) != 1) {
+    stop("Expected reference data source to be given as character. Run list_ces_ref_sets() to see available reference data.", call. = F)
+  }
+  
+  ref_set_dirs = get_ref_set_dirs()
+  if(ref_set_name %in% names(ref_set_dirs)) {
+    data_dir = ref_set_dirs[ref_set_name]
+    # avoid weird edge case
+    if (dir.exists(ref_set_name)) {
+      stop("There's a folder in your working directory with the same name as your chosen reference data set.\n",
+           "Change your working directory or rename it, please.")
+    }
+  } else {
+    if (! dir.exists(ref_set_name)) {
+      if (grepl('/', ref_set_name)) {
+        stop("Could not find reference data at ", ref_set_name)
+      } else {
+        stop("Invalid reference set name. Check spelling, or view available data sets with list_ces_ref_sets().")
+      }
+    }
+    data_dir = ref_set_name
+    ref_set_name = basename(ref_set_name)
+    
+    # To avoid confusion, you can't create a custom ref set with the same name as a built-in one
+    builtin_sets = list.dirs(system.file("ref_sets/", package = "cancereffectsizeR"), full.names = F, recursive = F)
+    if (ref_set_name %in% builtin_sets) {
+      stop("The name of your reference data set (", ref_set_name, ") exactly matches a built-in CES reference set. Please rename it.")
+    }
+  }
+  
+  # preload some reference data, which will get stored in the .ces_ref_data env under ref_set_name
+  preload_ref_data(data_dir)
+  bsg = .ces_ref_data[[ref_set_name]]$genome
   
   # Validate sample_groups
   if (is.null(sample_groups)) {
@@ -35,13 +66,13 @@ CESAnalysis = function(ref_set = "ces_hg19_v1", sample_groups = NULL) {
   ##  (either all generic data must, or none of it, based on choice of enforce_generic_exome_coverage on first load_maf call)
   ## recording: whether "run_history" is currently being recorded (gets set to false during some internal steps for clarity)
   advanced = list("version" = packageVersion("cancereffectsizeR"), annotated = F, using_exome_plus = F, recording = T)
-  cesa = new("CESAnalysis", run_history = character(),  ref_key = ref_key, maf = data.table(), excluded = data.table(),
+  cesa = new("CESAnalysis", run_history = character(),  ref_key = ref_set_name, maf = data.table(), excluded = data.table(),
              groups = sample_groups, mutrates = data.table(),
-             selection_results = data.table(), ref_data_dir = ref_data_dir,
+             selection_results = data.table(), ref_data_dir = data_dir,
              advanced = advanced, samples = data.table(), mutations = list())
   cesa = update_cesa_history(cesa, match.call())
   
-  msg = paste0("This CESAnalysis will use ", ref_set, " reference data and the ", tolower(BSgenome::commonName(bsg)),
+  msg = paste0("This CESAnalysis will use ", ref_set_name, " reference data and the ", tolower(BSgenome::commonName(bsg)),
                " genome, assembly ", BSgenome::providerVersion(bsg), '.')
   pretty_message(msg)
   return(cesa)
@@ -63,6 +94,7 @@ load_cesa = function(file) {
   if (! .hasSlot(cesa, "ref_data_dir")) {
     ## TEMPORARY
     cesa@ref_data_dir = c(ces_hg19_v1 = "/Users/Jeff/cancereffectsizeR/inst/ref_sets/ces_hg19_v1")
+    cesa@ref_key = "ces_hg19_v1"
   }
   if(.hasSlot(cesa, "progressions")) {
     cesa@groups = cesa@progressions
@@ -71,19 +103,23 @@ load_cesa = function(file) {
     }
   }
   
-  
-  ref_key = names(cesa@ref_data_dir)[1]
-  
   available_ref_sets = get_ref_set_dirs()
+  ref_key = cesa@ref_key
   if (! ref_key %in% names(available_ref_sets)) {
-    warning("Reference data for ", ref_key, " not found. You can view data in this CESAnalysis,\n",
-            "but most functions will not work as expected.")
-    return(cesa)
+    if (! dir.exists(cesa@ref_data_dir)) {
+      cesa@ref_data_dir = NA_character_
+      msg = paste0("Reference data associated with the CESAnalysis (", ref_key, ") not found. You can view the data in this CESAnalysis, ",
+                   "but many functions will not work as expected. If this is a custom reference data set, ",
+                   "you can fix the issue by using set_ces_ref_set_dir() to associate the path to your data with the analyis.")
+      warning(paste0(strwrap(msg), collapse = "\n"))
+    } 
+  } else {
+    cesa@ref_data_dir = available_ref_sets[ref_key]
   }
   
-  cesa@ref_data_dir = available_ref_sets[ref_key]
-  preload_ref_data(ref_key)
-  cesa@ref_key = ref_key
+  if (! is.na(cesa@ref_data_dir)) {
+    preload_ref_data(cesa@ref_data_dir)
+  }
   
   # Allow back-compatibility with column name changes
   if(! is.null(cesa@mutations$amino_acid_change)) {

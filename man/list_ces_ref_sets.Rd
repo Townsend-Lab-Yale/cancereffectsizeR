@@ -7,5 +7,5 @@
 list_ces_ref_sets()
 }
 \description{
-Prints names of reference data collections that are ready for use with cancereffectsizeR
+Prints names of built-in reference data sets
 }

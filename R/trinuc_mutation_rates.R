@@ -17,7 +17,7 @@
 #' in the signature definitions. For artifact accounting to work, there should be a
 #' TRUE/FALSE (logical) Likely_Artifact column; additional columns are optional. If you
 #' don't have artifact information, you can also just supply an empty data.table. For a
-#' template signature set object, run \code{sig_set = get_ces_signature_set("hg19",
+#' template signature set object, run \code{sig_set = get_ces_signature_set("ces_hg19_v1",
 #' "COSMIC_v3.1")}.
 #'
 #' @param cesa CESAnalysis object
@@ -57,7 +57,7 @@ trinuc_mutation_rates <- function(cesa,
   
   # If for some reason reference data is no longer in the package environment, restore it
   if (! cesa@ref_key %in% ls(.ces_ref_data)) {
-    preload_ref_data(cesa@ref_key)
+    preload_ref_data(cesa@ref_data_dir)
   }
   
   bsg = .ces_ref_data[[cesa@ref_key]]$genome
