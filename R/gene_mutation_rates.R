@@ -198,6 +198,7 @@ dndscv_postprocess = function(cesa, dndscv_raw_output, save_all_dndscv_output = 
   }
   cesa@mutrates = mutrates_dt
   cesa@dndscv_out_list = dndscv_out_list
+  cesa@advanced$locked = T
   return(cesa)
 }
 

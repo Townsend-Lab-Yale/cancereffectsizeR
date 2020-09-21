@@ -1,73 +1,73 @@
-Signature	Etiology	Likely_Artifact
-SBS1	Deamination with age	FALSE
-SBS2	APOBEC	FALSE
-SBS3	Defective homologous recombination	FALSE
-SBS4	Tobacco smoking	FALSE
-SBS5	"Unknown, clock-like"	FALSE
-SBS6	Defective DNA mismatch repair	FALSE
-SBS7a	UV light	FALSE
-SBS7b	UV light	FALSE
-SBS7c	UV light	FALSE
-SBS7d	UV light	FALSE
-SBS8	Unknown	FALSE
-SBS9	Polymerase eta somatic hypermutation	FALSE
-SBS10a	Polymerase epsilon	FALSE
-SBS10b	Polymerase epsilon	FALSE
-SBS11	Temozolomide treatment	FALSE
-SBS12	Unknown	FALSE
-SBS13	APOBEC	FALSE
-SBS14	Concurrent polymerase epsilon mutation and defective mismatch repair	FALSE
-SBS15	Defective mismatch repair	FALSE
-SBS16	Unknown	FALSE
-SBS17a	Unknown	FALSE
-SBS17b	Unknown	FALSE
-SBS18	Damage by reactive oxygen species	FALSE
-SBS19	Unknown	FALSE
-SBS20	Concurrent POLD1 mutations and defective mismatch repair	FALSE
-SBS21	DNA mismatch repair deficiency	FALSE
-SBS22	Aristolochic acid exposure	FALSE
-SBS23	Unknown	FALSE
-SBS24	Aflatoxin exposure	FALSE
-SBS25	Chemotherapy treatment	FALSE
-SBS26	Defective DNA mismatch repair	FALSE
-SBS28	Unknown	FALSE
-SBS29	Tobacco chewing	FALSE
-SBS30	Deficiency in base excision repair due to mutations in NTHL1	FALSE
-SBS31	Platinum drug chemotherapy	FALSE
-SBS32	Azathioprine treatment (used for immunosuppression)	FALSE
-SBS33	Unknown	FALSE
-SBS34	Unknown	FALSE
-SBS35	Prior chemotherapy treatment	FALSE
-SBS36	Defective DNA base excision repair due to MUTYH mutations	FALSE
-SBS37	Unknown	FALSE
-SBS38	Indirect effects of UV light exposure	FALSE
-SBS39	Unknown	FALSE
-SBS40	Unknown	FALSE
-SBS41	Unknown	FALSE
-SBS42	Occupational exposure to haloalkanes	FALSE
-SBS44	Defective DNA mismatch repair	FALSE
-SBS84	Activity of activation-induced cytidine deaminase (AID)	FALSE
-SBS85	Indirect effects of activation-induced cytidine deaminase (AID)	FALSE
-SBS86	Unknown chemotherapy treatment (COSMIC 3.1)	FALSE
-SBS87	Thiopurine chemotherapy treatment (COSMIC 3.1)	FALSE
-SBS88	Colibactin exposure (COSMIC 3.1)	FALSE
-SBS89	Unknown (COSMIC 3.1)	FALSE
-SBS90	Duocarmycin exposure (COSMIC 3.1)	FALSE
-SBS27	Possible sequencing artifact	TRUE
-SBS43	Possible sequencing artifact	TRUE
-SBS45	Possible artifact due to 8-oxo-guanine introduced during sequencing	TRUE
-SBS46	Possible sequencing artifact	TRUE
-SBS47	Possible sequencing artifact	TRUE
-SBS48	Possible sequencing artifact	TRUE
-SBS49	Possible sequencing artifact	TRUE
-SBS50	Possible sequencing artifact	TRUE
-SBS51	Possible sequencing artifact	TRUE
-SBS52	Possible sequencing artifact	TRUE
-SBS53	Possible sequencing artifact	TRUE
-SBS54	Possible sequencing artifact and/or contamination with germline variants	TRUE
-SBS55	Possible sequencing artifact	TRUE
-SBS56	Possible sequencing artifact	TRUE
-SBS57	Possible sequencing artifact	TRUE
-SBS58	Potential sequencing artifact	TRUE
-SBS59	Potential sequencing artifact	TRUE
-SBS60	Potential sequencing artifact	TRUE
+Signature	Etiology	Likely_Artifact	Exome_Min	Genome_Min
+SBS1	Deamination with age	FALSE		
+SBS2	APOBEC	FALSE		
+SBS3	Defective homologous recombination	FALSE		
+SBS4	Tobacco smoking	FALSE		
+SBS5	"Unknown, clock-like"	FALSE		
+SBS6	Defective DNA mismatch repair	FALSE	200	10000
+SBS7a	UV light	FALSE		
+SBS7b	UV light	FALSE		
+SBS7c	UV light	FALSE		
+SBS7d	UV light	FALSE		
+SBS8	Unknown	FALSE		
+SBS9	Polymerase eta somatic hypermutation	FALSE		
+SBS10a	Polymerase epsilon	FALSE	2000	100000
+SBS10b	Polymerase epsilon	FALSE	2000	100000
+SBS11	Temozolomide treatment	FALSE		
+SBS12	Unknown	FALSE		
+SBS13	APOBEC	FALSE		
+SBS14	Concurrent polymerase epsilon mutation and defective mismatch repair	FALSE	200	10000
+SBS15	Defective mismatch repair	FALSE	200	10000
+SBS16	Unknown	FALSE		
+SBS17a	Unknown	FALSE		
+SBS17b	Unknown	FALSE		
+SBS18	Damage by reactive oxygen species	FALSE		
+SBS19	Unknown	FALSE		
+SBS20	Concurrent POLD1 mutations and defective mismatch repair	FALSE	200	10000
+SBS21	DNA mismatch repair deficiency	FALSE	200	10000
+SBS22	Aristolochic acid exposure	FALSE		
+SBS23	Unknown	FALSE		
+SBS24	Aflatoxin exposure	FALSE		
+SBS25	Chemotherapy treatment	FALSE		
+SBS26	Defective DNA mismatch repair	FALSE	200	10000
+SBS28	Unknown	FALSE		
+SBS29	Tobacco chewing	FALSE		
+SBS30	Deficiency in base excision repair due to mutations in NTHL1	FALSE		
+SBS31	Platinum drug chemotherapy	FALSE		
+SBS32	Azathioprine treatment (used for immunosuppression)	FALSE		
+SBS33	Unknown	FALSE		
+SBS34	Unknown	FALSE		
+SBS35	Prior chemotherapy treatment	FALSE		
+SBS36	Defective DNA base excision repair due to MUTYH mutations	FALSE		
+SBS37	Unknown	FALSE		
+SBS38	Indirect effects of UV light exposure	FALSE		
+SBS39	Unknown	FALSE		
+SBS40	Unknown	FALSE		
+SBS41	Unknown	FALSE		
+SBS42	Occupational exposure to haloalkanes	FALSE		
+SBS44	Defective DNA mismatch repair	FALSE	200	10000
+SBS84	Activity of activation-induced cytidine deaminase (AID)	FALSE		
+SBS85	Indirect effects of activation-induced cytidine deaminase (AID)	FALSE		
+SBS86	Unknown chemotherapy treatment (COSMIC 3.1)	FALSE		
+SBS87	Thiopurine chemotherapy treatment (COSMIC 3.1)	FALSE		
+SBS88	Colibactin exposure (COSMIC 3.1)	FALSE		
+SBS89	Unknown (COSMIC 3.1)	FALSE		
+SBS90	Duocarmycin exposure (COSMIC 3.1)	FALSE		
+SBS27	Possible sequencing artifact	TRUE		
+SBS43	Possible sequencing artifact	TRUE		
+SBS45	Possible artifact due to 8-oxo-guanine introduced during sequencing	TRUE		
+SBS46	Possible sequencing artifact	TRUE		
+SBS47	Possible sequencing artifact	TRUE		
+SBS48	Possible sequencing artifact	TRUE		
+SBS49	Possible sequencing artifact	TRUE		
+SBS50	Possible sequencing artifact	TRUE		
+SBS51	Possible sequencing artifact	TRUE		
+SBS52	Possible sequencing artifact	TRUE		
+SBS53	Possible sequencing artifact	TRUE		
+SBS54	Possible sequencing artifact and/or contamination with germline variants	TRUE		
+SBS55	Possible sequencing artifact	TRUE		
+SBS56	Possible sequencing artifact	TRUE		
+SBS57	Possible sequencing artifact	TRUE		
+SBS58	Potential sequencing artifact	TRUE		
+SBS59	Potential sequencing artifact	TRUE		
+SBS60	Potential sequencing artifact	TRUE		

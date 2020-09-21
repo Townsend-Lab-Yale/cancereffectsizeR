@@ -44,6 +44,10 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     stop("cesa should be a CESAnalysis")
   }
   
+  if(cesa@advanced$locked) {
+    stop("You can't load more MAF data since you've already calculated some mutation rates. Create a new one if necessary.", call. = F)
+  }
+  
   cesa = update_cesa_history(cesa, match.call())
   
   # Need RefCDS if annotating

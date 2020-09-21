@@ -4,7 +4,7 @@
 \alias{get_ces_signature_set}
 \title{get_ces_signature_set}
 \usage{
-get_ces_signature_set(genome, name)
+get_ces_signature_set(ref_set, name)
 }
 \description{
 For a given CES reference data collection and signature set name, returns

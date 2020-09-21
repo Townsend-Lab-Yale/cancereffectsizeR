@@ -169,15 +169,15 @@ list_ces_signature_sets = function() {
 #' the signature set name, a data table of signature metadata, and a signature 
 #' definition data frame
 #' @export
-get_ces_signature_set = function(genome, name) {
+get_ces_signature_set = function(ref_set, name) {
   ref_set_dirs = get_ref_set_dirs()
-  if (! is(genome, "character") | length(genome) != 1) {
-    stop("genome should be 1-length character")
+  if (! is(ref_set, "character") | length(ref_set) != 1) {
+    stop("ref_set should be 1-length character")
   }
-  if (! genome %in% names(ref_set_dirs)) {
-    stop("Could not find genome (see list_ces_ref_sets())")
+  if (! ref_set %in% names(ref_set_dirs)) {
+    stop("Could not find input reference data set (see list_ces_ref_sets())")
   }
-  ref_set_dir = ref_set_dirs[genome]
+  ref_set_dir = ref_set_dirs[ref_set]
 
   sig_file = paste0(ref_set_dir, "/signatures/", name, "_signatures.rds")
   if (! file.exists(sig_file)) {
@@ -202,6 +202,57 @@ get_cesa_bsg = function(cesa) {
   return(bsg)
 }
 
-
-
-
+#' validate_signature_set
+#' 
+#' Checks if a custom CES signature is properly formatted; stops with an error if not
+#' @param signature_set signature set list (see docs for format)
+#' @export
+validate_signature_set = function(signature_set) {
+  signature_set_data = signature_set
+  
+  if (! is(signature_set_data, "list")) {
+    stop("Invalid signature set: type should be list")
+  }
+  signature_set_name = signature_set_data$name
+  signatures = signature_set_data$signatures
+  signature_metadata = signature_set_data$meta
+  if (! is(signature_set_name, "character") || length(signature_set_name) != 1 || ! is(signatures, "data.frame") ||
+      ! is(signature_metadata, "data.table")) {
+    stop("Improperly formatted custom signature set: name should be 1-length character, signatures should be data.frame, meta should be data.table", call. = F)
+  }
+  if(is(signatures, "data.table") || is(signatures, "tbl")) {
+    stop("For compatibility with deconstructSigs, signature definitions must be given as a pure data.frame (see docs).", call. = F)
+  }
+  if(! identical(sort(deconstructSigs_trinuc_string), sort(colnames(signatures)))) {
+    tmp = paste0("\n", 'c("', paste(deconstructSigs_trinuc_string, collapse = '", "'), '")')
+    message("Expected signature definition column names:")
+    message(strwrap(tmp, indent = 4, exdent = 4))
+    stop("Your signature definition data frame has improper column names.", call. = F)
+  }
+  # Validate signature metadata if it's not empty
+  if (signature_metadata[, .N] > 0) {
+    if (is.null(signature_metadata$Signature)) {
+      stop("Signature metadata incorrectly formatted (see docs).")
+    }
+    if (any(! rownames(signatures) %in% signature_metadata$Signature)) {
+      stop("Improperly formatted signature set: Some signatures in your signature definitions are missing from the metadata table.")
+    }
+    if(length(signature_metadata$Signature) != length(unique(signature_metadata$Signature))) {
+      stop("Improperly formatted signature set: Some signatures are repeated in your signature metadata table")
+    }
+    
+    meta_cols = colnames(signature_metadata)
+    if ("Likely_Artifact" %in% meta_cols && ! is(signature_metadata$Likely_Artifact, "logical")) {
+      stop("Improperly formatted signature set metadata: column Likely_Artifact should be logical.")
+    }
+    
+    num_hm_cols = sum(c("Exome_Min", "Genome_Min") %in% meta_cols)
+    if (num_hm_cols == 2) {
+      if (! signature_metadata[, all(sapply(.SD, is.numeric)), .SDcols = c("Exome_Min", "Genome_Min")]) {
+        stop("Invalid signature set: metadata columns Exome_Min and Genome_Min should be numeric")
+      }
+    } else if (num_hm_cols != 0) {
+      stop("Invalid signature set metadata: there should be both Exome_Min and Genome_Min numeric columns, or neither.")
+    }
+  }
+}

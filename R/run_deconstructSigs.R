@@ -3,9 +3,6 @@
 #' This function gets called internally by trinuc_mutation_rates() for each tumor in a CESAnalysis, accepting its
 #' a data.frame of mutation counts and returning deconstructSigs output.
 #' 
-#' Since this funciton implements artifact accounting and signature removal, you may find it useful for your own mutational 
-#' signature analyses. However, you may be able to just use trinuc_mutation_rates().
-#' 
 #' @param tumor_trinuc_counts one-row data.frame of trinuc variant counts (in deconstructSigs order) for one tumor
 #' @param signatures_df data.frame of signatures (see COSMIC v3 signatures included with package for format)
 #' @param signatures_to_remove names of signatures in signatures_df to keep out of deconstructSigs and assign zero weights
@@ -13,9 +10,9 @@
 #'                            (these have weights calculated but are then normalized out when calculating true trinuc proportions)
 #' @param tri.counts.method exome/genome trinucleotide content normalization argument to pass to deconstructSigs (see its docs)
 #' @return a list with 2 items: raw_sig_output (exactly what comes out of deconstructSigs) and adjusted_sig_output, which contains
-#'         signature weights (possibly adjusted with artifact accounting) and expected relative trinuc mutation rates based on 
-#'         signature weights
-#' @export
+#'         artifact-accounted signature weights (which will match raw if there are no
+#'         artifact signatures) and expected relative trinuc mutation rates based on the
+#'         artifact-accounted signature weights
 run_deconstructSigs = function(tumor_trinuc_counts, signatures_df, signatures_to_remove, 
                                artifact_signatures, tri.counts.method) {
 
@@ -42,6 +39,9 @@ run_deconstructSigs = function(tumor_trinuc_counts, signatures_df, signatures_to
     
     # sort columns to match standard order
     signatures_output$weights <- signatures_output$weights[,rownames(signatures_df)]
+    
+    # keep a copy of weights that includes artifact weights
+    signatures_output$raw_weights <- signatures_output$weights
   }
 
   # We remove artifact signatures and renormalize so that we can
@@ -84,6 +84,6 @@ run_deconstructSigs = function(tumor_trinuc_counts, signatures_df, signatures_to
   } else {
     signatures_output["trinuc_prop"] = list(NULL)
   }
-  output$adjusted_sig_output = signatures_output[c("weights", "trinuc_prop")]
+  output$adjusted_sig_output = signatures_output[c("weights", "trinuc_prop", "raw_weights")]
   return(output)
 }

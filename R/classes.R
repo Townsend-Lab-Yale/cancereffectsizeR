@@ -19,7 +19,8 @@ setMethod("$", "CESAnalysis",
     } else if (name == "trinuc_rates") {
       return(get_trinuc_rates(x))
     } else if (name == "mutational_signatures") {
-      return(get_signature_weights(x))
+      return(list(biological = get_signature_weights(x, artifacts_zeroed = T),
+                  all = get_signature_weights(x, artifacts_zeroed = F)))
     } else if (name == "gene_rates") {
       return(get_gene_rates(x))
     } else if (name == "variants") {
@@ -83,7 +84,7 @@ setMethod("show", "CESAnalysis",
   function(object) {
     if(object@maf[, .N] > 0) {
       cat("Samples:\n")
-      print(object@samples[, .(num_samples = .N), by = c("group", "group_index", "coverage")][order(group_index)], row.names = F)
+      print(object@samples[, .(num_samples = .N), by = "coverage"], row.names = F)
       num_snvs = object@maf[variant_type == "snv", .N]
       cat("\nMAF data: ", num_snvs, " SNVs loaded", sep = "")
       if (identical(object@advanced$annotated, TRUE)) {

@@ -65,7 +65,8 @@ CESAnalysis = function(ref_set = "ces_hg19_v1", sample_groups = NULL) {
   ## using_exome_plus: whether previously loaded and any future generic exome data uses the "exome+" coverage option 
   ##  (either all generic data must, or none of it, based on choice of enforce_generic_exome_coverage on first load_maf call)
   ## recording: whether "run_history" is currently being recorded (gets set to false during some internal steps for clarity)
-  advanced = list("version" = packageVersion("cancereffectsizeR"), annotated = F, using_exome_plus = F, recording = T)
+  ## locked: whether load_maf can still be used (can't load more data after trinuc_mutation_rates or gene_mutation_rates)
+  advanced = list("version" = packageVersion("cancereffectsizeR"), annotated = F, using_exome_plus = F, recording = T, locked = F)
   cesa = new("CESAnalysis", run_history = character(),  ref_key = ref_set_name, maf = data.table(), excluded = data.table(),
              groups = sample_groups, mutrates = data.table(),
              selection_results = data.table(), ref_data_dir = data_dir,
@@ -142,6 +143,10 @@ load_cesa = function(file) {
   if (is.null(cesa@advanced$using_exome_plus)) {
     cesa@advanced$using_exome_plus = F
   }
+  if (is.null(cesa@advanced$locked)) {
+    # not generally desired behavior, but temporary
+    cesa@advanced$locked = cesa@advanced$annotated
+  }
   return(cesa)
 }
 
@@ -214,12 +219,20 @@ get_trinuc_rates = function(cesa = NULL) {
 #' Get table of signature weights by tumor
 #' 
 #' @param cesa CESAnalysis object
+#' @param artifacts_zeroed If TRUE, return weights table in which artifact signatures have
+#'   been set to zero and remaining weights renormalized to sum to 1, reflecting relative
+#'   contributions of biological processes to mutations. If FALSE, return a table with
+#'   artifact weights unaltered.
 #' @export
-get_signature_weights = function(cesa = NULL) {
+get_signature_weights = function(cesa = NULL, artifacts_zeroed = T) {
   if(! is(cesa, "CESAnalysis")) {
     stop("\nUsage: get_signature_weights(cesa), where cesa is a CESAnalysis")
   }
-  return(cesa@trinucleotide_mutation_weights$signature_weight_table)
+  if (artifacts_zeroed) {
+    return(cesa@trinucleotide_mutation_weights$signature_weight_table)
+  } else {
+    return(cesa@trinucleotide_mutation_weights$signature_weight_table_with_artifacts)
+  }
 }
 
 #' Get table of neutral gene mutation rates

@@ -26,6 +26,9 @@ colnames(cosmic_df) = dS_muts
 cosmic_df = cosmic_df[, deconstructSigs_trinuc_string]
 signature_set = list(name = "COSMIC v3.1", signatures = cosmic_df, meta = metadata)
 
+# trigger an error if this signature set isn't valid
+validate_signature_set(signature_set)
+
 # save in hg19 reference data collection
-out_path = paste0(system.file("genomes/hg19/signatures", package = "cancereffectsizeR"), '/COSMIC_v3.1_signatures.rds')
+out_path = paste0(system.file("ref_sets/ces_hg19_v1/signatures", package = "cancereffectsizeR"), '/COSMIC_v3.1_signatures.rds')
 saveRDS(signature_set, out_path)

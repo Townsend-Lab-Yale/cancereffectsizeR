@@ -11,8 +11,6 @@ trinuc_mutation_rates(
   cores = 1,
   assume_identical_mutational_processes = FALSE,
   sig_averaging_threshold = 50,
-  cosmic_hypermutation_rules = TRUE,
-  artifact_accounting = TRUE,
   use_dS_exome2genome = FALSE
 )
 }
@@ -25,24 +23,23 @@ trinuc_mutation_rates(
 
 \item{cores}{how many cores to use for processing tumors in parallel}
 
-\item{assume_identical_mutational_processes}{use well-mutated tumors (those with number of eligible mutations meeting sig_averaging_threshold) 
-to calculate group average signature weights, and assign these to all tumors}
+\item{assume_identical_mutational_processes}{use well-mutated tumors (those with number
+of eligible mutations meeting sig_averaging_threshold) to calculate group average
+signature weights, and assign these to all tumors}
 
-\item{sig_averaging_threshold}{Mutational threshold (default 50) that determines which tumors inform the
-calculation of group-average signature weightings. When assume_identical_mutational_processes == FALSE (the default), 
-these group averages are blended into the signature weightings of tumors with few mutations (those below the threshold).}
-
-\item{cosmic_hypermutation_rules}{T/F on whether to follow mutation count rules outlined in https://doi.org/10.1101/322859 (COSMIC v3 manuscript)
-(only applies when running with COSMIC v3/v3.1 signatures)}
-
-\item{artifact_accounting}{set false to disable special handling of artifact signatures (rarely recommended)}
+\item{sig_averaging_threshold}{Mutational threshold (default 50) that determines which
+tumors inform the calculation of group-average signature weights. When
+assume_identical_mutational_processes == FALSE (the default), these group averages
+are blended into the signature weights of sub-threshold tumors.}
 
 \item{use_dS_exome2genome}{internal dev option (don't use)}
 }
 \value{
-CESAnalysis with expected relative trinucleotide mutation rates ($trinuc_rates) and a table of tumor-specific 
-        signature weights ($mutational_signatures). Note that tumors with group_avg_blended == TRUE have signature
-        weights influenced by the average weights of well-mutated tumors; you may want to exclude these from some analyses.
+CESAnalysis with sample-specific signature weights and inferred
+  trinucleotide-context-specific relative mutation rates. Note that tumors with few
+  mutations (group_avg_blended == TRUE in the signature weights tables) have weights
+  influenced by the average weights of well-mutated tumors; you may want to exclude
+  these from some mutational signature analyses.
 }
 \description{
 This function calculates expected relative rates of trinucleotide-context-specific SNV

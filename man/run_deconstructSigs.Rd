@@ -26,14 +26,11 @@ run_deconstructSigs(
 }
 \value{
 a list with 2 items: raw_sig_output (exactly what comes out of deconstructSigs) and adjusted_sig_output, which contains
-        signature weights (possibly adjusted with artifact accounting) and expected relative trinuc mutation rates based on 
-        signature weights
+        artifact-accounted signature weights (which will match raw if there are no
+        artifact signatures) and expected relative trinuc mutation rates based on the
+        artifact-accounted signature weights
 }
 \description{
 This function gets called internally by trinuc_mutation_rates() for each tumor in a CESAnalysis, accepting its
 a data.frame of mutation counts and returning deconstructSigs output.
-}
-\details{
-Since this funciton implements artifact accounting and signature removal, you may find it useful for your own mutational 
-signature analyses. However, you may be able to just use trinuc_mutation_rates().
 }

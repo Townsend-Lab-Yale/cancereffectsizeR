@@ -4,10 +4,15 @@
 \alias{get_signature_weights}
 \title{Get table of signature weights by tumor}
 \usage{
-get_signature_weights(cesa = NULL)
+get_signature_weights(cesa = NULL, artifacts_zeroed = T)
 }
 \arguments{
 \item{cesa}{CESAnalysis object}
+
+\item{artifacts_zeroed}{If TRUE, return weights table in which artifact signatures have
+been set to zero and remaining weights renormalized to sum to 1, reflecting relative
+contributions of biological processes to mutations. If FALSE, return a table with
+artifact weights unaltered.}
 }
 \description{
 Get table of signature weights by tumor

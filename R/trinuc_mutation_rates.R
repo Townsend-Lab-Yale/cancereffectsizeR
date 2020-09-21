@@ -24,18 +24,19 @@
 #' @param signature_set name of built-in signature set (see \code{list_ces_signature_sets()}), or a custom signature set (see details)
 #' @param signatures_to_remove specify any signatures to exclude from analysis; use \code{suggest_cosmic_signatures_to_remove()} for advice on COSMIC signatures
 #' @param cores how many cores to use for processing tumors in parallel
-#' @param assume_identical_mutational_processes use well-mutated tumors (those with number of eligible mutations meeting sig_averaging_threshold) 
-#'   to calculate group average signature weights, and assign these to all tumors
-#' @param sig_averaging_threshold Mutational threshold (default 50) that determines which tumors inform the
-#'   calculation of group-average signature weightings. When assume_identical_mutational_processes == FALSE (the default), 
-#'   these group averages are blended into the signature weightings of tumors with few mutations (those below the threshold).
-#' @param cosmic_hypermutation_rules T/F on whether to follow mutation count rules outlined in https://doi.org/10.1101/322859 (COSMIC v3 manuscript)
-#'   (only applies when running with COSMIC v3/v3.1 signatures)
-#' @param artifact_accounting set false to disable special handling of artifact signatures (rarely recommended)
+#' @param sig_averaging_threshold Mutational threshold (default 50) that determines which
+#'   tumors inform the calculation of group-average signature weights. When
+#'   assume_identical_mutational_processes == FALSE (the default), these group averages
+#'   are blended into the signature weights of sub-threshold tumors.
+#' @param assume_identical_mutational_processes use well-mutated tumors (those with number
+#'   of eligible mutations meeting sig_averaging_threshold) to calculate group average
+#'   signature weights, and assign these to all tumors
 #' @param use_dS_exome2genome internal dev option (don't use)
-#' @return CESAnalysis with expected relative trinucleotide mutation rates ($trinuc_rates) and a table of tumor-specific 
-#'         signature weights ($mutational_signatures). Note that tumors with group_avg_blended == TRUE have signature
-#'         weights influenced by the average weights of well-mutated tumors; you may want to exclude these from some analyses.
+#' @return CESAnalysis with sample-specific signature weights and inferred
+#'   trinucleotide-context-specific relative mutation rates. Note that tumors with few
+#'   mutations (group_avg_blended == TRUE in the signature weights tables) have weights
+#'   influenced by the average weights of well-mutated tumors; you may want to exclude
+#'   these from some mutational signature analyses.
 #' @export
 #'
 #'
@@ -46,8 +47,6 @@ trinuc_mutation_rates <- function(cesa,
                                   cores = 1,
                                   assume_identical_mutational_processes = FALSE,
                                   sig_averaging_threshold = 50,
-                                  cosmic_hypermutation_rules = TRUE,
-                                  artifact_accounting = TRUE,
                                   use_dS_exome2genome = FALSE
                                   ){  
   if(is.null(cesa) || ! is(cesa, "CESAnalysis")) {
@@ -82,68 +81,42 @@ trinuc_mutation_rates <- function(cesa,
   if(! is(signatures_to_remove, "character")) {
     stop("signatures_to_remove should be a character vector", call. = F)
   }
-
-  
-  running_cosmic_v3 = FALSE # gets set to true when user loads COSMIC v3 or v3.1, so that hypermutation rules can be applied
   if(is(signature_set, "character")) {
     if (length(signature_set) != 1) {
       stop("signature_set should be 1-length character; run list_ces_signature_sets() for options.\n(Or, it can a custom signature set; see docs.)", call. = F)
     }
-    
     signature_set_data = get_ces_signature_set(cesa@ref_key, signature_set)
-    signature_set_name = signature_set_data$name
-    signatures = signature_set_data$signatures
-    signature_metadata = signature_set_data$meta
-
-    if(signature_set_name %in% c("COSMIC v3", "COSMIC v3.1")) {
-      running_cosmic_v3 = TRUE
-      if (cosmic_hypermutation_rules) {
-        message(crayon::black(paste0("Samples with many mutations will have hypermutation rules applied.\n",
-                                     "(Disable with cosmic_hypermutation_rules=FALSE.)")))
-      }
-      
-      if (signature_set_name == "COSMIC v3") {
-        # automatically strip out v3.1 signatures when running v3
-        new_in_3_1 = setdiff(rownames(get_ces_signature_set(cesa@ref_key, "COSMIC_v3.1")$signatures), rownames(signatures))
-        signatures_to_remove = signatures_to_remove[! signatures_to_remove %in% new_in_3_1]
-      }
-    }
   } else if(is(signature_set, "list")) {
-      signature_set_data = signature_set
-      signature_set_name = signature_set_data$name
-      signatures = signature_set_data$signatures
-      signature_metadata = signature_set_data$meta
-      if (! is(signature_set_name, "character") || length(signature_set_name) != 1 || ! is(signatures, "data.frame") ||
-          ! is(signature_metadata, "data.table")) {
-        stop("Improperly formatted custom signature set; see documentation.", call. = F)
-      }
-      if(is(signatures, "data.table") || is(signatures, "tbl")) {
-        stop("For compatibility with deconstructSigs, signature definitions must be given as a pure data.frame (see docs).", call. = F)
-      }
-      if(! identical(sort(deconstructSigs_trinuc_string), sort(colnames(signatures)))) {
-        tmp = paste0("\n", '"', paste(deconstructSigs_trinuc_string, collapse = '", "'), '"')
-        cat("Expected signature definition column names:\n")
-        writeLines(strwrap(tmp, indent = 4, exdent = 4))
-        stop("Your signature definition data frame has improper column names.", call. = F)
-      }
-      # Validate signature metadata if it's not empty
-      if (signature_metadata[, .N] > 0) {
-        if (is.null(signature_metadata$Signature)) {
-          stop("Signature metadata incorrectly formatted (see docs).")
-        }
-        if (any(! rownames(signatures) %in% signature_metadata$Signature)) {
-          stop("Improperly formatted signature set: Some signatures in your signature definitions are missing from the metadata table.")
-        }
-        if(length(signature_metadata$Signature) != length(unique(signature_metadata$Signature))) {
-          stop("Improperly formatted signature set: Some signatures are repeated in your signature metadata table")
-        }
-      }
+    validate_signature_set(signature_set)
+    signature_set_data = signature_set
+    check = tryCatch(get_ces_signature_set(cesa@ref_key,  signature_set_data$name),
+                     error = function(e) NULL)
+    if (! is.null(check)) {
+      stop("Your signature set's name matches one already provided with your CESAnalysis reference data.\n",
+           "If you're trying to supply a custom signature set, change its name.")
+    }
   } else {
     stop("signature_set should be type character; run list_ces_signature_sets() for options.\n",
-    "(Or, it can a custom signature set; see docs.)", call. = F)
+         "(Or, it can be a custom signature set; see docs.)")
+  }
+  signature_set_name = signature_set_data$name
+  signatures = signature_set_data$signatures
+  signature_metadata = signature_set_data$meta
+  
+  # columns Exome_Min and Genome_Min always go together in metadata, per signature set validation rules
+  # If they're present, we'll enforce their signature mutation count minimums for each tumor
+  mutation_count_rules = "Exome_Min" %in% colnames(signature_metadata)
+
+  # If running COSMIC v3.0, help out the user by dropping 3.1-exclusive signatures from signatures_to_remove
+  if(signature_set_name %in% c("COSMIC v3", "COSMIC v3.1")) {
+    if (signature_set_name == "COSMIC v3") {
+      # automatically strip out v3.1 signatures when running v3
+      new_in_3_1 = setdiff(rownames(get_ces_signature_set(cesa@ref_key, "COSMIC_v3.1")$signatures), rownames(signatures))
+      signatures_to_remove = signatures_to_remove[! signatures_to_remove %in% new_in_3_1]
+    }
   }
   
-  # Save signature set to CESAnalysis (leaving out other attributes for now)
+  # Save signature set to CESAnalysis (leaving out possible other attributes for now)
   cesa@advanced$snv_signatures = signature_set_data[c("name", "meta", "signatures")]
   
   # Put columns of sgnature data.frame into canonical deconstructSigs order (to match up with exome count order, etc.)
@@ -155,12 +128,6 @@ trinuc_mutation_rates <- function(cesa,
       stop("One or more signatures in signatures_to_remove are not in the signature set.", call. = F)
     }
   }
-  
-  # can't apply our COSMIC v3/3.1 enhancements unless we're using those signatures, naturally
-  if(! running_cosmic_v3) {
-    cosmic_hypermutation_rules = FALSE
-  }
-  
 
   # keeping TGS data in the ds_maf until after recurrency testing
   ds_maf = cesa@maf[variant_type == "snv"]
@@ -248,59 +215,41 @@ trinuc_mutation_rates <- function(cesa,
   trinuc_breakdown_per_tumor = as.data.frame(counts)
 
   artifact_signatures = NULL
-  if (artifact_accounting) {
-    # COSMIC v3 artifact signatures are read in from package data 
-    if (! "Likely_Artifact" %in% colnames(signature_metadata)) {
-      message("Note: There is no Likely_Artifact column in the signature set metadata, so\n",
-              "artifact accounting can't be done. If you know some signatures reflect\n",
-              "sequencing error or other artifacts, you should fix this.")
-    } else if (! is(signature_metadata$Likely_Artifact, "logical")) {
-      stop("Improperly formatted signature set metadata: column Likely_Artifact should be logical.", call. = F)
-    } else {
-      artifact_signatures = signature_metadata[Likely_Artifact == TRUE, Signature]
-      if(any(artifact_signatures %in% signatures_to_remove)) {
-        warning("Warning: You are have chosen to remove at least one sequencing-artifact-associated signature from analysis,\n",
-                "which will change how artifact accounting behaves (usually, all artifact signatures should be left in).")
-      }
+  if (! "Likely_Artifact" %in% colnames(signature_metadata)) {
+    msg = paste("Note: There is no Likely_Artifact column in the signature set metadata, so",
+                "artifact accounting can't be done. If you know that some signatures reflect",
+                "sequencing error or other artifacts, you should fix this.")
+    pretty_message(msg)
+  } else {
+    artifact_signatures = signature_metadata[Likely_Artifact == TRUE, Signature]
+    if(any(artifact_signatures %in% signatures_to_remove)) {
+      warning("Warning: You have chosen to remove at least one artifact signature from analysis,\n",
+              "which will change how artifact accounting behaves (usually, all artifact signatures should be left in).")
     }
   }
-
-  # hypermutation signatures from https://doi.org/10.1101/322859
-  cosmic_v3_highly_hm_sigs = c("SBS10a","SBS10b")
-  cosmic_v3_modest_hm_sigs = c("SBS6","SBS14","SBS15","SBS20","SBS21","SBS26","SBS44")
-
-
 
   # for parallelization, a function to process each tumor
   process_tumor = function(tumor_name) {
     tumor_trinuc_counts = as.data.frame(trinuc_breakdown_per_tumor[tumor_name,]) # deconstructSigs requires a data.frame
     num_variants = sum(tumor_trinuc_counts)
 
-    # Apply hypermuation rules if using
-    ### If tumor is evidently not hypermutated, remove hypermutation-associated signatures from consideration
-    ### Note: Assignment rules for hypermutator tumors found in
-    ### "SigProfiler_signature_assignment_rules" supp data here: https://doi.org/10.1101/322859
+
     current_sigs_to_remove = signatures_to_remove
-    if (cosmic_hypermutation_rules) {
-      # apply hypermuation rules
-      if (cesa@samples[tumor_name, coverage] == "exome") {
-        if(num_variants < 2000) {
-          current_sigs_to_remove = union(current_sigs_to_remove, cosmic_v3_highly_hm_sigs)
-        }
-        if(num_variants < 200) {
-          current_sigs_to_remove = union(current_sigs_to_remove, cosmic_v3_modest_hm_sigs)
-        }
-      } else {
-        # if not exome, must be genome, since TGS data not used in this function
-        if(num_variants < 10^5) {
-          current_sigs_to_remove = union(current_sigs_to_remove, cosmic_v3_highly_hm_sigs)
-        }
-        if(num_variants < 10^4) {
-          current_sigs_to_remove = union(current_sigs_to_remove, cosmic_v3_modest_hm_sigs)
-        }
+    
+    # Hypermutation signatures have Exome_Min and Genome_Min values in metadata that give the smallest
+    # number of mutations a tumor can have and still reasonably have the mutational process present.
+    # Here, remove signatures that require more mutations than the tumor has.
+    curr_sample_cov = curr_sample_cov = cesa@samples[tumor_name, coverage]
+    if (mutation_count_rules) {
+      if (curr_sample_cov == "exome") {
+        current_sigs_to_remove = union(current_sigs_to_remove, signature_metadata[num_variants < Exome_Min, Signature])
+      } else if (curr_sample_cov == "genome") {
+        current_sigs_to_remove = union(current_sigs_to_remove, signature_metadata[num_variants < Genome_Min, Signature])
       }
     }
-    if (cesa@samples[tumor_name, coverage] == "genome") {
+
+    # Set normalization argument for deconstructSigs based on coverage
+    if (curr_sample_cov == "genome") {
       normalization = "default" # this actually means no normalization (since signatures and MAF coverage are both whole-genome)
     } else {
       normalization = tri.counts.genome / exome_counts_by_gr[[cesa@samples[tumor_name, covered_regions]]]
@@ -329,7 +278,7 @@ trinuc_mutation_rates <- function(cesa,
     # rarely, weights will come out all 0, so trinuc_prop will be NULL; these tumors are "zeroed-out"
     if(is.null(signatures_output$adjusted_sig_output$trinuc_prop)) {
       zeroed_out_tumors = c(zeroed_out_tumors, tumor_name)
-      substitution_counts[[tumor_name]] = 0 # no SNVs inform trinuc rates in these tumors
+      #substitution_counts[[tumor_name]] = 0 # no SNVs inform trinuc rates in these tumors
     } else {
       trinuc_proportion_matrix[tumor_name, ] = signatures_output$adjusted_sig_output$trinuc_prop
     }
@@ -356,14 +305,15 @@ trinuc_mutation_rates <- function(cesa,
     mean_trinuc_prop = as.data.frame(t(mean_trinuc_prop))
     
     
-    # Hypermutation signatures are presumed absent from tumors subthreshold number of mutations, but may be present in the above-threshold
-    # tumors. Therefore, they will be treated like artifact signatures: included in deconstructSigs signature weight calculation, but normalized
-    # out when calculating the "true" relative trinucleotide SNV mutation rates.
-    # However, they are left in for the assume_identical_mutational_processes method in the spirit of assuming all 
-    # tumors have the same mutational processes.
+    # Signatures that "expect" more mutations than are present in any of the subthreshold
+    # tumors will be treated like artifact signatures: included in deconstructSigs
+    # signature weight calculation, but normalized out when calculating the "true"
+    # relative trinucleotide SNV mutation rates. However, they are left in for the
+    # assume_identical_mutational_processes method in the spirit of assuming all tumors
+    # have the same mutational processes.
     mean_calc_artifact_signatures = artifact_signatures
-    if (cosmic_hypermutation_rules && assume_identical_mutational_processes == FALSE) {
-      mean_calc_artifact_signatures = unique(c(artifact_signatures, cosmic_v3_modest_hm_sigs, cosmic_v3_highly_hm_sigs))
+    if (mutation_count_rules && assume_identical_mutational_processes == FALSE) {
+      mean_calc_artifact_signatures = union(artifact_signatures, signature_metadata[sig_averaging_threshold < Exome_Min, Signature])
     }
     
     rownames(mean_trinuc_prop) = "mean" # deconstructSigs crashes unless a rowname is supplied here
@@ -372,7 +322,8 @@ trinuc_mutation_rates <- function(cesa,
                                                       signatures_to_remove = signatures_to_remove, tri.counts.method = "default",
                                                       artifact_signatures = mean_calc_artifact_signatures)
     
-    mean_weights <- mean_ds$adjusted_sig_output$weights
+    mean_weights = mean_ds$adjusted_sig_output$weights
+    mean_weights_raw = mean_ds$adjusted_sig_output$raw_weights
     mean_trinuc_prop = as.numeric(mean_trinuc_prop) # convert back to numeric for insertion into trinuc_proportion_matrix
     
     # TGS tumors, tumors with zeroed-out weights, and tumors with no non-recurrent SNVs get assigned group-average rates
@@ -396,7 +347,7 @@ trinuc_mutation_rates <- function(cesa,
           trinuc_proportion_matrix[tumor, ] = mean_trinuc_prop
         } else {
           # zeroed-out tumors are sub-threshold even when sig_averaging_threshold is 0; take no weight from these
-          if (sig_averaging_threshold == 0) {
+          if (sig_averaging_threshold == 0 || tumor %in% zeroed_out_tumors) {
             own_weighting = 0
           } else {
             own_weighting = substitution_counts[tumor] / sig_averaging_threshold
@@ -405,7 +356,8 @@ trinuc_mutation_rates <- function(cesa,
           mean_blended_trinuc_prop = trinuc_proportion_matrix[tumor, ] * own_weighting + mean_trinuc_prop * group_weighting
           ds_output = signatures_output_list[[tumor]]
           mean_blended_weights = ds_output$adjusted_sig_output$weights * own_weighting + mean_weights * group_weighting
-          ds_output$mean_blended = list(weights = mean_blended_weights, trinuc_prop = mean_blended_trinuc_prop)
+          raw_mean_blended = ds_output$adjusted_sig_output$raw_weights * own_weighting + mean_weights_raw * group_weighting
+          ds_output$mean_blended = list(weights = mean_blended_weights, trinuc_prop = mean_blended_trinuc_prop, raw_weights = raw_mean_blended)
           trinuc_proportion_matrix[tumor, ] = mean_blended_trinuc_prop
           signatures_output_list[[tumor]] = ds_output
         }
@@ -422,21 +374,36 @@ trinuc_mutation_rates <- function(cesa,
     
     blended_weights = data.table(t(sapply(blended_tumors, function(x) as.numeric(signatures_output_list[[x]]$mean_blended$weights))), 
                                  keep.rownames = "Unique_Patient_Identifier")
+    blended_raw_weights = data.table(t(sapply(blended_tumors, function(x) as.numeric(signatures_output_list[[x]]$mean_blended$raw_weights))), 
+                                     keep.rownames = "Unique_Patient_Identifier")
     
     nonblended_tumors = setdiff(names(signatures_output_list), blended_tumors)
     above_threshold_weights = data.table(t(sapply(nonblended_tumors, function(x) as.numeric(signatures_output_list[[x]]$adjusted_sig_output$weights))), 
                                          keep.rownames = "Unique_Patient_Identifier")
+    above_threshold_raw_weights = data.table(t(sapply(nonblended_tumors, function(x) as.numeric(signatures_output_list[[x]]$adjusted_sig_output$raw_weights))), 
+                                             keep.rownames = "Unique_Patient_Identifier")
     
     # get all signature weights into a data table (one row per sample)
+    # sig_table_raw includes artifact signature_weights
     sig_table = rbind(above_threshold_weights, blended_weights)
+    sig_table_raw = rbind(above_threshold_raw_weights, blended_raw_weights)
+    
     
     # use first sample to set column names to signature names
     colnames(sig_table)[2:ncol(sig_table)] = colnames(signatures_output_list[[1]]$adjusted_sig_output$weights)
+    colnames(sig_table_raw) = colnames(sig_table)
     sig_table[, group_avg_blended := Unique_Patient_Identifier %in% blended_tumors]
     sig_table[, sig_extraction_snvs := as.numeric(substitution_counts[Unique_Patient_Identifier])] # otherwise will be "table" class
-    
     total_snv_counts = cesa@maf[variant_type == "snv"][sig_table, .(total_snvs = .N), on = "Unique_Patient_Identifier", by = "Unique_Patient_Identifier"]
     sig_table = sig_table[total_snv_counts, on = "Unique_Patient_Identifier"]
+    
+    
+    sig_table_raw = sig_table_raw[sig_table[,.(Unique_Patient_Identifier, group_avg_blended, sig_extraction_snvs, total_snvs)], ,
+                                  on = "Unique_Patient_Identifier"]
+    
+    # to reflect that no SNVs informed inferred weights of zeroed-out tumors, set sig_extraction_snvs to 0
+    # note that sig_table_raw keeps the actual counts used by dS
+    sig_table[Unique_Patient_Identifier %in% zeroed_out_tumors, sig_extraction_snvs := 0] 
     
     
     tumors_without_data = setdiff(cesa@samples$Unique_Patient_Identifier, sig_table$Unique_Patient_Identifier)
@@ -449,16 +416,26 @@ trinuc_mutation_rates <- function(cesa,
       total_snvs[is.na(total_snvs)] = 0
       new_table = data.table(Unique_Patient_Identifier = tumors_without_data, total_snvs = total_snvs, 
                              sig_extraction_snvs = 0, group_avg_blended = T)
-      new_table = cbind(new_table, new_rows)
-      sig_table = rbind(sig_table, new_table)
+      sig_table = rbind(sig_table, cbind(new_table, new_rows))
+      
+      # repeat for table that includes artifacts
+      group_avg_weights_raw = as.numeric(mean_ds$adjusted_sig_out$raw_weights)
+      new_rows_raw = matrix(nrow = num_to_add, data = rep.int(group_avg_weights_raw, num_to_add), byrow = T)
+      colnames(new_rows_raw) = colnames(mean_ds$adjusted_sig_out$raw_weights)
+      new_table[, sig_extraction_snvs := as.numeric(substitution_counts[Unique_Patient_Identifier])]
+      new_table[is.na(sig_extraction_snvs), sig_extraction_snvs := 0]
+      sig_table_raw = rbind(sig_table_raw, cbind(new_table, new_rows_raw))
     }
     setcolorder(sig_table, c("Unique_Patient_Identifier", "total_snvs", "sig_extraction_snvs", "group_avg_blended"))
+    setcolorder(sig_table_raw, c("Unique_Patient_Identifier", "total_snvs", "sig_extraction_snvs", "group_avg_blended"))
     cesa@trinucleotide_mutation_weights[["signature_weight_table"]] = sig_table
+    cesa@trinucleotide_mutation_weights[["signature_weight_table_with_artifacts"]] = sig_table_raw
   }
   
   if(! is.null(mean_ds)) {
     cesa@trinucleotide_mutation_weights[["group_average_dS_output"]] = mean_ds
   }
+  cesa@advanced$locked = T
   return(cesa)
 }
 
