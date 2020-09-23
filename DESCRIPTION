@@ -23,13 +23,14 @@ Imports:
 	dndscv,
 	GenomeInfoDb,
 	GenomicRanges,
-	IRanges,
+  ggplot2,
+  ggrepel,
+  IRanges,
 	pbapply,
 	rtracklayer,
 	S4Vectors,
 	seqinr
 Suggests: 
-    ggplot2,
     knitr,
     rmarkdown,
     formattable,

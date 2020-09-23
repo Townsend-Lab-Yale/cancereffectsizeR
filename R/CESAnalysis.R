@@ -243,7 +243,11 @@ get_gene_rates = function(cesa = NULL) {
   if(! is(cesa, "CESAnalysis")) {
     stop("\nUsage: get_gene_rates(cesa), where cesa is a CESAnalysis")
   }
-  return(cesa@mutrates)
+  gene_rates = cesa@mutrates
+  if (ncol(gene_rates) == 2) {
+    colnames(gene_rates) = c("gene", "rate")
+  }
+  return(gene_rates)
 }
 
 
@@ -259,7 +263,7 @@ snv_results = function(cesa = NULL) {
   if (cesa@selection_results[, .N] == 0) {
     stop("No results yet from ces_snv in this CESAnalysis")
   }
-  annotations = select_variants(cesa, variant_ids = cesa@selection_results$variant_id, min_freq = 0)
+  annotations = suppressMessages(select_variants(cesa, variant_ids = cesa@selection_results$variant_id, min_freq = 0))
   results = cesa@selection_results[annotations, on = c("variant_id", "variant_type")]
   results_cols = colnames(results)
   # try to flip variant_name and variant_id columns
