@@ -14,15 +14,35 @@
 #' A custom signature set should be given as a named three-item list, where "signatures"
 #' is a pure data.frame with signature definitions, "name" is a 1-length character naming
 #' the set, and "metadata" is a data.table with a "Signature" column that matches rownames
-#' in the signature definitions. For artifact accounting to work, there should be a
-#' TRUE/FALSE (logical) Likely_Artifact column; additional columns are optional. If you
-#' don't have artifact information, you can also just supply an empty data.table. For a
-#' template signature set object, run \code{sig_set = get_ces_signature_set("ces_hg19_v1",
-#' "COSMIC_v3.1")}.
+#' in the signature definitions. The following columns allow special functionality:
+#' \itemize{ 
+#' \item Etiology: Known or hypothesized mutational processes underyling the signature. Used 
+#' for human-readable tables and plots, so best to enter something like "Unknown" rather
+#' than leaving any entries empty or NA
+#' \item Likely_Artifact (logical T/F): Marks signatures that are believed to
+#' derive from sample processing, sequencing, calling error, or other non-biological
+#' sources. cancereffectsizeR adjusts for artifact signatures when inferring relative
+#' trinucleotide mutation rates.
+#' \item Exome_Min: Minimum number of mutations a WES sample
+#' must have for the presence of the signature to be plausible. This column is used to
+#' prevent hypermutation signatures from being found in tumors with few mutations. Can be
+#' left NA or 0 for non-hypermutation signatures. If this column is present, Genome_Min
+#' must be present and always greater than or equal to Exome_Min. 
+#' \item Genome_Min:
+#' Minimum number of mutations a WGS sample must have for the presence of the signature to
+#' be plausible. This column is used to prevent hypermutation signatures from being found
+#' in tumors with few mutations. Can be left NA or 0 for non-hypermutation signatures. If
+#' this column is present, Exome_Min must be present and always less than or equal to
+#' Genome_Min.
+#' }
+#' If you don't have any metadata available for your signature set, an empty data table
+#' can also be supplied. For a template signature set object, run 
+#' \code{sig_set = get_ces_signature_set("ces_hg19_v1", "COSMIC_v3.1")}.
 #'
 #' @param cesa CESAnalysis object
 #' @param signature_set name of built-in signature set (see \code{list_ces_signature_sets()}), or a custom signature set (see details)
 #' @param signatures_to_remove specify any signatures to exclude from analysis; use \code{suggest_cosmic_signatures_to_remove()} for advice on COSMIC signatures
+#' @param sample_group vector of sample group(s) to calculate rates for (default all)
 #' @param cores how many cores to use for processing tumors in parallel
 #' @param sig_averaging_threshold Mutational threshold (default 50) that determines which
 #'   tumors inform the calculation of group-average signature weights. When
@@ -44,6 +64,7 @@
 trinuc_mutation_rates <- function(cesa,
                                   signature_set = NULL,
                                   signatures_to_remove = character(),
+                                  sample_group = NULL,
                                   cores = 1,
                                   assume_identical_mutational_processes = FALSE,
                                   sig_averaging_threshold = 50,
@@ -54,6 +75,31 @@ trinuc_mutation_rates <- function(cesa,
   }
   cesa = update_cesa_history(cesa, match.call())
   
+  if(cesa@maf[, .N] == 0) {
+    stop("No MAF data in the CESAnalysis", call. = F)
+  }
+  
+  if(! is.null(sample_group) & ! is(sample_group, "character")) {
+    stop("sample_group should be character")
+  }
+  sample_group = unique(sample_group)
+  if (! all(sample_group %in% cesa@groups)) {
+    possible_groups = setdiff(cesa@groups, "stageless") # historical
+    if (length(possible_groups) == 0) {
+      stop("The CESAnalysis has no user-defined sample groups, so you can't use the sample_group parameter.")
+    }
+    stop("Unrecognized sample groups. Those defined in the CESAnalysis are ", paste(possible_groups, sep = ", "), ".")
+  }
+  
+  if (! is.null(sample_group)) {
+    curr_sample_info = cesa@samples[group %in% sample_group]
+  } else {
+    curr_sample_info = cesa@samples
+  }
+  if (curr_sample_info[, .N] == 0) {
+    stop("No selected samples to run (no samples in the chosen group?).")
+  }
+  
   # If for some reason reference data is no longer in the package environment, restore it
   if (! cesa@ref_key %in% ls(.ces_ref_data)) {
     preload_ref_data(cesa@ref_data_dir)
@@ -61,11 +107,8 @@ trinuc_mutation_rates <- function(cesa,
   
   bsg = .ces_ref_data[[cesa@ref_key]]$genome
   
-  if(cesa@maf[, .N] == 0) {
-    stop("No MAF data in the CESAnalysis", call. = F)
-  }
   
-  if(all(cesa@samples$coverage == "targeted")) {
+  if(all(curr_sample_info$coverage == "targeted")) {
     stop("We can't estimate relative trinucleotide mutation rates without some exome/genome data in the CESAnalysis (all data is targeted sequencing).", call. = F)
   }
   
@@ -116,8 +159,17 @@ trinuc_mutation_rates <- function(cesa,
     }
   }
   
-  # Save signature set to CESAnalysis (leaving out possible other attributes for now)
-  cesa@advanced$snv_signatures = signature_set_data[c("name", "meta", "signatures")]
+  # Save signature set to CESAnalysis
+  # If already ran with different sample group, make sure signature set data is the same
+  if (! is.null(cesa@advanced$snv_signatures)) {
+    if (! all.equal(cesa@advanced$snv_signatures, signature_set_data, check.attributes = F)) {
+      stop("Signature set does not exactly match the one previously used with this CESAnalysis.")
+    }
+  } else {
+    cesa@advanced$snv_signatures = signature_set_data
+  }
+  
+  
   
   # Put columns of sgnature data.frame into canonical deconstructSigs order (to match up with exome count order, etc.)
   signatures = signatures[, deconstructSigs_trinuc_string]
@@ -129,7 +181,7 @@ trinuc_mutation_rates <- function(cesa,
     }
   }
 
-  # keeping TGS data in the ds_maf until after recurrency testing
+  # keeping TGS data (and data from other groups, if applicable) in the ds_maf until after recurrency testing
   ds_maf = cesa@maf[variant_type == "snv"]
 
   # remove all recurrent SNVs (SNVs appearing in more than one sample)
@@ -140,11 +192,18 @@ trinuc_mutation_rates <- function(cesa,
     ds_maf <- ds_maf[-duplicated_vec_pos,]
   }
 
-  setkey(cesa@samples, "Unique_Patient_Identifier")
-  all_tumors = cesa@samples$Unique_Patient_Identifier # may include some tumors with no SNVs, or with only recurrent SNVs
+  setkey(curr_sample_info, "Unique_Patient_Identifier")
+  all_tumors = curr_sample_info$Unique_Patient_Identifier # may include some tumors with no SNVs, or with only recurrent SNVs
+  
+  # Check that tumors aren't already present in trinuc rates / weights tables
+  # Since you can't have a signature weight entry without also being in rates matrix, just check rates matrix
+  if(any(all_tumors %in% rownames(cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix))) {
+    stop("Trinucleotide-context-specific mutation rates have already been calculated for some or all of these tumors.")
+  }
+  
   
   # can only find signatures in tumors with exome/genome data that have non-recurrent SNVs
-  tumors_eligible_for_trinuc_calc = intersect(cesa@samples[coverage != "targeted", Unique_Patient_Identifier], unique(ds_maf$Unique_Patient_Identifier))
+  tumors_eligible_for_trinuc_calc = intersect(curr_sample_info[coverage != "targeted", Unique_Patient_Identifier], unique(ds_maf$Unique_Patient_Identifier))
   tumors_needing_group_average_rates = setdiff(all_tumors, tumors_eligible_for_trinuc_calc)
   
   # subset to just the tumors that will be run through deconstructSigs
@@ -167,7 +226,7 @@ trinuc_mutation_rates <- function(cesa,
   
   # for each exome coverage gr (besides default generic, which is pre-calculated), tabulate trinucs
   exome_counts_by_gr = list()
-  exomes_to_calc = cesa@samples[coverage == "exome", unique(covered_regions)]
+  exomes_to_calc = curr_sample_info[coverage == "exome", unique(covered_regions)]
   for (exome_name in exomes_to_calc) {
     if (exome_name %in% c("exome", "exome+")) {
       if (use_dS_exome2genome) {
@@ -239,7 +298,7 @@ trinuc_mutation_rates <- function(cesa,
     # Hypermutation signatures have Exome_Min and Genome_Min values in metadata that give the smallest
     # number of mutations a tumor can have and still reasonably have the mutational process present.
     # Here, remove signatures that require more mutations than the tumor has.
-    curr_sample_cov = curr_sample_cov = cesa@samples[tumor_name, coverage]
+    curr_sample_cov = curr_sample_cov = curr_sample_info[tumor_name, coverage]
     if (mutation_count_rules) {
       if (curr_sample_cov == "exome") {
         current_sigs_to_remove = union(current_sigs_to_remove, signature_metadata[num_variants < Exome_Min, Signature])
@@ -252,7 +311,7 @@ trinuc_mutation_rates <- function(cesa,
     if (curr_sample_cov == "genome") {
       normalization = "default" # this actually means no normalization (since signatures and MAF coverage are both whole-genome)
     } else {
-      normalization = tri.counts.genome / exome_counts_by_gr[[cesa@samples[tumor_name, covered_regions]]]
+      normalization = tri.counts.genome / exome_counts_by_gr[[curr_sample_info[tumor_name, covered_regions]]]
     }
     return(run_deconstructSigs(tumor_trinuc_counts = tumor_trinuc_counts, tri.counts.method = normalization,
                                                 signatures_df = signatures, signatures_to_remove = current_sigs_to_remove, artifact_signatures = artifact_signatures))
@@ -364,10 +423,19 @@ trinuc_mutation_rates <- function(cesa,
       }  
     }
   }
-
-  cesa@trinucleotide_mutation_weights = list(trinuc_proportion_matrix=trinuc_proportion_matrix,
-                                             signatures_output_list=signatures_output_list)
   
+  # If this is the first setting of trinuc rates, create lists
+  if (length(cesa@trinucleotide_mutation_weights) == 0) {
+    cesa@trinucleotide_mutation_weights = list(trinuc_proportion_matrix=trinuc_proportion_matrix,
+                                               signatures_output_list=signatures_output_list)
+  } else {
+    new_mat = rbind(trinuc_proportion_matrix, cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix)
+    cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix = new_mat
+    new_sig_out_list = c(signatures_output_list, cesa@trinucleotide_mutation_weights$signatures_output_list)
+    cesa@trinucleotide_mutation_weights$signatures_output_list = new_sig_out_list
+  }
+  
+  # Put together signature weight tables
   if (! assume_identical_mutational_processes) {
     # identify tumors with weights informed by well-mutated (above SNV threshold) tumors
     blended_tumors = names(which(sapply(signatures_output_list, function(x) ! is.null(x$mean_blended))))
@@ -406,7 +474,7 @@ trinuc_mutation_rates <- function(cesa,
     sig_table[Unique_Patient_Identifier %in% zeroed_out_tumors, sig_extraction_snvs := 0] 
     
     
-    tumors_without_data = setdiff(cesa@samples$Unique_Patient_Identifier, sig_table$Unique_Patient_Identifier)
+    tumors_without_data = setdiff(curr_sample_info$Unique_Patient_Identifier, sig_table$Unique_Patient_Identifier)
     num_to_add = length(tumors_without_data)
     if (num_to_add > 0) {
       group_avg_weights = as.numeric(mean_ds$adjusted_sig_output$weights)
@@ -428,14 +496,25 @@ trinuc_mutation_rates <- function(cesa,
     }
     setcolorder(sig_table, c("Unique_Patient_Identifier", "total_snvs", "sig_extraction_snvs", "group_avg_blended"))
     setcolorder(sig_table_raw, c("Unique_Patient_Identifier", "total_snvs", "sig_extraction_snvs", "group_avg_blended"))
-    cesa@trinucleotide_mutation_weights[["signature_weight_table"]] = sig_table
-    cesa@trinucleotide_mutation_weights[["signature_weight_table_with_artifacts"]] = sig_table_raw
+    
+    new_sig_table = rbind(cesa@trinucleotide_mutation_weights[["signature_weight_table"]], sig_table)
+    cesa@trinucleotide_mutation_weights[["signature_weight_table"]] = new_sig_table
+    new_sig_raw_table = rbind(cesa@trinucleotide_mutation_weights[["signature_weight_table_with_artifacts"]], sig_table_raw)
+    cesa@trinucleotide_mutation_weights[["signature_weight_table_with_artifacts"]] = new_sig_raw_table
   }
   
   if(! is.null(mean_ds)) {
-    cesa@trinucleotide_mutation_weights[["group_average_dS_output"]] = mean_ds
+    if (is.null(sample_group)) {
+      cesa@trinucleotide_mutation_weights[["group_average_dS_output"]][["all"]] = mean_ds
+    } else {
+      cesa@trinucleotide_mutation_weights[["group_average_dS_output"]][[paste(sample_group, collapse = ',')]] = mean_ds
+    }
   }
   cesa@advanced$locked = T
+  
+  if(nrow(cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix) == cesa@samples[, .N]) {
+    cesa@advanced$trinuc_done = T
+  }
   return(cesa)
 }
 

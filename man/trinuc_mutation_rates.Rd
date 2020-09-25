@@ -8,6 +8,7 @@ trinuc_mutation_rates(
   cesa,
   signature_set = NULL,
   signatures_to_remove = character(),
+  sample_group = NULL,
   cores = 1,
   assume_identical_mutational_processes = FALSE,
   sig_averaging_threshold = 50,
@@ -20,6 +21,8 @@ trinuc_mutation_rates(
 \item{signature_set}{name of built-in signature set (see \code{list_ces_signature_sets()}), or a custom signature set (see details)}
 
 \item{signatures_to_remove}{specify any signatures to exclude from analysis; use \code{suggest_cosmic_signatures_to_remove()} for advice on COSMIC signatures}
+
+\item{sample_group}{vector of sample group(s) to calculate rates for (default all)}
 
 \item{cores}{how many cores to use for processing tumors in parallel}
 
@@ -57,9 +60,28 @@ sample in the data set) are used.
 A custom signature set should be given as a named three-item list, where "signatures"
 is a pure data.frame with signature definitions, "name" is a 1-length character naming
 the set, and "metadata" is a data.table with a "Signature" column that matches rownames
-in the signature definitions. For artifact accounting to work, there should be a
-TRUE/FALSE (logical) Likely_Artifact column; additional columns are optional. If you
-don't have artifact information, you can also just supply an empty data.table. For a
-template signature set object, run \code{sig_set = get_ces_signature_set("ces_hg19_v1",
-"COSMIC_v3.1")}.
+in the signature definitions. The following columns allow special functionality:
+\itemize{ 
+\item Etiology: Known or hypothesized mutational processes underyling the signature. Used 
+for human-readable tables and plots, so best to enter something like "Unknown" rather
+than leaving any entries empty or NA
+\item Likely_Artifact (logical T/F): Marks signatures that are believed to
+derive from sample processing, sequencing, calling error, or other non-biological
+sources. cancereffectsizeR adjusts for artifact signatures when inferring relative
+trinucleotide mutation rates.
+\item Exome_Min: Minimum number of mutations a WES sample
+must have for the presence of the signature to be plausible. This column is used to
+prevent hypermutation signatures from being found in tumors with few mutations. Can be
+left NA or 0 for non-hypermutation signatures. If this column is present, Genome_Min
+must be present and always greater than or equal to Exome_Min. 
+\item Genome_Min:
+Minimum number of mutations a WGS sample must have for the presence of the signature to
+be plausible. This column is used to prevent hypermutation signatures from being found
+in tumors with few mutations. Can be left NA or 0 for non-hypermutation signatures. If
+this column is present, Exome_Min must be present and always less than or equal to
+Genome_Min.
+}
+If you don't have any metadata available for your signature set, an empty data table
+can also be supplied. For a template signature set object, run 
+\code{sig_set = get_ces_signature_set("ces_hg19_v1", "COSMIC_v3.1")}.
 }

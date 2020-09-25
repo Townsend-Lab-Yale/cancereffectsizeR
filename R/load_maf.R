@@ -473,7 +473,7 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     if (num_mnv > 0) {
       mnv_records = maf[mnv_rows, 1:5]
       mnv_records$Exclusion_Reason = "predicted_MNV"
-      maf = maf[! mnv_rows][, is_mnv := NULL]
+      maf = maf[! mnv_rows]
       excluded = rbind(excluded, mnv_records)
       # To-do: move message to DNP_TNP_remover or otherwise ensure this description remains accurate
       percent = round((num_mnv / num_prefilter) * 100, 1)
@@ -482,6 +482,7 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
                    "since they likely did not arise from independent events (i.e., they're multi-nucleotide variants).")
       pretty_message(msg)
     }
+    maf[, is_mnv := NULL]
   }
   
   

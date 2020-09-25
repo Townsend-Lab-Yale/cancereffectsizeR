@@ -249,7 +249,13 @@ validate_signature_set = function(signature_set) {
     num_hm_cols = sum(c("Exome_Min", "Genome_Min") %in% meta_cols)
     if (num_hm_cols == 2) {
       if (! signature_metadata[, all(sapply(.SD, is.numeric)), .SDcols = c("Exome_Min", "Genome_Min")]) {
-        stop("Invalid signature set: metadata columns Exome_Min and Genome_Min should be numeric")
+        stop("Invalid signature set: metadata columns Exome_Min and Genome_Min should be numeric.")
+      }
+      if (signature_metadata[, any(xor(is.na(Exome_Min), is.na(Genome_Min)))]) {
+        stop("Invalid signature set metadata: For any signature, Exome_Min/Genome_Min must be both defined or both NA.")
+      }
+      if (signature_metadata[! is.na(Exome_Min), any(Exome_Min >= Genome_Min)]) {
+        stop("Invalid signature set metadata: Exome_Min must be <= Genome_Min in all signatures where they're defined.")
       }
     } else if (num_hm_cols != 0) {
       stop("Invalid signature set metadata: there should be both Exome_Min and Genome_Min numeric columns, or neither.")

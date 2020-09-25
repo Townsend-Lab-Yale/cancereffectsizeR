@@ -66,7 +66,9 @@ CESAnalysis = function(ref_set = "ces_hg19_v1", sample_groups = NULL) {
   ##  (either all generic data must, or none of it, based on choice of enforce_generic_exome_coverage on first load_maf call)
   ## recording: whether "run_history" is currently being recorded (gets set to false during some internal steps for clarity)
   ## locked: whether load_maf can still be used (can't load more data after trinuc_mutation_rates or gene_mutation_rates)
-  advanced = list("version" = packageVersion("cancereffectsizeR"), annotated = F, using_exome_plus = F, recording = T, locked = F)
+  ## trinuc_done: have all trinuc mutation rates been calculated?
+  advanced = list("version" = packageVersion("cancereffectsizeR"), annotated = F, using_exome_plus = F, 
+                  recording = T, locked = F, trinuc_done = F)
   cesa = new("CESAnalysis", run_history = character(),  ref_key = ref_set_name, maf = data.table(), excluded = data.table(),
              groups = sample_groups, mutrates = data.table(),
              selection_results = data.table(), ref_data_dir = data_dir,
@@ -86,7 +88,7 @@ CESAnalysis = function(ref_set = "ces_hg19_v1", sample_groups = NULL) {
 #' @param file filename/path of CESAnalysis that has been saved with saveRDS, expected to end in .rds
 #' @export
 load_cesa = function(file) {
-  if (! endsWith(file, '.rds')) {
+  if (! endsWith(tolower(file), '.rds')) {
     stop("Expected filename to end in .rds (because saveRDS() is the recommended way to save a CESAnalysis).", call. = F)
   }
   
@@ -147,6 +149,15 @@ load_cesa = function(file) {
     # not generally desired behavior, but temporary
     cesa@advanced$locked = cesa@advanced$annotated
   }
+  
+  if(is.null(cesa@advanced$trinuc_done)) {
+    if (! is.null(cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix)) {
+      cesa@advanced$trinuc_done = nrow(cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix) == cesa@samples[, .N]
+    } else {
+      cesa@advanced$trinuc_done = F
+    }
+  }
+  
   return(cesa)
 }
 
