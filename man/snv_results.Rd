@@ -2,7 +2,7 @@
 % Please edit documentation in R/CESAnalysis.R
 \name{snv_results}
 \alias{snv_results}
-\title{View results from ces_snv}
+\title{View results from ces_variant}
 \usage{
 snv_results(cesa = NULL)
 }
@@ -10,5 +10,5 @@ snv_results(cesa = NULL)
 \item{cesa}{CESAnalysis object}
 }
 \description{
-returns a data table of SNV effect sizes generated with ces_snv
+returns a data table (or list of data tables) with results from ces_variant plus annotations
 }

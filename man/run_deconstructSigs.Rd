@@ -34,3 +34,4 @@ a list with 2 items: raw_sig_output (exactly what comes out of deconstructSigs) 
 This function gets called internally by trinuc_mutation_rates() for each tumor in a CESAnalysis, accepting its
 a data.frame of mutation counts and returning deconstructSigs output.
 }
+\keyword{internal}

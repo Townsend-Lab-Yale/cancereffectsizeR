@@ -44,10 +44,16 @@
 <script src="../pkgdown.js"></script>
 
 
+<!-- docsearch -->
+<script src="../docsearch.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/docsearch.js/2.6.3/docsearch.min.css" integrity="sha256-QOSRU/ra9ActyXkIBbiIB144aDBdtvXBcNc3OTNuX/Q=" crossorigin="anonymous" />
+<link href="../docsearch.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/jquery.mark.min.js" integrity="sha256-4HLtjeVgH0eIB3aZ9mLYF6E8oU5chNdjU6p6rrXpl9U=" crossorigin="anonymous"></script>
+
 
 
 <meta property="og:title" content="Function reference" />
-<meta property="og:image" content="/logo.png" />
+<meta property="og:image" content="https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/logo.png" />
 
 
 
@@ -79,7 +85,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9013</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9014</span>
       </span>
     </div>
 
@@ -119,6 +125,12 @@
 </li>
       </ul>
       
+      <form class="navbar-form navbar-right hidden-xs hidden-sm" role="search">
+        <div class="form-group">
+          <input type="search" class="form-control" name="search-input" id="search-input" placeholder="Search..." aria-label="Search for..." autocomplete="off">
+        </div>
+      </form>
+      
     </div><!--/.nav-collapse -->
   </div><!--/.container -->
 </div><!--/.navbar -->
@@ -144,8 +156,8 @@
     <tbody>
       <tr>
         <th colspan="2">
-          <h2 id="section-basic-workflow" class="hasAnchor"><a href="#section-basic-workflow" class="anchor"></a>Basic workflow</h2>
-          <p class="section-desc"><p>Core functions for cancereffectsizeR analyses</p></p>
+          <h2 id="section-create-and-manage-projects" class="hasAnchor"><a href="#section-create-and-manage-projects" class="anchor"></a>Create and manage projects</h2>
+          <p class="section-desc"><p>Create, load, and save projects</p></p>
         </th>
       </tr>
       
@@ -162,57 +174,26 @@
       </tr><tr>
         
         <td>
-          <p><code><a href="load_maf.html">load_maf()</a></code> </p>
+          <p><code><a href="load_cesa.html">load_cesa()</a></code> </p>
         </td>
-        <td><p>Load MAF-formatted somatic mutation data</p></td>
+        <td><p>Load a previously saved CESAnalysis</p></td>
       </tr><tr>
         
         <td>
-          <p><code><a href="trinuc_mutation_rates.html">trinuc_mutation_rates()</a></code> </p>
+          <p><code><a href="save_cesa.html">save_cesa()</a></code> </p>
         </td>
-        <td><p>Calculate relative rates of trinucleotide-context-specific mutations by extracting underlying mutational processes</p></td>
+        <td><p>Save a CESAnalysis in progress</p></td>
       </tr><tr>
         
         <td>
-          <p><code><a href="gene_mutation_rates.html">gene_mutation_rates()</a></code> </p>
+          <p><code><a href="set_ces_ref_set_dir.html">set_ces_ref_set_dir()</a></code> </p>
         </td>
-        <td><p>Use dNdScv with tissue-specific covariates to calculate gene-level mutation rates</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="ces_snv.html">ces_snv()</a></code> </p>
-        </td>
-        <td><p>Calculate selection intensity for single-nucleotide variants and amino acid changes</p></td>
+        <td><p>Set reference data directory</p></td>
       </tr>
     </tbody><tbody>
       <tr>
         <th colspan="2">
-          <h2 id="section-epistasis" class="hasAnchor"><a href="#section-epistasis" class="anchor"></a>Epistasis</h2>
-          <p class="section-desc"><p>Assess pairwise epistasis between variants or genes</p></p>
-        </th>
-      </tr>
-      
-      
-    </tbody><tbody>
-      
-      
-      <tr>
-        
-        <td>
-          <p><code><a href="ces_epistasis.html">ces_epistasis()</a></code> </p>
-        </td>
-        <td><p>Variant-level pairwise epistasis</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="ces_gene_epistasis.html">ces_gene_epistasis()</a></code> </p>
-        </td>
-        <td><p>Gene-level epistasis</p></td>
-      </tr>
-    </tbody><tbody>
-      <tr>
-        <th colspan="2">
-          <h2 id="section-get-variant-info" class="hasAnchor"><a href="#section-get-variant-info" class="anchor"></a>Get variant info</h2>
+          <h2 id="section-load-and-manage-variants" class="hasAnchor"><a href="#section-load-and-manage-variants" class="anchor"></a>Load and manage variants</h2>
           <p class="section-desc"></p>
         </th>
       </tr>
@@ -222,36 +203,17 @@
       
       
       <tr>
+        
+        <td>
+          <p><code><a href="load_maf.html">load_maf()</a></code> </p>
+        </td>
+        <td><p>Load MAF somatic mutation data</p></td>
+      </tr><tr>
         
         <td>
           <p><code><a href="select_variants.html">select_variants()</a></code> </p>
         </td>
         <td><p>Select and filter variants</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="baseline_mutation_rates.html">baseline_mutation_rates()</a></code> </p>
-        </td>
-        <td><p>Baseline mutation rate calculation</p></td>
-      </tr>
-    </tbody><tbody>
-      <tr>
-        <th colspan="2">
-          <h2 id="section-data-management" class="hasAnchor"><a href="#section-data-management" class="anchor"></a>Data management</h2>
-          <p class="section-desc"></p>
-        </th>
-      </tr>
-      
-      
-    </tbody><tbody>
-      
-      
-      <tr>
-        
-        <td>
-          <p><code><a href="load_cesa.html">load_cesa()</a></code> </p>
-        </td>
-        <td><p>Load a previously saved CESAnalysis object</p></td>
       </tr><tr>
         
         <td>
@@ -270,6 +232,155 @@
           <p><code><a href="annotate_variants.html">annotate_variants()</a></code> </p>
         </td>
         <td><p>Annotate variants</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="baseline_mutation_rates.html">baseline_mutation_rates()</a></code> </p>
+        </td>
+        <td><p>Baseline mutation rate calculation</p></td>
+      </tr>
+    </tbody><tbody>
+      <tr>
+        <th colspan="2">
+          <h2 id="section-trinucleotide-signatures-and-rates" class="hasAnchor"><a href="#section-trinucleotide-signatures-and-rates" class="anchor"></a>Trinucleotide signatures and rates</h2>
+          <p class="section-desc"><p>Mutational signature extraction and inference of relative trinucleotide-context-specific SNV mutation rates</p></p>
+        </th>
+      </tr>
+      
+      
+    </tbody><tbody>
+      
+      
+      <tr>
+        
+        <td>
+          <p><code><a href="trinuc_mutation_rates.html">trinuc_mutation_rates()</a></code> </p>
+        </td>
+        <td><p>Calculate relative rates of trinucleotide-context-specific mutations by extracting underlying mutational processes</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="suggest_cosmic_signatures_to_remove.html">suggest_cosmic_signatures_to_remove()</a></code> </p>
+        </td>
+        <td><p>Identify mutational signatures to exclude from analysis</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="assign_group_average_trinuc_rates.html">assign_group_average_trinuc_rates()</a></code> </p>
+        </td>
+        <td><p>Skip mutational signature analysis and assign group average relative trinucleotide-context-specific mutation rates to all samples</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="set_trinuc_rates.html">set_trinuc_rates()</a></code> </p>
+        </td>
+        <td><p>Assign pre-calculated relative trinucleotide mutation rates</p></td>
+      </tr>
+    </tbody><tbody>
+      <tr>
+        <th colspan="2">
+          <h2 id="section-gene-mutation-rates" class="hasAnchor"><a href="#section-gene-mutation-rates" class="anchor"></a>Gene mutation rates</h2>
+          <p class="section-desc"><p>Calculate neutral gene mutation rates</p></p>
+        </th>
+      </tr>
+      
+      
+    </tbody><tbody>
+      
+      
+      <tr>
+        
+        <td>
+          <p><code><a href="gene_mutation_rates.html">gene_mutation_rates()</a></code> </p>
+        </td>
+        <td><p>Use dNdScv with tissue-specific covariates to calculate gene-level mutation rates</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="set_gene_rates.html">set_gene_rates()</a></code> </p>
+        </td>
+        <td><p>Assign pre-calculated neutral gene mutation rates</p></td>
+      </tr>
+    </tbody><tbody>
+      <tr>
+        <th colspan="2">
+          <h2 id="section-cancer-effect-size-inference" class="hasAnchor"><a href="#section-cancer-effect-size-inference" class="anchor"></a>Cancer effect size inference</h2>
+          <p class="section-desc"><p>Calculate selection under models of single-variant or epistatic selection</p></p>
+        </th>
+      </tr>
+      
+      
+    </tbody><tbody>
+      
+      
+      <tr>
+        
+        <td>
+          <p><code><a href="ces_variant.html">ces_variant()</a></code> </p>
+        </td>
+        <td><p>Calculate selection intensity for single-nucleotide variants and amino acid changes</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="ces_epistasis.html">ces_epistasis()</a></code> </p>
+        </td>
+        <td><p>Variant-level pairwise epistasis</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="ces_gene_epistasis.html">ces_gene_epistasis()</a></code> </p>
+        </td>
+        <td><p>Gene-level epistasis</p></td>
+      </tr>
+    </tbody><tbody>
+      <tr>
+        <th colspan="2">
+          <h2 id="section-visualization" class="hasAnchor"><a href="#section-visualization" class="anchor"></a>Visualization</h2>
+          <p class="section-desc"></p>
+        </th>
+      </tr>
+      
+      
+    </tbody><tbody>
+      
+      
+      <tr>
+        
+        <td>
+          <p><code><a href="lollipops.html">lollipops()</a></code> </p>
+        </td>
+        <td><p>Plot selection intensities</p></td>
+      </tr>
+    </tbody><tbody>
+      <tr>
+        <th colspan="2">
+          <h2 id="section-selection-models" class="hasAnchor"><a href="#section-selection-models" class="anchor"></a>Selection models</h2>
+          <p class="section-desc"><p>Functions that create likelihood functions for different models of selection</p></p>
+        </th>
+      </tr>
+      
+      
+    </tbody><tbody>
+      
+      
+      <tr>
+        
+        <td>
+          <p><code><a href="sswm_lik.html">sswm_lik()</a></code> </p>
+        </td>
+        <td><p>sswm_lik</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="sswm_sequential_lik.html">sswm_sequential_lik()</a></code> </p>
+        </td>
+        <td><p>sswm_sequential_lik</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="pairwise_epistasis_lik.html">pairwise_epistasis_lik()</a></code> </p>
+        </td>
+        <td><p>pairwise_epistasis_lik</p></td>
       </tr>
     </tbody><tbody>
       <tr>
@@ -326,43 +437,12 @@
           <p><code><a href="build_RefCDS.html">build_RefCDS()</a></code> </p>
         </td>
         <td><p>cancereffectsizeR's RefCDS builder</p></td>
-      </tr>
-    </tbody><tbody>
-      <tr>
-        <th colspan="2">
-          <h2 id="section-mutational-signatures" class="hasAnchor"><a href="#section-mutational-signatures" class="anchor"></a>Mutational signatures</h2>
-          <p class="section-desc"><p>Additional methods and options for mutational signatures and trinuc mutation rates</p></p>
-        </th>
-      </tr>
-      
-      
-    </tbody><tbody>
-      
-      
-      <tr>
-        
-        <td>
-          <p><code><a href="suggest_cosmic_signatures_to_remove.html">suggest_cosmic_signatures_to_remove()</a></code> </p>
-        </td>
-        <td><p>Identify mutational signatures to exclude from analysis</p></td>
       </tr><tr>
         
         <td>
-          <p><code><a href="set_trinuc_rates.html">set_trinuc_rates()</a></code> </p>
+          <p><code><a href="validate_signature_set.html">validate_signature_set()</a></code> </p>
         </td>
-        <td><p>Assign pre-calculated relative trinucleotide mutation rates</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="assign_group_average_trinuc_rates.html">assign_group_average_trinuc_rates()</a></code> </p>
-        </td>
-        <td><p>Skip mutational signature analysis and assign group average relative trinucleotide-context-specific mutation rates to all samples</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="run_deconstructSigs.html">run_deconstructSigs()</a></code> </p>
-        </td>
-        <td><p>cancereffectsizeR wrapper for deconstructSigs</p></td>
+        <td><p>validate_signature_set</p></td>
       </tr>
     </tbody><tbody>
       <tr>
@@ -417,7 +497,7 @@
         <td>
           <p><code><a href="snv_results.html">snv_results()</a></code> </p>
         </td>
-        <td><p>View results from ces_snv</p></td>
+        <td><p>View results from ces_variant</p></td>
       </tr>
     </tbody>
     </table>
@@ -444,6 +524,23 @@
    </div>
 
   
+<script src="https://cdnjs.cloudflare.com/ajax/libs/docsearch.js/2.6.1/docsearch.min.js" integrity="sha256-GKvGqXDznoRYHCwKXGnuchvKSwmx9SRMrZOTh2g4Sb0=" crossorigin="anonymous"></script>
+<script>
+  docsearch({
+    
+    
+    apiKey: '85c732458d5af0ba2cd9feb9eb7f9a97',
+    indexName: 'cancereffectsizer',
+    inputSelector: 'input#search-input.form-control',
+    transformData: function(hits) {
+      return hits.map(function (hit) {
+        hit.url = updateHitURL(hit);
+        return hit;
+      });
+    }
+  });
+</script>
+
 
 
   </body>

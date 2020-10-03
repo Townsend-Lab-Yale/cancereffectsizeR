@@ -4,15 +4,24 @@
 \alias{gene_mutation_rates}
 \title{Use dNdScv with tissue-specific covariates to calculate gene-level mutation rates}
 \usage{
-gene_mutation_rates(cesa, covariates = NULL, save_all_dndscv_output = FALSE)
+gene_mutation_rates(
+  cesa,
+  covariates = NULL,
+  sample_group = NULL,
+  save_all_dndscv_output = FALSE
+)
 }
 \arguments{
 \item{cesa}{CESAnalysis object}
 
 \item{covariates}{Name of gene mutation rate covariates to use (run
-list_ces_covariates() to see choices). For hg19 only, you can also use "default" for
-dNdScv's non-tissue-specific covariates. If no covariates are available, set NULL to
-run without.}
+list_ces_covariates() to see choices). For hg19 data only, you can also use "default"
+for dNdScv's non-tissue-specific covariates. If no covariates are available, set NULL
+to run without.}
+
+\item{sample_group}{Which sample groups to include in the gene rate calculation;
+defaults to all groups. (To calculate different rates for different groups, you'll 
+run this function multiple times, changing this argument each time.)}
 
 \item{save_all_dndscv_output}{default false; when true, saves all dndscv output, not
 just what's needed by cancereffectsizeR (will make object size very large)}

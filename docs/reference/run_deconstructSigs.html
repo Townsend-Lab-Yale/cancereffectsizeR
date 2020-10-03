@@ -44,12 +44,18 @@
 <script src="../pkgdown.js"></script>
 
 
+<!-- docsearch -->
+<script src="../docsearch.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/docsearch.js/2.6.3/docsearch.min.css" integrity="sha256-QOSRU/ra9ActyXkIBbiIB144aDBdtvXBcNc3OTNuX/Q=" crossorigin="anonymous" />
+<link href="../docsearch.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/jquery.mark.min.js" integrity="sha256-4HLtjeVgH0eIB3aZ9mLYF6E8oU5chNdjU6p6rrXpl9U=" crossorigin="anonymous"></script>
+
 
 
 <meta property="og:title" content="cancereffectsizeR wrapper for deconstructSigs — run_deconstructSigs" />
 <meta property="og:description" content="This function gets called internally by trinuc_mutation_rates() for each tumor in a CESAnalysis, accepting its
 a data.frame of mutation counts and returning deconstructSigs output." />
-<meta property="og:image" content="/logo.png" />
+<meta property="og:image" content="https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/logo.png" />
 
 
 
@@ -81,7 +87,7 @@ a data.frame of mutation counts and returning deconstructSigs output." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9013</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9014</span>
       </span>
     </div>
 
@@ -120,6 +126,12 @@ a data.frame of mutation counts and returning deconstructSigs output." />
   </a>
 </li>
       </ul>
+      
+      <form class="navbar-form navbar-right hidden-xs hidden-sm" role="search">
+        <div class="form-group">
+          <input type="search" class="form-control" name="search-input" id="search-input" placeholder="Search..." aria-label="Search for..." autocomplete="off">
+        </div>
+      </form>
       
     </div><!--/.nav-collapse -->
   </div><!--/.container -->
@@ -179,12 +191,9 @@ a data.frame of mutation counts and returning deconstructSigs output.</p>
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
     <p>a list with 2 items: raw_sig_output (exactly what comes out of deconstructSigs) and adjusted_sig_output, which contains
-        signature weights (possibly adjusted with artifact accounting) and expected relative trinuc mutation rates based on 
-        signature weights</p>
-    <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
-
-    <p>Since this funciton implements artifact accounting and signature removal, you may find it useful for your own mutational 
-signature analyses. However, you may be able to just use trinuc_mutation_rates().</p>
+        artifact-accounted signature weights (which will match raw if there are no
+        artifact signatures) and expected relative trinuc mutation rates based on the
+        artifact-accounted signature weights</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
@@ -208,6 +217,23 @@ signature analyses. However, you may be able to just use trinuc_mutation_rates()
    </div>
 
   
+<script src="https://cdnjs.cloudflare.com/ajax/libs/docsearch.js/2.6.1/docsearch.min.js" integrity="sha256-GKvGqXDznoRYHCwKXGnuchvKSwmx9SRMrZOTh2g4Sb0=" crossorigin="anonymous"></script>
+<script>
+  docsearch({
+    
+    
+    apiKey: '85c732458d5af0ba2cd9feb9eb7f9a97',
+    indexName: 'cancereffectsizer',
+    inputSelector: 'input#search-input.form-control',
+    transformData: function(hits) {
+      return hits.map(function (hit) {
+        hit.url = updateHitURL(hit);
+        return hit;
+      });
+    }
+  });
+</script>
+
 
 
   </body>

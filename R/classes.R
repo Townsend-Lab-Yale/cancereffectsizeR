@@ -1,6 +1,6 @@
 setClass("CESAnalysis", representation(maf = "data.table", trinucleotide_mutation_weights = "list",
           groups = "character", mutrates = "data.table", dndscv_out_list = "list",
-          excluded = "data.table", selection_results = "data.table", coverage = "list",
+          excluded = "data.table", selection_results = "list", coverage = "list",
           ref_key = "character", advanced = "list", ref_data_dir = "character", run_history = "character", samples = "data.table", 
           mutations = "list"))
 
@@ -41,9 +41,10 @@ setMethod("$", "CESAnalysis",
     } else if (name == "coverage_ranges") {
         return(x@coverage)
     } else if (name == "run_history") {
-      ces_version = paste0("[Version: cancereffectsizeR ", as.character(x@advanced$version), ']')
-      run_history = c(x@run_history, "", ces_version)
-      CES_Run_History(run_history)
+      CES_Run_History(x@run_history)
+      # ces_version = paste0("[Version: cancereffectsizeR ", as.character(x@advanced$version), ']')
+      # run_history = c(x@run_history, "", ces_version)
+      # CES_Run_History(run_history)
     }
   }
 )
@@ -60,7 +61,7 @@ setMethod("$", "CESAnalysis",
   if(length(x@mutations) > 0) {
     features = c(features, "variants")
   }
-  if(x@selection_results[, .N] > 0) {
+  if(length(x@selection_results) > 0) {
     features = c(features, "selection")
   }
   if(x@excluded[, .N] > 0) {
@@ -82,6 +83,12 @@ setMethod("$", "CESAnalysis",
 
 setMethod("show", "CESAnalysis", 
   function(object) {
+    genome_name = BSgenome::providerVersion(get_cesa_bsg(object))
+    cat("CESAnalysis of ", genome_name, " data\n", sep = "")
+    cat("Reference data set: ", object@ref_key, "\n", sep = "")
+    if (length(object@groups) > 1) {
+      cat("Sample groups: ", paste(object@groups, collapse = ", "), "\n", sep = "")
+    }
     if(object@maf[, .N] > 0) {
       cat("Samples:\n")
       print(object@samples[, .(num_samples = .N), by = "coverage"], row.names = F)
@@ -98,7 +105,6 @@ setMethod("show", "CESAnalysis",
       signature_set_name = signature_set$name
       cat("Mutational processes: Sample-level extraction of ", signature_set_name, " SNV signatures.\n", sep = "")
     }
-    cat("CES reference data set: ", object@ref_key, "\n", sep = "")
     cat("Run history: See [CESAnalysis]$run_history.\n")
     cat(paste0("\n[Created in cancereffectsizeR, version ", object@advanced$version, ".]"))
   }
@@ -119,7 +125,6 @@ setValidity("CESAnalysis",
 setClass("CES_Run_History", representation(history = "character"))
 CES_Run_History = function(history) {
   new("CES_Run_History", history = history)
-  
 }
 
 setMethod("show", "CES_Run_History",

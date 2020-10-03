@@ -1,44 +1,49 @@
 prev_dir = setwd(system.file("tests/test_data/", package = "cancereffectsizeR"))
 
-# read in the MAF used for all the testing
-luad = load_maf(cesa = CESAnalysis(ref_set = "ces_hg19_v1"), maf = "luad.hg19.maf.txt", sample_col = "sample_id")
-
-# use the trinucleotide weight data saved in generate_trinuc_data (seldom a need to change that data)
-trinuc_rates = fread("luad_hg19_trinuc_rates.txt")
-luad = set_trinuc_rates(luad, trinuc_rates = trinuc_rates)
-
-# pending a set_signature_weights function...
-sig_weights = fread("luad_hg19_sig_table.txt")
-luad@trinucleotide_mutation_weights$signature_weight_table = sig_weights
-luad@advanced$snv_signatures = get_ces_signature_set("ces_hg19_v1", "COSMIC_v3.1")
+# read in the MAF, assign three random groups, and annotate
+maf = fread("luad.hg19.maf.txt")
+set.seed(879)
+fruits = c("cherry", "marionberry", "mountain_apple")
+maf[, group := sample(fruits, size = 1), by = "sample_id"]
+luad = load_maf(cesa = CESAnalysis(ref_set = "ces_hg19_v1", sample_groups = fruits), maf = maf, group_col = "group", 
+                sample_col = "sample_id")
+saveRDS(luad, "annotated_fruit_cesa.rds")
 
 
-# Save gene_mutation_rates intermediary stuff so that tests don't need to run dNdScv
-# This will not be the same as running gene_mutation_rates directly due to dNdScv gr_genes stuff
-dndscv_input = cancereffectsizeR:::dndscv_preprocess(cesa = luad, covariates = "lung")
-saveRDS(dndscv_input, "dndscv_input_single.rds")
-dndscv_raw_output = lapply(dndscv_input, function(x) do.call(dndscv::dndscv, x))
-# a few attributes are huge (>1 GB); drop these
-dndscv_raw_output = lapply(dndscv_raw_output, function(x) { x$nbreg$terms = NULL; x$nbreg$model = NULL; x$poissmodel = NULL; return(x)})
-saveRDS(dndscv_raw_output, "dndscv_raw_output_single.rds")
-dndscv_out = dndscv_postprocess(cesa = luad, dndscv_raw_output = dndscv_raw_output)
-saveRDS(dndscv_out@dndscv_out_list[[1]], "sel_cv.rds")
-saveRDS(dndscv_out@mutrates, "mutrates.rds")
+# signatures and trinuc rates
+luad = trinuc_mutation_rates(luad, cores = 4, signature_set = "COSMIC_v3.1",
+                             signatures_to_remove = suggest_cosmic_signatures_to_remove("LUAD", treatment_naive = TRUE, quiet = TRUE))
 
-# Now run gene_mutation_rates normally
-luad = gene_mutation_rates(luad, covariates = "lung")
-saveRDS(luad, "cesa_for_snv.rds")
+fwrite(luad$trinuc_rates, "luad_hg19_trinuc_rates.txt", sep = "\t")
+fwrite(luad$mutational_signatures, "luad_hg19_sig_table.txt", sep = "\t")
+
+# to generate test data for dndscv,
+# run gene_mutation_rates(luad, covariates = "lung") with breakpoints before/after run_dndscv
+# and save the input list and raw output to the .rds files
+
+luad = gene_mutation_rates(luad, covariates = "lung", sample_group = "marionberry")
+luad = gene_mutation_rates(luad, covariates = "lung", sample_group = c("cherry", "mountain_apple"))
+fwrite(luad$gene_rates, "luad_fruit_gene_rates.txt", sep = "\t")
+
 
 # save results to serve as expected test output
 test_genes = c("EGFR", "ASXL3", "KRAS", "RYR2", "USH2A", "CSMD3", "TP53", "CSMD1", "LRP1B", 
                "ZFHX4", "FAT3", "CNTNAP5", "PCDH15", "NEB", "RYR3", "DMD", "KATNAL1", 
                "OR13H1", "KSR1")
-luad = ces_snv(luad, genes = test_genes, min_freq = 1)
-saveRDS(luad@selection_results, "single_stage_snv_results.rds")
+luad = ces_variant(luad, genes = test_genes, min_freq = 1)
+fwrite(luad@selection_results, "fruit_sswm_out.txt", sep = "\t")
+
+# Three big genes and a variant that is the only mutation in its gene in the data set
+luad = ces_variant(luad, genes = c("EGFR", "KRAS", "TP53"), variant_ids = "CR2 R247L", min_freq = 1,
+               lik_fn = "sswm_sequential", group_ordering = list(c("marionberry", "cherry"), "mountain_apple"))
+fwrite(luad@selection_results, "fruit_sswm_sequential_out.txt", sep = "\t")
+
 results = ces_gene_epistasis(luad, genes = c("EGFR", "KRAS", "TP53"), conf = .95)
 saveRDS(results, "epistasis_results.rds")
 
 setwd(prev_dir)
+
+
 
 
 

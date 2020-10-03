@@ -44,6 +44,12 @@
 <script src="../pkgdown.js"></script>
 
 
+<!-- docsearch -->
+<script src="../docsearch.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/docsearch.js/2.6.3/docsearch.min.css" integrity="sha256-QOSRU/ra9ActyXkIBbiIB144aDBdtvXBcNc3OTNuX/Q=" crossorigin="anonymous" />
+<link href="../docsearch.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/jquery.mark.min.js" integrity="sha256-4HLtjeVgH0eIB3aZ9mLYF6E8oU5chNdjU6p6rrXpl9U=" crossorigin="anonymous"></script>
+
 
 
 <meta property="og:title" content="Calculate relative rates of trinucleotide-context-specific mutations by extracting underlying mutational processes — trinuc_mutation_rates" />
@@ -53,7 +59,7 @@ in mutation signature sets (such as COSMIC v3). deconstructSigs is used to extra
 signature weights in each tumor. Tumors with targeted sequencing data are assigned the
 average trinucleotide mutation rates calculated across all exome/genome data, 
 which means that you need at least some exome or genome data to run." />
-<meta property="og:image" content="/logo.png" />
+<meta property="og:image" content="https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/logo.png" />
 
 
 
@@ -85,7 +91,7 @@ which means that you need at least some exome or genome data to run." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9013</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9014</span>
       </span>
     </div>
 
@@ -125,6 +131,12 @@ which means that you need at least some exome or genome data to run." />
 </li>
       </ul>
       
+      <form class="navbar-form navbar-right hidden-xs hidden-sm" role="search">
+        <div class="form-group">
+          <input type="search" class="form-control" name="search-input" id="search-input" placeholder="Search..." aria-label="Search for..." autocomplete="off">
+        </div>
+      </form>
+      
     </div><!--/.nav-collapse -->
   </div><!--/.container -->
 </div><!--/.navbar -->
@@ -154,11 +166,10 @@ which means that you need at least some exome or genome data to run.</p>
   <span class='no'>cesa</span>,
   <span class='kw'>signature_set</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
   <span class='kw'>signatures_to_remove</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/character.html'>character</a></span>(),
+  <span class='kw'>sample_group</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
   <span class='kw'>cores</span> <span class='kw'>=</span> <span class='fl'>1</span>,
   <span class='kw'>assume_identical_mutational_processes</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>,
   <span class='kw'>sig_averaging_threshold</span> <span class='kw'>=</span> <span class='fl'>50</span>,
-  <span class='kw'>cosmic_hypermutation_rules</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
-  <span class='kw'>artifact_accounting</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
   <span class='kw'>use_dS_exome2genome</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>
 )</pre>
 
@@ -178,28 +189,25 @@ which means that you need at least some exome or genome data to run.</p>
       <td><p>specify any signatures to exclude from analysis; use <code><a href='suggest_cosmic_signatures_to_remove.html'>suggest_cosmic_signatures_to_remove()</a></code> for advice on COSMIC signatures</p></td>
     </tr>
     <tr>
+      <th>sample_group</th>
+      <td><p>vector of sample group(s) to calculate rates for (default all)</p></td>
+    </tr>
+    <tr>
       <th>cores</th>
       <td><p>how many cores to use for processing tumors in parallel</p></td>
     </tr>
     <tr>
       <th>assume_identical_mutational_processes</th>
-      <td><p>use well-mutated tumors (those with number of eligible mutations meeting sig_averaging_threshold) 
-to calculate group average signature weights, and assign these to all tumors</p></td>
+      <td><p>use well-mutated tumors (those with number
+of eligible mutations meeting sig_averaging_threshold) to calculate group average
+signature weights, and assign these to all tumors</p></td>
     </tr>
     <tr>
       <th>sig_averaging_threshold</th>
-      <td><p>Mutational threshold (default 50) that determines which tumors inform the
-calculation of group-average signature weightings. When assume_identical_mutational_processes == FALSE (the default), 
-these group averages are blended into the signature weightings of tumors with few mutations (those below the threshold).</p></td>
-    </tr>
-    <tr>
-      <th>cosmic_hypermutation_rules</th>
-      <td><p>T/F on whether to follow mutation count rules outlined in https://doi.org/10.1101/322859 (COSMIC v3 manuscript)
-(only applies when running with COSMIC v3/v3.1 signatures)</p></td>
-    </tr>
-    <tr>
-      <th>artifact_accounting</th>
-      <td><p>set false to disable special handling of artifact signatures (rarely recommended)</p></td>
+      <td><p>Mutational threshold (default 50) that determines which
+tumors inform the calculation of group-average signature weights. When
+assume_identical_mutational_processes == FALSE (the default), these group averages
+are blended into the signature weights of sub-threshold tumors.</p></td>
     </tr>
     <tr>
       <th>use_dS_exome2genome</th>
@@ -209,9 +217,11 @@ these group averages are blended into the signature weightings of tumors with fe
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>CESAnalysis with expected relative trinucleotide mutation rates ($trinuc_rates) and a table of tumor-specific 
-        signature weights ($mutational_signatures). Note that tumors with group_avg_blended == TRUE have signature
-        weights influenced by the average weights of well-mutated tumors; you may want to exclude these from some analyses.</p>
+    <p>CESAnalysis with sample-specific signature weights and inferred
+  trinucleotide-context-specific relative mutation rates. Note that tumors with few
+  mutations (group_avg_blended == TRUE in the signature weights tables) have weights
+  influenced by the average weights of well-mutated tumors; you may want to exclude
+  these from some mutational signature analyses.</p>
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
     <p>To reduce the influence of selection on the estimation of relative trinucleotide mutation
@@ -220,11 +230,28 @@ sample in the data set) are used.</p>
 <p>A custom signature set should be given as a named three-item list, where "signatures"
 is a pure data.frame with signature definitions, "name" is a 1-length character naming
 the set, and "metadata" is a data.table with a "Signature" column that matches rownames
-in the signature definitions. For artifact accounting to work, there should be a
-TRUE/FALSE (logical) Likely_Artifact column; additional columns are optional. If you
-don't have artifact information, you can also just supply an empty data.table. For a
-template signature set object, run <code>sig_set = get_ces_signature_set("hg19",
-"COSMIC_v3.1")</code>.</p>
+in the signature definitions. The following columns allow special functionality:</p><ul>
+<li><p>Etiology: Known or hypothesized mutational processes underyling the signature. Used 
+for human-readable tables and plots, so best to enter something like "Unknown" rather
+than leaving any entries empty or NA</p></li>
+<li><p>Likely_Artifact (logical T/F): Marks signatures that are believed to
+derive from sample processing, sequencing, calling error, or other non-biological
+sources. cancereffectsizeR adjusts for artifact signatures when inferring relative
+trinucleotide mutation rates.</p></li>
+<li><p>Exome_Min: Minimum number of mutations a WES sample
+must have for the presence of the signature to be plausible. This column is used to
+prevent hypermutation signatures from being found in tumors with few mutations. Can be
+left NA or 0 for non-hypermutation signatures. If this column is present, Genome_Min
+must be present and always greater than or equal to Exome_Min.</p></li>
+<li><p>Genome_Min:
+Minimum number of mutations a WGS sample must have for the presence of the signature to
+be plausible. This column is used to prevent hypermutation signatures from being found
+in tumors with few mutations. Can be left NA or 0 for non-hypermutation signatures. If
+this column is present, Exome_Min must be present and always less than or equal to
+Genome_Min.</p></li>
+</ul><p>If you don't have any metadata available for your signature set, an empty data table
+can also be supplied. For a template signature set object, run 
+<code>sig_set = get_ces_signature_set("ces_hg19_v1", "COSMIC_v3.1")</code>.</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
@@ -248,6 +275,23 @@ template signature set object, run <code>sig_set = get_ces_signature_set("hg19",
    </div>
 
   
+<script src="https://cdnjs.cloudflare.com/ajax/libs/docsearch.js/2.6.1/docsearch.min.js" integrity="sha256-GKvGqXDznoRYHCwKXGnuchvKSwmx9SRMrZOTh2g4Sb0=" crossorigin="anonymous"></script>
+<script>
+  docsearch({
+    
+    
+    apiKey: '85c732458d5af0ba2cd9feb9eb7f9a97',
+    indexName: 'cancereffectsizer',
+    inputSelector: 'input#search-input.form-control',
+    transformData: function(hits) {
+      return hits.map(function (hit) {
+        hit.url = updateHitURL(hit);
+        return hit;
+      });
+    }
+  });
+</script>
+
 
 
   </body>

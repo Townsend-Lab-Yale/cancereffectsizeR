@@ -13,8 +13,11 @@
 #' @export
 baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant_ids = NULL, samples = NULL, cores = 1) {
   
-  if(cesa@mutrates[, .N] == 0) {
-    stop("No gene mutation rates found, so can't calculate variant-level mutation rates.")
+  if(! cesa@advanced$trinuc_done) {
+    stop("Some samples lack trinucleotide-context-specific mutation rates, so site-level mutation rates can't be calculated yet.")
+  }
+  if(! cesa@advanced$gene_rates_done) {
+    stop("Some samples lack gene mutation rates, so site-level mutation rates can't be calculated yet.")
   }
   
   if(is.null(cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix)) {
@@ -68,10 +71,10 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
                                                 stringsAsFactors = F),key = "Unique_Patient_Identifier")
   
   # add gene mutation rates to the table by using @mutrates and the groups of each samples
-  sample_gene_rates = sample_gene_rates[samples[, .(Unique_Patient_Identifier, group)]]
+  sample_gene_rates = sample_gene_rates[samples[, .(Unique_Patient_Identifier, gene_rate_grp)]]
   melted_mutrates = melt.data.table(cesa@mutrates[gene %in% relevant_genes], id.vars = c("gene"))
-  setnames(melted_mutrates, c("variable", "value"), c("group", "raw_rate"))
-  sample_gene_rates = melted_mutrates[sample_gene_rates, , on = c("gene", "group")]
+  setnames(melted_mutrates, c("variable", "value"), c("gene_rate_grp", "raw_rate"))
+  sample_gene_rates = melted_mutrates[sample_gene_rates, , on = c("gene", "gene_rate_grp")]
   
   # Load trinuc composition of each gene (composition is a 96-length numeric, deconstructSigs order)
   gene_trinuc_comp = get_ref_data(cesa, "gene_trinuc_comp")

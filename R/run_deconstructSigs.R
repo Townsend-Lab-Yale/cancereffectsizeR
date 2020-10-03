@@ -9,6 +9,7 @@
 #' @param artifact_signatures names of signatures that should be treated as experimental (e.g., sequencing) artifacts  
 #'                            (these have weights calculated but are then normalized out when calculating true trinuc proportions)
 #' @param tri.counts.method exome/genome trinucleotide content normalization argument to pass to deconstructSigs (see its docs)
+#' @keywords internal
 #' @return a list with 2 items: raw_sig_output (exactly what comes out of deconstructSigs) and adjusted_sig_output, which contains
 #'         artifact-accounted signature weights (which will match raw if there are no
 #'         artifact signatures) and expected relative trinuc mutation rates based on the

@@ -4,5 +4,8 @@ pkgdown_sha: ~
 articles:
   cancereffectsizeR: cancereffectsizeR.html
   cosmic_cancer_type_note: cosmic_cancer_type_note.html
-last_built: 2020-09-14T15:56Z
+last_built: 2020-10-03T22:07Z
+urls:
+  reference: https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference
+  article: https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/articles
 

@@ -30,11 +30,6 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, conf 
       stop("conf should be 1-length numeric (e.g., .95 for 95% confidence intervals)", call. = F)
     }
   }
-  
-  # can't combine epistasis analysis with multi-stage yet
-	if (length(cesa@groups) > 1) {
-	  stop("Epistasis analysis is not compatible yet with multi-group analyses. You'll have to create a new single-group analysis.")
-	}
 
   if (length(genes) < 2) {
     stop("Supply at least two genes to analyze.")
@@ -124,11 +119,6 @@ ces_epistasis = function(cesa = NULL, variants = NULL, cores = 1, conf = NULL) {
     }
   }
   
-  # can't combine epistasis analysis with multi-stage yet
-  if (length(cesa@groups) > 1) {
-    stop("Epistasis analysis is not compatible yet with multi-stage analyses. You'll have to create a new single-stage analysis.", call. = F)
-  }
-  
   if (is.null(cesa@mutations$snv)) {
     stop("The CESAnalysis must have mutation annotations.", call. = F)
   } 
@@ -197,7 +187,7 @@ pairwise_variant_epistasis = function(cesa, variant_pair, conf) {
   with_neither = as.list(all_rates[tumors_with_neither])[2:3]
   
   # call factory function to get variant-specific likelihood function
-  fn = ml_objective_pairwise_epistasis(with_just_1, with_just_2, with_both, with_neither)
+  fn = pairwise_epistasis_lik(with_just_1, with_just_2, with_both, with_neither)
   par_init = formals(fn)[[1]]
   names(par_init) = bbmle::parnames(fn)
   
@@ -302,7 +292,7 @@ pairwise_gene_epistasis = function(cesa, genes, conf) {
   with_both = get_summed_mut_rates(tumors_with_both_mutated)
   with_neither = get_summed_mut_rates(tumors_with_neither_mutated)
   
-  fn = ml_objective_pairwise_epistasis(with_just_1, with_just_2, with_both, with_neither)
+  fn = pairwise_epistasis_lik(with_just_1, with_just_2, with_both, with_neither)
   par_init = formals(fn)[[1]]
   names(par_init) = bbmle::parnames(fn)
   

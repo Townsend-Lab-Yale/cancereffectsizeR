@@ -77,7 +77,7 @@ After loading in data, run the following functions to prepare for calculation of
 * `trinuc_mutation_rates()` uses deconstructSigs to extract mutational signature weightings from each tumor's SNV mutation profile, and from there calculates trinucleotide-context-specific SNV mutation rates. See also `vignette("cosmic_cancer_type_note")` for advice on excluding certain signatures that may be presumed absent from your tumors.
 * `gene_mutation_rates()` uses dNdScv to calculate gene-level mutation rates. It's highly recommended to supply tissue-specific covariate data if available. Covariates for many human tissue types are included with this package. Default hg19 covariates from dNdScv are also available.
 
-Finally, use `ces_snv()` to find calculate effect size.
+Finally, use `ces_variant()` to find calculate effect size.
 
 ```
   # Create CESAnalysis object and define the chronological tumor progression states
@@ -99,7 +99,7 @@ Finally, use `ces_snv()` to find calculate effect size.
   
   
   # Calculate selection intensities
-  analysis = ces_snv(analysis)
+  analysis = ces_variant(analysis)
 ```
 
 #### Note on parallel processing
@@ -109,5 +109,5 @@ for background task.)
   # assuming you've already loaded MAF data into object "cesa"
   cesa = trinuc_mutation_rates(cesa, signature_set = "COSMIC_v3.1", cores = 4)
   cesa = gene_mutation_rates(cesa, covariates = "breast")
-  cesa = ces_snv(cesa, cores = 4)
+  cesa = ces_variant(cesa, cores = 4)
 ```

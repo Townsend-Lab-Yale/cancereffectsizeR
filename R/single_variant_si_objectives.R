@@ -1,24 +1,66 @@
-#' ml_objective
+#' sswm_lik
 #'
-#' Log-likelihood function under a model of site-specific selection intensities at variant sites
+#' Generates log-likelihood function of site-level selection with "strong selection, weak
+#' mutation" assumption. All arguments to this likelihood function factory are
+#' automatically supplied by \code{ces_variant()}.
 #'
-#' @param tumor_stages an environment with keys = tumor names, values = stage of tumor
-#' @param tumors_without_gene_mutated vector of (eligible) tumors without any mutation in the gene of the variant
-#' @param tumors_with_variant vector of (eligible) tumors with the variant
-#' @param baseline_rates a named vector of baseline mutation rates for each eligible tumor
-#' @return loglikelihood value
+#' @param rates_tumors_with vector of site-specific mutation rates for all tumors with variant
+#' @param rates_tumors_without vector of site-specific mutation rates for all eligible tumors without variant
 #' @export
-#' @keywords internal
-
-ml_objective <- function(tumor_stages, tumors_with_variant, tumors_without_gene_mutated, baseline_rates) {
-  stages_tumors_without = unname(tumor_stages[tumors_without_gene_mutated])
-  rates_tumors_without = unname(baseline_rates[tumors_without_gene_mutated])
+sswm_lik = function(rates_tumors_with, rates_tumors_without) {
+  fn = function(gamma) {
+    gamma = unname(gamma) # math faster on unnamed vectors
+    sum_log_lik = 0
+    if (length(rates_tumors_without) > 0) {
+      sum_log_lik = -1 * sum(gamma * rates_tumors_without)
+    }
+    if (length(rates_tumors_with) > 0) {
+      sum_log_lik = sum_log_lik + sum(log(1 - exp(-1 * gamma * rates_tumors_with)))
+    }
+    
+    # convert to negative loglikelihood and return
+    return(-1 * sum_log_lik)
+  }
   
-  stages_tumors_with = unname(tumor_stages[tumors_with_variant])
-  sequential_stages_tumors_with = lapply(stages_tumors_with, function(x) 1:x) # e.g., 1 -> 1; 3 -> 1,2,3 (for vector subsetting)
-  rates_tumors_with = unname(baseline_rates[tumors_with_variant])
+  # Set default values for gamma (SI), which ces_variant will use to set starting value of optimization
+  formals(fn)[["gamma"]] = 1000
+  bbmle::parnames(fn) = "si_1" # for consistency with progression state model; output fields will call this "selection_intensity"
+  return(fn)
+}
   
-  num_pars = length(unique(c(stages_tumors_with, stages_tumors_without)))
+  
+#' sswm_sequential_lik
+#' 
+#' As in sswm_lik, selection intensities are calculated at variant sites under a "strong
+#' selection, weak mutation" assumption. In this version, each sample is assigned to one
+#' of an ordered set of disease progression states, and selection is assumed to vary
+#' across states. For example, in a two-state local/metastatic model, each variant has two
+#' independent selection intensities. Metastatic samples could have acquired the variant
+#' while in their current state or at some earlier time, while the local state selection
+#' intensity applied.
+#' 
+#' All arguments to this likelihood function factory are automatically supplied by
+#' \code{ces_variant()}.
+#' 
+#' @param rates_tumors_with vector of site-specific mutation rates for all tumors with variant
+#' @param rates_tumors_without vector of site-specific mutation rates for all eligible tumors without variant
+#' @param sample_index named numeric associating samples with progression states
+#' @export
+sswm_sequential_lik <- function(rates_tumors_with, rates_tumors_without, sample_index) {
+  # drop unused samples from rates (happens when some sample groups are not included in the model)
+  rates_tumors_with = na.omit(rates_tumors_with[names(sample_index)])
+  rates_tumors_without = na.omit(rates_tumors_without[names(sample_index)])
+  stages_tumors_with = unname(sample_index[names(rates_tumors_with)])
+  stages_tumors_without = unname(sample_index[names(rates_tumors_without)])
+  
+  
+  # e.g., 1 -> 1; 3 -> 1,2,3 (for vector subsetting)
+  sequential_stages_tumors_with = list() # unused if no sumors
+  if(length(stages_tumors_with) > 0) {
+    sequential_stages_tumors_with = lapply(stages_tumors_with, function(x) 1:x) 
+  }
+  num_pars = length(unique(sample_index))
+  
   fn = function(gamma) {
     gamma = unname(gamma)
     sums = cumsum(gamma)
@@ -34,19 +76,19 @@ ml_objective <- function(tumor_stages, tumors_with_variant, tumors_without_gene_
       return(log(sum(cum_lik_no_mut[stage_seq] * lik_mutation[stage_seq])))
     }
     
-    if(length(tumors_with_variant) > 0) {
+    if(length(rates_tumors_with) > 0) {
       gamma_sums = mapply(calc_gamma_sums_mut, rates_tumors_with, sequential_stages_tumors_with)
       sum_log_lik = sum_log_lik + sum(gamma_sums)
     }
     
-    # in case it tried all the max at once.
+    # in case it tried all the max at once
     if(!is.finite(sum_log_lik)){
       return(-1e200)
     }
     return(-1 * sum_log_lik)
   }
 
-  # Set default values for all parameters, which ces_snv will use to set starting values of optimization
+  # Set default values for all parameters, which ces_variant will use to set starting values of optimization
   formals(fn)[["gamma"]] = rep.int(1000, num_pars)
   
   # Optimization tool, bbmle::mle, requires that vector of parameters to optimize have named elements

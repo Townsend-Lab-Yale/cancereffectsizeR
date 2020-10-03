@@ -2,7 +2,7 @@
 % Please edit documentation in R/CESAnalysis.R
 \name{load_cesa}
 \alias{load_cesa}
-\title{Load a previously saved CESAnalysis object}
+\title{Load a previously saved CESAnalysis}
 \usage{
 load_cesa(file)
 }
@@ -10,5 +10,5 @@ load_cesa(file)
 \item{file}{filename/path of CESAnalysis that has been saved with saveRDS, expected to end in .rds}
 }
 \description{
-Load a previously saved CESAnalysis object
+Load a previously saved CESAnalysis
 }

@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Load MAF-formatted somatic mutation data — load_maf • cancereffectsizeR</title>
+<title>Load MAF somatic mutation data — load_maf • cancereffectsizeR</title>
 
 <!-- favicons -->
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
@@ -44,19 +44,26 @@
 <script src="../pkgdown.js"></script>
 
 
+<!-- docsearch -->
+<script src="../docsearch.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/docsearch.js/2.6.3/docsearch.min.css" integrity="sha256-QOSRU/ra9ActyXkIBbiIB144aDBdtvXBcNc3OTNuX/Q=" crossorigin="anonymous" />
+<link href="../docsearch.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/jquery.mark.min.js" integrity="sha256-4HLtjeVgH0eIB3aZ9mLYF6E8oU5chNdjU6p6rrXpl9U=" crossorigin="anonymous"></script>
 
 
-<meta property="og:title" content="Load MAF-formatted somatic mutation data — load_maf" />
-<meta property="og:description" content="Load MAF data from a text file or data.frame/data.table into a CESAnalysis object. If
-column names don't match MAF format specifications (Chromosome, Start_Position, etc.,
-with Tumor_Sample_Barcode used as the sample ID column), you can supply your own column
-names. When your CESAnalysis has defined sample groups specify &quot;group_col&quot;. By default,
-data is assumed to be derived from whole-exome sequencing. Whole-genome data and
-targeted sequencing data are also supported when the &quot;coverage&quot; option is specified. If
-the data you are loading is from a different genome build than your CESAnalysis, you
-can use the &quot;chain_file&quot; option to supply a UCSC-style chain file, and then your MAF
-coordinates will be automatically converted with liftOver." />
-<meta property="og:image" content="/logo.png" />
+
+<meta property="og:title" content="Load MAF somatic mutation data — load_maf" />
+<meta property="og:description" content="Load MAF data from a text file or data table into your CESAnalysis. If column names
+don't match MAF format specifications (Chromosome, Start_Position, etc., with
+Tumor_Sample_Barcode used as the sample ID column), you can supply your own column
+names. When your CESAnalysis has defined sample groups (see ?CESAnalysis),
+specify &quot;group_col&quot;. By default, data is assumed to be derived from whole-exome
+sequencing. Whole-genome data and targeted sequencing data are also supported when the
+&quot;coverage&quot; option is specified. If the data you are loading is from a different genome
+build than your CESAnalysis, you can use the &quot;chain_file&quot; option to supply a UCSC-style
+chain file, and your MAF coordinates will be automatically converted with
+rtracklayer's version of liftOver." />
+<meta property="og:image" content="https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/logo.png" />
 
 
 
@@ -88,7 +95,7 @@ coordinates will be automatically converted with liftOver." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9013</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9014</span>
       </span>
     </div>
 
@@ -128,6 +135,12 @@ coordinates will be automatically converted with liftOver." />
 </li>
       </ul>
       
+      <form class="navbar-form navbar-right hidden-xs hidden-sm" role="search">
+        <div class="form-group">
+          <input type="search" class="form-control" name="search-input" id="search-input" placeholder="Search..." aria-label="Search for..." autocomplete="off">
+        </div>
+      </form>
+      
     </div><!--/.nav-collapse -->
   </div><!--/.container -->
 </div><!--/.navbar -->
@@ -139,21 +152,22 @@ coordinates will be automatically converted with liftOver." />
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Load MAF-formatted somatic mutation data</h1>
+    <h1>Load MAF somatic mutation data</h1>
     <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/R/load_maf.R'><code>R/load_maf.R</code></a></small>
     <div class="hidden name"><code>load_maf.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Load MAF data from a text file or data.frame/data.table into a CESAnalysis object. If
-column names don't match MAF format specifications (Chromosome, Start_Position, etc.,
-with Tumor_Sample_Barcode used as the sample ID column), you can supply your own column
-names. When your CESAnalysis has defined sample groups specify "group_col". By default,
-data is assumed to be derived from whole-exome sequencing. Whole-genome data and
-targeted sequencing data are also supported when the "coverage" option is specified. If
-the data you are loading is from a different genome build than your CESAnalysis, you
-can use the "chain_file" option to supply a UCSC-style chain file, and then your MAF
-coordinates will be automatically converted with liftOver.</p>
+    <p>Load MAF data from a text file or data table into your CESAnalysis. If column names
+don't match MAF format specifications (Chromosome, Start_Position, etc., with
+Tumor_Sample_Barcode used as the sample ID column), you can supply your own column
+names. When your CESAnalysis has defined sample groups (see <code><a href='CESAnalysis.html'>?CESAnalysis</a></code>),
+specify "group_col". By default, data is assumed to be derived from whole-exome
+sequencing. Whole-genome data and targeted sequencing data are also supported when the
+"coverage" option is specified. If the data you are loading is from a different genome
+build than your CESAnalysis, you can use the "chain_file" option to supply a UCSC-style
+chain file, and your MAF coordinates will be automatically converted with
+rtracklayer's version of liftOver.</p>
     </div>
 
     <pre class="usage"><span class='fu'>load_maf</span>(
@@ -274,6 +288,23 @@ CES genome reference data (default FALSE)</p></td>
    </div>
 
   
+<script src="https://cdnjs.cloudflare.com/ajax/libs/docsearch.js/2.6.1/docsearch.min.js" integrity="sha256-GKvGqXDznoRYHCwKXGnuchvKSwmx9SRMrZOTh2g4Sb0=" crossorigin="anonymous"></script>
+<script>
+  docsearch({
+    
+    
+    apiKey: '85c732458d5af0ba2cd9feb9eb7f9a97',
+    indexName: 'cancereffectsizer',
+    inputSelector: 'input#search-input.form-control',
+    transformData: function(hits) {
+      return hits.map(function (hit) {
+        hit.url = updateHitURL(hit);
+        return hit;
+      });
+    }
+  });
+</script>
+
 
 
   </body>

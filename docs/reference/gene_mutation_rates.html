@@ -44,13 +44,19 @@
 <script src="../pkgdown.js"></script>
 
 
+<!-- docsearch -->
+<script src="../docsearch.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/docsearch.js/2.6.3/docsearch.min.css" integrity="sha256-QOSRU/ra9ActyXkIBbiIB144aDBdtvXBcNc3OTNuX/Q=" crossorigin="anonymous" />
+<link href="../docsearch.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/jquery.mark.min.js" integrity="sha256-4HLtjeVgH0eIB3aZ9mLYF6E8oU5chNdjU6p6rrXpl9U=" crossorigin="anonymous"></script>
+
 
 
 <meta property="og:title" content="Use dNdScv with tissue-specific covariates to calculate gene-level mutation rates — gene_mutation_rates" />
 <meta property="og:description" content="This function calculates gene-level neutral mutation rates based on counts
 of nonsynonymous and synonymous mutations per gene under the dNdScv package's model, 
 as described in Martincorena et al. (https://doi.org/10.1016/j.cell.2017.09.042)." />
-<meta property="og:image" content="/logo.png" />
+<meta property="og:image" content="https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/logo.png" />
 
 
 
@@ -82,7 +88,7 @@ as described in Martincorena et al. (https://doi.org/10.1016/j.cell.2017.09.042)
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9013</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9014</span>
       </span>
     </div>
 
@@ -122,6 +128,12 @@ as described in Martincorena et al. (https://doi.org/10.1016/j.cell.2017.09.042)
 </li>
       </ul>
       
+      <form class="navbar-form navbar-right hidden-xs hidden-sm" role="search">
+        <div class="form-group">
+          <input type="search" class="form-control" name="search-input" id="search-input" placeholder="Search..." aria-label="Search for..." autocomplete="off">
+        </div>
+      </form>
+      
     </div><!--/.nav-collapse -->
   </div><!--/.container -->
 </div><!--/.navbar -->
@@ -144,7 +156,12 @@ of nonsynonymous and synonymous mutations per gene under the dNdScv package's mo
 as described in Martincorena et al. (https://doi.org/10.1016/j.cell.2017.09.042).</p>
     </div>
 
-    <pre class="usage"><span class='fu'>gene_mutation_rates</span>(<span class='no'>cesa</span>, <span class='kw'>covariates</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>save_all_dndscv_output</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>)</pre>
+    <pre class="usage"><span class='fu'>gene_mutation_rates</span>(
+  <span class='no'>cesa</span>,
+  <span class='kw'>covariates</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>sample_group</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>save_all_dndscv_output</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>
+)</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -156,9 +173,15 @@ as described in Martincorena et al. (https://doi.org/10.1016/j.cell.2017.09.042)
     <tr>
       <th>covariates</th>
       <td><p>Name of gene mutation rate covariates to use (run
-list_ces_covariates() to see choices). For hg19 only, you can also use "default" for
-dNdScv's non-tissue-specific covariates. If no covariates are available, set NULL to
-run without.</p></td>
+list_ces_covariates() to see choices). For hg19 data only, you can also use "default"
+for dNdScv's non-tissue-specific covariates. If no covariates are available, set NULL
+to run without.</p></td>
+    </tr>
+    <tr>
+      <th>sample_group</th>
+      <td><p>Which sample groups to include in the gene rate calculation;
+defaults to all groups. (To calculate different rates for different groups, you'll 
+run this function multiple times, changing this argument each time.)</p></td>
     </tr>
     <tr>
       <th>save_all_dndscv_output</th>
@@ -193,6 +216,23 @@ just what's needed by cancereffectsizeR (will make object size very large)</p></
    </div>
 
   
+<script src="https://cdnjs.cloudflare.com/ajax/libs/docsearch.js/2.6.1/docsearch.min.js" integrity="sha256-GKvGqXDznoRYHCwKXGnuchvKSwmx9SRMrZOTh2g4Sb0=" crossorigin="anonymous"></script>
+<script>
+  docsearch({
+    
+    
+    apiKey: '85c732458d5af0ba2cd9feb9eb7f9a97',
+    indexName: 'cancereffectsizer',
+    inputSelector: 'input#search-input.form-control',
+    transformData: function(hits) {
+      return hits.map(function (hit) {
+        hit.url = updateHitURL(hit);
+        return hit;
+      });
+    }
+  });
+</script>
+
 
 
   </body>

@@ -1,14 +1,15 @@
-#' Load MAF-formatted somatic mutation data
+#' Load MAF somatic mutation data
 #' 
-#' Load MAF data from a text file or data.frame/data.table into a CESAnalysis object. If
-#' column names don't match MAF format specifications (Chromosome, Start_Position, etc.,
-#' with Tumor_Sample_Barcode used as the sample ID column), you can supply your own column
-#' names. When your CESAnalysis has defined sample groups specify "group_col". By default,
-#' data is assumed to be derived from whole-exome sequencing. Whole-genome data and
-#' targeted sequencing data are also supported when the "coverage" option is specified. If
-#' the data you are loading is from a different genome build than your CESAnalysis, you
-#' can use the "chain_file" option to supply a UCSC-style chain file, and then your MAF
-#' coordinates will be automatically converted with liftOver.
+#' Load MAF data from a text file or data table into your CESAnalysis. If column names
+#' don't match MAF format specifications (Chromosome, Start_Position, etc., with
+#' Tumor_Sample_Barcode used as the sample ID column), you can supply your own column
+#' names. When your CESAnalysis has defined sample groups (see \code{?CESAnalysis}),
+#' specify "group_col". By default, data is assumed to be derived from whole-exome
+#' sequencing. Whole-genome data and targeted sequencing data are also supported when the
+#' "coverage" option is specified. If the data you are loading is from a different genome
+#' build than your CESAnalysis, you can use the "chain_file" option to supply a UCSC-style
+#' chain file, and your MAF coordinates will be automatically converted with
+#' rtracklayer's version of liftOver.
 #' 
 #' @param cesa the CESAnalysis object to load the data into
 #' @param maf Path of tab-delimited text file in MAF format, or an MAF in data.table or data.frame format
@@ -341,9 +342,7 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
   # collect sample group information
   if (! is.null(group_col)) {
     if (is.factor(maf[[group_col]])) {
-      warning("You supplied a sample group column as a factor, but it was converted to character.\n",
-              "The group ordering will be what you supplied to CESAnalysis() with \"sample_groups\",\n",
-              "regardless of factor ordering.")
+      warning("You supplied a sample group column as a factor, but it was converted to character.")
     }
     sample_groups = as.character(maf[[group_col]])
     if(any(is.na(sample_groups))) {
@@ -360,8 +359,6 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
   new_samples = data.table(Unique_Patient_Identifier = maf$Unique_Patient_Identifier, group = sample_groups)
   new_samples = new_samples[, .(group = unique(group)), by = "Unique_Patient_Identifier"]
 
-  # associate each group name with its order (for analyses with unordered groupings, this may be arbitrary)
-  new_samples[, group_index := sapply(group, function(x) which(cesa@groups == x)[1])]
   new_samples[, coverage := coverage]
   new_samples[, covered_regions := covered_regions_name]
   
@@ -596,7 +593,7 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
   # drop any samples that had all mutations excluded
   new_samples = new_samples[Unique_Patient_Identifier %in% maf$Unique_Patient_Identifier]
   cesa@samples = rbind(cesa@samples, new_samples)
-  setcolorder(cesa@samples, c("Unique_Patient_Identifier", "coverage", "covered_regions", "group", "group_index"))
+  setcolorder(cesa@samples, c("Unique_Patient_Identifier", "coverage", "covered_regions", "group"))
   setkey(cesa@samples, "Unique_Patient_Identifier")
   
   if (nrow(excluded) > 0) {

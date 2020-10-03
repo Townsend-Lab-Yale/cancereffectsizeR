@@ -1,7 +1,7 @@
 Package: cancereffectsizeR
 Type: Package
 Title: Calculate Cancer Effect Size
-Version: 0.1.1.9013
+Version: 0.1.1.9014
 Authors@R: c(person("Vincent L.", "Cannataro", email = "cannatarov@emmanuel.edu", role = c("aut"),
              comment = c(ORCID = "0000-0002-6364-7747")),
              person("Jeff", "Mandell", email = "jeff.mandell@yale.edu", role = c("aut", "cre"),
@@ -31,10 +31,11 @@ Imports:
 	S4Vectors,
 	seqinr
 Suggests: 
-    knitr,
-    rmarkdown,
-    formattable,
-    testthat (>= 2.1.0)
+  knitr,
+  rmarkdown,
+  formattable,
+  mockr,
+  testthat (>= 2.1.0)
 License: GPL-3
 Encoding: UTF-8
 LazyData: true

@@ -77,6 +77,7 @@ set_trinuc_rates = function(cesa, trinuc_rates, ignore_extra_samples = FALSE) {
   }
   cesa@trinucleotide_mutation_weights = list(trinuc_proportion_matrix = trinuc_proportion_matrix)
   cesa@advanced$locked = T
+  cesa@advanced$trinuc_done = T
   return(cesa)
 }
     
