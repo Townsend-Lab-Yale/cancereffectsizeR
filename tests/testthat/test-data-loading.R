@@ -22,10 +22,10 @@ test_that("load_maf and variant annotation", {
   expect_equal(tiny@mutations, tiny_ak@mutations)
   expect_equal(tiny@maf[order(variant_id)], tiny_ak@maf[order(variant_id)])
   
-  # expect warning when adding a variant already covered
-  tiny = expect_warning(add_variants(target_cesa = tiny, snv_id = "13:19752521_T>A"), "no variants required annotation")
+  # expect error when adding a variant already present
+  expect_error(add_variants(target_cesa = tiny, snv_id = "13:19752521_T>A"), "all of them are already annotated")
   
-  # add an a variant that isn't covered by any covered regions
+  # add a variant that isn't covered by any covered regions
   tiny = add_variants(target_cesa = tiny, snv_id = "12:132824581_C>A")
   
   
@@ -38,6 +38,14 @@ test_that("load_maf and variant annotation", {
   selected = select_variants(tiny, min_freq = 2)
   expect_equal(sum(selected$maf_frequency), 57)
   expect_equal(selected[variant_id == "TP53_T125T_ENSP00000269305", essential_splice], T)
+  
+  # Error when any requested gene is not in RefCDS data
+  expect_error(select_variants(tiny, genes = c("KRAS", "TP53", "notagene")),
+               "Some of the selected genes do not appear in the CESAnalysis reference data")
+  
+  # AC006486.1 is not in the data set
+  expect_null(select_variants(tiny, genes = c("AC006486.1")))
+    
   
   
   # test adding covered regions and covered_regions_padding

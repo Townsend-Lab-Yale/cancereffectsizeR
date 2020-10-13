@@ -6,9 +6,7 @@
 \usage{
 ces_variant(
   cesa = NULL,
-  genes = NULL,
-  min_freq = 2,
-  variant_ids = NULL,
+  variants = select_variants(cesa, min_freq = 2),
   lik_fn = "sswm",
   group_ordering = NULL,
   custom_lik_args = list(),
@@ -19,15 +17,11 @@ ces_variant(
 \arguments{
 \item{cesa}{CESAnalysis object}
 
-\item{genes}{limit analysis to just these genes (otherwise, all genes, unless variants is specified)}
-
-\item{min_freq}{default 2; setting to 0 or 1 can be useful for
-comparing sample groups or analyzing SIs across genomic regions}
-
-\item{variant_ids}{When specified, CES-style variant IDs of variants to include, or
-short names like "KRAS G12C" (or KRAS_G12C). If "genes" is also specified, the union
-is taken. If you want to use this parameter to calculate SI confidence intervals at
-sites with no MAF variants, set min_freq = 0.}
+\item{variants}{Variants to include, obtained from calling select_variants() on the
+CESAnalysis. Defaults to selecting all recurrent amino-acid-changing SNVs plus all
+recurrent noncoding SNVs, where recurrent means appearing at least twice across the
+full MAF data set. Calling select_variants with `min_freq` set to 0 or 1 can be
+useful for comparing sample groups or analyzing SIs across genomic regions.}
 
 \item{lik_fn}{"sswm" or "sswm_sequential" to use built-in models of selection, or supply a
 custom function factory (see details).}
@@ -44,7 +38,8 @@ functions.}
 
 \item{cores}{number of cores to use}
 
-\item{conf}{selection intensity confidence interval width (NULL skips calculation, speeds runtime)}
+\item{conf}{selection intensity confidence interval width (NULL skips calculation,
+speeds runtime)}
 }
 \value{
 CESAnalysis object with selection results added for the chosen analysis

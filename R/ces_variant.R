@@ -1,14 +1,14 @@
 #' Calculate selection intensity for single-nucleotide variants and amino acid changes
+#' 
 #' @param cesa CESAnalysis object
-#' @param genes limit analysis to just these genes (otherwise, all genes, unless variants is specified)
 #' @param cores number of cores to use
-#' @param conf selection intensity confidence interval width (NULL skips calculation, speeds runtime)
-#' @param variant_ids When specified, CES-style variant IDs of variants to include, or
-#'   short names like "KRAS G12C" (or KRAS_G12C). If "genes" is also specified, the union
-#'   is taken. If you want to use this parameter to calculate SI confidence intervals at
-#'   sites with no MAF variants, set min_freq = 0.
-#' @param min_freq default 2; setting to 0 or 1 can be useful for
-#'   comparing sample groups or analyzing SIs across genomic regions
+#' @param conf selection intensity confidence interval width (NULL skips calculation,
+#'   speeds runtime)
+#' @param variants Variants to include, obtained from calling select_variants() on the
+#'   CESAnalysis. Defaults to selecting all recurrent amino-acid-changing SNVs plus all
+#'   recurrent noncoding SNVs, where recurrent means appearing at least twice across the
+#'   full MAF data set. Calling select_variants with `min_freq` set to 0 or 1 can be
+#'   useful for comparing sample groups or analyzing SIs across genomic regions.
 #' @param lik_fn "sswm" or "sswm_sequential" to use built-in models of selection, or supply a
 #' custom function factory (see details).
 #' @param group_ordering for models (like sswm_sequential) that assume different groups of
@@ -23,14 +23,12 @@
 #' @export
 
 ces_variant <- function(cesa = NULL,
-                    genes = NULL,
-                    min_freq = 2,
-                    variant_ids = NULL,
-                    lik_fn = "sswm",
-                    group_ordering = NULL,
-                    custom_lik_args = list(),
-                    cores = 1,
-                    conf = .95) 
+                        variants = select_variants(cesa, min_freq = 2),
+                        lik_fn = "sswm",
+                        group_ordering = NULL,
+                        custom_lik_args = list(),
+                        cores = 1,
+                        conf = .95) 
 {
   if(! is(cesa, "CESAnalysis")) {
     stop("cesa should be a CESAnalysis", call. = F)
@@ -120,9 +118,12 @@ ces_variant <- function(cesa = NULL,
     }
   }
   
-  selected = select_variants(cesa, genes = genes, variant_ids = variant_ids, min_freq = min_freq)
-  if (is.null(selected)) {
-    stop("No variants passed your filters!")
+  selected = variants
+  if (is.null(selected) || ! is.data.table(selected)) {
+    stop("variants expected to be a data.table (from select_variants()).")
+  }
+  if (selected[, .N] == 0) {
+    stop("There are no variants in the input!")
   }
   aac_ids = selected[variant_type == "aac", variant_id]
   

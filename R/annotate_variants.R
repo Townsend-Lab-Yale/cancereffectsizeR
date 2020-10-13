@@ -22,16 +22,22 @@ annotate_variants <- function(cesa) {
   # non-SNVs are not supported in selection functions yet, so not bothering to annotate them correctly
   # all non-SNV annotations will get set to NA at the end
   snvs = unique(cesa@maf[variant_type == "snv", .(Chromosome, Start_Position, Reference_Allele, Tumor_Allele)])
-  snvs[, snv_id := paste0(Chromosome, ':', Start_Position, '_', Reference_Allele, '>', Tumor_Allele)]
+  # calling as.integer to avoide problem with scientific notation (100000->"1e05")
+  snvs[, snv_id := paste0(Chromosome, ':', as.integer(Start_Position), '_', Reference_Allele, '>', Tumor_Allele)]
   
   # Don't need to re-annotate variants previously annotated in the CESAnalysis (on previous load_maf calls, usually)
   if(! is.null(cesa@maf$variant_id)) {
     snvs = snvs[! snv_id %in% cesa@maf$variant_id]
   }
+  if(! is.null(cesa@mutations$snv)) {
+    snvs = snvs[! snv_id %in% cesa@mutations$snv$snv_id]
+  }
+  
   if (snvs[, .N] == 0) {
     warning("annotate_variants called, but no variants required annotation")
     return(cesa)
   }
+  
   
   snv_grs = GenomicRanges::makeGRangesFromDataFrame(snvs , seqnames.field = "Chromosome", 
                                                     start.field = "Start_Position", end.field = "Start_Position")
@@ -58,9 +64,12 @@ annotate_variants <- function(cesa) {
   
   # Intergenic records definitely aren't coding, so leave them out
   # some of these will still be non-coding and get filtered out later
-  aac = snvs[dist == 0, .(Chromosome, Start_Position, Reference_Allele, Tumor_Allele, gene = unlist(genes)), by = "snv_id"]
-  
-  genes_with_aac = unique(unlist(aac$gene))
+  aac = data.table()
+  if (snvs[dist == 0, .N] > 0) {
+    aac = snvs[dist == 0, .(Chromosome, Start_Position, Reference_Allele, Tumor_Allele, gene = unlist(genes)), by = "snv_id"]
+    genes_with_aac = unique(unlist(aac$gene))
+  }
+
   
   # If RefCDS object has been created using this package's build_RefCDS function,
   # the presence of real_gene_name indicates that the object has one record per passing transcript rather that gene.
@@ -100,7 +109,6 @@ annotate_variants <- function(cesa) {
     cds_hits = data.table()
   }
 
-  
   if (cds_hits[, .N] > 0) {
     cds_hits[strand == -1, nt_pos := cum_cds_width - (Start_Position - start)]
     cds_hits[strand == 1, nt_pos := cum_cds_width - (end - Start_Position)]
@@ -323,6 +331,7 @@ annotate_variants <- function(cesa) {
 	genes_in_data = unique(unlist(snv_table$genes))
 	ind_no_splice = sapply(RefCDS[genes_in_data], function(x) length(x$intervals_splice) == 0)
 	genes_with_splice_sites = genes_in_data[! ind_no_splice]
+	snv_table[, essential_splice := F]
 	if (length(genes_with_splice_sites) > 0) {
 	  essential_splice_sites = unique(rbindlist(lapply(RefCDS[genes_with_splice_sites], function(x) return(list(chr = x$chr, start = x$intervals_splice)))))
 	  essential_splice_sites[, end := start]
@@ -331,7 +340,7 @@ annotate_variants <- function(cesa) {
 	  essential_splice_snv_id = foverlaps(essential_splice_sites, snv_table, by.x = c("chr", "start", "end"), type = "any", nomatch = NULL)[, snv_id]
 	  snv_table[, tmp_end_pos := NULL]
 	  setkey(snv_table, "snv_id")
-	  snv_table[, essential_splice := F][essential_splice_snv_id, essential_splice := T]
+	  snv_table[essential_splice_snv_id, essential_splice := T]
 	}
 
 	
@@ -399,12 +408,8 @@ update_covered_in = function(cesa) {
   } else {
     all_coverage = all_coverage[sort(names(all_coverage))] # sort by covered regions name
     is_covered = as.data.table(lapply(all_coverage, function(x) IRanges::overlapsAny(snv_gr, x, type = "within")))
-    all_names = names(all_coverage)
-    
-    covered_in = vector(mode = "list", length = snv_table[, .N])
-    for (i in 1:nrow(is_covered)) {
-      covered_in[[i]] = all_names[is_covered[i, as.logical(.SD)]]
-    }
+    all_names = names(is_covered)
+    covered_in = apply(is_covered, 1, function(x) all_names[x])
     
     # Note that when exome+ coverage (see load_maf) is used, samples can have both "exome" and "exome+" associated with their mutations,
     # but the samples themselves are considered "exome+" (be careful not to double-count these)

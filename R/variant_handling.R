@@ -47,11 +47,9 @@
 #' @param variant_ids include variants by ID: vectors of snv_id and/or aac_id, or short
 #'   (potentially non-unique) names like KRAS_G12C (or "KRAS G12C")
 #' @param granges filter out any variants not within input GRanges
-#' @param min_freq filter out variants that occur in fewer than this many samples in the
-#'   MAF data Defaults to 1; set to 0 to include all passing variants that are in the
-#'   annotation tables. Note that variants that are not in the annotation tables will
-#'   never be returned. Use \code{generate_variants()} to annotate variants absent from the
-#'   data.
+#' @param min_freq Filter out variants with MAF frequency below threshold (default 0).
+#'   Note that variants that are not in the annotation tables will never be returned. Use
+#'   \code{generate_variants()} to annotate variants absent from the data.
 #' @param include_subvariants Some mutations "contain" other mutations. For example, in
 #'   cancereffectsizeR's default hg19 reference data, KRAS_Q61H contains two constituent
 #'   SNVs that both cause the same amino acid change: 12:25380275_T>G and 12:25380275_T>A.
@@ -167,6 +165,8 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
     selected_with_variant_id = c(matching_snv_ids, matching_aac_ids) # save this for later in case there's a gr filter
     selected_snv_ids = matching_snv_ids
     selected_aac_ids = matching_aac_ids
+  } else {
+    selected_with_variant_id = character()
   }
   
   
@@ -348,16 +348,6 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
                           "strand", "aachange", "essential_splice", "intergenic", "trinuc_mut", "aa_ref", "aa_pos", "aa_alt", "coding_seq", 
                           "center_nt_pos", "pid", "constituent_snvs", "multi_anno_site", "all_aac", "all_genes",
                           "covered_in", unlist(zipup(all_cov_cols, maf_freq_cols))))
-  
-  # notify about sites with multiple genes/CDS
-  if(any(combined$multi_anno_site)) {
-    gene_note = ifelse(is.null(genes), "", ", regardless of your \"genes\" input")
-    collapse_note = ifelse(collapse_lists == T,  'comma-delimited', 'listed')
-    msg = paste0("Note: Some of your variants cover sites that overlap more than one gene, transcript or coding sequence. These are ",
-                 collapse_note, " in the \"all_genes\" and \"all_aac\" columns. (For SNVs, the gene column gives a single gene arbitrarily", 
-                 gene_note, ".) You can find these variants by filtering on the multi_anno_site column.")
-    pretty_message(msg)
-  }
   return(combined[]) # brackets force the output to print when unassigned (should automatically, but this is a known data.table issue)
 }
 
@@ -537,19 +527,37 @@ assign_gr_to_coverage = function(cesa, gr, covered_regions_name, coverage_type) 
 
 #' Add variant annotations
 #' 
-#' Use this function to add variant annotations to your CESAnalysis, either using
-#' a vector of CES-style snv_ids or a source CESAnalysis. Either way, the variants 
-#' will be re-annotated using the target CESAnalysis's associated reference data. In other words,
-#' when you use source_cesa, only the snv_ids are extracted, not any other information, in order
-#' to avoid ugly situations involving conflicting reference data within a CESAnalysis. 
+#' Use this function to add variant annotations to your CESAnalysis by specifying variants
+#' to add in one of five ways: a data.table containing genomic coordinates (output from
+#' select_variants(), typically), a GRanges object, a BED file, another CESAnalysis, or
+#' SNV IDs.
+#' 
+#' All methods of adding variants work by identifying which SNVs to add and then using the
+#' target_cesa's associated reference data to identify overlapping amino-acid-change
+#' mutations, which are then added as well. (You can't add just SNVs or just AACs.) Note
+#' that if you try to add far more distinct variants than appear in a typical cohort (as
+#' in, millions), annotation will take a while and the annotation tables in the
+#' CESAnalysis may take up significant memory. Please contact us if you have issues.
+#' 
 #' @param target_cesa CESAnalysis to receive variant annotations
-#' @param snv_id character vector of CES-style snv_ids to validate, annotate (including
-#'   finding and adding associated amino-acid-change mutations), and add to the target
-#'   CESAnalysis
-#' @param source_cesa source CESAnalysis whose snv_ids will be used to create new
-#'   annotations in the target CESAnalysis
+#' @param variant_table A data.table with chr/start/end positions (1-based closed
+#'   coordinates, like MAF format). All possible SNVs overlapping the table's genomic
+#'   coordinates (within `padding` bases) will be added. The tables returned by
+#'   select_variants() and (CESAnalysis)$variants work, and get special handling of
+#'   amino-acid-change SNVs: only the precise positions in start, end, and center_nt_pos
+#'   are used. (This avoids adding all variants between start/end, which on
+#'   splite-site-spanning variants can be many thousands.
+#' @param bed A path to a BED file. All possible SNVs overlapping BED intervals (within
+#'   `padding` bases) will be added.
+#' @param gr A GRanges object. All possible SNVs overlapping the ranges (within `padding`
+#'   bases) will be added.
+#' @param snv_id Character vector of CES-style SNV IDs to add.
+#' @param source_cesa Another CESAnalysis from which to copy snv_ids. SNVs will be
+#'   re-annotated using the target_cesa's associated reference data.
+#' @param padding How many bases (default 0) to expand start and end of each gr range
 #' @export
-add_variants = function(target_cesa = NULL, snv_id = NULL, source_cesa = NULL) {
+add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL, bed = NULL, 
+                        gr = NULL, source_cesa = NULL, padding = 0) {
   if(! is(target_cesa, "CESAnalysis")) {
     stop("target_cesa should be a CESAnalysis", call. = F)
   }
@@ -558,9 +566,15 @@ add_variants = function(target_cesa = NULL, snv_id = NULL, source_cesa = NULL) {
     stop("target_cesa should be annotated", call. = F)
   }
 
-  if(! xor(is.null(snv_id), is.null(source_cesa))) {
-    stop("Add annotations via snv_id or source_cesa, but not both", call. = F)
+  if (! is(padding, "numeric") || length(padding) != 1 || trunc(padding) != padding || padding < 0) {
+    stop("padding should be 1-length non-negative integer")
   }
+  
+  # just one possible method should be chosen
+  if (sum(sapply(list(variant_table, gr, bed, snv_id, source_cesa), is.null)) != 4){
+    stop("Exactly one method of adding variants must be chosen.")
+  }
+
 
   if (! is.null(source_cesa)) {
     if(! is(source_cesa, "CESAnalysis")) {
@@ -573,34 +587,125 @@ add_variants = function(target_cesa = NULL, snv_id = NULL, source_cesa = NULL) {
     snvs_to_annotate = source_cesa@mutations$snv$snv_id
   }
   
+  # Handle gr, bed, variant_table: all get converted to a validated gr before creation of SNV IDs
+  # We've already ensured that only one of these can be non-null
+  if (! all(sapply(list(variant_table, gr, bed), is.null))) {
+    bsg = get_cesa_bsg(target_cesa)
+    if (! is.null(bed)) {
+      if(is.character(bed)) {
+        if (length(BEDFile()) != 1) {
+          stop("bed should be a path (one-length character) to a BED file.")
+        }
+        if (! file.exists(bed)) {
+          stop("BED file not found (check path?)")
+        }
+        gr = rtracklayer::import.bed(bed)
+      } else {
+        stop("bed should be a path (one-length character) to a BED file.")
+      }
+    }
+    if (! is.null(gr)) {
+      if (! is(gr, "GRanges")) {
+        stop("gr should be a GRanges object")
+      }
+    }
+    if (! is.null(variant_table)) {
+      if (! is(variant_table, "data.table")) {
+        stop("variant_table should be a data.table.")
+      }
+      if (! all(c("chr", "start", "end") %in% names(variant_table))) {
+        stop("variant table should have chr/start/end columns.")
+      }
+      
+      # Use just the start, end, and center_nt_pos positions (not all positions from start to end)
+      if (all(c("variant_type", "center_nt_pos") %in% names(variant_table))) {
+        non_aac = variant_table[variant_type != 'aac', .(chr, start, end)]
+        aac_table = variant_table[variant_type == 'aac']
+        aac_table = rbindlist(list(aac_table[, .(chr, start, end = start)], 
+                                   aac_table[, .(chr, start = end, end)],
+                                   aac_table[, .(chr, start = center_nt_pos, end = center_nt_pos)]))
+        variant_table = rbind(non_aac, aac_table)
+      }
+      gr = GenomicRanges::makeGRangesFromDataFrame(variant_table, ignore.strand = T, seqinfo = BSgenome::seqinfo(bsg))
+    }
+    
+    # Validate GRanges and add padding if specified
+    gr = clean_granges_for_bsg(bsg = bsg, gr = gr, padding = padding)
+    
+    # convert to GPos and put in MAF-like table
+    gpos = GenomicRanges::GPos(gr)
+    ref = as.character(BSgenome::getSeq(bsg, gpos))
+    snv_table = data.table(chr = as.character(GenomicRanges::seqnames(gpos)), pos = GenomicRanges::pos(gpos),
+                           ref = ref)
+    nt = c("A", "C", "G", "T")
+    if (any(! ref %in% nt)) {
+      snv_table = snv_table[ref %in% nt]
+      message("Note: some variants in input were dropped because of ambiguous reference sequence (N's)")
+    }
+    snv_table = snv_table[rep(1:.N, each = 4)]
+    snv_table[, alt := rep.int(c("A", "C", "G", "T"), .N/4)]
+    snv_table = snv_table[ref != alt]
+    snvs_to_annotate = snv_table[, paste0(chr, ':', pos, '_', ref, '>', alt)]
+  }
+  
   # Load reference data if not already present
   if (! target_cesa@ref_key %in% ls(.ces_ref_data)) {
     preload_ref_data(target_cesa@ref_data_dir)
   }
   
+  # If supplied SNV IDs (rather than source_cesa, gr, bed, variant_table), validate them
   if(! is.null(snv_id)) {
     if(! is(snv_id, "character") | length(snv_id) == 0) {
       stop("Expected snv_id to be character vector of snv_ids (e.g., 1:100_A>G", call. = F)
     }
     # will stop with errror if any IDs fail validation
-    validate_snv_ids(snv_id, .ces_ref_data[[target_cesa@ref_key]]$genome)
+    validate_snv_ids(snv_id, get_cesa_bsg(target_cesa))
     snvs_to_annotate = snv_id
   }
-
-  maf = as.data.table(tstrsplit(snvs_to_annotate, split = '[:_>]'))
+  
+  num_variants = length(snvs_to_annotate)
+  if(num_variants == 0) {
+    stop("No SNVs to add (check your input).")
+  }
+  snvs_to_annotate = setdiff(snvs_to_annotate, target_cesa@mutations$snv$snv_id)
+  num_to_add = length(snvs_to_annotate)
+  
+  if(num_to_add == 0) {
+    stop("Tried to add ", num_variants , " variants, but all of them are already annotated in the CESAnalysis.")
+  }
+  
+  num_identified_str = format(num_variants, big.mark = ",")
+  num_to_add_str = format(num_to_add, big.mark = ",")
+  
+  if (num_to_add == num_variants) {
+    pretty_message(paste0("Annotating ", num_to_add_str, " variants..."))
+  } else {
+    pretty_message(paste0("Received ", num_identified_str, " total variants ", 
+                          " and annotating the ", num_to_add_str, " variants that are new..."))
+  }
+  
+  if(num_to_add > 1e6) {
+    warning("You're adding a lot of variants! Let us know if you have any issues.", immediate. = T, call. = F)
+  }
+  
+  # convert snv_id into MAF-like table, with an NA UPI
+  cesa = target_cesa
+  snv_id = snvs_to_annotate
+  maf = as.data.table(tstrsplit(snv_id, split = '[:_>]'))
   colnames(maf) = c("Chromosome", "Start_Position", "Reference_Allele", "Tumor_Allele")
   maf$Unique_Patient_Identifier = NA_character_
   setcolorder(maf, "Unique_Patient_Identifier")
   maf$variant_type = "snv"
   maf[, Start_Position := as.numeric(Start_Position)]
   
-  target_cesa@maf = rbind(target_cesa@maf, maf, fill = T)
-  prev_recording_status = target_cesa@advanced$recording
-  target_cesa@advanced$recording = F
-  target_cesa = annotate_variants(target_cesa)
-  target_cesa@advanced$recording = prev_recording_status
-  target_cesa@maf = target_cesa@maf[! is.na(Unique_Patient_Identifier)]
-  return(target_cesa)
+  # add the new variants to cesa@maf (will remove after annotation)
+  cesa@maf = rbind(cesa@maf, maf, fill = T)
+  prev_recording_status = cesa@advanced$recording
+  cesa@advanced$recording = F
+  cesa = annotate_variants(cesa)
+  cesa@advanced$recording = prev_recording_status
+  cesa@maf = cesa@maf[! is.na(Unique_Patient_Identifier)]
+  return(cesa)
 }
 
 #' validate_snv_ids
@@ -617,6 +722,11 @@ validate_snv_ids = function(snv_ids, bsg) {
     stop("One of the input IDs does not match snv_id format (e.g., 1:100_A>G)")
   }
   names(dt) = c("chr", "start", "ref", "alt")
+  
+  if (! all(grepl('^[1-9][0-9]*$', dt$start))) {
+    stop("Some SNV IDs have illegal positions (watch out for mistakes like \"2:1e+06_A>C\").")
+  }
+  
   
   fail_msg = "Check that chromosome names and genome assembly match the CESAnalysis.\nOriginal error/warning:"
   tryCatch(
@@ -642,4 +752,43 @@ validate_snv_ids = function(snv_ids, bsg) {
     stop("Some SNV alt alleles match the ref alleles.")
   }
 }
+
+#' Clump variants together
+#' 
+#' Details coming
+#' @param cesa CESAnalysis
+#' @param snv_id Vector of snv_ids to include in one compound variant, or a list
+#'   of vectors, each of which defines a separate compound variant
+#' @param variant_name Optionally a vector of names to give the compound variant(s),
+#'   length equal to the number of compound variants being created. If you leave out
+#'   names, the variants will be named sequentially.
+# create_compound_variant = function(cesa, snv_id, variant_names = character()) {
+#   if(! is(cesa, "CESAnalysis")) {
+#     stop("cesa should be a CESAnalysis.")
+#   }
+#   if(! is(variant_names, "character")) {
+#     stop("variant_names should be character")
+#   }
+#   if (is(snv_id, "character")) {
+#     num_variant = 1
+#     validate_snv_ids(snv_id, get_cesa_bsg(cesa))
+#   } else if (is(snv_id, "list")) {
+#     if(length(snv_id) < 1) {
+#       stop("snv_id can't be 0-length.")
+#     }
+#     if (! all(sapply(snv_id, is.character)))
+#   }
+#   
+#     
+#   }
+# }
+
+
+## All non-silent SNVs at a given position in a CDS (+/- x positions?)
+  ## Could also say, 
+## Noncoding: all possible SNVs at a given position(s)
+## Arbitrary collection of SNVs: but in fact, you don't want too many
+
+
+
 

@@ -24,18 +24,18 @@
 #' @param ylab Y-axis label to pass to ggplot
 #' @param label_size Text size for labels, either 1-length or same length as si_list.
 #' @param merge_dist How close points must be to be eligible to have their labels combined
-#'   (.04 = 4% of plot space). Either 1-length of same length as si_list. Try tweaking if
+#'   (.04 = 4% of plot space). Either 1-length or same length as si_list. Try tweaking if
 #'   labels are not looking good. Set to zero to prevent any labels being combined.
 #' @return ggplot object with lollipops
 #' @examples 
 #' \dontrun{
 #' # Compare cancer subtypes from different analyses
-#' si_lollipops(si_list = list(luad = luad_cesa$selection, lusc = lusc_cesa$selection))
+#' lollipops(si_list = list(luad = luad_cesa$selection, lusc = lusc_cesa$selection))
 #' 
 #' # Compare results for two genes
 #' tp53 = cesa$selection[gene == 'TP53']
 #' egfr = cesa$selection[gene == 'EGFR']
-#' si_lollipops(si_list = list(EGFR = egfr, TP53 = tp53))
+#' lollipops(si_list = list(EGFR = egfr, TP53 = tp53))
 #' }
 #' @export
 lollipops = function(si_list, si_col = "selection_intensity", title = "My SIs", ylab = "selection intensity", 

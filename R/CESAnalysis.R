@@ -1,12 +1,13 @@
 #' Create a cancereffectsizeR analysis
 #' 
 #' Creates a CESAnalysis object, the central data structure of cancereffectsizeR.
+#' 
 #' @param ref_set name of reference data set to use; run \code{list_ces_ref_sets()} for
 #'   available ref sets. Alternatively, the path to a custom reference data directory.
 #' @param sample_groups Optionally, supply labels identifying different groups of samples.
-#'   To be able to perform analyses that require ordered groups of samples, give the
-#'   labels in proper order: e.g., c("Primary", "Metastatic"). If you will not be doing
-#'   such analyses, ordering doesn't matter.
+#'   Each designated group of samples can be run independently through functions like
+#'   \code{trinuc_mutation_rates()} and \code{gene_mutation_rates()}, and some selection
+#'   models (such as sswm_sequential) require multiple sample groups.
 #' @return CESAnalysis object
 #' @export
 CESAnalysis = function(ref_set = "ces_hg19_v1", sample_groups = NULL) {
@@ -188,7 +189,7 @@ load_cesa = function(file) {
   
   current_version = packageVersion("cancereffectsizeR")
   previous_version = cesa@advanced$version
-  if (current_version != previous_version) {
+  if (as.character(current_version) != as.character(previous_version)) {
     warning("Version change: CESAnalysis previously created in CES ", previous_version, ".\n",
             "Currently running version ", current_version, '.', call. = F)
     cesa@advanced$version = paste(previous_version, current_version, sep = '/' )
@@ -405,7 +406,9 @@ clean_granges_for_bsg = function(bsg = NULL, gr = NULL, padding = 0) {
             padding - as.integer(padding) == 0)
 
   # try to make gr style/seqlevels match bsg (if this fails, possibly the genome build does not match)
+  # Keep an eye out for "more than one best sequence renaming map" warning on rare inputs
   GenomeInfoDb::seqlevelsStyle(gr) = "NCBI"
+
   
   tryCatch({
     msg = paste0("An input granges (or converted BED file) does't seem compatible with the current reference genome.\n",

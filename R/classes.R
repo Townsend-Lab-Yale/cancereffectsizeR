@@ -122,6 +122,14 @@ setValidity("CESAnalysis",
     }
 )
 
+
+# CompoundVariant = function(cesa, subvariants) {
+#   if (! is(cesa, "CESAnalysis")) {
+#     stop("cesa not CESAnalysis")
+#   }
+#   if (! is(subvariants, "character"))
+# }
+
 setClass("CES_Run_History", representation(history = "character"))
 CES_Run_History = function(history) {
   new("CES_Run_History", history = history)

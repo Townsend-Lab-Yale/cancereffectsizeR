@@ -28,30 +28,20 @@ precalc_rates = fread(get_test_file("luad_fruit_gene_rates.txt"))
 cesa = set_gene_rates(cesa, precalc_rates[, .(gene, rate_grp_1)], sample_group = "marionberry")
 cesa = set_gene_rates(cesa, precalc_rates[, .(gene, rate_grp_2)], sample_group = c("cherry", "mountain_apple"))
 
-test_that("Handle missing or invalid gene choice in SNV analysis", {
-  # Error when any requested gene is not in RefCDS data
-  expect_error(ces_variant(cesa, genes = c("KRAS", "TP53", "notagene")),
-               "Some of the selected genes do not appear in the CESAnalysis reference data")
-
-  # AC006486.1 is not in the data set; error when no genes requested are in the data set
-  expect_error(ces_variant(cesa, genes = c("AC006486.1")),
-               "No variants passed your filters")
-
-})
 
 # genes to plug into ces_variant; some with high-effect-size SNVs, others random
 test_genes = c("EGFR", "ASXL3", "KRAS", "RYR2", "USH2A", "CSMD3", "TP53", "CSMD1", "LRP1B",
                "ZFHX4", "FAT3", "CNTNAP5", "PCDH15", "NEB", "RYR3", "DMD", "KATNAL1",
                "OR13H1", "KSR1")
 test_that("ces_variant with sswm", {
-  cesa = ces_variant(cesa, genes = test_genes, min_freq = 1, cores = 1)
+  cesa = ces_variant(cesa, variants = select_variants(cesa, genes = test_genes), cores = 1)
   results = cesa@selection_results[[1]]
   results_ak = fread(get_test_file("fruit_sswm_out.txt"))
   expect_equal(results[order(variant_id)], results_ak[order(variant_id)])
 })
 
 test_that("ces_variant with sswm_sequential", {
-  cesa = ces_variant(cesa, genes = c("EGFR", "KRAS", "TP53"), variant_ids = "CR2 R247L", min_freq = 1,
+  cesa = ces_variant(cesa, variants = select_variants(cesa, genes = c("EGFR", "KRAS", "TP53"), variant_ids = "CR2 R247L"),
                  lik_fn = "sswm_sequential", group_ordering = list(c("marionberry", "cherry"), "mountain_apple"))
   results = cesa@selection_results[[1]] # previous run not saved due to test_that scoping
   results_ak = fread(get_test_file("fruit_sswm_sequential_out.txt"))
@@ -62,14 +52,14 @@ test_that("ces_variant bad group_ordering inputs", {
   expect_error(ces_variant(cesa, lik_fn = "sswm_sequential", group_ordering = c("cherry","cherry")), "groups are re-used")
   expect_error(ces_variant(cesa, lik_fn = "sswm_sequential", group_ordering = list(c("cherry", "marionberry"))),
                "must have length of at least 2")
-  expect_warning(ces_variant(cesa, variant_ids = "CR2 R247L", min_freq = 1, lik_fn = "sswm_sequential", group_ordering = c("cherry", "marionberry")))
+  expect_warning(ces_variant(cesa, variants = select_variants(cesa, variant_ids = "CR2 R247L", min_freq = 1),
+                             lik_fn = "sswm_sequential", group_ordering = c("cherry", "marionberry")))
 })
 
 test_that("ces_variant with user-supplied variants", {
-  expect_error(ces_variant(cesa, variant_ids = c("10:100190376_C>A"), "No variants pass filters"))
-  expect_equal(ces_variant(cesa, variant_ids = c("10:100190376_C>A"), min_freq = 1)@selection_results[[1]][, .N], 1)
-  expect_error(ces_variant(cesa, genes = "TP53", variant = list(aac_id = "KRAS_G12D_ENSP00000256078"), "No variants pass filters"))
-  expect_equal(ces_variant(cesa, genes = c("TP53", "KRAS"), variant_ids  = c("KRAS_G12D_ENSP00000256078"))@selection_results[[1]][, .N], 9)
+  expect_equal(ces_variant(cesa, variants = select_variants(cesa, variant_ids = "10:100190376_C>A"))@selection_results[[1]][, .N], 1)
+  variants = select_variants(cesa, genes = c("TP53", "KRAS"), variant_ids = "KRAS_G12D_ENSP00000256078", min_freq = 2)
+  expect_equal(ces_variant(cesa, variants = variants)@selection_results[[1]][, .N], 9)
 })
 
 test_that("Gene-level SNV epistasis analysis", {

@@ -11,9 +11,9 @@ CESAnalysis(ref_set = "ces_hg19_v1", sample_groups = NULL)
 available ref sets. Alternatively, the path to a custom reference data directory.}
 
 \item{sample_groups}{Optionally, supply labels identifying different groups of samples.
-To be able to perform analyses that require ordered groups of samples, give the
-labels in proper order: e.g., c("Primary", "Metastatic"). If you will not be doing
-such analyses, ordering doesn't matter.}
+Each designated group of samples can be run independently through functions like
+\code{trinuc_mutation_rates()} and \code{gene_mutation_rates()}, and some selection
+models (such as sswm_sequential) require multiple sample groups.}
 }
 \value{
 CESAnalysis object

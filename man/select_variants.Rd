@@ -26,11 +26,9 @@ select_variants(
 
 \item{granges}{filter out any variants not within input GRanges}
 
-\item{min_freq}{filter out variants that occur in fewer than this many samples in the
-MAF data Defaults to 1; set to 0 to include all passing variants that are in the
-annotation tables. Note that variants that are not in the annotation tables will
-never be returned. Use \code{generate_variants()} to annotate variants absent from the
-data.}
+\item{min_freq}{Filter out variants with MAF frequency below threshold (default 0).
+Note that variants that are not in the annotation tables will never be returned. Use
+\code{generate_variants()} to annotate variants absent from the data.}
 
 \item{include_subvariants}{Some mutations "contain" other mutations. For example, in
 cancereffectsizeR's default hg19 reference data, KRAS_Q61H contains two constituent
