@@ -9,26 +9,35 @@ select_variants(
   genes = NULL,
   variant_ids = NULL,
   granges = NULL,
+  variant_position_table = NULL,
   min_freq = 0,
   include_subvariants = F,
-  gr_padding = 0,
+  padding = 0,
   ids_only = F,
-  collapse_lists = T
+  collapse_lists = F
 )
 }
 \arguments{
 \item{cesa}{CESAnalysis with MAF data loaded and annotated (e.g., with \code{load_maf()})}
 
-\item{genes}{include variants (coding and noncoding) within these genes}
+\item{genes}{Include variants (coding and noncoding) within these genes.}
 
-\item{variant_ids}{include variants by ID: vectors of snv_id and/or aac_id, or short
-(potentially non-unique) names like KRAS_G12C (or "KRAS G12C")}
+\item{variant_ids}{Include variants by ID: vectors of snv_id and/or aac_id, or short
+(potentially non-unique) names like KRAS_G12C (or "KRAS G12C").}
 
-\item{granges}{filter out any variants not within input GRanges}
+\item{granges}{Filter out any variants not within input GRanges.}
+
+\item{variant_position_table}{Filter out any variants that don't intersect the
+positions given in chr/start/end of this table (1-based closed coordinates).
+Typically, the table comes from a previous `select_variants` call and can be expanded
+with `padding`. (Gritty detail: Amino acid change SNVS get special handling: only the
+precise positions in start, end, and center_nt_pos are used. This avoids intersecting
+extra variants between start/end, which on splite-site-spanning variants can be many
+thousands.)}
 
 \item{min_freq}{Filter out variants with MAF frequency below threshold (default 0).
 Note that variants that are not in the annotation tables will never be returned. Use
-\code{generate_variants()} to annotate variants absent from the data.}
+\code{add_variants()} to annotate variants absent from the data.}
 
 \item{include_subvariants}{Some mutations "contain" other mutations. For example, in
 cancereffectsizeR's default hg19 reference data, KRAS_Q61H contains two constituent
@@ -36,33 +45,32 @@ SNVs that both cause the same amino acid change: 12:25380275_T>G and 12:25380275
 When include_subvariants = F (the default), and genes = "KRAS", output will be
 returned for KRAS_Q61H but not for the two SNVs (although their IDs will appear in
 the Q61H output). Set to true, and all three variants will be included in output, 
-assuming they don't get filtered out by other other options, like min_freq}
+assuming they don't get filtered out by other other options, like min_freq.}
 
-\item{gr_padding}{add +/- this many bases to every range specified in "granges"
-(stopping at chromsome ends, naturally)}
+\item{padding}{add +/- this many bases to every range specified in `granges` or
+`variant_position_table` (stopping at chromsome ends, naturally).}
 
-\item{ids_only}{instead of outputting a table of variant information, return a list
-of selected variant IDs organized by variant type, without any annotations}
+\item{ids_only}{instead of outputting a table of variant information, return a list of
+selected variant IDs organized by variant type, without any annotations}
 
 \item{collapse_lists}{Some output columns may have multiple elements per variant row.
-For example, all_genes may include multiple genes. When collapse_lists = T, these
-columns have their values collapsed into single comma-delimited strings (e.g.
-"Gene1,Gene2"), which are good for visual inspection of data. When collapse_lists =
-F, these columns are returned as "list columns", each element of which is a
-variable-length vector. These are better for advanced scripting, but the syntax to
-manipulate them is a little tricky, so the default is to collapse.}
+For example, all_genes may include multiple genes. These variable-length vectors
+allow advanced filter and manipulation, but the syntax can be tricky. Optionally, set
+collapse_lists = T to convert these columns to comma-delimited strings, which are
+sometimes easier to work with.}
 }
 \value{
-a data table with info on selected variants (see details), or a list of IDs
+A data table with info on selected variants (see details), or a list of IDs.
 }
 \description{
-This is a lightweight function to help you find and manipulate variant data from your
-CESAnalysis's MAF data and mutation annotation tables. This function has a variant
-gathering step followed by a filtering step. For gathering, you can specify genes by
-name or supply CES-style variant IDs to get all variants matching either. Or, leave
-both empty and all available variants will be gathered. For filtering, use the granges
-parameter to filter out variants that don't intersect an input GRanges object. Use
-min_freq to filter out variants by frequency in the MAF data.
+This function helps you find and view variant data from your CESAnalysis's MAF data and
+mutation annotation tables. This function has a variant gathering step followed by a
+filtering step. For gathering, you can specify genes by name or supply CES-style
+variant IDs to get all variants matching either. Or, leave both empty and all available
+variants will be gathered. For filtering, use the granges or variant_table parameters to
+filter out variants that don't positionally intersect an input GRanges object or a
+table previously generated using this function. Use min_freq to filter out variants by
+frequency in the MAF data.
 }
 \details{
 Note that while intergenic SNVs have their nearest genes annotated in the SNV tables,

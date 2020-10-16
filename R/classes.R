@@ -122,13 +122,8 @@ setValidity("CESAnalysis",
     }
 )
 
+setClass("CompoundVariantSet", representation(snv_id = "list"))
 
-# CompoundVariant = function(cesa, subvariants) {
-#   if (! is(cesa, "CESAnalysis")) {
-#     stop("cesa not CESAnalysis")
-#   }
-#   if (! is(subvariants, "character"))
-# }
 
 setClass("CES_Run_History", representation(history = "character"))
 CES_Run_History = function(history) {

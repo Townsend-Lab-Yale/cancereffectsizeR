@@ -80,9 +80,11 @@ CESAnalysis = function(ref_set = "ces_hg19_v1", sample_groups = NULL) {
   ## locked: whether load_maf can still be used (can't load more data after trinuc_mutation_rates or gene_mutation_rates)
   ## trinuc_done: have all trinuc mutation rates been calculated?
   ## gene_rates_done: have all samples been through gene_mutation_rates?
+  ## uid: a unique-enough identifier for the CESAnalysis (just uses epoch time)
   ces_version = packageVersion("cancereffectsizeR")
   advanced = list("version" = ces_version, annotated = F, using_exome_plus = F, 
-                  recording = T, locked = F, trinuc_done = F, gene_rates_done = F)
+                  recording = T, locked = F, trinuc_done = F, gene_rates_done = F,
+                  uid = unclass(Sys.time()))
   cesa = new("CESAnalysis", run_history = character(),  ref_key = ref_set_name, maf = data.table(), excluded = data.table(),
              groups = sample_groups, mutrates = data.table(),
              selection_results = list(), ref_data_dir = data_dir,
@@ -149,10 +151,15 @@ load_cesa = function(file) {
   }
   cesa@mutrates = setDT(cesa@mutrates)
   
+  if(is.null(cesa@advanced$uid)) {
+    cesa@advanced$uid = unclass(Sys.time())
+  }
+  
   # temporary
   if(is(cesa@selection_results, "data.table")) {
     cesa@selection_results = list()
   }
+  
   
   
   available_ref_sets = get_ref_set_dirs()

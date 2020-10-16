@@ -17,11 +17,10 @@ ces_variant(
 \arguments{
 \item{cesa}{CESAnalysis object}
 
-\item{variants}{Variants to include, obtained from calling select_variants() on the
-CESAnalysis. Defaults to selecting all recurrent amino-acid-changing SNVs plus all
-recurrent noncoding SNVs, where recurrent means appearing at least twice across the
-full MAF data set. Calling select_variants with `min_freq` set to 0 or 1 can be
-useful for comparing sample groups or analyzing SIs across genomic regions.}
+\item{variants}{Variant table from select_variants(), or a CompoundVariantSet from
+define_compound_variants(). Defaults to all recurrent noncoding SNVs and
+(SNV-derived) coding mutations, where recurrent means appearing in at least two
+samples in the MAF data set.}
 
 \item{lik_fn}{"sswm" or "sswm_sequential" to use built-in models of selection, or supply a
 custom function factory (see details).}

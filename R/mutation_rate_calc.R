@@ -40,7 +40,7 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
       stop("Samples should be character vector", call. = F)
     }
     samples = unique(samples)
-    subsetted_samples = cesa@samples[samples]
+    subsetted_samples = cesa@samples[samples, on = "Unique_Patient_Identifier"]
     if(subsetted_samples[, .N] != length(samples)) {
       stop("One or more of the requested samples isn't in the CESAnalysis", call. = F)
     }

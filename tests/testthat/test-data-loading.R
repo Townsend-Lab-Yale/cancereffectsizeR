@@ -31,7 +31,7 @@ test_that("load_maf and variant annotation", {
   
   expect_null(select_variants(tiny, variant_ids = "12:132824581_C>A", min_freq = 1))
   selected = select_variants(tiny, variant_ids = "12:132824581_C>A", genes = "TTN")
-  expect_equal(selected[variant_id == "12:132824581_C>A", covered_in], NA_character_)
+  expect_equal(selected[variant_id == "12:132824581_C>A", unlist(covered_in)], NA_character_)
   expect_equal(selected[, .N], 3)
   selected = select_variants(tiny, variant_ids = "12:132824581_C>A", genes = "TTN", min_freq = 0, include_subvariants = T)
   expect_equal(selected[, .N], 7)

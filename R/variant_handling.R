@@ -1,13 +1,13 @@
 #' Select and filter variants
 #'
-#' This is a lightweight function to help you find and manipulate variant data from your
-#' CESAnalysis's MAF data and mutation annotation tables. This function has a variant
-#' gathering step followed by a filtering step. For gathering, you can specify genes by
-#' name or supply CES-style variant IDs to get all variants matching either. Or, leave
-#' both empty and all available variants will be gathered. For filtering, use the granges
-#' parameter to filter out variants that don't intersect an input GRanges object. Use
-#' min_freq to filter out variants by frequency in the MAF data. 
-#' 
+#' This function helps you find and view variant data from your CESAnalysis's MAF data and
+#' mutation annotation tables. This function has a variant gathering step followed by a
+#' filtering step. For gathering, you can specify genes by name or supply CES-style
+#' variant IDs to get all variants matching either. Or, leave both empty and all available
+#' variants will be gathered. For filtering, use the granges or variant_table parameters to
+#' filter out variants that don't positionally intersect an input GRanges object or a
+#' table previously generated using this function. Use min_freq to filter out variants by
+#' frequency in the MAF data.
 #' 
 #' Note that while intergenic SNVs have their nearest genes annotated in the SNV tables,
 #' these variants will not be captured by gene-based selection with this function, since
@@ -43,35 +43,40 @@
 #' }
 #' 
 #' @param cesa CESAnalysis with MAF data loaded and annotated (e.g., with \code{load_maf()})
-#' @param genes include variants (coding and noncoding) within these genes
-#' @param variant_ids include variants by ID: vectors of snv_id and/or aac_id, or short
-#'   (potentially non-unique) names like KRAS_G12C (or "KRAS G12C")
-#' @param granges filter out any variants not within input GRanges
+#' @param genes Include variants (coding and noncoding) within these genes.
+#' @param variant_ids Include variants by ID: vectors of snv_id and/or aac_id, or short
+#'   (potentially non-unique) names like KRAS_G12C (or "KRAS G12C").
+#' @param granges Filter out any variants not within input GRanges.
+#' @param variant_position_table Filter out any variants that don't intersect the
+#'   positions given in chr/start/end of this table (1-based closed coordinates).
+#'   Typically, the table comes from a previous `select_variants` call and can be expanded
+#'   with `padding`. (Gritty detail: Amino acid change SNVS get special handling: only the
+#'   precise positions in start, end, and center_nt_pos are used. This avoids intersecting
+#'   extra variants between start/end, which on splite-site-spanning variants can be many
+#'   thousands.)
 #' @param min_freq Filter out variants with MAF frequency below threshold (default 0).
 #'   Note that variants that are not in the annotation tables will never be returned. Use
-#'   \code{generate_variants()} to annotate variants absent from the data.
+#'   \code{add_variants()} to annotate variants absent from the data.
 #' @param include_subvariants Some mutations "contain" other mutations. For example, in
 #'   cancereffectsizeR's default hg19 reference data, KRAS_Q61H contains two constituent
 #'   SNVs that both cause the same amino acid change: 12:25380275_T>G and 12:25380275_T>A.
 #'   When include_subvariants = F (the default), and genes = "KRAS", output will be
 #'   returned for KRAS_Q61H but not for the two SNVs (although their IDs will appear in
 #'   the Q61H output). Set to true, and all three variants will be included in output, 
-#'   assuming they don't get filtered out by other other options, like min_freq
-#' @param gr_padding add +/- this many bases to every range specified in "granges"
-#'   (stopping at chromsome ends, naturally)
-#' @param ids_only instead of outputting a table of variant information, return a list
-#' of selected variant IDs organized by variant type, without any annotations
+#'   assuming they don't get filtered out by other other options, like min_freq.
+#' @param padding add +/- this many bases to every range specified in `granges` or
+#'   `variant_position_table` (stopping at chromsome ends, naturally).
+#' @param ids_only instead of outputting a table of variant information, return a list of
+#'   selected variant IDs organized by variant type, without any annotations
 #' @param collapse_lists Some output columns may have multiple elements per variant row.
-#'   For example, all_genes may include multiple genes. When collapse_lists = T, these
-#'   columns have their values collapsed into single comma-delimited strings (e.g.
-#'   "Gene1,Gene2"), which are good for visual inspection of data. When collapse_lists =
-#'   F, these columns are returned as "list columns", each element of which is a
-#'   variable-length vector. These are better for advanced scripting, but the syntax to
-#'   manipulate them is a little tricky, so the default is to collapse.
-#' @return a data table with info on selected variants (see details), or a list of IDs
+#'   For example, all_genes may include multiple genes. These variable-length vectors
+#'   allow advanced filter and manipulation, but the syntax can be tricky. Optionally, set
+#'   collapse_lists = T to convert these columns to comma-delimited strings, which are
+#'   sometimes easier to work with.
+#' @return A data table with info on selected variants (see details), or a list of IDs.
 #' @export
-select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NULL, min_freq = 0, 
-                           include_subvariants = F, gr_padding = 0, ids_only = F, collapse_lists = T) {
+select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NULL, variant_position_table = NULL, 
+                           min_freq = 0, include_subvariants = F, padding = 0, ids_only = F, collapse_lists = F) {
   
   if(! is(cesa, "CESAnalysis")) {
     stop("cesa should be a CESAnalysis object")
@@ -107,30 +112,43 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
     stop("ids_only should be T/F")
   }
   
-  if (ids_only == TRUE & collapse_lists == FALSE) {
-    stop("There is no use setting collapse_list = FALSE when ids_only = TRUE")
+  if (ids_only == TRUE & collapse_lists == TRUE) {
+    stop("There is no use setting collapse_list = TRUE when ids_only = TRUE")
   }
   
   
   selected_snv_ids = character()
   selected_aac_ids = character()
   
+  final_gr = NULL
+  if(! is.null(variant_position_table)) {
+    final_gr = clean_granges_for_bsg(bsg = bsg, gr = get_gr_from_table(variant_position_table), padding = padding)
+  }
+  
   if(! is.null(granges)) {
     if(! is(granges, "GRanges")) {
       stop("granges should be a GRanges object", call. = F)
     }
-    granges = clean_granges_for_bsg(bsg = bsg, gr = granges, padding = gr_padding)
+    granges = clean_granges_for_bsg(bsg = bsg, gr = granges, padding = padding)
+    if (! is.null(final_gr)) {
+      final_gr = GenomicRanges::intersect(final_gr, granges)
+    } else {
+      final_gr = granges
+    }
+  }
+  
+  if(! is.null(final_gr)) {
     genome_info = GenomeInfoDb::seqinfo(bsg)
     mutations_gr = GenomicRanges::makeGRangesFromDataFrame(cesa@mutations$snv, seqnames.field = "chr", start.field = "pos", 
-                                                         end.field = "pos", seqinfo = genome_info)
-    captured = cesa@mutations$snv[IRanges::overlapsAny(mutations_gr, granges, type = "within")]
+                                                           end.field = "pos", seqinfo = genome_info)
+    captured = cesa@mutations$snv[IRanges::overlapsAny(mutations_gr, final_gr, type = "within")]
     if (captured[, .N] == 0) {
-      stop("No mutations captured by input granges.", call. = F)
+      stop("No mutations captured by input genomic positions (granges/variant_position_table).", call. = F)
     }
     gr_passing_snv_id = captured$snv_id
     gr_passing_aac_id = captured[!is.na(assoc_aac), unique(unlist(assoc_aac))]
   }
-  
+
   if (length(variant_ids) > 0) {
     variant_ids = unique(variant_ids)
     matching_snv_ids = cesa@mutations$snv[variant_ids, snv_id, nomatch = NULL]
@@ -201,11 +219,12 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
     }
   }
   
-  if (! is.null(granges)) {
+  if (! is.null(final_gr)) {
     selected_snv_ids = intersect(selected_snv_ids, gr_passing_snv_id)
     selected_aac_ids = intersect(selected_aac_ids, gr_passing_aac_id) 
     if (! is.null(variant_ids) & any(! selected_with_variant_id %in% c(selected_snv_ids, selected_aac_ids))) {
-      message("FYI, some of the variants specified with variant_ids were filtered out by your input GRanges.")
+      pretty_message(paste0("FYI, some of the variants specified with variant_ids were filtered out by your ",
+                            "input intervals (granges/variant_position_table)."))
     }
   }
   
@@ -348,6 +367,7 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
                           "strand", "aachange", "essential_splice", "intergenic", "trinuc_mut", "aa_ref", "aa_pos", "aa_alt", "coding_seq", 
                           "center_nt_pos", "pid", "constituent_snvs", "multi_anno_site", "all_aac", "all_genes",
                           "covered_in", unlist(zipup(all_cov_cols, maf_freq_cols))))
+  setattr(combined, "cesa_id", cesa@advanced$uid)
   return(combined[]) # brackets force the output to print when unassigned (should automatically, but this is a known data.table issue)
 }
 
@@ -546,7 +566,7 @@ assign_gr_to_coverage = function(cesa, gr, covered_regions_name, coverage_type) 
 #'   select_variants() and (CESAnalysis)$variants work, and get special handling of
 #'   amino-acid-change SNVs: only the precise positions in start, end, and center_nt_pos
 #'   are used. (This avoids adding all variants between start/end, which on
-#'   splite-site-spanning variants can be many thousands.
+#'   splite-site-spanning variants can be many thousands.)
 #' @param bed A path to a BED file. All possible SNVs overlapping BED intervals (within
 #'   `padding` bases) will be added.
 #' @param gr A GRanges object. All possible SNVs overlapping the ranges (within `padding`
@@ -610,23 +630,7 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
       }
     }
     if (! is.null(variant_table)) {
-      if (! is(variant_table, "data.table")) {
-        stop("variant_table should be a data.table.")
-      }
-      if (! all(c("chr", "start", "end") %in% names(variant_table))) {
-        stop("variant table should have chr/start/end columns.")
-      }
-      
-      # Use just the start, end, and center_nt_pos positions (not all positions from start to end)
-      if (all(c("variant_type", "center_nt_pos") %in% names(variant_table))) {
-        non_aac = variant_table[variant_type != 'aac', .(chr, start, end)]
-        aac_table = variant_table[variant_type == 'aac']
-        aac_table = rbindlist(list(aac_table[, .(chr, start, end = start)], 
-                                   aac_table[, .(chr, start = end, end)],
-                                   aac_table[, .(chr, start = center_nt_pos, end = center_nt_pos)]))
-        variant_table = rbind(non_aac, aac_table)
-      }
-      gr = GenomicRanges::makeGRangesFromDataFrame(variant_table, ignore.strand = T, seqinfo = BSgenome::seqinfo(bsg))
+      gr = get_gr_from_table(variant_table)
     }
     
     # Validate GRanges and add padding if specified
@@ -753,35 +757,84 @@ validate_snv_ids = function(snv_ids, bsg) {
   }
 }
 
-#' Clump variants together
+#' Get GRanges from chr/start/end table
 #' 
+#' Mainly built for select_variants() output, and uses the
+#' center_nt_pos on AACs (rather than all from start-end). Assumes
+#' MAF-like coordinates (1-based, closed).
+#' 
+#' @param variant_table data.table
+#' @keywords internal
+get_gr_from_table = function(variant_table) {
+  if (! is(variant_table, "data.table")) {
+    stop("variant_table should be a data.table.")
+  }
+  
+  if (! all(c("chr", "start", "end") %in% names(variant_table))) {
+    stop("variant table should have chr/start/end columns.")
+  }
+  
+  # Use just the start, end, and center_nt_pos positions (not all positions from start to end)
+  if (all(c("variant_type", "center_nt_pos") %in% names(variant_table))) {
+    non_aac = variant_table[variant_type != 'aac', .(chr, start, end)]
+    aac_table = variant_table[variant_type == 'aac']
+    aac_table = rbindlist(list(aac_table[, .(chr, start, end = start)], 
+                               aac_table[, .(chr, start = end, end)],
+                               aac_table[, .(chr, start = center_nt_pos, end = center_nt_pos)]))
+    variant_table = rbind(non_aac, aac_table)
+  }
+  gr = GenomicRanges::makeGRangesFromDataFrame(variant_table, ignore.strand = T)
+  return(gr)
+}
+
+
+
+
+#' Clump variants together
+#'
 #' Details coming
-#' @param cesa CESAnalysis
-#' @param snv_id Vector of snv_ids to include in one compound variant, or a list
-#'   of vectors, each of which defines a separate compound variant
-#' @param variant_name Optionally a vector of names to give the compound variant(s),
-#'   length equal to the number of compound variants being created. If you leave out
-#'   names, the variants will be named sequentially.
-# create_compound_variant = function(cesa, snv_id, variant_names = character()) {
-#   if(! is(cesa, "CESAnalysis")) {
-#     stop("cesa should be a CESAnalysis.")
-#   }
-#   if(! is(variant_names, "character")) {
-#     stop("variant_names should be character")
-#   }
-#   if (is(snv_id, "character")) {
-#     num_variant = 1
-#     validate_snv_ids(snv_id, get_cesa_bsg(cesa))
-#   } else if (is(snv_id, "list")) {
-#     if(length(snv_id) < 1) {
-#       stop("snv_id can't be 0-length.")
-#     }
-#     if (! all(sapply(snv_id, is.character)))
-#   }
-#   
-#     
-#   }
-# }
+#' 
+#' @param cesa CESAnalysis, just used to validate the snv_id against reference data.
+#' @param snv_id Vector of snv_ids to include in one compound variant, or a list of
+#'   vectors, each of which defines a separate compound variant. If the vector or list is
+#'   named, names will be kept. Otherwise, compound variants will be named sequentially
+#' @export
+define_compound_variants = function(cesa, snv_id) {
+  if(! is(cesa, "CESAnalysis")) {
+    stop("cesa should be a CESAnalysis.")
+  }
+  if (is(snv_id, "character")) {
+    prev_name = names(snv_id)
+    snv_id = list(unname(snv_id))
+    names(snv_id) = prev_name
+  }
+  if(! is(snv_id, "list")) {
+    stop("snv_id should be list or character")
+  }
+    
+  if(length(snv_id) == 0) {
+    stop("snv_id can't be 0-length.")
+  }
+  if (! all(sapply(snv_id, is.character))) {
+    stop("All elements of snv_id list must be type character")
+  }
+  if (! all(sapply(snv_id, length) > 0)) {
+    stop("All elements of snv_id list must have nonzero length")
+  }
+    
+  # validate all SNV IDs and ensure that none are repeated
+  all_ids = unlist(snv_id)
+  if (length(unique(all_ids)) != length(all_ids)) {
+    stop("Some SNVs appear in multiple compound variants. If you want to use overlapping compound variants, call  ",
+         "create_compound_variants() multiple times to make separate variant sets.")
+  }
+  validate_snv_ids(all_ids, get_cesa_bsg(cesa))
+  
+  if(is.null(names(snv_id))) {
+    names(snv_id) = paste0("comp.", 1:length(snv_id))
+  }
+  return(new("CompoundVariantSet", snv_id = snv_id))
+}
 
 
 ## All non-silent SNVs at a given position in a CDS (+/- x positions?)

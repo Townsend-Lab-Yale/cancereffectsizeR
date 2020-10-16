@@ -30,11 +30,11 @@ fwrite(luad$gene_rates, "luad_fruit_gene_rates.txt", sep = "\t")
 test_genes = c("EGFR", "ASXL3", "KRAS", "RYR2", "USH2A", "CSMD3", "TP53", "CSMD1", "LRP1B", 
                "ZFHX4", "FAT3", "CNTNAP5", "PCDH15", "NEB", "RYR3", "DMD", "KATNAL1", 
                "OR13H1", "KSR1")
-luad = ces_variant(luad, genes = test_genes, min_freq = 1)
+luad = ces_variant(luad, variants = select_variants(luad, genes = test_genes))
 fwrite(luad@selection_results, "fruit_sswm_out.txt", sep = "\t")
 
 # Three big genes and a variant that is the only mutation in its gene in the data set
-luad = ces_variant(luad, genes = c("EGFR", "KRAS", "TP53"), variant_ids = "CR2 R247L", min_freq = 1,
+luad = ces_variant(luad, select_variants(luad, genes = c("EGFR", "KRAS", "TP53"), variant_ids = "CR2 R247L"),
                lik_fn = "sswm_sequential", group_ordering = list(c("marionberry", "cherry"), "mountain_apple"))
 fwrite(luad@selection_results, "fruit_sswm_sequential_out.txt", sep = "\t")
 
