@@ -1,17 +1,19 @@
 #' Select and filter variants
 #'
 #' This function helps you find and view variant data from your CESAnalysis's MAF data and
-#' mutation annotation tables. This function has a variant gathering step followed by a
-#' filtering step. For gathering, you can specify genes by name or supply CES-style
-#' variant IDs to get all variants matching either. Or, leave both empty and all available
-#' variants will be gathered. For filtering, use the granges or variant_table parameters to
-#' filter out variants that don't positionally intersect an input GRanges object or a
-#' table previously generated using this function. Use min_freq to filter out variants by
-#' frequency in the MAF data.
+#' mutation annotation tables. By default, all amino-acid-change mutations and noncoding
+#' SNVs are returned. You can apply a series of filters to restrict output to certain
+#' genes or genomic regions or require a minimum variant frequency in MAF data. You can
+#' also specify some variants to include in output regardless of filters with
+#' \code{variant_passlist}. Special behavior: If \code{variant_passlist} is used
+#' by itself, then only those specified variants will be returned.
 #' 
-#' Note that while intergenic SNVs have their nearest genes annotated in the SNV tables,
-#' these variants will not be captured by gene-based selection with this function, since
-#' they're not actually in any gene.
+#' Only variants that are present in the CESAnalysis's annotation tables can be returned,
+#' which by default are those present in the MAF data. To select variants absent from MAF
+#' data, you must first call add_variants() to add them to the CESAnalysis. Note that
+#' while intergenic SNVs have their nearest genes annotated in the SNV tables, these
+#' variants will not be captured by gene-based selection with this function, since they're
+#' not actually in any gene.
 #' 
 #' Definitions of some less self-explanatory columns:
 #' \itemize{
@@ -43,10 +45,15 @@
 #' }
 #' 
 #' @param cesa CESAnalysis with MAF data loaded and annotated (e.g., with \code{load_maf()})
-#' @param genes Include variants (coding and noncoding) within these genes.
-#' @param variant_ids Include variants by ID: vectors of snv_id and/or aac_id, or short
-#'   (potentially non-unique) names like KRAS_G12C (or "KRAS G12C").
-#' @param granges Filter out any variants not within input GRanges.
+#' @param genes Filter variants to specified genes.
+#' @param min_freq Filter out variants with MAF frequency below threshold (default 0).
+#'   Note that variants that are not in the annotation tables will never be returned. Use
+#'   \code{add_variants()} to include variants absent from MAF data in your CESAnalysis.
+#' @param variant_passlist Vector of variant IDs to include in output regardless of
+#'   filtering options. You can use CES-style AAC and SNV IDs or variant names like 
+#'   "KRAS G12C". If this argument is used by itself (without any filtering arguments),
+#'   then only these specified variants will be returned.
+#' @param gr Filter out any variants not within input GRanges +/- `padding` bases.
 #' @param variant_position_table Filter out any variants that don't intersect the
 #'   positions given in chr/start/end of this table (1-based closed coordinates).
 #'   Typically, the table comes from a previous `select_variants` call and can be expanded
@@ -54,9 +61,6 @@
 #'   precise positions in start, end, and center_nt_pos are used. This avoids intersecting
 #'   extra variants between start/end, which on splite-site-spanning variants can be many
 #'   thousands.)
-#' @param min_freq Filter out variants with MAF frequency below threshold (default 0).
-#'   Note that variants that are not in the annotation tables will never be returned. Use
-#'   \code{add_variants()} to annotate variants absent from the data.
 #' @param include_subvariants Some mutations "contain" other mutations. For example, in
 #'   cancereffectsizeR's default hg19 reference data, KRAS_Q61H contains two constituent
 #'   SNVs that both cause the same amino acid change: 12:25380275_T>G and 12:25380275_T>A.
@@ -64,10 +68,8 @@
 #'   returned for KRAS_Q61H but not for the two SNVs (although their IDs will appear in
 #'   the Q61H output). Set to true, and all three variants will be included in output, 
 #'   assuming they don't get filtered out by other other options, like min_freq.
-#' @param padding add +/- this many bases to every range specified in `granges` or
+#' @param padding add +/- this many bases to every range specified in `gr` or
 #'   `variant_position_table` (stopping at chromsome ends, naturally).
-#' @param ids_only instead of outputting a table of variant information, return a list of
-#'   selected variant IDs organized by variant type, without any annotations
 #' @param collapse_lists Some output columns may have multiple elements per variant row.
 #'   For example, all_genes may include multiple genes. These variable-length vectors
 #'   allow advanced filter and manipulation, but the syntax can be tricky. Optionally, set
@@ -75,8 +77,8 @@
 #'   sometimes easier to work with.
 #' @return A data table with info on selected variants (see details), or a list of IDs.
 #' @export
-select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NULL, variant_position_table = NULL, 
-                           min_freq = 0, include_subvariants = F, padding = 0, ids_only = F, collapse_lists = F) {
+select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = NULL, gr = NULL, variant_position_table = NULL, 
+                            include_subvariants = F, padding = 0, collapse_lists = F) {
   
   if(! is(cesa, "CESAnalysis")) {
     stop("cesa should be a CESAnalysis object")
@@ -96,8 +98,8 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
     stop("genes should be character vector of genes to include or NULL (for no gene filtering)")
   }
   
-  if(! is.null(variant_ids) & ! is(variant_ids, "character")) {
-    stop("variant_ids should be character vector of variant_ids to include or NULL (for no variant ID filtering)")
+  if(! is.null(variant_passlist) & ! is(variant_passlist, "character")) {
+    stop("variant_passlist should be character vector of variants to include or NULL.")
   }
   
   if(! is.logical(include_subvariants) | length(include_subvariants) != 1) {
@@ -108,52 +110,87 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
     stop("collapse_lists should be T/F")
   }
   
-  if (! is.logical(ids_only) || length(ids_only) != 1) {
-    stop("ids_only should be T/F")
+
+  # collect all variants, unless just variant_passlist specified
+  if (is.null(gr) && is.null(variant_position_table) && is.null(genes) && min_freq == 0 && length(variant_passlist) > 0) {
+    selected_aac_ids = character()
+    selected_snv_ids = character()
+    just_passlist = TRUE
+  } else {
+    selected_aac_ids = cesa@mutations$amino_acid_change$aac_id
+    selected_snv_ids = cesa@mutations$snv$snv_id
+    just_passlist = FALSE
+  }
+
+  # remove variants contained in other variants
+  if (include_subvariants == FALSE) {
+    subvariant_snv_ids = cesa@mutations$amino_acid_change[selected_aac_ids, unlist(constituent_snvs), nomatch = NULL]
+    selected_snv_ids = setdiff(selected_snv_ids, subvariant_snv_ids)
   }
   
-  if (ids_only == TRUE & collapse_lists == TRUE) {
-    stop("There is no use setting collapse_list = TRUE when ids_only = TRUE")
-  }
-  
-  
-  selected_snv_ids = character()
-  selected_aac_ids = character()
-  
+  # handle variant_position_table or gr (for simplicity, not allowing both)
   final_gr = NULL
   if(! is.null(variant_position_table)) {
+    if (! is.null(gr)) {
+      stop("Sorry, you can't use both variant_position_table and gr. You should be able to get what you want by ",
+           "running select_variants() sequentially.")
+    }
+    # get_gr_from_table handles validation of variant_position_table
     final_gr = clean_granges_for_bsg(bsg = bsg, gr = get_gr_from_table(variant_position_table), padding = padding)
   }
   
-  if(! is.null(granges)) {
-    if(! is(granges, "GRanges")) {
-      stop("granges should be a GRanges object", call. = F)
+  if(! is.null(gr)) {
+    if(! is(gr, "GRanges")) {
+      stop("gr should be a GRanges object", call. = F)
     }
-    granges = clean_granges_for_bsg(bsg = bsg, gr = granges, padding = padding)
+    gr = clean_granges_for_bsg(bsg = bsg, gr = gr, padding = padding)
     if (! is.null(final_gr)) {
-      final_gr = GenomicRanges::intersect(final_gr, granges)
+      final_gr = GenomicRanges::intersect(final_gr, gr)
     } else {
-      final_gr = granges
+      final_gr = gr
     }
   }
   
+  # final_gr may derive from variant_position_table or gr
   if(! is.null(final_gr)) {
     genome_info = GenomeInfoDb::seqinfo(bsg)
     mutations_gr = GenomicRanges::makeGRangesFromDataFrame(cesa@mutations$snv, seqnames.field = "chr", start.field = "pos", 
                                                            end.field = "pos", seqinfo = genome_info)
     captured = cesa@mutations$snv[IRanges::overlapsAny(mutations_gr, final_gr, type = "within")]
     if (captured[, .N] == 0) {
-      stop("No mutations captured by input genomic positions (granges/variant_position_table).", call. = F)
+      stop("No mutations captured by input genomic positions (gr/variant_position_table).", call. = F)
     }
-    gr_passing_snv_id = captured$snv_id
-    gr_passing_aac_id = captured[!is.na(assoc_aac), unique(unlist(assoc_aac))]
+    selected_snv_ids = intersect(selected_snv_ids, captured$snv_id)
+    aac_passing_gr = union(character(), captured[!is.na(assoc_aac), unique(unlist(assoc_aac))])
+    selected_aac_ids = intersect(selected_aac_ids, aac_passing_gr)
   }
-
-  if (length(variant_ids) > 0) {
-    variant_ids = unique(variant_ids)
-    matching_snv_ids = cesa@mutations$snv[variant_ids, snv_id, nomatch = NULL]
-    matching_aac_ids = cesa@mutations$amino_acid_change[variant_ids, aac_id, nomatch = NULL]
-    missing_ids = setdiff(variant_ids, c(matching_snv_ids, matching_aac_ids))
+  
+  # Apply gene filter
+  if (length(genes) > 0) {
+    genes = unique(genes)
+    gene_names = get_ref_data(cesa, "gene_names")
+    invalid_genes = genes[! genes %in% gene_names]
+    num_invalid_genes = length(invalid_genes)
+    if (num_invalid_genes > 0) {
+      stop("Some of the selected genes do not appear in the CESAnalysis reference data:\n", paste(invalid_genes, collapse = ", "))
+    }
+    
+    aac_in_genes = cesa@mutations$amino_acid_change[gene %in% genes, aac_id]
+    selected_aac_ids = intersect(selected_aac_ids, aac_in_genes)
+    
+    # Note we're not returning intergenic SNVs that just have one of the chosen genes as their nearest gene
+    genes_by_snv = cesa@mutations$snv[intergenic == FALSE, .(gene = unlist(genes)), by = "snv_id"]
+    snv_in_genes = genes_by_snv[gene %in% genes, unique(snv_id)]
+    selected_snv_ids = intersect(selected_snv_ids, snv_in_genes)
+  }
+  
+  # Include variants by ID
+  passlisted_ids = character()
+  if (length(variant_passlist) > 0) {
+    variant_passlist = unique(variant_passlist)
+    matching_snv_ids = cesa@mutations$snv[variant_passlist, snv_id, nomatch = NULL]
+    matching_aac_ids = cesa@mutations$amino_acid_change[variant_passlist, aac_id, nomatch = NULL]
+    missing_ids = setdiff(variant_passlist, c(matching_snv_ids, matching_aac_ids))
     
     # if any IDs are missing, try to interpret them as "short" AAC names (i.e., without protein ID)
     if (length(missing_ids) > 0) {
@@ -165,7 +202,7 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
       if (length(missing_ids) > 0) {
         num_missing = length(missing_ids)
         missing_ids = paste(missing_ids, collapse = ", ")
-        stop(num_missing, " variants given in variant_ids couldn't be found. Either they're bad IDs or there are no annotations for them.\n",
+        stop(num_missing, " variants given in variant_passlist couldn't be found. Either they're bad IDs or there are no annotations for them.\n",
              missing_ids)
       }
       matching_aac_ids = c(matching_aac_ids, aac_matches$aac_id)
@@ -181,69 +218,28 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
       }
     }
     selected_with_variant_id = c(matching_snv_ids, matching_aac_ids) # save this for later in case there's a gr filter
-    selected_snv_ids = matching_snv_ids
-    selected_aac_ids = matching_aac_ids
-  } else {
-    selected_with_variant_id = character()
+    selected_snv_ids = union(selected_snv_ids, matching_snv_ids)
+    selected_aac_ids = union(selected_aac_ids, matching_aac_ids)
+    passlisted_ids = c(matching_snv_ids, matching_aac_ids)
   }
-  
-  
-  if (length(genes) > 0) {
-    genes = unique(genes)
-    gene_names = get_ref_data(cesa, "gene_names")
-    invalid_genes = genes[! genes %in% gene_names]
-    num_invalid_genes = length(invalid_genes)
-    if (num_invalid_genes > 0) {
-      stop("Some of the selected genes do not appear in the CESAnalysis reference data:\n", paste(invalid_genes, collapse = ", "))
-    }
-    aac_in_genes = cesa@mutations$amino_acid_change[gene %in% genes, aac_id]
-    
-    # Note we're not returning intergenic SNVs that just have one of the chosen gene as their nearest gene
-    genes_by_snv = cesa@mutations$snv[intergenic == FALSE, .(gene = unlist(genes)), by = "snv_id"]
-    snv_in_genes = genes_by_snv[gene %in% genes, unique(snv_id)]
-    
-    if (include_subvariants == FALSE) {
-      subvariant_snv_ids = cesa@mutations$amino_acid_change[aac_in_genes, unlist(constituent_snvs)]
-      snv_in_genes = setdiff(snv_in_genes, subvariant_snv_ids)
-    }
-    selected_snv_ids = union(selected_snv_ids, snv_in_genes)
-    selected_aac_ids = union(selected_aac_ids, aac_in_genes)
-  }
-  
-  if (is.null(variant_ids) & is.null(genes)) {
-    selected_aac_ids = cesa@mutations$amino_acid_change$aac_id
-    selected_snv_ids = cesa@mutations$snv$snv_id
-    if (include_subvariants == FALSE) {
-      subvariant_snv_ids = cesa@mutations$amino_acid_change[selected_aac_ids, unlist(constituent_snvs)]
-      selected_snv_ids = setdiff(selected_snv_ids, subvariant_snv_ids)
-    }
-  }
-  
-  if (! is.null(final_gr)) {
-    selected_snv_ids = intersect(selected_snv_ids, gr_passing_snv_id)
-    selected_aac_ids = intersect(selected_aac_ids, gr_passing_aac_id) 
-    if (! is.null(variant_ids) & any(! selected_with_variant_id %in% c(selected_snv_ids, selected_aac_ids))) {
-      pretty_message(paste0("FYI, some of the variants specified with variant_ids were filtered out by your ",
-                            "input intervals (granges/variant_position_table)."))
-    }
-  }
-  
   selected_snv = cesa@mutations$snv[selected_snv_ids]
   setkey(selected_snv, "snv_id")
   selected_aac = cesa@mutations$amino_acid_change[selected_aac_ids]
   setkey(selected_aac, "aac_id")
-  
-  # Tabulate variants in MAF data and apply frequency filter
+
+  # Tabulate variants in MAF data and apply frequency filter, exempting passlist variants from filters
   snv_counts = cesa@maf[variant_type == "snv", .N, by = "variant_id"][N >= min_freq]
   aac_counts = cesa@maf[! is.na(assoc_aac), .(aac_id = unlist(assoc_aac))][, .N, by = "aac_id"][N >= min_freq]
   selected_snv[, maf_frequency := 0]
-  selected_snv = selected_snv[snv_counts, maf_frequency := N][maf_frequency >= min_freq]
+  selected_snv = selected_snv[snv_counts, maf_frequency := N]
+  good_snv = union(passlisted_ids, selected_snv[maf_frequency >= min_freq, snv_id]) # okay to mix AAC/SNV in passlist
+  selected_snv = selected_snv[good_snv, nomatch = NULL] # nomatch drops the AACs from passlist
   selected_aac[, maf_frequency := 0]
-  selected_aac = selected_aac[aac_counts, maf_frequency := N][maf_frequency >= min_freq]
-  
-  # Return just the IDs if requested
-  if (ids_only) {
-    return(list(aac = selected_aac$aac_id, snv = selected_snv$snv_id))
+  selected_aac = selected_aac[aac_counts, maf_frequency := N]
+  good_aac = union(passlisted_ids, selected_aac[maf_frequency >= min_freq, aac_id])
+  selected_aac = selected_aac[good_aac, nomatch = NULL]
+  if (any(selected_snv$maf_frequency < min_freq) || any(selected_aac$maf_frequency < min_freq)) {
+    pretty_message("Note: Some of your passlist variants have MAF frequency < maf_freq. They will still appear in output.")
   }
   
   # Annotate SNV table and prepare to merge with AACs
@@ -370,179 +366,6 @@ select_variants = function(cesa, genes = NULL, variant_ids = NULL, granges = NUL
   setattr(combined, "cesa_id", cesa@advanced$uid)
   return(combined[]) # brackets force the output to print when unassigned (should automatically, but this is a known data.table issue)
 }
-
-
-#' add_covered_regions
-#' @param target_cesa CESAnalysis with annotated variants that the covered regions will be added to
-#' @param source_cesa Another CESAnalysis to copy all covered regions from
-#' @param covered_regions A GRanges object or BED file path with genome build matching the target_cesa,
-#'                      if not using source_cesa
-#' @param covered_regions_name A name to identify the covered regions, if not using source_cesa
-#' @param coverage_type exome or targeted, if not using source_cesa
-#' @param covered_regions_padding optionally, add +/- this many bp to each interval in covered_regions
-#' @return CESAnalysis given in target_cesa, with the new covered regions added
-#' @export
-add_covered_regions = function(target_cesa = NULL, source_cesa = NULL, covered_regions = NULL, 
-                               covered_regions_name = NULL, coverage_type = NULL, covered_regions_padding = 0) {
-  prev_recording_status = target_cesa@advanced$recording
-  target_cesa = update_cesa_history(target_cesa, match.call())
-  target_cesa@advanced$recording = F
-  if (! is(target_cesa, "CESAnalysis")) {
-    stop("target_cesa should be a CESAnalysis", call. = F)
-  }
-  if (! is(covered_regions_padding, "numeric") || length(covered_regions_padding) > 1 || covered_regions_padding < 0 ||
-      covered_regions_padding - as.integer(covered_regions_padding) != 0) {
-    stop("covered_regions_padding should be 1-length integer", call. = F)
-  }
-  
-  coverage_args = list(covered_regions, covered_regions_name, coverage_type)
-  # Must supply just source_cesa or covered regions information
-  if (is.null(source_cesa) & any(sapply(coverage_args, is.null))) {
-    stop("To add a covered regions set, you need to supply covered_regions, covered_regions_name, and coverage_type.")
-  }
-  if(! is.null(source_cesa) & ! all(sapply(coverage_args, is.null))) {
-    stop("Use source_cesa to copy all covered regions from another CESAnalysis, or\n",
-         "covered_regions, covered_regions_name, and coverage_type to add one covered regions set.")
-  }
-  
-  # Validate both possible sets of arguments
-  if (! is.null(source_cesa)) {
-    if (! is(source_cesa, "CESAnalysis")) {
-      stop("source_cesa should be a CESAnalysis")
-    }
-    
-    if (! identical(target_cesa@advanced$annotated, T)) {
-      stop("target_cesa should be annotated")
-    }
-    if(! identical(get_cesa_bsg(target_cesa), get_cesa_bsg(source_cesa))) {
-      stop("target_cesa and source_cesa have different reference genomes")
-    }
-    if (covered_regions_padding != 0) {
-      stop("covered_regions_padding can't be used with source_cesa (leave it unspecified).")
-    }
-    exome_sets = names(source_cesa@coverage$exome)
-    if (any(c("exome", "exome+") %in% exome_sets)) {
-      warning("Generic exome/exome+ covered regions sets found in source_cesa. These will not be copied to the target\n",
-              "CESAnalysis. If you really want to copy them over, extract their GRanges from the CESAnalysis and add\n",
-              "them individually. (As the \"exome\" set is a set of default coverage intervals for generic exome\n",
-              "data, and \"exome+\" is an expanded version of that set, specific to a CESAnalysis, that covers all\n",
-              "variants loaded as generic exome data, they're probably not useful to copy.)")
-      exome_sets = setdiff(exome_sets, c("exome", "exome+"))
-    }
-    for (exome_set in exome_sets) {
-      target_cesa = assign_gr_to_coverage(target_cesa, gr = source_cesa@coverage$exome[[exome_set]], 
-                                          covered_regions_name = exome_set, coverage_type = "exome")
-    }
-    tgs_sets = names(source_cesa@coverage$targeted)
-    for (tgs_set in tgs_sets) {
-      target_cesa = assign_gr_to_coverage(target_cesa, gr = source_cesa@coverage$targeted[[tgs_set]],
-                                          covered_regions_name = tgs_set, coverage_type ="targeted")
-    }
-    target_cesa@advanced$recording = prev_recording_status
-    return(update_covered_in(target_cesa))
-  } else {
-    target_cesa@advanced$recording = prev_recording_status
-    return(.add_covered_regions(cesa = target_cesa, coverage_type = coverage_type, covered_regions = covered_regions,
-                     covered_regions_name = covered_regions_name,covered_regions_padding = covered_regions_padding, 
-                     update_anno = target_cesa@advanced$annotated))
-  }
-}
-
-#' .add_covered_regions
-#' @param covered_regions A GRanges object or BED file path with genome build matching the target_cesa,
-#'                      if not using source_cesa
-#' @param covered_regions_name A name to identify the covered regions, if not using source_cesa
-#' @param coverage_type exome or targeted, if not using source_cesa
-#' @param covered_regions_padding optionally, add +/- this many bp to each interval in covered_regions
-#' @param update_anno T/F, whether to update the covered_in fields in variant annotations
-#' @keywords internal
-#' @return CESAnalysis given in target_cesa, with the new covered regions added
-.add_covered_regions = function(cesa, coverage_type, covered_regions, covered_regions_name, covered_regions_padding, update_anno) {
-  if (! is.character(coverage_type) | length(coverage_type) != 1 | ! coverage_type %in% c("exome", "targeted")) {
-    stop("coverage_type should be exome or targeted.", call. = F)
-  }
-  if (! is.character(covered_regions_name) | length(covered_regions_name) != 1 | is.na(covered_regions_name)) {
-    stop("covered_regions_name should be 1-length character.")
-  }
-  # exome, exome+, genome are reserved, and we don't want "NA" to be the name
-  if (tolower(covered_regions_name) %in% c("exome", "exome+", "genome", "na")) {
-    stop("Please pick a different covered_regions_name; you chose one reserved for internal use.")
-  }
-  # covered_regions_name must start with letter, contain only letters, numbers, underscores, hyphen, period
-  legal_name = '^[a-z][0-9a-z\\_\\-\\.]*$'
-  if (! grepl(legal_name, tolower(covered_regions_name), perl = T)) {
-    stop("Invalid covered_regions_name. The name must start with a letter and contain only letters, numbers, and '-', '_', '.'.")
-  }
-  bad_covered_regions_msg = "covered_regions should be GRanges or BED file path."
-  if (is.character(covered_regions)) {
-    if (length(covered_regions) != 1) {
-      stop(bad_covered_regions_msg, call. = F)
-    }
-    if (! file.exists(covered_regions)) {
-      stop("BED file not found; check path?", call. = F)
-    }
-    gr = rtracklayer::import.bed(covered_regions)
-  } else if (is(covered_regions, 'GRanges')) {
-    gr = covered_regions
-  } else {
-    stop(bad_covered_regions_msg, call. = F)
-  }
-  gr = clean_granges_for_bsg(bsg = get_cesa_bsg(cesa), gr = gr, padding = covered_regions_padding)
-  cesa = assign_gr_to_coverage(cesa, gr = gr, covered_regions_name = covered_regions_name, coverage_type = coverage_type)
-  if (update_anno) {
-    cesa = update_covered_in(cesa)
-  }
-  return(cesa)
-}
-
-
-#' assign_gr_to_coverage
-#' 
-#' Adds a validated GRanges object as a CESAnalysis's coverage set. Called by 
-#' add_covered_regions() after various checks pass.
-#' 
-#' Special handling occurs if covered_regions_name is "exome+".
-#' @param cesa CESAnalysis to receive the gr
-#' @param gr GRanges
-#' @param covered_regions_name unique name for the covered regions
-#' @param coverage_type "exome" or "targeted"
-#' @keywords internal
-assign_gr_to_coverage = function(cesa, gr, covered_regions_name, coverage_type) {
-  # if covered_regions_name was already used in a previous load_maf call, it must have
-  # have been the same data type (exome, targeted), and the grs must match exactly
-  other_coverage_types = setdiff(c("exome", "targeted", "genome"), coverage_type)
-  if (covered_regions_name %in% unlist(lapply(cesa@coverage[other_coverage_types], names))) {
-    stop("The covered_regions_name (", covered_regions_name, ")", " has already been used for a different type of sequencing data.")
-  } 
-  else if (covered_regions_name %in% names(cesa@coverage[[coverage_type]])) {
-    if (! identical(gr, cesa@coverage[[coverage_type]][[covered_regions_name]])) {
-      stop("MAF data was previously loaded in using the same covered_regions_name (", covered_regions_name, "),\n",
-           "but the covered_regions do not exactly match. Perhaps the input BED files (or GRanges) are from\n",
-           "different sources, or different amounts of interval padding were used.")
-    } else {
-      # nothing more to do if the covered regions are already present
-      return(cesa)
-    }
-  }
-  
-  # If possible, see if covered regions size resembles exome data
-  if (coverage_type == "exome" & check_for_ref_data(cesa, "generic_exome_gr")) {
-    covered_regions_bases_covered = sum(IRanges::width(IRanges::ranges(gr)))
-    generic_bases_covered = sum(IRanges::width(IRanges::ranges(get_ref_data(cesa, "generic_exome_gr"))))
-    if (covered_regions_bases_covered / generic_bases_covered < .4) {
-      warning(paste0("Input coverage ranges are described as exome but are less than 40% of the size of this genome's default exome intervals.\n",
-                     "This might make sense if your exome capture array is  lean, but if this is actually targeted sequencing data,\n",
-                     "start over with the coverage=\"targeted\"."))
-    }
-  }
-  
-  if (! coverage_type %in% names(cesa@coverage)) {
-    cesa@coverage[[coverage_type]] = list()
-  }
-  cesa@coverage[[coverage_type]][[covered_regions_name]] = gr
-  return(cesa)
-}
-
 
 
 #' Add variant annotations
@@ -788,59 +611,6 @@ get_gr_from_table = function(variant_table) {
 }
 
 
-
-
-#' Clump variants together
-#'
-#' Details coming
-#' 
-#' @param cesa CESAnalysis, just used to validate the snv_id against reference data.
-#' @param snv_id Vector of snv_ids to include in one compound variant, or a list of
-#'   vectors, each of which defines a separate compound variant. If the vector or list is
-#'   named, names will be kept. Otherwise, compound variants will be named sequentially
-#' @export
-define_compound_variants = function(cesa, snv_id) {
-  if(! is(cesa, "CESAnalysis")) {
-    stop("cesa should be a CESAnalysis.")
-  }
-  if (is(snv_id, "character")) {
-    prev_name = names(snv_id)
-    snv_id = list(unname(snv_id))
-    names(snv_id) = prev_name
-  }
-  if(! is(snv_id, "list")) {
-    stop("snv_id should be list or character")
-  }
-    
-  if(length(snv_id) == 0) {
-    stop("snv_id can't be 0-length.")
-  }
-  if (! all(sapply(snv_id, is.character))) {
-    stop("All elements of snv_id list must be type character")
-  }
-  if (! all(sapply(snv_id, length) > 0)) {
-    stop("All elements of snv_id list must have nonzero length")
-  }
-    
-  # validate all SNV IDs and ensure that none are repeated
-  all_ids = unlist(snv_id)
-  if (length(unique(all_ids)) != length(all_ids)) {
-    stop("Some SNVs appear in multiple compound variants. If you want to use overlapping compound variants, call  ",
-         "create_compound_variants() multiple times to make separate variant sets.")
-  }
-  validate_snv_ids(all_ids, get_cesa_bsg(cesa))
-  
-  if(is.null(names(snv_id))) {
-    names(snv_id) = paste0("comp.", 1:length(snv_id))
-  }
-  return(new("CompoundVariantSet", snv_id = snv_id))
-}
-
-
-## All non-silent SNVs at a given position in a CDS (+/- x positions?)
-  ## Could also say, 
-## Noncoding: all possible SNVs at a given position(s)
-## Arbitrary collection of SNVs: but in fact, you don't want too many
 
 
 

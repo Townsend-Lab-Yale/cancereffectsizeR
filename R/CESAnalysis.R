@@ -373,7 +373,7 @@ snv_results = function(cesa = NULL) {
   
   output = list()
   for (i in 1:length(cesa@selection_results)) {
-    annotations = suppressMessages(select_variants(cesa, variant_ids = cesa@selection_results[[i]]$variant_id, min_freq = 0))
+    annotations = suppressMessages(select_variants(cesa, variant_passlist = cesa@selection_results[[i]]$variant_id))
     results = cesa@selection_results[[i]][annotations, on = c("variant_id", "variant_type")]
     results_cols = colnames(results)
     # try to flip variant_name and variant_id columns

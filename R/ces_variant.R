@@ -122,10 +122,11 @@ ces_variant <- function(cesa = NULL,
       if(! "variant_id" %in% names(variants)) {
         stop("variants is missing a variant_id column. Typically, variants is generated using select_variants().")
       }
-      variants = select_variants(cesa, variant_ids = variants[, variant_id])
+      variants = select_variants(cesa, variant_passlist = variants[, variant_id])
     }
   } else if (is(variants, "CompoundVariantSet")) {
-    # todo
+    compound_variants = variants
+    variants = select_variants(cesa, variant_passlist = unlist(compound_variants@snv_id)) 
   } else {
     stop("variants expected to be a variant table (from select_variants(), usually) or a CompoundVariantSet")
   }
@@ -144,9 +145,10 @@ ces_variant <- function(cesa = NULL,
   }
 
   # identify mutations by nearest gene(s)
-  tmp = cesa@maf[variant_type == "snv", .(gene = unlist(genes)), by = "Unique_Patient_Identifier"][, .(samples = list(Unique_Patient_Identifier)), by = "gene"]
+  tmp = unique(cesa@maf[variant_type == "snv", .(gene = unlist(genes)), by = "Unique_Patient_Identifier"])[, .(samples = list(Unique_Patient_Identifier)), by = "gene"]
   tumors_with_variants_by_gene = tmp$samples
   names(tumors_with_variants_by_gene) = tmp$gene
+  tumors_with_variants_by_gene = list2env(tumors_with_variants_by_gene)
   
   # identify mutations by sample
   tmp = cesa@maf[! is.na(assoc_aac), .(aac_id = unlist(assoc_aac)), by = "Unique_Patient_Identifier"][, .(samples = list(Unique_Patient_Identifier)), by = "aac_id"]
@@ -166,56 +168,6 @@ ces_variant <- function(cesa = NULL,
   # these are WGS samples without any coverage limitation
   # that is, for better or worse, assuming that any variant can be found in these samples
   genome_wide_cov_samples = cesa@samples["genome", Unique_Patient_Identifier, nomatch = NULL]
-  
-  # function takes in AAC or SNV ID, returns SI table output
-  process_variant = function(variant_id, eligible_tumors) {
-    tumors_with_variant = variants_by_tumor[[variant_id]]
-    curr_id = variant_id
-    tumors_with_gene_mutated = unlist(tumors_with_variants_by_gene[variants[curr_id, unlist(all_genes)]], use.names = F)
-    tumors_without_gene_mutated = setdiff(eligible_tumors, tumors_with_gene_mutated)
-
-    rates = baseline_rates[, ..variant_id][[1]]
-    names(rates) = baseline_rates[, Unique_Patient_Identifier]
-    
-    lik_args = c(list(rates_tumors_with = rates[tumors_with_variant], rates_tumors_without = rates[tumors_without_gene_mutated]), 
-                 custom_lik_args)
-    if(length(sample_index) > 0) {
-      lik_args = c(lik_args, list(sample_index = sample_index))
-    }
-    fn = do.call(lik_factory, lik_args)
-    par_init = formals(fn)[[1]]
-    names(par_init) = bbmle::parnames(fn)
-    
-    # find optimized selection intensities
-    # the selection intensity for any stage that has 0 variants will be on the lower boundary; will muffle the associated warning
-    withCallingHandlers(
-      {
-        fit = bbmle::mle2(fn, method="L-BFGS-B", start = par_init, vecpar = T, lower=1e-3, upper=1e9, control=list(fnscale=1e-12))
-      },
-      warning = function(w) {
-        if (startsWith(conditionMessage(w), "some parameters are on the boundary")) {
-          invokeRestart("muffleWarning")
-        }
-      }
-    )
-    
-    selection_intensity = bbmle::coef(fit)
-    single_stage = length(cesa@groups) == 1
-    if (length(selection_intensity) == 1) {
-      names(selection_intensity) = "selection_intensity"
-    }
-    loglikelihood = as.numeric(bbmle::logLik(fit))
-    
-    #dndscv_q = sapply(cesa@dndscv_out_list, function(x) x$sel_cv[x$sel_cv$gene_name == mut_record$gene, "qallsubs_cv"])
-    variant_output = c(list(variant_id = variant_id), 
-                       as.list(selection_intensity),
-                       list(loglikelihood = loglikelihood))
-    
-    if(! is.null(conf)) {
-      variant_output = c(variant_output, univariate_si_conf_ints(fit, fn, .001, 1e20, conf))
-    }
-    return(variant_output)
-  }
   
 
   # Will process variants by coverage group (i.e., groups of variants that have the same tumors covering them)
@@ -251,10 +203,74 @@ ces_variant <- function(cesa = NULL,
       curr_subgroup = curr_variants[subgroup == j]
       aac_ids = curr_subgroup[variant_type == "aac", variant_id]
       snv_ids = curr_subgroup[variant_type == "snv", variant_id]
+      
       baseline_rates = baseline_mutation_rates(cesa, aac_ids = aac_ids, snv_ids = snv_ids, samples = covered_samples, cores = cores)
+      
+      # put gene(s) by variant into env for quick access
+      gene_lookup = curr_subgroup[, all_genes]
+      names(gene_lookup) = curr_subgroup[, variant_id]
+      gene_lookup = list2env(gene_lookup)
+      
+      process_variant = function(variant_id) {
+        tumors_with_variant = variants_by_tumor[[variant_id]]
+        curr_id = variant_id
+        all_genes = gene_lookup[[variant_id]]
+        
+        # usually just 1 gene
+        if (length(all_genes) == 1) {
+          tumors_with_gene_mutated = tumors_with_variants_by_gene[[all_genes]]
+        } else {
+          tumors_with_gene_mutated = unique(sapply(all_genes, function(x) tumors_with_variants_by_gene[[x]]))
+        }
+        tumors_without_gene_mutated = setdiff(covered_samples, tumors_with_gene_mutated)
+        
+        rates = baseline_rates[, ..variant_id][[1]]
+        names(rates) = baseline_rates[, Unique_Patient_Identifier]
+        rates_tumors_with = rates[tumors_with_variant]
+        rates_tumors_without = rates[tumors_without_gene_mutated]
+        
+        lik_args = c(list(rates_tumors_with = rates_tumors_with, rates_tumors_without = rates_tumors_without), 
+                     custom_lik_args)
+        if(length(sample_index) > 0) {
+          lik_args = c(lik_args, list(sample_index = sample_index))
+        }
+        fn = do.call(lik_factory, lik_args)
+        par_init = formals(fn)[[1]]
+        names(par_init) = bbmle::parnames(fn)
+        
+        # find optimized selection intensities
+        # the selection intensity for any stage that has 0 variants will be on the lower boundary; will muffle the associated warning
+        withCallingHandlers(
+          {
+            fit = bbmle::mle2(fn, method="L-BFGS-B", start = par_init, vecpar = T, lower=1e-3, upper=1e9, control=list(fnscale=1e-12))
+          },
+          warning = function(w) {
+            if (startsWith(conditionMessage(w), "some parameters are on the boundary")) {
+              invokeRestart("muffleWarning")
+            }
+          }
+        )
+        
+        selection_intensity = bbmle::coef(fit)
+        single_stage = length(cesa@groups) == 1
+        if (length(selection_intensity) == 1) {
+          names(selection_intensity) = "selection_intensity"
+        }
+        loglikelihood = as.numeric(bbmle::logLik(fit))
+        
+        #dndscv_q = sapply(cesa@dndscv_out_list, function(x) x$sel_cv[x$sel_cv$gene_name == mut_record$gene, "qallsubs_cv"])
+        variant_output = c(list(variant_id = variant_id), 
+                           as.list(selection_intensity),
+                           list(loglikelihood = loglikelihood))
+        
+        if(! is.null(conf)) {
+          variant_output = c(variant_output, univariate_si_conf_ints(fit, fn, .001, 1e20, conf))
+        }
+        return(variant_output)
+      }
+      
       message("Calculating SIs...")
-      selection_results = rbind(selection_results, rbindlist(pbapply::pblapply(curr_subgroup$variant_id, process_variant, 
-                                                                               eligible_tumors = covered_samples, cl = cores)))
+      selection_results = rbind(selection_results, rbindlist(pbapply::pblapply(curr_subgroup$variant_id, process_variant, cl = cores)))
     }
   }
   selection_results[variants, variant_type := variant_type, on = "variant_id"]
@@ -263,8 +279,6 @@ ces_variant <- function(cesa = NULL,
   
   return(cesa)
 }
-
-
 
 
 

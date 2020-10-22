@@ -18,7 +18,6 @@ annotate_variants <- function(cesa) {
   bsg = .ces_ref_data[[cesa@ref_key]]$genome
   cesa@advanced$annotated = TRUE
   
-  
   # non-SNVs are not supported in selection functions yet, so not bothering to annotate them correctly
   # all non-SNV annotations will get set to NA at the end
   snvs = unique(cesa@maf[variant_type == "snv", .(Chromosome, Start_Position, Reference_Allele, Tumor_Allele)])
@@ -59,6 +58,13 @@ annotate_variants <- function(cesa) {
   # also grab the distance from the first matching gene (distances are always equal on multiple hits, since we asked for the nearest gene)
   genes_by_snv_row = nearest[, .(genes = list(gene), dist = distance[1]), by = "queryHits"]
   snvs[, genes := genes_by_snv_row$genes]
+  
+  # handle edge case of just 1 SNV being annotated (which incorrectly makes genes non-list)
+  if (is(snvs$genes, "character")) {
+    listed_genes = list(genes_by_snv_row$genes)
+    snvs[, genes := NULL]
+    snvs[, genes := listed_genes]
+  }
   snvs[, dist := genes_by_snv_row$dist]
   snvs[, intergenic := dist > 0]
   
@@ -261,7 +267,7 @@ annotate_variants <- function(cesa) {
   } else {
     # When there are no CDS hits, all the SNVs are noncoding
     snv_table = snvs[, .(chr = Chromosome, pos = Start_Position, ref = Reference_Allele, alt = Tumor_Allele,
-                         genes = list(genes), intergenic, assoc_aac = list(NA_character_)), by = "snv_id"]
+                         genes = genes, intergenic, assoc_aac = list(NA_character_)), by = "snv_id"]
     aac = aac[0] # empty the table
   }
   

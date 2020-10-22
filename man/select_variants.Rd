@@ -7,25 +7,30 @@
 select_variants(
   cesa,
   genes = NULL,
-  variant_ids = NULL,
-  granges = NULL,
-  variant_position_table = NULL,
   min_freq = 0,
+  variant_passlist = NULL,
+  gr = NULL,
+  variant_position_table = NULL,
   include_subvariants = F,
   padding = 0,
-  ids_only = F,
   collapse_lists = F
 )
 }
 \arguments{
 \item{cesa}{CESAnalysis with MAF data loaded and annotated (e.g., with \code{load_maf()})}
 
-\item{genes}{Include variants (coding and noncoding) within these genes.}
+\item{genes}{Filter variants to specified genes.}
 
-\item{variant_ids}{Include variants by ID: vectors of snv_id and/or aac_id, or short
-(potentially non-unique) names like KRAS_G12C (or "KRAS G12C").}
+\item{min_freq}{Filter out variants with MAF frequency below threshold (default 0).
+Note that variants that are not in the annotation tables will never be returned. Use
+\code{add_variants()} to include variants absent from MAF data in your CESAnalysis.}
 
-\item{granges}{Filter out any variants not within input GRanges.}
+\item{variant_passlist}{Vector of variant IDs to include in output regardless of
+filtering options. You can use CES-style AAC and SNV IDs or variant names like 
+"KRAS G12C". If this argument is used by itself (without any filtering arguments),
+then only these specified variants will be returned.}
+
+\item{gr}{Filter out any variants not within input GRanges +/- `padding` bases.}
 
 \item{variant_position_table}{Filter out any variants that don't intersect the
 positions given in chr/start/end of this table (1-based closed coordinates).
@@ -35,10 +40,6 @@ precise positions in start, end, and center_nt_pos are used. This avoids interse
 extra variants between start/end, which on splite-site-spanning variants can be many
 thousands.)}
 
-\item{min_freq}{Filter out variants with MAF frequency below threshold (default 0).
-Note that variants that are not in the annotation tables will never be returned. Use
-\code{add_variants()} to annotate variants absent from the data.}
-
 \item{include_subvariants}{Some mutations "contain" other mutations. For example, in
 cancereffectsizeR's default hg19 reference data, KRAS_Q61H contains two constituent
 SNVs that both cause the same amino acid change: 12:25380275_T>G and 12:25380275_T>A.
@@ -47,11 +48,8 @@ returned for KRAS_Q61H but not for the two SNVs (although their IDs will appear 
 the Q61H output). Set to true, and all three variants will be included in output, 
 assuming they don't get filtered out by other other options, like min_freq.}
 
-\item{padding}{add +/- this many bases to every range specified in `granges` or
+\item{padding}{add +/- this many bases to every range specified in `gr` or
 `variant_position_table` (stopping at chromsome ends, naturally).}
-
-\item{ids_only}{instead of outputting a table of variant information, return a list of
-selected variant IDs organized by variant type, without any annotations}
 
 \item{collapse_lists}{Some output columns may have multiple elements per variant row.
 For example, all_genes may include multiple genes. These variable-length vectors
@@ -64,18 +62,20 @@ A data table with info on selected variants (see details), or a list of IDs.
 }
 \description{
 This function helps you find and view variant data from your CESAnalysis's MAF data and
-mutation annotation tables. This function has a variant gathering step followed by a
-filtering step. For gathering, you can specify genes by name or supply CES-style
-variant IDs to get all variants matching either. Or, leave both empty and all available
-variants will be gathered. For filtering, use the granges or variant_table parameters to
-filter out variants that don't positionally intersect an input GRanges object or a
-table previously generated using this function. Use min_freq to filter out variants by
-frequency in the MAF data.
+mutation annotation tables. By default, all amino-acid-change mutations and noncoding
+SNVs are returned. You can apply a series of filters to restrict output to certain
+genes or genomic regions or require a minimum variant frequency in MAF data. You can
+also specify some variants to include in output regardless of filters with
+\code{variant_passlist}. Special behavior: If \code{variant_passlist} is used
+by itself, then only those specified variants will be returned.
 }
 \details{
-Note that while intergenic SNVs have their nearest genes annotated in the SNV tables,
-these variants will not be captured by gene-based selection with this function, since
-they're not actually in any gene.
+Only variants that are present in the CESAnalysis's annotation tables can be returned,
+which by default are those present in the MAF data. To select variants absent from MAF
+data, you must first call add_variants() to add them to the CESAnalysis. Note that
+while intergenic SNVs have their nearest genes annotated in the SNV tables, these
+variants will not be captured by gene-based selection with this function, since they're
+not actually in any gene.
 
 Definitions of some less self-explanatory columns:
 \itemize{

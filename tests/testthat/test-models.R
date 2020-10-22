@@ -41,7 +41,7 @@ test_that("ces_variant with sswm", {
 })
 
 test_that("ces_variant with sswm_sequential", {
-  cesa = ces_variant(cesa, variants = select_variants(cesa, genes = c("EGFR", "KRAS", "TP53"), variant_ids = "CR2 R247L"),
+  cesa = ces_variant(cesa, variants = select_variants(cesa, genes = c("EGFR", "KRAS", "TP53"), variant_passlist = "CR2 R247L"),
                  lik_fn = "sswm_sequential", group_ordering = list(c("marionberry", "cherry"), "mountain_apple"))
   results = cesa@selection_results[[1]] # previous run not saved due to test_that scoping
   results_ak = fread(get_test_file("fruit_sswm_sequential_out.txt"))
@@ -52,13 +52,14 @@ test_that("ces_variant bad group_ordering inputs", {
   expect_error(ces_variant(cesa, lik_fn = "sswm_sequential", group_ordering = c("cherry","cherry")), "groups are re-used")
   expect_error(ces_variant(cesa, lik_fn = "sswm_sequential", group_ordering = list(c("cherry", "marionberry"))),
                "must have length of at least 2")
-  expect_warning(ces_variant(cesa, variants = select_variants(cesa, variant_ids = "CR2 R247L", min_freq = 1),
-                             lik_fn = "sswm_sequential", group_ordering = c("cherry", "marionberry")))
+  expect_warning(ces_variant(cesa, variants = select_variants(cesa, variant_passlist = "CR2 R247L"),
+                             lik_fn = "sswm_sequential", group_ordering = c("cherry", "marionberry")),
+                  "The following groups were not included in group_ordering")
 })
 
 test_that("ces_variant with user-supplied variants", {
-  expect_equal(ces_variant(cesa, variants = select_variants(cesa, variant_ids = "10:100190376_C>A"))@selection_results[[1]][, .N], 1)
-  variants = select_variants(cesa, genes = c("TP53", "KRAS"), variant_ids = "KRAS_G12D_ENSP00000256078", min_freq = 2)
+  expect_equal(ces_variant(cesa, variants = select_variants(cesa, variant_passlist = "10:100190376_C>A"))@selection_results[[1]][, .N], 1)
+  variants = select_variants(cesa, genes = c("TP53", "KRAS"), variant_passlist = "KRAS_G12D_ENSP00000256078", min_freq = 2)
   expect_equal(ces_variant(cesa, variants = variants)@selection_results[[1]][, .N], 9)
 })
 
@@ -72,9 +73,9 @@ test_that("Variant-level epistasis", {
   results = ces_epistasis(cesa, variants = list(c("KRAS G12V", "GSTP1_L184L")), conf = .9)
   to_test = results[, as.numeric(.(ces_v1, ces_v2, ces_v1_after_v2, ces_v2_after_v1, covered_tumors_just_v1,
                                    covered_tumors_just_v2, covered_tumors_with_both, covered_tumors_with_neither))]
-  expect_equal(to_test, c(1578.542, 9332.359, 0.001, 732690.9, 2, 6, 1, 100), tolerance = 1e-3)
+  expect_equal(to_test, c(28864.82, 1432.69, 549695.3, 9508.182, 6, 2, 1, 100), tolerance = 1e-3)
   ci = as.numeric(results[, .SD, .SDcols = patterns("ci")])
-  expect_equal(ci, c(511.2451, 3588.832, 2212.643, 24745.51, NA, 24905.44, 69837.43, 3960239), tolerance = 1e-3)
+  expect_equal(ci, c(13629.84, 52477.08, 382.9144, 3470.92, NA, 3610458, NA, 85519.34), tolerance = 1e-3)
 })
 
 

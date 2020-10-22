@@ -2,6 +2,7 @@
 
 S3method(.DollarNames,CESAnalysis)
 export(CESAnalysis)
+export(CompoundVariantSet)
 export(add_covered_regions)
 export(add_variants)
 export(annotate_variants)

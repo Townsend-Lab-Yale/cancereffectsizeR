@@ -24,7 +24,7 @@ setMethod("$", "CESAnalysis",
     } else if (name == "gene_rates") {
       return(get_gene_rates(x))
     } else if (name == "variants") {
-      return(select_variants(cesa = x, min_freq = 0))
+      return(select_variants(cesa = x))
     } else if (name == "selection") {
       return(snv_results(x))
     } else if (name == "reference_data") {

@@ -135,14 +135,33 @@ ces_epistasis = function(cesa = NULL, variants = NULL, cores = 1, conf = NULL) {
   setkey(cesa@mutations$snv, "snv_id")
   
   # validate that all variant IDs appear in mutation annotations
-  validated_variants = character()
+  aac_names = cesa@mutations$amino_acid_change[, .(aac_id, variant_name = paste(gene, aachange, sep = "_"))]
+  notify_name_conversion = F
   for (i in 1:length(variants)) {
     pair = variants[[i]]
     if (! is(pair, "character") || length(pair) != 2) {
       stop("All elements of variants list must be character vectors of length 2 (for two variant IDs)")
     }
-    # this is to allow short IDs in the variants list
-    variants[[i]] = unlist(suppressMessages(select_variants(cesa, variant_ids = pair, ids_only = T)), use.names = F)
+    
+    for (j in 1:2) {
+      variant = pair[j]
+      if (cesa@mutations$snv[variant, .N, nomatch = NULL] == 0 && aac_names[variant == aac_id, .N, nomatch = NULL] == 0) {
+        variant = gsub(' ', '_', variant)
+        record_by_name = aac_names[variant, on = "variant_name", nomatch = NULL]
+        num_records = record_by_name[, .N]
+        if (num_records == 0) {
+          stop("Variant ", j, " could not be found. Either it's not present in the CESAnalysis, or it's a bad ID.")
+        } else if (num_records > 1) {
+          stop("More than one variant in the CESAnalysis has the name \"", j, "\". Use a full variant_id to specify which to test.")
+        } else {
+          notify_name_conversion = T
+          variants[[i]][j] = record_by_name[, aac_id]
+        }
+      }
+    }
+  }
+  if (notify_name_conversion) {
+    pretty_message("Shorthand variant names were recognized and uniquely paired with cancereffectsizeR's aac_ids.")
   }
   selection_results = rbindlist(pbapply::pblapply(X = variants, FUN = pairwise_variant_epistasis, cesa=cesa, conf = conf, cl = cores))
   return(selection_results)
@@ -182,7 +201,7 @@ pairwise_variant_epistasis = function(cesa, variant_pair, conf) {
   
   # 2-item lists: first item is baseline rates for v1; second for v2
   with_just_1 = as.list(all_rates[tumors_just_v1])[2:3]
-  with_just_2 = as.list(all_rates[tumors_just_v1])[2:3]
+  with_just_2 = as.list(all_rates[tumors_just_v2])[2:3]
   with_both = as.list(all_rates[tumors_with_both])[2:3]
   with_neither = as.list(all_rates[tumors_with_neither])[2:3]
   
