@@ -35,7 +35,7 @@ fwrite(luad@selection_results, "fruit_sswm_out.txt", sep = "\t")
 
 # Three big genes and a variant that is the only mutation in its gene in the data set
 luad = ces_variant(luad, select_variants(luad, genes = c("EGFR", "KRAS", "TP53"), variant_ids = "CR2 R247L"),
-               lik_fn = "sswm_sequential", group_ordering = list(c("marionberry", "cherry"), "mountain_apple"))
+               model = "sswm_sequential", group_ordering = list(c("marionberry", "cherry"), "mountain_apple"))
 fwrite(luad@selection_results, "fruit_sswm_sequential_out.txt", sep = "\t")
 
 results = ces_gene_epistasis(luad, genes = c("EGFR", "KRAS", "TP53"), conf = .95)

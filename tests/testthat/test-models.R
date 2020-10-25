@@ -42,18 +42,18 @@ test_that("ces_variant with sswm", {
 
 test_that("ces_variant with sswm_sequential", {
   cesa = ces_variant(cesa, variants = select_variants(cesa, genes = c("EGFR", "KRAS", "TP53"), variant_passlist = "CR2 R247L"),
-                 lik_fn = "sswm_sequential", group_ordering = list(c("marionberry", "cherry"), "mountain_apple"))
+                 model = "sswm_sequential", group_ordering = list(c("marionberry", "cherry"), "mountain_apple"))
   results = cesa@selection_results[[1]] # previous run not saved due to test_that scoping
   results_ak = fread(get_test_file("fruit_sswm_sequential_out.txt"))
   expect_equal(results[order(variant_id)], results_ak[order(variant_id)])
 })
 
 test_that("ces_variant bad group_ordering inputs", {
-  expect_error(ces_variant(cesa, lik_fn = "sswm_sequential", group_ordering = c("cherry","cherry")), "groups are re-used")
-  expect_error(ces_variant(cesa, lik_fn = "sswm_sequential", group_ordering = list(c("cherry", "marionberry"))),
+  expect_error(ces_variant(cesa, model = "sswm_sequential", group_ordering = c("cherry","cherry")), "groups are re-used")
+  expect_error(ces_variant(cesa, model = "sswm_sequential", group_ordering = list(c("cherry", "marionberry"))),
                "must have length of at least 2")
   expect_warning(ces_variant(cesa, variants = select_variants(cesa, variant_passlist = "CR2 R247L"),
-                             lik_fn = "sswm_sequential", group_ordering = c("cherry", "marionberry")),
+                             model = "sswm_sequential", group_ordering = c("cherry", "marionberry")),
                   "The following groups were not included in group_ordering")
 })
 

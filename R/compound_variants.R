@@ -32,7 +32,7 @@ CompoundVariantSet = function(cesa, variant_id) {
   
   if (is(variant_id, "character")) {
     prev_name = names(variant_id)
-    variant_id = list(unname(variant_id))
+    variant_id = as.list(unname(variant_id))
     names(variant_id) = prev_name
   }
   if(! is(variant_id, "list")) {
@@ -82,6 +82,7 @@ CompoundVariantSet = function(cesa, variant_id) {
   
   # count how many distinct covered_region sets have samples (excluding the whole-genome-coverage set)
   num_coverages_with_sample = cesa@samples[covered_regions != "genome", length(unique(covered_regions))]
+  compound_variants = list()
   for (i in 1:length(variant_id)) {
     current_ids = variant_id[[i]]
     current_snvs = all_snvs[current_ids, nomatch = NULL]
@@ -119,6 +120,7 @@ CompoundVariantSet = function(cesa, variant_id) {
     if (min_cov_size < maximal_coverage_size) {
       some_incomplete_coverage = some_incomplete_coverage + 1
     }
+    compound_variants[[i]] = list(snv_id = current_snv_ids, coverage = minimal_coverage)
     variant_id[[i]] = current_snv_ids
   }
   
@@ -130,7 +132,9 @@ CompoundVariantSet = function(cesa, variant_id) {
   
   # name sequentially unless user provided names
   if (is.null(names(variant_id))) {
-    names(variant_id) = paste0("comp.", 1:length(variant_id))
+    names(compound_variants) = paste0("comp.", 1:length(variant_id))
+  } else {
+    names(compound_variants) = names(variant_id)
   }
   
   set_size = length(variant_id)
@@ -146,7 +150,12 @@ CompoundVariantSet = function(cesa, variant_id) {
     warning(no_shared_coverage_count, " of ", set_size, " compound variants are not fully covered ",
             "by any sample's covered_regions. Remove uncovered variants to be able to test for selection.")
   }
-  return(new("CompoundVariantSet", snv_id = variant_id))
+  
+  # For simplicity, we don't want this variant set to be used after adding new samples,
+  # even if there aren't new covered_regions
+  num_samples = cesa@samples[, .N]
+  return(new("CompoundVariantSet", CompoundVariants = compound_variants, cesa_uid = cesa@advanced$uid, 
+             cesa_num_samples = num_samples))
 }
 
 
@@ -236,7 +245,7 @@ define_compound_variants = function(cesa, variant_table, by = NULL, merge_distan
     variant_table = table_list[[i]]
     curr_split_group_name = split_group_names[[i]]
     # If merge_distance == Inf, combine all variants in group
-    if (merge_distance == Inf) {
+    if (merge_distance == Inf || variant_table[, .N] == 1) {
       current_group = list(variant_table$variant_id)
       names(current_group) = curr_split_group_name
       variant_chunks = c(variant_chunks, current_group)

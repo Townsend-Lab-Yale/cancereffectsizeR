@@ -122,7 +122,7 @@ setValidity("CESAnalysis",
     }
 )
 
-setClass("CompoundVariantSet", representation(snv_id = "list"))
+setClass("CompoundVariantSet", representation(CompoundVariants = "list", cesa_uid = "numeric", cesa_num_samples = "integer"))
 
 
 setClass("CES_Run_History", representation(history = "character"))

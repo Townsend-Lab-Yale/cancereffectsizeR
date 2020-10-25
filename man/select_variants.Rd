@@ -13,7 +13,8 @@ select_variants(
   variant_position_table = NULL,
   include_subvariants = F,
   padding = 0,
-  collapse_lists = F
+  collapse_lists = F,
+  remove_secondary_aac = TRUE
 )
 }
 \arguments{
@@ -46,28 +47,45 @@ SNVs that both cause the same amino acid change: 12:25380275_T>G and 12:25380275
 When include_subvariants = F (the default), and genes = "KRAS", output will be
 returned for KRAS_Q61H but not for the two SNVs (although their IDs will appear in
 the Q61H output). Set to true, and all three variants will be included in output, 
-assuming they don't get filtered out by other other options, like min_freq.}
+assuming they don't get filtered out by other other options, like min_freq. If you
+set this to TRUE, you can't directly plug the output table into selection functions.
+However, you can pick a non-overlapping set of variant IDs from the output table 
+and re-run select_variants() to put those variants into a new table for
+selection functions.}
 
 \item{padding}{add +/- this many bases to every range specified in `gr` or
 `variant_position_table` (stopping at chromsome ends, naturally).}
 
 \item{collapse_lists}{Some output columns may have multiple elements per variant row.
 For example, all_genes may include multiple genes. These variable-length vectors
-allow advanced filter and manipulation, but the syntax can be tricky. Optionally, set
-collapse_lists = T to convert these columns to comma-delimited strings, which are
+allow advanced filtering and manipulation, but the syntax can be tricky. Optionally,
+set collapse_lists = T to convert these columns to comma-delimited strings, which are
 sometimes easier to work with.}
+
+\item{remove_secondary_aac}{Default TRUE, except overridden (effectively FALSE) when
+include_subvariants = T. Occasionally, due to overlapping coding sequence definitions
+in reference data, a site can have more than one amino-acid-change mutation
+annotation. To avoid returning the same genome-positional variants multiple times,
+the default is to return one AAC in these situations. Tiebreakers are essential
+splice site status, non-silent status, gene mutation frequency (in MAF data),
+alphabetical. The omitted AACs will still be included in the all_aac column, and if
+any constituent SNVS of the AACs don't overlap, the non-overlapping SNVs from the
+excluded AACs will still be included in output. If you set remove_secondary_aac to
+FALSE, you can't put the output variant table in selection calculation functions. An
+alternative is to set to FALSE, pick which (non-overlapping) variants you want, and
+then re-run select_variants() with those variants specified in `variant_passlist`.}
 }
 \value{
 A data table with info on selected variants (see details), or a list of IDs.
 }
 \description{
 This function helps you find and view variant data from your CESAnalysis's MAF data and
-mutation annotation tables. By default, all amino-acid-change mutations and noncoding
-SNVs are returned. You can apply a series of filters to restrict output to certain
-genes or genomic regions or require a minimum variant frequency in MAF data. You can
-also specify some variants to include in output regardless of filters with
-\code{variant_passlist}. Special behavior: If \code{variant_passlist} is used
-by itself, then only those specified variants will be returned.
+mutation annotation tables. By default, almost all amino-acid-change mutations and
+noncoding SNVs are returned. You can apply a series of filters to restrict output to
+certain genes or genomic regions or require a minimum variant frequency in MAF data.
+You can also specify some variants to include in output regardless of filters with
+\code{variant_passlist}. Special behavior: If \code{variant_passlist} is used by
+itself, then only those specified variants will be returned.
 }
 \details{
 Only variants that are present in the CESAnalysis's annotation tables can be returned,

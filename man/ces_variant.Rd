@@ -7,7 +7,7 @@
 ces_variant(
   cesa = NULL,
   variants = select_variants(cesa, min_freq = 2),
-  lik_fn = "sswm",
+  model = "sswm",
   group_ordering = NULL,
   custom_lik_args = list(),
   cores = 1,
@@ -22,7 +22,7 @@ define_compound_variants(). Defaults to all recurrent noncoding SNVs and
 (SNV-derived) coding mutations, where recurrent means appearing in at least two
 samples in the MAF data set.}
 
-\item{lik_fn}{"sswm" or "sswm_sequential" to use built-in models of selection, or supply a
+\item{model}{"sswm" or "sswm_sequential" to use built-in models of selection, or supply a
 custom function factory (see details).}
 
 \item{group_ordering}{for models (like sswm_sequential) that assume different groups of
