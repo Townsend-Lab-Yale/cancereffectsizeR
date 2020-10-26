@@ -87,7 +87,7 @@ within or among groups of samples." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9014</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9015</span>
       </span>
     </div>
 
@@ -198,7 +198,7 @@ include too many, you may have a challenge getting it to look good</p></td>
     <tr>
       <th>merge_dist</th>
       <td><p>How close points must be to be eligible to have their labels combined
-(.04 = 4<!-- % of plot space). Either 1-length of same length as si_list. Try tweaking if -->
+(.04 = 4<!-- % of plot space). Either 1-length or same length as si_list. Try tweaking if -->
 labels are not looking good. Set to zero to prevent any labels being combined.</p></td>
     </tr>
     </table>
@@ -218,12 +218,12 @@ display nicely, we would love to hear about it!)</p>
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
     <pre class="examples"><div class='input'><span class='kw'>if</span> (<span class='fl'>FALSE</span>) {
 <span class='co'># Compare cancer subtypes from different analyses</span>
-<span class='fu'>si_lollipops</span>(<span class='kw'>si_list</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span>(<span class='kw'>luad</span> <span class='kw'>=</span> <span class='no'>luad_cesa</span>$<span class='no'>selection</span>, <span class='kw'>lusc</span> <span class='kw'>=</span> <span class='no'>lusc_cesa</span>$<span class='no'>selection</span>))
+<span class='fu'>lollipops</span>(<span class='kw'>si_list</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span>(<span class='kw'>luad</span> <span class='kw'>=</span> <span class='no'>luad_cesa</span>$<span class='no'>selection</span>, <span class='kw'>lusc</span> <span class='kw'>=</span> <span class='no'>lusc_cesa</span>$<span class='no'>selection</span>))
 
 <span class='co'># Compare results for two genes</span>
 <span class='no'>tp53</span> <span class='kw'>=</span> <span class='no'>cesa</span>$<span class='no'>selection</span>[<span class='no'>gene</span> <span class='kw'>==</span> <span class='st'>'TP53'</span>]
 <span class='no'>egfr</span> <span class='kw'>=</span> <span class='no'>cesa</span>$<span class='no'>selection</span>[<span class='no'>gene</span> <span class='kw'>==</span> <span class='st'>'EGFR'</span>]
-<span class='fu'>si_lollipops</span>(<span class='kw'>si_list</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span>(<span class='kw'>EGFR</span> <span class='kw'>=</span> <span class='no'>egfr</span>, <span class='kw'>TP53</span> <span class='kw'>=</span> <span class='no'>tp53</span>))
+<span class='fu'>lollipops</span>(<span class='kw'>si_list</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span>(<span class='kw'>EGFR</span> <span class='kw'>=</span> <span class='no'>egfr</span>, <span class='kw'>TP53</span> <span class='kw'>=</span> <span class='no'>tp53</span>))
 }</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

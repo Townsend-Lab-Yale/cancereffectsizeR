@@ -53,13 +53,13 @@
 
 
 <meta property="og:title" content="Select and filter variants — select_variants" />
-<meta property="og:description" content="This is a lightweight function to help you find and manipulate variant data from your
-CESAnalysis's MAF data and mutation annotation tables. This function has a variant
-gathering step followed by a filtering step. For gathering, you can specify genes by
-name or supply CES-style variant IDs to get all variants matching either. Or, leave
-both empty and all available variants will be gathered. For filtering, use the granges
-parameter to filter out variants that don't intersect an input GRanges object. Use
-min_freq to filter out variants by frequency in the MAF data." />
+<meta property="og:description" content="This function helps you find and view variant data from your CESAnalysis's MAF data and
+mutation annotation tables. By default, almost all amino-acid-change mutations and
+noncoding SNVs are returned. You can apply a series of filters to restrict output to
+certain genes or genomic regions or require a minimum variant frequency in MAF data.
+You can also specify some variants to include in output regardless of filters with
+variant_passlist. Special behavior: If variant_passlist is used by
+itself, then only those specified variants will be returned." />
 <meta property="og:image" content="https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/logo.png" />
 
 
@@ -92,7 +92,7 @@ min_freq to filter out variants by frequency in the MAF data." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9014</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9015</span>
       </span>
     </div>
 
@@ -155,25 +155,26 @@ min_freq to filter out variants by frequency in the MAF data." />
     </div>
 
     <div class="ref-description">
-    <p>This is a lightweight function to help you find and manipulate variant data from your
-CESAnalysis's MAF data and mutation annotation tables. This function has a variant
-gathering step followed by a filtering step. For gathering, you can specify genes by
-name or supply CES-style variant IDs to get all variants matching either. Or, leave
-both empty and all available variants will be gathered. For filtering, use the granges
-parameter to filter out variants that don't intersect an input GRanges object. Use
-min_freq to filter out variants by frequency in the MAF data.</p>
+    <p>This function helps you find and view variant data from your CESAnalysis's MAF data and
+mutation annotation tables. By default, almost all amino-acid-change mutations and
+noncoding SNVs are returned. You can apply a series of filters to restrict output to
+certain genes or genomic regions or require a minimum variant frequency in MAF data.
+You can also specify some variants to include in output regardless of filters with
+<code>variant_passlist</code>. Special behavior: If <code>variant_passlist</code> is used by
+itself, then only those specified variants will be returned.</p>
     </div>
 
     <pre class="usage"><span class='fu'>select_variants</span>(
   <span class='no'>cesa</span>,
   <span class='kw'>genes</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
-  <span class='kw'>variant_ids</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
-  <span class='kw'>granges</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
   <span class='kw'>min_freq</span> <span class='kw'>=</span> <span class='fl'>0</span>,
+  <span class='kw'>variant_passlist</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>gr</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>variant_position_table</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
   <span class='kw'>include_subvariants</span> <span class='kw'>=</span> <span class='no'>F</span>,
-  <span class='kw'>gr_padding</span> <span class='kw'>=</span> <span class='fl'>0</span>,
-  <span class='kw'>ids_only</span> <span class='kw'>=</span> <span class='no'>F</span>,
-  <span class='kw'>collapse_lists</span> <span class='kw'>=</span> <span class='no'>T</span>
+  <span class='kw'>padding</span> <span class='kw'>=</span> <span class='fl'>0</span>,
+  <span class='kw'>collapse_lists</span> <span class='kw'>=</span> <span class='no'>F</span>,
+  <span class='kw'>remove_secondary_aac</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>
 )</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
@@ -185,24 +186,34 @@ min_freq to filter out variants by frequency in the MAF data.</p>
     </tr>
     <tr>
       <th>genes</th>
-      <td><p>include variants (coding and noncoding) within these genes</p></td>
-    </tr>
-    <tr>
-      <th>variant_ids</th>
-      <td><p>include variants by ID: vectors of snv_id and/or aac_id, or short
-(potentially non-unique) names like KRAS_G12C (or "KRAS G12C")</p></td>
-    </tr>
-    <tr>
-      <th>granges</th>
-      <td><p>filter out any variants not within input GRanges</p></td>
+      <td><p>Filter variants to specified genes.</p></td>
     </tr>
     <tr>
       <th>min_freq</th>
-      <td><p>filter out variants that occur in fewer than this many samples in the
-MAF data Defaults to 1; set to 0 to include all passing variants that are in the
-annotation tables. Note that variants that are not in the annotation tables will
-never be returned. Use <code>generate_variants()</code> to annotate variants absent from the
-data.</p></td>
+      <td><p>Filter out variants with MAF frequency below threshold (default 0).
+Note that variants that are not in the annotation tables will never be returned. Use
+<code><a href='add_variants.html'>add_variants()</a></code> to include variants absent from MAF data in your CESAnalysis.</p></td>
+    </tr>
+    <tr>
+      <th>variant_passlist</th>
+      <td><p>Vector of variant IDs to include in output regardless of
+filtering options. You can use CES-style AAC and SNV IDs or variant names like 
+"KRAS G12C". If this argument is used by itself (without any filtering arguments),
+then only these specified variants will be returned.</p></td>
+    </tr>
+    <tr>
+      <th>gr</th>
+      <td><p>Filter out any variants not within input GRanges +/- `padding` bases.</p></td>
+    </tr>
+    <tr>
+      <th>variant_position_table</th>
+      <td><p>Filter out any variants that don't intersect the
+positions given in chr/start/end of this table (1-based closed coordinates).
+Typically, the table comes from a previous `select_variants` call and can be expanded
+with `padding`. (Gritty detail: Amino acid change SNVS get special handling: only the
+precise positions in start, end, and center_nt_pos are used. This avoids intersecting
+extra variants between start/end, which on splite-site-spanning variants can be many
+thousands.)</p></td>
     </tr>
     <tr>
       <th>include_subvariants</th>
@@ -212,38 +223,53 @@ SNVs that both cause the same amino acid change: 12:25380275_T&gt;G and 12:25380
 When include_subvariants = F (the default), and genes = "KRAS", output will be
 returned for KRAS_Q61H but not for the two SNVs (although their IDs will appear in
 the Q61H output). Set to true, and all three variants will be included in output, 
-assuming they don't get filtered out by other other options, like min_freq</p></td>
+assuming they don't get filtered out by other other options, like min_freq. If you
+set this to TRUE, you can't directly plug the output table into selection functions.
+However, you can pick a non-overlapping set of variant IDs from the output table 
+and re-run select_variants() to put those variants into a new table for
+selection functions.</p></td>
     </tr>
     <tr>
-      <th>gr_padding</th>
-      <td><p>add +/- this many bases to every range specified in "granges"
-(stopping at chromsome ends, naturally)</p></td>
-    </tr>
-    <tr>
-      <th>ids_only</th>
-      <td><p>instead of outputting a table of variant information, return a list
-of selected variant IDs organized by variant type, without any annotations</p></td>
+      <th>padding</th>
+      <td><p>add +/- this many bases to every range specified in `gr` or
+`variant_position_table` (stopping at chromsome ends, naturally).</p></td>
     </tr>
     <tr>
       <th>collapse_lists</th>
       <td><p>Some output columns may have multiple elements per variant row.
-For example, all_genes may include multiple genes. When collapse_lists = T, these
-columns have their values collapsed into single comma-delimited strings (e.g.
-"Gene1,Gene2"), which are good for visual inspection of data. When collapse_lists =
-F, these columns are returned as "list columns", each element of which is a
-variable-length vector. These are better for advanced scripting, but the syntax to
-manipulate them is a little tricky, so the default is to collapse.</p></td>
+For example, all_genes may include multiple genes. These variable-length vectors
+allow advanced filtering and manipulation, but the syntax can be tricky. Optionally,
+set collapse_lists = T to convert these columns to comma-delimited strings, which are
+sometimes easier to work with.</p></td>
+    </tr>
+    <tr>
+      <th>remove_secondary_aac</th>
+      <td><p>Default TRUE, except overridden (effectively FALSE) when
+include_subvariants = T. Occasionally, due to overlapping coding sequence definitions
+in reference data, a site can have more than one amino-acid-change mutation
+annotation. To avoid returning the same genome-positional variants multiple times,
+the default is to return one AAC in these situations. Tiebreakers are essential
+splice site status, non-silent status, gene mutation frequency (in MAF data),
+alphabetical. The omitted AACs will still be included in the all_aac column, and if
+any constituent SNVS of the AACs don't overlap, the non-overlapping SNVs from the
+excluded AACs will still be included in output. If you set remove_secondary_aac to
+FALSE, you can't put the output variant table in selection calculation functions. An
+alternative is to set to FALSE, pick which (non-overlapping) variants you want, and
+then re-run select_variants() with those variants specified in `variant_passlist`.</p></td>
     </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>a data table with info on selected variants (see details), or a list of IDs</p>
+    <p>A data table with info on selected variants (see details), or a list of IDs.</p>
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
-    <p>Note that while intergenic SNVs have their nearest genes annotated in the SNV tables,
-these variants will not be captured by gene-based selection with this function, since
-they're not actually in any gene.</p>
+    <p>Only variants that are present in the CESAnalysis's annotation tables can be returned,
+which by default are those present in the MAF data. To select variants absent from MAF
+data, you must first call add_variants() to add them to the CESAnalysis. Note that
+while intergenic SNVs have their nearest genes annotated in the SNV tables, these
+variants will not be captured by gene-based selection with this function, since they're
+not actually in any gene.</p>
 <p>Definitions of some less self-explanatory columns:</p><ul>
 <li><p>variant_name: short, often but not necessarily uniquely identifying name (use
   variant_id to guarantee uniqueness)</p></li>

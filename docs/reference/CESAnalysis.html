@@ -86,7 +86,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9014</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9015</span>
       </span>
     </div>
 
@@ -165,9 +165,9 @@ available ref sets. Alternatively, the path to a custom reference data directory
     <tr>
       <th>sample_groups</th>
       <td><p>Optionally, supply labels identifying different groups of samples.
-To be able to perform analyses that require ordered groups of samples, give the
-labels in proper order: e.g., c("Primary", "Metastatic"). If you will not be doing
-such analyses, ordering doesn't matter.</p></td>
+Each designated group of samples can be run independently through functions like
+<code><a href='trinuc_mutation_rates.html'>trinuc_mutation_rates()</a></code> and <code><a href='gene_mutation_rates.html'>gene_mutation_rates()</a></code>, and some selection
+models (such as sswm_sequential) require multiple sample groups.</p></td>
     </tr>
     </table>
 

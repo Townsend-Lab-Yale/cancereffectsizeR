@@ -7,6 +7,9 @@
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/CESAnalysis.html</loc>
   </url>
   <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/CompoundVariantSet.html</loc>
+  </url>
+  <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/add_covered_regions.html</loc>
   </url>
   <url>
@@ -46,6 +49,9 @@
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/consolidate_tcga_tumors_by_patient.html</loc>
   </url>
   <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/define_compound_variants.html</loc>
+  </url>
+  <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/dot-add_covered_regions.html</loc>
   </url>
   <url>
@@ -65,6 +71,9 @@
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/get_gene_rates.html</loc>
+  </url>
+  <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/get_gr_from_table.html</loc>
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/get_ref_data.html</loc>

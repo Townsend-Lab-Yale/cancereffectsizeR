@@ -53,11 +53,10 @@
 
 
 <meta property="og:title" content="Add variant annotations — add_variants" />
-<meta property="og:description" content="Use this function to add variant annotations to your CESAnalysis, either using
-a vector of CES-style snv_ids or a source CESAnalysis. Either way, the variants 
-will be re-annotated using the target CESAnalysis's associated reference data. In other words,
-when you use source_cesa, only the snv_ids are extracted, not any other information, in order
-to avoid ugly situations involving conflicting reference data within a CESAnalysis." />
+<meta property="og:description" content="Use this function to add variant annotations to your CESAnalysis by specifying variants
+to add in one of five ways: a data.table containing genomic coordinates (output from
+select_variants(), typically), a GRanges object, a BED file, another CESAnalysis, or
+SNV IDs." />
 <meta property="og:image" content="https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/logo.png" />
 
 
@@ -90,7 +89,7 @@ to avoid ugly situations involving conflicting reference data within a CESAnalys
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9014</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9015</span>
       </span>
     </div>
 
@@ -153,14 +152,21 @@ to avoid ugly situations involving conflicting reference data within a CESAnalys
     </div>
 
     <div class="ref-description">
-    <p>Use this function to add variant annotations to your CESAnalysis, either using
-a vector of CES-style snv_ids or a source CESAnalysis. Either way, the variants 
-will be re-annotated using the target CESAnalysis's associated reference data. In other words,
-when you use source_cesa, only the snv_ids are extracted, not any other information, in order
-to avoid ugly situations involving conflicting reference data within a CESAnalysis.</p>
+    <p>Use this function to add variant annotations to your CESAnalysis by specifying variants
+to add in one of five ways: a data.table containing genomic coordinates (output from
+select_variants(), typically), a GRanges object, a BED file, another CESAnalysis, or
+SNV IDs.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>add_variants</span>(<span class='kw'>target_cesa</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>snv_id</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>source_cesa</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)</pre>
+    <pre class="usage"><span class='fu'>add_variants</span>(
+  <span class='kw'>target_cesa</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>variant_table</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>snv_id</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>bed</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>gr</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>source_cesa</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>padding</span> <span class='kw'>=</span> <span class='fl'>0</span>
+)</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -170,18 +176,48 @@ to avoid ugly situations involving conflicting reference data within a CESAnalys
       <td><p>CESAnalysis to receive variant annotations</p></td>
     </tr>
     <tr>
+      <th>variant_table</th>
+      <td><p>A data.table with chr/start/end positions (1-based closed
+coordinates, like MAF format). All possible SNVs overlapping the table's genomic
+coordinates (within `padding` bases) will be added. The tables returned by
+select_variants() and (CESAnalysis)$variants work, and get special handling of
+amino-acid-change SNVs: only the precise positions in start, end, and center_nt_pos
+are used. (This avoids adding all variants between start/end, which on
+splite-site-spanning variants can be many thousands.)</p></td>
+    </tr>
+    <tr>
       <th>snv_id</th>
-      <td><p>character vector of CES-style snv_ids to validate, annotate (including
-finding and adding associated amino-acid-change mutations), and add to the target
-CESAnalysis</p></td>
+      <td><p>Character vector of CES-style SNV IDs to add.</p></td>
+    </tr>
+    <tr>
+      <th>bed</th>
+      <td><p>A path to a BED file. All possible SNVs overlapping BED intervals (within
+`padding` bases) will be added.</p></td>
+    </tr>
+    <tr>
+      <th>gr</th>
+      <td><p>A GRanges object. All possible SNVs overlapping the ranges (within `padding`
+bases) will be added.</p></td>
     </tr>
     <tr>
       <th>source_cesa</th>
-      <td><p>source CESAnalysis whose snv_ids will be used to create new
-annotations in the target CESAnalysis</p></td>
+      <td><p>Another CESAnalysis from which to copy snv_ids. SNVs will be
+re-annotated using the target_cesa's associated reference data.</p></td>
+    </tr>
+    <tr>
+      <th>padding</th>
+      <td><p>How many bases (default 0) to expand start and end of each gr range</p></td>
     </tr>
     </table>
 
+    <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
+
+    <p>All methods of adding variants work by identifying which SNVs to add and then using the
+target_cesa's associated reference data to identify overlapping amino-acid-change
+mutations, which are then added as well. (You can't add just SNVs or just AACs.) Note
+that if you try to add far more distinct variants than appear in a typical cohort (as
+in, millions), annotation will take a while and the annotation tables in the
+CESAnalysis may take up significant memory. Please contact us if you have issues.</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

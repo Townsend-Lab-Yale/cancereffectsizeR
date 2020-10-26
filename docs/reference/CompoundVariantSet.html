@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>cancereffectsizeR wrapper for deconstructSigs — run_deconstructSigs • cancereffectsizeR</title>
+<title>Create CompoundVariantSet directly from SNV IDs — CompoundVariantSet • cancereffectsizeR</title>
 
 <!-- favicons -->
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
@@ -52,9 +52,16 @@
 
 
 
-<meta property="og:title" content="cancereffectsizeR wrapper for deconstructSigs — run_deconstructSigs" />
-<meta property="og:description" content="This function gets called internally by trinuc_mutation_rates() for each tumor in a CESAnalysis, accepting its
-a data.frame of mutation counts and returning deconstructSigs output." />
+<meta property="og:title" content="Create CompoundVariantSet directly from SNV IDs — CompoundVariantSet" />
+<meta property="og:description" content="A compound variant is an arbitrary group of SNVs that can be tested for selection as if
+it were a single variant. (Any sample with one or more of the constituent SNVs &quot;has the
+compound variant&quot;, and the baseline rate of the variant is the rate of having at least
+one of the SNVs.) A CompoundVariantSet is a collection of disjoint compound variants;
+that is, no SNV can appear in more than one compound variant.
+Example: CompoundVariantSet(cesa, variant_id = list(kras12 = c(&quot;KRAS G12C&quot;, &quot;KRAS G12D&quot;,
+&quot;KRAS G12V&quot;))) creates a CompoundVariantSet containing one compound variant. To create
+a large set, it's usually easier to use define_compound_variants(), which calls this
+function internally to define compound variants from an input variant table." />
 <meta property="og:image" content="https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/logo.png" />
 
 
@@ -144,56 +151,45 @@ a data.frame of mutation counts and returning deconstructSigs output." />
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>cancereffectsizeR wrapper for deconstructSigs</h1>
-    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/R/run_deconstructSigs.R'><code>R/run_deconstructSigs.R</code></a></small>
-    <div class="hidden name"><code>run_deconstructSigs.Rd</code></div>
+    <h1>Create CompoundVariantSet directly from SNV IDs</h1>
+    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/R/compound_variants.R'><code>R/compound_variants.R</code></a></small>
+    <div class="hidden name"><code>CompoundVariantSet.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>This function gets called internally by trinuc_mutation_rates() for each tumor in a CESAnalysis, accepting its
-a data.frame of mutation counts and returning deconstructSigs output.</p>
+    <p>A compound variant is an arbitrary group of SNVs that can be tested for selection as if
+it were a single variant. (Any sample with one or more of the constituent SNVs "has the
+compound variant", and the baseline rate of the variant is the rate of having at least
+one of the SNVs.) A CompoundVariantSet is a collection of disjoint compound variants;
+that is, no SNV can appear in more than one compound variant.<br />
+Example: <code>CompoundVariantSet(cesa, variant_id = list(kras12 = c("KRAS G12C", "KRAS G12D",
+"KRAS G12V")))</code> creates a CompoundVariantSet containing one compound variant. To create
+a large set, it's usually easier to use define_compound_variants(), which calls this
+function internally to define compound variants from an input variant table.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>run_deconstructSigs</span>(
-  <span class='no'>tumor_trinuc_counts</span>,
-  <span class='no'>signatures_df</span>,
-  <span class='no'>signatures_to_remove</span>,
-  <span class='no'>artifact_signatures</span>,
-  <span class='no'>tri.counts.method</span>
-)</pre>
+    <pre class="usage"><span class='fu'>CompoundVariantSet</span>(<span class='no'>cesa</span>, <span class='no'>variant_id</span>)</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>tumor_trinuc_counts</th>
-      <td><p>one-row data.frame of trinuc variant counts (in deconstructSigs order) for one tumor</p></td>
+      <th>cesa</th>
+      <td><p>CESAnalysis (used to access variant annotations)</p></td>
     </tr>
     <tr>
-      <th>signatures_df</th>
-      <td><p>data.frame of signatures (see COSMIC v3 signatures included with package for format)</p></td>
-    </tr>
-    <tr>
-      <th>signatures_to_remove</th>
-      <td><p>names of signatures in signatures_df to keep out of deconstructSigs and assign zero weights</p></td>
-    </tr>
-    <tr>
-      <th>artifact_signatures</th>
-      <td><p>names of signatures that should be treated as experimental (e.g., sequencing) artifacts
-(these have weights calculated but are then normalized out when calculating true trinuc proportions)</p></td>
-    </tr>
-    <tr>
-      <th>tri.counts.method</th>
-      <td><p>exome/genome trinucleotide content normalization argument to pass to deconstructSigs (see its docs)</p></td>
+      <th>variant_id</th>
+      <td><p>Vector of variant IDs to include in one compound variant, or a list of
+vectors, each of which defines a separate compound variant. If the vector or list is
+named, names will be kept. Otherwise, compound variants will be named sequentially.</p></td>
     </tr>
     </table>
 
-    <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
+    <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
-    <p>a list with 2 items: raw_sig_output (exactly what comes out of deconstructSigs) and adjusted_sig_output, which contains
-        artifact-accounted signature weights (which will match raw if there are no
-        artifact signatures) and expected relative trinuc mutation rates based on the
-        artifact-accounted signature weights</p>
+    <p>If you're using this function because you have a complex use case that
+define_compound_variants() can't handle, please let us know so we can try to make
+improvements!</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
