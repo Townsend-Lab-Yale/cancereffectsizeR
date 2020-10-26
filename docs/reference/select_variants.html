@@ -248,8 +248,8 @@ sometimes easier to work with.</p></td>
 include_subvariants = T. Occasionally, due to overlapping coding sequence definitions
 in reference data, a site can have more than one amino-acid-change mutation
 annotation. To avoid returning the same genome-positional variants multiple times,
-the default is to return one AAC in these situations. Tiebreakers are essential
-splice site status, non-silent status, gene mutation frequency (in MAF data),
+the default is to return one AAC in these situations. Tiebreakers are MAF frequency,
+essential splice site status, non-silent status, gene mutation frequency,
 alphabetical. The omitted AACs will still be included in the all_aac column, and if
 any constituent SNVS of the AACs don't overlap, the non-overlapping SNVs from the
 excluded AACs will still be included in output. If you set remove_secondary_aac to

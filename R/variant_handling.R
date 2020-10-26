@@ -83,8 +83,8 @@
 #'   include_subvariants = T. Occasionally, due to overlapping coding sequence definitions
 #'   in reference data, a site can have more than one amino-acid-change mutation
 #'   annotation. To avoid returning the same genome-positional variants multiple times,
-#'   the default is to return one AAC in these situations. Tiebreakers are essential
-#'   splice site status, non-silent status, gene mutation frequency (in MAF data),
+#'   the default is to return one AAC in these situations. Tiebreakers are MAF frequency,
+#'   essential splice site status, non-silent status, gene mutation frequency,
 #'   alphabetical. The omitted AACs will still be included in the all_aac column, and if
 #'   any constituent SNVS of the AACs don't overlap, the non-overlapping SNVs from the
 #'   excluded AACs will still be included in output. If you set remove_secondary_aac to
@@ -402,7 +402,13 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = 
           chosen_aac[i] = candidates$variant_id
           next
         }
-        # prioritize splice-site variants
+        
+        # take highest MAF frequency first (will usually be the same for all)
+        freq_col = maf_freq_cols[length(maf_freq_cols)] # last freq col gives total frequency
+        highest_freq = max(candidates[[freq_col]])
+        candidates = candidates[candidates[[freq_col]] == highest_freq]
+        
+        # then, prioritize splice-site variants
         if (any(candidates$essential_splice)) {
           candidates = candidates[essential_splice == T]
         }
