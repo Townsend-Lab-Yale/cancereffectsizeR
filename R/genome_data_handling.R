@@ -86,6 +86,8 @@ preload_ref_data = function(data_dir) {
     if(check_for_ref_data(data_dir, "generic_exome_gr")) {
       .ces_ref_data[[ref_set_name]][["default_exome"]] = get_ref_data(data_dir, "generic_exome_gr")
     }
+    # Load trinuc composition of each gene (composition is a 96-length numeric, deconstructSigs order)
+    .ces_ref_data[[ref_set_name]][["gene_trinuc_comp"]] = get_ref_data(data_dir, "gene_trinuc_comp")
     .ces_ref_data[[ref_set_name]][["data_dir"]] = data_dir
   }
 }

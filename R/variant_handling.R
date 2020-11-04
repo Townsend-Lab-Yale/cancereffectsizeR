@@ -132,9 +132,7 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = 
   if (include_subvariants) {
     remove_secondary_aac = FALSE
   }
-  
-  
-  
+
 
   # collect all variants, unless just variant_passlist specified
   if (is.null(gr) && is.null(variant_position_table) && is.null(genes) && min_freq == 0 && length(variant_passlist) > 0) {
@@ -240,7 +238,11 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = 
         pretty_message(msg)
       }
     }
-    selected_with_variant_id = c(matching_snv_ids, matching_aac_ids) # save this for later in case there's a gr filter
+    # under include_subvariants, all SNVs of passlisted AACs get included
+    if (include_subvariants) {
+      matching_snv_ids = union(matching_snv_ids, cesa@mutations$amino_acid_change[matching_aac_ids, unique(unlist(constituent_snvs))])
+    }
+    
     selected_snv_ids = union(selected_snv_ids, matching_snv_ids)
     selected_aac_ids = union(selected_aac_ids, matching_aac_ids)
     passlisted_ids = c(matching_snv_ids, matching_aac_ids)

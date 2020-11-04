@@ -373,8 +373,15 @@ snv_results = function(cesa = NULL) {
   
   output = list()
   for (i in 1:length(cesa@selection_results)) {
-    annotations = suppressMessages(select_variants(cesa, variant_passlist = cesa@selection_results[[i]]$variant_id))
-    results = cesa@selection_results[[i]][annotations, on = c("variant_id", "variant_type")]
+    curr_selection = cesa@selection_results[[i]]
+    
+    # compound variant runs have already have all available annotations
+    if (identical(attr(curr_selection, "is_compound"), TRUE)) {
+      output = c(output, list(curr_selection))
+      next
+    }
+    annotations = suppressMessages(select_variants(cesa, variant_passlist = curr_selection$variant_id))
+    results = curr_selection[annotations, on = c("variant_id", "variant_type")]
     results_cols = colnames(results)
     # try to flip variant_name and variant_id columns
     if(results_cols[1] == "variant_id") {
@@ -385,10 +392,10 @@ snv_results = function(cesa = NULL) {
     }
     output = c(output, list(results))
   }
+  names(output) = paste("cesv", 1:length(output), sep = ".")
   if(length(cesa@selection_results) == 1) {
     return(output[[1]])
   }
-  names(output) = paste("cesv", 1:length(output), sep = ".")
   return(output)
 }
 

@@ -16,7 +16,7 @@ groups. Each distinct group will then be further divided into compound variants 
 
 \item{merge_distance}{maximum genomic distance between a given variant and the nearest
 variant in compound variant for the variant to variant to be merged into the compound
-variant (as opposed to be assigned to its own compound variant).}
+variant (as opposed to being assigned to its own compound variant).}
 }
 \description{
 A compound variant is an arbitrary group of SNVs that can be tested for selection as if
@@ -39,6 +39,6 @@ of compound variants are not within \code{merge_distance}. Note that overlapping
 variants will always be merged unless you use \code{by} to seperate them into different
 subtables (for example, by splitting on alt or aa_alt). If you use \code{by} to split
 variants by some functional annotation, you can set \code{merge_distance} very high to
-merge all same-chromosome sites (e.g. 1e9 on human genome), or set it to Inf to merge
-all sites across chromosomes.
+merge all same-chromosome sites (e.g., 1e9 on human genome). To merge sites across chromosomes,
+set \code{merge_distance = Inf}.
 }

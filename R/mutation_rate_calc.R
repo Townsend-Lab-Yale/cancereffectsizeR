@@ -51,7 +51,9 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
   mutations = cesa@mutations
   
   # can drop AAC mutations not requested
-  mutations$amino_acid_change = mutations$amino_acid_change[aac_ids]
+  if (length(aac_ids) > 0) {
+    mutations$amino_acid_change = mutations$amino_acid_change[aac_ids]
+  }
   setkey(mutations$amino_acid_change, "aac_id")
   
   
@@ -77,8 +79,10 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
   sample_gene_rates = melted_mutrates[sample_gene_rates, , on = c("gene", "gene_rate_grp")]
   
   # Load trinuc composition of each gene (composition is a 96-length numeric, deconstructSigs order)
-  gene_trinuc_comp = get_ref_data(cesa, "gene_trinuc_comp")
-  
+  if (! cesa@ref_key %in% ls(.ces_ref_data)) {
+    preload_ref_data(cesa@ref_data_dir)
+  }
+  gene_trinuc_comp = .ces_ref_data[[cesa@ref_key]][["gene_trinuc_comp"]]
   
   
   # Hash trinuc rates for faster runtime with huge data sets (where there could be millions of queries of trinuc_mat)

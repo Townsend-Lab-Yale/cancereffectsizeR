@@ -68,12 +68,12 @@ CompoundVariantSet = function(cesa, variant_id) {
   # replace spaces with underscores (mainly to allow things like KRAS G12C -> KRAS_G12C)
   variant_id = lapply(variant_id, function(x) gsub(" ", "_", x))
   
-  selected = select_variants(cesa, variant_passlist = all_ids)
-  all_snvs = selected[variant_type == "snv"]
-  setkey(all_snvs, "variant_id")
-  all_aacs = selected[variant_type == "aac"]
-  setkey(all_aacs, "variant_id")
-  setindex(all_aacs, "variant_name")
+  selected = select_variants(cesa, variant_passlist = all_ids, include_subvariants = T)
+  selected_snvs = selected[variant_type == "snv"]
+  setkey(selected_snvs, "variant_id")
+  selected_aacs = selected[variant_type == "aac"]
+  setkey(selected_aacs, "variant_id")
+  setindex(selected_aacs, "variant_name")
   
   # count how many compound variants have no covered_regions coverage,
   # and also have how many have coverage in only some covered_regions
@@ -85,17 +85,17 @@ CompoundVariantSet = function(cesa, variant_id) {
   compound_variants = list()
   for (i in 1:length(variant_id)) {
     current_ids = variant_id[[i]]
-    current_snvs = all_snvs[current_ids, nomatch = NULL]
+    current_snvs = selected_snvs[current_ids, nomatch = NULL]
     current_snv_ids = current_snvs$variant_id
     current_coverage = current_snvs$covered_in
     if (current_snvs[, .N] < length(current_ids)) {
       remaining_ids = setdiff(current_ids, current_snvs$variant_id)
-      current_aacs = all_aacs[remaining_ids, nomatch = NULL]
+      current_aacs = selected_aacs[remaining_ids, nomatch = NULL]
       remaining_ids = setdiff(remaining_ids, current_aacs$variant_id)
       
       # handle user input of variant names (in place of IDs)
       if (length(remaining_ids) > 0) {
-        current_aacs = rbind(current_aacs, all_aacs[remaining_ids, nomatch = NULL, on = "variant_name"])
+        current_aacs = rbind(current_aacs, selected_aacs[remaining_ids, nomatch = NULL, on = "variant_name"])
       }
       
       if (current_aacs[, .N] + current_snvs[, .N] != length(current_ids)) {
@@ -148,14 +148,78 @@ CompoundVariantSet = function(cesa, variant_id) {
   
   if(no_shared_coverage_count > 0 && cesa@samples[covered_regions == "genome", .N] == 0) {
     warning(no_shared_coverage_count, " of ", set_size, " compound variants are not fully covered ",
-            "by any sample's covered_regions. Remove uncovered variants to be able to test for selection.")
+            "by any sample's covered_regions. Remove uncovered variants to be able to test these for selection.")
   }
   
+  # convert list to a data.table for easier handling
+  variants = lapply(compound_variants, "[[", 1)
+  coverage = lapply(compound_variants, "[[", 2)
+  
+  compound_snvs = data.table(compound_name = names(compound_variants), variants = variants)
+  compound_snvs = compound_snvs[, .(snv_id = unlist(variants)), by = "compound_name"]
+  compound_snvs[, shared_cov := coverage[compound_name]]
+  
+  # add in simplified AAC/gene annotations
+  with_all_aac = selected_snvs[compound_snvs$snv_id, .(variant_id, all_genes, all_aac), on = "variant_id"]
+  with_all_aac = with_all_aac[, .(gene = unlist(all_genes), all_aac), by = "variant_id"]
+  with_all_aac = with_all_aac[, .(aac = unlist(all_aac)), by = c("variant_id", "gene")]
+  
+  # Often, there will be a gene name in compound names
+  # Possibly implement this later, but may be more complexity than it's worth
+  # favored_names = compound_snvs$compound_name
+  # with_all_aac[, favored_gene := mapply(like, compound_snvs[variant_id, compound_name, on = "snv_id"], gene)]
+  
+  # Bring in lists of gene names and amino-acid-changes (simplify to just the change, as in "G12C", for single-hits)
+  compound_snvs[selected_snvs, c("genes", "all_aac") := list(all_genes, all_aac), on = c(snv_id = "variant_id")]
+  aa_changes = lapply(compound_snvs$all_aac, function(x) gsub('(.*)_[^_]*$', "\\1", x, perl = T))
+  single_gene_changes = which(sapply(aa_changes, length) == 1)
+  single_gene_names = compound_snvs[single_gene_changes][, unlist(genes)]
+  single_gene_pattern = paste0('^', single_gene_names, '_')
+  aa_changes[single_gene_changes] = mapply(function(x, y) gsub(y, '', x), aa_changes[single_gene_changes], single_gene_pattern)
+  compound_snvs[, aa_changes := aa_changes][, all_aac := NULL]
+  
+  
+  sample_table = cesa@maf[compound_snvs$snv_id, Unique_Patient_Identifier, on = "variant_id", by = "variant_id", nomatch = NULL]
+  sample_table[cesa@samples, covered_regions := covered_regions, on = "Unique_Patient_Identifier"]
+  sample_table[compound_snvs, c("compound_name", "shared_cov") := list(compound_name, shared_cov), on = c(variant_id = "snv_id")]
+  sample_table[, compound_covered := covered_regions == "genome" | covered_regions %in% unlist(shared_cov), by = "variant_id"]
+  total_freq = sample_table[, .(total_maf_freq = .N), by = "variant_id"]
+  
+  covered_sample_table = sample_table[compound_covered == T]
+  covered_freq = covered_sample_table[, .(shared_cov_maf_freq = .N), by = "variant_id"]
+  
+  # handle frequencies
+  compound_snvs[covered_freq, shared_cov_maf_freq := shared_cov_maf_freq, on = c(snv_id = "variant_id")]
+  compound_snvs[is.na(shared_cov_maf_freq), shared_cov_maf_freq := 0]
+  compound_snvs[total_freq, total_maf_freq := total_maf_freq, on = c(snv_id = "variant_id")]
+  compound_snvs[is.na(total_maf_freq), total_maf_freq := 0]
+  
+  
+  # also create a table summarizing each compound variant; also drop shared_cov from compound_snvs
+  compound_stats = compound_snvs[, .(num_snv = .N, shared_cov = shared_cov[1], shared_cov_subvariant_freq = sum(shared_cov_maf_freq),
+                                    total_subvariant_freq = sum(total_maf_freq)), by = "compound_name"]
+  compound_snvs[, shared_cov := NULL]
+  
+  # count just one variant per sample
+  compound_counts_cov = unique(covered_sample_table, by = c("variant_id", "Unique_Patient_Identifier"))
+  compound_counts_cov = compound_counts_cov[, .(shared_cov_freq = .N), by = "compound_name"]
+  compound_stats = compound_stats[compound_counts_cov, on = "compound_name"]
+  compound_counts_total = unique(sample_table, by = c("variant_id", "Unique_Patient_Identifier"))
+  
+  # Record which samples (including those outside shared coverage) have the variant
+  samples_by_variant = compound_counts_total[, .(samples = list(unique(Unique_Patient_Identifier))), by = "compound_name"]
+  samples_with = setNames(samples_by_variant$samples, samples_by_variant$compound_name)
+  compound_counts_total = samples_by_variant[, .(total_freq = length(samples[[1]])), by = "compound_name"]
+  compound_stats = compound_stats[compound_counts_total, on = "compound_name"]
+  setcolorder(compound_stats, c("compound_name", "num_snv", "shared_cov", "shared_cov_freq", "total_freq"))
+
+  
+
   # For simplicity, we don't want this variant set to be used after adding new samples,
   # even if there aren't new covered_regions
   num_samples = cesa@samples[, .N]
-  return(new("CompoundVariantSet", CompoundVariants = compound_variants, cesa_uid = cesa@advanced$uid, 
-             cesa_num_samples = num_samples))
+  return(new("CompoundVariantSet", snvs = compound_snvs, compounds = compound_stats, sample_calls = samples_with,
+             cesa_uid = cesa@advanced$uid, cesa_num_samples = num_samples))
 }
 
 
@@ -180,8 +244,8 @@ CompoundVariantSet = function(cesa, variant_id) {
 #' variants will always be merged unless you use \code{by} to seperate them into different
 #' subtables (for example, by splitting on alt or aa_alt). If you use \code{by} to split
 #' variants by some functional annotation, you can set \code{merge_distance} very high to
-#' merge all same-chromosome sites (e.g. 1e9 on human genome), or set it to Inf to merge
-#' all sites across chromosomes.
+#' merge all same-chromosome sites (e.g., 1e9 on human genome). To merge sites across chromosomes,
+#' set \code{merge_distance = Inf}.
 #' 
 #' @param cesa CESAnalysis
 #' @param variant_table Data table of variants, in the style generated by select_variants().
@@ -189,7 +253,7 @@ CompoundVariantSet = function(cesa, variant_id) {
 #' groups. Each distinct group will then be further divided into compound variants based on \code{merge_distance}
 #' @param merge_distance maximum genomic distance between a given variant and the nearest
 #'   variant in compound variant for the variant to variant to be merged into the compound
-#'   variant (as opposed to be assigned to its own compound variant).
+#'   variant (as opposed to being assigned to its own compound variant).
 #' @export
 define_compound_variants = function(cesa, variant_table, by = NULL, merge_distance = 0) {
   if (! is(cesa, "CESAnalysis")) {
@@ -223,7 +287,7 @@ define_compound_variants = function(cesa, variant_table, by = NULL, merge_distan
       stop("not all column names specified with \"by\" are present in variant_table.")
     }
     
-    # deal with NAs in by columns by converting to character and giving informative name
+    # deal with NAs in "by" columns by converting to character and giving informative name
     if (variant_table[, anyNA(.SD), .SDcols = by_cols]) {
       variant_table = copy(variant_table)
       for (col in by_cols) {
@@ -247,7 +311,7 @@ define_compound_variants = function(cesa, variant_table, by = NULL, merge_distan
     # If merge_distance == Inf, combine all variants in group
     if (merge_distance == Inf || variant_table[, .N] == 1) {
       current_group = list(variant_table$variant_id)
-      names(current_group) = curr_split_group_name
+      names(current_group) = paste0(curr_split_group_name, '.1')
       variant_chunks = c(variant_chunks, current_group)
       next
     }

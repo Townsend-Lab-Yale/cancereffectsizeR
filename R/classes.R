@@ -122,7 +122,38 @@ setValidity("CESAnalysis",
     }
 )
 
-setClass("CompoundVariantSet", representation(CompoundVariants = "list", cesa_uid = "numeric", cesa_num_samples = "integer"))
+setClass("CompoundVariantSet", representation(snvs = "data.table", compounds = "data.table", sample_calls = "list",
+                                              cesa_uid = "numeric", cesa_num_samples = "integer"))
+setMethod("show", "CompoundVariantSet", function(object) {
+  num_compound = object@compounds[, .N]
+  num_snv = object@snvs[, .N]
+  msg = paste0("CompoundVariantSet: ", num_compound, " compound variants consisting of ", num_snv, " SNVs.")
+  cat(msg)
+})
+
+#' @export
+.DollarNames.CompoundVariantSet <- function(x, pattern = "") {
+  features = c("compounds", "snv_info", "samples_with", "definitions")
+  grep(pattern, features, value=TRUE)
+}
+
+setMethod("$", "CompoundVariantSet",
+  function(x, name)
+  {
+    if(name == "snv_info") {
+      return(x@snvs)
+    } else if (name == "compounds") {
+      return(x@compounds)
+    } else if (name == "samples_with") {
+      return(x@sample_calls)
+    }else if (name == "definitions") {
+      tmp = x@snvs[, .(snvs = list(snv_id)), by = "compound_name"]
+      return(setNames(tmp$snvs, tmp$compound_name))
+    }
+  }
+)
+
+
 
 
 setClass("CES_Run_History", representation(history = "character"))
