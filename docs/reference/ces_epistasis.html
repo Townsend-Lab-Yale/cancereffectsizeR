@@ -54,7 +54,7 @@
 
 <meta property="og:title" content="Variant-level pairwise epistasis — ces_epistasis" />
 <meta property="og:description" content="Calculate selection intensity under an assumption of pairwise epistasis between pairs of variants.
-Return a table, NOT a CESAnalysis, so be careful not to overwrite your analysis." />
+Returns a table, NOT a CESAnalysis, so be careful not to overwrite your analysis." />
 <meta property="og:image" content="https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/logo.png" />
 
 
@@ -87,7 +87,7 @@ Return a table, NOT a CESAnalysis, so be careful not to overwrite your analysis.
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9015</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9016</span>
       </span>
     </div>
 
@@ -151,7 +151,7 @@ Return a table, NOT a CESAnalysis, so be careful not to overwrite your analysis.
 
     <div class="ref-description">
     <p>Calculate selection intensity under an assumption of pairwise epistasis between pairs of variants.
-Return a table, <strong>NOT</strong> a CESAnalysis, so be careful not to overwrite your analysis.</p>
+Returns a table, <strong>NOT</strong> a CESAnalysis, so be careful not to overwrite your analysis.</p>
     </div>
 
     <pre class="usage"><span class='fu'>ces_epistasis</span>(<span class='kw'>cesa</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>variants</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>cores</span> <span class='kw'>=</span> <span class='fl'>1</span>, <span class='kw'>conf</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)</pre>
@@ -165,8 +165,10 @@ Return a table, <strong>NOT</strong> a CESAnalysis, so be careful not to overwri
     </tr>
     <tr>
       <th>variants</th>
-      <td><p>list where each element is a character-type pair of variant IDs (either
-amino-acid-change (coding) variant IDs or SNV IDs)</p></td>
+      <td><p>To test pairs of variants, supply a list where each element is a
+2-length vector of CES-style variant IDs. Alternatively (and often more usefully),
+supply a CompoundVariantSet (see <code>define_compound_variants</code>) to test all pairs
+of compound variants in the set.</p></td>
     </tr>
     <tr>
       <th>cores</th>
@@ -175,7 +177,7 @@ amino-acid-change (coding) variant IDs or SNV IDs)</p></td>
     <tr>
       <th>conf</th>
       <td><p>confidence interval size from 0 to 1 (.95 -&gt; 95<!-- %); NULL skips calculation, -->
-significantly reducing runtime</p></td>
+reducing runtime.</p></td>
     </tr>
     </table>
 

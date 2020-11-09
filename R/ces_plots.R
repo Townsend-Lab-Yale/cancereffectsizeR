@@ -38,20 +38,23 @@
 #' lollipops(si_list = list(EGFR = egfr, TP53 = tp53))
 #' }
 #' @export
-lollipops = function(si_list, si_col = "selection_intensity", title = "My SIs", ylab = "selection intensity", 
-                     max_sites = 50, label_size = 3.0, merge_dist = .04) {
+lollipops = function(si_list, title = "My SIs", ylab = "selection intensity", 
+                     max_sites = 50, label_size = 3.0, merge_dist = .04, 
+                     si_col = "auto", group_names = "auto") {
   if (! is(si_list, "list") || ! all(sapply(si_list, is.data.table))) {
-    stop("si_list should be a named list of data.tables.")
+    if (is(si_list, "data.table")) {
+      si_list = list(' ' = si_list) # may not need a display name when plotting one group
+    } else {
+      stop("si_list should be a list of data.tables (or a single data.table).")
+    }
   }
-  num_groups = length(si_list)
-  group_names = names(si_list)
-  
-  if(is.null(group_names)) {
-    stop("si_list should be a named list (for labeling lollipops)")
-  }
-  
+
   if(! is(title, "character") | length(title) > 1) {
     stop("title should be 1-length character")
+  }
+  
+  if (! is(group_names, "character")) {
+    stop("group_names should be character")
   }
   
   if(! is(max_sites, "numeric")) {
@@ -61,12 +64,66 @@ lollipops = function(si_list, si_col = "selection_intensity", title = "My SIs", 
   if(! is(si_col, "character")) {
     stop("si_col should be character")
   }
-  if (length(si_col) == 1) {
-    si_col = rep(si_col, length(si_list))
-  } else if (length(si_col) != length(si_list)) {
-    stop("si_col should be 1-length or same length as si_list")
-  }
   
+  final_si_list = list()
+  final_si_col = character()
+  poss_auto_names = character() # build up names to use if auto-naming groups
+  input_si_names = names(si_list)
+  
+  if (length(si_col) == 1 && si_col == "auto") {
+    for (i in 1:length(si_list)) {
+      curr_si = si_list[[i]]
+      curr_name = input_si_names[i]
+      curr_si_col = attr(curr_si, "si_cols", T)
+      if(is.null(curr_si_col)) {
+        stop("si_col could not be automatically determined for element ", i, " of si_list.")
+      }
+      num_in_group = length(curr_si_col)
+      for (col in curr_si_col) {
+        final_si_col = c(final_si_col, col)
+        final_si_list = c(final_si_list, list(curr_si))
+        # IF EGFR has two SIs, give lables like egfr_pre, egfr_met (otherwise, just call it egfr)
+        if (num_in_group > 1) {
+          poss_auto_names = c(poss_auto_names, paste(curr_name, col))
+        } else {
+          poss_auto_names = c(poss_auto_names, curr_name)
+        }
+      }
+    }
+  } else {
+    if (length(si_col) != length(si_list)) {
+      if (length(si_col) == 1) {
+        si_col = as.list(rep(si_col, length(si_list)))
+      } else {
+        stop("si_col should match length of si_length or be 1-length")
+      }
+    }
+    for (i in 1:length(si_list)) {
+      curr_si = si_list[[i]]
+      curr_si_col = si_col[[i]]
+      if(! is(curr_si_col, "character")) {
+        stop("All elements of list si_col must be type character")
+      }
+      if (any(duplicated(curr_si_col)) || ! all(curr_si_col %in% names(curr_si))) {
+        stop("si_col column names not found in corresponding tables (or duplicates)")
+      }
+      final_si_col = c(final_si_col, curr_si_col)
+      final_si_list = c(final_si_list, list(curr_si))
+    }
+  }
+  si_list = final_si_list
+  si_col = final_si_col
+  
+  num_groups = length(si_list)
+  if (length(group_names) == 1 & group_names[1] == "auto") {
+    if (is.null(input_si_names)) {
+      stop("Can't determine group_names automatically because input si_list unnamed.")
+    }
+    group_names = poss_auto_names
+  } else if (length(group_names) != num_groups) {
+    stop("group_names length doesn't match number of SI groups to be plotted.")
+  }
+
   
   if (! is(label_size, "numeric") || ! length(label_size) %in% c(1, num_groups) || any(label_size < 0)) {
     stop("Illegal label_size value.")
@@ -86,6 +143,7 @@ lollipops = function(si_list, si_col = "selection_intensity", title = "My SIs", 
   # for each group, get the highest N SIs (set by max_sites), then pick the
   # greatest of all of these as the SI floor so that no more than max_sites SIs print per lollipop
   min_si = 0
+  genes_available = TRUE
   for (i in 1:num_groups) {
     curr = copy(si_list[[i]])
     curr_cols = colnames(curr)
@@ -93,12 +151,18 @@ lollipops = function(si_list, si_col = "selection_intensity", title = "My SIs", 
     if (! curr_si_col %in% curr_cols) {
       stop("Selection intensity column not found in input table ", i, " (set with si_col).")
     }
-    if (! all(c("variant_name", "gene", "variant_type") %in% curr_cols)) {
+    if (! all(c("variant_name", "variant_type") %in% curr_cols)) {
       stop("Missing required columns in input table ", i, " (see help).")
     }
     setnames(curr, curr_si_col, "selection_intensity")
-    curr = curr[, .(variant_name, variant_type, gene, selection_intensity)]
+    if ("gene" %in% curr_cols) {
+      curr = curr[, .(variant_name, variant_type, gene, selection_intensity)]
+    } else {
+      curr = curr[, .(variant_name, variant_type, selection_intensity)]
+      genes_available = FALSE
+    }
     
+  
     if (curr[, .N] > max_sites) {
       lowest_passing = curr[order(selection_intensity, decreasing = T), selection_intensity[max_sites]]
       if (lowest_passing > min_si) {
@@ -111,8 +175,14 @@ lollipops = function(si_list, si_col = "selection_intensity", title = "My SIs", 
   si_list = lapply(si_list, function(x) x[selection_intensity >= min_si])
   
   # variants from genes with multiple variants will get colors in output
-  all_genes = na.omit(unlist(lapply(si_list, function(x) x$gene)))
-  multi_variant_genes = names(which(table(all_genes) > 1))
+  if (genes_available) {
+    all_genes = na.omit(unlist(lapply(si_list, function(x) x$gene)))
+    multi_variant_genes = names(which(table(all_genes) > 1))
+  } else {
+    all_variants = na.omit(unlist(lapply(si_list, function(x) x$variant_name)))
+    repeated_variants =  names(which(table(all_variants) > 1))
+  }
+
 
 
   placeholder = data.table(group = numeric(), selection_intensity = numeric(), variant_name_print = character(),
@@ -142,24 +212,23 @@ lollipops = function(si_list, si_col = "selection_intensity", title = "My SIs", 
     
     # leave out gene names if all AACs have same gene
     # otherwise, keep gene names and add them to SNVs as well
-    if (top_hits[variant_type == "aac", .N] > 0 & top_hits[variant_type == "aac", length(unique(gene)) == 1]) {
-      regex = paste0('^', top_hits[variant_type == "aac", gene], '')
-      old_names = top_hits[variant_type == "aac", variant_name_print]
-      new_names = mapply(function(r, n) gsub(r, '', n), regex, old_names)
-      top_hits[variant_type == "aac", variant_name_print := new_names]
-    }
-    top_hits[variant_type == "snv" & ! is.na(gene), variant_name_print := paste0('(', gene, ') ', variant_name_print)] 
-      # usually there will be an intergenic annotation column
-  
-    top_hits[, group := i]
-    
     # since intergenic variants have no gene, specify display color
     top_hits[, display_color := NA_character_]
-    top_hits[gene %in% multi_variant_genes, display_color := factor(gene)]
-
-    
-    # Shows genes in different colors if more than one
-    multiple_genes = length(unique(top_hits$gene)) > 1
+    if (genes_available) {
+      if (top_hits[variant_type == "aac", .N] > 0 & top_hits[variant_type == "aac", length(unique(gene)) == 1]) {
+        regex = paste0('^', top_hits[variant_type == "aac", gene], '')
+        old_names = top_hits[variant_type == "aac", variant_name_print]
+        new_names = mapply(function(r, n) gsub(r, '', n), regex, old_names)
+        top_hits[variant_type == "aac", variant_name_print := new_names]
+      } 
+      top_hits[variant_type == "snv" & ! is.na(gene), variant_name_print := paste0('(', gene, ') ', variant_name_print)] 
+      top_hits[gene %in% multi_variant_genes, display_color := factor(gene)]
+    } else {
+      top_hits[, variant_name_print := variant_name]
+      top_hits[variant_name %in% repeated_variants, display_color := factor(variant_name)]
+    }
+  
+    top_hits[, group := i]
     
     # Greedily merge labels of tightly clustered points for readability
     log_si_max = max(top_hits$log_si)

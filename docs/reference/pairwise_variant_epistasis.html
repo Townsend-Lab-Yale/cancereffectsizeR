@@ -86,7 +86,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9015</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9016</span>
       </span>
     </div>
 
@@ -152,8 +152,21 @@
     <p>Calculate SIs at variant level under pairwise epistasis model</p>
     </div>
 
-    <pre class="usage"><span class='fu'>pairwise_variant_epistasis</span>(<span class='no'>cesa</span>, <span class='no'>variant_pair</span>, <span class='no'>conf</span>)</pre>
+    <pre class="usage"><span class='fu'>pairwise_variant_epistasis</span>(<span class='no'>cesa</span>, <span class='no'>variant_pair</span>, <span class='no'>conf</span>, <span class='kw'>compound_variants</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)</pre>
 
+    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
+    <table class="ref-arguments">
+    <colgroup><col class="name" /><col class="desc" /></colgroup>
+    <tr>
+      <th>cesa</th>
+      <td><p>CESAnalysis</p></td>
+    </tr>
+    <tr>
+      <th>variant_pair</th>
+      <td><p>2-length character of variant IDs, or 2-length numeric giving
+indices of CompoundVariantSet for the current two compound variants</p></td>
+    </tr>
+    </table>
 
 
   </div>

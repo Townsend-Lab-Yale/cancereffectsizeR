@@ -9,13 +9,15 @@ ces_epistasis(cesa = NULL, variants = NULL, cores = 1, conf = NULL)
 \arguments{
 \item{cesa}{CESAnalysis}
 
-\item{variants}{list where each element is a character-type pair of variant IDs (either
-amino-acid-change (coding) variant IDs or SNV IDs)}
+\item{variants}{To test pairs of variants, supply a list where each element is a
+2-length vector of CES-style variant IDs. Alternatively (and often more usefully),
+supply a CompoundVariantSet (see \code{define_compound_variants}) to test all pairs
+of compound variants in the set.}
 
 \item{cores}{number of cores for parallel processing of gene pairs}
 
 \item{conf}{confidence interval size from 0 to 1 (.95 -> 95%); NULL skips calculation,
-significantly reducing runtime}
+reducing runtime.}
 }
 \value{
 a data table with pairwise-epistatic selection intensities and variant
@@ -23,5 +25,5 @@ a data table with pairwise-epistatic selection intensities and variant
 }
 \description{
 Calculate selection intensity under an assumption of pairwise epistasis between pairs of variants.
-Return a table, \strong{NOT} a CESAnalysis, so be careful not to overwrite your analysis.
+Returns a table, \strong{NOT} a CESAnalysis, so be careful not to overwrite your analysis.
 }

@@ -87,7 +87,7 @@ within or among groups of samples." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9015</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9016</span>
       </span>
     </div>
 
@@ -156,12 +156,13 @@ within or among groups of samples.</p>
 
     <pre class="usage"><span class='fu'>lollipops</span>(
   <span class='no'>si_list</span>,
-  <span class='kw'>si_col</span> <span class='kw'>=</span> <span class='st'>"selection_intensity"</span>,
   <span class='kw'>title</span> <span class='kw'>=</span> <span class='st'>"My SIs"</span>,
   <span class='kw'>ylab</span> <span class='kw'>=</span> <span class='st'>"selection intensity"</span>,
   <span class='kw'>max_sites</span> <span class='kw'>=</span> <span class='fl'>50</span>,
   <span class='kw'>label_size</span> <span class='kw'>=</span> <span class='fl'>3</span>,
-  <span class='kw'>merge_dist</span> <span class='kw'>=</span> <span class='fl'>0.04</span>
+  <span class='kw'>merge_dist</span> <span class='kw'>=</span> <span class='fl'>0.04</span>,
+  <span class='kw'>si_col</span> <span class='kw'>=</span> <span class='st'>"auto"</span>,
+  <span class='kw'>group_names</span> <span class='kw'>=</span> <span class='st'>"auto"</span>
 )</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
@@ -172,11 +173,6 @@ within or among groups of samples.</p>
       <td><p>Named list of tables, usually created by subsetting from selection
 tables. Each table should have columns called "variant_name", "variant_type", and "gene",
 plus a selection intensity column</p></td>
-    </tr>
-    <tr>
-      <th>si_col</th>
-      <td><p>Vector giving names of selection intensity column in each SI table,
-either 1-length or same length as si_list</p></td>
     </tr>
     <tr>
       <th>title</th>
@@ -200,6 +196,11 @@ include too many, you may have a challenge getting it to look good</p></td>
       <td><p>How close points must be to be eligible to have their labels combined
 (.04 = 4<!-- % of plot space). Either 1-length or same length as si_list. Try tweaking if -->
 labels are not looking good. Set to zero to prevent any labels being combined.</p></td>
+    </tr>
+    <tr>
+      <th>si_col</th>
+      <td><p>Vector giving names of selection intensity column in each SI table,
+either 1-length or same length as si_list</p></td>
     </tr>
     </table>
 

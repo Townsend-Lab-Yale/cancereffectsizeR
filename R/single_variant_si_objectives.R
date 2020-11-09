@@ -24,7 +24,7 @@ sswm_lik = function(rates_tumors_with, rates_tumors_without) {
   
   # Set default values for gamma (SI), which ces_variant will use to set starting value of optimization
   formals(fn)[["gamma"]] = 1000
-  bbmle::parnames(fn) = "si_1" # for consistency with progression state model; output fields will call this "selection_intensity"
+  bbmle::parnames(fn) = "selection_intensity"
   return(fn)
 }
   

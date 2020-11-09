@@ -21,6 +21,11 @@ reference:
   - add_covered_regions
   - annotate_variants
   - baseline_mutation_rates
+- title: Compound variants
+  desc: Combine variants into arbitrary batches and test for batch-level selection
+  contents:
+  - define_compound_variants
+  - CompoundVariantSet
 - title: Trinucleotide signatures and rates
   desc: Mutational signature extraction and inference of relative trinucleotide-context-specific SNV mutation rates
   contents:
@@ -44,7 +49,7 @@ reference:
   contents:
   - lollipops
 - title: Selection models
-  desc: Functions that create likelihood functions for different models of selection
+  desc: Likelihood function generators for various models of selection
   contents:
   - sswm_lik
   - sswm_sequential_lik

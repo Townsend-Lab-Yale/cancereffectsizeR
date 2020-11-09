@@ -127,9 +127,34 @@ setClass("CompoundVariantSet", representation(snvs = "data.table", compounds = "
 setMethod("show", "CompoundVariantSet", function(object) {
   num_compound = object@compounds[, .N]
   num_snv = object@snvs[, .N]
-  msg = paste0("CompoundVariantSet: ", num_compound, " compound variants consisting of ", num_snv, " SNVs.")
+  plural = ifelse(num_compound == 1, '', 's')
+  plural2 = ifelse(num_snv == 1, '', 's')
+  msg = paste0("CompoundVariantSet with ", num_compound, " compound variant", plural, " consisting of ", 
+                num_snv, " SNV", plural2, ":\n")
   cat(msg)
+  print(object@compounds, topn = 3)
 })
+
+setMethod("length", "CompoundVariantSet", function(x) {
+  return(x@compounds[, .N])
+})
+
+# allow subsetting CompoundVariantSet by index or name (that is, row number/compound_name entry in compound table)
+# returns a new CompoundVariantSet; fine interactively but maybe not efficient enough for high-throughput use
+setMethod("[", "CompoundVariantSet", function(x, i , j, ..., drop) {
+  compounds = `[`(x@compounds, i, j, nomatch = NULL, ...)
+  sample_calls = x@sample_calls[compounds$compound_name]
+  snvs = x@snvs[compounds$compound_name]
+  return(new("CompoundVariantSet", compounds = compounds, snvs = snvs, sample_calls = sample_calls,
+             cesa_uid = x@cesa_uid, cesa_num_samples = x@cesa_num_samples))
+})
+
+# thanks to https://stackoverflow.com/a/26080137
+as.list.CompoundVariantSet <-function(x) {
+  lapply(seq_along(x), function(i) x[i])
+}
+setMethod("as.list", "CompoundVariantSet", as.list.CompoundVariantSet)
+
 
 #' @export
 .DollarNames.CompoundVariantSet <- function(x, pattern = "") {

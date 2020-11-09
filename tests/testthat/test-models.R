@@ -1,21 +1,3 @@
-
-test_that("gene mutation rates", {
-  dndscv_cesa = load_cesa(get_test_file("annotated_fruit_cesa.rds"))
-  dndscv_input = get_test_data("dndscv_input_single.rds")
-  dndscv_raw_output = get_test_data("dndscv_raw_output_single.rds")
-
-  # Run gene_mutation_rates, but skip running dNdScv. Instead, verify that input to
-  # run_dndscv matches what's expected, then load pre-generated output and continue
-  dndscv_cesa = mockr::with_mock(
-    run_dndscv = function(mutations, gene_list, cv, gr_genes, refdb) {
-      expect_equal(list(mutations = mutations, gene_list = gene_list, cv = cv), dndscv_input)
-      return(dndscv_raw_output)
-    },
-    gene_mutation_rates(dndscv_cesa, covariates = "lung"))
-  rates_ak = get_test_data("mutrates.rds")
-  expect_equal(dndscv_cesa@mutrates, rates_ak)
-})
-
 # will use pre-annotated CESAnalysis
 cesa = load_cesa(get_test_file("annotated_fruit_cesa.rds"))
 trinuc_rates = fread(get_test_file("luad_hg19_trinuc_rates.txt"))
@@ -36,16 +18,18 @@ test_genes = c("EGFR", "ASXL3", "KRAS", "RYR2", "USH2A", "CSMD3", "TP53", "CSMD1
 test_that("ces_variant with sswm", {
   cesa = ces_variant(cesa, variants = select_variants(cesa, genes = test_genes), cores = 1)
   results = cesa@selection_results[[1]]
+  expect_equal(attr(results, "si_cols"), "selection_intensity")
   results_ak = fread(get_test_file("fruit_sswm_out.txt"))
-  expect_equal(results[order(variant_id)], results_ak[order(variant_id)])
+  expect_equal(results[order(variant_id)], results_ak[order(variant_id)], check.attributes = F)
 })
 
 test_that("ces_variant with sswm_sequential", {
   cesa = ces_variant(cesa, variants = select_variants(cesa, genes = c("EGFR", "KRAS", "TP53"), variant_passlist = "CR2 R247L"),
                  model = "sswm_sequential", group_ordering = list(c("marionberry", "cherry"), "mountain_apple"))
   results = cesa@selection_results[[1]] # previous run not saved due to test_that scoping
+  expect_equal(attr(results, "si_cols"), c("si_1", "si_2"))
   results_ak = fread(get_test_file("fruit_sswm_sequential_out.txt"))
-  expect_equal(results[order(variant_id)], results_ak[order(variant_id)])
+  expect_equal(results[order(variant_id)], results_ak[order(variant_id)], check.attributes = F)
 })
 
 test_that("ces_variant bad group_ordering inputs", {
@@ -63,12 +47,6 @@ test_that("ces_variant with user-supplied variants", {
   expect_equal(ces_variant(cesa, variants = variants)@selection_results[[1]][, .N], 9)
 })
 
-test_that("Gene-level SNV epistasis analysis", {
-  results = ces_gene_epistasis(cesa, genes = c("EGFR", "KRAS", "TP53"), conf = .95)
-  results_ak = get_test_data("epistasis_results.rds")
-  expect_equal(results, results_ak, tolerance = 1e-3)
-})
-
 test_that("Variant-level epistasis", {
   results = ces_epistasis(cesa, variants = list(c("KRAS G12V", "GSTP1_L184L")), conf = .9)
   to_test = results[, as.numeric(.(ces_v1, ces_v2, ces_v1_after_v2, ces_v2_after_v1, covered_tumors_just_v1,
@@ -77,6 +55,53 @@ test_that("Variant-level epistasis", {
   ci = as.numeric(results[, .SD, .SDcols = patterns("ci")])
   expect_equal(ci, c(13629.84, 52477.08, 382.9144, 3470.92, NA, 3610458, NA, 85519.34), tolerance = 1e-3)
 })
+
+
+test_that("Gene-level SNV epistasis analysis", {
+  results = ces_gene_epistasis(cesa, genes = c("EGFR", "KRAS", "TP53"), conf = .95)
+  results_ak = get_test_data("epistasis_results.rds")
+  expect_equal(results, results_ak, tolerance = 1e-3)
+  
+  # now simulate with compound variants, should get almost same results
+  comp = define_compound_variants(cesa, variant_table = select_variants(cesa, genes = c("EGFR", "KRAS", "TP53"), min_freq = 2),
+                                  by = "gene", merge_distance = Inf)
+  results2 = ces_epistasis(cesa, comp, conf = .95)
+  all.equal(results[, -c(1, 2)], results2[, -c(1, 2)], check.attributes = F, tolerance = 1e-4)
+})
+
+test_that("Compound variant creation", {
+  recurrents = select_variants(cesa, min_freq = 2)
+  kras_12_13 = recurrents[gene == "KRAS" & aa_pos %in% c(12, 13)]
+  expect_equal(kras_12_13[, .N], 4)
+  all_kras_12_13 = select_variants(cesa, variant_position_table = kras_12_13)
+  expect_equal(all_kras_12_13[, .N], 5)  # one has MAF freq of 1
+  
+  # should recapitulate single variant results with 1-SNV-size compound variants
+  single_snv_comp = define_compound_variants(cesa, all_kras_12_13, by = c("gene", "aa_alt"), merge_distance = 0)
+  expect_equal(length(single_snv_comp), 5)
+  results = ces_variant(cesa, single_snv_comp, model = "sswm_sequential", group_ordering = list(c("marionberry", "cherry"), "mountain_apple"))
+  results = results$selection[[1]][c("KRAS.Cys.1", "KRAS.Asp.1", "KRAS.Cys.2", "KRAS.Asp.2", "KRAS.Val.1"), on = "variant_name"]
+  prev = fread(get_test_file("fruit_sswm_sequential_out.txt"))[all_kras_12_13$variant_id, on = "variant_id"][, 3:4]
+  all.equal(results[, 3:4], prev, tolerance = 1e-6)
+  
+  # this time, do per position
+  pos_comp = define_compound_variants(cesa, all_kras_12_13, merge_distance = 0)
+  expect_equal(length(pos_comp), 2)
+  expect_equal(pos_comp$snv_info[, .N], 5)
+  results = ces_variant(cesa, variants = pos_comp, conf = NULL)$selection[[1]]
+  expect_equal(results$selection_intensity, c(7170.178, 32349.204), tolerance = 1e-5)
+  # If above output changes, be sure SIs remain between lowest/highest single-variant SIs at each site (see .rds)
+  
+  expect_equal(length(define_compound_variants(cesa, recurrents, merge_distance = 1000)), 40)
+  expect_equal(length(define_compound_variants(cesa, recurrents, merge_distance = 1e9)), 19)
+  expect_equal(length(define_compound_variants(cesa, recurrents, merge_distance = Inf)), 1)
+  expect_equal(length(define_compound_variants(cesa, recurrents, by = "aa_alt", merge_distance = Inf)), 19)
+  
+  # causes two TP53 Arg mutations to get merged
+  expect_equal(length(define_compound_variants(cesa, recurrents, by = c("gene","aa_ref"), merge_distance = 1000)), 43)
+})
+
+
 
 
 

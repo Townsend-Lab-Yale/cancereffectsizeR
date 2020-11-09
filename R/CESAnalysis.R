@@ -390,12 +390,12 @@ snv_results = function(cesa = NULL) {
                              results_cols[2:(name_col - 1)], "variant_id", 
                              results_cols[(name_col + 1):length(results_cols)]))
     }
+    setattr(results, "si_cols", attr(curr_selection, "si_cols", T))
+    
     output = c(output, list(results))
   }
   names(output) = paste("cesv", 1:length(output), sep = ".")
-  if(length(cesa@selection_results) == 1) {
-    return(output[[1]])
-  }
+  
   return(output)
 }
 
@@ -420,8 +420,17 @@ clean_granges_for_bsg = function(bsg = NULL, gr = NULL, padding = 0) {
             padding - as.integer(padding) == 0)
 
   # try to make gr style/seqlevels match bsg (if this fails, possibly the genome build does not match)
-  # Keep an eye out for "more than one best sequence renaming map" warning on rare inputs
-  GenomeInfoDb::seqlevelsStyle(gr) = "NCBI"
+  # For now, suppressing "more than one best sequence renaming map"; tends to appear on single-chr inputs
+  withCallingHandlers(
+    { 
+      GenomeInfoDb::seqlevelsStyle(gr) = "NCBI" 
+    },
+    warning = function(w) {
+      if (grepl("more than one best sequence renaming map", conditionMessage(w))) {
+        invokeRestart("muffleWarning")
+      }
+    }        
+  )
 
   
   tryCatch({

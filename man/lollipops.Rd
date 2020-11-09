@@ -6,21 +6,19 @@
 \usage{
 lollipops(
   si_list,
-  si_col = "selection_intensity",
   title = "My SIs",
   ylab = "selection intensity",
   max_sites = 50,
   label_size = 3,
-  merge_dist = 0.04
+  merge_dist = 0.04,
+  si_col = "auto",
+  group_names = "auto"
 )
 }
 \arguments{
 \item{si_list}{Named list of tables, usually created by subsetting from selection
 tables. Each table should have columns called "variant_name", "variant_type", and "gene",
 plus a selection intensity column}
-
-\item{si_col}{Vector giving names of selection intensity column in each SI table,
-either 1-length or same length as si_list}
 
 \item{title}{Plot title to pass to ggplot}
 
@@ -34,6 +32,9 @@ include too many, you may have a challenge getting it to look good}
 \item{merge_dist}{How close points must be to be eligible to have their labels combined
 (.04 = 4% of plot space). Either 1-length or same length as si_list. Try tweaking if
 labels are not looking good. Set to zero to prevent any labels being combined.}
+
+\item{si_col}{Vector giving names of selection intensity column in each SI table,
+either 1-length or same length as si_list}
 }
 \value{
 ggplot object with lollipops

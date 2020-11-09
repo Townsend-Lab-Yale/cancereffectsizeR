@@ -218,6 +218,9 @@ CompoundVariantSet = function(cesa, variant_id) {
   # For simplicity, we don't want this variant set to be used after adding new samples,
   # even if there aren't new covered_regions
   num_samples = cesa@samples[, .N]
+  
+  setkey(compound_stats, "compound_name")
+  setkey(compound_snvs, "compound_name")
   return(new("CompoundVariantSet", snvs = compound_snvs, compounds = compound_stats, sample_calls = samples_with,
              cesa_uid = cesa@advanced$uid, cesa_num_samples = num_samples))
 }

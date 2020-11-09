@@ -93,7 +93,7 @@ variants into distinct compound variants based on your criteria." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9015</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9016</span>
       </span>
     </div>
 
@@ -188,7 +188,7 @@ groups. Each distinct group will then be further divided into compound variants 
       <th>merge_distance</th>
       <td><p>maximum genomic distance between a given variant and the nearest
 variant in compound variant for the variant to variant to be merged into the compound
-variant (as opposed to be assigned to its own compound variant).</p></td>
+variant (as opposed to being assigned to its own compound variant).</p></td>
     </tr>
     </table>
 
@@ -204,8 +204,8 @@ of compound variants are not within <code>merge_distance</code>. Note that overl
 variants will always be merged unless you use <code>by</code> to seperate them into different
 subtables (for example, by splitting on alt or aa_alt). If you use <code>by</code> to split
 variants by some functional annotation, you can set <code>merge_distance</code> very high to
-merge all same-chromosome sites (e.g. 1e9 on human genome), or set it to Inf to merge
-all sites across chromosomes.</p>
+merge all same-chromosome sites (e.g., 1e9 on human genome). To merge sites across chromosomes,
+set <code>merge_distance = Inf</code>.</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

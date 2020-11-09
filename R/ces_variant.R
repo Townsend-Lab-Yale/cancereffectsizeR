@@ -148,7 +148,7 @@ ces_variant <- function(cesa = NULL,
     compound_variants = variants
     variants = select_variants(cesa, variant_passlist = compound_variants@snvs$snv_id, include_subvariants = TRUE)
     
-    # copy in compoudn variant names and overwrite covered_in with value of shared_cov
+    # copy in compound variant names and overwrite covered_in with value of shared_cov
     variants = variants[compound_variants@snvs, compound_name := compound_name, on = c(variant_id = "snv_id")]
     if(variants[, .N] != compound_variants@snvs[, .N]) {
       stop("Internal error: select_variants() didn't return variant info 1-to-1 with compound input.")
@@ -284,9 +284,11 @@ ces_variant <- function(cesa = NULL,
           lik_args = c(lik_args, list(sample_index = sample_index))
         }
         fn = do.call(lik_factory, lik_args)
+        
         par_init = formals(fn)[[1]]
         names(par_init) = bbmle::parnames(fn)
         
+
         # find optimized selection intensities
         # the selection intensity for any stage that has 0 variants will be on the lower boundary; will muffle the associated warning
         withCallingHandlers(
@@ -301,10 +303,6 @@ ces_variant <- function(cesa = NULL,
         )
         
         selection_intensity = bbmle::coef(fit)
-        single_stage = length(cesa@groups) == 1
-        if (length(selection_intensity) == 1) {
-          names(selection_intensity) = "selection_intensity"
-        }
         loglikelihood = as.numeric(bbmle::logLik(fit))
         
         #dndscv_q = sapply(cesa@dndscv_out_list, function(x) x$sel_cv[x$sel_cv$gene_name == mut_record$gene, "qallsubs_cv"])
@@ -333,15 +331,21 @@ ces_variant <- function(cesa = NULL,
   
   if (running_compound) {
     selection_results[, variant_type := "compound"]
-    selection_results = selection_results[compound_variants@compounds, on = c(variant_id = "compound_name")]
-    
+    setnames(selection_results, "variant_id", "variant_name")
+    selection_results = selection_results[compound_variants@compounds, on = c(variant_name = "compound_name")]
     setattr(selection_results, "is_compound", TRUE)
+    setcolorder(selection_results, c("variant_name", "variant_type"))
   } else {
     selection_results[variants, variant_type := variant_type, on = "variant_id"]
     setattr(selection_results, "is_compound", FALSE)
+    setcolorder(selection_results, c("variant_id", "variant_type"))
   }
   
-  setcolorder(selection_results, c("variant_id", "variant_type"))
+  # isolate SI columns for plotting functions (and maybe more, eventually)
+  ll_col_num = which(colnames(selection_results) == "loglikelihood")
+  si_cols = colnames(selection_results)[3:(ll_col_num - 1)]
+  setattr(selection_results, "si_cols", si_cols)
+  
   cesa@selection_results = c(cesa@selection_results, list(selection_results))
   
   return(cesa)

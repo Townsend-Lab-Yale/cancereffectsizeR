@@ -31,12 +31,12 @@ test_genes = c("EGFR", "ASXL3", "KRAS", "RYR2", "USH2A", "CSMD3", "TP53", "CSMD1
                "ZFHX4", "FAT3", "CNTNAP5", "PCDH15", "NEB", "RYR3", "DMD", "KATNAL1", 
                "OR13H1", "KSR1")
 luad = ces_variant(luad, variants = select_variants(luad, genes = test_genes))
-fwrite(luad@selection_results, "fruit_sswm_out.txt", sep = "\t")
+fwrite(luad@selection_results[[1]], "fruit_sswm_out.txt", sep = "\t")
 
 # Three big genes and a variant that is the only mutation in its gene in the data set
-luad = ces_variant(luad, select_variants(luad, genes = c("EGFR", "KRAS", "TP53"), variant_ids = "CR2 R247L"),
+luad = ces_variant(luad, select_variants(luad, genes = c("EGFR", "KRAS", "TP53"), variant_passlist = "CR2 R247L"),
                model = "sswm_sequential", group_ordering = list(c("marionberry", "cherry"), "mountain_apple"))
-fwrite(luad@selection_results, "fruit_sswm_sequential_out.txt", sep = "\t")
+fwrite(luad@selection_results[[2]], "fruit_sswm_sequential_out.txt", sep = "\t")
 
 results = ces_gene_epistasis(luad, genes = c("EGFR", "KRAS", "TP53"), conf = .95)
 saveRDS(results, "epistasis_results.rds")
