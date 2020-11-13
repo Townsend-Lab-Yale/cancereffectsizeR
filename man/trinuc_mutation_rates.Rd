@@ -35,7 +35,7 @@ tumors inform the calculation of group-average signature weights. When
 assume_identical_mutational_processes == FALSE (the default), these group averages
 are blended into the signature weights of sub-threshold tumors.}
 
-\item{use_dS_exome2genome}{internal dev option (don't use)}
+\item{use_dS_exome2genome}{historical dev option (don't use)}
 }
 \value{
 CESAnalysis with sample-specific signature weights and inferred
@@ -70,13 +70,13 @@ derive from sample processing, sequencing, calling error, or other non-biologica
 sources. cancereffectsizeR adjusts for artifact signatures when inferring relative
 trinucleotide mutation rates.
 \item Exome_Min: Minimum number of mutations a WES sample
-must have for the presence of the signature to be plausible. This column is used to
+must have for the presence of the signature to be plausible. This information is used to
 prevent hypermutation signatures from being found in tumors with few mutations. Can be
 left NA or 0 for non-hypermutation signatures. If this column is present, Genome_Min
 must be present and always greater than or equal to Exome_Min. 
 \item Genome_Min:
 Minimum number of mutations a WGS sample must have for the presence of the signature to
-be plausible. This column is used to prevent hypermutation signatures from being found
+be plausible. This information is used to prevent hypermutation signatures from being found
 in tumors with few mutations. Can be left NA or 0 for non-hypermutation signatures. If
 this column is present, Exome_Min must be present and always less than or equal to
 Genome_Min.

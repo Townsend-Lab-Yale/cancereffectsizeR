@@ -154,6 +154,7 @@ set_signature_weights = function(cesa, signature_set, weights, ignore_extra_samp
   cesa@trinucleotide_mutation_weights$signature_weight_table = bio_weights
   cesa@advanced$locked = TRUE
   cesa@advanced$trinuc_done = TRUE
+  cesa@advanced$snv_signatures = signature_set_data
   cesa = update_cesa_history(cesa, match.call())
   return(cesa)
 }

@@ -15,7 +15,7 @@
 #' 
 #' @param cesa CESAnalysis object
 #' @param trinuc_rates a matrix or data table (see description for format)
-#' @param ignore_extra_samples skip samples in the input matrix that are not in the CESAnalysis (when false, will stop with an error)
+#' @param ignore_extra_samples skip samples in the input table that are not in the CESAnalysis (when false, will stop with an error)
 #' @export
 set_trinuc_rates = function(cesa, trinuc_rates, ignore_extra_samples = FALSE) {
   if(is.null(cesa) || ! is(cesa, "CESAnalysis")) {

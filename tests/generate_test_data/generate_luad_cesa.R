@@ -15,7 +15,8 @@ luad = trinuc_mutation_rates(luad, cores = 4, signature_set = "COSMIC_v3.1",
                              signatures_to_remove = suggest_cosmic_signatures_to_remove("LUAD", treatment_naive = TRUE, quiet = TRUE))
 
 fwrite(luad$trinuc_rates, "luad_hg19_trinuc_rates.txt", sep = "\t")
-fwrite(luad$mutational_signatures, "luad_hg19_sig_table.txt", sep = "\t")
+fwrite(luad$mutational_signatures$all, "luad_hg19_sig_table_with_artifacts.txt", sep = "\t")
+fwrite(luad$mutational_signatures$biological, "luad_hg19_sig_table_biological.txt", sep = "\t")
 
 # to generate test data for dndscv,
 # run gene_mutation_rates(luad, covariates = "lung") with breakpoints before/after run_dndscv

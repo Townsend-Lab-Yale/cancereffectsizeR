@@ -24,13 +24,13 @@
 #' sources. cancereffectsizeR adjusts for artifact signatures when inferring relative
 #' trinucleotide mutation rates.
 #' \item Exome_Min: Minimum number of mutations a WES sample
-#' must have for the presence of the signature to be plausible. This column is used to
+#' must have for the presence of the signature to be plausible. This information is used to
 #' prevent hypermutation signatures from being found in tumors with few mutations. Can be
 #' left NA or 0 for non-hypermutation signatures. If this column is present, Genome_Min
 #' must be present and always greater than or equal to Exome_Min. 
 #' \item Genome_Min:
 #' Minimum number of mutations a WGS sample must have for the presence of the signature to
-#' be plausible. This column is used to prevent hypermutation signatures from being found
+#' be plausible. This information is used to prevent hypermutation signatures from being found
 #' in tumors with few mutations. Can be left NA or 0 for non-hypermutation signatures. If
 #' this column is present, Exome_Min must be present and always less than or equal to
 #' Genome_Min.
@@ -51,7 +51,7 @@
 #' @param assume_identical_mutational_processes use well-mutated tumors (those with number
 #'   of eligible mutations meeting sig_averaging_threshold) to calculate group average
 #'   signature weights, and assign these to all tumors
-#' @param use_dS_exome2genome internal dev option (don't use)
+#' @param use_dS_exome2genome historical dev option (don't use)
 #' @return CESAnalysis with sample-specific signature weights and inferred
 #'   trinucleotide-context-specific relative mutation rates. Note that tumors with few
 #'   mutations (group_avg_blended == TRUE in the signature weights tables) have weights
@@ -236,7 +236,7 @@ trinuc_mutation_rates <- function(cesa,
         exome_counts_by_gr[[exome_name]] = get_ref_data(cesa, "tri.counts.exome")
       }
     } else {
-      exome_seq = getSeq(bsg, cesa@coverage$exome[[exome_name]])
+      exome_seq = BSgenome::getSeq(bsg, cesa@coverage$exome[[exome_name]])
       exome_tri_contexts = Biostrings::trinucleotideFrequency(exome_seq)
       exome_tri_contexts = colSums(exome_tri_contexts)
       
@@ -337,7 +337,6 @@ trinuc_mutation_rates <- function(cesa,
     # rarely, weights will come out all 0, so trinuc_prop will be NULL; these tumors are "zeroed-out"
     if(is.null(signatures_output$adjusted_sig_output$trinuc_prop)) {
       zeroed_out_tumors = c(zeroed_out_tumors, tumor_name)
-      #substitution_counts[[tumor_name]] = 0 # no SNVs inform trinuc rates in these tumors
     } else {
       trinuc_proportion_matrix[tumor_name, ] = signatures_output$adjusted_sig_output$trinuc_prop
     }

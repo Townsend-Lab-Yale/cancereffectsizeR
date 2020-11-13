@@ -26,11 +26,26 @@ test_that("Trinucleotide signature weight calculation", {
   # All tumors should have an above-threshold number of usable SNVs, or they should be group-average-blended (but never both)
   expect_true(all(full_weight_table[, xor(sig_extraction_snvs > 49, group_avg_blended == T)]))
   
-  
+  # test set_trinuc_rates and set_signature_weights
   trinuc_rates = cesa$trinuc_rates
   prev_rates_matrix = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix
+  prev_relative_bio_sig = cesa@trinucleotide_mutation_weights$signature_weight_table
+  prev_raw_sig = cesa@trinucleotide_mutation_weights$signature_weight_table_with_artifacts
   cesa@trinucleotide_mutation_weights = list()
   
   cesa2 = set_trinuc_rates(cesa, trinuc_rates = trinuc_rates)
   expect_equal(prev_rates_matrix, cesa2@trinucleotide_mutation_weights$trinuc_proportion_matrix)
+  
+  # setting signature weights using raw weights will reproduce the same 
+  # relative biological weights and trinuc_rates for non-mean-blended samples
+  cesa@trinucleotide_mutation_weights = list()
+  raw_weight_input = prev_raw_sig[, .SD, .SDcols = patterns("(SBS)|(Uni)")]
+  cesa3 = set_signature_weights(cesa, signature_set = "COSMIC_v3.1", weights = raw_weight_input)
+  which_pure = prev_relative_bio_sig[group_avg_blended == F, which = T]
+  all.equal(cesa3@trinucleotide_mutation_weights$signature_weight_table[which_pure, -c("sig_extraction_snvs", "group_avg_blended")],
+            prev_relative_bio_sig[which_pure, -c("sig_extraction_snvs", "group_avg_blended")])
+  all.equal(cesa3@trinucleotide_mutation_weights$signature_weight_table_with_artifacts[,  .SD, .SDcols = patterns("(SBS)|(Uni)")],
+            raw_weight_input, ignore.row.order = T)
+  all.equal(cesa3@trinucleotide_mutation_weights$trinuc_proportion_matrix[which_pure,],
+            prev_rates_matrix[which_pure, ])
 })
