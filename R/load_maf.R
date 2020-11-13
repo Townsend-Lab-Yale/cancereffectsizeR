@@ -56,7 +56,6 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     preload_ref_data(cesa@ref_data_dir)
   }
   bsg = get_cesa_bsg(cesa)
-  genome_info = GenomeInfoDb::seqinfo(bsg)
   
   # validate chain_file (presence means liftOver must run)
   need_to_liftOver = FALSE
@@ -443,7 +442,7 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
   }
   
   # discard any records with chromosomes not present in reference
-  illegal_chroms = maf[! Chromosome %in% GenomeInfoDb::seqlevels(genome_info), unique(Chromosome)]
+  illegal_chroms = maf[! Chromosome %in% GenomeInfoDb::seqlevels(bsg), unique(Chromosome)]
   if (length(illegal_chroms) > 0) {
     has_bad_chr = maf$Chromosome %in% illegal_chroms
     bad_chr_maf = maf[has_bad_chr]
@@ -489,7 +488,7 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     num_uncovered = 0
   } else {
     maf_grange = GenomicRanges::makeGRangesFromDataFrame(maf, seqnames.field = "Chromosome", start.field = "Start_Position", 
-                                                         end.field = "Start_Position", seqinfo = genome_info)
+                                                         end.field = "Start_Position")
     
     # In an "exome+" data set, compare coverage to default exome instead of whatever the current exome+ intervals are
     if (covered_regions_name == "exome+") {

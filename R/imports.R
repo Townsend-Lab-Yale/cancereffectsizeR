@@ -1,4 +1,6 @@
 #' @import data.table
+#' @import GenomeInfoDb
+#' @import BSgenome
 .datatable.aware=TRUE
 .ces_ref_data = new.env()
 

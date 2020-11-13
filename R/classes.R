@@ -83,7 +83,7 @@ setMethod("$", "CESAnalysis",
 
 setMethod("show", "CESAnalysis", 
   function(object) {
-    genome_name = BSgenome::providerVersion(get_cesa_bsg(object))
+    genome_name = S4Vectors::metadata(get_cesa_bsg(object))$genome
     cat("CESAnalysis of ", genome_name, " data\n", sep = "")
     cat("Reference data set: ", object@ref_key, "\n", sep = "")
     if (length(object@groups) > 1) {

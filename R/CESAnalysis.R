@@ -93,7 +93,7 @@ CESAnalysis = function(ref_set = "ces_hg19_v1", sample_groups = NULL) {
   cesa = update_cesa_history(cesa, match.call())
   
   msg = paste0("This CESAnalysis will use ", ref_set_name, " reference data and the ", tolower(BSgenome::commonName(bsg)),
-               " genome, assembly ", BSgenome::providerVersion(bsg), '.')
+               " genome, assembly ", S4Vectors::metadata(bsg)$genome, '.')
   pretty_message(msg)
   return(cesa)
 }
