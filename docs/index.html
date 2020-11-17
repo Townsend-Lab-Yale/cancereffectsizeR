@@ -20,7 +20,7 @@
 <script src="pkgdown.js"></script><!-- docsearch --><script src="docsearch.js"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/docsearch.js/2.6.3/docsearch.min.css" integrity="sha256-QOSRU/ra9ActyXkIBbiIB144aDBdtvXBcNc3OTNuX/Q=" crossorigin="anonymous">
 <link href="docsearch.css" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/jquery.mark.min.js" integrity="sha256-4HLtjeVgH0eIB3aZ9mLYF6E8oU5chNdjU6p6rrXpl9U=" crossorigin="anonymous"></script><meta property="og:title" content="Calculate Cancer Effect Size">
-<meta property="og:description" content="cancereffectsizeR, an R package from the Townsend Lab at Yale School of Public Health for calculating the effect size of somatic mutations in cancer
+<meta property="og:description" content="cancereffectsizeR, an R package from the Townsend Lab at Yale School of Public Health for quantifying the effect size of somatic mutations in cancer
 ">
 <meta property="og:image" content="https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/logo.png">
 <!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" integrity="sha256-nvJJv9wWKEm88qvoQl9ekL2J+k/RWIsaSScxxlsrv8k=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/config/TeX-AMS-MML_HTMLorMML.js" integrity="sha256-84DKXVJXs0/F8OTMzX4UR909+jtl4G7SPypPavF+GfA=" crossorigin="anonymous"></script><!--[if lt IE 9]>
@@ -97,16 +97,28 @@
 
       </header><div class="row">
   <div class="contents col-md-9">
-<div id="welcome-to-cancereffectsizer-townsend-lab-yale-school-of-public-health" class="section level1">
+<div id="cancereffectsizer-townsend-lab-yale-school-of-public-health" class="section level1">
 <div class="page-header"><h1 class="hasAnchor">
-<a href="#welcome-to-cancereffectsizer-townsend-lab-yale-school-of-public-health" class="anchor"></a><span style="color:#224570;font-size:115%">Welcome to <em>cancereffectsizeR</em></span><br><span style="font-size:65%; color:#224570">Townsend Lab, Yale School of Public Health</span>
+<a href="#cancereffectsizer-townsend-lab-yale-school-of-public-health" class="anchor"></a><span style="color:#224570;font-size:115%"><em>cancereffectsizeR</em></span><br><span style="font-size:65%; color:#224570">Townsend Lab, Yale School of Public Health</span>
 </h1></div>
-<p>cancereffectsizeR quantifies somatic selection for single-nucleotide variants in cancer cell lineages from tumor sequencing data. The package offers a straightforward, intuitive analytical framework that can be flexibly extended for customized analyses.</p>
-<p>For an overview of core features, see <a href="articles/cancereffectsizeR.html">Get Started</a>. Briefly, trinucleotide-context-specific SNV mutation rates are calculated by extracting mutational signatures from each tumor’s SNV mutation profile using <a href="https://github.com/raerose01/deconstructSigs">deconstructSigs</a>. Cohort-wide neutral gene mutation rates are calculated using <a href="https://github.com/im3sanger/dndscv">dNdScv</a>, with support for tissue-specific covariates. (Covariates data are included in cancereffectsizeR for many tissue types, and user-supplied covariates are also supported.) Combining this information, the rate of neutral mutation at a particular variant site in a tumor is the context-specific mutation rate normalized by the gene mutation rate. By comparing the observed frequency of variants with their expected frequencies, cancereffectsizeR infers selection intensities.</p>
+<div id="welcome" class="section level2">
+<h2 class="hasAnchor">
+<a href="#welcome" class="anchor"></a>Welcome</h2>
+<p>cancereffectsizeR aims to provide an intuitive and comprehensive set of tools to quantify the effects of somatic variants on cancer progression. Throughout the package, methods are designed to support as little or as much customization as you like:</p>
+<ul>
+<li>Annotate variants with built-in reference data, or create a custom reference data set for any genome build.</li>
+<li>Identify mutational processes in groups of samples by extracting COSMIC signatures, or any custom set of signature definitions</li>
+<li>Use cancereffectsizeR’s tissue-specific covariates to inform calculation of gene mutation rates (via <a href="https://github.com/im3sanger/dndscv">dNdScv</a>), or supply your own covariates.</li>
+<li>Test single-variant, stage/grade-specific, and epistatic models of selection, or define and test your own models.</li>
+<li>Arbitrarily batch variants by position, gene, or functional annotation, and quantify selection by batch.</li>
+</ul>
+<p>For an extended tutorial, see <a href="articles/cancereffectsizeR.html">Get Started</a>. Briefly, mutational signatures are extracted from each tumor’s SNV mutation profile using <a href="https://github.com/raerose01/deconstructSigs">deconstructSigs</a>. The relative weights of biologically associated signatures are used to infer trinucleotide-context-specific relative rates of SNV mutations for each sample. Cohort-wide neutral gene mutation rates are calculated by calling <a href="https://github.com/im3sanger/dndscv">dNdScv</a>, ideally with tissue-specific covariates (included with cancereffectsizeR for many tissue types). Combining this information, the rate of neutral mutation at a particular variant site in a tumor is the context-specific mutation rate normalized by the gene mutation rate. Comparing rates of observed and expected mutation under a model of somatic selection allows an inference of selection intensity, which we also call cancer effect size.</p>
+<p>Currently, cancereffectsizeR directly supports analysis of both noncoding and amino-acid-changing SNVs. Current methods provide some insight into interactions with other types of selection; for example, samples could be grouped by copy number status (or any other feature of interest) and assessed for differential SNV selection. We plan to extend cancereffectsizeR’s functionality as we continue development, and we welcome your feedback, ideas, and bug reports.</p>
+</div>
 <div id="installation" class="section level2">
 <h2 class="hasAnchor">
 <a href="#installation" class="anchor"></a>Installation</h2>
-<p>cancereffectsizeR requires R 3.5 or later and can be installed from its GitHub repository via the remotes package. Since we’re not able to test all possible installation environments, please help by letting us know if you have any installation problems.</p>
+<p>cancereffectsizeR requires R 3.5 or later and can be installed from its GitHub repository via the remotes package. Since we’re not able to test all installation environments, please help by letting us know if you have any installation problems.</p>
 <div id="r-40-and-later" class="section level4">
 <h4 class="hasAnchor">
 <a href="#r-40-and-later" class="anchor"></a>R 4.0 and later</h4>

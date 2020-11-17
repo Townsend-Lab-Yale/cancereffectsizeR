@@ -2,7 +2,7 @@
 cesa = load_cesa(get_test_file("annotated_fruit_cesa.rds"))
 trinuc_rates = fread(get_test_file("luad_hg19_trinuc_rates.txt"))
 cesa = set_trinuc_rates(cesa, trinuc_rates = trinuc_rates)
-sig_weights = fread(get_test_file("luad_hg19_sig_table.txt"))
+sig_weights = fread(get_test_file("luad_hg19_sig_table_biological.txt"))
 cesa@trinucleotide_mutation_weights$signature_weight_table = sig_weights
 cesa@advanced$snv_signatures = get_ces_signature_set("ces_hg19_v1", "COSMIC_v3.1")
 

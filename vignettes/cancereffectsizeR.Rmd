@@ -6,18 +6,18 @@ Once you have installed cancereffectsizeR, you need a somatic mutation text file
 
 
 ### MAF pre-processing
-You want to be confident that the mutations in your MAF file are real. It's hard to give detailed variant filtering advice because so much depends on the quality of the somatic variant calling pipeline used to produce the file. If your pipeline is excellent or your file has been curated by a group like TCGA, then perhaps no filtering is necessary. If you're unsure, here are a few tips:
+You want to be confident that the mutations in your MAF file are real. The presence of sequencing or calling error in your data will depend on your data sources and the quality of your pipeline, but here are a few suggestions:
 
 * There should be few to no mutations called at SNP sites, or at sites where population databases show frequent variation.
-* There should be few to no mutations in repetitive or poorly mapped regions of the genome, as mutations in these sites are difficult to call confidently and should be rare anyways since these regions are usually not functionally important at the small-variant level.
-* If you have samples from different sources, check if there are recurrent mutations exclusive to each group. Or, if a large public data set is available, check if your samples have recurrent mutations absent from the public data. If a group has several mutations shared by multiple samples that don't appear anywhere else--especially if they're in unknown genes, absent from a large reference data set, and/or were all sequenced and processed together--be suspicious of the data quality.
+* There should be few to no mutations in repetitive or poorly mapped regions of the genome, as mutations in these sites are difficult to call confidently and should be rare anyways since these regions are usually not functionally important at the small-variant level. Consider filtering out all variants at sites marked repetitive by RepeatMasker; this information is available on the UCSC Genome Browser.
+* If you have samples from different sources, check if there are recurrent mutations exclusive to each group. Or, if a large public data set is available, check if your samples have recurrent mutations absent from the public data. If a group has several mutations shared by multiple samples that don't appear anywhere else--especially if they're in unknown genes, absent from a large reference data set, and/or were all sequenced and processed together--consider the possibility of calling error or sample contamination. If any pairs of samples between groups share multiple mutations, consider the possibility of sample re-use.
 
-Once you have a high-confidence set of variants, **do not** filter out records based on silent mutation status or other functional criteria. cancereffectsizeR needs the full set of high-confidence mutations from all samples. (Exception: As cancereffectsizeR currently only fully analyzes single-nucleotide variants, it's fine to filter out indels.)
+Once you have a high-confidence set of variants, **do not** filter out records based on silent mutation status or other functional criteria. cancereffectsizeR needs the full set of high-confidence mutations from all samples. (Exception: As cancereffectsizeR currently only analyzes single-nucleotide variants, it's fine to filter out indels, but be aware of the potential for confusion if some samples have indels removed and some don't.)
 
 
 ### Create CESAnalysis
 Begin by declaring your CESAnalysis object, the primary data structure of cancereffectsizeR. A CESAnalysis always
-has associated reference data. Optionally, you can also define sample groupings for the data that will be loaded.
+has associated reference data. Optionally, you can also define a set of sample groupings, if you want to be able to run future steps with different parameter choices for each group of samples. For example, if you will want to calculate gene mutation rates separately sample subsetsz A and B, and run signature analysis separately for subsets 1, 2, 3, then you may need to define six groups to account for all combinations: A1, A2, A3, B1, B2, B3.
 ```R
   # Standard CESAnalysis with built-in reference data
   cesa = CESAnalysis(ref_set = "ces_hg19_v1")
@@ -25,8 +25,8 @@ has associated reference data. Optionally, you can also define sample groupings 
   # Same, but with pre-defined sample groups (specific to the data/experiment)
   cesa = CESAnalysis(ref_set = "ces_hg19_v1", sample_groups = c("smoking", "nonsmoking"))
   
-  # Same, but with sample groups that arguably have an evolutionary ordering, 
-  # suppliedin proper order for analyses that take ordering into account. 
+  # Same, but with sample groups that arguably have an evolutionary ordering. The order
+  # used to define sample_groups doesn't matter; you'll specify the order later.
   # (Keep in mind that only 1 sample per individual can be included in analysis.)
   cesa = CESAnalysis(ref_set = "ces_hg19_v1", sample_groups = c("early", "stage3", "stage4"))
   
@@ -37,7 +37,7 @@ Note: Currently, there is built-in reference data for hg19, which may be updated
 Next, use `load_maf()` to load [MAF](https://docs.gdc.cancer.gov/Data/File_Formats/MAF_Format/#gdc-maf-format-v100) data from a text file or a data table into a CESAnalysis object. If column names don't match MAF format specifications, you can supply your own column names. The only required columns are those specifying chromosome, position, reference and tumor alleles, and sample ID (Tumor_Sample_Barcode, by default); any other columns in your data will be ignored. If your CESAnalyses specifies sample groups (see Create CESAnalysis, above), also specify `group_col`.
 
 #### Sequencing data coverage
-By default, data is assumed to be derived from whole-exome sequencing. Whole-genome data and targeted sequencing data are also supported when the `coverage` option is specified. For targeted sequencing data, you must provide the set of target regions as a BED file or GRanges object. You can (and should) also supply this information for exome data, if you have it available. See `load_maf()` for details.
+By default, data is assumed to be derived from whole-exome sequencing. Whole-genome data and targeted sequencing data are also supported when the `coverage` option is specified. For targeted sequencing data, you must provide the set of target regions as a BED file or GRanges object. You can (and should) also supply this information for exome data, if you have it available. See ?load_maf() for details.
 
 #### LiftOver support
 If the MAF data you are loading is from a different genome build than your CESAnalysis, you can use the `chain_file` option to supply a UCSC-style chain file, and then your MAF coordinates will be automatically converted with liftOver.
@@ -63,8 +63,8 @@ If the MAF data you are loading is from a different genome build than your CESAn
   # Create a CESAnalysis with samples divided into tumor stage groups
   cesa = CESAnalysis(ref_set = "ces_hg19_v1", sample_groups = 1:4)
   
-  # Load exome data with known target regions, and (based on knowledge of variant calling methods),
-  # supply some interval padding to variants within 100bp of covered intervals
+  # Load exome data with known target regions (should be available whenever the exome capture kit is known)
+  # Also supplying some interval padding to allow variant calls with 100bp of the covered intervals.
   cesa = load_maf(cesa, maf = "my_multistage.maf", group_col = "stage",
                   coverage = "exome", covered_regions = "my_exome_targets.bed", 
                   covered_regions_name = "my_exome", covered_regions_padding = 100)
@@ -72,42 +72,43 @@ If the MAF data you are loading is from a different genome build than your CESAn
 
 
 ### Calculate mutation rates and estimate selection
-After loading in data, run the following functions to prepare for calculation of cancer effect size. See function reference for details.
+After loading in data, run the following functions to prepare for calculation of cancer effect size. See each function's documentation for details.
 
-* `trinuc_mutation_rates()` uses deconstructSigs to extract mutational signature weightings from each tumor's SNV mutation profile, and from there calculates trinucleotide-context-specific SNV mutation rates. See also `vignette("cosmic_cancer_type_note")` for advice on excluding certain signatures that may be presumed absent from your tumors.
+* `trinuc_mutation_rates()` uses deconstructSigs to extract mutational signature weightings from each tumor's SNV mutation profile, and from there calculates trinucleotide-context-specific SNV mutation rates. See also `vignette("cosmic_cancer_type_note")` for advice on excluding certain signatures that may be presumed absent from your tumors. 
 * `gene_mutation_rates()` uses dNdScv to calculate gene-level mutation rates. It's highly recommended to supply tissue-specific covariate data if available. Covariates for many human tissue types are included with this package. Default hg19 covariates from dNdScv are also available.
 
-Finally, use `ces_variant()` to find calculate effect size.
+If you have defined `sample_groups` in your CESAnalysis, you can call each of these functions multiple times, specifying one more sample groups per run. Once all rates have been calculated, you are ready to run `ces_variant()` to find effect sizes.
 
 ```
-  # Create CESAnalysis object and define the chronological tumor progression states
+  # Create CESAnalysis object and define chronological tumor progression states
   analysis = CESAnalysis(ref_set = "ces_hg19_v1", sample_groups = c("Primary", "Metastatic"))
   analysis = load_maf(analysis, maf = "luad_data.maf", group_col = "pri_met")
   
   # Before running trinuc_mutation_rates, which includes a mutational signature analysis,
   # you can run this function to identify possible signatures to exclude. It's recommended
-  # to manually review the suggestions and decide which signatures to exclude. While this
-  # step is likely to make signature extraction more accurate, it's probably safe to
-  # skip this step if you're uncertain.
+  # to manually review the suggestions and decide which signatures to exclude.
   #
   # Here, we decide to accept all suggestions, so we assign the output of the function
-  # (a vector of signatures to exclude) to the to_remove variable.
+  # (a vector of signatures to exclude) to to_remove.
   to_remove = suggest_cosmic_signatures_to_remove(cancer_type = "LUAD", treatment_naive = T)
   
+  
   analysis = trinuc_mutation_rates(analysis, signature_set = "COSMIC_v3.1", signatures_to_remove = to_remove)
-  analysis = gene_mutation_rates(analysis, covariates = "lung")
   
+  # calculate neutral gene mutation rates within groups, since group differences are likely
+  analysis = gene_mutation_rates(analysis, covariates = "lung", sample_group = "Primary")
+  analysis = gene_mutation_rates(analysis, covariates = "lung", sample_group = "Metastatic")
   
-  # Calculate selection intensities
+  # Calculate selection intensities (by default, on all variants with sample frequency > 1)
   analysis = ces_variant(analysis)
 ```
 
 #### Note on parallel processing
 If you are running in a MacOS or Linux environment, you can speed up processing by providing multiple computing cores using the "cores" argument. Run `parallel::detectCores()` to find out how many cores you have available. (On a personal computer, you'll often get faster runtimes when you leave a core or two free
-for background task.)
+for background tasks.)
 ```R
   # assuming you've already loaded MAF data into object "cesa"
   cesa = trinuc_mutation_rates(cesa, signature_set = "COSMIC_v3.1", cores = 4)
   cesa = gene_mutation_rates(cesa, covariates = "breast")
-  cesa = ces_variant(cesa, cores = 4)
+  cesa = ces_variant(cesa, variants = select_variants(cesa, min_freq = 1), cores = 4)
 ```

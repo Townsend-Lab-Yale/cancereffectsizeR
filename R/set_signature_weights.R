@@ -66,6 +66,11 @@ set_signature_weights = function(cesa, signature_set, weights, ignore_extra_samp
     stop("Input weights table has repeated column names.")
   }
   
+  if (all(c("total_snvs", "sig_extraction_snvs", "group_avg_blended") %in% colnames(weights))) {
+    message("It looks like the input table came from a previous CES run. Meta columns like total_snvs will be dropped and regenerated.")
+    weights = weights[, -c("total_snvs", "sig_extraction_snvs", "group_avg_blended")]
+  }
+  
   # validate weights
   signature_names = rownames(signatures)
   if (! identical(sort(c(signature_names, "Unique_Patient_Identifier")), sort(colnames(weights)))) {
@@ -95,8 +100,7 @@ set_signature_weights = function(cesa, signature_set, weights, ignore_extra_samp
   }
   
   # subset to CESAnalysis samples
-  weights = weights[cesa@samples$Unique_Patient_Identifier, on = "Unique_Patient_Identifier"]
-  
+  weights = weights[Unique_Patient_Identifier %in% cesa@samples$Unique_Patient_Identifier]
   
   if(anyNA(weights)) {
     stop("There are NA values in the input weights table.")
@@ -127,7 +131,8 @@ set_signature_weights = function(cesa, signature_set, weights, ignore_extra_samp
               paste(bio_weights[zeroed_out_index, Unique_Patient_Identifier], collapse = ", "), ".")
     }
     bio_weights[zeroed_out_index, adjust := 1]
-    bio_weights[! zeroed_out_index, adjust := sum(.SD)/initial_weight_sum, by = "Unique_Patient_Identifier", .SDcols = signature_names]
+    not_zeroed_out = setdiff(1:nrow(bio_weights), zeroed_out_index)
+    bio_weights[not_zeroed_out, adjust := sum(.SD)/initial_weight_sum, by = "Unique_Patient_Identifier", .SDcols = signature_names]
     bio_weights[, (signature_names) := lapply(.SD, `/`, adjust), .SDcols = signature_names]
     bio_weights[, c("initial_weight_sum", "adjust") := NULL]
   }

@@ -27,19 +27,20 @@ reference:
   - define_compound_variants
   - CompoundVariantSet
 - title: Trinucleotide signatures and rates
-  desc: Mutational signature extraction and inference of relative trinucleotide-context-specific SNV mutation rates
+  desc: Mutational signature extraction and inference of context-specific SNV mutation rates
   contents:
   - trinuc_mutation_rates
   - suggest_cosmic_signatures_to_remove
-  - assign_group_average_trinuc_rates
+  - set_signature_weights
   - set_trinuc_rates
+  - assign_group_average_trinuc_rates
 - title: Gene mutation rates
   desc: Calculate neutral gene mutation rates
   contents:
   - gene_mutation_rates
   - set_gene_rates
-- title: Cancer effect size inference
-  desc: Calculate selection under models of single-variant or epistatic selection
+- title: Cancer variant effect sizes
+  desc: Quantify selection for variants under models of single-variant or epistatic selection
   contents:
   - ces_variant
   - ces_epistasis
@@ -78,7 +79,7 @@ reference:
 home:
   description: >
       cancereffectsizeR, an R package from the Townsend Lab at Yale School of Public Health
-      for calculating the effect size of somatic mutations in cancer
+      for quantifying the effect size of somatic mutations in cancer
   links:
   - text: Visit the Townsend Lab
     href: https://medicine.yale.edu/lab/townsend/

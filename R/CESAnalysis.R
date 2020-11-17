@@ -46,7 +46,11 @@ CESAnalysis = function(ref_set = "ces_hg19_v1", sample_groups = NULL) {
   
   # preload some reference data, which will get stored in the .ces_ref_data env under ref_set_name
   preload_ref_data(data_dir)
-  bsg = .ces_ref_data[[ref_set_name]]$genome
+  
+  genome_info = get_ref_data(data_dir, "genome_build_info")
+  bsg = BSgenome::getBSgenome(genome_info$BSgenome)
+  GenomeInfoDb::seqlevelsStyle(bsg) = "NCBI"
+  .ces_ref_data[[ref_set_name]][["genome"]] = bsg
   
   # Validate sample_groups
   if (is.null(sample_groups)) {
@@ -69,9 +73,6 @@ CESAnalysis = function(ref_set = "ces_hg19_v1", sample_groups = NULL) {
     stop("Invalid sample group names. Start with a letter/number and use only letters, numbers, '-', '_', '.'.")
   }
     
-    
-    
-    
   # advanced is a grab bag of additional stuff to keep track of
   ## annotated: whether loaded MAF records are annotated
   ## using_exome_plus: whether previously loaded and any future generic exome data uses the "exome+" coverage option 
@@ -81,19 +82,20 @@ CESAnalysis = function(ref_set = "ces_hg19_v1", sample_groups = NULL) {
   ## trinuc_done: have all trinuc mutation rates been calculated?
   ## gene_rates_done: have all samples been through gene_mutation_rates?
   ## uid: a unique-enough identifier for the CESAnalysis (just uses epoch time)
+  ## genome_info: environment with stuff like genome build name, species, name of associated BSgenome
   ces_version = packageVersion("cancereffectsizeR")
   advanced = list("version" = ces_version, annotated = F, using_exome_plus = F, 
                   recording = T, locked = F, trinuc_done = F, gene_rates_done = F,
-                  uid = unclass(Sys.time()))
+                  uid = unclass(Sys.time()), genome_info = genome_info)
   cesa = new("CESAnalysis", run_history = character(),  ref_key = ref_set_name, maf = data.table(), excluded = data.table(),
              groups = sample_groups, mutrates = data.table(),
              selection_results = list(), ref_data_dir = data_dir,
              advanced = advanced, samples = data.table(), mutations = list())
   cesa@run_history = c(paste0("[Version: cancereffectsizeR ", ces_version, "]" ))
   cesa = update_cesa_history(cesa, match.call())
-  
-  msg = paste0("This CESAnalysis will use ", ref_set_name, " reference data and the ", tolower(BSgenome::commonName(bsg)),
-               " genome, assembly ", S4Vectors::metadata(bsg)$genome, '.')
+
+  msg = paste0("This CESAnalysis will use ", ref_set_name, " reference data and the ", genome_info$species,
+               " genome, assembly ", genome_info$build_name, '.')
   pretty_message(msg)
   return(cesa)
 }
@@ -180,6 +182,7 @@ load_cesa = function(file) {
     preload_ref_data(cesa@ref_data_dir)
   }
   
+  
   # Allow back-compatibility with column name changes
   if(! is.null(cesa@mutations$amino_acid_change)) {
     setnames(cesa@mutations$amino_acid_change, 'all_snv_ids', 'constituent_snvs', skip_absent = T)
@@ -194,6 +197,9 @@ load_cesa = function(file) {
     cesa@maf[variant_type == "SNV", variant_type := "snv"]
   }
   
+  if (! "genome_info" %in% names(cesa@advanced)) {
+    cesa@advanced$genome_info = get_ref_data(cesa, "genome_build_info")
+  }
   current_version = packageVersion("cancereffectsizeR")
   previous_version = cesa@advanced$version
   if (as.character(current_version) != as.character(previous_version)) {

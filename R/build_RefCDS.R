@@ -134,7 +134,8 @@ build_RefCDS = function(gtf, genome, output_by = "gene", cds_ranges_lack_stop_co
   
   to_check[strand == "+", c("codon_start", "codon_end") := list(end - 2, end)]
   to_check[strand == "-", c("codon_start", "codon_end") := list(start, start + 2)]
-  final_codon_gr = GenomicRanges::makeGRangesFromDataFrame(to_check[, .(chr = seqnames, start = codon_start, end = codon_end, strand)])
+  final_codon_gr = GenomicRanges::makeGRangesFromDataFrame(to_check[, .(chr = seqnames, start = codon_start, end = codon_end, strand)],
+                                                           seqinfo = seqinfo(bsg))
   seqs_to_check = BSgenome::getSeq(bsg, final_codon_gr)
   last_codons = Biostrings::translate(seqs_to_check, no.init.codon = T, if.fuzzy.codon = "X") # avoid errors on Ns
   frac_stop = mean(last_codons == "*")

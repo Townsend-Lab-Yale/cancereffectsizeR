@@ -94,7 +94,8 @@
 
       
 
-      </header><script src="cancereffectsizeR_files/header-attrs-2.2/header-attrs.js"></script><div class="row">
+      </header><script src="cancereffectsizeR_files/accessible-code-block-0.0.1/empty-anchor.js"></script><link href="cancereffectsizeR_files/anchor-sections-1.0/anchor-sections.css" rel="stylesheet">
+<script src="cancereffectsizeR_files/anchor-sections-1.0/anchor-sections.js"></script><div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>Getting started</h1>
@@ -111,26 +112,26 @@
 <div id="maf-pre-processing" class="section level3">
 <h3 class="hasAnchor">
 <a href="#maf-pre-processing" class="anchor"></a>MAF pre-processing</h3>
-<p>You want to be confident that the mutations in your MAF file are real. It’s hard to give detailed variant filtering advice because so much depends on the quality of the somatic variant calling pipeline used to produce the file. If your pipeline is excellent or your file has been curated by a group like TCGA, then perhaps no filtering is necessary. If you’re unsure, here are a few tips:</p>
+<p>You want to be confident that the mutations in your MAF file are real. The presence of sequencing or calling error in your data will depend on your data sources and the quality of your pipeline, but here are a few suggestions:</p>
 <ul>
 <li>There should be few to no mutations called at SNP sites, or at sites where population databases show frequent variation.</li>
-<li>There should be few to no mutations in repetitive or poorly mapped regions of the genome, as mutations in these sites are difficult to call confidently and should be rare anyways since these regions are usually not functionally important at the small-variant level.</li>
-<li>If you have samples from different sources, check if there are recurrent mutations exclusive to each group. Or, if a large public data set is available, check if your samples have recurrent mutations absent from the public data. If a group has several mutations shared by multiple samples that don’t appear anywhere else–especially if they’re in unknown genes, absent from a large reference data set, and/or were all sequenced and processed together–be suspicious of the data quality.</li>
+<li>There should be few to no mutations in repetitive or poorly mapped regions of the genome, as mutations in these sites are difficult to call confidently and should be rare anyways since these regions are usually not functionally important at the small-variant level. Consider filtering out all variants at sites marked repetitive by RepeatMasker; this information is available on the UCSC Genome Browser.</li>
+<li>If you have samples from different sources, check if there are recurrent mutations exclusive to each group. Or, if a large public data set is available, check if your samples have recurrent mutations absent from the public data. If a group has several mutations shared by multiple samples that don’t appear anywhere else–especially if they’re in unknown genes, absent from a large reference data set, and/or were all sequenced and processed together–consider the possibility of calling error or sample contamination. If any pairs of samples between groups share multiple mutations, consider the possibility of sample re-use.</li>
 </ul>
-<p>Once you have a high-confidence set of variants, <strong>do not</strong> filter out records based on silent mutation status or other functional criteria. cancereffectsizeR needs the full set of high-confidence mutations from all samples. (Exception: As cancereffectsizeR currently only fully analyzes single-nucleotide variants, it’s fine to filter out indels.)</p>
+<p>Once you have a high-confidence set of variants, <strong>do not</strong> filter out records based on silent mutation status or other functional criteria. cancereffectsizeR needs the full set of high-confidence mutations from all samples. (Exception: As cancereffectsizeR currently only analyzes single-nucleotide variants, it’s fine to filter out indels, but be aware of the potential for confusion if some samples have indels removed and some don’t.)</p>
 </div>
 <div id="create-cesanalysis" class="section level3">
 <h3 class="hasAnchor">
 <a href="#create-cesanalysis" class="anchor"></a>Create CESAnalysis</h3>
-<p>Begin by declaring your CESAnalysis object, the primary data structure of cancereffectsizeR. A CESAnalysis always has associated reference data. Optionally, you can also define sample groupings for the data that will be loaded.</p>
+<p>Begin by declaring your CESAnalysis object, the primary data structure of cancereffectsizeR. A CESAnalysis always has associated reference data. Optionally, you can also define a set of sample groupings, if you want to be able to run future steps with different parameter choices for each group of samples. For example, if you will want to calculate gene mutation rates separately sample subsetsz A and B, and run signature analysis separately for subsets 1, 2, 3, then you may need to define six groups to account for all combinations: A1, A2, A3, B1, B2, B3.</p>
 <div class="sourceCode" id="cb1"><html><body><pre class="r">  <span class="co"># Standard CESAnalysis with built-in reference data</span>
   <span class="no">cesa</span> <span class="kw">=</span> <span class="fu"><a href="../reference/CESAnalysis.html">CESAnalysis</a></span>(<span class="kw">ref_set</span> <span class="kw">=</span> <span class="st">"ces_hg19_v1"</span>)
 
   <span class="co"># Same, but with pre-defined sample groups (specific to the data/experiment)</span>
   <span class="no">cesa</span> <span class="kw">=</span> <span class="fu"><a href="../reference/CESAnalysis.html">CESAnalysis</a></span>(<span class="kw">ref_set</span> <span class="kw">=</span> <span class="st">"ces_hg19_v1"</span>, <span class="kw">sample_groups</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">"smoking"</span>, <span class="st">"nonsmoking"</span>))
 
-  <span class="co"># Same, but with sample groups that arguably have an evolutionary ordering, </span>
-  <span class="co"># suppliedin proper order for analyses that take ordering into account. </span>
+  <span class="co"># Same, but with sample groups that arguably have an evolutionary ordering. The order</span>
+  <span class="co"># used to define sample_groups doesn't matter; you'll specify the order later.</span>
   <span class="co"># (Keep in mind that only 1 sample per individual can be included in analysis.)</span>
   <span class="no">cesa</span> <span class="kw">=</span> <span class="fu"><a href="../reference/CESAnalysis.html">CESAnalysis</a></span>(<span class="kw">ref_set</span> <span class="kw">=</span> <span class="st">"ces_hg19_v1"</span>, <span class="kw">sample_groups</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">"early"</span>, <span class="st">"stage3"</span>, <span class="st">"stage4"</span>))</pre></body></html></div>
 <p>Note: Currently, there is built-in reference data for hg19, which may be updated periodically. Detailed instructions are coming soon for generating custom reference data for any genome.</p>
@@ -142,7 +143,7 @@
 <div id="sequencing-data-coverage" class="section level4">
 <h4 class="hasAnchor">
 <a href="#sequencing-data-coverage" class="anchor"></a>Sequencing data coverage</h4>
-<p>By default, data is assumed to be derived from whole-exome sequencing. Whole-genome data and targeted sequencing data are also supported when the <code>coverage</code> option is specified. For targeted sequencing data, you must provide the set of target regions as a BED file or GRanges object. You can (and should) also supply this information for exome data, if you have it available. See <code><a href="../reference/load_maf.html">load_maf()</a></code> for details.</p>
+<p>By default, data is assumed to be derived from whole-exome sequencing. Whole-genome data and targeted sequencing data are also supported when the <code>coverage</code> option is specified. For targeted sequencing data, you must provide the set of target regions as a BED file or GRanges object. You can (and should) also supply this information for exome data, if you have it available. See ?load_maf() for details.</p>
 </div>
 <div id="liftover-support" class="section level4">
 <h4 class="hasAnchor">
@@ -170,8 +171,8 @@
   <span class="co"># Create a CESAnalysis with samples divided into tumor stage groups</span>
   <span class="no">cesa</span> <span class="kw">=</span> <span class="fu"><a href="../reference/CESAnalysis.html">CESAnalysis</a></span>(<span class="kw">ref_set</span> <span class="kw">=</span> <span class="st">"ces_hg19_v1"</span>, <span class="kw">sample_groups</span> <span class="kw">=</span> <span class="fl">1</span>:<span class="fl">4</span>)
 
-  <span class="co"># Load exome data with known target regions, and (based on knowledge of variant calling methods),</span>
-  <span class="co"># supply some interval padding to variants within 100bp of covered intervals</span>
+  <span class="co"># Load exome data with known target regions (should be available whenever the exome capture kit is known)</span>
+  <span class="co"># Also supplying some interval padding to allow variant calls with 100bp of the covered intervals.</span>
   <span class="no">cesa</span> <span class="kw">=</span> <span class="fu"><a href="../reference/load_maf.html">load_maf</a></span>(<span class="no">cesa</span>, <span class="kw">maf</span> <span class="kw">=</span> <span class="st">"my_multistage.maf"</span>, <span class="kw">group_col</span> <span class="kw">=</span> <span class="st">"stage"</span>,
                   <span class="kw">coverage</span> <span class="kw">=</span> <span class="st">"exome"</span>, <span class="kw">covered_regions</span> <span class="kw">=</span> <span class="st">"my_exome_targets.bed"</span>,
                   <span class="kw">covered_regions_name</span> <span class="kw">=</span> <span class="st">"my_exome"</span>, <span class="kw">covered_regions_padding</span> <span class="kw">=</span> <span class="fl">100</span>)</pre></body></html></div>
@@ -180,42 +181,43 @@
 <div id="calculate-mutation-rates-and-estimate-selection" class="section level3">
 <h3 class="hasAnchor">
 <a href="#calculate-mutation-rates-and-estimate-selection" class="anchor"></a>Calculate mutation rates and estimate selection</h3>
-<p>After loading in data, run the following functions to prepare for calculation of cancer effect size. See function reference for details.</p>
+<p>After loading in data, run the following functions to prepare for calculation of cancer effect size. See each function’s documentation for details.</p>
 <ul>
 <li>
 <code><a href="../reference/trinuc_mutation_rates.html">trinuc_mutation_rates()</a></code> uses deconstructSigs to extract mutational signature weightings from each tumor’s SNV mutation profile, and from there calculates trinucleotide-context-specific SNV mutation rates. See also <code><a href="../articles/cosmic_cancer_type_note.html">vignette("cosmic_cancer_type_note")</a></code> for advice on excluding certain signatures that may be presumed absent from your tumors.</li>
 <li>
 <code><a href="../reference/gene_mutation_rates.html">gene_mutation_rates()</a></code> uses dNdScv to calculate gene-level mutation rates. It’s highly recommended to supply tissue-specific covariate data if available. Covariates for many human tissue types are included with this package. Default hg19 covariates from dNdScv are also available.</li>
 </ul>
-<p>Finally, use <code><a href="../reference/ces_variant.html">ces_variant()</a></code> to find calculate effect size.</p>
-<pre><code>  # Create CESAnalysis object and define the chronological tumor progression states
+<p>If you have defined <code>sample_groups</code> in your CESAnalysis, you can call each of these functions multiple times, specifying one more sample groups per run. Once all rates have been calculated, you are ready to run <code><a href="../reference/ces_variant.html">ces_variant()</a></code> to find effect sizes.</p>
+<pre><code>  # Create CESAnalysis object and define chronological tumor progression states
   analysis = CESAnalysis(ref_set = "ces_hg19_v1", sample_groups = c("Primary", "Metastatic"))
   analysis = load_maf(analysis, maf = "luad_data.maf", group_col = "pri_met")
   
   # Before running trinuc_mutation_rates, which includes a mutational signature analysis,
   # you can run this function to identify possible signatures to exclude. It's recommended
-  # to manually review the suggestions and decide which signatures to exclude. While this
-  # step is likely to make signature extraction more accurate, it's probably safe to
-  # skip this step if you're uncertain.
+  # to manually review the suggestions and decide which signatures to exclude.
   #
   # Here, we decide to accept all suggestions, so we assign the output of the function
-  # (a vector of signatures to exclude) to the to_remove variable.
+  # (a vector of signatures to exclude) to to_remove.
   to_remove = suggest_cosmic_signatures_to_remove(cancer_type = "LUAD", treatment_naive = T)
   
+  
   analysis = trinuc_mutation_rates(analysis, signature_set = "COSMIC_v3.1", signatures_to_remove = to_remove)
-  analysis = gene_mutation_rates(analysis, covariates = "lung")
   
+  # calculate neutral gene mutation rates within groups, since group differences are likely
+  analysis = gene_mutation_rates(analysis, covariates = "lung", sample_group = "Primary")
+  analysis = gene_mutation_rates(analysis, covariates = "lung", sample_group = "Metastatic")
   
-  # Calculate selection intensities
+  # Calculate selection intensities (by default, on all variants with sample frequency &gt; 1)
   analysis = ces_variant(analysis)</code></pre>
 <div id="note-on-parallel-processing" class="section level4">
 <h4 class="hasAnchor">
 <a href="#note-on-parallel-processing" class="anchor"></a>Note on parallel processing</h4>
-<p>If you are running in a MacOS or Linux environment, you can speed up processing by providing multiple computing cores using the “cores” argument. Run <code><a href="https://rdrr.io/r/parallel/detectCores.html">parallel::detectCores()</a></code> to find out how many cores you have available. (On a personal computer, you’ll often get faster runtimes when you leave a core or two free for background task.)</p>
+<p>If you are running in a MacOS or Linux environment, you can speed up processing by providing multiple computing cores using the “cores” argument. Run <code><a href="https://rdrr.io/r/parallel/detectCores.html">parallel::detectCores()</a></code> to find out how many cores you have available. (On a personal computer, you’ll often get faster runtimes when you leave a core or two free for background tasks.)</p>
 <div class="sourceCode" id="cb4"><html><body><pre class="r">  <span class="co"># assuming you've already loaded MAF data into object "cesa"</span>
   <span class="no">cesa</span> <span class="kw">=</span> <span class="fu"><a href="../reference/trinuc_mutation_rates.html">trinuc_mutation_rates</a></span>(<span class="no">cesa</span>, <span class="kw">signature_set</span> <span class="kw">=</span> <span class="st">"COSMIC_v3.1"</span>, <span class="kw">cores</span> <span class="kw">=</span> <span class="fl">4</span>)
   <span class="no">cesa</span> <span class="kw">=</span> <span class="fu"><a href="../reference/gene_mutation_rates.html">gene_mutation_rates</a></span>(<span class="no">cesa</span>, <span class="kw">covariates</span> <span class="kw">=</span> <span class="st">"breast"</span>)
-  <span class="no">cesa</span> <span class="kw">=</span> <span class="fu"><a href="../reference/ces_variant.html">ces_variant</a></span>(<span class="no">cesa</span>, <span class="kw">cores</span> <span class="kw">=</span> <span class="fl">4</span>)</pre></body></html></div>
+  <span class="no">cesa</span> <span class="kw">=</span> <span class="fu"><a href="../reference/ces_variant.html">ces_variant</a></span>(<span class="no">cesa</span>, <span class="kw">variants</span> <span class="kw">=</span> <span class="fu"><a href="../reference/select_variants.html">select_variants</a></span>(<span class="no">cesa</span>, <span class="kw">min_freq</span> <span class="kw">=</span> <span class="fl">1</span>), <span class="kw">cores</span> <span class="kw">=</span> <span class="fl">4</span>)</pre></body></html></div>
 </div>
 </div>
   </div>

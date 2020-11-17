@@ -64,25 +64,22 @@ check_for_ref_data = function(data_dir_or_cesa, datatype) {
 #' Used when loading or creating a CESAnalysis to load reference into an environment for quick access
 #' @keywords internal
 preload_ref_data = function(data_dir) {
-  genome_path = paste0(data_dir, "/genome_package_name.rds")
-  if(! file.exists(genome_path)) {
-    stop(paste0("Something is wrong with the reference data installation.\n",
-                "Expected to find a reference genome at ", genome_path, "."))
-  }
   
   # by design, name of ref set is always the directory name
   ref_set_name = basename(data_dir) 
   
   if (! ref_set_name %in% ls(.ces_ref_data)) {
-    genome_package = readRDS(genome_path)
-    bsg = BSgenome::getBSgenome(genome_package)
-    GenomeInfoDb::seqlevelsStyle(bsg) = "NCBI"
-    
-    message("Loading reference data for ", ref_set_name, "..." )
+    message("Loading reference data set ", ref_set_name, "..." )
     .ces_ref_data[[ref_set_name]] = new.env()
     .ces_ref_data[[ref_set_name]][["RefCDS"]] = get_ref_data(data_dir, "RefCDS")
     .ces_ref_data[[ref_set_name]][["gr_genes"]] = get_ref_data(data_dir, "gr_genes")
+    
+    
+    genome_info = get_ref_data(data_dir, "genome_build_info")
+    bsg = BSgenome::getBSgenome(genome_info$BSgenome)
+    GenomeInfoDb::seqlevelsStyle(bsg) = "NCBI"
     .ces_ref_data[[ref_set_name]][["genome"]] = bsg
+
     if(check_for_ref_data(data_dir, "generic_exome_gr")) {
       .ces_ref_data[[ref_set_name]][["default_exome"]] = get_ref_data(data_dir, "generic_exome_gr")
     }
@@ -198,8 +195,7 @@ get_cesa_bsg = function(cesa) {
   if (ref_key %in% ls(.ces_ref_data)) {
     return(.ces_ref_data[[ref_key]]$genome)
   }
-  bsg_pkg_name = get_ref_data(cesa, "genome_package_name")
-  bsg = BSgenome::getBSgenome(bsg_pkg_name)
+  bsg = BSgenome::getBSgenome(cesa@advanced$genome_info$BSgenome)
   GenomeInfoDb::seqlevelsStyle(bsg) = "NCBI"
   return(bsg)
 }
