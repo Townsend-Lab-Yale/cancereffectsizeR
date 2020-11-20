@@ -48,13 +48,15 @@ saveRDS(genome_counts, paste0(ref_set_dir, "/tri.counts.genome.rds"))
 # Optional: load and save default exome intervals ()
 # If you don't set a default exome, the user must always supply coverage intervals.
 default_exome = rtracklayer::import(exome_bed, format = "bed")
-default_exome = reduce(sort(default_exome), drop.empty.ranges = T)
+
+
 seqlevelsStyle(default_exome) = "NCBI"
 good_chr = genome_info[['supported_chr']]
-default_exome = default_exome[seqnames(default_exome) %in% good_chr]
+default_exome = default_exome[as.character(seqnames(default_exome)) %in% good_chr]
 default_exome = unstrand(default_exome)
 # need to reorder seqlevels (1, 2, ..., X, Y) in cases where the input bed file wasn't sorted
-seqlevels(default_exome)[seqlevels(default_exome) %in% good_chr] = good_chr
+seqlevels(default_exome) = good_chr
+default_exome = reduce(sort(default_exome), drop.empty.ranges = T)
 
 # Add interval padding of 100 nt
 start(default_exome) = start(default_exome) - 100
@@ -62,7 +64,7 @@ end(default_exome) = end(default_exome) + 100
 default_exome = reduce(default_exome, drop.empty.ranges = T)
 
 seqinfo(default_exome) = seqinfo(bsg)
-keepSeqlevels(default_exome, good_chr) # drop extra seqlevels
+default_exome = keepSeqlevels(default_exome, good_chr) # drop extra seqlevels
 saveRDS(default_exome, paste0(ref_set_dir, "/default_exome_gr.rds"))
 
 # get generic captured exome sequence and tabulate trinuc contexts

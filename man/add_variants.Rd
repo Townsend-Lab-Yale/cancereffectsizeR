@@ -19,7 +19,7 @@ add_variants(
 
 \item{variant_table}{A data.table with chr/start/end positions (1-based closed
 coordinates, like MAF format). All possible SNVs overlapping the table's genomic
-coordinates (within `padding` bases) will be added. The tables returned by
+coordinates (within \code{padding} bases) will be added. The tables returned by
 select_variants() and (CESAnalysis)$variants work, and get special handling of
 amino-acid-change SNVs: only the precise positions in start, end, and center_nt_pos
 are used. (This avoids adding all variants between start/end, which on
@@ -28,9 +28,9 @@ splite-site-spanning variants can be many thousands.)}
 \item{snv_id}{Character vector of CES-style SNV IDs to add.}
 
 \item{bed}{A path to a BED file. All possible SNVs overlapping BED intervals (within
-`padding` bases) will be added.}
+\code{padding} bases) will be added.}
 
-\item{gr}{A GRanges object. All possible SNVs overlapping the ranges (within `padding`
+\item{gr}{A GRanges object. All possible SNVs overlapping the ranges (within \code{padding}
 bases) will be added.}
 
 \item{source_cesa}{Another CESAnalysis from which to copy snv_ids. SNVs will be

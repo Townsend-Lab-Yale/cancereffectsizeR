@@ -32,14 +32,14 @@
 #'   input data has been trimmed to the targeted regions, leave set to 0.
 #' @param chain_file a chain file (text format, name ends in .chain) to convert MAF
 #'   records to the genome build used in the CESAnalysis
-#' @param enforce_generic_exome_coverage when loading generic exome data, exclude records
-#'   that aren't covered in the (somewhat arbitrary) generic exome intervals included with
+#' @param enforce_default_exome_coverage when loading default exome data, exclude records
+#'   that aren't covered in the (somewhat arbitrary) default exome intervals included with
 #'   CES genome reference data (default FALSE)
 #' @return CESAnalysis with the specified MAF data loaded
 #' @export
 load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumor_Sample_Barcode", chr_col = "Chromosome", start_col = "Start_Position",
                     ref_col = "Reference_Allele", tumor_allele_col = "guess", coverage = "exome", covered_regions = NULL,
-                    covered_regions_name = NULL, covered_regions_padding = 0, group_col = NULL, chain_file = NULL, enforce_generic_exome_coverage = FALSE) {
+                    covered_regions_name = NULL, covered_regions_padding = 0, group_col = NULL, chain_file = NULL, enforce_default_exome_coverage = FALSE) {
   
   if (! is(cesa, "CESAnalysis")) {
     stop("cesa should be a CESAnalysis")
@@ -132,11 +132,8 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     stop("You can't use covered_regions_padding without supplying covered_regions.", call. = F)
   }
   
-  # validate covered_regions (required for targeted, optional for exome, prohibited for genome)
-  if (coverage == "genome") {
-    if(! is.null(covered_regions)) {
-      stop("covered_regions should be left NULL when coverage is \"genome\"")
-    }
+  # validate covered_regions (required for targeted, optional for exome/genome)
+  if (coverage == "genome" & is.null(covered_regions)) {
     covered_regions_name = "genome"
   }
   
@@ -144,55 +141,55 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     stop("can't load targeted data without covered_regions (see docs)")
   }
   
-  if (! is(enforce_generic_exome_coverage, "logical") || length(enforce_generic_exome_coverage) != 1) {
-    stop("enforce_generic_exome_coverage should be T/F")
+  if (! is(enforce_default_exome_coverage, "logical") || length(enforce_default_exome_coverage) != 1) {
+    stop("enforce_default_exome_coverage should be T/F")
   }
   
   if (coverage == "exome" & is.null(covered_regions)) {
     covered_regions_name = "exome"
-    if(! check_for_ref_data(cesa, "generic_exome_gr")) {
-      stop("This genome has no generic exome intervals, so to load exome data you must supply covered_regions (see docs)")
+    if(! check_for_ref_data(cesa, "default_exome_gr")) {
+      stop("This genome has no default exome intervals, so to load exome data you must supply covered_regions (see docs)")
     }
   }
   
-  # Determine whether we're using "exome" or "exome+" for generic exome data
+  # Determine whether we're using "exome" or "exome+" for default exome data
   # Usually, the lenient exome+ option is used, but the choice must be consistent throughout a CESAnalysis
   if(covered_regions_name == "exome") {
-    # Whether or not CESAnalysis uses "exome+", once the first generic exome data has been loaded,
-    # there will always be generic exome intervals under "exome" in the coverage list
+    # Whether or not CESAnalysis uses "exome+", once the first default exome data has been loaded,
+    # there will always be default exome intervals under "exome" in the coverage list
     if (! "exome" %in% names(cesa@coverage[["exome"]])) {
-      cesa@advanced$using_exome_plus = ! enforce_generic_exome_coverage
-      covered_regions = get_ref_data(cesa, "generic_exome_gr")
+      cesa@advanced$using_exome_plus = ! enforce_default_exome_coverage
+      covered_regions = get_ref_data(cesa, "default_exome_gr")
       cesa@coverage$exome[["exome"]] = covered_regions
       
-    } else if (enforce_generic_exome_coverage == TRUE & cesa@advanced$using_exome_plus) {
-      stop("You can't have enforce_generic_exome_coverage = TRUE because you previously loaded generic exome data\n",
-           "with enforce_generic_exome_coverage = FALSE")
-    } else if (enforce_generic_exome_coverage == FALSE & ! cesa@advanced$using_exome_plus) {
-      stop("You can't have enforce_generic_exome_coverage == FALSE because you previously loaded generic exome data\n",
-           "with enforce_generic_exome_coverage = TRUE.")
+    } else if (enforce_default_exome_coverage == TRUE & cesa@advanced$using_exome_plus) {
+      stop("You can't have enforce_default_exome_coverage = TRUE because you previously loaded default exome data\n",
+           "with enforce_default_exome_coverage = FALSE")
+    } else if (enforce_default_exome_coverage == FALSE & ! cesa@advanced$using_exome_plus) {
+      stop("You can't have enforce_default_exome_coverage == FALSE because you previously loaded default exome data\n",
+           "with enforce_default_exome_coverage = TRUE.")
     } else {
       covered_regions = cesa@coverage$exome[["exome"]]
     }
     
     # For exome+, use GRanges if available
-    # Otherwise, for exome or exome+, load the generic exome intervals
-    if (! enforce_generic_exome_coverage) {
+    # Otherwise, for exome or exome+, load the default exome intervals
+    if (! enforce_default_exome_coverage) {
       covered_regions_name = "exome+"
       if("exome+" %in% names(cesa@coverage$exome)) {
         covered_regions = cesa@coverage$exome[["exome+"]]
       } else {
-        cesa@coverage[["exome"]][["exome+"]] = covered_regions # that is, the generic exome regions
+        cesa@coverage[["exome"]][["exome+"]] = covered_regions # that is, the default exome regions
       }
     } else {
       if("exome" %in% names(cesa@coverage$exome)) {
         covered_regions = cesa@coverage$exome[["exome"]]
       } else {
-        covered_regions = get_ref_data(cesa, "generic_exome_gr")
+        covered_regions = get_ref_data(cesa, "default_exome_gr")
         cesa@coverage$exome[["exome"]] = covered_regions
       }
     }
-    pretty_message("Assuming this data has generic exome coverage (it's better to supply covered intervals if you have them; see docs)...")
+    pretty_message("Assuming this data has default exome coverage (it's better to supply covered intervals if you have them; see docs)...")
   } else if (! is.null(covered_regions)) {
     # Use internal function to avoid updating covered_in now (annotate_variants step will handle this larger)
     cesa = .add_covered_regions(cesa = cesa, covered_regions = covered_regions, covered_regions_padding = covered_regions_padding, 
@@ -396,22 +393,30 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
   excluded = data.table()
   
   # strip chr prefixes from chr column, if present ("NCBI-style")
-  maf[, Chromosome := sub('^chr', '', Chromosome)]
-  # temporary handling of MT/M
-  maf[Chromosome == "M", Chromosome:="MT"]  # changing M to MT
+  supported_chr = cesa@advanced$genome_info$supported_chr
+  maf[, supported := FALSE][Chromosome %in% supported_chr, supported := T]
+  maf[supported == FALSE, stripped_chr := sub('^chr', '', Chromosome) ]
+  maf[supported == FALSE & stripped_chr %in% supported_chr, c("Chromosome", "supported") := list(stripped_chr, TRUE)]
+  
+  bad_chr = maf[supported == FALSE, unique(Chromosome)]
+  if(length(bad_chr) > 0) {
+    num_bad = maf[supported == FALSE, .N]
+    pretty_message(paste0(num_bad, " MAF records excluded for being on illegal or unsupported (e.g., mitochondrial) chromosomes:\n",
+            paste0(bad_chr, collapse = ", "), '.'))
+    if (num_bad / maf[, .N] > .05) {
+      warning("More than 5% of MAF records are on illegal or unsupported chromosomes.")
+    }
+    bad_chr_maf = maf[supported == F, -c("supported", "stripped_chr")]
+    excluded = bad_chr_maf
+    excluded$Exclusion_Reason = "unsupported_chr"
+    maf = maf[supported == T]
+  }
+  maf[, c("stripped_chr", "supported") := NULL]
   
   # handle liftOver to the assembly of the CESAnalysis
   if(need_to_liftOver) {
     chain = rtracklayer::import.chain(chain_file)
     names(chain) = sub("^chr", "", names(chain))
-    # avoid potential NCBI/UCSC incompatibilities between the user's data and the chain file
-    if(any(maf$Chromosome == "MT")) {
-      if(! "MT" %in% names(chain) && "M" %in% names(chain)) {
-        names(chain) = sub("^M$", "MT", names(chain))
-        pretty_message("Assuming that chrM in the chain file refers to mitochondrial DNA (aka chrMT)....")
-        pretty_message("If you get reference mismatches on this contig, you may need a different chain file.")
-      }
-    }
     maf[, rn := 1:.N] # using row number as an identifier to know which intervals fail liftover
     for_liftover = maf[,.(Chromosome, Start_Position, rn)] 
     gr = GenomicRanges::makeGRangesFromDataFrame(df = for_liftover, seqnames.field = "Chromosome", 
@@ -439,17 +444,6 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     # rarely, mutations at multiple matching sites can get called in a sample, resulting in duplicate records after liftOver
     lifted_to_same = duplicated(maf[,.(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele)])
     maf = maf[! lifted_to_same]
-  }
-  
-  # discard any records with chromosomes not present in reference
-  illegal_chroms = maf[! Chromosome %in% GenomeInfoDb::seqlevels(bsg), unique(Chromosome)]
-  if (length(illegal_chroms) > 0) {
-    has_bad_chr = maf$Chromosome %in% illegal_chroms
-    bad_chr_maf = maf[has_bad_chr]
-    bad_chr_maf$Exclusion_Reason = "illegal_chromosome_name"
-    maf = maf[! has_bad_chr]
-    excluded = rbind(excluded, bad_chr_maf)
-    message(paste0("Note: ", length(illegal_chroms), " records excluding for having chromosome names that don't match the genome. "))
   }
   
   # check for multi-nucleotide variants and separate them from MAF data
@@ -483,7 +477,7 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
   
   
   
-  # remove any MAF records that are not in the coverage, unless generic exome with enforce_generic_exome_coverage = FALSE
+  # remove any MAF records that are not in the coverage, unless default exome with enforce_default_exome_coverage = FALSE
   if (covered_regions_name == "genome") {
     num_uncovered = 0
   } else {
@@ -510,16 +504,16 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
 
       # warn if a lot of records are in uncovered areas; may indicate whole-genome data or low quality exome data
       if (percent > 10) {
-        warning(paste0("More than 10% of MAF records are not within the CES genome's generic exome intervals.\n",
+        warning(paste0("More than 10% of MAF records are not within the CES genome's default exome intervals.\n",
                        "Could this be whole-genome data? Or if you know the true covered regions, supply them\n",
                        "with the covered_regions argument."))
       }
       msg = paste0("Note: ", num_uncovered, " MAF records (", percent, 
                    "%) are at loci not covered in the default exome intervals ",
                    "in this CESAnalysis's reference data. The samples in this MAF (along with along other MAFs ",
-                   "loaded as generic exome data), will be assumed to all share the same coverage, ",
-                   "which we'll call \"exome+\". To instead exclude uncovered records across all generic WES data, ",
-                   "create a new CESAnalysis and load data with enforce_generic_exome_coverage = TRUE.")
+                   "loaded as default exome data), will be assumed to all share the same coverage, ",
+                   "which we'll call \"exome+\". To instead exclude uncovered records across all default WES data, ",
+                   "create a new CESAnalysis and load data with enforce_default_exome_coverage = TRUE.")
       pretty_message(msg)
     } else {
       uncovered.maf = maf[is_uncovered,]

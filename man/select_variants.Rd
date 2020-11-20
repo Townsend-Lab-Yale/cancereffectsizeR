@@ -31,12 +31,12 @@ filtering options. You can use CES-style AAC and SNV IDs or variant names like
 "KRAS G12C". If this argument is used by itself (without any filtering arguments),
 then only these specified variants will be returned.}
 
-\item{gr}{Filter out any variants not within input GRanges +/- `padding` bases.}
+\item{gr}{Filter out any variants not within input GRanges +/- \code{padding} bases.}
 
 \item{variant_position_table}{Filter out any variants that don't intersect the
 positions given in chr/start/end of this table (1-based closed coordinates).
 Typically, the table comes from a previous `select_variants` call and can be expanded
-with `padding`. (Gritty detail: Amino acid change SNVS get special handling: only the
+with \code{padding}. (Gritty detail: Amino acid change SNVS get special handling: only the
 precise positions in start, end, and center_nt_pos are used. This avoids intersecting
 extra variants between start/end, which on splite-site-spanning variants can be many
 thousands.)}

@@ -409,17 +409,19 @@ snv_results = function(cesa = NULL) {
 
 
 
-#' clean_granges_for_bsg
+#' clean_granges_for_cesa
 #' 
 #' Tries to format an input GRanges object to be compatible with a CESAnalysis's reference
 #' genome. Optionally also applies padding to start and end positions of ranges, stopping
 #' at chromosome ends. Either stops with an error or returns a clean granges object.
 #' 
-#' @param bsg BSgenome object (CES-formatted, typically)
+#' @param cesa CESAnalysis
 #' @param gr GRanges object
 #' @param padding How many bases to expand start and end of each position
 #' @keywords internal
-clean_granges_for_bsg = function(bsg = NULL, gr = NULL, padding = 0) {
+clean_granges_for_cesa = function(cesa = NULL, gr = NULL, padding = 0) {
+  bsg = get_cesa_bsg(cesa)
+  
   stopifnot(is(padding, "numeric"),
             length(padding) == 1,
             padding >= 0,
@@ -468,6 +470,11 @@ clean_granges_for_bsg = function(bsg = NULL, gr = NULL, padding = 0) {
     stop(paste0("The genome name of an input granges object (", gr_genome, ") does not match the current reference genome (",
                 expected_genome, ")."))
   }
+  
+  # subset to just supported contigs
+  supported_chr = cesa@advanced$genome_info$supported_chr
+  gr = gr[as.character(GenomeInfoDb::seqnames(gr)) %in% supported_chr]
+  gr = GenomeInfoDb::keepSeqlevels(gr, supported_chr)
   
   
   if (padding > 0) {

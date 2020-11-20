@@ -172,8 +172,8 @@
     </tr>
     <tr>
       <th>variants</th>
-      <td><p>Variant table from select_variants(), or a CompoundVariantSet from
-define_compound_variants(). Defaults to all recurrent noncoding SNVs and
+      <td><p>Variant table from <code><a href='select_variants.html'>select_variants()</a></code>, or a <code>CompoundVariantSet</code> from
+<code><a href='define_compound_variants.html'>define_compound_variants()</a></code>. Defaults to all recurrent noncoding SNVs and
 (SNV-derived) coding mutations, where recurrent means appearing in at least two
 samples in the MAF data set.</p></td>
     </tr>
@@ -186,9 +186,9 @@ custom function factory (see details).</p></td>
       <th>group_ordering</th>
       <td><p>for models (like sswm_sequential) that assume different groups of
 samples are from sequential tumor progression states, a vector or list giving the
-ordering of CESAnalysis groups. Examples: c("Primary", "Metastatic") is a
+ordering of CESAnalysis groups. Examples: <code><a href='https://rdrr.io/r/base/c.html'>c("Primary", "Metastatic")</a></code> is a
 two-state ordering. Lists allow groups to share progression states: 
-list("A", c("B", "C"), "D") means that group A is first, groups B and C 
+<code><a href='https://rdrr.io/r/base/list.html'>list("A", c("B", "C"), "D")</a></code> means that group A is first, groups B and C 
 belong to the same intermediate state, and group D is last.</p></td>
     </tr>
     <tr>

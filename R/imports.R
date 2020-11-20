@@ -5,12 +5,16 @@
 .ces_ref_data = new.env()
 
 # format a string the way R should automatically, then feed it to message()
-pretty_message = function(msg, black = T) {
+pretty_message = function(msg, emit = T, black = emit) {
   msg = paste0(strwrap(msg), collapse = "\n")
   if (black) {
     msg = crayon::black(msg)
   }
-  message(msg)
+  if (emit) {
+    message(msg)
+  } else {
+    return(msg)
+  }
 }
 
 

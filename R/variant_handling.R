@@ -53,11 +53,11 @@
 #'   filtering options. You can use CES-style AAC and SNV IDs or variant names like 
 #'   "KRAS G12C". If this argument is used by itself (without any filtering arguments),
 #'   then only these specified variants will be returned.
-#' @param gr Filter out any variants not within input GRanges +/- `padding` bases.
+#' @param gr Filter out any variants not within input GRanges +/- \code{padding} bases.
 #' @param variant_position_table Filter out any variants that don't intersect the
 #'   positions given in chr/start/end of this table (1-based closed coordinates).
 #'   Typically, the table comes from a previous `select_variants` call and can be expanded
-#'   with `padding`. (Gritty detail: Amino acid change SNVS get special handling: only the
+#'   with \code{padding}. (Gritty detail: Amino acid change SNVS get special handling: only the
 #'   precise positions in start, end, and center_nt_pos are used. This avoids intersecting
 #'   extra variants between start/end, which on splite-site-spanning variants can be many
 #'   thousands.)
@@ -157,14 +157,14 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = 
            "running select_variants() sequentially.")
     }
     # get_gr_from_table handles validation of variant_position_table
-    final_gr = clean_granges_for_bsg(bsg = bsg, gr = get_gr_from_table(variant_position_table), padding = padding)
+    final_gr = clean_granges_for_cesa(cesa = cesa, gr = get_gr_from_table(variant_position_table), padding = padding)
   }
   
   if(! is.null(gr)) {
     if(! is(gr, "GRanges")) {
       stop("gr should be a GRanges object", call. = F)
     }
-    gr = clean_granges_for_bsg(bsg = bsg, gr = gr, padding = padding)
+    gr = clean_granges_for_cesa(cesa = cesa, gr = gr, padding = padding)
     if (! is.null(final_gr)) {
       final_gr = GenomicRanges::intersect(final_gr, gr)
     } else {
@@ -491,14 +491,14 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = 
 #' @param target_cesa CESAnalysis to receive variant annotations
 #' @param variant_table A data.table with chr/start/end positions (1-based closed
 #'   coordinates, like MAF format). All possible SNVs overlapping the table's genomic
-#'   coordinates (within `padding` bases) will be added. The tables returned by
+#'   coordinates (within \code{padding} bases) will be added. The tables returned by
 #'   select_variants() and (CESAnalysis)$variants work, and get special handling of
 #'   amino-acid-change SNVs: only the precise positions in start, end, and center_nt_pos
 #'   are used. (This avoids adding all variants between start/end, which on
 #'   splite-site-spanning variants can be many thousands.)
 #' @param bed A path to a BED file. All possible SNVs overlapping BED intervals (within
-#'   `padding` bases) will be added.
-#' @param gr A GRanges object. All possible SNVs overlapping the ranges (within `padding`
+#'   \code{padding} bases) will be added.
+#' @param gr A GRanges object. All possible SNVs overlapping the ranges (within \code{padding}
 #'   bases) will be added.
 #' @param snv_id Character vector of CES-style SNV IDs to add.
 #' @param source_cesa Another CESAnalysis from which to copy snv_ids. SNVs will be
@@ -563,7 +563,7 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
     }
     
     # Validate GRanges and add padding if specified
-    gr = clean_granges_for_bsg(bsg = bsg, gr = gr, padding = padding)
+    gr = clean_granges_for_cesa(cesa = target_cesa, gr = gr, padding = padding)
     
     # convert to GPos and put in MAF-like table
     gpos = GenomicRanges::GPos(gr)

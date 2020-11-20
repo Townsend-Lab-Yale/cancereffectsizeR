@@ -19,7 +19,7 @@ load_maf(
   covered_regions_padding = 0,
   group_col = NULL,
   chain_file = NULL,
-  enforce_generic_exome_coverage = FALSE
+  enforce_default_exome_coverage = FALSE
 )
 }
 \arguments{
@@ -58,8 +58,8 @@ input data has been trimmed to the targeted regions, leave set to 0.}
 \item{chain_file}{a chain file (text format, name ends in .chain) to convert MAF
 records to the genome build used in the CESAnalysis}
 
-\item{enforce_generic_exome_coverage}{when loading generic exome data, exclude records
-that aren't covered in the (somewhat arbitrary) generic exome intervals included with
+\item{enforce_default_exome_coverage}{when loading default exome data, exclude records
+that aren't covered in the (somewhat arbitrary) default exome intervals included with
 CES genome reference data (default FALSE)}
 }
 \value{

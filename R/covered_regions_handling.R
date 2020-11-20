@@ -63,8 +63,16 @@ add_covered_regions = function(target_cesa = NULL, source_cesa = NULL, covered_r
     tgs_sets = names(source_cesa@coverage$targeted)
     for (tgs_set in tgs_sets) {
       target_cesa = assign_gr_to_coverage(target_cesa, gr = source_cesa@coverage$targeted[[tgs_set]],
-                                          covered_regions_name = tgs_set, coverage_type ="targeted")
+                                          covered_regions_name = tgs_set, coverage_type = "targeted")
     }
+    
+    wgs_sets = names(source_cesa@coverage$genome)
+    for (wgs_set in wgs_sets) {
+      target_cesa = assign_gr_to_coverage(target_cesa, gr = source_cesa@coverage$genome[[tgs_set]],
+                                          covered_regions_name = wgs_set, coverage_type = "genome")
+    }
+    
+    
     target_cesa@advanced$recording = prev_recording_status
     return(update_covered_in(target_cesa))
   } else {
@@ -76,6 +84,7 @@ add_covered_regions = function(target_cesa = NULL, source_cesa = NULL, covered_r
 }
 
 #' .add_covered_regions
+#' 
 #' @param covered_regions A GRanges object or BED file path with genome build matching the target_cesa,
 #'                      if not using source_cesa
 #' @param covered_regions_name A name to identify the covered regions, if not using source_cesa
@@ -85,7 +94,7 @@ add_covered_regions = function(target_cesa = NULL, source_cesa = NULL, covered_r
 #' @keywords internal
 #' @return CESAnalysis given in target_cesa, with the new covered regions added
 .add_covered_regions = function(cesa, coverage_type, covered_regions, covered_regions_name, covered_regions_padding, update_anno) {
-  if (! is.character(coverage_type) | length(coverage_type) != 1 | ! coverage_type %in% c("exome", "targeted")) {
+  if (! is.character(coverage_type) | length(coverage_type) != 1 | ! coverage_type %in% c("exome", "genome", "targeted")) {
     stop("coverage_type should be exome or targeted.", call. = F)
   }
   if (! is.character(covered_regions_name) | length(covered_regions_name) != 1 | is.na(covered_regions_name)) {
@@ -114,7 +123,7 @@ add_covered_regions = function(target_cesa = NULL, source_cesa = NULL, covered_r
   } else {
     stop(bad_covered_regions_msg, call. = F)
   }
-  gr = clean_granges_for_bsg(bsg = get_cesa_bsg(cesa), gr = gr, padding = covered_regions_padding)
+  gr = clean_granges_for_cesa(cesa = cesa, gr = gr, padding = covered_regions_padding)
   cesa = assign_gr_to_coverage(cesa, gr = gr, covered_regions_name = covered_regions_name, coverage_type = coverage_type)
   if (update_anno) {
     cesa = update_covered_in(cesa)
@@ -153,13 +162,26 @@ assign_gr_to_coverage = function(cesa, gr, covered_regions_name, coverage_type) 
   }
   
   # If possible, see if covered regions size resembles exome data
-  if (coverage_type == "exome" & check_for_ref_data(cesa, "generic_exome_gr")) {
+  if (coverage_type %in% c("exome", "genome") & check_for_ref_data(cesa, "generic_exome_gr")) {
     covered_regions_bases_covered = sum(IRanges::width(IRanges::ranges(gr)))
     generic_bases_covered = sum(IRanges::width(IRanges::ranges(get_ref_data(cesa, "generic_exome_gr"))))
-    if (covered_regions_bases_covered / generic_bases_covered < .4) {
-      warning(paste0("Input coverage ranges are described as exome but are less than 40% of the size of this genome's default exome intervals.\n",
-                     "This might make sense if your exome capture array is  lean, but if this is actually targeted sequencing data,\n",
-                     "start over with the coverage=\"targeted\"."))
+    if (coverage_type == "exome") {
+      if (covered_regions_bases_covered / generic_bases_covered < .4) {
+        warning(paste0("Input coverage intervals are described as whole-exome but are less than 40% of the size of this genome's default exome intervals.\n",
+                       "This might make sense if your exome capture array is  lean, but if this is actually targeted sequencing data,\n",
+                       "start over with the coverage=\"targeted\"."))
+      }
+    } else {
+      # taking genome size to be the sum of the lengths of all CES-supported contigs
+      genome_size = sum(GenomeInfoDb::seqlengths(get_cesa_bsg(cesa))[cesa@advanced$genome_info$supported_chr])
+      if (covered_regions_bases_covered / genome_size < .4) {
+        msg = paste0("Input coverage intervals are described whole-genome but cover less than 40% of the genome. This might make ",
+               "sense if you are excluding genomic regions due to repetitiveness or mappability, although excluding ",
+               "consensus repetitive regions on the human genome would not be this restrictive. Consider whether the coverage regions ",
+               "are better described as exome or targeted.")
+        msg = pretty_message(msg, emit = F)
+        warning(msg)
+      }
     }
   }
   

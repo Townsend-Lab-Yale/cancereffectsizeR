@@ -4,17 +4,17 @@
 #' @param cores number of cores to use
 #' @param conf selection intensity confidence interval width (NULL skips calculation,
 #'   speeds runtime)
-#' @param variants Variant table from select_variants(), or a CompoundVariantSet from
-#'   define_compound_variants(). Defaults to all recurrent noncoding SNVs and
+#' @param variants Variant table from \code{select_variants()}, or a \code{CompoundVariantSet} from
+#'   \code{define_compound_variants()}. Defaults to all recurrent noncoding SNVs and
 #'   (SNV-derived) coding mutations, where recurrent means appearing in at least two
 #'   samples in the MAF data set.
 #' @param model "sswm" or "sswm_sequential" to use built-in models of selection, or supply a
 #' custom function factory (see details).
 #' @param group_ordering for models (like sswm_sequential) that assume different groups of
 #'   samples are from sequential tumor progression states, a vector or list giving the
-#'   ordering of CESAnalysis groups. Examples: c("Primary", "Metastatic") is a
+#'   ordering of CESAnalysis groups. Examples: \code{c("Primary", "Metastatic")} is a
 #'   two-state ordering. Lists allow groups to share progression states: 
-#'   list("A", c("B", "C"), "D") means that group A is first, groups B and C 
+#'   \code{list("A", c("B", "C"), "D")} means that group A is first, groups B and C 
 #'   belong to the same intermediate state, and group D is last.
 #' @param custom_lik_args Extra arguments, given as a list, to pass to custom likelihood
 #'   functions.
@@ -191,8 +191,9 @@ ces_variant <- function(cesa = NULL,
   
   
   setkey(cesa@samples, "covered_regions")
-  # these are WGS samples without any coverage limitation
-  # that is, for better or worse, assuming that any variant can be found in these samples
+  # These are WGS samples with purportedly whole-genome coverage.
+  # That is, for better or worse, assuming that any variant can be found in these samples.
+  # (Trimmed-interval WGS samples will have coverage = "genome" and covered_regions != "genome.")
   genome_wide_cov_samples = cesa@samples["genome", Unique_Patient_Identifier, nomatch = NULL]
   
 

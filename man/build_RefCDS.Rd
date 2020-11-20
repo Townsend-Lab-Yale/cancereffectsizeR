@@ -16,7 +16,7 @@ build_RefCDS(
 \arguments{
 \item{gtf}{Path of a Gencode-GTF-formatted text file, or an equivalently formatted data
 table. See details for required columns (features). It's possible to build a suitable
-table using data pulled from biomaRt, but it's probably easier to use a GTF.}
+table using data pulled from biomaRt, but it's easier to use a GTF.}
 
 \item{genome}{genome assembly name (e.g., "hg19"); an associated BSgenome object must be
 available to load.}
@@ -30,7 +30,13 @@ codons within CDS records, set to FALSE.}
 
 \item{cores}{how many cores to use for parallel computations}
 
-\item{numcode}{(don't use) NCBI genetic code number; currently only code 1, the standard genetic code, is supported}
+\item{numcode}{(don't use) NCBI genetic code number; currently only code 1, the
+standard genetic code, is supported}
+}
+\value{
+A two-item list: RefCDS (which is itself a big list, with one entry per gene or
+  transcript), and gr_genes, a GRanges object that defines the genomic intervals
+  covered by each gene.
 }
 \description{
 Based on the buildref function in Inigo Martincorena's package dNdScv, this function

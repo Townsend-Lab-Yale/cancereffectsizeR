@@ -406,9 +406,9 @@ update_covered_in = function(cesa) {
   
   # test each MAF locus against all coverage grs
   # this returns a data frame where rows match MAF rows, columns are T/F for each coverage gr
-  all_coverage = c(cesa@coverage[["exome"]], cesa@coverage[["targeted"]]) # names shouldn't overlap due to add_covered_regions validation
+  all_coverage = c(cesa@coverage[["exome"]], cesa@coverage[["targeted"]], cesa@coverage[["genome"]]) # names shouldn't overlap due to add_covered_regions validation
   
-  # all_coverage will be NULL if there's only WGS data
+  # all_coverage will be NULL if there's only full-coverage WGS data
   if(is.null(all_coverage)) {
     snv_table[, covered_in := list()]
   } else {

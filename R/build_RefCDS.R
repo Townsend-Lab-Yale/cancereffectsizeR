@@ -8,11 +8,13 @@
 #' Required columns are seqnames, start, end, strand, gene_name, gene_id, protein_id, and
 #' type. When output_by = "transcript", there must also be a transcript_id column. Only
 #' rows that have type == "CDS" will be used. Strand should be "+" or "-".
-#'
-#' @details 
+#' 
+#' @return A two-item list: RefCDS (which is itself a big list, with one entry per gene or
+#'   transcript), and gr_genes, a GRanges object that defines the genomic intervals
+#'   covered by each gene.
 #' @param gtf Path of a Gencode-GTF-formatted text file, or an equivalently formatted data
 #'   table. See details for required columns (features). It's possible to build a suitable
-#'   table using data pulled from biomaRt, but it's probably easier to use a GTF.
+#'   table using data pulled from biomaRt, but it's easier to use a GTF.
 #' @param genome genome assembly name (e.g., "hg19"); an associated BSgenome object must be
 #'   available to load.
 #' @param output_by "gene" (default) or "transcript", indicating whether the RefCDS output
@@ -21,7 +23,8 @@
 #'   stop codons in their genomic intervals. If your input table does include the stop 
 #'   codons within CDS records, set to FALSE.
 #' @param cores how many cores to use for parallel computations
-#' @param numcode (don't use) NCBI genetic code number; currently only code 1, the standard genetic code, is supported
+#' @param numcode (don't use) NCBI genetic code number; currently only code 1, the
+#'   standard genetic code, is supported
 #' @export
 
 build_RefCDS = function(gtf, genome, output_by = "gene", cds_ranges_lack_stop_codons = T, cores = 1, numcode = 1) {
@@ -455,11 +458,10 @@ build_RefCDS = function(gtf, genome, output_by = "gene", cds_ranges_lack_stop_co
   GenomicRanges::mcols(gr_genes)$names = df_genes$gene
   
   if (by_transcript) {
-    message(paste0("Note: For compatibility with dNdScv, the \"gene_name\" attribute of each RefCDS entry is\n",
+    pretty_message(paste0("Note: For compatibility with dNdScv, the \"gene_name\" attribute of each RefCDS entry is\n",
                    "actually the transcript ID (sorry). A \"real_gene_name\" attribute has also been added\n",
                    "to each entry, and cancereffectsizeR will automatically keep gene names and transcript\n",
                    "IDs straight."))
   }
   return(list(refcds, gr_genes))
-  
-} # EOF
+}

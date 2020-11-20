@@ -115,6 +115,7 @@ test_that("Sample group handling", {
   # Absence of a declared progression state in the data triggers a warning
   multistage = expect_warning(load_maf(multistage, annotate = F, maf = fread(bad_maf)[2:4], group_col = "stage"), "they weren't present in the MAF data")
   
+  
   # Can't load with annotate = T if data has previously been loaded without annotating
   multistage = expect_error(load_maf(multistage, maf = tiny, annotate = T), "already contains unannotated records")
   
@@ -132,8 +133,6 @@ test_that("Coverage arguments", {
                "covered_regions_name was supplied, but covered_regions wasn't")
   expect_error(load_maf(tiny, maf = maf, covered_regions = data.table()),
                "You must supply a name for your covered_regions")
-  expect_error(load_maf(tiny, maf = maf, coverage = "genome", covered_regions = data.table(), covered_regions_name = "hi"),
-               "covered_regions should be left NULL when coverage is \"genome")
   expect_error(load_maf(tiny, maf = maf, coverage = "targeted"), 
                "can't load targeted data without covered_regions")
 })

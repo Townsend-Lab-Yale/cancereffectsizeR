@@ -225,20 +225,23 @@ trinuc_mutation_rates <- function(cesa,
   tri.counts.genome = get_ref_data(cesa, "tri.counts.genome")
   
   # for each exome coverage gr (besides default generic, which is pre-calculated), tabulate trinucs
-  exome_counts_by_gr = list()
-  exomes_to_calc = curr_sample_info[coverage == "exome", unique(covered_regions)]
-  for (exome_name in exomes_to_calc) {
-    if (exome_name %in% c("exome", "exome+")) {
+  tri_counts_by_gr = list()
+  exome_cov_to_calc = curr_sample_info[coverage == "exome", unique(covered_regions)]
+  genome_cov_to_calc = curr_sample_info[coverage == "genome", setdiff(unique(covered_regions), "genome")]
+  grs_to_calc = c(cesa@coverage$exome[exome_cov_to_calc], cesa@coverage$genome[genome_cov_to_calc])
+  gr_names = names(grs_to_calc)
+  for (gr_name in gr_names) {
+    if (gr_name %in% c("exome", "exome+")) {
       if (use_dS_exome2genome) {
         data("tri.counts.exome", package = "deconstructSigs")
-        exome_counts_by_gr[[exome_name]] = tri.counts.exome
+        tri_counts_by_gr[[gr_name]] = tri.counts.exome
       } else {
-        exome_counts_by_gr[[exome_name]] = get_ref_data(cesa, "tri.counts.exome")
+        tri_counts_by_gr[[gr_name]] = get_ref_data(cesa, "tri.counts.exome")
       }
     } else {
-      exome_seq = BSgenome::getSeq(bsg, cesa@coverage$exome[[exome_name]])
-      exome_tri_contexts = Biostrings::trinucleotideFrequency(exome_seq)
-      exome_tri_contexts = colSums(exome_tri_contexts)
+      covered_seq = BSgenome::getSeq(bsg, grs_to_calc[[gr_name]])
+      tri_contexts = Biostrings::trinucleotideFrequency(covered_seq)
+      tri_contexts = colSums(tri_contexts)
       
       # deconstructSigs_trinuc_string is internal in cancereffectsizeR
       # here, we need unique trinucleotide contexts (without mutations) in deconstructSigs ordering,
@@ -248,9 +251,9 @@ trinuc_mutation_rates <- function(cesa,
       reverse_complement_names = unique(as.character(Biostrings::reverseComplement(Biostrings::DNAStringSet(context_names))))
       
       # reorder the counts as desired, then save as a data frame since that's what deconstructSigs wants
-      exome_counts = exome_tri_contexts[context_names] + exome_tri_contexts[reverse_complement_names]
-      exome_counts = data.frame(x = exome_counts)
-      exome_counts_by_gr[[exome_name]] = exome_counts
+      tri_counts = tri_contexts[context_names] + tri_contexts[reverse_complement_names]
+      tri_counts = data.frame(x = tri_counts)
+      tri_counts_by_gr[[gr_name]] = tri_counts
     }
   }
   
@@ -298,7 +301,7 @@ trinuc_mutation_rates <- function(cesa,
     # Hypermutation signatures have Exome_Min and Genome_Min values in metadata that give the smallest
     # number of mutations a tumor can have and still reasonably have the mutational process present.
     # Here, remove signatures that require more mutations than the tumor has.
-    curr_sample_cov = curr_sample_cov = curr_sample_info[tumor_name, coverage]
+    curr_sample_cov = curr_sample_info[tumor_name, coverage]
     if (mutation_count_rules) {
       if (curr_sample_cov == "exome") {
         current_sigs_to_remove = union(current_sigs_to_remove, signature_metadata[num_variants < Exome_Min, Signature])
@@ -308,10 +311,11 @@ trinuc_mutation_rates <- function(cesa,
     }
 
     # Set normalization argument for deconstructSigs based on coverage
-    if (curr_sample_cov == "genome") {
+    covered_regions = curr_sample_info[tumor_name, covered_regions]
+    if (covered_regions == "genome") {
       normalization = "default" # this actually means no normalization (since signatures and MAF coverage are both whole-genome)
     } else {
-      normalization = tri.counts.genome / exome_counts_by_gr[[curr_sample_info[tumor_name, covered_regions]]]
+      normalization = tri.counts.genome / tri_counts_by_gr[[covered_regions]]
     }
     return(run_deconstructSigs(tumor_trinuc_counts = tumor_trinuc_counts, tri.counts.method = normalization,
                                                 signatures_df = signatures, signatures_to_remove = current_sigs_to_remove, artifact_signatures = artifact_signatures))
