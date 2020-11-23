@@ -92,7 +92,7 @@ itself, then only those specified variants will be returned." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9016</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9017</span>
       </span>
     </div>
 
@@ -203,14 +203,14 @@ then only these specified variants will be returned.</p></td>
     </tr>
     <tr>
       <th>gr</th>
-      <td><p>Filter out any variants not within input GRanges +/- `padding` bases.</p></td>
+      <td><p>Filter out any variants not within input GRanges +/- <code>padding</code> bases.</p></td>
     </tr>
     <tr>
       <th>variant_position_table</th>
       <td><p>Filter out any variants that don't intersect the
 positions given in chr/start/end of this table (1-based closed coordinates).
 Typically, the table comes from a previous `select_variants` call and can be expanded
-with `padding`. (Gritty detail: Amino acid change SNVS get special handling: only the
+with <code>padding</code>. (Gritty detail: Amino acid change SNVS get special handling: only the
 precise positions in start, end, and center_nt_pos are used. This avoids intersecting
 extra variants between start/end, which on splite-site-spanning variants can be many
 thousands.)</p></td>

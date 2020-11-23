@@ -89,7 +89,7 @@ or transcript, only the longest complete CDS sequence is encoded in RefCDS outpu
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9016</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9017</span>
       </span>
     </div>
 
@@ -174,7 +174,7 @@ or transcript, only the longest complete CDS sequence is encoded in RefCDS outpu
       <th>gtf</th>
       <td><p>Path of a Gencode-GTF-formatted text file, or an equivalently formatted data
 table. See details for required columns (features). It's possible to build a suitable
-table using data pulled from biomaRt, but it's probably easier to use a GTF.</p></td>
+table using data pulled from biomaRt, but it's easier to use a GTF.</p></td>
     </tr>
     <tr>
       <th>genome</th>
@@ -198,10 +198,16 @@ codons within CDS records, set to FALSE.</p></td>
     </tr>
     <tr>
       <th>numcode</th>
-      <td><p>(don't use) NCBI genetic code number; currently only code 1, the standard genetic code, is supported</p></td>
+      <td><p>(don't use) NCBI genetic code number; currently only code 1, the
+standard genetic code, is supported</p></td>
     </tr>
     </table>
 
+    <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
+
+    <p>A two-item list: RefCDS (which is itself a big list, with one entry per gene or
+  transcript), and gr_genes, a GRanges object that defines the genomic intervals
+  covered by each gene.</p>
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
     <p>Required columns are seqnames, start, end, strand, gene_name, gene_id, protein_id, and

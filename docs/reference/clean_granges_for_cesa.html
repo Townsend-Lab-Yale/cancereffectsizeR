@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>list_ces_covariates — list_ces_covariates • cancereffectsizeR</title>
+<title>clean_granges_for_cesa — clean_granges_for_cesa • cancereffectsizeR</title>
 
 <!-- favicons -->
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
@@ -52,8 +52,10 @@
 
 
 
-<meta property="og:title" content="list_ces_covariates — list_ces_covariates" />
-<meta property="og:description" content="Prints names of available built-in covariate data sets for all loaded CES genomes" />
+<meta property="og:title" content="clean_granges_for_cesa — clean_granges_for_cesa" />
+<meta property="og:description" content="Tries to format an input GRanges object to be compatible with a CESAnalysis's reference
+genome. Optionally also applies padding to start and end positions of ranges, stopping
+at chromosome ends. Either stops with an error or returns a clean granges object." />
 <meta property="og:image" content="https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/logo.png" />
 
 
@@ -143,17 +145,35 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>list_ces_covariates</h1>
-    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/R/genome_data_handling.R'><code>R/genome_data_handling.R</code></a></small>
-    <div class="hidden name"><code>list_ces_covariates.Rd</code></div>
+    <h1>clean_granges_for_cesa</h1>
+    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/R/CESAnalysis.R'><code>R/CESAnalysis.R</code></a></small>
+    <div class="hidden name"><code>clean_granges_for_cesa.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Prints names of available built-in covariate data sets for all loaded CES genomes</p>
+    <p>Tries to format an input GRanges object to be compatible with a CESAnalysis's reference
+genome. Optionally also applies padding to start and end positions of ranges, stopping
+at chromosome ends. Either stops with an error or returns a clean granges object.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>list_ces_covariates</span>()</pre>
+    <pre class="usage"><span class='fu'>clean_granges_for_cesa</span>(<span class='kw'>cesa</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>gr</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>padding</span> <span class='kw'>=</span> <span class='fl'>0</span>)</pre>
 
+    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
+    <table class="ref-arguments">
+    <colgroup><col class="name" /><col class="desc" /></colgroup>
+    <tr>
+      <th>cesa</th>
+      <td><p>CESAnalysis</p></td>
+    </tr>
+    <tr>
+      <th>gr</th>
+      <td><p>GRanges object</p></td>
+    </tr>
+    <tr>
+      <th>padding</th>
+      <td><p>How many bases to expand start and end of each position</p></td>
+    </tr>
+    </table>
 
 
   </div>

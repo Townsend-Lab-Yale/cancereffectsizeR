@@ -89,7 +89,7 @@ SNV IDs." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9016</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9017</span>
       </span>
     </div>
 
@@ -179,7 +179,7 @@ SNV IDs.</p>
       <th>variant_table</th>
       <td><p>A data.table with chr/start/end positions (1-based closed
 coordinates, like MAF format). All possible SNVs overlapping the table's genomic
-coordinates (within `padding` bases) will be added. The tables returned by
+coordinates (within <code>padding</code> bases) will be added. The tables returned by
 select_variants() and (CESAnalysis)$variants work, and get special handling of
 amino-acid-change SNVs: only the precise positions in start, end, and center_nt_pos
 are used. (This avoids adding all variants between start/end, which on
@@ -192,11 +192,11 @@ splite-site-spanning variants can be many thousands.)</p></td>
     <tr>
       <th>bed</th>
       <td><p>A path to a BED file. All possible SNVs overlapping BED intervals (within
-`padding` bases) will be added.</p></td>
+<code>padding</code> bases) will be added.</p></td>
     </tr>
     <tr>
       <th>gr</th>
-      <td><p>A GRanges object. All possible SNVs overlapping the ranges (within `padding`
+      <td><p>A GRanges object. All possible SNVs overlapping the ranges (within <code>padding</code>
 bases) will be added.</p></td>
     </tr>
     <tr>

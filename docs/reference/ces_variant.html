@@ -86,7 +86,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9016</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9017</span>
       </span>
     </div>
 
@@ -155,8 +155,9 @@
     <pre class="usage"><span class='fu'>ces_variant</span>(
   <span class='kw'>cesa</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
   <span class='kw'>variants</span> <span class='kw'>=</span> <span class='fu'><a href='select_variants.html'>select_variants</a></span>(<span class='no'>cesa</span>, <span class='kw'>min_freq</span> <span class='kw'>=</span> <span class='fl'>2</span>),
+  <span class='kw'>run_name</span> <span class='kw'>=</span> <span class='st'>"auto"</span>,
   <span class='kw'>model</span> <span class='kw'>=</span> <span class='st'>"sswm"</span>,
-  <span class='kw'>group_ordering</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>groups</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
   <span class='kw'>custom_lik_args</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span>(),
   <span class='kw'>hold_out_same_gene_samples</span> <span class='kw'>=</span> <span class='fu'>is</span>(<span class='no'>variants</span>, <span class='st'>"data.table"</span>),
   <span class='kw'>cores</span> <span class='kw'>=</span> <span class='fl'>1</span>,
@@ -178,18 +179,24 @@
 samples in the MAF data set.</p></td>
     </tr>
     <tr>
+      <th>run_name</th>
+      <td><p>optionally, a name to identify the current run</p></td>
+    </tr>
+    <tr>
       <th>model</th>
       <td><p>"sswm" or "sswm_sequential" to use built-in models of selection, or supply a
 custom function factory (see details).</p></td>
     </tr>
     <tr>
-      <th>group_ordering</th>
-      <td><p>for models (like sswm_sequential) that assume different groups of
-samples are from sequential tumor progression states, a vector or list giving the
-ordering of CESAnalysis groups. Examples: <code><a href='https://rdrr.io/r/base/c.html'>c("Primary", "Metastatic")</a></code> is a
-two-state ordering. Lists allow groups to share progression states: 
-<code><a href='https://rdrr.io/r/base/list.html'>list("A", c("B", "C"), "D")</a></code> means that group A is first, groups B and C 
-belong to the same intermediate state, and group D is last.</p></td>
+      <th>groups</th>
+      <td><p>Which sample groups to include (default all); data for outgroup samples
+will not inform selection calculation. For models (like sswm_sequential) that assume
+ordered groups of samples, use a list to indicate group ordering.
+Examples: <code><a href='https://rdrr.io/r/base/c.html'>c("group1", "group2")</a></code> includes groups 1 and 2, but doesn't indicate
+an ordering, so is invalid for ordered-group models.
+<code><a href='https://rdrr.io/r/base/list.html'>list("Primary", "Metastatic")</a></code> indicates two ordered groups, and
+<code><a href='https://rdrr.io/r/base/list.html'>list("A", c("B", "C"), "D")</a></code> means that group A is first, groups B and C share
+an intermediate state, and group D is last.</p></td>
     </tr>
     <tr>
       <th>custom_lik_args</th>
