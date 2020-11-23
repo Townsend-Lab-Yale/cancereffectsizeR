@@ -17,7 +17,7 @@ sswm_lik = function(rates_tumors_with, rates_tumors_without) {
     if (length(rates_tumors_with) > 0) {
       sum_log_lik = sum_log_lik + sum(log(1 - exp(-1 * gamma * rates_tumors_with)))
     }
-    
+
     # convert to negative loglikelihood and return
     return(-1 * sum_log_lik)
   }

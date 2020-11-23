@@ -25,20 +25,20 @@ test_that("ces_variant with sswm", {
 
 test_that("ces_variant with sswm_sequential", {
   cesa = ces_variant(cesa, variants = select_variants(cesa, genes = c("EGFR", "KRAS", "TP53"), variant_passlist = "CR2 R247L"),
-                 model = "sswm_sequential", group_ordering = list(c("marionberry", "cherry"), "mountain_apple"))
+                 model = "sswm_sequential", groups = list(c("marionberry", "cherry"), "mountain_apple"))
   results = cesa@selection_results[[1]] # previous run not saved due to test_that scoping
   expect_equal(attr(results, "si_cols"), c("si_1", "si_2"))
   results_ak = fread(get_test_file("fruit_sswm_sequential_out.txt"))
   expect_equal(results[order(variant_id)], results_ak[order(variant_id)], check.attributes = F)
 })
 
-test_that("ces_variant bad group_ordering inputs", {
-  expect_error(ces_variant(cesa, model = "sswm_sequential", group_ordering = c("cherry","cherry")), "groups are re-used")
-  expect_error(ces_variant(cesa, model = "sswm_sequential", group_ordering = list(c("cherry", "marionberry"))),
-               "must have length of at least 2")
-  expect_warning(ces_variant(cesa, variants = select_variants(cesa, variant_passlist = "CR2 R247L"),
-                             model = "sswm_sequential", group_ordering = c("cherry", "marionberry")),
-                  "The following groups were not included in group_ordering")
+test_that("ces_variant bad groups inputs", {
+  expect_error(ces_variant(cesa, model = "sswm_sequential", groups = c("cherry","cherry")), "groups are re-used")
+  expect_error(ces_variant(cesa, model = "sswm_sequential", groups = list(c("cherry", "marionberry"))),
+               "should be a list with length at least two")
+  expect_message(ces_variant(cesa, variants = select_variants(cesa, variant_passlist = "CR2 R247L"),
+                             model = "sswm_sequential", groups = c("cherry", "marionberry")),
+                  "are not informing effect size.*mountain")
 })
 
 test_that("ces_variant with user-supplied variants", {
@@ -79,7 +79,7 @@ test_that("Compound variant creation", {
   # should recapitulate single variant results with 1-SNV-size compound variants
   single_snv_comp = define_compound_variants(cesa, all_kras_12_13, by = c("gene", "aa_alt"), merge_distance = 0)
   expect_equal(length(single_snv_comp), 5)
-  results = ces_variant(cesa, single_snv_comp, model = "sswm_sequential", group_ordering = list(c("marionberry", "cherry"), "mountain_apple"))
+  results = ces_variant(cesa, single_snv_comp, model = "sswm_sequential", groups = list(c("marionberry", "cherry"), "mountain_apple"))
   results = results$selection[[1]][c("KRAS.Cys.1", "KRAS.Asp.1", "KRAS.Cys.2", "KRAS.Asp.2", "KRAS.Val.1"), on = "variant_name"]
   prev = fread(get_test_file("fruit_sswm_sequential_out.txt"))[all_kras_12_13$variant_id, on = "variant_id"][, 3:4]
   all.equal(results[, 3:4], prev, tolerance = 1e-6)

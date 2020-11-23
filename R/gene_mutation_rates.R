@@ -75,7 +75,7 @@ gene_mutation_rates <- function(cesa, covariates = NULL, sample_group = NULL, sa
             "covariates.)", call. = F, immediate. = T)
   } else if (is(covariates, "character") && covariates[1] == "default") {
     if(cesa@ref_key == "ces_hg19_v1") {
-      message("Loading dNdScv default covariates for hg19 (stop and re-run with tissue-specific covariates if available)...")
+      pretty_message("Loading dNdScv default covariates for hg19 (stop and re-run with tissue-specific covariates if available)...")
       data("covariates_hg19", package = "dndscv", envir = environment())
       genes_in_pca <- rownames(covs)
       cv = "hg19"
