@@ -7,8 +7,9 @@
 ces_variant(
   cesa = NULL,
   variants = select_variants(cesa, min_freq = 2),
+  run_name = "auto",
   model = "sswm",
-  group_ordering = NULL,
+  groups = NULL,
   custom_lik_args = list(),
   hold_out_same_gene_samples = is(variants, "data.table"),
   cores = 1,
@@ -23,15 +24,19 @@ ces_variant(
 (SNV-derived) coding mutations, where recurrent means appearing in at least two
 samples in the MAF data set.}
 
+\item{run_name}{optionally, a name to identify the current run}
+
 \item{model}{"sswm" or "sswm_sequential" to use built-in models of selection, or supply a
 custom function factory (see details).}
 
-\item{group_ordering}{for models (like sswm_sequential) that assume different groups of
-samples are from sequential tumor progression states, a vector or list giving the
-ordering of CESAnalysis groups. Examples: \code{c("Primary", "Metastatic")} is a
-two-state ordering. Lists allow groups to share progression states: 
-\code{list("A", c("B", "C"), "D")} means that group A is first, groups B and C 
-belong to the same intermediate state, and group D is last.}
+\item{groups}{Which sample groups to include (default all); data for outgroup samples
+will not inform selection calculation. For models (like sswm_sequential) that assume
+ordered groups of samples, use a list to indicate group ordering.
+Examples: \code{c("group1", "group2")} includes groups 1 and 2, but doesn't indicate
+an ordering, so is invalid for ordered-group models.
+\code{list("Primary", "Metastatic")} indicates two ordered groups, and
+\code{list("A", c("B", "C"), "D")} means that group A is first, groups B and C share
+an intermediate state, and group D is last.}
 
 \item{custom_lik_args}{Extra arguments, given as a list, to pass to custom likelihood
 functions.}

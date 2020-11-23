@@ -4,6 +4,7 @@
 #' @param cores number of cores to use
 #' @param conf selection intensity confidence interval width (NULL skips calculation,
 #'   speeds runtime)
+#' @param run_name optionally, a name to identify the current run
 #' @param variants Variant table from \code{select_variants()}, or a \code{CompoundVariantSet} from
 #'   \code{define_compound_variants()}. Defaults to all recurrent noncoding SNVs and
 #'   (SNV-derived) coding mutations, where recurrent means appearing in at least two
@@ -28,6 +29,7 @@
 
 ces_variant <- function(cesa = NULL,
                         variants = select_variants(cesa, min_freq = 2),
+                        run_name = "auto",
                         model = "sswm",
                         groups = NULL,
                         custom_lik_args = list(),
@@ -38,6 +40,23 @@ ces_variant <- function(cesa = NULL,
   if(! is(cesa, "CESAnalysis")) {
     stop("cesa should be a CESAnalysis", call. = F)
   }
+  
+  if (! is(run_name, "character") || length(run_name) != 1) {
+    stop("run_name should be 1-length character")
+  }
+  if (! grepl('^[a-z]', tolower(run_name), perl = T) || grepl('\\s\\s', run_name)) {
+    stop("Invalid run name. The name must start with a latter and contain no consecutive spaces.")
+  }
+  if (run_name == "auto") {
+    # sequentially name results, handling nefarious run naming
+    run_number = length(cesa@selection_results) + 1
+    run_name = paste0('selection.', run_number)
+    while(run_name %in% names(cesa@selection_results)) {
+      run_number = run_number + 1
+      run_name = paste0('variant_effects_', run_number)
+    }
+  }
+
   
   if(is(model, "character")) {
     if(length(model) != 1 || ! model %in% c("sswm", "sswm_sequential")) {
@@ -363,7 +382,9 @@ ces_variant <- function(cesa = NULL,
   si_cols = colnames(selection_results)[3:(ll_col_num - 1)]
   setattr(selection_results, "si_cols", si_cols)
   
-  cesa@selection_results = c(cesa@selection_results, list(selection_results))
+  curr_results = list(selection_results)
+  names(curr_results) = run_name
+  cesa@selection_results = c(cesa@selection_results, curr_results)
   
   return(cesa)
 }

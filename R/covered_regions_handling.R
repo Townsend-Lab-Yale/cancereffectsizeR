@@ -5,7 +5,7 @@
 #' @param covered_regions A GRanges object or BED file path with genome build matching the target_cesa,
 #'                      if not using source_cesa
 #' @param covered_regions_name A name to identify the covered regions, if not using source_cesa
-#' @param coverage_type exome or targeted, if not using source_cesa
+#' @param coverage_type exome, genome, or targeted (if not using source_cesa)
 #' @param covered_regions_padding optionally, add +/- this many bp to each interval in covered_regions
 #' @return CESAnalysis given in target_cesa, with the new covered regions added
 #' @export

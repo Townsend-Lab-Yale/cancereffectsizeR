@@ -470,6 +470,12 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = 
   
   setattr(combined, "cesa_id", cesa@advanced$uid)
   setattr(combined, "nonoverlapping", nonoverlapping)
+  
+  # May want to keep track of what covered_regions are in the CESAnalysis, since it's
+  # possible to add more at any time. However, it's not possible to change covered_regions
+  # of already-loaded samples, so plugging an out-of-data variant table into ces_variant
+  # shouldn't ever affect output.
+  #setattr(combined, "cesa_cov_regions", unlist(sapply(cesa@coverage, names), use.names = F))
   return(combined[]) # brackets force the output to print when unassigned (should automatically, but this is a known data.table issue)
 }
 

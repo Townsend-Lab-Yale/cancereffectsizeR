@@ -38,13 +38,63 @@ test_that("ces_variant bad groups inputs", {
                "should be a list with length at least two")
   expect_message(ces_variant(cesa, variants = select_variants(cesa, variant_passlist = "CR2 R247L"),
                              model = "sswm_sequential", groups = c("cherry", "marionberry")),
-                  "are not informing effect size.*mountain")
+                  "are not informing effect")
 })
 
 test_that("ces_variant with user-supplied variants", {
   expect_equal(ces_variant(cesa, variants = select_variants(cesa, variant_passlist = "10:100190376_C>A"))@selection_results[[1]][, .N], 1)
   variants = select_variants(cesa, genes = c("TP53", "KRAS"), variant_passlist = "KRAS_G12D_ENSP00000256078", min_freq = 2)
   expect_equal(ces_variant(cesa, variants = variants)@selection_results[[1]][, .N], 9)
+})
+
+test_that("ces_variant on subsets of samples", {
+  # EGFR L858R appears 5 times in cherry, 4 in mountain apple, 0 in marionberry
+  egfr = select_variants(cesa, variant_passlist = "EGFR_L858R_ENSP00000275493")
+  
+  just_cherry = ces_variant(cesa, variants = egfr, groups = "cherry")@selection_results[[1]]$selection_intensity
+  also_marionberry = ces_variant(cesa, variants = egfr, groups = c("cherry", "marionberry"))@selection_results[[1]]$selection_intensity
+  with_all = ces_variant(cesa, variants = egfr)@selection_results[[1]]$selection_intensity
+  expect_lt(also_marionberry, just_cherry)
+  expect_lt(also_marionberry, with_all)
+  
+  
+  # add some "new" data with no coverage at EGFR L858R
+  # Add some synthetic variants with no coverage; shouldn't affect selection
+  new_maf = copy(cesa@maf)
+  new_samples = copy(cesa@samples)
+  new_maf[, Unique_Patient_Identifier := paste0(Unique_Patient_Identifier, '.1')] # cast as new samples
+  new_samples[, covered_regions := "no_egfr"]
+  new_samples[, Unique_Patient_Identifier := paste0(Unique_Patient_Identifier, '.1')]
+  new_rates = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix
+  rownames(new_rates) = paste0(rownames(cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix), '.1')
+  no_egfr_cov = GenomicRanges::setdiff(cesa@coverage$exome$`exome+`, GRanges("7:55259514-55259516"))
+  
+  cesa = add_covered_regions(cesa, covered_regions = no_egfr_cov, covered_regions_name = "no_egfr",
+                             coverage_type = "exome")
+  
+  egfr_variants = select_variants(cesa, genes = "EGFR", min_freq = 2)
+  expect_true(egfr_variants[variant_name == "EGFR_L858R", identical(unlist(covered_in), c("exome", "exome+"))])
+  expect_true(egfr_variants[variant_name != "EGFR_L858R", length(unlist(unique(covered_in))) == 3])
+  
+  # illegally adding new samples/data
+  cesa@samples = rbind(cesa@samples, new_samples)
+  cesa@maf = rbind(cesa@maf, new_maf[variant_id != '7:55259515_T>G']) # avoid adding uncovered record
+  cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix = rbind(cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix,
+                                                                       new_rates)
+  
+  # selection intensity should be unchanged by addition of new samples
+  all_with_new = ces_variant(cesa, variants = egfr)@selection_results[[1]]
+  expect_identical(with_all, all_with_new$selection_intensity)
+  
+  # this time, add data with ad-hoc genome-wide coverage; SI should go down
+  cesa = add_covered_regions(cesa, covered_regions = cesa@coverage$exome$exome, covered_regions_padding = 1e9, 
+                            coverage_type = "genome", covered_regions_name = 'whole_genome')
+  cesa@samples[covered_regions == "no_egfr", covered_regions := "whole_genome"]
+  
+  # need to re-call since covered_in changed without samples changing
+  egfr = select_variants(cesa, variant_passlist = "EGFR_L858R_ENSP00000275493")
+  with_wgs = ces_variant(cesa, variants = egfr)@selection_results[[1]]
+  expect_lt(with_wgs$selection_intensity, with_all)
 })
 
 test_that("Variant-level epistasis", {

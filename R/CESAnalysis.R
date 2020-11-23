@@ -400,7 +400,7 @@ snv_results = function(cesa = NULL) {
     
     output = c(output, list(results))
   }
-  names(output) = paste("cesv", 1:length(output), sep = ".")
+  names(output) = names(cesa@selection_results)
   
   return(output)
 }

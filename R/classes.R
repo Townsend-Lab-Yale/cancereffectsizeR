@@ -19,7 +19,7 @@ setMethod("$", "CESAnalysis",
     } else if (name == "trinuc_rates") {
       return(get_trinuc_rates(x))
     } else if (name == "mutational_signatures") {
-      return(list(biological = get_signature_weights(x, artifacts_zeroed = T),
+      return(list(relative_biological = get_signature_weights(x, artifacts_zeroed = T),
                   all = get_signature_weights(x, artifacts_zeroed = F)))
     } else if (name == "gene_rates") {
       return(get_gene_rates(x))

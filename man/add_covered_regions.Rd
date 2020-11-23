@@ -23,7 +23,7 @@ if not using source_cesa}
 
 \item{covered_regions_name}{A name to identify the covered regions, if not using source_cesa}
 
-\item{coverage_type}{exome or targeted, if not using source_cesa}
+\item{coverage_type}{exome, genome, or targeted (if not using source_cesa)}
 
 \item{covered_regions_padding}{optionally, add +/- this many bp to each interval in covered_regions}
 }
