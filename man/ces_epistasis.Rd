@@ -4,7 +4,13 @@
 \alias{ces_epistasis}
 \title{Variant-level pairwise epistasis}
 \usage{
-ces_epistasis(cesa = NULL, variants = NULL, cores = 1, conf = NULL)
+ces_epistasis(
+  cesa = NULL,
+  variants = NULL,
+  run_name = "auto",
+  cores = 1,
+  conf = NULL
+)
 }
 \arguments{
 \item{cesa}{CESAnalysis}
@@ -13,6 +19,8 @@ ces_epistasis(cesa = NULL, variants = NULL, cores = 1, conf = NULL)
 2-length vector of CES-style variant IDs. Alternatively (and often more usefully),
 supply a CompoundVariantSet (see \code{define_compound_variants}) to test all pairs
 of compound variants in the set.}
+
+\item{run_name}{Optionally, a name to identify the current run.}
 
 \item{cores}{number of cores for parallel processing of gene pairs}
 
@@ -25,5 +33,5 @@ a data table with pairwise-epistatic selection intensities and variant
 }
 \description{
 Calculate selection intensity under an assumption of pairwise epistasis between pairs of variants.
-Returns a table, \strong{NOT} a CESAnalysis, so be careful not to overwrite your analysis.
+CompoundVariantSets are supported.
 }

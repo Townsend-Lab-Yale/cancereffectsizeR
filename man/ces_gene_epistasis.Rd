@@ -4,31 +4,37 @@
 \alias{ces_gene_epistasis}
 \title{Gene-level epistasis}
 \usage{
-ces_gene_epistasis(cesa = NULL, genes = character(), cores = 1, conf = NULL)
+ces_gene_epistasis(
+  cesa = NULL,
+  genes = character(),
+  run_name = "auto",
+  cores = 1,
+  conf = NULL
+)
 }
 \arguments{
 \item{cesa}{CESAnalysis object}
 
-\item{genes}{vector of gene names; SIs will be calculated for all gene pairs}
+\item{genes}{Vector of gene names; SIs will be calculated for all gene pairs}
+
+\item{run_name}{Optionally, a name to identify the current run.}
 
 \item{cores}{number of cores for parallel processing of gene pairs}
 
-\item{conf}{confidence interval size from 0 to 1 (.95 -> 95%); NULL skips calculation,
-significantly reducing runtime}
+\item{conf}{Confidence interval size from 0 to 1 (.95 -> 95%). NULL skips calculation,
+which reduces runtime.}
 }
 \value{
-a table of gene-level epistasis results
+CESAnalysis with epistasis analysis results added
 }
 \description{
 Calculate selection intensity under an assumption of pairwise gene-level epistasis.
 More specifically, selection at the gene level is assumed to act through all recurrent
 variants (variants that appear in just one sample are ignored), with selection
 intensity of each gene assumed to vary based on mutational status of the other gene.
-Returns a table of results, \strong{NOT} a CESAnalysis, so be careful not to overwrite
-your CESAnalysis.
 }
 \details{
-Only samples that have coverage at all recurrent sites can be included in analysis
-since samples lacking full coverage may or may not have mutations at the uncovered
-sites
+Only samples that have coverage at all recurrent sites in both genes can be included in
+analysis since samples lacking full coverage may or may not have mutations at the
+uncovered sites.
 }

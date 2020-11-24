@@ -18,6 +18,7 @@ univariate_si_conf_ints(fit, lik_fn, min_si, max_si, conf)
 \item{conf}{e.g., .95 -> 95\% CIs}
 }
 \description{
-Calculate uniroot CIs on selection intensities
+Given a model fit, calculate univariate confidence intervals for each parameter.
+Returns a list of low/high bounds.
 }
 \keyword{internal}

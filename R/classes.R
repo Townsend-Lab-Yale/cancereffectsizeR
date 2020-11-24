@@ -1,6 +1,6 @@
 setClass("CESAnalysis", representation(maf = "data.table", trinucleotide_mutation_weights = "list",
           groups = "character", mutrates = "data.table", dndscv_out_list = "list",
-          excluded = "data.table", selection_results = "list", coverage = "list",
+          excluded = "data.table", selection_results = "list", coverage = "list", epistasis = "list",
           ref_key = "character", advanced = "list", ref_data_dir = "character", run_history = "character", samples = "data.table", 
           mutations = "list"))
 
@@ -27,6 +27,8 @@ setMethod("$", "CESAnalysis",
       return(select_variants(cesa = x))
     } else if (name == "selection") {
       return(snv_results(x))
+    } else if (name == "epistasis") {
+      return(epistasis_results(x))
     } else if (name == "reference_data") {
       if (! x@ref_key %in% ls(.ces_ref_data)) {
         preload_ref_data(x@ref_data_dir)
@@ -63,6 +65,9 @@ setMethod("$", "CESAnalysis",
   }
   if(length(x@selection_results) > 0) {
     features = c(features, "selection")
+  }
+  if(length(x@epistasis) > 0) {
+    features = c(features, "epistasis")
   }
   if(x@excluded[, .N] > 0) {
     features = c(features, "excluded")

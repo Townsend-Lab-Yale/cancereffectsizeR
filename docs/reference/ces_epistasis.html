@@ -54,7 +54,7 @@
 
 <meta property="og:title" content="Variant-level pairwise epistasis — ces_epistasis" />
 <meta property="og:description" content="Calculate selection intensity under an assumption of pairwise epistasis between pairs of variants.
-Returns a table, NOT a CESAnalysis, so be careful not to overwrite your analysis." />
+CompoundVariantSets are supported." />
 <meta property="og:image" content="https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/logo.png" />
 
 
@@ -87,7 +87,7 @@ Returns a table, NOT a CESAnalysis, so be careful not to overwrite your analysis
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9017</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9018</span>
       </span>
     </div>
 
@@ -151,10 +151,16 @@ Returns a table, NOT a CESAnalysis, so be careful not to overwrite your analysis
 
     <div class="ref-description">
     <p>Calculate selection intensity under an assumption of pairwise epistasis between pairs of variants.
-Returns a table, <strong>NOT</strong> a CESAnalysis, so be careful not to overwrite your analysis.</p>
+CompoundVariantSets are supported.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>ces_epistasis</span>(<span class='kw'>cesa</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>variants</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>cores</span> <span class='kw'>=</span> <span class='fl'>1</span>, <span class='kw'>conf</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)</pre>
+    <pre class="usage"><span class='fu'>ces_epistasis</span>(
+  <span class='kw'>cesa</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>variants</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>run_name</span> <span class='kw'>=</span> <span class='st'>"auto"</span>,
+  <span class='kw'>cores</span> <span class='kw'>=</span> <span class='fl'>1</span>,
+  <span class='kw'>conf</span> <span class='kw'>=</span> <span class='kw'>NULL</span>
+)</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -169,6 +175,10 @@ Returns a table, <strong>NOT</strong> a CESAnalysis, so be careful not to overwr
 2-length vector of CES-style variant IDs. Alternatively (and often more usefully),
 supply a CompoundVariantSet (see <code>define_compound_variants</code>) to test all pairs
 of compound variants in the set.</p></td>
+    </tr>
+    <tr>
+      <th>run_name</th>
+      <td><p>Optionally, a name to identify the current run.</p></td>
     </tr>
     <tr>
       <th>cores</th>

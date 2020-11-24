@@ -76,6 +76,7 @@ reference:
   - get_signature_weights
   - get_gene_rates
   - snv_results
+  - epistasis_results
 home:
   description: >
       cancereffectsizeR, an R package from the Townsend Lab at Yale School of Public Health

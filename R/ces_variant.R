@@ -4,7 +4,7 @@
 #' @param cores number of cores to use
 #' @param conf selection intensity confidence interval width (NULL skips calculation,
 #'   speeds runtime)
-#' @param run_name optionally, a name to identify the current run
+#' @param run_name Optionally, a name to identify the current run.
 #' @param variants Variant table from \code{select_variants()}, or a \code{CompoundVariantSet} from
 #'   \code{define_compound_variants()}. Defaults to all recurrent noncoding SNVs and
 #'   (SNV-derived) coding mutations, where recurrent means appearing in at least two
@@ -43,6 +43,9 @@ ces_variant <- function(cesa = NULL,
   
   if (! is(run_name, "character") || length(run_name) != 1) {
     stop("run_name should be 1-length character")
+  }
+  if(run_name %in% names(cesa@selection_results)) {
+    stop("The run_name you chose has already been used. Please pick a new one.")
   }
   if (! grepl('^[a-z]', tolower(run_name), perl = T) || grepl('\\s\\s', run_name)) {
     stop("Invalid run name. The name must start with a latter and contain no consecutive spaces.")

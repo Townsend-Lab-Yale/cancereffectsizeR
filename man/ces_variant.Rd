@@ -24,7 +24,7 @@ ces_variant(
 (SNV-derived) coding mutations, where recurrent means appearing in at least two
 samples in the MAF data set.}
 
-\item{run_name}{optionally, a name to identify the current run}
+\item{run_name}{Optionally, a name to identify the current run.}
 
 \item{model}{"sswm" or "sswm_sequential" to use built-in models of selection, or supply a
 custom function factory (see details).}

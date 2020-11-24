@@ -1,5 +1,8 @@
 #' Calculate uniroot CIs on selection intensities
 #' 
+#' Given a model fit, calculate univariate confidence intervals for each parameter.
+#' Returns a list of low/high bounds.
+#' 
 #' @param fit From bbmle
 #' @param lik_fn likelihood function
 #' @param min_si lower limit on SI/CI

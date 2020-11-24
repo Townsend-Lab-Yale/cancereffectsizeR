@@ -4,23 +4,45 @@
 #' More specifically, selection at the gene level is assumed to act through all recurrent
 #' variants (variants that appear in just one sample are ignored), with selection
 #' intensity of each gene assumed to vary based on mutational status of the other gene.
-#' Returns a table of results, \strong{NOT} a CESAnalysis, so be careful not to overwrite
-#' your CESAnalysis.
 #' 
-#' Only samples that have coverage at all recurrent sites can be included in analysis
-#' since samples lacking full coverage may or may not have mutations at the uncovered
-#' sites
+#' Only samples that have coverage at all recurrent sites in both genes can be included in
+#' analysis since samples lacking full coverage may or may not have mutations at the
+#' uncovered sites.
 #' 
 #' 
 #' @param cesa CESAnalysis object
-#' @param genes vector of gene names; SIs will be calculated for all gene pairs
-#' @param conf confidence interval size from 0 to 1 (.95 -> 95%); NULL skips calculation,
-#'   significantly reducing runtime
+#' @param genes Vector of gene names; SIs will be calculated for all gene pairs
+#' @param run_name Optionally, a name to identify the current run.
+#' @param conf Confidence interval size from 0 to 1 (.95 -> 95%). NULL skips calculation,
+#'   which reduces runtime.
 #' @param cores number of cores for parallel processing of gene pairs
-#' @return a table of gene-level epistasis results
+#' @return CESAnalysis with epistasis analysis results added
 #' @export
-ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, conf = NULL)
+ces_gene_epistasis = function(cesa = NULL, genes = character(), run_name = "auto", cores = 1, conf = NULL)
 {
+  if (! is(cesa, "CESAnalysis")) {
+    stop("cesa should be a CESAnalysis.")
+  }
+  cesa = update_cesa_history(cesa, match.call())
+  if (! is(run_name, "character") || length(run_name) != 1) {
+    stop("run_name should be 1-length character")
+  }
+  if(run_name %in% names(cesa@epistasis)) {
+    stop("The run_name you chose has already been used. Please pick a new one.")
+  }
+  if (! grepl('^[a-z]', tolower(run_name), perl = T) || grepl('\\s\\s', run_name)) {
+    stop("Invalid run name. The name must start with a latter and contain no consecutive spaces.")
+  }
+  if (run_name == "auto") {
+    # sequentially name results, handling nefarious run naming
+    run_number = length(cesa@epistasis) + 1
+    run_name = paste0('gene_epistasis_', run_number)
+    while(run_name %in% names(cesa@epistasis)) {
+      run_number = run_number + 1
+      run_name = paste0('gene_epistasis_', run_number)
+    }
+  }
+  
   setkey(cesa@samples, "Unique_Patient_Identifier") # in case dt has forgotten its key
   setkey(cesa@mutations$amino_acid_change, "aac_id")
   setkey(cesa@mutations$snv, "snv_id")
@@ -91,28 +113,60 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), cores = 1, conf 
   # pairwise epistasis function uses v1/v2 in parameter names (as in, variants); sub in g1/g2 for gene
   colnames(results) = gsub("_v1", "_g1", colnames(results))
   colnames(results) = gsub("_v2", "_g2", colnames(results))
-  return(results)
+  
+  if (results[(joint_cov_samples_just_g1_mut == 0 | joint_cov_samples_just_g2_mut == 0) & 
+              joint_cov_samples_both_mut == 0, .N] > 0) {
+    pretty_message(paste0("Some gene pairs had no recurrent variants in one or both genes of jointly-covering samples. ",
+                   "Epistatic selection intensities are all NAs for these pairs."))
+  }
+  
+  results = list(results)
+  names(results) = run_name
+  cesa@epistasis = c(cesa@epistasis, results)
+  
+  return(cesa)
 }
 
 #' Variant-level pairwise epistasis
 #' 
 #' Calculate selection intensity under an assumption of pairwise epistasis between pairs of variants.
-#' Returns a table, \strong{NOT} a CESAnalysis, so be careful not to overwrite your analysis.
+#' CompoundVariantSets are supported.
 #' 
 #' @param cesa CESAnalysis
 #' @param variants To test pairs of variants, supply a list where each element is a
 #'   2-length vector of CES-style variant IDs. Alternatively (and often more usefully),
 #'   supply a CompoundVariantSet (see \code{define_compound_variants}) to test all pairs
 #'   of compound variants in the set.
+#' @param run_name Optionally, a name to identify the current run.
 #' @param conf confidence interval size from 0 to 1 (.95 -> 95%); NULL skips calculation,
 #'   reducing runtime.
 #' @param cores number of cores for parallel processing of gene pairs
 #' @return a data table with pairwise-epistatic selection intensities and variant
 #'   frequencies for in tumors that have coverage at both variants in each pair
 #' @export
-ces_epistasis = function(cesa = NULL, variants = NULL, cores = 1, conf = NULL) {
+ces_epistasis = function(cesa = NULL, variants = NULL, run_name = "auto", cores = 1, conf = NULL) {
   if(! is(cesa, "CESAnalysis")) {
     stop("cesa should specify a CESAnalysis object", call. = F)
+  }
+  cesa = update_cesa_history(cesa, match.call())
+  
+  if (! is(run_name, "character") || length(run_name) != 1) {
+    stop("run_name should be 1-length character")
+  }
+  if (! grepl('^[a-z]', tolower(run_name), perl = T) || grepl('\\s\\s', run_name)) {
+    stop("Invalid run name. The name must start with a latter and contain no consecutive spaces.")
+  }
+  if(run_name %in% names(cesa@epistasis)) {
+    stop("The run_name you chose has already been used. Please pick a new one.")
+  }
+  if (run_name == "auto") {
+    # sequentially name results, handling nefarious run naming
+    run_number = length(cesa@epistasis) + 1
+    run_name = paste0('variant_epistasis_', run_number)
+    while(run_name %in% names(cesa@epistasis)) {
+      run_number = run_number + 1
+      run_name = paste0('variant_epistasis_', run_number)
+    }
   }
   
   if(! is.null(conf)) {
@@ -131,7 +185,7 @@ ces_epistasis = function(cesa = NULL, variants = NULL, cores = 1, conf = NULL) {
   
   if(is(variants, "CompoundVariantSet")) {
     index_pairs = utils::combn(1:length(variants), 2, simplify = F)
-    return(rbindlist(pbapply::pblapply(X = index_pairs, FUN = pairwise_variant_epistasis, compound_variants = variants, cesa=cesa, conf = conf, cl = cores)))
+    results = rbindlist(pbapply::pblapply(X = index_pairs, FUN = pairwise_variant_epistasis, compound_variants = variants, cesa=cesa, conf = conf, cl = cores))
   } else if (is(variants, "list")) {
     setkey(cesa@samples, "Unique_Patient_Identifier") # in case dt has forgotten its key
     setkey(cesa@mutations$amino_acid_change, "aac_id")
@@ -166,10 +220,20 @@ ces_epistasis = function(cesa = NULL, variants = NULL, cores = 1, conf = NULL) {
     if (notify_name_conversion) {
       pretty_message("Shorthand variant names were recognized and uniquely paired with cancereffectsizeR's aac_ids.")
     }
-    return(rbindlist(pbapply::pblapply(X = variants, FUN = pairwise_variant_epistasis, cesa=cesa, conf = conf, cl = cores)))
+    results = rbindlist(pbapply::pblapply(X = variants, FUN = pairwise_variant_epistasis, cesa=cesa, conf = conf, cl = cores))
   } else {
     stop("variants should be of type list or CompoundVariantSet")
   }
+  
+  if(results[(joint_cov_samples_just_v1 == 0 | joint_cov_samples_just_v2 == 0) & 
+             joint_cov_samples_with_both == 0, .N] > 0) {
+    pretty_message(paste0("Some variant pairs had frequency of 0 in one or both variants across jointly-covering samples. ",
+                          "Epistatic selection intensities are all NAs for these pairs."))
+  }
+  results = list(results)
+  names(results) = run_name
+  cesa@epistasis = c(cesa@epistasis, results)
+  return(cesa)
   
 }
 
@@ -242,8 +306,9 @@ pairwise_variant_epistasis = function(cesa, variant_pair, conf, compound_variant
   } else {
     setcolorder(all_rates, c("Unique_Patient_Identifier", v1, v2))
     setkey(all_rates, "Unique_Patient_Identifier")
-    tumors_with_v1 = cesa@maf[, v1 %in% c(variant_id, assoc_aac), by = "Unique_Patient_Identifier"][V1 == T, Unique_Patient_Identifier]
-    tumors_with_v2 = cesa@maf[, v2 %in% c(variant_id, assoc_aac), by = "Unique_Patient_Identifier"][V1 == T, Unique_Patient_Identifier]
+    covered_maf = cesa@maf[eligible_tumors, on = "Unique_Patient_Identifier", nomatch = NULL]
+    tumors_with_v1 = covered_maf[, v1 %in% unlist(c(variant_id, assoc_aac)), by = "Unique_Patient_Identifier"][V1 == T, Unique_Patient_Identifier]
+    tumors_with_v2 = covered_maf[, v2 %in% unlist(c(variant_id, assoc_aac)), by = "Unique_Patient_Identifier"][V1 == T, Unique_Patient_Identifier]
     tumors_with_both = intersect(tumors_with_v1, tumors_with_v2)
     tumors_just_v1 = setdiff(tumors_with_v1, tumors_with_both)
     tumors_just_v2 = setdiff(tumors_with_v2, tumors_with_both)
@@ -261,6 +326,28 @@ pairwise_variant_epistasis = function(cesa, variant_pair, conf, compound_variant
   par_init = formals(fn)[[1]]
   names(par_init) = bbmle::parnames(fn)
   
+  # No point of testing epistasis if either variant doesn't appear
+  if (length(tumors_with_v1) == 0 || length(tumors_with_v2) == 0) {
+    early_output = list(variant1 = v1, variant2 = v2, ces_v1 = NA_real_, ces_v2 = NA_real_,
+                        ces_v1_after_v2 = NA_real_, ces_v2_after_v1 = NA_real_, 
+                        joint_cov_samples_just_v1 = length(tumors_just_v1),
+                        joint_cov_samples_just_v2 = length(tumors_just_v2),
+                        joint_cov_samples_with_both = length(tumors_with_both),
+                        joint_cov_samples_with_neither = length(tumors_with_neither))
+    if (! is.null(conf)) {
+     si_names = names(par_init)
+     ci_high_colname = paste0("ci_high_", conf * 100)
+     ci_low_colname = paste0("ci_low_", conf * 100)
+     low_colnames = paste(ci_low_colname, si_names, sep = "_")
+     high_colnames = paste(ci_high_colname, si_names, sep = "_")
+     ci_colnames = unlist(S4Vectors::zipup(low_colnames, high_colnames))
+     ci_output = as.list(rep.int(NA_real_, 8))
+     names(ci_output) = ci_colnames
+     early_output = c(early_output, ci_output) # low/high for 4 parameters
+    }
+    return(early_output)
+  }
+  
   # find optimized selection intensities
   # the selection intensity when some group has 0 variants will be on the lower boundary; will muffle the associated warning
   withCallingHandlers(
@@ -277,10 +364,10 @@ pairwise_variant_epistasis = function(cesa, variant_pair, conf, compound_variant
   
   variant_ep_results = list(variant1 = v1, variant2 = v2, ces_v1 = params[1], ces_v2 = params[2],
                      ces_v1_after_v2 = params[3], ces_v2_after_v1 = params[4], 
-                     covered_tumors_just_v1 = length(tumors_just_v1),
-                     covered_tumors_just_v2 = length(tumors_just_v2),
-                     covered_tumors_with_both = length(tumors_with_both),
-                     covered_tumors_with_neither = length(tumors_with_neither))
+                     joint_cov_samples_just_v1 = length(tumors_just_v1),
+                     joint_cov_samples_just_v2 = length(tumors_just_v2),
+                     joint_cov_samples_with_both = length(tumors_with_both),
+                     joint_cov_samples_with_neither = length(tumors_with_neither))
   if(! is.null(conf)) {
     variant_ep_results = c(variant_ep_results, univariate_si_conf_ints(fit, fn, .001, 1e9, conf))
   }
@@ -314,15 +401,14 @@ pairwise_gene_epistasis = function(cesa, genes, conf) {
   rec_variants_g2 = select_variants(cesa, genes = gene2, min_freq = 2, collapse_lists = F)
   aac_g2 = rec_variants_g2[variant_type == "aac", variant_id]
   noncoding_g2 = rec_variants_g2[variant_type == "snv", variant_id]
-  all_g2_snv = unique(c(noncoding_g1, na.omit(unlist(rec_variants_g2$constituent_snvs))))
+  all_g2_snv = unique(c(noncoding_g2, na.omit(unlist(rec_variants_g2$constituent_snvs))))
   
   rec_variants = rbind(rec_variants_g1, rec_variants_g2)
   aac = c(aac_g1, aac_g2)
   noncoding_snv = c(noncoding_g1, noncoding_g2)
   
   # Can only use samples that have coverage at all sites
-  num_covered_by_panel = table(unlist(rec_variants$covered_in))
-  eligible_regions = c(names(which(num_covered_by_panel == rec_variants[, .N])), "genome")
+  eligible_regions = c(Reduce(intersect, rec_variants$covered_in), "genome")
   eligible_tumors = cesa@samples[covered_regions %in% eligible_regions, Unique_Patient_Identifier]
   
   if(length(eligible_tumors) == 0) {
@@ -342,7 +428,7 @@ pairwise_gene_epistasis = function(cesa, genes, conf) {
   baseline_rates_g2 = apply(g2_tmp, 1, function(x) 1 - prod(1 - x))
 
   # Find recurrent mutation status of all tumors in the two genes
-  maf = cesa@maf[Unique_Patient_Identifier %in% eligible_tumors]
+  maf = cesa@maf[eligible_tumors, on = "Unique_Patient_Identifier", nomatch = NULL]
   setkey(maf, "variant_id")
   tumors_with_gene1_mutated = maf[all_g1_snv, unique(Unique_Patient_Identifier), nomatch = NULL]
   tumors_with_gene2_mutated = maf[all_g2_snv, unique(Unique_Patient_Identifier), nomatch = NULL]
@@ -370,6 +456,29 @@ pairwise_gene_epistasis = function(cesa, genes, conf) {
   par_init = formals(fn)[[1]]
   names(par_init) = bbmle::parnames(fn)
   
+  if(length(tumors_with_gene1_mutated) == 0 || length(tumors_with_gene2_mutated) == 0) {
+    early_output = list(gene_1 = gene1, gene_2 = gene2, ces_g1 = NA_real_, ces_g2 = NA_real_,
+                           ces_g1_after_g2 = NA_real_, ces_g2_after_g1 = NA_real_, 
+                           joint_cov_samples_just_g1_mut = length(tumors_with_ONLY_gene1_mutated),
+                           joint_cov_samples_just_g2_mut = length(tumors_with_ONLY_gene2_mutated),
+                           joint_cov_samples_both_mut = length(tumors_with_both_mutated),
+                           joint_cov_samples_no_mut = length(tumors_with_neither_mutated))
+    if(! is.null(conf)) {
+      si_names = names(par_init)
+      ci_high_colname = paste0("ci_high_", conf * 100)
+      ci_low_colname = paste0("ci_low_", conf * 100)
+      low_colnames = paste(ci_low_colname, si_names, sep = "_")
+      high_colnames = paste(ci_high_colname, si_names, sep = "_")
+      ci_colnames = unlist(S4Vectors::zipup(low_colnames, high_colnames))
+      ci_output = as.list(rep.int(NA_real_, 8))
+      names(ci_output) = ci_colnames
+      early_output = c(early_output, ci_output) # low/high for 4 parameters
+    }
+    return(early_output)
+  }
+  
+  
+  
   # find optimized selection intensities
   # the selection intensity when some group has 0 variants will be on the lower boundary; will muffle the associated warning
   withCallingHandlers(
@@ -386,10 +495,10 @@ pairwise_gene_epistasis = function(cesa, genes, conf) {
   params = bbmle::coef(fit)
   gene_ep_results = list(gene_1 = gene1, gene_2 = gene2, ces_g1 = params[1], ces_g2 = params[2],
               ces_g1_after_g2 = params[3], ces_g2_after_g1 = params[4], 
-              tumors_with_recurrent_muts_only_g1 = length(tumors_with_ONLY_gene1_mutated),
-              tumors_with_recurrent_muts_only_g2 = length(tumors_with_ONLY_gene2_mutated),
-              tumors_with_recurrent_muts_in_both = length(tumors_with_both_mutated),
-              tumors_with_recurrent_muts_in_neither = length(tumors_with_neither_mutated))
+              joint_cov_samples_just_g1_mut = length(tumors_with_ONLY_gene1_mutated),
+              joint_cov_samples_just_g2_mut = length(tumors_with_ONLY_gene2_mutated),
+              joint_cov_samples_both_mut = length(tumors_with_both_mutated),
+              joint_cov_samples_no_mut = length(tumors_with_neither_mutated))
   
   
   if(! is.null(conf)) {

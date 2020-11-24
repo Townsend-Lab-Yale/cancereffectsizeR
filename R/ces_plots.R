@@ -41,11 +41,20 @@
 lollipops = function(si_list, title = "My SIs", ylab = "selection intensity", 
                      max_sites = 50, label_size = 3.0, merge_dist = .04, 
                      si_col = "auto", group_names = "auto") {
+  
+  # help out user if they called the function on cesa instead of [cesa]$seleciton
+  if (is(si_list, "CESAnalysis")) {
+    if(length(si_list@selection_results) > 0) {
+      si_list = snv_results(si_list)
+    } else {
+      stop("This CESAnalysis has nothing in [cesa]$selection.")
+    }
+  }
   if (! is(si_list, "list") || ! all(sapply(si_list, is.data.table))) {
     if (is(si_list, "data.table")) {
       si_list = list(' ' = si_list) # may not need a display name when plotting one group
     } else {
-      stop("si_list should be a list of data.tables (or a single data.table).")
+      stop("si_list should be a list of selection output tables (or a single data table).")
     }
   }
 

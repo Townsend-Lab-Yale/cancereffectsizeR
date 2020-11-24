@@ -51,16 +51,14 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
   mutations = cesa@mutations
   
   # can drop AAC mutations not requested
-  if (length(aac_ids) > 0) {
-    mutations$amino_acid_change = mutations$amino_acid_change[aac_ids]
-  }
+  mutations$amino_acid_change = mutations$amino_acid_change[aac_ids]
   setkey(mutations$amino_acid_change, "aac_id")
   
   
   # Give a progress message if this is going to take more than a few seconds
   num_variants = length(aac_ids) + length(snv_ids)
   num_samples = samples[, .N]
-  if(num_variants * num_samples > 50000) {
+  if(num_variants * num_samples > 1e7) {
     num_variants = format(num_variants, big.mark = ",") # big.mark? R is so weird
     num_samples = format(num_samples, big.mark = ",")
     message(sprintf("Preparing to calculate baseline mutation rates in %s samples across %s sites...", num_samples, num_variants))

@@ -56,9 +56,7 @@
 <meta property="og:description" content="Calculate selection intensity under an assumption of pairwise gene-level epistasis.
 More specifically, selection at the gene level is assumed to act through all recurrent
 variants (variants that appear in just one sample are ignored), with selection
-intensity of each gene assumed to vary based on mutational status of the other gene.
-Returns a table of results, NOT a CESAnalysis, so be careful not to overwrite
-your CESAnalysis." />
+intensity of each gene assumed to vary based on mutational status of the other gene." />
 <meta property="og:image" content="https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/logo.png" />
 
 
@@ -91,7 +89,7 @@ your CESAnalysis." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9017</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9018</span>
       </span>
     </div>
 
@@ -157,12 +155,16 @@ your CESAnalysis." />
     <p>Calculate selection intensity under an assumption of pairwise gene-level epistasis.
 More specifically, selection at the gene level is assumed to act through all recurrent
 variants (variants that appear in just one sample are ignored), with selection
-intensity of each gene assumed to vary based on mutational status of the other gene.
-Returns a table of results, <strong>NOT</strong> a CESAnalysis, so be careful not to overwrite
-your CESAnalysis.</p>
+intensity of each gene assumed to vary based on mutational status of the other gene.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>ces_gene_epistasis</span>(<span class='kw'>cesa</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>genes</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/character.html'>character</a></span>(), <span class='kw'>cores</span> <span class='kw'>=</span> <span class='fl'>1</span>, <span class='kw'>conf</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)</pre>
+    <pre class="usage"><span class='fu'>ces_gene_epistasis</span>(
+  <span class='kw'>cesa</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>genes</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/character.html'>character</a></span>(),
+  <span class='kw'>run_name</span> <span class='kw'>=</span> <span class='st'>"auto"</span>,
+  <span class='kw'>cores</span> <span class='kw'>=</span> <span class='fl'>1</span>,
+  <span class='kw'>conf</span> <span class='kw'>=</span> <span class='kw'>NULL</span>
+)</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -173,7 +175,11 @@ your CESAnalysis.</p>
     </tr>
     <tr>
       <th>genes</th>
-      <td><p>vector of gene names; SIs will be calculated for all gene pairs</p></td>
+      <td><p>Vector of gene names; SIs will be calculated for all gene pairs</p></td>
+    </tr>
+    <tr>
+      <th>run_name</th>
+      <td><p>Optionally, a name to identify the current run.</p></td>
     </tr>
     <tr>
       <th>cores</th>
@@ -181,19 +187,19 @@ your CESAnalysis.</p>
     </tr>
     <tr>
       <th>conf</th>
-      <td><p>confidence interval size from 0 to 1 (.95 -&gt; 95<!-- %); NULL skips calculation, -->
-significantly reducing runtime</p></td>
+      <td><p>Confidence interval size from 0 to 1 (.95 -&gt; 95<!-- %). NULL skips calculation, -->
+which reduces runtime.</p></td>
     </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>a table of gene-level epistasis results</p>
+    <p>CESAnalysis with epistasis analysis results added</p>
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
-    <p>Only samples that have coverage at all recurrent sites can be included in analysis
-since samples lacking full coverage may or may not have mutations at the uncovered
-sites</p>
+    <p>Only samples that have coverage at all recurrent sites in both genes can be included in
+analysis since samples lacking full coverage may or may not have mutations at the
+uncovered sites.</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

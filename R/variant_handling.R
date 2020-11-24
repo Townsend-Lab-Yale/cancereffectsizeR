@@ -133,7 +133,6 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = 
     remove_secondary_aac = FALSE
   }
 
-
   # collect all variants, unless just variant_passlist specified
   if (is.null(gr) && is.null(variant_position_table) && is.null(genes) && min_freq == 0 && length(variant_passlist) > 0) {
     selected_aac_ids = character()
@@ -142,12 +141,7 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = 
     selected_aac_ids = cesa@mutations$amino_acid_change$aac_id
     selected_snv_ids = cesa@mutations$snv$snv_id
   }
-
-  # remove variants contained in other variants
-  if (include_subvariants == FALSE) {
-    subvariant_snv_ids = cesa@mutations$amino_acid_change[selected_aac_ids, unlist(constituent_snvs), nomatch = NULL]
-    selected_snv_ids = setdiff(selected_snv_ids, subvariant_snv_ids)
-  }
+  
   
   # handle variant_position_table or gr (for simplicity, not allowing both)
   final_gr = NULL
@@ -247,13 +241,26 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = 
     selected_aac_ids = union(selected_aac_ids, matching_aac_ids)
     passlisted_ids = c(matching_snv_ids, matching_aac_ids)
   }
+  
+  # Remove variants contained in other variants
+  # Rare exception: Constituent SNVs of AACs that get tossed in de-overlapping
+  # need to be saved if they pass filters in their own right and don't overlap the AACs kep
+  snvs_to_save = selected_snv_ids
+  
+  # We'll use the SNV counts to filter selected_snv_ids shortly
+  snv_counts = cesa@maf[variant_type == "snv", .N, by = "variant_id"][N >= min_freq]
+  snvs_to_save = intersect(snvs_to_save, snv_counts$variant_id)
+  if (include_subvariants == FALSE) {
+    subvariant_snv_ids = cesa@mutations$amino_acid_change[selected_aac_ids, unlist(constituent_snvs), nomatch = NULL]
+    selected_snv_ids = setdiff(selected_snv_ids, subvariant_snv_ids)
+  }
+  
   selected_snv = cesa@mutations$snv[selected_snv_ids]
   setkey(selected_snv, "snv_id")
   selected_aac = cesa@mutations$amino_acid_change[selected_aac_ids]
   setkey(selected_aac, "aac_id")
 
   # Tabulate variants in MAF data and apply frequency filter, exempting passlist variants from filters
-  snv_counts = cesa@maf[variant_type == "snv", .N, by = "variant_id"][N >= min_freq]
   aac_counts = cesa@maf[! is.na(assoc_aac), .(aac_id = unlist(assoc_aac))][, .N, by = "aac_id"][N >= min_freq]
   selected_snv[, maf_frequency := 0]
   selected_snv = selected_snv[snv_counts, maf_frequency := N]
@@ -438,7 +445,7 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = 
       
       # Need to get annotations for SNVs that passed user's filters (given in subvariant_snv_ids),
       # and that are now no longer constituent SNVs
-      snv_to_reselect = intersect(subvariant_snv_ids, setdiff(all_const_snv, remaining_const_snv))
+      snv_to_reselect = intersect(snvs_to_save, setdiff(all_const_snv, remaining_const_snv))
       
       if (length(snv_to_reselect) > 0) {
         reselected = select_variants(cesa, variant_passlist = snv_to_reselect)

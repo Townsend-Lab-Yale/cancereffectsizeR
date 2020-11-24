@@ -98,9 +98,9 @@ test_that("ces_variant on subsets of samples", {
 })
 
 test_that("Variant-level epistasis", {
-  results = ces_epistasis(cesa, variants = list(c("KRAS G12V", "GSTP1_L184L")), conf = .9)
-  to_test = results[, as.numeric(.(ces_v1, ces_v2, ces_v1_after_v2, ces_v2_after_v1, covered_tumors_just_v1,
-                                   covered_tumors_just_v2, covered_tumors_with_both, covered_tumors_with_neither))]
+  results = ces_epistasis(cesa, variants = list(c("KRAS G12V", "GSTP1_L184L")), conf = .9)@epistasis[[1]]
+  to_test = results[, as.numeric(.(ces_v1, ces_v2, ces_v1_after_v2, ces_v2_after_v1, joint_cov_samples_just_v1,
+                                   joint_cov_samples_just_v2, joint_cov_samples_with_both, joint_cov_samples_with_neither))]
   expect_equal(to_test, c(28864.82, 1432.69, 549695.3, 9508.182, 6, 2, 1, 100), tolerance = 1e-3)
   ci = as.numeric(results[, .SD, .SDcols = patterns("ci")])
   expect_equal(ci, c(13629.84, 52477.08, 382.9144, 3470.92, NA, 3610458, NA, 85519.34), tolerance = 1e-3)
@@ -108,15 +108,15 @@ test_that("Variant-level epistasis", {
 
 
 test_that("Gene-level SNV epistasis analysis", {
-  results = ces_gene_epistasis(cesa, genes = c("EGFR", "KRAS", "TP53"), conf = .95)
+  cesa = ces_gene_epistasis(cesa, genes = c("EGFR", "KRAS", "TP53"), conf = .95)
   results_ak = get_test_data("epistasis_results.rds")
-  expect_equal(results, results_ak, tolerance = 1e-3)
+  expect_equal(cesa@epistasis[[1]], results_ak, tolerance = 1e-3)
   
   # now simulate with compound variants, should get almost same results
   comp = define_compound_variants(cesa, variant_table = select_variants(cesa, genes = c("EGFR", "KRAS", "TP53"), min_freq = 2),
                                   by = "gene", merge_distance = Inf)
-  results2 = ces_epistasis(cesa, comp, conf = .95)
-  all.equal(results[, -c(1, 2)], results2[, -c(1, 2)], check.attributes = F, tolerance = 1e-4)
+  cesa = ces_epistasis(cesa, comp, conf = .95)
+  all.equal(cesa@epistasis[[1]][, -c(1, 2)], cesa@epistasis[[2]][, -c(1, 2)], check.attributes = F, tolerance = 1e-4)
 })
 
 test_that("Compound variant creation", {
@@ -132,7 +132,7 @@ test_that("Compound variant creation", {
   results = ces_variant(cesa, single_snv_comp, model = "sswm_sequential", groups = list(c("marionberry", "cherry"), "mountain_apple"))
   results = results$selection[[1]][c("KRAS.Cys.1", "KRAS.Asp.1", "KRAS.Cys.2", "KRAS.Asp.2", "KRAS.Val.1"), on = "variant_name"]
   prev = fread(get_test_file("fruit_sswm_sequential_out.txt"))[all_kras_12_13$variant_id, on = "variant_id"][, 3:4]
-  all.equal(results[, 3:4], prev, tolerance = 1e-6)
+  expect_equal(results[, 3:4], prev, tolerance = 1e-6)
   
   # this time, do per position
   pos_comp = define_compound_variants(cesa, all_kras_12_13, merge_distance = 0)

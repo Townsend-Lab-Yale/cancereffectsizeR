@@ -89,7 +89,7 @@ CESAnalysis = function(ref_set = "ces_hg19_v1", sample_groups = NULL) {
                   uid = unclass(Sys.time()), genome_info = genome_info)
   cesa = new("CESAnalysis", run_history = character(),  ref_key = ref_set_name, maf = data.table(), excluded = data.table(),
              groups = sample_groups, mutrates = data.table(),
-             selection_results = list(), ref_data_dir = data_dir,
+             selection_results = list(), ref_data_dir = data_dir, epistasis = list(),
              advanced = advanced, samples = data.table(), mutations = list())
   cesa@run_history = c(paste0("[Version: cancereffectsizeR ", ces_version, "]" ))
   cesa = update_cesa_history(cesa, match.call())
@@ -152,17 +152,15 @@ load_cesa = function(file) {
     cesa@trinucleotide_mutation_weights[["signature_weight_table_with_artifacts"]] = setDT(cesa@trinucleotide_mutation_weights[["signature_weight_table_with_artifacts"]])
   }
   cesa@mutrates = setDT(cesa@mutrates)
+  cesa@selection_results = lapply(cesa@selection_results, setDT)
   
-  if(is.null(cesa@advanced$uid)) {
-    cesa@advanced$uid = unclass(Sys.time())
-  }
   
   # temporary
-  if(is(cesa@selection_results, "data.table")) {
-    cesa@selection_results = list()
+  if(! .hasSlot(cesa, "epistasis")) {
+    cesa@epistasis = list()
   }
-  
-  
+  # (end temporary)
+  cesa@epistasis = lapply(cesa@epistasis, setDT)
   
   available_ref_sets = get_ref_set_dirs()
   ref_key = cesa@ref_key
@@ -182,21 +180,6 @@ load_cesa = function(file) {
     preload_ref_data(cesa@ref_data_dir)
   }
   
-  
-  # Allow back-compatibility with column name changes
-  if(! is.null(cesa@mutations$amino_acid_change)) {
-    setnames(cesa@mutations$amino_acid_change, 'all_snv_ids', 'constituent_snvs', skip_absent = T)
-  }
-  if(! is.null(cesa@mutations$snv)) {
-    setnames(cesa@mutations$snv, 'assoc_aa_mut', 'assoc_aac', skip_absent = T)
-    setnames(cesa@maf, 'assoc_aa_mut', 'assoc_aac', skip_absent = T)
-  }
-  setnames(cesa@maf, c("Variant_Type", "snv_id"), c("variant_type", "variant_id"), skip_absent = T)
-  
-  if ("variant_type" %in% names(cesa@maf)) {
-    cesa@maf[variant_type == "SNV", variant_type := "snv"]
-  }
-  
   if (! "genome_info" %in% names(cesa@advanced)) {
     cesa@advanced$genome_info = get_ref_data(cesa, "genome_build_info")
   }
@@ -209,24 +192,6 @@ load_cesa = function(file) {
     cesa@run_history = c(cesa@run_history, paste0("\n[Now running CES ", current_version, ']'))
   }
   cesa = update_cesa_history(cesa, match.call())
-  
-  # temporary
-  if (is.null(cesa@advanced$using_exome_plus)) {
-    cesa@advanced$using_exome_plus = F
-  }
-  if (is.null(cesa@advanced$locked)) {
-    # not generally desired behavior, but temporary
-    cesa@advanced$locked = cesa@advanced$annotated
-  }
-  
-  if(is.null(cesa@advanced$trinuc_done)) {
-    if (! is.null(cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix)) {
-      cesa@advanced$trinuc_done = nrow(cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix) == cesa@samples[, .N]
-    } else {
-      cesa@advanced$trinuc_done = F
-    }
-  }
-  
   return(cesa)
 }
 
@@ -366,7 +331,7 @@ get_gene_rates = function(cesa = NULL) {
 
 #' View results from ces_variant
 #' 
-#' returns a data table (or list of data tables) with results from ces_variant plus annotations
+#' returns a list of data tables with results from ces_variant(), plus annotations
 #' @param cesa CESAnalysis object
 #' @export
 snv_results = function(cesa = NULL) {
@@ -405,7 +370,20 @@ snv_results = function(cesa = NULL) {
   return(output)
 }
 
-
+#' View output from epistasis functions
+#' 
+#' returns a list of data tables with results from epistasis functions
+#' @param cesa CESAnalysis object
+#' @export
+epistasis_results = function(cesa = NULL) {
+  if(! is(cesa, "CESAnalysis")) {
+    stop("\nUsage: epistasis_results(cesa), where cesa is a CESAnalysis")
+  }
+  if (length(cesa@epistasis) == 0) {
+    stop("No results yet from epistasis functions in this CESAnalysis")
+  }
+  return(cesa@epistasis)
+}
 
 
 
