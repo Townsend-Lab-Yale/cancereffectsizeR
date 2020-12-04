@@ -73,6 +73,7 @@ preload_ref_data = function(data_dir) {
     .ces_ref_data[[ref_set_name]] = new.env()
     .ces_ref_data[[ref_set_name]][["RefCDS"]] = get_ref_data(data_dir, "RefCDS")
     .ces_ref_data[[ref_set_name]][["gr_genes"]] = get_ref_data(data_dir, "gr_genes")
+    .ces_ref_data[[ref_set_name]][["gene_names"]] = get_ref_data(data_dir, "gene_names")
     
     
     genome_info = get_ref_data(data_dir, "genome_build_info")

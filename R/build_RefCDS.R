@@ -23,11 +23,21 @@
 #'   stop codons in their genomic intervals. If your input table does include the stop 
 #'   codons within CDS records, set to FALSE.
 #' @param cores how many cores to use for parallel computations
+#' @param additional_essential_splice_pos Usually not needed. A list of
+#'   additional essential splice site positions to combine with those calculated
+#'   automatically by this function. Each element of the list should have a name
+#'   matching a protein_id in the input and consist of a numeric vector of
+#'   additional positions. This option exists so that mutations at chr17:7579312
+#'   on TP53 are treated as splice site mutations in cancereffectsizeR's default
+#'   hg19 reference data set. (Variants at this coding position, which are
+#'   always synonymous, have validated effects on splicing, even though the
+#'   position misses automatic "essential splice" annotation by 1 base.)
 #' @param numcode (don't use) NCBI genetic code number; currently only code 1, the
 #'   standard genetic code, is supported
 #' @export
 
-build_RefCDS = function(gtf, genome, output_by = "gene", cds_ranges_lack_stop_codons = T, cores = 1, numcode = 1) {
+build_RefCDS = function(gtf, genome, output_by = "gene", cds_ranges_lack_stop_codons = T, cores = 1, 
+                        additional_essential_splice_pos = NULL, numcode = 1) {
   message("[Step 1/5] Loading data and identifying complete transcripts...")
   
   # Load genome
@@ -43,6 +53,19 @@ build_RefCDS = function(gtf, genome, output_by = "gene", cds_ranges_lack_stop_co
     stop("output_by must be gene or transcript", call. = F)
   }
   
+  # validated additional_essential_splice_pos list
+  if (! is.null(additional_essential_splice_pos)) {
+    if (! is(additional_essential_splice_pos, "list")) {
+      stop("additional_essential_splice_pos should be type list")
+    }
+    tmp = names(additional_essential_splice_pos)
+    if(is.null(tmp) || ! length(tmp) == length(unique(tmp))) {
+      stop("additional_essential_splice_pos should be a list with uniquely named numeric elements")
+    }
+    if(! all(sapply(additional_essential_splice_pos, is.numeric))) {
+      stop("All elements of additional_essential_splice_pos list should be type numeric.")
+    }
+  }
   required_cols = c("seqnames", "start", "end", "strand", "gene_id", "gene_name", "protein_id", "type")
   
   by_transcript = FALSE
@@ -61,8 +84,10 @@ build_RefCDS = function(gtf, genome, output_by = "gene", cds_ranges_lack_stop_co
       stop("Input GTF file not found.", call. = F)
     }
     gtf = as.data.table(rtracklayer::import(gtf, format = "gtf"))
+  } else if (is(gtf, "GRanges")) {
+    gtf = as.data.table(gtf)
   } else if (! is(gtf, "data.table")) {
-    stop("Must be a data.table ")
+    stop("Input GTF must be text file (GTF format), GRanges, or data.table.")
   }
   if (! all(required_cols %in% colnames(gtf))) {
     stop("Missing required columns.", call. = F)
@@ -283,6 +308,22 @@ build_RefCDS = function(gtf, genome, output_by = "gene", cds_ranges_lack_stop_co
   }
   spl = rbind(spl_positive, spl_neg)
   setkey(spl, "protein_id")
+  
+  # Insert user-supplied essential splice positions  in addition to those inferred from distance to splice site
+  if (! is.null(additional_essential_splice_pos)) {
+    extra_pid = names(additional_essential_splice_pos)
+    for (i in 1:length(extra_pid)){
+      curr_pid = extra_pid[[i]]
+      prev_splpos = spl[curr_pid, unlist(splpos)]
+      if (is.null(prev_splpos)) {
+        warning("Additional essential splice sites supplied for ", curr_pid, " but this protein ID does not appear in output.")
+        next
+      }
+      new_splpos = additional_essential_splice_pos[[curr_pid]]
+      updated_splpos = sort(unique(c(prev_splpos, new_splpos)))
+      spl[curr_pid, splpos := list(updated_splpos)]
+    }
+  }
   
   
   # remove single-exon records, get splice site squences, and save splice site positions

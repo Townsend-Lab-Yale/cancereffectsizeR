@@ -10,22 +10,30 @@
 #'   models (such as sswm_sequential) require multiple sample groups.
 #' @return CESAnalysis object
 #' @export
-CESAnalysis = function(ref_set = "ces_hg19_v1", sample_groups = NULL) {
+CESAnalysis = function(ref_set = "ces.refset.hg19", sample_groups = NULL) {
+  ref_set_name = ref_set
+  if (! is(ref_set_name, "character")) {
+    stop("ref_set should be type character (either the name of a supported reference data set package or a path to a custom reference data directory.")
+  }
   
   # Check for and load reference data for the chosen genome/transcriptome data
   ref_set_name = ref_set
-  if(is.null(ref_set_name) || ! is(ref_set_name, "character") || length(ref_set_name) != 1) {
-    stop("Expected reference data source to be given as character. Run list_ces_ref_sets() to see available reference data.", call. = F)
-  }
-  
-  ref_set_dirs = get_ref_set_dirs()
-  if(ref_set_name %in% names(ref_set_dirs)) {
-    data_dir = ref_set_dirs[ref_set_name]
-    # avoid weird edge case
-    if (dir.exists(ref_set_name)) {
-      stop("There's a folder in your working directory with the same name as your chosen reference data set.\n",
-           "Change your working directory or rename it, please.")
+  if (ref_set_name %in% names(.official_ref_sets)) {
+    if(file.exists(ref_set_name)) {
+      stop("You've given the name of a CES reference data set package, but a file/folder with the same name is in your working directory. Stopping to avoid confusion.")
     }
+    if(! require(ref_set_name, character.only = T, quietly = T)) {
+      stop("CES reference data set ", ref_set_name, " not installed. Run this to install:\n", 
+           "remotes::install_github(\"Townsend-Lab-Yale/ces-reference-data/", ref_set_name, "\")")
+    }
+    req_version = .official_ref_sets[[ref_set_name]]
+    actual_version = packageVersion(ref_set_name)
+    if (actual_version < req_version) {
+      stop("CES reference data set ", ref_set_name, " is version ", actual_version, ", but your version of cancereffectsizeR requires at least ",
+           "version ", req_version, ".\nRun this to update:\n",
+           "remotes::install_github(\"Townsend-Lab-Yale/ces-reference-data/", ref_set_name, "\")")
+    }
+    data_dir = system.file("ref_set", package = ref_set_name)
   } else {
     if (! dir.exists(ref_set_name)) {
       if (grepl('/', ref_set_name)) {
@@ -34,19 +42,16 @@ CESAnalysis = function(ref_set = "ces_hg19_v1", sample_groups = NULL) {
         stop("Invalid reference set name. Check spelling, or view available data sets with list_ces_ref_sets().")
       }
     }
+    
     data_dir = ref_set_name
     ref_set_name = basename(ref_set_name)
-    
-    # To avoid confusion, you can't create a custom ref set with the same name as a built-in one
-    builtin_sets = list.dirs(system.file("ref_sets/", package = "cancereffectsizeR"), full.names = F, recursive = F)
-    if (ref_set_name %in% builtin_sets) {
-      stop("The name of your reference data set (", ref_set_name, ") exactly matches a built-in CES reference set. Please rename it.")
+    if(ref_set_name %in% names(.official_ref_sets)) {
+      stop("Your custom reference data set has the same name (", ref_set_name, ") as a CES reference data package. Please rename it.")
     }
   }
   
   # preload some reference data, which will get stored in the .ces_ref_data env under ref_set_name
   preload_ref_data(data_dir)
-  
   genome_info = get_ref_data(data_dir, "genome_build_info")
   bsg = BSgenome::getBSgenome(genome_info$BSgenome)
   GenomeInfoDb::seqlevelsStyle(bsg) = "NCBI"
@@ -162,6 +167,7 @@ load_cesa = function(file) {
   # (end temporary)
   cesa@epistasis = lapply(cesa@epistasis, setDT)
   
+  if (cesa.official_ref_sets)
   available_ref_sets = get_ref_set_dirs()
   ref_key = cesa@ref_key
   if (! ref_key %in% names(available_ref_sets)) {
