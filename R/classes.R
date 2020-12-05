@@ -30,8 +30,9 @@ setMethod("$", "CESAnalysis",
     } else if (name == "epistasis") {
       return(epistasis_results(x))
     } else if (name == "reference_data") {
+      # this shouldn't be possible, actually
       if (! x@ref_key %in% ls(.ces_ref_data)) {
-        preload_ref_data(x@ref_data_dir)
+        .ces_ref_data[[x@ref_key]] = preload_ref_data(x@ref_data_dir)
       }
       ref_data = list(RefCDS = .ces_ref_data[[x@ref_key]]$RefCDS, gene_ranges = .ces_ref_data[[x@ref_key]]$gr_genes,
                       genome = .ces_ref_data[[x@ref_key]]$genome)

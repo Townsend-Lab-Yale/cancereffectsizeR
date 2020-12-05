@@ -39,9 +39,7 @@ gene_mutation_rates <- function(cesa, covariates = NULL, sample_group = NULL, sa
   }
   
   cesa = update_cesa_history(cesa, match.call())
-  if (! cesa@ref_key %in% ls(.ces_ref_data)) {
-    preload_ref_data(cesa@ref_data_dir)
-  }
+
   RefCDS = .ces_ref_data[[cesa@ref_key]]$RefCDS
   gr_genes = .ces_ref_data[[cesa@ref_key]]$gr_genes
   

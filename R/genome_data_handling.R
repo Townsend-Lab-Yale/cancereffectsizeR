@@ -3,9 +3,8 @@
 #' returns a character vector mapping ref set names to their data directories
 #' @keywords internal
 get_ref_set_dirs = function() {
-  ref_set_super_dir = system.file("ref_sets", package = "cancereffectsizeR")
-  ref_sets = list.dirs(ref_set_super_dir, recursive = F)
-  names(ref_sets) = basename(ref_sets)
+  ref_sets = sapply(names(.official_ref_sets), function(x) system.file("refset", package = x))
+  ref_sets = ref_sets[ref_sets != ""]
   
   if (exists(".ces_ref_data")) {
     custom_set_names = setdiff(ls(.ces_ref_data), names(ref_sets))
@@ -32,7 +31,7 @@ get_ref_data = function(data_dir_or_cesa, datatype) {
   if (check_for_ref_data(data_dir_or_cesa, datatype)) {
     return(readRDS(path))
   } else {
-    stop(paste0("Something's wrong with the reference data installation:\n",
+    stop(paste0("Something's wrong with the reference data set:\n",
                 "Expected to find data at ", path, "."))
   }
 }
@@ -64,30 +63,23 @@ check_for_ref_data = function(data_dir_or_cesa, datatype) {
 #' Used when loading or creating a CESAnalysis to load reference into an environment for quick access
 #' @keywords internal
 preload_ref_data = function(data_dir) {
+  ref = new.env()
+  ref[["RefCDS"]] = get_ref_data(data_dir, "RefCDS")
+  ref[["gr_genes"]] = get_ref_data(data_dir, "gr_genes")
+  ref[["gene_names"]] = get_ref_data(data_dir, "gene_names")
   
-  # by design, name of ref set is always the directory name
-  ref_set_name = basename(data_dir) 
-  
-  if (! ref_set_name %in% ls(.ces_ref_data)) {
-    message("Loading reference data set ", ref_set_name, "..." )
-    .ces_ref_data[[ref_set_name]] = new.env()
-    .ces_ref_data[[ref_set_name]][["RefCDS"]] = get_ref_data(data_dir, "RefCDS")
-    .ces_ref_data[[ref_set_name]][["gr_genes"]] = get_ref_data(data_dir, "gr_genes")
-    .ces_ref_data[[ref_set_name]][["gene_names"]] = get_ref_data(data_dir, "gene_names")
-    
-    
-    genome_info = get_ref_data(data_dir, "genome_build_info")
-    bsg = BSgenome::getBSgenome(genome_info$BSgenome)
-    GenomeInfoDb::seqlevelsStyle(bsg) = "NCBI"
-    .ces_ref_data[[ref_set_name]][["genome"]] = bsg
+  genome_info = get_ref_data(data_dir, "genome_build_info")
+  bsg = BSgenome::getBSgenome(genome_info$BSgenome)
+  GenomeInfoDb::seqlevelsStyle(bsg) = "NCBI"
+  ref[["genome"]] = bsg
 
-    if(check_for_ref_data(data_dir, "generic_exome_gr")) {
-      .ces_ref_data[[ref_set_name]][["default_exome"]] = get_ref_data(data_dir, "generic_exome_gr")
-    }
-    # Load trinuc composition of each gene (composition is a 96-length numeric, deconstructSigs order)
-    .ces_ref_data[[ref_set_name]][["gene_trinuc_comp"]] = get_ref_data(data_dir, "gene_trinuc_comp")
-    .ces_ref_data[[ref_set_name]][["data_dir"]] = data_dir
+  if(check_for_ref_data(data_dir, "generic_exome_gr")) {
+    ref[["default_exome"]] = get_ref_data(data_dir, "generic_exome_gr")
   }
+  
+  # Load trinuc composition of each gene (composition is a 96-length numeric, deconstructSigs order)
+  ref[["gene_trinuc_comp"]] = get_ref_data(data_dir, "gene_trinuc_comp")
+  return(ref)
 }
 
 

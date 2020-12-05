@@ -4,7 +4,7 @@ trinuc_rates = fread(get_test_file("luad_hg19_trinuc_rates.txt"))
 cesa = set_trinuc_rates(cesa, trinuc_rates = trinuc_rates)
 sig_weights = fread(get_test_file("luad_hg19_sig_table_biological.txt"))
 cesa@trinucleotide_mutation_weights$signature_weight_table = sig_weights
-cesa@advanced$snv_signatures = get_ces_signature_set("ces_hg19_v1", "COSMIC_v3.1")
+cesa@advanced$snv_signatures = get_ces_signature_set("ces.refset.hg19", "COSMIC_v3.1")
 
 precalc_rates = fread(get_test_file("luad_fruit_gene_rates.txt"))
 cesa = set_gene_rates(cesa, precalc_rates[, .(gene, rate_grp_1)], sample_group = "marionberry")

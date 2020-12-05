@@ -100,13 +100,7 @@ trinuc_mutation_rates <- function(cesa,
     stop("No selected samples to run (no samples in the chosen group?).")
   }
   
-  # If for some reason reference data is no longer in the package environment, restore it
-  if (! cesa@ref_key %in% ls(.ces_ref_data)) {
-    preload_ref_data(cesa@ref_data_dir)
-  }
-  
-  bsg = .ces_ref_data[[cesa@ref_key]]$genome
-  
+  bsg = get_cesa_bsg(cesa)
   
   if(all(curr_sample_info$coverage == "targeted")) {
     stop("We can't estimate relative trinucleotide mutation rates without some exome/genome data in the CESAnalysis (all data is targeted sequencing).", call. = F)

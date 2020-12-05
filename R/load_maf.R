@@ -50,11 +50,6 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
   }
   
   cesa = update_cesa_history(cesa, match.call())
-  
-  # Need RefCDS if annotating
-  if (! cesa@ref_key %in% ls(.ces_ref_data) & annotate == T) {
-    preload_ref_data(cesa@ref_data_dir)
-  }
   bsg = get_cesa_bsg(cesa)
   
   # validate chain_file (presence means liftOver must run)

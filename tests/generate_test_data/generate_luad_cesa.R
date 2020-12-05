@@ -5,7 +5,7 @@ maf = fread("luad.hg19.maf.txt")
 set.seed(879)
 fruits = c("cherry", "marionberry", "mountain_apple")
 maf[, group := sample(fruits, size = 1), by = "sample_id"]
-luad = load_maf(cesa = CESAnalysis(ref_set = "ces_hg19_v1", sample_groups = fruits), maf = maf, group_col = "group", 
+luad = load_maf(cesa = CESAnalysis(ref_set = "ces.refset.hg19", sample_groups = fruits), maf = maf, group_col = "group", 
                 sample_col = "sample_id")
 saveRDS(luad, "annotated_fruit_cesa.rds")
 

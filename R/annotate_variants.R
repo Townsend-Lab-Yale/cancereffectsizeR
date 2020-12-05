@@ -8,10 +8,6 @@ annotate_variants <- function(cesa) {
   if (! is(cesa, "CESAnalysis")) {
     stop("cesa should be a CESAnalysis", call. = F)
   }
-  # Load reference data if not already present
-  if (! cesa@ref_key %in% ls(.ces_ref_data)) {
-    preload_ref_data(cesa@ref_data_dir)
-  }
   cesa = update_cesa_history(cesa, match.call())
   RefCDS = .ces_ref_data[[cesa@ref_key]]$RefCDS
   gr_genes = .ces_ref_data[[cesa@ref_key]]$gr_genes

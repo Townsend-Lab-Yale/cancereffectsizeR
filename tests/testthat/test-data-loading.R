@@ -1,7 +1,7 @@
 # get_test_file and get_test_data are loaded automatically from helpers.R by testthat
 tiny_maf = get_test_file("tiny.hg19.maf.txt")
 test_that("load_maf and variant annotation", {
-  tiny = expect_warning(load_maf(cesa = CESAnalysis(ref_set = "ces_hg19_v1"), annotate = T, maf = tiny_maf,
+  tiny = expect_warning(load_maf(cesa = CESAnalysis(ref_set = "ces.refset.hg19"), annotate = T, maf = tiny_maf,
                                  sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2"),
                         "SNV records do not match the given reference genome")
   tiny_ak = load_cesa(get_test_file("tiny_hg19_maf_loaded.rds"))
@@ -85,7 +85,7 @@ test_that("load_maf edge cases", {
                "some sample IDs already appear in previously loaded data")
   
   # try loading empty/non-existent files and data
-  cesa = CESAnalysis(ref_set = "ces_hg19_v1")
+  cesa = CESAnalysis(ref_set = "ces.refset.hg19")
   expect_error(load_maf(cesa = cesa, maf = ""), "MAF not found")
   # data.table gives a warning, but load_maf throws its own error
   expect_error(expect_warning(load_maf(cesa = cesa, maf = get_test_file("empty.maf.txt")), "Input MAF data set is empty"))
@@ -93,23 +93,23 @@ test_that("load_maf edge cases", {
 })
 
 test_that("Sample group handling", {
-  tiny = CESAnalysis(ref_set = "ces_hg19_v1")
+  tiny = CESAnalysis(ref_set = "ces.refset.hg19")
   tiny_maf = get_test_file("tiny.hg19.maf.txt")
   
   # You can't supply a group_col to a CESAnalysis that is not stage-specific
-  expect_error(load_maf(cesa = CESAnalysis(ref_set = "ces_hg19_v1"), annotate = F, maf = tiny_maf, sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2", group_col = "nonexistent-column"),
+  expect_error(load_maf(cesa = CESAnalysis(ref_set = "ces.refset.hg19"), annotate = F, maf = tiny_maf, sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2", group_col = "nonexistent-column"),
                "This CESAnalysis does not specify sample groups")
   
   # If CESAnalysis is stage-specific, calls to load_maf must include group_col
   bad_maf = get_test_file("bad_stages_1.maf.txt")
-  multistage = CESAnalysis(sample_groups = 1:2, ref_set = "ces_hg19_v1")
+  multistage = CESAnalysis(sample_groups = 1:2, ref_set = "ces.refset.hg19")
   expect_error(load_maf(multistage, maf = bad_maf), "You must specify group_col")
   
   # Ensuring that MAF data triggers error if progressions are out of bounds
   expect_error(load_maf(multistage, maf = bad_maf, group_col = "stage"), "The following groups were not declared")
   
   # Error if one sample has multiple stages listed in MAF data
-  multistage = CESAnalysis(sample_groups = 1:4, ref_set = "ces_hg19_v1")
+  multistage = CESAnalysis(sample_groups = 1:4, ref_set = "ces.refset.hg19")
   expect_error(load_maf(multistage, maf = bad_maf, group_col = "stage"), "samples are associated with multiple groups")
   
   # Absence of a declared progression state in the data triggers a warning
@@ -123,7 +123,7 @@ test_that("Sample group handling", {
 
 
 test_that("Coverage arguments", {
-  tiny = CESAnalysis(ref_set = "ces_hg19_v1")
+  tiny = CESAnalysis(ref_set = "ces.refset.hg19")
   maf = data.table() # coverage arguments get validated before data actually loaded in load_maf 
   expect_error(load_maf(tiny, maf = maf, coverage = c("genome", "hi")), 
                "coverage must be \"exome")

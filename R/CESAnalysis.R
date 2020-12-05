@@ -33,7 +33,8 @@ CESAnalysis = function(ref_set = "ces.refset.hg19", sample_groups = NULL) {
            "version ", req_version, ".\nRun this to update:\n",
            "remotes::install_github(\"Townsend-Lab-Yale/ces-reference-data/", ref_set_name, "\")")
     }
-    data_dir = system.file("ref_set", package = ref_set_name)
+    ref_data_version = actual_version
+    data_dir = system.file("refset", package = ref_set_name)
   } else {
     if (! dir.exists(ref_set_name)) {
       if (grepl('/', ref_set_name)) {
@@ -50,12 +51,12 @@ CESAnalysis = function(ref_set = "ces.refset.hg19", sample_groups = NULL) {
     }
   }
   
-  # preload some reference data, which will get stored in the .ces_ref_data env under ref_set_name
-  preload_ref_data(data_dir)
-  genome_info = get_ref_data(data_dir, "genome_build_info")
-  bsg = BSgenome::getBSgenome(genome_info$BSgenome)
-  GenomeInfoDb::seqlevelsStyle(bsg) = "NCBI"
-  .ces_ref_data[[ref_set_name]][["genome"]] = bsg
+  # load reference data
+  if (! ref_set_name %in% ls(.ces_ref_data)) {
+    message("Loading reference data set ", ref_set_name, "...")
+    .ces_ref_data[[ref_set_name]] = preload_ref_data(data_dir)
+    .ces_ref_data[[ref_set_name]][["data_dir"]] = data_dir
+  }
   
   # Validate sample_groups
   if (is.null(sample_groups)) {
@@ -88,6 +89,7 @@ CESAnalysis = function(ref_set = "ces.refset.hg19", sample_groups = NULL) {
   ## gene_rates_done: have all samples been through gene_mutation_rates?
   ## uid: a unique-enough identifier for the CESAnalysis (just uses epoch time)
   ## genome_info: environment with stuff like genome build name, species, name of associated BSgenome
+  genome_info = get_ref_data(data_dir, "genome_build_info")
   ces_version = packageVersion("cancereffectsizeR")
   advanced = list("version" = ces_version, annotated = F, using_exome_plus = F, 
                   recording = T, locked = F, trinuc_done = F, gene_rates_done = F,
@@ -164,26 +166,38 @@ load_cesa = function(file) {
   if(! .hasSlot(cesa, "epistasis")) {
     cesa@epistasis = list()
   }
+  if (cesa@ref_key == "ces_hg19_v1") {
+    cesa@ref_key = "ces.refset.hg19"
+  }
   # (end temporary)
   cesa@epistasis = lapply(cesa@epistasis, setDT)
   
-  if (cesa.official_ref_sets)
-  available_ref_sets = get_ref_set_dirs()
-  ref_key = cesa@ref_key
-  if (! ref_key %in% names(available_ref_sets)) {
+  ref_set_name = cesa@ref_key
+  if (ref_set_name %in% names(.official_ref_sets)) {
+    if(! require(ref_set_name, character.only = T, quietly = T)) {
+      stop("CES reference data set ", ref_set_name, " not installed. Run this to install:\n", 
+           "remotes::install_github(\"Townsend-Lab-Yale/ces-reference-data/", ref_set_name, "\")")
+    }
+    req_version = .official_ref_sets[[ref_set_name]]
+    actual_version = packageVersion(ref_set_name)
+    if (actual_version < req_version) {
+      stop("CES reference data set ", ref_set_name, " is version ", actual_version, ", but your version of cancereffectsizeR requires at least ",
+           "version ", req_version, ".\nRun this to update:\n",
+           "remotes::install_github(\"Townsend-Lab-Yale/ces-reference-data/", ref_set_name, "\")")
+    }
+    cesa@ref_data_dir = system.file("refset", package = ref_set_name)
+  } else {
     if (! dir.exists(cesa@ref_data_dir)) {
       cesa@ref_data_dir = NA_character_
-      msg = paste0("Reference data associated with the CESAnalysis (", ref_key, ") not found. You can view the data in this CESAnalysis, ",
+      msg = paste0("Reference data not found at ", cesa@ref_data_dir, ". You can view the data in this CESAnalysis, ",
                    "but many functions will not work as expected. If this is a custom reference data set, ",
                    "you can fix the issue by using set_ces_ref_set_dir() to associate the path to your data with the analyis.")
-      warning(paste0(strwrap(msg), collapse = "\n"))
-    } 
-  } else {
-    cesa@ref_data_dir = available_ref_sets[ref_key]
+      warning(pretty_message(msg, emit = F))
+    }
   }
   
-  if (! is.na(cesa@ref_data_dir)) {
-    preload_ref_data(cesa@ref_data_dir)
+  if (! is.na(cesa@ref_data_dir) & ! cesa@ref_key %in% ls(.ces_ref_data)) {
+    .ces_ref_data[[cesa@ref_key]] = preload_ref_data(cesa@ref_data_dir)
   }
   
   if (! "genome_info" %in% names(cesa@advanced)) {
@@ -213,6 +227,9 @@ load_cesa = function(file) {
 #' @param dir path to data directory
 #' @export
 set_ces_ref_set_dir = function(cesa, dir) {
+  if(cesa@ref_key %in% names(.official_ref_sets)) {
+    stop("You can't set the reference directory on a built-in CES reference data set.")
+  }
   if(! is(cesa, "CESAnalysis")) {
     stop("cesa should be a CESAnalysis")
   }
@@ -224,12 +241,9 @@ set_ces_ref_set_dir = function(cesa, dir) {
   }
   dir = normalizePath(dir)
   
-  if (basename(dir) != cesa@ref_key) {
-    stop("The name of the input reference directory doesn't match the ref set name associated with the CESAnalysis",
-         " (", cesa@ref_key, ").")
-  }
   cesa@ref_data_dir = dir
-  preload_ref_data(dir)
+  .ces_ref_data[[cesa@ref_key]] = preload_ref_data(dir)
+  .ces_ref_data[[cesa@ref_key]][["data_dir"]] = dir
   cesa = update_cesa_history(cesa, match.call())
   return(cesa)
 }

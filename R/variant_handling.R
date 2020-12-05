@@ -594,11 +594,6 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
     snvs_to_annotate = snv_table[, paste0(chr, ':', pos, '_', ref, '>', alt)]
   }
   
-  # Load reference data if not already present
-  if (! target_cesa@ref_key %in% ls(.ces_ref_data)) {
-    preload_ref_data(target_cesa@ref_data_dir)
-  }
-  
   # If supplied SNV IDs (rather than source_cesa, gr, bed, variant_table), validate them
   if(! is.null(snv_id)) {
     if(! is(snv_id, "character") | length(snv_id) == 0) {
