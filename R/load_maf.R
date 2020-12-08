@@ -441,37 +441,6 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     maf = maf[! lifted_to_same]
   }
   
-  # check for multi-nucleotide variants and separate them from MAF data
-  # MNVs are only possible in sample/chromosome combinations with more than one MAF record
-  poss_mnv = maf[order(Unique_Patient_Identifier, 
-                       Chromosome, Start_Position)][, .SD[.N > 1] , by = c("Unique_Patient_Identifier", "Chromosome")]
-  
-  if (poss_mnv[, .N] > 0) {
-    poss_mnv[, dist_to_prev := c(Inf, diff(Start_Position)), by = c("Unique_Patient_Identifier", "Chromosome")]
-    poss_mnv[, dist_to_next := c(dist_to_prev[2:.N], Inf), by = c("Unique_Patient_Identifier", "Chromosome")]
-    poss_mnv[dist_to_prev < 3 | dist_to_next < 3, is_mnv := T]
-    maf[poss_mnv, is_mnv := is_mnv, on = c("Unique_Patient_Identifier", "Chromosome", "Start_Position")]
-    mnv_rows = maf[is_mnv == T, which = T]
-    num_prefilter = nrow(maf)
-    num_mnv = length(mnv_rows)
-    
-    if (num_mnv > 0) {
-      mnv_records = maf[mnv_rows, 1:5]
-      mnv_records$Exclusion_Reason = "predicted_MNV"
-      maf = maf[! mnv_rows]
-      excluded = rbind(excluded, mnv_records)
-      # To-do: move message to DNP_TNP_remover or otherwise ensure this description remains accurate
-      percent = round((num_mnv / num_prefilter) * 100, 1)
-      msg = paste0("Note: ", num_mnv, " MAF records (", percent, "%) ",
-                   "are within 2 bp of other mutations in the same tumors. These records will not be counted as SNVs ",
-                   "since they likely did not arise from independent events (i.e., they're multi-nucleotide variants).")
-      pretty_message(msg)
-    }
-    maf[, is_mnv := NULL]
-  }
-  
-  
-  
   # remove any MAF records that are not in the coverage, unless default exome with enforce_default_exome_coverage = FALSE
   if (covered_regions_name == "genome") {
     num_uncovered = 0
@@ -520,19 +489,6 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
                      "\nThese mutations will be excluded from analysis."))
     }
   }
-  
-  
-  # No support for mitochondrial mutations yet
-  is_mt <- maf[,Chromosome] == "MT"
-  if (any(is_mt)) {
-    mt_maf = maf[is_mt,]
-    mt_maf$Exclusion_Reason = "mitochondrial"
-    excluded = rbind(excluded, mt_maf)
-    maf <- maf[! is_mt,]
-    msg = paste("Note:", sum(is_mt), "mitochondrial variants have been excluded (sadly, mitochondrial analysis is not yet supported).")
-    pretty_message(msg)
-  }
-  
   
   # Ensure reference alleles of mutations match reference genome (Note: Insertions won't match if their reference allele is "-")
   message("Checking that reference alleles match the reference genome...")

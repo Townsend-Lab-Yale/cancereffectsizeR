@@ -56,8 +56,6 @@ check_for_ref_data = function(data_dir_or_cesa, datatype) {
 }
 
 
-
-
 #' preload_ref_data
 #' 
 #' Used when loading or creating a CESAnalysis to load reference into an environment for quick access
@@ -90,7 +88,7 @@ preload_ref_data = function(data_dir) {
 list_ces_ref_sets = function() {
   genome_names = names(get_ref_set_dirs())
   if(length(genome_names) == 0) {
-    cat("No genome data found. See documentation for how to get genome data before running cancereffectsizeR.\n")
+    cat("No reference data found. See documentation for how to get re data before running cancereffectsizeR.\n")
   } else {
     cat(paste0("Available reference data sets: ", paste(genome_names, collapse = ", "), ".\n"))
   }

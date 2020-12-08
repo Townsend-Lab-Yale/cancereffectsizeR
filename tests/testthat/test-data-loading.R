@@ -9,14 +9,15 @@ test_that("load_maf and variant annotation", {
   expect_equal(tiny$maf[order(variant_id)], tiny_ak$maf[order(variant_id)])
   expect_equal(tiny@excluded, tiny_ak@excluded, ignore.row.order = T)
   expect_equal(tiny@mutations, tiny_ak@mutations)
-  expect_equal(tiny@mutations$snv[, .N], 268)
-  expect_equal(tiny@mutations$amino_acid_change[, .N], 129)
+  expect_equal(tiny@mutations$snv[, .N], 269)
+  expect_equal(tiny@mutations$amino_acid_change[, .N], 131)
    
   # same ranges should be in each coverage GenomicRange (depending on BSgenome version, little contigs may vary)
   expect_equal(lapply(tiny@coverage$exome, IRanges::ranges), lapply(tiny_ak@coverage$exome, IRanges::ranges))
   
   # undo annotations, verify annotate_variants works the same when called directly
   tiny@maf = tiny@maf[, .(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele, Tumor_Allele, variant_type)]
+  tiny@maf[variant_type == "likely_mnv", variant_type := "snv"] # let annotate_variants redo the prediction
   tiny@mutations = list()
   tiny = annotate_variants(tiny)
   expect_equal(tiny@mutations, tiny_ak@mutations)

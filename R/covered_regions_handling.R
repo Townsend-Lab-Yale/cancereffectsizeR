@@ -191,3 +191,60 @@ assign_gr_to_coverage = function(cesa, gr, covered_regions_name, coverage_type) 
   cesa@coverage[[coverage_type]][[covered_regions_name]] = gr
   return(cesa)
 }
+
+
+#' update_covered_in
+#' 
+#' Updates the covered_in annotation for all variants
+#' to include all covered regions in the CESAnalysis
+#' 
+#' @param cesa CESAnalysis
+#' @return CESAnalysis with regenerated covered-in annotations
+#' @keywords internal
+update_covered_in = function(cesa) {
+  
+  # Note that AAC table might be absent if there are no AACs in the data set
+  snv_table = cesa@mutations$snv
+  aac_table = cesa@mutations$amino_acid_change
+  
+  # if already existing coverage annotation, simpler to delete old annotations and re-do rather than updating
+  if ("covered_in" %in% colnames(snv_table)) {
+    snv_table[, covered_in := NULL]
+  }
+  
+  snv_gr = GenomicRanges::makeGRangesFromDataFrame(snv_table, seqnames.field = "chr", start.field = "pos", end.field = "pos")
+  
+  # test each MAF locus against all coverage grs
+  # this returns a data frame where rows match MAF rows, columns are T/F for each coverage gr
+  all_coverage = c(cesa@coverage[["exome"]], cesa@coverage[["targeted"]], cesa@coverage[["genome"]]) # names shouldn't overlap due to add_covered_regions validation
+  
+  # all_coverage will be NULL if there's only full-coverage WGS data
+  if(is.null(all_coverage)) {
+    snv_table[, covered_in := list()]
+  } else {
+    all_coverage = all_coverage[sort(names(all_coverage))] # sort by covered regions name
+    is_covered = as.data.table(lapply(all_coverage, function(x) IRanges::overlapsAny(snv_gr, x, type = "within")))
+    all_names = names(is_covered)
+    covered_in = apply(is_covered, 1, function(x) all_names[x])
+    
+    # Note that when exome+ coverage (see load_maf) is used, samples can have both "exome" and "exome+" associated with their mutations,
+    # but the samples themselves are considered "exome+" (be careful not to double-count these)
+    snv_table[, covered_in := covered_in]
+  }
+  cesa@mutations$snv = snv_table
+  setkey(cesa@mutations$snv, 'snv_id')
+  
+  # We're going to cheat and say samples have coverage at aac sites if they have coverage on any of the three codon positions
+  # in practice, there probably is coverage even if the coverage intervals disagree
+  if (! is.null(aac_table)) {
+    if ("covered_in" %in% colnames(aac_table)) {
+      aac_table[, covered_in := NULL]
+    }
+    aac_coverage = snv_table[, .(aac_id = unlist(assoc_aac), covered_in), by = "snv_id"]
+    aac_coverage = aac_coverage[, .(covered_in = list(sort(unique(unlist(covered_in))))), by = "aac_id"]
+    aac_table[aac_coverage, covered_in := covered_in, on = "aac_id"]
+    cesa@mutations$amino_acid_change = aac_table
+    setkey(cesa@mutations$amino_acid_change, 'aac_id')
+  }
+  return(cesa)
+}

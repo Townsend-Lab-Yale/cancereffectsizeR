@@ -160,16 +160,6 @@ load_cesa = function(file) {
   }
   cesa@mutrates = setDT(cesa@mutrates)
   cesa@selection_results = lapply(cesa@selection_results, setDT)
-  
-  
-  # temporary
-  if(! .hasSlot(cesa, "epistasis")) {
-    cesa@epistasis = list()
-  }
-  if (cesa@ref_key == "ces_hg19_v1") {
-    cesa@ref_key = "ces.refset.hg19"
-  }
-  # (end temporary)
   cesa@epistasis = lapply(cesa@epistasis, setDT)
   
   ref_set_name = cesa@ref_key
@@ -198,10 +188,6 @@ load_cesa = function(file) {
   
   if (! is.na(cesa@ref_data_dir) & ! cesa@ref_key %in% ls(.ces_ref_data)) {
     .ces_ref_data[[cesa@ref_key]] = preload_ref_data(cesa@ref_data_dir)
-  }
-  
-  if (! "genome_info" %in% names(cesa@advanced)) {
-    cesa@advanced$genome_info = get_ref_data(cesa, "genome_build_info")
   }
   current_version = packageVersion("cancereffectsizeR")
   previous_version = cesa@advanced$version

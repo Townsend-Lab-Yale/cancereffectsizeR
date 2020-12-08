@@ -207,7 +207,7 @@ ces_variant <- function(cesa = NULL,
   }
 
   # identify mutations by nearest gene(s)
-  tmp = unique(maf[variant_type == "snv", .(gene = unlist(genes)), by = "Unique_Patient_Identifier"])[, .(samples = list(Unique_Patient_Identifier)), by = "gene"]
+  tmp = unique(maf[, .(gene = unlist(genes)), by = "Unique_Patient_Identifier"])[, .(samples = list(Unique_Patient_Identifier)), by = "gene"]
   tumors_with_variants_by_gene = tmp$samples
   names(tumors_with_variants_by_gene) = tmp$gene
   tumors_with_variants_by_gene = list2env(tumors_with_variants_by_gene)

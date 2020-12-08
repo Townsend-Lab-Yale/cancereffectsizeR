@@ -3,7 +3,7 @@
 ## Welcome
 cancereffectsizeR aims to provide an intuitive and comprehensive set of tools to quantify the effects of somatic variants on cancer progression. Throughout the package, methods are designed to support as little or as much customization as you like:
 - Annotate variants with built-in reference data, or create a custom reference data set for any genome build.
-- Identify mutational processes in groups of samples by extracting COSMIC signatures, or any custom set of signature definitions
+- Identify mutational processes in groups of samples by extracting COSMIC signatures, or any custom set of signature definitions.
 - Use cancereffectsizeR's tissue-specific covariates to inform calculation of gene mutation rates (via [dNdScv](https://github.com/im3sanger/dndscv)), or supply your own covariates.
 - Test single-variant, stage/grade-specific, and epistatic models of selection, or define and test your own models.
 - Arbitrarily batch variants by position, gene, or functional annotation, and quantify selection by batch.

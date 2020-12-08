@@ -11,12 +11,12 @@ saveRDS(luad, "annotated_fruit_cesa.rds")
 
 
 # signatures and trinuc rates
-luad = trinuc_mutation_rates(luad, cores = 4, signature_set = "COSMIC_v3.1",
+luad = trinuc_mutation_rates(luad, cores = 2, signature_set = "COSMIC_v3.1",
                              signatures_to_remove = suggest_cosmic_signatures_to_remove("LUAD", treatment_naive = TRUE, quiet = TRUE))
 
 fwrite(luad$trinuc_rates, "luad_hg19_trinuc_rates.txt", sep = "\t")
 fwrite(luad$mutational_signatures$all, "luad_hg19_sig_table_with_artifacts.txt", sep = "\t")
-fwrite(luad$mutational_signatures$biological, "luad_hg19_sig_table_biological.txt", sep = "\t")
+fwrite(luad$mutational_signatures$relative_biological, "luad_hg19_sig_table_biological.txt", sep = "\t")
 
 # to generate test data for dndscv,
 # run gene_mutation_rates(luad, covariates = "lung") with breakpoints before/after run_dndscv
@@ -36,11 +36,11 @@ fwrite(luad@selection_results[[1]], "fruit_sswm_out.txt", sep = "\t")
 
 # Three big genes and a variant that is the only mutation in its gene in the data set
 luad = ces_variant(luad, select_variants(luad, genes = c("EGFR", "KRAS", "TP53"), variant_passlist = "CR2 R247L"),
-               model = "sswm_sequential", group_ordering = list(c("marionberry", "cherry"), "mountain_apple"))
+               model = "sswm_sequential", groups = list(c("marionberry", "cherry"), "mountain_apple"))
 fwrite(luad@selection_results[[2]], "fruit_sswm_sequential_out.txt", sep = "\t")
 
-results = ces_gene_epistasis(luad, genes = c("EGFR", "KRAS", "TP53"), conf = .95)
-saveRDS(results, "epistasis_results.rds")
+luad = ces_gene_epistasis(luad, genes = c("EGFR", "KRAS", "TP53"), conf = .95)
+saveRDS(luad$epistasis[[1]], "epistasis_results.rds")
 
 setwd(prev_dir)
 

@@ -1,8 +1,4 @@
 prev_dir = setwd(system.file("tests/test_data/", package = "cancereffectsizeR"))
-maf_file = "luad.hg19.maf.txt"
-cesa = load_maf(cesa = CESAnalysis("ces.refset.hg19"), maf = maf_file, sample_col = "sample_id", annotate = F)
-
-
 
 ## Create small trinuc weight data for tests
 # These samples are a mix of LUAD and fabricated data; one tumor is special because dS returns 100% artifact weightings on it
