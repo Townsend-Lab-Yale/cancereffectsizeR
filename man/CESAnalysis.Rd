@@ -4,7 +4,7 @@
 \alias{CESAnalysis}
 \title{Create a cancereffectsizeR analysis}
 \usage{
-CESAnalysis(ref_set = "ces_hg19_v1", sample_groups = NULL)
+CESAnalysis(ref_set = "ces.refset.hg19", sample_groups = NULL)
 }
 \arguments{
 \item{ref_set}{name of reference data set to use; run \code{list_ces_ref_sets()} for

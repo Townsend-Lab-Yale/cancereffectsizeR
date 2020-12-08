@@ -22,8 +22,8 @@
 #' @param custom_lik_args Extra arguments, given as a list, to pass to custom likelihood
 #'   functions.
 #' @param hold_out_same_gene_samples When finding likelihood of each variant, hold out
-#'   samples that lack the variant but have other mutations in the same gene. By default,
-#'   TRUE when running with single variants, FALSE with compound variants.
+#'   samples that lack the variant but have any other mutations in the same gene. By default,
+#'   TRUE when running with single variants, FALSE with a CompoundVariantSet.
 #' @return CESAnalysis object with selection results added for the chosen analysis
 #' @export
 
@@ -33,12 +33,23 @@ ces_variant <- function(cesa = NULL,
                         model = "sswm",
                         groups = NULL,
                         custom_lik_args = list(),
-                        hold_out_same_gene_samples = is(variants, "data.table"),
+                        hold_out_same_gene_samples = "auto",
                         cores = 1,
                         conf = .95) 
 {
   if(! is(cesa, "CESAnalysis")) {
     stop("cesa should be a CESAnalysis", call. = F)
+  }
+  if (length(hold_out_same_gene_samples) == 1) {
+    if (! is.logical(hold_out_same_gene_samples)) {
+      if (identical(hold_out_same_gene_samples, "auto")) {
+        hold_out_same_gene_samples = is(variants, "data.table")
+      } else {
+        stop("hold_out_same_gene_samples should be TRUE/FALSE or left \"auto\".")
+      }
+    }
+  } else {
+    stop("hold_out_same_gene_samples should be TRUE/FALSE or left \"auto\".")
   }
   
   if (! is(run_name, "character") || length(run_name) != 1) {
@@ -280,7 +291,6 @@ ces_variant <- function(cesa = NULL,
       gene_lookup = curr_subgroup[, all_genes]
       names(gene_lookup) = curr_subgroup[, variant_id]
       gene_lookup = list2env(gene_lookup)
-      
       
       # function to run MLE on given variant_id (vector of IDs for compound variants)
       process_variant = function(variant_id) {

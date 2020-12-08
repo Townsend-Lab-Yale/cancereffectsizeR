@@ -10,6 +10,7 @@ build_RefCDS(
   output_by = "gene",
   cds_ranges_lack_stop_codons = T,
   cores = 1,
+  additional_essential_splice_pos = NULL,
   numcode = 1
 )
 }
@@ -29,6 +30,16 @@ stop codons in their genomic intervals. If your input table does include the sto
 codons within CDS records, set to FALSE.}
 
 \item{cores}{how many cores to use for parallel computations}
+
+\item{additional_essential_splice_pos}{Usually not needed. A list of
+additional essential splice site positions to combine with those calculated
+automatically by this function. Each element of the list should have a name
+matching a protein_id in the input and consist of a numeric vector of
+additional positions. This option exists so that mutations at chr17:7579312
+on TP53 are treated as splice site mutations in cancereffectsizeR's default
+hg19 reference data set. (Variants at this coding position, which are
+always synonymous, have validated effects on splicing, even though the
+position misses automatic "essential splice" annotation by 1 base.)}
 
 \item{numcode}{(don't use) NCBI genetic code number; currently only code 1, the
 standard genetic code, is supported}

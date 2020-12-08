@@ -13,13 +13,13 @@
 #' 
 #' @param cesa the CESAnalysis object to load the data into
 #' @param maf Path of tab-delimited text file in MAF format, or an MAF in data.table or data.frame format
-#' @param annotate Annotate mutations with gene and other reference information (required for effect size analysis)
+#' @param annotate Annotate mutations with gene and other reference information (required for effect size analysis).
 #' @param sample_col column name with sample ID data (Tumor_Sample_Barcode or Unique_Patient_Identifier)
 #' @param chr_col column name with chromosome data  (Chromosome)           
 #' @param start_col column name with start position (Start_Position)
 #' @param ref_col column name with reference allele data (Reference_Allele)
 #' @param tumor_allele_col column name with alternate allele data; by default,
-#'   values from Tumor_Seq_Allele2 and Tumor_Seq_Allele1 columns are used
+#'   values from Tumor_Seq_Allele2 and Tumor_Seq_Allele1 columns are used.
 #' @param group_col column in MAF with sample group labels (see \code{?CESAnalysis})
 #' @param coverage exome, genome, or targeted (default exome)
 #' @param covered_regions optional for exome, required for targeted: a GRanges object or a
@@ -30,11 +30,11 @@
 #'   each covered_regions interval, to include variants called just outside of targeted
 #'   regions. Consider setting from 0-100bp, or up to the sequencing read length. If the
 #'   input data has been trimmed to the targeted regions, leave set to 0.
-#' @param chain_file a chain file (text format, name ends in .chain) to convert MAF
-#'   records to the genome build used in the CESAnalysis
-#' @param enforce_default_exome_coverage when loading default exome data, exclude records
-#'   that aren't covered in the (somewhat arbitrary) default exome intervals included with
-#'   CES genome reference data (default FALSE)
+#' @param chain_file a LiftOver chain file (text format, name ends in .chain) to convert MAF
+#'   records to the genome build used in the CESAnalysis.
+#' @param enforce_default_exome_coverage When loading default exome data, exclude records
+#'   that aren't covered in the default exome capture intervals included with
+#'   CES genome reference data (default FALSE).
 #' @return CESAnalysis with the specified MAF data loaded
 #' @export
 load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumor_Sample_Barcode", chr_col = "Chromosome", start_col = "Start_Position",

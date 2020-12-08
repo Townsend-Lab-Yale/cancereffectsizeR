@@ -129,7 +129,8 @@ test_that("Compound variant creation", {
   # should recapitulate single variant results with 1-SNV-size compound variants
   single_snv_comp = define_compound_variants(cesa, all_kras_12_13, by = c("gene", "aa_alt"), merge_distance = 0)
   expect_equal(length(single_snv_comp), 5)
-  results = ces_variant(cesa, single_snv_comp, model = "sswm_sequential", groups = list(c("marionberry", "cherry"), "mountain_apple"))
+  results = ces_variant(cesa, variants = single_snv_comp, model = "sswm_sequential", 
+                        groups = list(c("marionberry", "cherry"), "mountain_apple"), hold_out_same_gene_samples = T)
   results = results$selection[[1]][c("KRAS.Cys.1", "KRAS.Asp.1", "KRAS.Cys.2", "KRAS.Asp.2", "KRAS.Val.1"), on = "variant_name"]
   prev = fread(get_test_file("fruit_sswm_sequential_out.txt"))[all_kras_12_13$variant_id, on = "variant_id"][, 3:4]
   expect_equal(results[, 3:4], prev, tolerance = 1e-6)
@@ -138,7 +139,7 @@ test_that("Compound variant creation", {
   pos_comp = define_compound_variants(cesa, all_kras_12_13, merge_distance = 0)
   expect_equal(length(pos_comp), 2)
   expect_equal(pos_comp$snv_info[, .N], 5)
-  results = ces_variant(cesa, variants = pos_comp, conf = NULL)$selection[[1]]
+  results = ces_variant(cesa, variants = pos_comp, hold_out_same_gene_samples = T, conf = NULL)$selection[[1]]
   expect_equal(results$selection_intensity, c(7170.178, 32349.204), tolerance = 1e-5)
   # If above output changes, be sure SIs remain between lowest/highest single-variant SIs at each site (see .rds)
   

@@ -27,7 +27,7 @@ load_maf(
 
 \item{maf}{Path of tab-delimited text file in MAF format, or an MAF in data.table or data.frame format}
 
-\item{annotate}{Annotate mutations with gene and other reference information (required for effect size analysis)}
+\item{annotate}{Annotate mutations with gene and other reference information (required for effect size analysis).}
 
 \item{sample_col}{column name with sample ID data (Tumor_Sample_Barcode or Unique_Patient_Identifier)}
 
@@ -38,7 +38,7 @@ load_maf(
 \item{ref_col}{column name with reference allele data (Reference_Allele)}
 
 \item{tumor_allele_col}{column name with alternate allele data; by default,
-values from Tumor_Seq_Allele2 and Tumor_Seq_Allele1 columns are used}
+values from Tumor_Seq_Allele2 and Tumor_Seq_Allele1 columns are used.}
 
 \item{coverage}{exome, genome, or targeted (default exome)}
 
@@ -55,12 +55,12 @@ input data has been trimmed to the targeted regions, leave set to 0.}
 
 \item{group_col}{column in MAF with sample group labels (see \code{?CESAnalysis})}
 
-\item{chain_file}{a chain file (text format, name ends in .chain) to convert MAF
-records to the genome build used in the CESAnalysis}
+\item{chain_file}{a LiftOver chain file (text format, name ends in .chain) to convert MAF
+records to the genome build used in the CESAnalysis.}
 
-\item{enforce_default_exome_coverage}{when loading default exome data, exclude records
-that aren't covered in the (somewhat arbitrary) default exome intervals included with
-CES genome reference data (default FALSE)}
+\item{enforce_default_exome_coverage}{When loading default exome data, exclude records
+that aren't covered in the default exome capture intervals included with
+CES genome reference data (default FALSE).}
 }
 \value{
 CESAnalysis with the specified MAF data loaded

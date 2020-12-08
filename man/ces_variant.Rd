@@ -11,7 +11,7 @@ ces_variant(
   model = "sswm",
   groups = NULL,
   custom_lik_args = list(),
-  hold_out_same_gene_samples = is(variants, "data.table"),
+  hold_out_same_gene_samples = "auto",
   cores = 1,
   conf = 0.95
 )
@@ -42,8 +42,8 @@ an intermediate state, and group D is last.}
 functions.}
 
 \item{hold_out_same_gene_samples}{When finding likelihood of each variant, hold out
-samples that lack the variant but have other mutations in the same gene. By default,
-TRUE when running with single variants, FALSE with compound variants.}
+samples that lack the variant but have any other mutations in the same gene. By default,
+TRUE when running with single variants, FALSE with a CompoundVariantSet.}
 
 \item{cores}{number of cores to use}
 
