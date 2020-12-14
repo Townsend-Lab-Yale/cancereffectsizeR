@@ -17,7 +17,7 @@
 #' nonzero weight. (In the unlikely event that this is a problem, consider assigning
 #' group-average signature weights to the artifact-only samples.)
 #' 
-#' @param cesa CESAnalysisy
+#' @param cesa CESAnalysis
 #' @param signature_set signature set name (see \code{list_ces_signature_sets()}), or a
 #'   custom signature set (see documentation in \code{trinuc_mutation_rates()})
 #' @param weights data.table of relative signature weights for each sample (see details)

@@ -2,7 +2,7 @@
 #'
 #' This function calculates gene-level neutral mutation rates based on counts
 #' of nonsynonymous and synonymous mutations per gene under the dNdScv package's model, 
-#' as described in Martincorena et al. (https://doi.org/10.1016/j.cell.2017.09.042).
+#' as described in \href{https://doi.org/10.1016/j.cell.2017.09.042}{Martincorena et al.}
 #'
 #' @param cesa CESAnalysis object
 #' @param covariates Name of gene mutation rate covariates to use (run

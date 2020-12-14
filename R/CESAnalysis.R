@@ -2,60 +2,63 @@
 #' 
 #' Creates a CESAnalysis object, the central data structure of cancereffectsizeR.
 #' 
-#' @param ref_set name of reference data set to use; run \code{list_ces_ref_sets()} for
-#'   available ref sets. Alternatively, the path to a custom reference data directory.
+#' @param refset name of reference data set (refset) to use; run \code{list_ces_refsets()} for
+#'   available refsets. Alternatively, the path to a custom reference data directory.
 #' @param sample_groups Optionally, supply labels identifying different groups of samples.
 #'   Each designated group of samples can be run independently through functions like
 #'   \code{trinuc_mutation_rates()} and \code{gene_mutation_rates()}, and some selection
 #'   models (such as sswm_sequential) require multiple sample groups.
 #' @return CESAnalysis object
 #' @export
-CESAnalysis = function(ref_set = "ces.refset.hg19", sample_groups = NULL) {
-  ref_set_name = ref_set
-  if (! is(ref_set_name, "character")) {
-    stop("ref_set should be type character (either the name of a supported reference data set package or a path to a custom reference data directory.")
+CESAnalysis = function(refset = "ces.refset.hg19", sample_groups = NULL) {
+  refset_name = refset
+  if (! is(refset_name, "character")) {
+    stop("refset should be type character (either the name of a supported reference data set package or a path to a custom reference data directory.")
   }
   
   # Check for and load reference data for the chosen genome/transcriptome data
-  ref_set_name = ref_set
-  if (ref_set_name %in% names(.official_ref_sets)) {
-    if(file.exists(ref_set_name)) {
+  refset_name = refset
+  if (refset_name %in% names(.official_refsets)) {
+    if(file.exists(refset_name)) {
       stop("You've given the name of a CES reference data set package, but a file/folder with the same name is in your working directory. Stopping to avoid confusion.")
     }
-    if(! require(ref_set_name, character.only = T, quietly = T)) {
-      stop("CES reference data set ", ref_set_name, " not installed. Run this to install:\n", 
-           "remotes::install_github(\"Townsend-Lab-Yale/ces-reference-data/", ref_set_name, "\")")
+    if(! require(refset_name, character.only = T, quietly = T)) {
+      if(refset_name == "ces.refset.hg19") {
+        message("Install ces.refset.hg19 like this:\n",
+                "remotes::install_github(\"Townsend-Lab-Yale/ces.refset.hg19@*release\")")
+      }
+      stop("CES reference data set ", refset_name, " not installed.")
     }
-    req_version = .official_ref_sets[[ref_set_name]]
-    actual_version = packageVersion(ref_set_name)
+    req_version = .official_refsets[[refset_name]]
+    actual_version = packageVersion(refset_name)
     if (actual_version < req_version) {
-      stop("CES reference data set ", ref_set_name, " is version ", actual_version, ", but your version of cancereffectsizeR requires at least ",
+      stop("CES reference data set ", refset_name, " is version ", actual_version, ", but your version of cancereffectsizeR requires at least ",
            "version ", req_version, ".\nRun this to update:\n",
-           "remotes::install_github(\"Townsend-Lab-Yale/ces-reference-data/", ref_set_name, "\")")
+           "remotes::install_github(\"Townsend-Lab-Yale/ces-reference-data/", refset_name, "\")")
     }
     ref_data_version = actual_version
-    data_dir = system.file("refset", package = ref_set_name)
+    data_dir = system.file("refset", package = refset_name)
   } else {
-    if (! dir.exists(ref_set_name)) {
-      if (grepl('/', ref_set_name)) {
-        stop("Could not find reference data at ", ref_set_name)
+    if (! dir.exists(refset_name)) {
+      if (grepl('/', refset_name)) {
+        stop("Could not find reference data at ", refset_name)
       } else {
-        stop("Invalid reference set name. Check spelling, or view available data sets with list_ces_ref_sets().")
+        stop("Invalid reference set name. Check spelling, or view available data sets with list_ces_refsets().")
       }
     }
     
-    data_dir = ref_set_name
-    ref_set_name = basename(ref_set_name)
-    if(ref_set_name %in% names(.official_ref_sets)) {
-      stop("Your custom reference data set has the same name (", ref_set_name, ") as a CES reference data package. Please rename it.")
+    data_dir = refset_name
+    refset_name = basename(refset_name)
+    if(refset_name %in% names(.official_refsets)) {
+      stop("Your custom reference data set has the same name (", refset_name, ") as a CES reference data package. Please rename it.")
     }
   }
   
   # load reference data
-  if (! ref_set_name %in% ls(.ces_ref_data)) {
-    message("Loading reference data set ", ref_set_name, "...")
-    .ces_ref_data[[ref_set_name]] = preload_ref_data(data_dir)
-    .ces_ref_data[[ref_set_name]][["data_dir"]] = data_dir
+  if (! refset_name %in% ls(.ces_ref_data)) {
+    message("Loading reference data set ", refset_name, "...")
+    .ces_ref_data[[refset_name]] = preload_ref_data(data_dir)
+    .ces_ref_data[[refset_name]][["data_dir"]] = data_dir
   }
   
   # Validate sample_groups
@@ -94,14 +97,14 @@ CESAnalysis = function(ref_set = "ces.refset.hg19", sample_groups = NULL) {
   advanced = list("version" = ces_version, annotated = F, using_exome_plus = F, 
                   recording = T, locked = F, trinuc_done = F, gene_rates_done = F,
                   uid = unclass(Sys.time()), genome_info = genome_info)
-  cesa = new("CESAnalysis", run_history = character(),  ref_key = ref_set_name, maf = data.table(), excluded = data.table(),
+  cesa = new("CESAnalysis", run_history = character(),  ref_key = refset_name, maf = data.table(), excluded = data.table(),
              groups = sample_groups, mutrates = data.table(),
              selection_results = list(), ref_data_dir = data_dir, epistasis = list(),
              advanced = advanced, samples = data.table(), mutations = list())
   cesa@run_history = c(paste0("[Version: cancereffectsizeR ", ces_version, "]" ))
   cesa = update_cesa_history(cesa, match.call())
 
-  msg = paste0("This CESAnalysis will use ", ref_set_name, " reference data and the ", genome_info$species,
+  msg = paste0("This CESAnalysis will use ", refset_name, " reference data and the ", genome_info$species,
                " genome, assembly ", genome_info$build_name, '.')
   pretty_message(msg)
   return(cesa)
@@ -112,7 +115,7 @@ CESAnalysis = function(ref_set = "ces.refset.hg19", sample_groups = NULL) {
 #' Saves a CESAnalysis to a file by calling using base R's saveRDS function. Also updates
 #' run history for reproducibility. Files saved should be reloaded with \code{load_cesa()}.
 #' 
-#' Note that the genome reference data associated with a CESAnalysis (ref_set) is not
+#' Note that the genome reference data associated with a CESAnalysis (refset) is not
 #' actually part of the CESAnalysis, so it is not saved here. (Saving this data with the
 #' analysis would make file sizes too large.) When you reload the CESAnalysis, you can
 #' re-associate the correct reference data.
@@ -162,26 +165,26 @@ load_cesa = function(file) {
   cesa@selection_results = lapply(cesa@selection_results, setDT)
   cesa@epistasis = lapply(cesa@epistasis, setDT)
   
-  ref_set_name = cesa@ref_key
-  if (ref_set_name %in% names(.official_ref_sets)) {
-    if(! require(ref_set_name, character.only = T, quietly = T)) {
-      stop("CES reference data set ", ref_set_name, " not installed. Run this to install:\n", 
-           "remotes::install_github(\"Townsend-Lab-Yale/ces-reference-data/", ref_set_name, "\")")
+  refset_name = cesa@ref_key
+  if (refset_name %in% names(.official_refsets)) {
+    if(! require(refset_name, character.only = T, quietly = T)) {
+      stop("CES reference data set ", refset_name, " not installed. Run this to install:\n", 
+           "remotes::install_github(\"Townsend-Lab-Yale/ces-reference-data/", refset_name, "\")")
     }
-    req_version = .official_ref_sets[[ref_set_name]]
-    actual_version = packageVersion(ref_set_name)
+    req_version = .official_refsets[[refset_name]]
+    actual_version = packageVersion(refset_name)
     if (actual_version < req_version) {
-      stop("CES reference data set ", ref_set_name, " is version ", actual_version, ", but your version of cancereffectsizeR requires at least ",
+      stop("CES reference data set ", refset_name, " is version ", actual_version, ", but your version of cancereffectsizeR requires at least ",
            "version ", req_version, ".\nRun this to update:\n",
-           "remotes::install_github(\"Townsend-Lab-Yale/ces-reference-data/", ref_set_name, "\")")
+           "remotes::install_github(\"Townsend-Lab-Yale/ces-reference-data/", refset_name, "\")")
     }
-    cesa@ref_data_dir = system.file("refset", package = ref_set_name)
+    cesa@ref_data_dir = system.file("refset", package = refset_name)
   } else {
     if (! dir.exists(cesa@ref_data_dir)) {
       cesa@ref_data_dir = NA_character_
       msg = paste0("Reference data not found at ", cesa@ref_data_dir, ". You can view the data in this CESAnalysis, ",
                    "but many functions will not work as expected. If this is a custom reference data set, ",
-                   "you can fix the issue by using set_ces_ref_set_dir() to associate the path to your data with the analyis.")
+                   "you can fix the issue by using set_refset_dir() to associate the path to your data with the analyis.")
       warning(pretty_message(msg, emit = F))
     }
   }
@@ -212,8 +215,8 @@ load_cesa = function(file) {
 #' @param cesa CESAnalysis
 #' @param dir path to data directory
 #' @export
-set_ces_ref_set_dir = function(cesa, dir) {
-  if(cesa@ref_key %in% names(.official_ref_sets)) {
+set_refset_dir = function(cesa, dir) {
+  if(cesa@ref_key %in% names(.official_refsets)) {
     stop("You can't set the reference directory on a built-in CES reference data set.")
   }
   if(! is(cesa, "CESAnalysis")) {

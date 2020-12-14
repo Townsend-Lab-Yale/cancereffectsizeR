@@ -89,7 +89,7 @@ or transcript, only the longest complete CDS sequence is encoded in RefCDS outpu
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9018</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.0.0</span>
       </span>
     </div>
 
@@ -117,7 +117,13 @@ or transcript, only the longest complete CDS sequence is encoded in RefCDS outpu
     <li>
       <a href="../articles/cosmic_cancer_type_note.html">Cancer type considerations for COSMIC signature extraction</a>
     </li>
+    <li>
+      <a href="../articles/custom_refset_instructions.html">Running with custom reference data</a>
+    </li>
   </ul>
+</li>
+<li>
+  <a href="../news/index.html">Changelog</a>
 </li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
@@ -164,6 +170,7 @@ or transcript, only the longest complete CDS sequence is encoded in RefCDS outpu
   <span class='kw'>output_by</span> <span class='kw'>=</span> <span class='st'>"gene"</span>,
   <span class='kw'>cds_ranges_lack_stop_codons</span> <span class='kw'>=</span> <span class='no'>T</span>,
   <span class='kw'>cores</span> <span class='kw'>=</span> <span class='fl'>1</span>,
+  <span class='kw'>additional_essential_splice_pos</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
   <span class='kw'>numcode</span> <span class='kw'>=</span> <span class='fl'>1</span>
 )</pre>
 
@@ -195,6 +202,18 @@ codons within CDS records, set to FALSE.</p></td>
     <tr>
       <th>cores</th>
       <td><p>how many cores to use for parallel computations</p></td>
+    </tr>
+    <tr>
+      <th>additional_essential_splice_pos</th>
+      <td><p>Usually not needed. A list of
+additional essential splice site positions to combine with those calculated
+automatically by this function. Each element of the list should have a name
+matching a protein_id in the input and consist of a numeric vector of
+additional positions. This option exists so that mutations at chr17:7579312
+on TP53 are treated as splice site mutations in cancereffectsizeR's default
+hg19 reference data set. (Variants at this coding position, which are
+always synonymous, have validated effects on splicing, even though the
+position misses automatic "essential splice" annotation by 1 base.)</p></td>
     </tr>
     <tr>
       <th>numcode</th>

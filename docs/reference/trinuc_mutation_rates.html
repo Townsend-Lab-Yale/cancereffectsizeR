@@ -91,7 +91,7 @@ which means that you need at least some exome or genome data to run." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9018</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.0.0</span>
       </span>
     </div>
 
@@ -119,7 +119,13 @@ which means that you need at least some exome or genome data to run." />
     <li>
       <a href="../articles/cosmic_cancer_type_note.html">Cancer type considerations for COSMIC signature extraction</a>
     </li>
+    <li>
+      <a href="../articles/custom_refset_instructions.html">Running with custom reference data</a>
+    </li>
   </ul>
+</li>
+<li>
+  <a href="../news/index.html">Changelog</a>
 </li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
@@ -231,7 +237,7 @@ sample in the data set) are used.</p>
 is a pure data.frame with signature definitions, "name" is a 1-length character naming
 the set, and "metadata" is a data.table with a "Signature" column that matches rownames
 in the signature definitions. The following columns allow special functionality:</p><ul>
-<li><p>Etiology: Known or hypothesized mutational processes underyling the signature. Used 
+<li><p>Etiology: Known or hypothesized mutational processes underlying the signature. Used 
 for human-readable tables and plots, so best to enter something like "Unknown" rather
 than leaving any entries empty or NA</p></li>
 <li><p>Likely_Artifact (logical T/F): Marks signatures that are believed to
@@ -251,7 +257,7 @@ this column is present, Exome_Min must be present and always less than or equal 
 Genome_Min.</p></li>
 </ul><p>If you don't have any metadata available for your signature set, an empty data table
 can also be supplied. For a template signature set object, run 
-<code>sig_set = get_ces_signature_set("ces_hg19_v1", "COSMIC_v3.1")</code>.</p>
+<code>sig_set = get_ces_signature_set("ces.refset.hg19", "COSMIC_v3.1")</code>.</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

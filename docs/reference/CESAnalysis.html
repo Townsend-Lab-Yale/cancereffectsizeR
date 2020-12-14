@@ -86,7 +86,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9018</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.0.0</span>
       </span>
     </div>
 
@@ -114,7 +114,13 @@
     <li>
       <a href="../articles/cosmic_cancer_type_note.html">Cancer type considerations for COSMIC signature extraction</a>
     </li>
+    <li>
+      <a href="../articles/custom_refset_instructions.html">Running with custom reference data</a>
+    </li>
   </ul>
+</li>
+<li>
+  <a href="../news/index.html">Changelog</a>
 </li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
@@ -152,15 +158,15 @@
     <p>Creates a CESAnalysis object, the central data structure of cancereffectsizeR.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>CESAnalysis</span>(<span class='kw'>ref_set</span> <span class='kw'>=</span> <span class='st'>"ces_hg19_v1"</span>, <span class='kw'>sample_groups</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)</pre>
+    <pre class="usage"><span class='fu'>CESAnalysis</span>(<span class='kw'>refset</span> <span class='kw'>=</span> <span class='st'>"ces.refset.hg19"</span>, <span class='kw'>sample_groups</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>ref_set</th>
-      <td><p>name of reference data set to use; run <code><a href='list_ces_ref_sets.html'>list_ces_ref_sets()</a></code> for
-available ref sets. Alternatively, the path to a custom reference data directory.</p></td>
+      <th>refset</th>
+      <td><p>name of reference data set (refset) to use; run <code><a href='list_ces_refsets.html'>list_ces_refsets()</a></code> for
+available refsets. Alternatively, the path to a custom reference data directory.</p></td>
     </tr>
     <tr>
       <th>sample_groups</th>

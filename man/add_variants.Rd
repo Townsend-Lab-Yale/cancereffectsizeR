@@ -23,7 +23,7 @@ coordinates (within \code{padding} bases) will be added. The tables returned by
 select_variants() and (CESAnalysis)$variants work, and get special handling of
 amino-acid-change SNVs: only the precise positions in start, end, and center_nt_pos
 are used. (This avoids adding all variants between start/end, which on
-splite-site-spanning variants can be many thousands.)}
+splice-site-spanning variants can be many thousands.)}
 
 \item{snv_id}{Character vector of CES-style SNV IDs to add.}
 

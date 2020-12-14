@@ -12,7 +12,7 @@ set_signature_weights(
 )
 }
 \arguments{
-\item{cesa}{CESAnalysisy}
+\item{cesa}{CESAnalysis}
 
 \item{signature_set}{signature set name (see \code{list_ces_signature_sets()}), or a
 custom signature set (see documentation in \code{trinuc_mutation_rates()})}

@@ -92,7 +92,7 @@ itself, then only those specified variants will be returned." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9018</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.0.0</span>
       </span>
     </div>
 
@@ -120,7 +120,13 @@ itself, then only those specified variants will be returned." />
     <li>
       <a href="../articles/cosmic_cancer_type_note.html">Cancer type considerations for COSMIC signature extraction</a>
     </li>
+    <li>
+      <a href="../articles/custom_refset_instructions.html">Running with custom reference data</a>
+    </li>
   </ul>
+</li>
+<li>
+  <a href="../news/index.html">Changelog</a>
 </li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
@@ -209,16 +215,16 @@ then only these specified variants will be returned.</p></td>
       <th>variant_position_table</th>
       <td><p>Filter out any variants that don't intersect the
 positions given in chr/start/end of this table (1-based closed coordinates).
-Typically, the table comes from a previous `select_variants` call and can be expanded
-with <code>padding</code>. (Gritty detail: Amino acid change SNVS get special handling: only the
+Typically, the table comes from a previous <code>select_variants</code> call and can be expanded
+with <code>padding</code>. (Gritty detail: Amino acid change SNVS get special handling. Only the
 precise positions in start, end, and center_nt_pos are used. This avoids intersecting
-extra variants between start/end, which on splite-site-spanning variants can be many
+extra variants between start/end, which on splice-site-spanning variants can be many
 thousands.)</p></td>
     </tr>
     <tr>
       <th>include_subvariants</th>
       <td><p>Some mutations "contain" other mutations. For example, in
-cancereffectsizeR's default hg19 reference data, KRAS_Q61H contains two constituent
+cancereffectsizeR's ces.refset.hg19, KRAS_Q61H contains two constituent
 SNVs that both cause the same amino acid change: 12:25380275_T&gt;G and 12:25380275_T&gt;A.
 When include_subvariants = F (the default), and genes = "KRAS", output will be
 returned for KRAS_Q61H but not for the two SNVs (although their IDs will appear in
@@ -226,13 +232,13 @@ the Q61H output). Set to true, and all three variants will be included in output
 assuming they don't get filtered out by other other options, like min_freq. If you
 set this to TRUE, you can't directly plug the output table into selection functions.
 However, you can pick a non-overlapping set of variant IDs from the output table 
-and re-run select_variants() to put those variants into a new table for
+and re-run <code>select_variants()</code> to put those variants into a new table for
 selection functions.</p></td>
     </tr>
     <tr>
       <th>padding</th>
-      <td><p>add +/- this many bases to every range specified in `gr` or
-`variant_position_table` (stopping at chromsome ends, naturally).</p></td>
+      <td><p>add +/- this many bases to every range specified in <code>gr</code> or
+<code>variant_position_table</code> (stopping at chromosome ends, naturally).</p></td>
     </tr>
     <tr>
       <th>collapse_lists</th>
@@ -255,7 +261,7 @@ any constituent SNVS of the AACs don't overlap, the non-overlapping SNVs from th
 excluded AACs will still be included in output. If you set remove_secondary_aac to
 FALSE, you can't put the output variant table in selection calculation functions. An
 alternative is to set to FALSE, pick which (non-overlapping) variants you want, and
-then re-run select_variants() with those variants specified in `variant_passlist`.</p></td>
+then re-run select_variants() with those variants specified in <code>variant_passlist</code>.</p></td>
     </tr>
     </table>
 
@@ -278,7 +284,7 @@ not actually in any gene.</p>
 <li><p>ref/alt: genomic reference and alternate alleles (for genomic
   variants; NA for AACs)</p></li>
 <li><p>gene: the affected gene in AACs; for SNVs, the
-  overlapping gene (or an abitrary gene if more than one overlaps), or the nearest gene
+  overlapping gene (or an arbitrary gene if more than one overlaps), or the nearest gene
   for intergenic SNVs</p></li>
 <li><p>strand: for AACs, 1 if the reference sequence strand is the coding strand; -1 otherwise</p></li>
 <li><p>essential_splice: Variant is 1,2 bp upstream or

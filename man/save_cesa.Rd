@@ -16,7 +16,7 @@ Saves a CESAnalysis to a file by calling using base R's saveRDS function. Also u
 run history for reproducibility. Files saved should be reloaded with \code{load_cesa()}.
 }
 \details{
-Note that the genome reference data associated with a CESAnalysis (ref_set) is not
+Note that the genome reference data associated with a CESAnalysis (refset) is not
 actually part of the CESAnalysis, so it is not saved here. (Saving this data with the
 analysis would make file sizes too large.) When you reload the CESAnalysis, you can
 re-associate the correct reference data.

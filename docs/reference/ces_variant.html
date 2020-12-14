@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Calculate selection intensity for single-nucleotide variants and amino acid changes — ces_variant • cancereffectsizeR</title>
+<title>Calculate variant effect size — ces_variant • cancereffectsizeR</title>
 
 <!-- favicons -->
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
@@ -52,8 +52,15 @@
 
 
 
-<meta property="og:title" content="Calculate selection intensity for single-nucleotide variants and amino acid changes — ces_variant" />
-<meta property="og:description" content="Calculate selection intensity for single-nucleotide variants and amino acid changes" />
+<meta property="og:title" content="Calculate variant effect size — ces_variant" />
+<meta property="og:description" content="This function calculates variant effect sizes under the chosen model of selection. By
+default, a variant is assumed to have a consistent selection intensity across all
+samples. Set `model = &quot;sswm_sequential&quot;` to allow selection intensity to vary among
+sequential sample groups (e.g., stages 1-4; local/distant metastases). Use `groups` to
+define group ordering or to restrict which groups are considered under either built-in
+model. By default, only variants with MAF frequency &amp;gt; 1 (i.e., recurrent variants) are
+tested. To include all variants, or to otherwise customize which variants to include,
+call select_variants() with desired parameters." />
 <meta property="og:image" content="https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/logo.png" />
 
 
@@ -86,7 +93,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9018</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.0.0</span>
       </span>
     </div>
 
@@ -114,7 +121,13 @@
     <li>
       <a href="../articles/cosmic_cancer_type_note.html">Cancer type considerations for COSMIC signature extraction</a>
     </li>
+    <li>
+      <a href="../articles/custom_refset_instructions.html">Running with custom reference data</a>
+    </li>
   </ul>
+</li>
+<li>
+  <a href="../news/index.html">Changelog</a>
 </li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
@@ -143,13 +156,20 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Calculate selection intensity for single-nucleotide variants and amino acid changes</h1>
+    <h1>Calculate variant effect size</h1>
     <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/R/ces_variant.R'><code>R/ces_variant.R</code></a></small>
     <div class="hidden name"><code>ces_variant.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Calculate selection intensity for single-nucleotide variants and amino acid changes</p>
+    <p>This function calculates variant effect sizes under the chosen model of selection. By
+default, a variant is assumed to have a consistent selection intensity across all
+samples. Set `model = "sswm_sequential"` to allow selection intensity to vary among
+sequential sample groups (e.g., stages 1-4; local/distant metastases). Use `groups` to
+define group ordering or to restrict which groups are considered under either built-in
+model. By default, only variants with MAF frequency &gt; 1 (i.e., recurrent variants) are
+tested. To include all variants, or to otherwise customize which variants to include,
+call select_variants() with desired parameters.</p>
     </div>
 
     <pre class="usage"><span class='fu'>ces_variant</span>(
@@ -159,7 +179,7 @@
   <span class='kw'>model</span> <span class='kw'>=</span> <span class='st'>"sswm"</span>,
   <span class='kw'>groups</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
   <span class='kw'>custom_lik_args</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span>(),
-  <span class='kw'>hold_out_same_gene_samples</span> <span class='kw'>=</span> <span class='fu'>is</span>(<span class='no'>variants</span>, <span class='st'>"data.table"</span>),
+  <span class='kw'>hold_out_same_gene_samples</span> <span class='kw'>=</span> <span class='st'>"auto"</span>,
   <span class='kw'>cores</span> <span class='kw'>=</span> <span class='fl'>1</span>,
   <span class='kw'>conf</span> <span class='kw'>=</span> <span class='fl'>0.95</span>
 )</pre>
@@ -206,8 +226,8 @@ functions.</p></td>
     <tr>
       <th>hold_out_same_gene_samples</th>
       <td><p>When finding likelihood of each variant, hold out
-samples that lack the variant but have other mutations in the same gene. By default,
-TRUE when running with single variants, FALSE with compound variants.</p></td>
+samples that lack the variant but have any other mutations in the same gene. By default,
+TRUE when running with single variants, FALSE with a CompoundVariantSet.</p></td>
     </tr>
     <tr>
       <th>cores</th>
@@ -222,7 +242,20 @@ speeds runtime)</p></td>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>CESAnalysis object with selection results added for the chosen analysis</p>
+    <p>CESAnalysis object with selection results appended to the selection output list</p>
+    <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
+
+    <p>It's possible to pass in your own selection model. You'll need to create a "function
+factory" that, for any variant, produces a likelihood function that can be evaluated on
+the data. The first two arguments must be rates_tumors_with and rates_tumors_without,
+which take the baseline site mutation rates in samples with and without the variant.
+The third argument must be sample_index, which associates Unique_Patient_Identifiers
+with their sample groups. Values for all three of these arguments will be calculated by
+ces_variant and passed to your function factory automatically. Your function can take
+whatever additional arguments you like, and you can pass in values using
+`custom_lik_args`. The likelihood function parameters that ces_variant will optimize
+should be named and have default values. See the source code of `sswm_sequential_lik()`
+for an example.</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

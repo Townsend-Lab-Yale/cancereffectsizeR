@@ -4,7 +4,12 @@
 \alias{get_ces_signature_set}
 \title{get_ces_signature_set}
 \usage{
-get_ces_signature_set(ref_set, name)
+get_ces_signature_set(refset, name)
+}
+\arguments{
+\item{refset}{name of refset (if using a custom refset, it must be loaded into a CESAnalysis already)}
+
+\item{name}{name of signature set}
 }
 \description{
 For a given CES reference data collection and signature set name, returns

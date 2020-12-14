@@ -1,6 +1,6 @@
 #' Reads TCGA Tumor Sample Barcodes and consolidates barcodes into patient-specific
 #' identifiers, such patients with multiple distinct tumors in the analysis share
-#' share just one identifer. Sample barcodes that don't start with "TCGA" are unaltered.
+#' share just one identifier. Sample barcodes that don't start with "TCGA" are unaltered.
 #'
 #' @param tumor_sample_barcodes an MAF-style Tumor_Sample_Barcode vector, of which some or all are TCGA samples
 #' @param non_TCGA_characters_to_keep numeric number of characters to keep

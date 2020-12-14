@@ -4,7 +4,7 @@
 \alias{consolidate_tcga_tumors_by_patient}
 \title{Reads TCGA Tumor Sample Barcodes and consolidates barcodes into patient-specific
 identifiers, such patients with multiple distinct tumors in the analysis share
-share just one identifer. Sample barcodes that don't start with "TCGA" are unaltered.}
+share just one identifier. Sample barcodes that don't start with "TCGA" are unaltered.}
 \usage{
 consolidate_tcga_tumors_by_patient(
   tumor_sample_barcodes,
@@ -28,6 +28,6 @@ all characters}
 \description{
 Reads TCGA Tumor Sample Barcodes and consolidates barcodes into patient-specific
 identifiers, such patients with multiple distinct tumors in the analysis share
-share just one identifer. Sample barcodes that don't start with "TCGA" are unaltered.
+share just one identifier. Sample barcodes that don't start with "TCGA" are unaltered.
 }
 \keyword{internal}

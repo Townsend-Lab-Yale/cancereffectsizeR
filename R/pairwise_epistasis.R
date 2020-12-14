@@ -9,7 +9,6 @@
 #' analysis since samples lacking full coverage may or may not have mutations at the
 #' uncovered sites.
 #' 
-#' 
 #' @param cesa CESAnalysis object
 #' @param genes Vector of gene names; SIs will be calculated for all gene pairs
 #' @param run_name Optionally, a name to identify the current run.

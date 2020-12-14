@@ -2,7 +2,7 @@
 #'
 #' This function allows you to assign gene mutation rates calculated however you like to
 #' samples in your CESAnalysis. Rates can be assigned to all samples or to samples
-#' with the specified sample_group labels (see ?CESAnalysis()).
+#' with the specified sample_group labels (see \code{?CESAnalysis}).
 #' 
 #' Provide rates in a gene_rates data.table with two columns: gene (character) and rate
 #' (numeric on \code{[0, 1]}). Gene names must match the CESAnalysis reference data; to

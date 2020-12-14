@@ -1,21 +1,21 @@
-#' get_ref_set_dirs
+#' get_refset_dirs
 #' 
 #' returns a character vector mapping ref set names to their data directories
 #' @keywords internal
-get_ref_set_dirs = function() {
-  ref_sets = sapply(names(.official_ref_sets), function(x) system.file("refset", package = x))
-  ref_sets = ref_sets[ref_sets != ""]
+get_refset_dirs = function() {
+  refsets = sapply(names(.official_refsets), function(x) system.file("refset", package = x))
+  refsets = refsets[refsets != ""]
   
   if (exists(".ces_ref_data")) {
-    custom_set_names = setdiff(ls(.ces_ref_data), names(ref_sets))
+    custom_set_names = setdiff(ls(.ces_ref_data), names(refsets))
     if (length(custom_set_names) > 0) {
       custom_set_dirs = sapply(custom_set_names, function(x) .ces_ref_data[[x]][["data_dir"]])
       names(custom_set_dirs) = custom_set_names
-      ref_sets = c(ref_sets, custom_set_dirs)
+      refsets = c(refsets, custom_set_dirs)
     }
   }
   
-  return(ref_sets)
+  return(refsets)
 }
 
 #' get_ref_data
@@ -81,12 +81,12 @@ preload_ref_data = function(data_dir) {
 }
 
 
-#' list_ces_ref_sets
+#' list_ces_refsets
 #' 
 #' Prints names of built-in reference data sets
 #' @export
-list_ces_ref_sets = function() {
-  genome_names = names(get_ref_set_dirs())
+list_ces_refsets = function() {
+  genome_names = names(get_refset_dirs())
   if(length(genome_names) == 0) {
     cat("No reference data found. See documentation for how to get re data before running cancereffectsizeR.\n")
   } else {
@@ -99,22 +99,22 @@ list_ces_ref_sets = function() {
 #' Prints names of available built-in covariate data sets for all loaded CES genomes
 #' @export
 list_ces_covariates = function() {
-  ref_set_dirs = get_ref_set_dirs()
-  ref_set_names = names(ref_set_dirs)
-  if (length(ref_set_dirs) == 0) {
+  refset_dirs = get_refset_dirs()
+  refset_names = names(refset_dirs)
+  if (length(refset_dirs) == 0) {
     pretty_message("No convariates data available.\n")
     return(invisible())
   }
   
-  longest_length = max(sapply(ref_set_names, nchar))
-  for (i in 1:length(ref_set_dirs)) {
-    ref_dir = ref_set_dirs[i]
-    ref_set = ref_set_names[i]
+  longest_length = max(sapply(refset_names, nchar))
+  for (i in 1:length(refset_dirs)) {
+    ref_dir = refset_dirs[i]
+    refset = refset_names[i]
     cov_files = list.files(paste0(ref_dir, "/covariates/"))
     cov_files = gsub("\\.rds$", '', cov_files)
     
-    print_pad = paste0(rep(" ", longest_length - nchar(ref_set)), collapse = "")
-    initial = paste0(print_pad, ref_set, ": ")
+    print_pad = paste0(rep(" ", longest_length - nchar(refset)), collapse = "")
+    initial = paste0(print_pad, refset, ": ")
     exdent = nchar(initial)
     covs = ifelse(length(cov_files) > 0, paste(cov_files, collapse = ", "), "(no covariate data available)")
     msg = paste0(strwrap(initial = initial, x = covs, exdent = exdent), collapse = "\n")
@@ -129,15 +129,15 @@ list_ces_covariates = function() {
 #' derive any of these signature sets.
 #' @export
 list_ces_signature_sets = function() {
-  ref_set_dirs = get_ref_set_dirs()
-  ref_set_names = names(ref_set_dirs)
-  if (length(ref_set_dirs) == 0) {
+  refset_dirs = get_refset_dirs()
+  refset_names = names(refset_dirs)
+  if (length(refset_dirs) == 0) {
     pretty_message("No signature data available.\n")
     return(invisible())
   }
-  for (i in 1:length(ref_set_dirs)) {
-    genome = ref_set_names[i]
-    ref_dir = ref_set_dirs[i]
+  for (i in 1:length(refset_dirs)) {
+    genome = refset_names[i]
+    ref_dir = refset_dirs[i]
     sig_files = list.files(paste0(ref_dir, "/signatures/"))
     sig_sets = gsub("_signatures\\.rds$", '', sig_files)
     if (length(sig_sets) == 0) {
@@ -158,18 +158,20 @@ list_ces_signature_sets = function() {
 #' cancereffectsizeR's internal data for the signature set in a three-item list: 
 #' the signature set name, a data table of signature metadata, and a signature 
 #' definition data frame
+#' @param refset name of refset (if using a custom refset, it must be loaded into a CESAnalysis already)
+#' @param name name of signature set
 #' @export
-get_ces_signature_set = function(ref_set, name) {
-  ref_set_dirs = get_ref_set_dirs()
-  if (! is(ref_set, "character") | length(ref_set) != 1) {
-    stop("ref_set should be 1-length character")
+get_ces_signature_set = function(refset, name) {
+  refset_dirs = get_refset_dirs()
+  if (! is(refset, "character") | length(refset) != 1) {
+    stop("refset should be 1-length character")
   }
-  if (! ref_set %in% names(ref_set_dirs)) {
-    stop("Could not find input reference data set (see list_ces_ref_sets())")
+  if (! refset %in% names(refset_dirs)) {
+    stop("Could not find input reference data set (see list_ces_refsets())")
   }
-  ref_set_dir = ref_set_dirs[ref_set]
+  refset_dir = refset_dirs[refset]
 
-  sig_file = paste0(ref_set_dir, "/signatures/", name, "_signatures.rds")
+  sig_file = paste0(refset_dir, "/signatures/", name, "_signatures.rds")
   if (! file.exists(sig_file)) {
     stop("Couldn't find signature data; expected to find it at ", sig_file)
   }

@@ -35,14 +35,14 @@ then only these specified variants will be returned.}
 
 \item{variant_position_table}{Filter out any variants that don't intersect the
 positions given in chr/start/end of this table (1-based closed coordinates).
-Typically, the table comes from a previous `select_variants` call and can be expanded
-with \code{padding}. (Gritty detail: Amino acid change SNVS get special handling: only the
+Typically, the table comes from a previous \code{select_variants} call and can be expanded
+with \code{padding}. (Gritty detail: Amino acid change SNVS get special handling. Only the
 precise positions in start, end, and center_nt_pos are used. This avoids intersecting
-extra variants between start/end, which on splite-site-spanning variants can be many
+extra variants between start/end, which on splice-site-spanning variants can be many
 thousands.)}
 
 \item{include_subvariants}{Some mutations "contain" other mutations. For example, in
-cancereffectsizeR's default hg19 reference data, KRAS_Q61H contains two constituent
+cancereffectsizeR's ces.refset.hg19, KRAS_Q61H contains two constituent
 SNVs that both cause the same amino acid change: 12:25380275_T>G and 12:25380275_T>A.
 When include_subvariants = F (the default), and genes = "KRAS", output will be
 returned for KRAS_Q61H but not for the two SNVs (although their IDs will appear in
@@ -50,11 +50,11 @@ the Q61H output). Set to true, and all three variants will be included in output
 assuming they don't get filtered out by other other options, like min_freq. If you
 set this to TRUE, you can't directly plug the output table into selection functions.
 However, you can pick a non-overlapping set of variant IDs from the output table 
-and re-run select_variants() to put those variants into a new table for
+and re-run \code{select_variants()} to put those variants into a new table for
 selection functions.}
 
-\item{padding}{add +/- this many bases to every range specified in `gr` or
-`variant_position_table` (stopping at chromsome ends, naturally).}
+\item{padding}{add +/- this many bases to every range specified in \code{gr} or
+\code{variant_position_table} (stopping at chromosome ends, naturally).}
 
 \item{collapse_lists}{Some output columns may have multiple elements per variant row.
 For example, all_genes may include multiple genes. These variable-length vectors
@@ -73,7 +73,7 @@ any constituent SNVS of the AACs don't overlap, the non-overlapping SNVs from th
 excluded AACs will still be included in output. If you set remove_secondary_aac to
 FALSE, you can't put the output variant table in selection calculation functions. An
 alternative is to set to FALSE, pick which (non-overlapping) variants you want, and
-then re-run select_variants() with those variants specified in `variant_passlist`.}
+then re-run select_variants() with those variants specified in \code{variant_passlist}.}
 }
 \value{
 A data table with info on selected variants (see details), or a list of IDs.
@@ -104,7 +104,7 @@ Definitions of some less self-explanatory columns:
   \item ref/alt: genomic reference and alternate alleles (for genomic
   variants; NA for AACs) 
   \item gene: the affected gene in AACs; for SNVs, the
-  overlapping gene (or an abitrary gene if more than one overlaps), or the nearest gene
+  overlapping gene (or an arbitrary gene if more than one overlaps), or the nearest gene
   for intergenic SNVs
   \item strand: for AACs, 1 if the reference sequence strand is the coding strand; -1 otherwise
   \item essential_splice: Variant is 1,2 bp upstream or

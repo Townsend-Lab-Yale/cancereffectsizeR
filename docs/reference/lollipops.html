@@ -87,7 +87,7 @@ within or among groups of samples." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9018</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.0.0</span>
       </span>
     </div>
 
@@ -115,7 +115,13 @@ within or among groups of samples." />
     <li>
       <a href="../articles/cosmic_cancer_type_note.html">Cancer type considerations for COSMIC signature extraction</a>
     </li>
+    <li>
+      <a href="../articles/custom_refset_instructions.html">Running with custom reference data</a>
+    </li>
   </ul>
+</li>
+<li>
+  <a href="../news/index.html">Changelog</a>
 </li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
@@ -170,22 +176,23 @@ within or among groups of samples.</p>
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
       <th>si_list</th>
-      <td><p>Named list of tables, usually created by subsetting from selection
-tables. Each table should have columns called "variant_name", "variant_type", and "gene",
-plus a selection intensity column</p></td>
+      <td><p>Selection output table or named list of selection output tables. Each
+table should have columns called "variant_name", "variant_type", and "gene", plus a
+selection intensity column (or columns, and then each column will have its values
+plotted on a separate lollipop.)</p></td>
     </tr>
     <tr>
       <th>title</th>
-      <td><p>Plot title to pass to ggplot</p></td>
+      <td><p>Plot title to pass to ggplot.</p></td>
     </tr>
     <tr>
       <th>ylab</th>
-      <td><p>Y-axis label to pass to ggplot</p></td>
+      <td><p>Y-axis label to pass to ggplot.</p></td>
     </tr>
     <tr>
       <th>max_sites</th>
       <td><p>Maximum number of variant sites to include per lollipop; if you try to
-include too many, you may have a challenge getting it to look good</p></td>
+include too many, you may have a challenge getting it to look good.</p></td>
     </tr>
     <tr>
       <th>label_size</th>
@@ -194,13 +201,17 @@ include too many, you may have a challenge getting it to look good</p></td>
     <tr>
       <th>merge_dist</th>
       <td><p>How close points must be to be eligible to have their labels combined
-(.04 = 4<!-- % of plot space). Either 1-length or same length as si_list. Try tweaking if -->
+(.04 = 4 percent of plot space). Either 1-length or same length as si_list. Try tweaking if
 labels are not looking good. Set to zero to prevent any labels being combined.</p></td>
     </tr>
     <tr>
       <th>si_col</th>
       <td><p>Vector giving names of selection intensity column in each SI table,
-either 1-length or same length as si_list</p></td>
+either 1-length or same length as si_list.</p></td>
+    </tr>
+    <tr>
+      <th>group_names</th>
+      <td><p>Names to use for labeling each group of selection intensities.</p></td>
     </tr>
     </table>
 
@@ -219,11 +230,11 @@ display nicely, we would love to hear about it!)</p>
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
     <pre class="examples"><div class='input'><span class='kw'>if</span> (<span class='fl'>FALSE</span>) {
 <span class='co'># Compare cancer subtypes from different analyses</span>
-<span class='fu'>lollipops</span>(<span class='kw'>si_list</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span>(<span class='kw'>luad</span> <span class='kw'>=</span> <span class='no'>luad_cesa</span>$<span class='no'>selection</span>, <span class='kw'>lusc</span> <span class='kw'>=</span> <span class='no'>lusc_cesa</span>$<span class='no'>selection</span>))
+<span class='fu'>lollipops</span>(<span class='kw'>si_list</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span>(<span class='kw'>luad</span> <span class='kw'>=</span> <span class='no'>luad_cesa</span>$<span class='no'>selection</span>$<span class='no'>selection.1</span>, <span class='kw'>lusc</span> <span class='kw'>=</span> <span class='no'>lusc_cesa</span>$<span class='no'>selection</span>$<span class='no'>selection.1</span>))
 
 <span class='co'># Compare results for two genes</span>
-<span class='no'>tp53</span> <span class='kw'>=</span> <span class='no'>cesa</span>$<span class='no'>selection</span>[<span class='no'>gene</span> <span class='kw'>==</span> <span class='st'>'TP53'</span>]
-<span class='no'>egfr</span> <span class='kw'>=</span> <span class='no'>cesa</span>$<span class='no'>selection</span>[<span class='no'>gene</span> <span class='kw'>==</span> <span class='st'>'EGFR'</span>]
+<span class='no'>tp53</span> <span class='kw'>=</span> <span class='no'>cesa</span>$<span class='no'>selection</span>$<span class='no'>sswm</span>[<span class='no'>gene</span> <span class='kw'>==</span> <span class='st'>'TP53'</span>]
+<span class='no'>egfr</span> <span class='kw'>=</span> <span class='no'>cesa</span>$<span class='no'>selection</span>$<span class='no'>sswm</span>[<span class='no'>gene</span> <span class='kw'>==</span> <span class='st'>'EGFR'</span>]
 <span class='fu'>lollipops</span>(<span class='kw'>si_list</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span>(<span class='kw'>EGFR</span> <span class='kw'>=</span> <span class='no'>egfr</span>, <span class='kw'>TP53</span> <span class='kw'>=</span> <span class='no'>tp53</span>))
 }</div></pre>
   </div>

@@ -62,7 +62,7 @@ is a pure data.frame with signature definitions, "name" is a 1-length character 
 the set, and "metadata" is a data.table with a "Signature" column that matches rownames
 in the signature definitions. The following columns allow special functionality:
 \itemize{ 
-\item Etiology: Known or hypothesized mutational processes underyling the signature. Used 
+\item Etiology: Known or hypothesized mutational processes underlying the signature. Used 
 for human-readable tables and plots, so best to enter something like "Unknown" rather
 than leaving any entries empty or NA
 \item Likely_Artifact (logical T/F): Marks signatures that are believed to
@@ -83,5 +83,5 @@ Genome_Min.
 }
 If you don't have any metadata available for your signature set, an empty data table
 can also be supplied. For a template signature set object, run 
-\code{sig_set = get_ces_signature_set("ces_hg19_v1", "COSMIC_v3.1")}.
+\code{sig_set = get_ces_signature_set("ces.refset.hg19", "COSMIC_v3.1")}.
 }

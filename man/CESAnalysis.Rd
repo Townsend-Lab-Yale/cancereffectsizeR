@@ -4,11 +4,11 @@
 \alias{CESAnalysis}
 \title{Create a cancereffectsizeR analysis}
 \usage{
-CESAnalysis(ref_set = "ces.refset.hg19", sample_groups = NULL)
+CESAnalysis(refset = "ces.refset.hg19", sample_groups = NULL)
 }
 \arguments{
-\item{ref_set}{name of reference data set to use; run \code{list_ces_ref_sets()} for
-available ref sets. Alternatively, the path to a custom reference data directory.}
+\item{refset}{name of reference data set (refset) to use; run \code{list_ces_refsets()} for
+available refsets. Alternatively, the path to a custom reference data directory.}
 
 \item{sample_groups}{Optionally, supply labels identifying different groups of samples.
 Each designated group of samples can be run independently through functions like

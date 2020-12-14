@@ -12,7 +12,7 @@ reference:
   - CESAnalysis
   - load_cesa
   - save_cesa
-  - set_ces_ref_set_dir
+  - set_refset_dir
 - title: Load and manage variants
   contents:
   - load_maf
@@ -57,13 +57,14 @@ reference:
   - pairwise_epistasis_lik
 - title: Explore reference data
   contents:
-  - list_ces_ref_sets
+  - list_ces_refsets
   - list_ces_covariates
   - list_ces_signature_sets
   - get_ces_signature_set
 - title: Create custom reference data
   desc: More info coming soon!
   contents:
+  - create_refset
   - build_RefCDS
   - validate_signature_set
 - title: Accessors

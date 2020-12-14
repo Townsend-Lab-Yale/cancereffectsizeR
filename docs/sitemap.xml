@@ -49,6 +49,9 @@
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/consolidate_tcga_tumors_by_patient.html</loc>
   </url>
   <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/create_refset.html</loc>
+  </url>
+  <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/define_compound_variants.html</loc>
   </url>
   <url>
@@ -82,7 +85,7 @@
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/get_ref_data.html</loc>
   </url>
   <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/get_ref_set_dirs.html</loc>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/get_refset_dirs.html</loc>
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/get_sample_info.html</loc>
@@ -97,7 +100,7 @@
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/list_ces_covariates.html</loc>
   </url>
   <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/list_ces_ref_sets.html</loc>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/list_ces_refsets.html</loc>
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/list_ces_signature_sets.html</loc>
@@ -139,10 +142,10 @@
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/select_variants.html</loc>
   </url>
   <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/set_ces_ref_set_dir.html</loc>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/set_gene_rates.html</loc>
   </url>
   <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/set_gene_rates.html</loc>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/set_refset_dir.html</loc>
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/set_signature_weights.html</loc>
@@ -182,5 +185,8 @@
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/articles/cosmic_cancer_type_note.html</loc>
+  </url>
+  <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/articles/custom_refset_instructions.html</loc>
   </url>
 </urlset>

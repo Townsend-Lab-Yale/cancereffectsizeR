@@ -244,7 +244,7 @@ CompoundVariantSet = function(cesa, variant_id) {
 #' distance of each other will be merged into a candidate compound variant, and then
 #' compound variants will be repeatedly merged until the nearest two variants in each pair
 #' of compound variants are not within \code{merge_distance}. Note that overlapping
-#' variants will always be merged unless you use \code{by} to seperate them into different
+#' variants will always be merged unless you use \code{by} to separate them into different
 #' subtables (for example, by splitting on alt or aa_alt). If you use \code{by} to split
 #' variants by some functional annotation, you can set \code{merge_distance} very high to
 #' merge all same-chromosome sites (e.g., 1e9 on human genome). To merge sites across chromosomes,

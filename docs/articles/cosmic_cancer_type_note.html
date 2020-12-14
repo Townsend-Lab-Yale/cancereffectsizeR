@@ -40,7 +40,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9018</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.0.0</span>
       </span>
     </div>
 
@@ -68,7 +68,13 @@
 <li>
       <a href="../articles/cosmic_cancer_type_note.html">Cancer type considerations for COSMIC signature extraction</a>
     </li>
+    <li>
+      <a href="../articles/custom_refset_instructions.html">Running with custom reference data</a>
+    </li>
   </ul>
+</li>
+<li>
+  <a href="../news/index.html">Changelog</a>
 </li>
       </ul>
 <ul class="nav navbar-nav navbar-right">
@@ -109,8 +115,8 @@
     
     
 <p>The <code><a href="../reference/trinuc_mutation_rates.html">trinuc_mutation_rates()</a></code> function uses mutational signature extraction to calculate relative trinucleotide-specific SNV mutation rates in tumors. The “signatures_to_remove” option allows some signatures to be excluded from this analysis, which means each tumor will receive a weight of 0 for these signatures, indicating that none of the tumor’s SNVs are attributable to these signatures. This page describes the behavior of the helper function <code><a href="../reference/suggest_cosmic_signatures_to_remove.html">suggest_cosmic_signatures_to_remove()</a></code> and the reasoning behind it.</p>
-<p>In <a href="https://doi.org/10.1038/s41586-020-1943-3">Alexandrov 2020</a>, the developers of the COSMIC mutational signatures sets say that some signatures that do not appear in certain cancer types. Consider excluding some or all of these signatures in <code><a href="../reference/trinuc_mutation_rates.html">trinuc_mutation_rates()</a></code>.</p>
-<p>There are also some signatures associated with various cancer treatments (SBS11, SBS31, SBS32, SBS35, SBS86, SBS87, SBS90), so you if you know that your sample is treatment-naive or hasn’t been exposed to the implicated drugs, some or all of these signatures can be excluded.</p>
+<p>In <a href="https://doi.org/10.1038/s41586-020-1943-3">Alexandrov 2020</a>, the authors of the COSMIC mutational signatures say that some signatures do not appear in certain cancer types. Consider excluding some or all of these signatures in <code><a href="../reference/trinuc_mutation_rates.html">trinuc_mutation_rates()</a></code>.</p>
+<p>There are also some signatures associated with various drug treatments (SBS11, SBS31, SBS32, SBS35, SBS86, SBS87, SBS90), so you if you know that your samples are treatment-naive or haven’t been exposed to the implicated drugs, some or all of these signatures can be excluded.</p>
 <p>Note that while some COSMIC signatures are attributed to sequencing artifacts, you shouldn’t exclude these because cancereffectsizeR already handles these signatures specially.</p>
 <p>The <code><a href="../reference/suggest_cosmic_signatures_to_remove.html">suggest_cosmic_signatures_to_remove()</a></code> function will identify possible signature exclusions based on cancer type and treatment status.</p>
 <div class="sourceCode" id="cb1"><html><body><pre class="r">  <span class="fu"><a href="../reference/suggest_cosmic_signatures_to_remove.html">suggest_cosmic_signatures_to_remove</a></span>(<span class="kw">cancer_type</span> <span class="kw">=</span> <span class="st">"BRCA"</span>, <span class="kw">treatment_naive</span> <span class="kw">=</span> <span class="fl">TRUE</span>)

@@ -1,9 +1,11 @@
 #' @import data.table
 #' @import GenomeInfoDb
 #' @import BSgenome
-.datatable.aware=TRUE
+.datatable.aware = TRUE
 .ces_ref_data = new.env()
-.official_ref_sets = list(ces.refset.hg19 = as.package_version("0.0.0.9000"))
+
+# Data package names and minimum required version
+.official_refsets = list(ces.refset.hg19 = as.package_version("1.0.0"))
 
 # format a string the way R should automatically, then feed it to message()
 pretty_message = function(msg, emit = T, black = emit) {

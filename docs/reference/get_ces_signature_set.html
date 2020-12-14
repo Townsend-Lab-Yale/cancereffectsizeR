@@ -89,7 +89,7 @@ definition data frame" />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.1.9018</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.0.0</span>
       </span>
     </div>
 
@@ -117,7 +117,13 @@ definition data frame" />
     <li>
       <a href="../articles/cosmic_cancer_type_note.html">Cancer type considerations for COSMIC signature extraction</a>
     </li>
+    <li>
+      <a href="../articles/custom_refset_instructions.html">Running with custom reference data</a>
+    </li>
   </ul>
+</li>
+<li>
+  <a href="../news/index.html">Changelog</a>
 </li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
@@ -158,8 +164,20 @@ the signature set name, a data table of signature metadata, and a signature
 definition data frame</p>
     </div>
 
-    <pre class="usage"><span class='fu'>get_ces_signature_set</span>(<span class='no'>ref_set</span>, <span class='no'>name</span>)</pre>
+    <pre class="usage"><span class='fu'>get_ces_signature_set</span>(<span class='no'>refset</span>, <span class='no'>name</span>)</pre>
 
+    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
+    <table class="ref-arguments">
+    <colgroup><col class="name" /><col class="desc" /></colgroup>
+    <tr>
+      <th>refset</th>
+      <td><p>name of refset (if using a custom refset, it must be loaded into a CESAnalysis already)</p></td>
+    </tr>
+    <tr>
+      <th>name</th>
+      <td><p>name of signature set</p></td>
+    </tr>
+    </table>
 
 
   </div>
