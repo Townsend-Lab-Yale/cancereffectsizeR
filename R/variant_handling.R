@@ -362,13 +362,13 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = 
       maf_freq_cols = c(maf_freq_cols, curr_col)
       group_maf = cesa@maf[Unique_Patient_Identifier %in% cesa@samples[group == curr_group, Unique_Patient_Identifier]]
       combined[, (curr_col) := 0]
-      snv_counts = group_maf[variant_type == "snv", .N, by = "variant_id"][N >= min_freq]
+      snv_counts = group_maf[variant_type == "snv", .N, by = "variant_id"]
       if(snv_counts[, .N] > 0) {
         combined[snv_counts, (curr_col) := N, on = "variant_id"]
         # can't be AACs unless there are SNVs, hence nested
         aac_counts = group_maf[! is.na(assoc_aac), .(aac_id = unlist(assoc_aac)), by = "variant_id"]
         if(aac_counts[, .N] > 0) {
-          aac_counts = aac_counts[, .N, by = "aac_id"][N >= min_freq]
+          aac_counts = aac_counts[, .N, by = "aac_id"]
           combined[aac_counts, (curr_col) := N, on = c(variant_id = "aac_id")]
         }
       }
@@ -390,7 +390,7 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = 
   
   # handle overlapping  mutations
   if (remove_secondary_aac) {
-    multi_hits = combined[sapply(all_aac, length) > 1]
+    multi_hits = combined[sapply(all_aac, length) > 1 & variant_type == "aac"]
     num_to_check = multi_hits[, .N]
     if (num_to_check > 0) {
       setkey(multi_hits, "variant_id")
