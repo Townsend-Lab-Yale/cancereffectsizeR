@@ -1,6 +1,8 @@
 prev_dir = setwd(system.file("tests/test_data/", package = "cancereffectsizeR"))
 
 # read in the MAF, assign three random groups, and annotate
+
+# To-Do: Add a CDKN2A mutation to MAF, at some point. list("sample-9999", 9, 21971186, 'G', 'A')
 maf = fread("luad.hg19.maf.txt")
 set.seed(879)
 fruits = c("cherry", "marionberry", "mountain_apple")

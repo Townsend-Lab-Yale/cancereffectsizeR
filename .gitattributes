@@ -1,0 +1,2 @@
+# prevent large test data files from being included in release tarballs
+tests*	export-ignore

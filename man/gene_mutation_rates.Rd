@@ -14,10 +14,11 @@ gene_mutation_rates(
 \arguments{
 \item{cesa}{CESAnalysis object}
 
-\item{covariates}{Name of gene mutation rate covariates to use (run
-list_ces_covariates() to see choices). For hg19 data only, you can also use "default"
-for dNdScv's non-tissue-specific covariates. If no covariates are available, set NULL
-to run without.}
+\item{covariates}{Name of tissue-specific covariates to use (run list_ces_covariates()
+to see choices). For hg19 data only, you can also use "default" for dNdScv's
+non-tissue-specific covariates. If no appropriate covariates data are available, set
+NULL to run without. Finally, you can also supply custom covariates data in the form
+of a prcomp object (see documentation for details).}
 
 \item{sample_group}{Which sample groups to include in the gene rate calculation;
 defaults to all groups. (To calculate different rates for different groups, you'll 

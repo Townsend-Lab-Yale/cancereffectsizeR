@@ -1,0 +1,188 @@
+---
+title: "Generate tissue covariates data"
+---
+
+# Introduction
+Covariates data specific to a tissue, cancer, or cell type improves the mutation rate estimates produced by `gene_mutation_rates()`. This guide shows how to generate covariates from experimental data by walking through the creation of the lung tissue covariates offered in version 1.0 of the cancereffectsizeR data package [ces.refset.hg19](https://github.com/Townsend-Lab-Yale/ces.refset.hg19). The source data includes RNA-Seq, histone mark, and replication timing data. The data files are large and can be downloaded from their respective project websites. Note that new versions of some of these data files are available and will possibly be used in future updates to ces.refset.hg19.
+
+Presumably, if you are going to the trouble of generating your own covariates data, your data sources, tissue type, genome build, or even species varies from this example. If you read through the code line by line, it will hopefully be apparent what changes need to be made for compatibility with your data. Please don't hesitate to contact us with questions.
+
+The key task is to associate the genes defined in your refset (whether ces.refset.hg19, or some custom refset) with the information in your data sources. Usually, this means either matching up gene identifiers or lining up genes with their genomic positions. In the latter case, be sure the genome build of the experimental data matches that used in the refset. (If it doesn't, you may be able to convert it using a tool such as liftOver.)
+
+Note that if you run through this code exactly with all the same source data, the output covariates data will still differ slightly from the ces.refset.hg19 lung data because of improvements to the workflow.
+
+# Example: Lung tissue covariates for ces.refset.hg19
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = F)
+```
+
+Start by loading required packages. If you are using a custom refset, be sure to load the compatible BSgenome package.
+```{r}
+  library(cancereffectsizeR)
+  library(data.table)
+  library(rtracklayer)
+  library(GenomicRanges)
+
+  # ces.refset.hg19 uses the hg19 assembly
+  library(BSgenome.Hsapiens.UCSC.hg19) 
+```
+
+Get gene information used by the refset of interest. Currently, the simplest method is to pull it from a CESAnalysis object:
+
+```{r}
+tmp = CESAnalysis(refset = "ces.refset.hg19")
+
+# Get gene namds and gene IDs; remove version number suffixes for short IDs
+refset_genes = rbindlist(lapply(tmp$reference_data$RefCDS, '[', c("gene_id", "gene_name")))
+refset_genes[, short_gene_id := gsub('\\..*', '', gene_id)]
+setkey(refset_genes, "short_gene_id")
+
+# Get genomic intervals for each gene
+gene_gr = tmp$reference_data$gene_ranges
+```
+
+Next, we'll load and process the experimental data. Since some processing steps can be time-consuming, you may wish to use `saveRDS` to save processed data as you go, in case you need to repeat the workflow.
+
+## Process gene-based experimental data
+First, we'll load lung tissue RNA-Seq gene-level read counts from GTEx (Genotype-Tissue expression project).
+The data file is large because it contains many tissue types. We'll use the sample attributes file to subset to lung samples.
+```{r}
+gtex = fread("GTEx_Analysis_2016-01-15_v7_RNASeQCv1.1.8_gene_tpm.gct.gz")
+gtex_key = fread("GTEx_v7_Annotations_SampleAttributesDS.txt")
+
+# Subset to lung samples
+gtex_lung_samples = gtex_key[SMTSD == "Lung", SAMPID]
+gtex_lung_samples = intersect(gtex_lung_samples, colnames(gtex))
+gtex = gtex[, .SD, .SDcols = c("Name", gtex_lung_samples)]
+
+# The GTEx Ensembl gene IDs (in "Name") include version suffixes; strip these for short IDs
+gtex[, short_gene_id := gsub('\\..*', '', Name)]
+gtex[, Name := NULL]
+
+# Consider saving work in progress with saveRDS(gtex, "my_gtex.rds")
+```
+
+We repeat this process with cancer cell line RNA-Seq data from DepMap's CCLE (Cancer Cell Line Encyclopedia). Again,
+the data file contains many tissue types, and we subset to lung samples.
+
+```{r}
+ccle = fread("CCLE_DepMap_18Q1_RNAseq_RPKM_20180214.gct")
+ccle_lung_samples = colnames(ccle)[grepl(colnames(ccle), pattern = "lung", ignore.case = T)]
+ccle = ccle[, .SD, .SDcols = c("Name", ccle_lung_samples)]
+
+# The CCLE Ensembl gene IDs (in "Name") include version suffixes; strip these for short IDs
+ccle[, short_gene_id := gsub('\\..*', '', Name)]
+ccle[, Name := NULL]
+```
+
+## Process position-based experimental data
+We will use histone mark data from Roadmap Epigenomics.
+
+First, the data should be converted from Wig to BigWig format. It's possible to do this outside of R with other utilities, but we'll show how to do it in R. This will result in the creation of new data files with the ".bw" extension. They will be significantly larger than the .wig.gz files, so you may want to delete them after completing the workflow.
+```{r}
+marks = c("GSM1013123_UCSD.Lung.H3K27ac.STL001.wig.gz",
+          "GSM1059437_UCSD.Lung.H3K36me3.STL001.wig.gz",
+          "GSM1059443_UCSD.Lung.H3K4me1.STL001.wig.gz",
+          "GSM1120355_UCSD.Lung.H3K9me3.STL001.wig.gz",
+          "GSM906395_UCSD.Lung.H3K27ac.STL002.wig.gz",
+          "GSM906411_UCSD.Lung.H3K9me3.STL002.wig.gz",
+          "GSM910572_UCSD.Lung.H3K4me1.STL002.wig.gz",
+          "GSM915336_UCSD.Lung.H3K4me3.STL002.wig.gz",
+          "GSM956014_UCSD.Lung.H3K36me3.STL002.wig.gz")
+hg19_seqinfo = seqinfo(BSgenome.Hsapiens.UCSC.hg19)
+
+for(i in 1:length(marks)) {
+  bw = wigToBigWig(marks[i], seqinfo = hg19_seqinfo)
+  message("Finished ", marks[i], ".")
+}
+
+# BigWig-formatted files have names based on originals
+bw = gsub('.wig.gz', '.bw', marks)
+```
+
+Now, we can load each converted data file as a GRanges object, with a score annotation that indicates the level of enrichment of the given histone mark in each equally-sized genomic interval. We will assign scores to each gene based on the average score across all overlapping genomic intervals.
+```{r}
+marks_by_gene = data.table(gene_name = refset_genes$gene_name)
+for (i in 1:length(bw)) {
+  mark_gr = import.bw(bw[i])
+  seqlevelsStyle(mark_gr) = "NCBI" # to match ces.refset.hg19's gene_gr
+  overlaps = findOverlaps(query = mark_gr, subject = gene_gr)
+  overlaps_dt = data.table(chromatin_hits = queryHits(overlaps),gene_hits = subjectHits(overlaps))
+  overlaps_dt[, gene_name := gene_gr$names[gene_hits]]
+  overlaps_dt[, score := mark_gr$score[chromatin_hits]]
+  score_by_gene = overlaps_dt[, .(mean_score = mean(score)), by = "gene_name"]
+  current_mark = gsub('.bw', '', bw[i])
+  marks_by_gene[score_by_gene, (current_mark) := mean_score, on = "gene_name"]
+  message("Finished ", bw[i], ".")
+}
+
+# Fill entries with no data (i.e., no chromatin marks) with zeroes
+marks_by_gene[is.na(marks_by_gene)] = 0
+
+# Considering saving: saveRDS(marks_by_gene, "marks_by_gene.rds")
+```
+
+
+Finally, we will use replication timing data from ReplicationDomain, processed nearly identically:
+```{r}
+rep_timing = c("RT_IMR90_Lung Fibroblast_Int49605910_hg19.bedgraph",
+               "RT_IMR90_Lung Fibroblast_Int78679848_hg19.bedgraph")
+
+rt_by_gene = data.table(gene_name = refset_genes$gene_name)
+for (i in 1:length(rep_timing)) {
+  rt_gr = import.bedGraph(rep_timing[i])
+  seqlevelsStyle(rt_gr) = "NCBI" # to match ces.refset.hg19's gene_gr
+  overlaps = findOverlaps(query = rt_gr, subject = gene_gr)
+  overlaps_dt = data.table(rt_hits = queryHits(overlaps),gene_hits = subjectHits(overlaps))
+  overlaps_dt[, gene_name := gene_gr$names[gene_hits]]
+  overlaps_dt[, score := rt_gr$score[rt_hits]]
+  score_by_gene = overlaps_dt[, .(mean_score = mean(score)), by = "gene_name"]
+  current_rt = gsub('_hg19.bedgraph', '', rep_timing[i])
+  rt_by_gene[score_by_gene, (current_rt) := mean_score, on = "gene_name"]
+  message("Finished ", rep_timing[i], ".")
+}
+
+# Fill in zeroes for genes with no RT data
+rt_by_gene[is.na(rt_by_gene)] = 0
+```
+
+
+## Combine processed data and run _prcomp_
+
+We combine information across all refset genes that were present in all gene-based data sources. (Position-based data, such as the chromatin and replication timing data, are presumed to cover all genes.)
+
+[Aside: Refset genes that are not present in all gene-based data sources will not have any covariates data generated, and cancereffectsizeR's `gene_mutation_rates()` will instead use covariates of the nearest available gene. In this example, over 95% of refset.ces.hg19 genes are covered in both CCLE and GTEx data. If you want to use a gene-based data source that leaves out many genes, you may want to adopt another strategy, such as manually inserting a neutral value for missing genes, or using the values of nearby genes.]
+
+```{r}
+final_gene_ids = Reduce(intersect, list(refset_short_gene_ids, ccle$short_gene_id, gtex$short_gene_id))
+covariates_input = refset_genes[final_gene_ids, .(short_gene_id, gene_name), on = "short_gene_id"]
+
+# Merge all data for the chosen gene IDs
+covariates_input = merge.data.table(covariates_input, gtex, all.x = T, all.y = F, by = "short_gene_id")
+covariates_input = merge.data.table(covariates_input, ccle, all.x = T, all.y = F, by = "short_gene_id")
+covariates_input = merge.data.table(covariates_input, marks_by_gene, all.x = T, all.y = F, by = "gene_name")
+covariates_input = merge.data.table(covariates_input, rt_by_gene, all.x = T, all.y = F, by = "gene_name")
+
+# drop any data columns with no variance (none, if using the example data)
+has_variance = sapply(covariates_input, function(x) uniqueN(x) > 1)
+columns_with_variance = names(has_variance)[has_variance]
+covariates_input = covariates_input[, ..columns_with_variance]
+```
+
+
+We finish by running the PCA function _prcomp_ to generate a prcomp-class object, which contains the covariates information used by cancereffectsizeR, and saving the object.
+```{r}
+# To format for prcomp, convert to a data-only matrix and transpose
+final_gene_names = covariates_input$gene_name
+covariates_input = t(as.matrix(covariates_input[, -c("gene_name", "short_gene_id")]))
+colnames(covariates_input) = final_gene_names
+
+# Run prcomp (with specification of 20 principal components and data scaling)
+covariates_output = prcomp(covariates_input, rank. = 20, scale. = T)
+
+# Save it!
+saveRDS(covariates_output, "lung.rds")
+```
+
+The resulting covariates RDS file can be placed in a [custom refset directory](custom_refset_instructions.html), or it can be loaded into an R session with `readRDS` and passed directly to `gene_mutation_rates()`.

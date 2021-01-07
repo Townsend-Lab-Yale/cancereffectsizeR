@@ -5,10 +5,11 @@
 #' as described in \href{https://doi.org/10.1016/j.cell.2017.09.042}{Martincorena et al.}
 #'
 #' @param cesa CESAnalysis object
-#' @param covariates Name of gene mutation rate covariates to use (run
-#'   list_ces_covariates() to see choices). For hg19 data only, you can also use "default"
-#'   for dNdScv's non-tissue-specific covariates. If no covariates are available, set NULL
-#'   to run without.
+#' @param covariates Name of tissue-specific covariates to use (run list_ces_covariates()
+#'   to see choices). For hg19 data only, you can also use "default" for dNdScv's
+#'   non-tissue-specific covariates. If no appropriate covariates data are available, set
+#'   NULL to run without. Finally, you can also supply custom covariates data in the form
+#'   of a prcomp object (see documentation for details).
 #' @param sample_group Which sample groups to include in the gene rate calculation;
 #'   defaults to all groups. (To calculate different rates for different groups, you'll 
 #'   run this function multiple times, changing this argument each time.)
@@ -81,6 +82,10 @@ gene_mutation_rates <- function(cesa, covariates = NULL, sample_group = NULL, sa
       stop("There is no default covariates data for this genome build, so you'll need to supply your own\n",
            "or run without by setting covariates = NULL.", call. = F)
     }
+  } else if (is(covariates, "prcomp")) {
+      # To-do: validate custom covariates
+      cv = covariates$rotation
+      genes_in_pca = rownames(cv)
   } else if (! is(covariates, "character") || length(covariates) != 1) {
     stop("covariates expected to be 1-length character. Check available covariates with list_ces_covariates()")
   } else {
