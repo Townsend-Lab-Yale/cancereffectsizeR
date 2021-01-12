@@ -17,29 +17,27 @@ Note that if you run through this code exactly with all the same source data, th
 knitr::opts_chunk$set(echo = TRUE, eval = F)
 ```
 
-Start by loading required packages. If you are using a custom refset, be sure to load the compatible BSgenome package.
+Start by loading required packages:
 ```{r}
-  library(cancereffectsizeR)
   library(data.table)
   library(rtracklayer)
   library(GenomicRanges)
 
-  # ces.refset.hg19 uses the hg19 assembly
-  library(BSgenome.Hsapiens.UCSC.hg19) 
+  # Load refset data package, if not using a custom refset directory
+  library(ces.refset.hg19)
+
 ```
 
-Get gene information used by the refset of interest. Currently, the simplest method is to pull it from a CESAnalysis object:
-
+Get gene information used by the refset of interest. If using a custom refset directory, use `readRDS` to load the required RefCDS and gr_genes data.
 ```{r}
-tmp = CESAnalysis(refset = "ces.refset.hg19")
 
 # Get gene namds and gene IDs; remove version number suffixes for short IDs
-refset_genes = rbindlist(lapply(tmp$reference_data$RefCDS, '[', c("gene_id", "gene_name")))
+refset_genes = rbindlist(lapply(ces.refset.hg19$RefCDS, '[', c("gene_id", "gene_name")))
 refset_genes[, short_gene_id := gsub('\\..*', '', gene_id)]
 setkey(refset_genes, "short_gene_id")
 
 # Get genomic intervals for each gene
-gene_gr = tmp$reference_data$gene_ranges
+gene_gr = ces.refset.hg19$gr_genes
 ```
 
 Next, we'll load and process the experimental data. Since some processing steps can be time-consuming, you may wish to use `saveRDS` to save processed data as you go, in case you need to repeat the workflow.
@@ -90,7 +88,7 @@ marks = c("GSM1013123_UCSD.Lung.H3K27ac.STL001.wig.gz",
           "GSM910572_UCSD.Lung.H3K4me1.STL002.wig.gz",
           "GSM915336_UCSD.Lung.H3K4me3.STL002.wig.gz",
           "GSM956014_UCSD.Lung.H3K36me3.STL002.wig.gz")
-hg19_seqinfo = seqinfo(BSgenome.Hsapiens.UCSC.hg19)
+hg19_seqinfo = seqinfo(BSgenome.Hsapiens.UCSC.hg19) # or, whatever genome you're using
 
 for(i in 1:length(marks)) {
   bw = wigToBigWig(marks[i], seqinfo = hg19_seqinfo)

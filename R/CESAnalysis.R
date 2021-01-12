@@ -11,18 +11,22 @@
 #' @return CESAnalysis object
 #' @export
 CESAnalysis = function(refset = "ces.refset.hg19", sample_groups = NULL) {
-  refset_name = refset
-  if (! is(refset_name, "character")) {
-    stop("refset should be type character (either the name of a supported reference data set package or a path to a custom reference data directory.")
+  if (is(refset, "environment")) {
+    refset_name = as.character(substitute(refset))
+  } else {
+    refset_name = refset
   }
-  
   # Check for and load reference data for the chosen genome/transcriptome data
-  refset_name = refset
+  if (! is(refset_name, "character")) {
+    stop("refset should be a refset object, the name of an installed refset package, or a path to custom refset directory.")
+  }
+  using_custom_refset = TRUE
   if (refset_name %in% names(.official_refsets)) {
+    using_custom_refset = FALSE
     if(file.exists(refset_name)) {
       stop("You've given the name of a CES reference data set package, but a file/folder with the same name is in your working directory. Stopping to avoid confusion.")
     }
-    if(! require(refset_name, character.only = T, quietly = T)) {
+    if(! require(refset_name, character.only = T)) {
       if(refset_name == "ces.refset.hg19") {
         message("Install ces.refset.hg19 like this:\n",
                 "remotes::install_github(\"Townsend-Lab-Yale/ces.refset.hg19@*release\")")
@@ -57,7 +61,11 @@ CESAnalysis = function(refset = "ces.refset.hg19", sample_groups = NULL) {
   # load reference data
   if (! refset_name %in% ls(.ces_ref_data)) {
     message("Loading reference data set ", refset_name, "...")
-    .ces_ref_data[[refset_name]] = preload_ref_data(data_dir)
+    if (using_custom_refset) {
+      .ces_ref_data[[refset_name]] = preload_ref_data(data_dir)
+    } else {
+      .ces_ref_data[[refset_name]] = get(refset_name, envir = as.environment(paste0('package:', refset_name)))
+    }
     .ces_ref_data[[refset_name]][["data_dir"]] = data_dir
   }
   

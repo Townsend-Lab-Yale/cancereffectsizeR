@@ -70,6 +70,7 @@ preload_ref_data = function(data_dir) {
   bsg = BSgenome::getBSgenome(genome_info$BSgenome)
   GenomeInfoDb::seqlevelsStyle(bsg) = "NCBI"
   ref[["genome"]] = bsg
+  ref[["supported_chr"]] = genome_info$supported_chr
 
   if(check_for_ref_data(data_dir, "generic_exome_gr")) {
     ref[["default_exome"]] = get_ref_data(data_dir, "generic_exome_gr")
@@ -77,6 +78,26 @@ preload_ref_data = function(data_dir) {
   
   # Load trinuc composition of each gene (composition is a 96-length numeric, deconstructSigs order)
   ref[["gene_trinuc_comp"]] = get_ref_data(data_dir, "gene_trinuc_comp")
+  
+  cov_files = list.files(paste0(data_dir, "/covariates"), full.names = T)
+  if (length(cov_files) > 0) {
+    cov_list = list()
+    for (cov_file in cov_files) {
+      cov_name = gsub('.rds$', '', base::basename(cov_file))
+      cov_list[[cov_name]] = readRDS(cov_file)
+    }
+    ref[["covariates"]] = cov_list
+  }
+  
+  signature_sets = list.files(paste0(data_dir, "/signatures/"), pattern =  "_signatures.rds$", full.names = T)
+  if (length(signature_sets) > 0) {
+    sig_set_list = list()
+    for (sig_file in signature_sets) {
+      sig_set_name = gsub('_signatures.rds$', '', base::basename(sig_file))
+      sig_set_list[[sig_set_name]] = readRDS(sig_file)
+    }
+    ref[["signatures"]] = sig_set_list
+  }
   return(ref)
 }
 
@@ -88,7 +109,7 @@ preload_ref_data = function(data_dir) {
 list_ces_refsets = function() {
   genome_names = names(get_refset_dirs())
   if(length(genome_names) == 0) {
-    cat("No reference data found. See documentation for how to get re data before running cancereffectsizeR.\n")
+    cat("No reference data found. See documentation for how to get reference data before running cancereffectsizeR.\n")
   } else {
     cat(paste0("Available reference data sets: ", paste(genome_names, collapse = ", "), ".\n"))
   }

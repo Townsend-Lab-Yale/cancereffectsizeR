@@ -1,7 +1,7 @@
 Package: cancereffectsizeR
 Type: Package
 Title: Calculate Cancer Effect Size
-Version: 2.0.0
+Version: 2.1.0
 Authors@R: c(person("Vincent L.", "Cannataro", email = "cannatarov@emmanuel.edu", role = c("aut"),
              comment = c(ORCID = "0000-0002-6364-7747")),
              person("Jeff", "Mandell", email = "jeff.mandell@yale.edu", role = c("aut", "cre"),

@@ -191,144 +191,46 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
                                coverage_type = coverage, covered_regions_name = covered_regions_name, update_anno = FALSE)
   }
   
+  refset_env = .ces_ref_data[[cesa@ref_key]]
+  read_args = list(maf = maf, refset_env = refset_env,
+                   sample_col = sample_col, chr_col = chr_col, start_col = start_col,
+                   ref_col = ref_col, tumor_allele_col = tumor_allele_col,
+                   chain_file = chain_file)
+  if (! is.null(group_col)) {
+    read_args = c(read_args, list(more_cols = group_col))
+  }
+  maf = do.call(read_in_maf, args = read_args)
   
-  select_cols = c(sample_col, chr_col, start_col, ref_col, group_col)
-  if (tumor_allele_col == "guess") {
-    select_cols = c(select_cols, "Tumor_Seq_Allele1", "Tumor_Seq_Allele2", "Tumor_Allele")
-  } else {
-    select_cols = c(select_cols, tumor_allele_col)
-  }
-  # when sample_col has default value, will also check for Unique_Patient_Identifier if the default isn't found (since CESAnalysis creates this column)
-  if (sample_col == "Tumor_Sample_Barcode") {
-    select_cols = c(select_cols, "Unique_Patient_Identifier")
-  }
-  
-  bad_maf_msg = "Input MAF is expected to be a data frame or the filename of an MAF-formatted tab-delimited text file."
-  if ("character" %in% class(maf)) {
-    if(length(maf) > 1) {
-      stop(bad_maf_msg)
-    }
-    if(file.exists(maf)) {
-      # read in file and suppress warnings about missing columns since this function handles the validation
-      withCallingHandlers(
-      {
-        
-        maf = fread(maf, sep = "\t", quote ="", blank.lines.skip = T, select = select_cols)
-      },
-      error = function(e) {
-        message("Unable to read specified MAF file:")
-      },
-      warning = function(w) {
-          if (grepl("not found in column name header", conditionMessage(w))) {
-            invokeRestart("muffleWarning")
-          }
-      })
-    } else {
-      stop("Specified MAF not found.")
-    }
-  }
-  if(! "data.frame" %in% class(maf)) {
-    stop(bad_maf_msg)
-  } else if(nrow(maf) == 0) {
-    stop("Input MAF data set is empty.")
-  } else {
-    # user supplied pre-loaded data.frame or data.table
-    # take just necessary columns and convert to data.table if necessary
-    cols_to_keep = names(maf)[which(names(maf) %in% select_cols)]
-    if ("data.table" %in% class(maf)) {
-      maf = maf[, ..cols_to_keep]
-    } else {
-      maf = maf[, cols_to_keep]
-      maf = data.table(maf)
-    }
-  }
-  missing_cols = character()
-  input_maf_cols = colnames(maf)
-  
-  if (sample_col == "Tumor_Sample_Barcode" & ! sample_col %in% input_maf_cols & "Unique_Patient_Identifier" %in% input_maf_cols) {
-    sample_col = "Unique_Patient_Identifier"
-    pretty_message("Found column Unique_Patient_Identifier; we'll assume this is the correct sample ID column.")
-  }
-  cols_to_check = c(sample_col, ref_col, chr_col, start_col, group_col)
-  if (tumor_allele_col != "guess") {
-    cols_to_check = c(cols_to_check, tumor_allele_col)
-  }
-  missing_cols = setdiff(cols_to_check, input_maf_cols)
 
-  if (length(missing_cols) > 0) {
-    missing_cols = paste(missing_cols, collapse = ", " )
-    msg = "The following MAF columns couldn't be found:"
-    msg = paste(msg, missing_cols, sep = "\n\t")
-    stop(msg)
-  }
+  # Set aside records with problems and notify user
+  initial_num_records = maf[, .N]
+  excluded = maf[! is.na(problem), .(Unique_Patient_Identifier, Chromosome, Start_Position, 
+                                     Reference_Allele, Tumor_Allele, problem)]
+  maf = maf[is.na(problem), -"problem"]
   
-  # convert all columns to character, then convert Start_Position to numeric
-  maf = maf[, names(maf) := lapply(.SD, as.character)]
-  maf[[start_col]] = as.numeric(maf[[start_col]])
-  
-  # drop columns with NAs or empty-ish strings
-  nrow_orig = nrow(maf)
-  maf = na.omit(maf)
-  nrow_curr = nrow(maf)
-  if(nrow_curr != nrow_orig) {
-    diff = nrow_orig - nrow_curr
-    warning(paste0(diff, " rows in the input MAF had NA values in required columns, so they were dropped."))
-  }
-  looks_empty = apply(maf, 1, function(x) any(grepl("^[.\"\' ]*$", x)))
-  num_empty = sum(looks_empty)
-  if(num_empty > 0) {
-    maf = maf[! looks_empty,]
-    warning(paste0(num_empty, " MAF records had fields that looked empty (just whitespace, quotation marks or periods).\n",
-                   "These records have been removed from analysis. (One possible cause is indels not being in proper MAF format.)"))
-  }
-  
-  # uppercase bases only
-  maf[[ref_col]] = toupper(maf[[ref_col]])
-  
-  # figure out which column has correct tumor allele data
-  if(tumor_allele_col == "guess") {
-    tumor_allele_col = "Tumor_Allele"
-    if (tumor_allele_col %in% colnames(maf)) {
-      pretty_message("Found column Tumor_Allele; we'll assume this is the correct tumor allele column.")
-    } else {
-      # automated tumor allele determination requires Tumor_Seq_Allele1/Tumor_Seq_Allele2 columns
-      allele1_col = "Tumor_Seq_Allele1"
-      allele2_col = "Tumor_Seq_Allele2"
-      
-      if (allele1_col %in% colnames(maf) && ! allele2_col %in% colnames(maf)) {
-        pretty_message("Found column Tumor_Seq_Allele1 but not Tumor_Seq_Allele2; we'll assume Tumor_Seq_Allele1 is the correct tumor allele column.")
-        maf[[tumor_allele_col]] = toupper(maf[[allele1_col]])
-      } else if (allele2_col %in% colnames(maf) && ! allele1_col %in% colnames(maf)) {
-        pretty_message("Found column Tumor_Seq_Allele2 but not Tumor_Seq_Allele1;\nwe'll assume Tumor_Seq_Allele2 is the correct tumor allele column.")
-        maf[[tumor_allele_col]] = toupper(maf[[allele2_col]])
-      } else if (! allele1_col %in% colnames(maf) | ! allele2_col %in% colnames(maf)) {
-        stop(paste0("Tumor alleles can't be determined automatically deduced without Tumor_Seq_Allele1 ",
-                    "and/or Tumor_Seq_Allele2 columns. Please manually specify with \"tumor_allele_col=...\""))
-      } else {
-        maf$Tumor_Seq_Allele1 = toupper(maf$Tumor_Seq_Allele1)
-        maf$Tumor_Seq_Allele2 = toupper(maf$Tumor_Seq_Allele2)
-        
-        # take allele 2 as the tumor allele, but when it matches ref, replace with allele 1
-        # if that is still equal to ref, record will later be discarded
-        tumor_alleles = maf$Tumor_Seq_Allele2
-        allele_2_matches_ref = maf$Tumor_Seq_Allele2 == maf[[ref_col]]
-        tumor_alleles[allele_2_matches_ref] = maf$Tumor_Seq_Allele1[allele_2_matches_ref]
-        maf[[tumor_allele_col]] <- tumor_alleles
-      }
+  nt = c("A", "T", "C", "G")
+  maf[Reference_Allele %in% nt & Tumor_Allele %in% nt, variant_type := "snv"]
+  maf[is.na(variant_type), variant_type := "indel"]
+
+  num_excluded = excluded[, .N]
+  if(num_excluded > 0) {
+    msg = paste0(num_excluded, " of ", initial_num_records, " MAF records (", 
+                 sprintf("%.1f", 100 * num_excluded / initial_num_records), '%) ',
+                 "had problems and were excluded: ")
+    print(excluded[, .(num_records = .N), by = "problem"])
+    
+    if(num_excluded / initial_num_records > .05) {
+      warning("More than 5% of input records had problems.")
+    }
+    
+    snv_mismatch = excluded[problem == "reference_mismatch" & Reference_Allele %in% nt & Tumor_Allele %in% nt, .N]
+    if(snv_mismatch > 0) {
+      msg = paste0(snv_mismatch, " SNV variants were excluded for having reference alleles that do not match the reference genome. You should probably figure out why",
+                          " and make sure that the rest of your data set is okay to use before continuing.")
+      warning(pretty_message(msg, emit = F))
     }
   }
-  
-  # uppercase bases only
-  maf[[tumor_allele_col]] = toupper(maf[[tumor_allele_col]])
-  
-  # drop records where tumor allele is equal to reference allele
-  no_variant = maf[[ref_col]] == maf[[tumor_allele_col]]
-  num_unvaried = sum(no_variant)
-  if(num_unvaried > 0) {
-    maf = maf[!no_variant]
-    warning(paste0(num_unvaried, " MAF records had tumor alleles identical to reference alleles; these were removed from analysis.\n"))
-    # To-do: put BSgenome reference check before this check, and then put failing records from this check into the excluded table
-  }
+  setnames(excluded, "problem", "Exclusion_Reason")
   
   # collect sample group information
   if (! is.null(group_col)) {
@@ -339,13 +241,10 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     if(any(is.na(sample_groups))) {
       stop("Error: There are NA values in your sample groups column.")
     }
+    maf[, (group_col) := NULL]
   } else {
     sample_groups = cesa@groups[1] # indicates a stageless analysis
   }
-  
-  # select only the necessary columns and give column names that will stay consistent
-  maf = maf[,c(..sample_col, ..chr_col, ..start_col, ..ref_col, ..tumor_allele_col)]
-  colnames(maf) = c("Unique_Patient_Identifier", "Chromosome", "Start_Position", "Reference_Allele", "Tumor_Allele")
   
   new_samples = data.table(Unique_Patient_Identifier = maf$Unique_Patient_Identifier, group = sample_groups)
   new_samples = new_samples[, .(group = unique(group)), by = "Unique_Patient_Identifier"]
@@ -375,72 +274,16 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     }
   }
   
-  # warn the user if some of the declared groups don't appear in the data at all
+  # notify the user if some of the declared groups don't appear in the data at all
   if(length(cesa@groups) > 1) {
     missing_groups = cesa@groups[! cesa@groups %in% new_samples[,unique(group)]]
     if (length(missing_groups) > 0) {
-      warning(paste0("The following groups were declared in your CESAnalysis, but they weren't present in the MAF data:\n",
-                     paste(missing_groups, collapse = ", ")), call. = F)
+      msg = paste0("The following groups were declared in your CESAnalysis, but they weren't present in the MAF data: \n",
+                     paste(missing_groups, collapse = ", "))
+      pretty_message(msg)
     }    
   }
-  
-  # create separate table for excluded records
-  excluded = data.table()
-  
-  # strip chr prefixes from chr column, if present ("NCBI-style")
-  supported_chr = cesa@advanced$genome_info$supported_chr
-  maf[, supported := FALSE][Chromosome %in% supported_chr, supported := T]
-  maf[supported == FALSE, stripped_chr := sub('^chr', '', Chromosome) ]
-  maf[supported == FALSE & stripped_chr %in% supported_chr, c("Chromosome", "supported") := list(stripped_chr, TRUE)]
-  
-  bad_chr = maf[supported == FALSE, unique(Chromosome)]
-  if(length(bad_chr) > 0) {
-    num_bad = maf[supported == FALSE, .N]
-    pretty_message(paste0(num_bad, " MAF records excluded for being on illegal or unsupported (e.g., mitochondrial) chromosomes:\n",
-            paste0(bad_chr, collapse = ", "), '.'))
-    if (num_bad / maf[, .N] > .05) {
-      warning("More than 5% of MAF records are on illegal or unsupported chromosomes.")
-    }
-    bad_chr_maf = maf[supported == F, -c("supported", "stripped_chr")]
-    excluded = bad_chr_maf
-    excluded$Exclusion_Reason = "unsupported_chr"
-    maf = maf[supported == T]
-  }
-  maf[, c("stripped_chr", "supported") := NULL]
-  
-  # handle liftOver to the assembly of the CESAnalysis
-  if(need_to_liftOver) {
-    chain = rtracklayer::import.chain(chain_file)
-    names(chain) = sub("^chr", "", names(chain))
-    maf[, rn := 1:.N] # using row number as an identifier to know which intervals fail liftover
-    for_liftover = maf[,.(Chromosome, Start_Position, rn)] 
-    gr = GenomicRanges::makeGRangesFromDataFrame(df = for_liftover, seqnames.field = "Chromosome", 
-                                                 start.field = "Start_Position", end.field = "Start_Position",
-                                                  keep.extra.columns = T)
-    lifted_over = unlist(rtracklayer::liftOver(gr, chain))
-    GenomeInfoDb::seqlevelsStyle(lifted_over) = "NCBI"
-    lifted_over = as.data.table(lifted_over)
-    
-    merged_maf = data.table::merge.data.table(maf, lifted_over, by = "rn")
-    merged_maf[, Chromosome := as.character(seqnames)] # seqnames comes back as factor!
-    merged_maf[, Start_Position := start]
 
-    failed_liftover = maf[! rn %in% merged_maf$rn,]
-    num_failing = nrow(failed_liftover)
-    if (num_failing > 0) {
-      failed_liftover$Exclusion_Reason = "failed liftOver"
-      excluded = rbind(excluded, failed_liftover[, -"rn"])
-      pretty_message(paste0("Note: ", num_failing, " records failed liftOver, so they will be set aside."))
-    }
-    
-    maf = merged_maf[, .(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele, Tumor_Allele)]
-    
-    # different loci in one genome can get lifted to the same position in the next, due to fixes
-    # rarely, mutations at multiple matching sites can get called in a sample, resulting in duplicate records after liftOver
-    lifted_to_same = duplicated(maf[,.(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele)])
-    maf = maf[! lifted_to_same]
-  }
-  
   # remove any MAF records that are not in the coverage, unless default exome with enforce_default_exome_coverage = FALSE
   if (covered_regions_name == "genome") {
     num_uncovered = 0
@@ -476,8 +319,7 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
                    "%) are at loci not covered in the default exome intervals ",
                    "in this CESAnalysis's reference data. The samples in this MAF (along with along other MAFs ",
                    "loaded as default exome data), will be assumed to all share the same coverage, ",
-                   "which we'll call \"exome+\". To instead exclude uncovered records across all default WES data, ",
-                   "create a new CESAnalysis and load data with enforce_default_exome_coverage = TRUE.")
+                   "which we'll call \"exome+\".")
       pretty_message(msg)
     } else {
       uncovered.maf = maf[is_uncovered,]
@@ -489,50 +331,6 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
                      "\nThese mutations will be excluded from analysis."))
     }
   }
-  
-  # Ensure reference alleles of mutations match reference genome (Note: Insertions won't match if their reference allele is "-")
-  message("Checking that reference alleles match the reference genome...")
-  ref_allele_lengths = nchar(maf[, Reference_Allele])
-  ref_alleles_to_test = maf[, Reference_Allele]
-  end_pos = maf[, Start_Position] + ref_allele_lengths - 1 # for multi-base deletions, check that all deleted bases match reference
-  
-  reference_alleles <- as.character(BSgenome::getSeq(bsg, maf[,Chromosome],
-                                                     strand="+", start=maf[,Start_Position], end=end_pos))
-  num_prefilter = nrow(maf)
-  
-  # For insertions, can't evaluate if record matches reference since MAF reference will be just "-"
-  # Could conceivably verify that the inserted bases don't match reference....
-  ref_mismatch_records = maf[Reference_Allele != reference_alleles & Reference_Allele != '-',]
-  num_ref_mismatch = nrow(ref_mismatch_records)
-  prefilter_total_snv = maf[Reference_Allele %in% c("A", "C", "T", "G"), .N]
-  maf = maf[Reference_Allele == reference_alleles | Reference_Allele == '-',] # filter out ref mismatches
-  
-  # if significant numbers of SNVs don't match reference, don't run
-  mismatch_snv = ref_mismatch_records[Reference_Allele %in% c("A", "C", "T", "G"), .N]
-  
-  bad_snv_frac = mismatch_snv / prefilter_total_snv
-  bad_snv_percent = round(bad_snv_frac * 100, 1)
-  
-  if (num_ref_mismatch > 0) {
-    ref_mismatch_records$Exclusion_Reason = "reference_mismatch"
-    excluded = rbind(excluded, ref_mismatch_records)
-    percent = round((num_ref_mismatch / num_prefilter) * 100, 1)
-    
-    msg = paste0("Note: ", num_ref_mismatch, " MAF records out of ", num_prefilter, " (", percent, "%, including ", bad_snv_percent,
-                          "% of SNV records) are excluded for having reference alleles that do not match the reference genome.")
-    pretty_message(msg)
-    if(mismatch_snv > 0) {
-      warning(mismatch_snv, " SNV records do not match the given reference genome. You should probably figure out why",
-                     " and make sure that the rest of your data set is okay to use before continuing.")
-    }
-  }
-   else {
-    pretty_message("Reference alleles look good.")
-  }
-  
-  nt = c("A", "T", "C", "G")
-  maf[Reference_Allele %in% nt & Tumor_Allele %in% nt, variant_type := "snv"]
-  maf[is.na(variant_type), variant_type := "indel"]
   
   # drop any samples that had all mutations excluded
   new_samples = new_samples[Unique_Patient_Identifier %in% maf$Unique_Patient_Identifier]

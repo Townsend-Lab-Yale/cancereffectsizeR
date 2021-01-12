@@ -3,7 +3,7 @@ tiny_maf = get_test_file("tiny.hg19.maf.txt")
 test_that("load_maf and variant annotation", {
   tiny = expect_warning(load_maf(cesa = CESAnalysis(refset = "ces.refset.hg19"), annotate = T, maf = tiny_maf,
                                  sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2"),
-                        "SNV records do not match the given reference genome")
+                        "do not match the reference genome")
   tiny_ak = load_cesa(get_test_file("tiny_hg19_maf_loaded.rds"))
   
   expect_equal(tiny$maf[order(variant_id)], tiny_ak$maf[order(variant_id)])
@@ -81,8 +81,8 @@ test_that("load_maf edge cases", {
   expect_error(load_maf(tiny, maf = tiny_maf, annotate = F, sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2"),
                "already contains annotated variants")
   
-  # you can't reload the same MAF
-  expect_error(load_maf(tiny, maf = tiny_maf, annotate = T, sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2"),
+  # you can't reload the same MAF (suppressing reference allele mismatch warning)
+  expect_error(expect_warning(load_maf(tiny, maf = tiny_maf, annotate = T, sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2")),
                "some sample IDs already appear in previously loaded data")
   
   # try loading empty/non-existent files and data
@@ -94,10 +94,10 @@ test_that("load_maf edge cases", {
 })
 
 test_that("Sample group handling", {
-  tiny = CESAnalysis(refset = "ces.refset.hg19")
+  tiny = CESAnalysis(refset = ces.refset.hg19) # note use of ces.refset.hg19 directly (also allowed)
   tiny_maf = get_test_file("tiny.hg19.maf.txt")
   
-  # You can't supply a group_col to a CESAnalysis that is not stage-specific
+  # You can't supply a group_col to a CESAnalysis that does not have predefined sample groups
   expect_error(load_maf(cesa = CESAnalysis(refset = "ces.refset.hg19"), annotate = F, maf = tiny_maf, sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2", group_col = "nonexistent-column"),
                "This CESAnalysis does not specify sample groups")
   
@@ -113,8 +113,8 @@ test_that("Sample group handling", {
   multistage = CESAnalysis(sample_groups = 1:4, refset = "ces.refset.hg19")
   expect_error(load_maf(multistage, maf = bad_maf, group_col = "stage"), "samples are associated with multiple groups")
   
-  # Absence of a declared progression state in the data triggers a warning
-  multistage = expect_warning(load_maf(multistage, annotate = F, maf = fread(bad_maf)[2:4], group_col = "stage"), "they weren't present in the MAF data")
+  # Absence of a declared progression state in the data triggers a notification
+  multistage = expect_message(suppressWarnings(load_maf(multistage, annotate = F, maf = fread(bad_maf)[2:4], group_col = "stage")), "they weren't present in the MAF data")
   
   
   # Can't load with annotate = T if data has previously been loaded without annotating

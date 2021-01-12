@@ -30,12 +30,7 @@ setMethod("$", "CESAnalysis",
     } else if (name == "epistasis") {
       return(epistasis_results(x))
     } else if (name == "reference_data") {
-      # this shouldn't be possible, actually
-      if (! x@ref_key %in% ls(.ces_ref_data)) {
-        .ces_ref_data[[x@ref_key]] = preload_ref_data(x@ref_data_dir)
-      }
-      ref_data = list(RefCDS = .ces_ref_data[[x@ref_key]]$RefCDS, gene_ranges = .ces_ref_data[[x@ref_key]]$gr_genes,
-                      genome = .ces_ref_data[[x@ref_key]]$genome)
+      ref_data = list(genome = .ces_ref_data[[x@ref_key]]$genome)
       snv_signatures = x@advanced$snv_signatures
       if (! is.null(snv_signatures)) {
         ref_data = c(ref_data, list(snv_signatures = snv_signatures))
@@ -45,9 +40,6 @@ setMethod("$", "CESAnalysis",
         return(x@coverage)
     } else if (name == "run_history") {
       CES_Run_History(x@run_history)
-      # ces_version = paste0("[Version: cancereffectsizeR ", as.character(x@advanced$version), ']')
-      # run_history = c(x@run_history, "", ces_version)
-      # CES_Run_History(run_history)
     }
   }
 )

@@ -227,9 +227,15 @@ update_covered_in = function(cesa) {
     all_names = names(is_covered)
     covered_in = apply(is_covered, 1, function(x) all_names[x])
     
+    # edge case
+    if(snv_table[, .N] == 1) {
+      snv_table[, covered_in := list(covered_in)]
+    } else {
+      snv_table[, covered_in := covered_in]
+    }
     # Note that when exome+ coverage (see load_maf) is used, samples can have both "exome" and "exome+" associated with their mutations,
     # but the samples themselves are considered "exome+" (be careful not to double-count these)
-    snv_table[, covered_in := covered_in]
+    
   }
   cesa@mutations$snv = snv_table
   setkey(cesa@mutations$snv, 'snv_id')
