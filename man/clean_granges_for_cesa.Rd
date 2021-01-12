@@ -4,7 +4,7 @@
 \alias{clean_granges_for_cesa}
 \title{clean_granges_for_cesa}
 \usage{
-clean_granges_for_cesa(cesa = NULL, gr = NULL, padding = 0)
+clean_granges_for_cesa(cesa = NULL, gr = NULL, padding = 0, refset_env = NULL)
 }
 \arguments{
 \item{cesa}{CESAnalysis}

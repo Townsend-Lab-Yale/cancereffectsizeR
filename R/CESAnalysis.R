@@ -414,8 +414,14 @@ epistasis_results = function(cesa = NULL) {
 #' @param gr GRanges object
 #' @param padding How many bases to expand start and end of each position
 #' @keywords internal
-clean_granges_for_cesa = function(cesa = NULL, gr = NULL, padding = 0) {
-  bsg = get_cesa_bsg(cesa)
+clean_granges_for_cesa = function(cesa = NULL, gr = NULL, padding = 0, refset_env = NULL) {
+  if(is.null(cesa)) {
+    bsg = refset_env$genome
+    supported_chr = refset_env$supported_chr
+  } else {
+    bsg = get_cesa_bsg(cesa)
+    supported_chr = cesa@advanced$genome_info$supported_chr
+  }
   
   stopifnot(is(padding, "numeric"),
             length(padding) == 1,
@@ -467,7 +473,6 @@ clean_granges_for_cesa = function(cesa = NULL, gr = NULL, padding = 0) {
   }
   
   # subset to just supported contigs
-  supported_chr = cesa@advanced$genome_info$supported_chr
   gr = gr[as.character(GenomeInfoDb::seqnames(gr)) %in% supported_chr]
   gr = GenomeInfoDb::keepSeqlevels(gr, supported_chr)
   

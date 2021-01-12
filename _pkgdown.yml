@@ -15,6 +15,7 @@ reference:
   - set_refset_dir
 - title: Load and manage variants
   contents:
+  - preload_maf
   - load_maf
   - select_variants
   - add_variants
@@ -62,7 +63,7 @@ reference:
   - list_ces_signature_sets
   - get_ces_signature_set
 - title: Create custom reference data
-  desc: More info coming soon!
+  desc: Build your own reference data set for almost any genome or tissue type
   contents:
   - create_refset
   - build_RefCDS
