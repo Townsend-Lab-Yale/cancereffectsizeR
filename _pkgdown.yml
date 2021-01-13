@@ -16,6 +16,7 @@ reference:
 - title: Load and manage variants
   contents:
   - preload_maf
+  - check_sample_overlap
   - load_maf
   - select_variants
   - add_variants
