@@ -40,7 +40,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.0.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.1.0</span>
       </span>
     </div>
 
@@ -48,7 +48,7 @@
       <ul class="nav navbar-nav">
 <li>
   <a href="../index.html">
-    <span class="fas fa fas fa-home fa-lg"></span>
+    <span class="fas fa-home fa-lg"></span>
      
   </a>
 </li>
@@ -69,6 +69,9 @@
       <a href="../articles/cosmic_cancer_type_note.html">Cancer type considerations for COSMIC signature extraction</a>
     </li>
     <li>
+      <a href="../articles/create_custom_covariates.html">Generate tissue covariates data</a>
+    </li>
+    <li>
       <a href="../articles/custom_refset_instructions.html">Running with custom reference data</a>
     </li>
   </ul>
@@ -80,7 +83,7 @@
 <ul class="nav navbar-nav navbar-right">
 <li>
   <a href="https://github.com/Townsend-Lab-Yale/cancereffectsizeR/">
-    <span class="fab fa fab fa-github fa-lg"></span>
+    <span class="fab fa-github fa-lg"></span>
      
   </a>
 </li>
@@ -100,8 +103,7 @@
 
       
 
-      </header><script src="cancereffectsizeR_files/accessible-code-block-0.0.1/empty-anchor.js"></script><link href="cancereffectsizeR_files/anchor-sections-1.0/anchor-sections.css" rel="stylesheet">
-<script src="cancereffectsizeR_files/anchor-sections-1.0/anchor-sections.js"></script><div class="row">
+      </header><script src="cancereffectsizeR_files/accessible-code-block-0.0.1/empty-anchor.js"></script><div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>Getting started</h1>
@@ -114,85 +116,167 @@
 
     
     
-<p>Once you have installed cancereffectsizeR, you need a somatic mutation text file covering your samples in <a href="https://docs.gdc.cancer.gov/Data/File_Formats/MAF_Format">MAF format</a>. If you want to try out the software with publicly-available data, you can download MAFs covering collections of tumors from many cancer types from the TCGA data portal.</p>
-<div id="install-reference-data" class="section level3">
-<h3 class="hasAnchor">
-<a href="#install-reference-data" class="anchor"></a>Install reference data</h3>
-<p>Before running for the first time, you need to install a reference data set, or <em>refset</em>. Currently, a refset supporting the hg19 genome build is available as a separate data package. Install like this:</p>
-<div class="sourceCode" id="cb1"><html><body><pre class="r"><span class="kw pkg">remotes</span><span class="kw ns">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html">install_github</a></span>(<span class="st">"Townsend-Lab-Yale/ces.refset.hg19@*release"</span>)</pre></body></html></div>
-<p>Refsets for more genome builds and species may be added in the future; please let us know if you’re interested. It’s also possible to <a href="custom_refset_instructions.html">build your own custom refset</a>.</p>
+<p>cancereffectsizeR is used to analyze somatic single-nucleotide variant data in <a href="https://docs.gdc.cancer.gov/Data/File_Formats/MAF_Format">MAF format</a>. If you want to try out the software with publicly-available data, you can download MAF files covering collections of tumors from many cancer types from the TCGA data portal.</p>
+<div id="install-reference-data" class="section level2">
+<h2 class="hasAnchor">
+<a href="#install-reference-data" class="anchor"></a>Install reference data</h2>
+<p>In addition to installing cancereffectsizeR, you need to install a reference data set, or <em>refset</em>. Currently, a refset supporting the hg19 genome build is available as a separate data package. Install like this:</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html">install_github</a></span><span class="op">(</span><span class="st">"Townsend-Lab-Yale/ces.refset.hg19@*release"</span><span class="op">)</span></code></pre></div>
+<p>Refsets for more genome builds and species may be added in the future; please let us know if you’re interested. There is also full support for <a href="custom_refset_instructions.html">building your own custom refset</a>.</p>
 </div>
-<div id="maf-pre-processing" class="section level3">
+<div id="maf-pre-processing" class="section level2">
+<h2 class="hasAnchor">
+<a href="#maf-pre-processing" class="anchor"></a>MAF pre-processing</h2>
+<div id="preload_maf" class="section level3">
 <h3 class="hasAnchor">
-<a href="#maf-pre-processing" class="anchor"></a>MAF pre-processing</h3>
-<p>You want to be confident that the mutations in your MAF file are real. The presence of sequencing or calling error in your data will depend on your data sources and the quality of your pipeline, but here are a few filtering suggestions:</p>
-<ul>
-<li>There should be few to no mutations at sites where population databases show common germline variation.</li>
-<li>There should be few to no mutations in repetitive or poorly mapped regions of the genome, as mutations in these sites are difficult to call confidently and should be rare anyways since these regions are usually not functionally important at the small-variant level. Consider filtering out all variants at sites marked repetitive by RepeatMasker; this information is available on the UCSC Genome Browser.</li>
-<li>When combining data from multiple sources, look out for re-use of samples.</li>
-</ul>
-<p>Once you have a high-confidence set of variants, <strong>do not</strong> filter out records based on silent mutation status or other functional criteria. cancereffectsizeR needs the full set of high-confidence mutations from all samples. (A note on indels: It’s better to leave indels in the data if they’re present, but it’s okay if they’re missing.)</p>
-</div>
-<div id="create-cesanalysis" class="section level3">
-<h3 class="hasAnchor">
-<a href="#create-cesanalysis" class="anchor"></a>Create CESAnalysis</h3>
-<p>Begin by declaring your CESAnalysis object, the primary data structure of cancereffectsizeR. A CESAnalysis always has an associated <em>refset</em>. Optionally, you can also define a set of sample groupings, if you want to be able to run future steps with different parameter choices for each group of samples. For example, if you will want to calculate gene mutation rates separately for sample subsets A and B, and run signature analysis separately for subsets 1, 2, and 3, then you may need to define six groups to account for all combinations: A1, A2, A3, B1, B2, B3.</p>
-<div class="sourceCode" id="cb2"><html><body><pre class="r">  <span class="co"># Create CESAnalysis with default reference data set (ces.refset.hg19)</span>
-  <span class="no">cesa</span> <span class="kw">=</span> <span class="fu"><a href="../reference/CESAnalysis.html">CESAnalysis</a></span>()
+<a href="#preload_maf" class="anchor"></a>preload_maf()</h3>
+<p>After acquiring <a href="https://docs.gdc.cancer.gov/Data/File_Formats/MAF_Format/#gdc-maf-format-v100">MAF data</a>, start by running <code><a href="../reference/preload_maf.html">preload_maf()</a></code>, a function that can catch potential problems in your MAF(s). Here is an example of preloading three MAF files:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://townsend-lab-yale.github.io/cancereffectsizeR">cancereffectsizeR</a></span><span class="op">)</span>
+<span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va">ces.refset.hg19</span><span class="op">)</span>
+<span class="va">maf1</span> <span class="op">=</span> <span class="fu"><a href="../reference/preload_maf.html">preload_maf</a></span><span class="op">(</span>maf <span class="op">=</span> <span class="st">"my_maf_1.txt"</span>, refset <span class="op">=</span> <span class="va">ces.refset.hg19</span><span class="op">)</span>
 
-  <span class="co"># Same, but with pre-defined sample groups (specific to the data/experiment)</span>
-  <span class="no">cesa</span> <span class="kw">=</span> <span class="fu"><a href="../reference/CESAnalysis.html">CESAnalysis</a></span>(<span class="kw">sample_groups</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">"smoking"</span>, <span class="st">"nonsmoking"</span>))
+<span class="co"># If you want, load the whole MAF file, rather than just essential columns (may</span>
+<span class="co"># make object large)</span>
+<span class="va">maf2</span> <span class="op">=</span> <span class="fu"><a href="../reference/preload_maf.html">preload_maf</a></span><span class="op">(</span>maf <span class="op">=</span> <span class="st">"my_maf_2.txt"</span>, refset <span class="op">=</span> <span class="va">ces.refset.hg19</span>, more_cols <span class="op">=</span> <span class="st">"all"</span><span class="op">)</span>
 
-  <span class="co"># Same, but with sample groups that arguably have an evolutionary ordering. The order</span>
-  <span class="co"># used to define sample_groups doesn't matter; you'll specify the order later.</span>
-  <span class="co"># (Keep in mind that only 1 sample per individual can be included in analysis.)</span>
-  <span class="no">cesa</span> <span class="kw">=</span> <span class="fu"><a href="../reference/CESAnalysis.html">CESAnalysis</a></span>(<span class="kw">sample_groups</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">"early"</span>, <span class="st">"stage3"</span>, <span class="st">"stage4"</span>))</pre></body></html></div>
-</div>
-<div id="load-maf-data" class="section level3">
-<h3 class="hasAnchor">
-<a href="#load-maf-data" class="anchor"></a>Load MAF data</h3>
-<p>Next, use <code><a href="../reference/load_maf.html">load_maf()</a></code> to load <a href="https://docs.gdc.cancer.gov/Data/File_Formats/MAF_Format/#gdc-maf-format-v100">MAF</a> data from a text file or a data table into a CESAnalysis object. If column names don’t match MAF format specifications, you can supply your own column names. The only required columns are those specifying chromosome, position, reference and tumor alleles, and sample ID (Tumor_Sample_Barcode, by default); any other columns in your data will be ignored. If your CESAnalyses specifies sample groups (see Create CESAnalysis, above), also specify <code>group_col</code>.</p>
-<div id="sequencing-data-coverage" class="section level4">
-<h4 class="hasAnchor">
-<a href="#sequencing-data-coverage" class="anchor"></a>Sequencing data coverage</h4>
-<p>By default, data is assumed to be derived from whole-exome sequencing. Whole-genome data and targeted sequencing data are also supported when the <code>coverage</code> option is specified. For targeted sequencing data, you must provide the set of target regions as a BED file or GRanges object. You can (and should) also supply this information for exome data, if you have it available. See ?load_maf() for details.</p>
-</div>
+<span class="co"># Imagine this MAF has non-standard column names</span>
+<span class="va">maf3</span> <span class="op">=</span> <span class="fu"><a href="../reference/preload_maf.html">preload_maf</a></span><span class="op">(</span>maf <span class="op">=</span> <span class="st">"my_maf_3.txt"</span>, refset <span class="op">=</span> <span class="va">ces.refset.hg19</span>, chr_col <span class="op">=</span> <span class="st">"chr"</span>, 
+    start_col <span class="op">=</span> <span class="st">"start"</span>, sample_col <span class="op">=</span> <span class="st">"sample_id"</span><span class="op">)</span></code></pre></div>
+<p>Review any problematic records and fix them if possible. (If you are able to fix the problems, you should save a copy of the corrected data and re-run preload_maf() before continuing.)</p>
 <div id="liftover-support" class="section level4">
 <h4 class="hasAnchor">
 <a href="#liftover-support" class="anchor"></a>LiftOver support</h4>
-<p>If the MAF data you are loading is from a different genome build than your CESAnalysis, you can use the <code>chain_file</code> option to supply a UCSC-style chain file, and then your MAF coordinates will be automatically converted with liftOver.</p>
-</div>
-<div id="examples" class="section level4">
-<h4 class="hasAnchor">
-<a href="#examples" class="anchor"></a>Examples</h4>
-<div class="sourceCode" id="cb3"><html><body><pre class="r">  <span class="co">## Example 1</span>
-  <span class="no">cesa</span> <span class="kw">=</span> <span class="fu"><a href="../reference/CESAnalysis.html">CESAnalysis</a></span>(<span class="kw">refset</span> <span class="kw">=</span> <span class="st">"ces.refset.hg19"</span>)
-
-  <span class="co"># load in some whole-exome MAF data</span>
-  <span class="no">cesa</span> <span class="kw">=</span> <span class="fu"><a href="../reference/load_maf.html">load_maf</a></span>(<span class="no">cesa</span>, <span class="kw">maf</span> <span class="kw">=</span> <span class="st">"wes_lung_adenocarcinoma.maf"</span>)
-
-  <span class="co"># add some whole-genome data (and lift from hg38 to hg19 with a user-provided chain file)</span>
-  <span class="no">cesa</span> <span class="kw">=</span> <span class="fu"><a href="../reference/load_maf.html">load_maf</a></span>(<span class="no">cesa</span>, <span class="kw">maf</span> <span class="kw">=</span> <span class="st">"wgs_luad.maf"</span>, <span class="kw">coverage</span> <span class="kw">=</span> <span class="st">"genome"</span>, <span class="kw">chain_file</span> <span class="kw">=</span> <span class="st">"hg38ToHg19.over.chain"</span>)
-
-  <span class="co"># Add some targeted gene sequencing data, supplying a name for the coverage intervals (targeted regions)</span>
-  <span class="no">cesa</span> <span class="kw">=</span> <span class="fu"><a href="../reference/load_maf.html">load_maf</a></span>(<span class="no">cesa</span>, <span class="kw">maf</span> <span class="kw">=</span> <span class="st">"cancer-gene-targeted_luad.maf"</span>, <span class="kw">coverage</span> <span class="kw">=</span> <span class="st">"targeted"</span>,
-                      <span class="kw">covered_regions</span> <span class="kw">=</span> <span class="st">"my_target_regions.bed"</span>, <span class="kw">covered_regions_name</span> <span class="kw">=</span> <span class="st">"TGS1"</span>)
-
-
-  <span class="co">## Example 2</span>
-  <span class="co"># Create a CESAnalysis with samples divided into tumor stage groups</span>
-  <span class="no">cesa</span> <span class="kw">=</span> <span class="fu"><a href="../reference/CESAnalysis.html">CESAnalysis</a></span>(<span class="kw">refset</span> <span class="kw">=</span> <span class="st">"ces.refset.hg19"</span>, <span class="kw">sample_groups</span> <span class="kw">=</span> <span class="fl">1</span>:<span class="fl">4</span>)
-
-  <span class="co"># Load exome data with known target regions (should be available whenever the exome capture kit is known)</span>
-  <span class="co"># Also supplying some interval padding to allow variant calls with 100bp of the covered intervals.</span>
-  <span class="no">cesa</span> <span class="kw">=</span> <span class="fu"><a href="../reference/load_maf.html">load_maf</a></span>(<span class="no">cesa</span>, <span class="kw">maf</span> <span class="kw">=</span> <span class="st">"my_multistage.maf"</span>, <span class="kw">group_col</span> <span class="kw">=</span> <span class="st">"stage"</span>,
-                  <span class="kw">coverage</span> <span class="kw">=</span> <span class="st">"exome"</span>, <span class="kw">covered_regions</span> <span class="kw">=</span> <span class="st">"my_exome_targets.bed"</span>,
-                  <span class="kw">covered_regions_name</span> <span class="kw">=</span> <span class="st">"my_exome"</span>, <span class="kw">covered_regions_padding</span> <span class="kw">=</span> <span class="fl">100</span>)</pre></body></html></div>
+<p>If the MAF data you are loading is from a different genome build (e.g., you want to use ces.refset.hg19 with hg38 data), you can use the <code>chain_file</code> option to supply a UCSC-style chain file, and then your MAF coordinates will be automatically converted with liftOver.</p>
 </div>
 </div>
-<div id="calculate-mutation-rates-and-estimate-selection" class="section level3">
+<div id="quality-filtering" class="section level3">
 <h3 class="hasAnchor">
-<a href="#calculate-mutation-rates-and-estimate-selection" class="anchor"></a>Calculate mutation rates and estimate selection</h3>
+<a href="#quality-filtering" class="anchor"></a>Quality filtering</h3>
+<p>You want to be confident that nearly all of the somatic variants in your MAF file(s) are real. Pervasive false positives will lead to unreliable effect size estimates. Here are some guidelines:</p>
+<ul>
+<li>There should be few to no mutations at sites where population databases show common germline variation.</li>
+<li>There should be few to no mutations in repetitive or poorly mapped regions of the genome, as mutations in these sites are difficult to call confidently and should be rare anyways since these regions are usually not functionally important at the small-variant level.</li>
+<li>When combining data from multiple sources, look out for re-use of samples.</li>
+</ul>
+<p>When running with ces.refset.hg19 reference data, preloaded MAFs get annotations relevant to these guidelines. (See the <code><a href="../reference/preload_maf.html">preload_maf()</a></code> reference for details.) In this example, we’ll exclude mutations in repetitive regions and at sites of germline variation, with the exception of mutations at sites of known cancer signficance (COSMIC mutation census tiers 1-3). Simultaneously, we’ll combine the three MAF data tables together and run a helper function <code><a href="../reference/check_sample_overlap.html">check_sample_overlap()</a></code>, to identify possible duplicate samples across data sources. Lastly, we save one analysis-ready MAF per original MAF.</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="co"># create named list of MAF tables</span>
+<span class="va">all_mafs</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>maf1 <span class="op">=</span> <span class="va">maf1</span>, maf2 <span class="op">=</span> <span class="va">maf2</span>, maf3 <span class="op">=</span> <span class="va">maf3</span><span class="op">)</span>
+<span class="va">combined_maf</span> <span class="op">=</span> <span class="fu">rbindlist</span><span class="op">(</span><span class="va">all_mafs</span>, idcol <span class="op">=</span> <span class="st">"source"</span>, fill <span class="op">=</span> <span class="cn">T</span><span class="op">)</span>
+
+<span class="co"># remove problematic records (not strictly necessary, but nice for saving clean</span>
+<span class="co"># final MAF files)</span>
+<span class="va">combined_maf</span> <span class="op">=</span> <span class="va">combined_maf</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html">is.na</a></span><span class="op">(</span><span class="va">problem</span><span class="op">)</span><span class="op">]</span>
+
+<span class="co"># remove variants from repetitive/germline variant sites except for COSMIC Tier</span>
+<span class="co"># 1-3 sites</span>
+<span class="va">combined_maf</span> <span class="op">=</span> <span class="va">combined_maf</span><span class="op">[</span><span class="op">(</span><span class="va">repetitive_region</span> <span class="op">==</span> <span class="cn">F</span> <span class="op">&amp;</span> <span class="va">germline_variant_site</span> <span class="op">==</span> <span class="cn">F</span><span class="op">)</span> <span class="op">|</span> 
+    <span class="va">cosmic_site_tier</span> <span class="op">%in%</span> <span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span>
+
+<span class="co"># check for sample duplicates and sample contamination</span>
+<span class="va">possible_dups</span> <span class="op">=</span> <span class="fu"><a href="../reference/check_sample_overlap.html">check_sample_overlap</a></span><span class="op">(</span><span class="va">combined_table</span><span class="op">)</span>
+
+<span class="co"># After manual review, let's say that we've identified 3 samples that should be</span>
+<span class="co"># removed</span>
+<span class="va">samples_to_remove</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"Sample_9"</span>, <span class="st">"Sample_100"</span>, <span class="st">"Sample_150"</span><span class="op">)</span>
+<span class="va">combined_maf</span> <span class="op">=</span> <span class="va">combined_maf</span><span class="op">[</span><span class="op">!</span><span class="va">Unique_Patient_Identifier</span> <span class="op">%in%</span> <span class="va">samples_to_remove</span><span class="op">]</span>
+
+<span class="co"># Divide back into three tables Presumably, you will want to save these as your</span>
+<span class="co"># analysis-read MAF text files</span>
+<span class="va">maf_1_final</span> <span class="op">=</span> <span class="va">combined_maf</span><span class="op">[</span><span class="va">source</span> <span class="op">==</span> <span class="st">"maf1"</span><span class="op">]</span>
+<span class="va">maf_2_final</span> <span class="op">=</span> <span class="va">combined_maf</span><span class="op">[</span><span class="va">source</span> <span class="op">==</span> <span class="st">"maf2"</span><span class="op">]</span>
+<span class="va">maf_3_final</span> <span class="op">=</span> <span class="va">combined_maf</span><span class="op">[</span><span class="va">source</span> <span class="op">==</span> <span class="st">"maf3"</span><span class="op">]</span>
+
+<span class="co"># fwrite(maf_1_final, 'maf_1_final.txt', sep = '\t') (etc.)</span></code></pre></div>
+<p>Once you have a high-confidence set of variants, <strong>do not</strong> filter out records based on silent mutation status or other functional criteria. cancereffectsizeR needs the full set of high-confidence mutations from all samples. (A note on indels: It’s better to leave indels in the data if they’re present, but it’s okay if they’re missing.)</p>
+</div>
+</div>
+<div id="create-cesanalysis" class="section level2">
+<h2 class="hasAnchor">
+<a href="#create-cesanalysis" class="anchor"></a>Create CESAnalysis</h2>
+<p>The CESAnalysis object is the primary data structure of cancereffectsizeR. A CESAnalysis always has an associated <em>refset</em>. Optionally, you can also define a set of sample groupings, if you want to be able to run future steps with different parameter choices for each group of samples. For example, if you will want to calculate gene mutation rates separately for sample subsets A and B, and run signature analysis separately for subsets 1, 2, and 3, then you may need to define six groups to account for all combinations: A1, A2, A3, B1, B2, B3. If not already present, you can add a group column to the table(s) generated by preload_maf().</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="co"># Create CESAnalysis with default reference data set (ces.refset.hg19)</span>
+<span class="va">cesa</span> <span class="op">=</span> <span class="fu"><a href="../reference/CESAnalysis.html">CESAnalysis</a></span><span class="op">(</span><span class="op">)</span>
+
+<span class="co"># Same, but with pre-defined sample groups (specific to the data/experiment)</span>
+<span class="va">cesa</span> <span class="op">=</span> <span class="fu"><a href="../reference/CESAnalysis.html">CESAnalysis</a></span><span class="op">(</span>sample_groups <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"smoking"</span>, <span class="st">"nonsmoking"</span><span class="op">)</span><span class="op">)</span>
+
+<span class="co"># Same, but with sample groups that arguably have an evolutionary ordering. The</span>
+<span class="co"># order used to define sample_groups doesn't matter; you'll specify the order</span>
+<span class="co"># later.  (Keep in mind that only 1 sample per individual can be included in</span>
+<span class="co"># analysis.)</span>
+<span class="va">cesa</span> <span class="op">=</span> <span class="fu"><a href="../reference/CESAnalysis.html">CESAnalysis</a></span><span class="op">(</span>sample_groups <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"early"</span>, <span class="st">"stage3"</span>, <span class="st">"stage4"</span><span class="op">)</span><span class="op">)</span></code></pre></div>
+</div>
+<div id="load-maf-data" class="section level2">
+<h2 class="hasAnchor">
+<a href="#load-maf-data" class="anchor"></a>Load MAF data</h2>
+<p>Next, use <code><a href="../reference/load_maf.html">load_maf()</a></code> to load your MAF data into your CESAnalysis. If your CESAnalyses specifies sample groups (see Create CESAnalysis, above), specify <code>group_col</code>.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="co"># Use the more_cols option to keep extra data column(s) during preload_maf</span>
+<span class="va">maf</span> <span class="op">=</span> <span class="fu"><a href="../reference/preload_maf.html">preload_maf</a></span><span class="op">(</span>maf <span class="op">=</span> <span class="st">"my_maf_with_groups.txt"</span>, more_cols <span class="op">=</span> <span class="st">"tumor_grade"</span><span class="op">)</span>
+<span class="va">cesa</span> <span class="op">=</span> <span class="fu"><a href="../reference/CESAnalysis.html">CESAnalysis</a></span><span class="op">(</span>sample_groups <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"I"</span>, <span class="st">"II"</span>, <span class="st">"III"</span><span class="op">)</span><span class="op">)</span>
+<span class="va">cesa</span> <span class="op">=</span> <span class="fu"><a href="../reference/load_maf.html">load_maf</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, maf <span class="op">=</span> <span class="va">maf</span>, group_col <span class="op">=</span> <span class="st">"tumor_grade"</span><span class="op">)</span>
+
+<span class="co"># Or, carefully create the group column yourself using other data.  This is a</span>
+<span class="co"># simplified example. Often, you'll need to deal with NA values, missing samples,</span>
+<span class="co"># etc.</span>
+<span class="va">maf</span> <span class="op">=</span> <span class="fu"><a href="../reference/preload_maf.html">preload_maf</a></span><span class="op">(</span>maf <span class="op">=</span> <span class="st">"my_maf.txt"</span><span class="op">)</span>
+<span class="va">smoking_by_sample</span> <span class="op">=</span> <span class="fu">fread</span><span class="op">(</span><span class="st">"my_clinical_data.csv"</span><span class="op">)</span>
+<span class="va">smokers</span> <span class="op">=</span> <span class="va">smoking_by_sample</span><span class="op">[</span><span class="va">is_smoker</span> <span class="op">==</span> <span class="cn">TRUE</span>, <span class="va">Unique_Patient_Identifier</span><span class="op">]</span>
+
+<span class="va">maf</span><span class="op">[</span>, <span class="fu">`:=`</span><span class="op">(</span><span class="va">group</span>, <span class="st">"nonsmoker"</span><span class="op">)</span><span class="op">]</span>  <span class="co"># assuming everyone not marked as a smoker is a nonsmoker</span>
+<span class="va">maf</span><span class="op">[</span><span class="va">smokers</span>, <span class="fu">`:=`</span><span class="op">(</span><span class="va">group</span>, <span class="st">"smoker"</span><span class="op">)</span>, on <span class="op">=</span> <span class="st">"Unique_Patient_Identifier"</span><span class="op">]</span>
+<span class="va">cesa</span> <span class="op">=</span> <span class="fu"><a href="../reference/CESAnalysis.html">CESAnalysis</a></span><span class="op">(</span>sample_groups <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"smoker"</span>, <span class="st">"nonsmoker"</span><span class="op">)</span><span class="op">)</span>
+<span class="va">cesa</span> <span class="op">=</span> <span class="fu"><a href="../reference/load_maf.html">load_maf</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, maf <span class="op">=</span> <span class="va">maf</span>, group_col <span class="op">=</span> <span class="st">"group"</span><span class="op">)</span></code></pre></div>
+<div id="sequencing-data-coverage" class="section level3">
+<h3 class="hasAnchor">
+<a href="#sequencing-data-coverage" class="anchor"></a>Sequencing data coverage</h3>
+<p>By default, data is assumed to be derived from whole-exome sequencing. Whole-genome data and targeted sequencing data are also supported when the <code>coverage</code> option is specified. For targeted sequencing data, you must provide the set of target regions as a BED file or GRanges object. You can (and should) also supply this information for exome data, if you have it available. See ?load_maf() for details.</p>
+</div>
+<div id="more-examples" class="section level3">
+<h3 class="hasAnchor">
+<a href="#more-examples" class="anchor"></a>More examples</h3>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="co">## Example 1</span>
+<span class="va">cesa</span> <span class="op">=</span> <span class="fu"><a href="../reference/CESAnalysis.html">CESAnalysis</a></span><span class="op">(</span>refset <span class="op">=</span> <span class="st">"ces.refset.hg19"</span><span class="op">)</span>
+
+<span class="co"># load in some whole-exome MAF data (directly from a clean MAF text file)</span>
+<span class="va">cesa</span> <span class="op">=</span> <span class="fu"><a href="../reference/load_maf.html">load_maf</a></span><span class="op">(</span><span class="va">cesa</span>, maf <span class="op">=</span> <span class="st">"wes_lung_adenocarcinoma.maf"</span><span class="op">)</span>
+
+<span class="co"># add some whole-genome data (and lift from hg38 to hg19 with a user-provided</span>
+<span class="co"># chain file)</span>
+<span class="va">wgs_luad</span> <span class="op">=</span> <span class="fu"><a href="../reference/preload_maf.html">preload_maf</a></span><span class="op">(</span><span class="st">"wgs_luad.maf"</span>, chain_file <span class="op">=</span> <span class="st">"hg38ToHg19.over.chain"</span><span class="op">)</span>
+<span class="va">cesa</span> <span class="op">=</span> <span class="fu"><a href="../reference/load_maf.html">load_maf</a></span><span class="op">(</span><span class="va">cesa</span>, maf <span class="op">=</span> <span class="va">wgs_luad</span>, coverage <span class="op">=</span> <span class="st">"genome"</span><span class="op">)</span>
+
+<span class="co"># Add some targeted gene sequencing data, supplying a name for the coverage</span>
+<span class="co"># intervals (targeted regions)</span>
+<span class="va">cesa</span> <span class="op">=</span> <span class="fu"><a href="../reference/load_maf.html">load_maf</a></span><span class="op">(</span><span class="va">cesa</span>, maf <span class="op">=</span> <span class="st">"cancer-gene-targeted_luad.maf"</span>, coverage <span class="op">=</span> <span class="st">"targeted"</span>, 
+    covered_regions <span class="op">=</span> <span class="st">"my_target_regions.bed"</span>, covered_regions_name <span class="op">=</span> <span class="st">"TGS1"</span><span class="op">)</span>
+
+
+<span class="co">## Example 2 Create a CESAnalysis with samples divided into tumor stage groups</span>
+<span class="va">cesa</span> <span class="op">=</span> <span class="fu"><a href="../reference/CESAnalysis.html">CESAnalysis</a></span><span class="op">(</span>refset <span class="op">=</span> <span class="st">"ces.refset.hg19"</span>, sample_groups <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">4</span><span class="op">)</span>
+
+<span class="co"># Load exome data with known coverage intervals (should be available whenever the</span>
+<span class="co"># exome capture kit is known).</span>
+<span class="va">maf</span> <span class="op">=</span> <span class="fu"><a href="../reference/preload_maf.html">preload_maf</a></span><span class="op">(</span>maf <span class="op">=</span> <span class="st">"my_multistage.maf"</span>, coverage_intervals_to_check <span class="op">=</span> <span class="st">"my_exome_targets.bed"</span><span class="op">)</span>
+
+<span class="co"># Imagine that we inspected the preloaded MAF and found that a good number of</span>
+<span class="co"># variants are just outside covered intervals, which is reasonable since some</span>
+<span class="co"># high-quality sequencing reads can be expected to extend past the targeted</span>
+<span class="co"># regions. Therefore, we supply covered_regions_padding to accept most of these</span>
+<span class="co"># variants. (Those far outside the covered regions may come from multi-mapping</span>
+<span class="co"># reads or other sequencing error that should have been filtered out.)</span>
+<span class="va">cesa</span> <span class="op">=</span> <span class="fu"><a href="../reference/load_maf.html">load_maf</a></span><span class="op">(</span><span class="va">cesa</span>, maf <span class="op">=</span> <span class="va">maf</span>, group_col <span class="op">=</span> <span class="st">"stage"</span>, coverage <span class="op">=</span> <span class="st">"exome"</span>, covered_regions <span class="op">=</span> <span class="st">"my_exome_targets.bed"</span>, 
+    covered_regions_name <span class="op">=</span> <span class="st">"my_exome"</span>, covered_regions_padding <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></code></pre></div>
+</div>
+</div>
+<div id="calculate-mutation-rates-and-estimate-selection" class="section level2">
+<h2 class="hasAnchor">
+<a href="#calculate-mutation-rates-and-estimate-selection" class="anchor"></a>Calculate mutation rates and estimate selection</h2>
 <p>After loading in data, run the following functions to prepare for calculation of cancer effect size. See each function’s documentation for details.</p>
 <ul>
 <li>
@@ -201,54 +285,59 @@
 <code><a href="../reference/gene_mutation_rates.html">gene_mutation_rates()</a></code> uses dNdScv to calculate gene-level mutation rates. It’s highly recommended to supply tissue-specific covariate data if available. Covariates for many human tissue types are included in <code>ces.refset.hg19</code>. You can also use the default hg19 covariates from dNdScv.</li>
 </ul>
 <p>If you have defined <code>sample_groups</code> in your CESAnalysis, you can call each of these functions multiple times, specifying one or more sample groups per run.</p>
-<pre><code>  # Create CESAnalysis object and define chronological tumor progression states
-  analysis = CESAnalysis(refset = "ces.refset.hg19", sample_groups = c("Primary", "Metastatic"))
-  analysis = load_maf(analysis, maf = "luad_data.maf", group_col = "pri_met")
-  
-  # Before running trinuc_mutation_rates, which includes a mutational signature analysis,
-  # you can run this function to identify possible signatures to exclude. It's recommended
-  # to manually review the suggestions and decide which signatures to exclude.
-  #
-  # Here, we decide to accept all suggestions, so we assign the output of the function
-  # (a vector of signatures to exclude) to to_remove.
-  to_remove = suggest_cosmic_signatures_to_remove(cancer_type = "LUAD", treatment_naive = T)
-  
-  
-  analysis = trinuc_mutation_rates(analysis, signature_set = "COSMIC_v3.1", signatures_to_remove = to_remove)
-  
-  # calculate neutral gene mutation rates within groups, since group differences are likely
-  analysis = gene_mutation_rates(analysis, covariates = "lung", sample_group = "Primary")
-  analysis = gene_mutation_rates(analysis, covariates = "lung", sample_group = "Metastatic")</code></pre>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="co"># Create CESAnalysis object and define chronological tumor progression states</span>
+<span class="va">analysis</span> <span class="op">=</span> <span class="fu"><a href="../reference/CESAnalysis.html">CESAnalysis</a></span><span class="op">(</span>refset <span class="op">=</span> <span class="st">"ces.refset.hg19"</span>, sample_groups <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"Primary"</span>, <span class="st">"Metastatic"</span><span class="op">)</span><span class="op">)</span>
+<span class="va">analysis</span> <span class="op">=</span> <span class="fu"><a href="../reference/load_maf.html">load_maf</a></span><span class="op">(</span><span class="va">analysis</span>, maf <span class="op">=</span> <span class="st">"luad_data.maf"</span>, group_col <span class="op">=</span> <span class="st">"pri_met"</span><span class="op">)</span>
+
+<span class="co"># Before running trinuc_mutation_rates, which includes a mutational signature</span>
+<span class="co"># analysis, you can run this function to identify possible signatures to exclude.</span>
+<span class="co"># It's recommended to manually review the suggestions and decide which signatures</span>
+<span class="co"># to exclude.  Here, we decide to accept all suggestions, so we assign the output</span>
+<span class="co"># of the function (a vector of signatures to exclude) to to_remove.</span>
+<span class="va">to_remove</span> <span class="op">=</span> <span class="fu"><a href="../reference/suggest_cosmic_signatures_to_remove.html">suggest_cosmic_signatures_to_remove</a></span><span class="op">(</span>cancer_type <span class="op">=</span> <span class="st">"LUAD"</span>, treatment_naive <span class="op">=</span> <span class="cn">T</span><span class="op">)</span>
+
+
+<span class="va">analysis</span> <span class="op">=</span> <span class="fu"><a href="../reference/trinuc_mutation_rates.html">trinuc_mutation_rates</a></span><span class="op">(</span><span class="va">analysis</span>, signature_set <span class="op">=</span> <span class="st">"COSMIC_v3.1"</span>, signatures_to_remove <span class="op">=</span> <span class="va">to_remove</span><span class="op">)</span>
+
+<span class="co"># calculate neutral gene mutation rates within groups, since group differences</span>
+<span class="co"># are likely</span>
+<span class="va">analysis</span> <span class="op">=</span> <span class="fu"><a href="../reference/gene_mutation_rates.html">gene_mutation_rates</a></span><span class="op">(</span><span class="va">analysis</span>, covariates <span class="op">=</span> <span class="st">"lung"</span>, sample_group <span class="op">=</span> <span class="st">"Primary"</span><span class="op">)</span>
+<span class="va">analysis</span> <span class="op">=</span> <span class="fu"><a href="../reference/gene_mutation_rates.html">gene_mutation_rates</a></span><span class="op">(</span><span class="va">analysis</span>, covariates <span class="op">=</span> <span class="st">"lung"</span>, sample_group <span class="op">=</span> <span class="st">"Metastatic"</span><span class="op">)</span></code></pre></div>
 <p>Once all rates have been calculated, you are ready to run <code><a href="../reference/ces_variant.html">ces_variant()</a></code> to find effect sizes under a model of selection. There are two built-in models. <em>sswm</em> and <em>sswm_sequential</em>. (SSWM stands for the “strong selection, weak mutation” assumption of these models. See our <a href="https://doi.org/10.1093/jnci/djy168">paper</a> for details.) The default model, <em>sswm</em>, assumes that each variant has a consistent selection intensity across all samples being tested. <em>sswm_sequential</em> assumes that selection intensity varies among sample groups that are (presumably) in sequential states of disease progression. Naturally, this model can only be used if you have defined sample groups, and if those groups can be thought of as sequential. The group ordering is defined in the call to <code>ces_variant</code>. In this example, primary and metastatic samples are sequential, so we can use <em>sswm_sequential</em>. However, it’s still worth running the default model, because the rarity of even common driver mutations is such that dividing data into subgroups will result in losing some useful information.</p>
 <p>By default, all variants with frequency &gt;1 will be tested for selection. You can specify precisely which variants to include (and, if you like, include all variants) using the <code><a href="../reference/select_variants.html">select_variants()</a></code> function.</p>
-<div class="sourceCode" id="cb5"><html><body><pre class="r">  <span class="co"># Calculate effect sizes under SSWM model (by default, on all variants with frequency &gt; 1 in the MAF data)</span>
-  <span class="co"># supplying optional run names for clarity</span>
-  <span class="no">analysis</span> <span class="kw">=</span> <span class="fu"><a href="../reference/ces_variant.html">ces_variant</a></span>(<span class="kw">cesa</span> <span class="kw">=</span> <span class="no">analysis</span>, <span class="kw">run_name</span> <span class="kw">=</span> <span class="st">"general"</span>)
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="co"># Calculate effect sizes under SSWM model (by default, on all variants with</span>
+<span class="co"># frequency &gt; 1 in the MAF data) supplying optional run names for clarity</span>
+<span class="va">analysis</span> <span class="op">=</span> <span class="fu"><a href="../reference/ces_variant.html">ces_variant</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">analysis</span>, run_name <span class="op">=</span> <span class="st">"general"</span><span class="op">)</span>
 
 
-  <span class="co"># Calculate stage-specific effects under sequential model</span>
-  <span class="no">analysis</span> <span class="kw">=</span> <span class="fu"><a href="../reference/ces_variant.html">ces_variant</a></span>(<span class="kw">cesa</span> <span class="kw">=</span> <span class="no">analysis</span>, <span class="kw">model</span> <span class="kw">=</span> <span class="st">"sswm_sequential"</span>,
-                         <span class="kw">groups</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span>(<span class="st">"Primary"</span>, <span class="st">"Metastatic"</span>), <span class="kw">run_name</span> <span class="kw">=</span> <span class="st">"stage_specific"</span>)</pre></body></html></div>
+<span class="co"># Calculate stage-specific effects under sequential model</span>
+<span class="va">analysis</span> <span class="op">=</span> <span class="fu"><a href="../reference/ces_variant.html">ces_variant</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">analysis</span>, model <span class="op">=</span> <span class="st">"sswm_sequential"</span>, groups <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="st">"Primary"</span>, 
+    <span class="st">"Metastatic"</span><span class="op">)</span>, run_name <span class="op">=</span> <span class="st">"stage_specific"</span><span class="op">)</span></code></pre></div>
 <p>To visualize highly selected variants from selection output, use <code><a href="../reference/lollipops.html">lollipops()</a></code>:</p>
-<div class="sourceCode" id="cb6"><html><body><pre class="r">  <span class="co"># Examine SIs from three major drivers in the general selection output</span>
-  <span class="no">si</span> <span class="kw">=</span> <span class="no">analysis</span>$<span class="no">selection</span>$<span class="no">general</span>
-  <span class="no">gene_tables</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span>(<span class="kw">KRAS</span> <span class="kw">=</span> <span class="no">si</span>[<span class="no">gene</span> <span class="kw">==</span> <span class="st">"KRAS"</span>], <span class="kw">EGFR</span> <span class="kw">=</span> <span class="no">si</span>[<span class="no">gene</span> <span class="kw">==</span> <span class="st">"EGFR"</span>], <span class="kw">TP53</span> <span class="kw">=</span> <span class="no">si</span>[<span class="no">gene</span> <span class="kw">==</span> <span class="st">"TP53"</span>])
-  <span class="fu"><a href="../reference/lollipops.html">lollipops</a></span>(<span class="no">gene_tables</span>, <span class="kw">max_sites</span> <span class="kw">=</span> <span class="fl">20</span>)</pre></body></html></div>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="co"># Examine SIs from three major drivers in the general selection output</span>
+<span class="va">si</span> <span class="op">=</span> <span class="va">analysis</span><span class="op">$</span><span class="va">selection</span><span class="op">$</span><span class="va">general</span>
+<span class="va">gene_tables</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>KRAS <span class="op">=</span> <span class="va">si</span><span class="op">[</span><span class="va">gene</span> <span class="op">==</span> <span class="st">"KRAS"</span><span class="op">]</span>, EGFR <span class="op">=</span> <span class="va">si</span><span class="op">[</span><span class="va">gene</span> <span class="op">==</span> <span class="st">"EGFR"</span><span class="op">]</span>, TP53 <span class="op">=</span> <span class="va">si</span><span class="op">[</span><span class="va">gene</span> <span class="op">==</span> 
+    <span class="st">"TP53"</span><span class="op">]</span><span class="op">)</span>
+<span class="fu"><a href="../reference/lollipops.html">lollipops</a></span><span class="op">(</span><span class="va">gene_tables</span>, max_sites <span class="op">=</span> <span class="fl">20</span><span class="op">)</span></code></pre></div>
 <div class="figure">
 <img src="kras_egfr_tp53.jpg" alt=""><p class="caption">(not real data)</p>
 </div>
 <p>We can also visualize selection intensities from the <em>sswm_sequential</em> model:</p>
-<div class="sourceCode" id="cb7"><html><body><pre class="r">  <span class="co"># Show early/late SIs of high-frequency variants</span>
-  <span class="co"># Setting a selection floor ensures variants with frequency of zero in either group don't appear</span>
-  <span class="no">si</span> <span class="kw">=</span> <span class="no">analysis</span>$<span class="no">selection</span>$<span class="no">stage_specific</span>[<span class="no">si_Primary</span> <span class="kw">&gt;</span> <span class="fl">1</span> <span class="kw">&amp;</span> <span class="no">si_Metastatic</span> <span class="kw">&gt;</span> <span class="fl">1</span>]
-  <span class="fu"><a href="../reference/lollipops.html">lollipops</a></span>(<span class="no">si</span>, <span class="kw">group_names</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">"Early"</span>, <span class="st">"Late"</span>))</pre></body></html></div>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="co"># Show early/late SIs of high-frequency variants Setting a selection floor</span>
+<span class="co"># ensures variants with frequency of zero in either group don't appear</span>
+<span class="va">si</span> <span class="op">=</span> <span class="va">analysis</span><span class="op">$</span><span class="va">selection</span><span class="op">$</span><span class="va">stage_specific</span><span class="op">[</span><span class="va">si_Primary</span> <span class="op">&gt;</span> <span class="fl">1</span> <span class="op">&amp;</span> <span class="va">si_Metastatic</span> <span class="op">&gt;</span> <span class="fl">1</span><span class="op">]</span>
+<span class="fu"><a href="../reference/lollipops.html">lollipops</a></span><span class="op">(</span><span class="va">si</span>, group_names <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"Early"</span>, <span class="st">"Late"</span><span class="op">)</span><span class="op">)</span></code></pre></div>
 <div class="figure">
 <img src="primary_met_lollipops.jpg" alt=""><p class="caption">(not real data)</p>
 </div>
 </div>
-<div id="going-further" class="section level3">
-<h3 class="hasAnchor">
-<a href="#going-further" class="anchor"></a>Going further</h3>
+<div id="going-further" class="section level2">
+<h2 class="hasAnchor">
+<a href="#going-further" class="anchor"></a>Going further</h2>
 <p>Use the <code><a href="../reference/select_variants.html">select_variants()</a></code> function to find variants in your data and view cancereffectsizeR’s annotations. You can use this function to collect variants for input into <code>ces_variant</code>.</p>
 <p>In addition to testing for selection of single variants, you can test epistatic models of selection at the variant and gene levels using <code><a href="../reference/ces_epistasis.html">ces_epistasis()</a></code> and <code><a href="../reference/ces_gene_epistasis.html">ces_gene_epistasis()</a></code>. Output can identify cases of both positive epistasis and mutual exclusivity. There is also support for testing custom models of selection in <code><a href="../reference/ces_variant.html">ces_variant()</a></code>; see the function’s documentation for details.</p>
 <p>It’s sometimes helpful to combine sets of variants, based on genomic position or functional hypotheses, into batches that can be tested in selection functions as if they were single variants. (The simplifying assumption is that all samples with any mutation in the batch experience similar effects.) We call these <em>compound variants</em>, and you can use them with <code>ces_variant</code> and <code>ces_epistasis</code>. See <code><a href="../reference/define_compound_variants.html">?define_compound_variants</a></code> for details.</p>
@@ -257,7 +346,9 @@
 
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
 
-      </div>
+        <nav id="toc" data-toggle="toc"><h2 data-toc-skip>Contents</h2>
+    </nav>
+</div>
 
 </div>
 
@@ -268,7 +359,7 @@
 </div>
 
 <div class="pkgdown">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.5.1.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.6.1.</p>
 </div>
 
       </footer>

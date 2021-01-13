@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Calculate variant effect size — ces_variant • cancereffectsizeR</title>
+<title>Load MAF somatic mutation data — read_in_maf • cancereffectsizeR</title>
 
 <!-- favicons -->
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
@@ -52,15 +52,17 @@
 
 
 
-<meta property="og:title" content="Calculate variant effect size — ces_variant" />
-<meta property="og:description" content="This function calculates variant effect sizes under the chosen model of selection. By
-default, a variant is assumed to have a consistent selection intensity across all
-samples. Set `model = &quot;sswm_sequential&quot;` to allow selection intensity to vary among
-sequential sample groups (e.g., stages 1-4; local/distant metastases). Use `groups` to
-define group ordering or to restrict which groups are considered under either built-in
-model. By default, only variants with MAF frequency &amp;gt; 1 (i.e., recurrent variants) are
-tested. To include all variants, or to otherwise customize which variants to include,
-call select_variants() with desired parameters." />
+<meta property="og:title" content="Load MAF somatic mutation data — read_in_maf" />
+<meta property="og:description" content="Load MAF data from a text file or data table into your CESAnalysis. If column names
+don't match MAF format specifications (Chromosome, Start_Position, etc., with
+Tumor_Sample_Barcode used as the sample ID column), you can supply your own column
+names. When your CESAnalysis has defined sample groups (see ?CESAnalysis),
+specify &quot;group_col&quot;. By default, data is assumed to be derived from whole-exome
+sequencing. Whole-genome data and targeted sequencing data are also supported when the
+&quot;coverage&quot; option is specified. If the data you are loading is from a different genome
+build than your CESAnalysis, you can use the &quot;chain_file&quot; option to supply a UCSC-style
+chain file, and your MAF coordinates will be automatically converted with
+rtracklayer's version of liftOver." />
 <meta property="og:image" content="https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/logo.png" />
 
 
@@ -159,106 +161,78 @@ call select_variants() with desired parameters." />
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Calculate variant effect size</h1>
-    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/R/ces_variant.R'><code>R/ces_variant.R</code></a></small>
-    <div class="hidden name"><code>ces_variant.Rd</code></div>
+    <h1>Load MAF somatic mutation data</h1>
+    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/R/internal_read_maf.R'><code>R/internal_read_maf.R</code></a></small>
+    <div class="hidden name"><code>read_in_maf.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>This function calculates variant effect sizes under the chosen model of selection. By
-default, a variant is assumed to have a consistent selection intensity across all
-samples. Set `model = "sswm_sequential"` to allow selection intensity to vary among
-sequential sample groups (e.g., stages 1-4; local/distant metastases). Use `groups` to
-define group ordering or to restrict which groups are considered under either built-in
-model. By default, only variants with MAF frequency &gt; 1 (i.e., recurrent variants) are
-tested. To include all variants, or to otherwise customize which variants to include,
-call select_variants() with desired parameters.</p>
+    <p>Load MAF data from a text file or data table into your CESAnalysis. If column names
+don't match MAF format specifications (Chromosome, Start_Position, etc., with
+Tumor_Sample_Barcode used as the sample ID column), you can supply your own column
+names. When your CESAnalysis has defined sample groups (see <code><a href='CESAnalysis.html'>?CESAnalysis</a></code>),
+specify "group_col". By default, data is assumed to be derived from whole-exome
+sequencing. Whole-genome data and targeted sequencing data are also supported when the
+"coverage" option is specified. If the data you are loading is from a different genome
+build than your CESAnalysis, you can use the "chain_file" option to supply a UCSC-style
+chain file, and your MAF coordinates will be automatically converted with
+rtracklayer's version of liftOver.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>ces_variant</span><span class='op'>(</span>
-  cesa <span class='op'>=</span> <span class='cn'>NULL</span>,
-  variants <span class='op'>=</span> <span class='fu'><a href='select_variants.html'>select_variants</a></span><span class='op'>(</span><span class='va'>cesa</span>, min_freq <span class='op'>=</span> <span class='fl'>2</span><span class='op'>)</span>,
-  run_name <span class='op'>=</span> <span class='st'>"auto"</span>,
-  model <span class='op'>=</span> <span class='st'>"sswm"</span>,
-  groups <span class='op'>=</span> <span class='cn'>NULL</span>,
-  custom_lik_args <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span><span class='op'>(</span><span class='op'>)</span>,
-  hold_out_same_gene_samples <span class='op'>=</span> <span class='st'>"auto"</span>,
-  cores <span class='op'>=</span> <span class='fl'>1</span>,
-  conf <span class='op'>=</span> <span class='fl'>0.95</span>
+    <pre class="usage"><span class='fu'>read_in_maf</span><span class='op'>(</span>
+  <span class='va'>maf</span>,
+  <span class='va'>refset_env</span>,
+  chr_col <span class='op'>=</span> <span class='st'>"Chromosome"</span>,
+  start_col <span class='op'>=</span> <span class='st'>"Start_Position"</span>,
+  ref_col <span class='op'>=</span> <span class='st'>"Reference_Allele"</span>,
+  tumor_allele_col <span class='op'>=</span> <span class='st'>"guess"</span>,
+  sample_col <span class='op'>=</span> <span class='st'>"Tumor_Sample_Barcode"</span>,
+  more_cols <span class='op'>=</span> <span class='cn'>NULL</span>,
+  chain_file <span class='op'>=</span> <span class='cn'>NULL</span>
 <span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>cesa</th>
-      <td><p>CESAnalysis object</p></td>
+      <th>maf</th>
+      <td><p>Path of tab-delimited text file in MAF format, or an MAF in data.table or data.frame format</p></td>
     </tr>
     <tr>
-      <th>variants</th>
-      <td><p>Variant table from <code><a href='select_variants.html'>select_variants()</a></code>, or a <code>CompoundVariantSet</code> from
-<code><a href='define_compound_variants.html'>define_compound_variants()</a></code>. Defaults to all recurrent noncoding SNVs and
-(SNV-derived) coding mutations, where recurrent means appearing in at least two
-samples in the MAF data set.</p></td>
+      <th>refset_env</th>
+      <td><p>a refset data environment</p></td>
     </tr>
     <tr>
-      <th>run_name</th>
-      <td><p>Optionally, a name to identify the current run.</p></td>
+      <th>chr_col</th>
+      <td><p>column name with chromosome data  (Chromosome)</p></td>
     </tr>
     <tr>
-      <th>model</th>
-      <td><p>"sswm" or "sswm_sequential" to use built-in models of selection, or supply a
-custom function factory (see details).</p></td>
+      <th>start_col</th>
+      <td><p>column name with start position (Start_Position)</p></td>
     </tr>
     <tr>
-      <th>groups</th>
-      <td><p>Which sample groups to include (default all); data for outgroup samples
-will not inform selection calculation. For models (like sswm_sequential) that assume
-ordered groups of samples, use a list to indicate group ordering.
-Examples: <code><a href='https://rdrr.io/r/base/c.html'>c("group1", "group2")</a></code> includes groups 1 and 2, but doesn't indicate
-an ordering, so is invalid for ordered-group models.
-<code><a href='https://rdrr.io/r/base/list.html'>list("Primary", "Metastatic")</a></code> indicates two ordered groups, and
-<code><a href='https://rdrr.io/r/base/list.html'>list("A", c("B", "C"), "D")</a></code> means that group A is first, groups B and C share
-an intermediate state, and group D is last.</p></td>
+      <th>ref_col</th>
+      <td><p>column name with reference allele data (Reference_Allele)</p></td>
     </tr>
     <tr>
-      <th>custom_lik_args</th>
-      <td><p>Extra arguments, given as a list, to pass to custom likelihood
-functions.</p></td>
+      <th>tumor_allele_col</th>
+      <td><p>column name with alternate allele data; by default,
+values from Tumor_Seq_Allele2 and Tumor_Seq_Allele1 columns are used.</p></td>
     </tr>
     <tr>
-      <th>hold_out_same_gene_samples</th>
-      <td><p>When finding likelihood of each variant, hold out
-samples that lack the variant but have any other mutations in the same gene. By default,
-TRUE when running with single variants, FALSE with a CompoundVariantSet.</p></td>
+      <th>sample_col</th>
+      <td><p>column name with sample ID data (Tumor_Sample_Barcode or Unique_Patient_Identifier)</p></td>
     </tr>
     <tr>
-      <th>cores</th>
-      <td><p>number of cores to use</p></td>
-    </tr>
-    <tr>
-      <th>conf</th>
-      <td><p>selection intensity confidence interval width (NULL skips calculation,
-speeds runtime)</p></td>
+      <th>chain_file</th>
+      <td><p>a LiftOver chain file (text format, name ends in .chain) to convert MAF
+records to the genome build used in the CESAnalysis.</p></td>
     </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>CESAnalysis object with selection results appended to the selection output list</p>
-    <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
-
-    <p>It's possible to pass in your own selection model. You'll need to create a "function
-factory" that, for any variant, produces a likelihood function that can be evaluated on
-the data. The first two arguments must be rates_tumors_with and rates_tumors_without,
-which take the baseline site mutation rates in samples with and without the variant.
-The third argument must be sample_index, which associates Unique_Patient_Identifiers
-with their sample groups. Values for all three of these arguments will be calculated by
-ces_variant and passed to your function factory automatically. Your function can take
-whatever additional arguments you like, and you can pass in values using
-`custom_lik_args`. The likelihood function parameters that ces_variant will optimize
-should be named and have default values. See the source code of `sswm_sequential_lik()`
-for an example.</p>
+    <p>data.table with core MAF columns, any other requested columns, and a "problem" column</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

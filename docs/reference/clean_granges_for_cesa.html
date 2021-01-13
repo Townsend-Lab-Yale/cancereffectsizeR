@@ -88,7 +88,7 @@ at chromosome ends. Either stops with an error or returns a clean granges object
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.0.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.1.0</span>
       </span>
     </div>
 
@@ -96,7 +96,7 @@ at chromosome ends. Either stops with an error or returns a clean granges object
       <ul class="nav navbar-nav">
         <li>
   <a href="../index.html">
-    <span class="fas fa fas fa-home fa-lg"></span>
+    <span class="fas fa-home fa-lg"></span>
      
   </a>
 </li>
@@ -117,6 +117,9 @@ at chromosome ends. Either stops with an error or returns a clean granges object
       <a href="../articles/cosmic_cancer_type_note.html">Cancer type considerations for COSMIC signature extraction</a>
     </li>
     <li>
+      <a href="../articles/create_custom_covariates.html">Generate tissue covariates data</a>
+    </li>
+    <li>
       <a href="../articles/custom_refset_instructions.html">Running with custom reference data</a>
     </li>
   </ul>
@@ -128,7 +131,7 @@ at chromosome ends. Either stops with an error or returns a clean granges object
       <ul class="nav navbar-nav navbar-right">
         <li>
   <a href="https://github.com/Townsend-Lab-Yale/cancereffectsizeR/">
-    <span class="fab fa fab fa-github fa-lg"></span>
+    <span class="fab fa-github fa-lg"></span>
      
   </a>
 </li>
@@ -162,7 +165,7 @@ genome. Optionally also applies padding to start and end positions of ranges, st
 at chromosome ends. Either stops with an error or returns a clean granges object.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>clean_granges_for_cesa</span>(<span class='kw'>cesa</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>gr</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>padding</span> <span class='kw'>=</span> <span class='fl'>0</span>)</pre>
+    <pre class="usage"><span class='fu'>clean_granges_for_cesa</span><span class='op'>(</span>cesa <span class='op'>=</span> <span class='cn'>NULL</span>, gr <span class='op'>=</span> <span class='cn'>NULL</span>, padding <span class='op'>=</span> <span class='fl'>0</span>, refset_env <span class='op'>=</span> <span class='cn'>NULL</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -197,7 +200,7 @@ at chromosome ends. Either stops with an error or returns a clean granges object
 </div>
 
 <div class="pkgdown">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.5.1.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.6.1.</p>
 </div>
 
       </footer>

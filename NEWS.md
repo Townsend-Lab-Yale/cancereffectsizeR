@@ -1,3 +1,9 @@
+# cancereffectsizeR 2.1.0
+* Simple workflow for building custom tissue covariates data, to inform calculation of gene mutation rates.
+* preload_maf() detects problems in MAF data and informs quality filtering of records.
+* check_sample_overlap() offers a simple way of spotting possible sample duplicates.
+* Bug fixes.
+
 # cancereffectsizeR 2.0.0
 * Supports targeted, whole-exome, and whole-genome sequencing data with proper handling of covered regions.
 * Define sample groups and run analyses with different parameters for each group.

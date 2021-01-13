@@ -41,7 +41,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.0.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.1.0</span>
       </span>
     </div>
 
@@ -49,7 +49,7 @@
       <ul class="nav navbar-nav">
 <li>
   <a href="index.html">
-    <span class="fas fa fas fa-home fa-lg"></span>
+    <span class="fas fa-home fa-lg"></span>
      
   </a>
 </li>
@@ -70,6 +70,9 @@
       <a href="articles/cosmic_cancer_type_note.html">Cancer type considerations for COSMIC signature extraction</a>
     </li>
     <li>
+      <a href="articles/create_custom_covariates.html">Generate tissue covariates data</a>
+    </li>
+    <li>
       <a href="articles/custom_refset_instructions.html">Running with custom reference data</a>
     </li>
   </ul>
@@ -81,7 +84,7 @@
 <ul class="nav navbar-nav navbar-right">
 <li>
   <a href="https://github.com/Townsend-Lab-Yale/cancereffectsizeR/">
-    <span class="fab fa fab fa-github fa-lg"></span>
+    <span class="fab fa-github fa-lg"></span>
      
   </a>
 </li>
@@ -112,9 +115,9 @@
 <a href="#welcome" class="anchor"></a>Welcome</h2>
 <p>cancereffectsizeR aims to provide an intuitive and comprehensive set of tools to quantify the effects of somatic variants on cancer progression. Throughout the package, methods are designed to support as little or as much customization as you like:</p>
 <ul>
-<li>Annotate variants with built-in reference data, or create a custom reference data set for any genome build.</li>
+<li>Annotate variants with built-in reference data, or create a <a href="articles/custom_refset_instructions.html">custom reference data set</a> for any genome build.</li>
 <li>Identify mutational processes in groups of samples by extracting COSMIC signatures, or any custom set of signature definitions.</li>
-<li>Use cancereffectsizeR’s tissue-specific covariates to inform calculation of gene mutation rates (via <a href="https://github.com/im3sanger/dndscv">dNdScv</a>), or supply your own covariates.</li>
+<li>Use cancereffectsizeR’s tissue-specific covariates to inform calculation of gene mutation rates (via <a href="https://github.com/im3sanger/dndscv">dNdScv</a>), or use your own <a href="articles/create_custom_covariates.html">custom covariates</a>.</li>
 <li>Test single-variant, stage/grade-specific, and epistatic models of selection, or define and test your own models.</li>
 <li>Arbitrarily batch variants by position, gene, or functional annotation, and quantify selection by batch.</li>
 </ul>
@@ -129,15 +132,17 @@
 <h4 class="hasAnchor">
 <a href="#r-40-and-later" class="anchor"></a>R 4.0 and later</h4>
 <p>On R 4.0 or later, run this:</p>
-<div class="sourceCode" id="cb1"><pre class="r"><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html">install.packages</a></span>(<span class="st">"remotes"</span>)
-<span class="kw pkg">remotes</span><span class="kw ns">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html">install_github</a></span>(<span class="st">"Townsend-Lab-Yale/cancereffectsizeR@*release"</span>)</pre></div>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html">install.packages</a></span><span class="op">(</span><span class="st">"remotes"</span><span class="op">)</span>
+<span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html">install_github</a></span><span class="op">(</span><span class="st">"Townsend-Lab-Yale/cancereffectsizeR@*release"</span><span class="op">)</span></code></pre></div>
 </div>
 <div id="r-35-and-36" class="section level4">
 <h4 class="hasAnchor">
 <a href="#r-35-and-36" class="anchor"></a>R 3.5 and 3.6</h4>
 <p>Install as above, but first you need to install an archived version of a missing dependency:</p>
-<div class="sourceCode" id="cb2"><pre class="r"><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html">install.packages</a></span>(<span class="st">"https://cran.r-project.org/src/contrib/Archive/XML/XML_3.99-0.3.tar.gz"</span>,
-                 <span class="kw">type</span> <span class="kw">=</span> <span class="st">"source"</span>, <span class="kw">repos</span> <span class="kw">=</span> <span class="kw">NULL</span>)</pre></div>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html">install.packages</a></span><span class="op">(</span><span class="st">"https://cran.r-project.org/src/contrib/Archive/XML/XML_3.99-0.3.tar.gz"</span>, 
+                 type <span class="op">=</span> <span class="st">"source"</span>, repos <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></code></pre></div>
 </div>
 </div>
 <div id="publications-and-version-note" class="section level2">
@@ -184,7 +189,7 @@
 </div>
 
 <div class="pkgdown">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.5.1.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.6.1.</p>
 </div>
 
       </footer>

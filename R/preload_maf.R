@@ -225,7 +225,7 @@ check_sample_overlap = function(maf_table) {
     stop("Missing some required MAF columns (consider running your MAF data through preload_maf() first.")
   }
   if("problem" %in% names(maf) & ! all(is.na(maf$problem))) {
-    message("Excluding MAF records with problems from this check...")
+    message("Excluding MAF records with problems from this check (if problems were fixed, stop and re-run preload_maf)...")
     maf = maf[is.na(problem)]
   }
   maf = maf[, ..maf_cols]

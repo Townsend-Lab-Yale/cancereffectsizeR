@@ -2,27 +2,33 @@
 title: "Getting started"
 ---
 
-Once you have installed cancereffectsizeR, you need a somatic mutation text file covering your samples in [MAF format](https://docs.gdc.cancer.gov/Data/File_Formats/MAF_Format). If you want to try out the software with publicly-available data, you can download MAFs covering collections of tumors from many cancer types from the TCGA data portal.
+cancereffectsizeR is used to analyze somatic single-nucleotide variant data in [MAF format](https://docs.gdc.cancer.gov/Data/File_Formats/MAF_Format). If you want to try out the software with publicly-available data, you can download MAF files covering collections of tumors from many cancer types from the TCGA data portal.
 
 ## Install reference data
-Before running for the first time, you need to install a reference data set, or _refset_. Currently, a refset supporting the hg19 genome build is available as a separate data package. Install like this:
+In addition to installing cancereffectsizeR, you need to install a reference data set, or _refset_. Currently, a refset supporting the hg19 genome build is available as a separate data package. Install like this:
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, tidy = T)
+```
 
 ```{r eval = FALSE}
 remotes::install_github("Townsend-Lab-Yale/ces.refset.hg19@*release")
 ```
 
-Refsets for more genome builds and species may be added in the future; please let us know if you're interested. It's also possible to [build your own custom refset](custom_refset_instructions.html).
+Refsets for more genome builds and species may be added in the future; please let us know if you're interested. There is also full support for [building your own custom refset](custom_refset_instructions.html).
 
 ## MAF pre-processing
 
 ### preload_maf()
-After acquiring somatic mutation data in [MAF format](https://docs.gdc.cancer.gov/Data/File_Formats/MAF_Format/#gdc-maf-format-v100),
-start by running `preload_maf()`, a function that can catch potential problems in your data. Here is an example of preloading three MAF files:
-```{r}
+After acquiring [MAF data](https://docs.gdc.cancer.gov/Data/File_Formats/MAF_Format/#gdc-maf-format-v100),
+start by running `preload_maf()`, a function that can catch potential problems in your MAF(s). Here is an example of preloading three MAF files:
+```{r eval = F}
 library(cancereffectsizeR)
 library(ces.refset.hg19)
 maf1 = preload_maf(maf = "my_maf_1.txt", refset = ces.refset.hg19)
-maf2 = preload_maf(maf = "my_maf_2.txt", refset = ces.refset.hg19)
+
+# If you want, load the whole MAF file, rather than just essential columns (may make object large)
+maf2 = preload_maf(maf = "my_maf_2.txt", refset = ces.refset.hg19, more_cols = "all")
 
 # Imagine this MAF has non-standard column names
 maf3 = preload_maf(maf = "my_maf_3.txt", refset = ces.refset.hg19, 
@@ -45,11 +51,11 @@ You want to be confident that nearly all of the somatic variants in your MAF fil
 * There should be few to no mutations in repetitive or poorly mapped regions of the genome, as mutations in these sites are difficult to call confidently and should be rare anyways since these regions are usually not functionally important at the small-variant level.
 * When combining data from multiple sources, look out for re-use of samples.
 
-When running with ces.refset.hg19 reference data, preloaded MAFs get annotations that may help meet these guidelines. (See the `preload_maf()` reference for details.) In this example, we'll exclude mutations in repetitive regions and at sites of germline variation, with the exception of mutations at sites of known cancer signficance (COSMIC mutation census Tiers 1-3). Simultaneously, we'll combine the three MAF tables together and run a helper function `check_sample_overlap()`, to identify possible duplicate samples across data sources:
-```{r tidy = T}
+When running with ces.refset.hg19 reference data, preloaded MAFs get annotations relevant to these guidelines. (See the `preload_maf()` reference for details.) In this example, we'll exclude mutations in repetitive regions and at sites of germline variation, with the exception of mutations at sites of known cancer signficance (COSMIC mutation census tiers 1-3). Simultaneously, we'll combine the three MAF data tables together and run a helper function `check_sample_overlap()`, to identify possible duplicate samples across data sources. Lastly, we save one analysis-ready MAF per original MAF.
+```{r eval = F}
   # create named list of MAF tables
   all_mafs = list(maf1 = maf1, maf2 = maf2, maf3 = maf3)
-  combined_maf = rbindlist(all_mafs, idcol = 'source')
+  combined_maf = rbindlist(all_mafs, idcol = 'source', fill = T)
   
   # remove problematic records (not strictly necessary, but nice for saving clean final MAF files)
   combined_maf = combined_maf[is.na(problem)]
@@ -79,7 +85,7 @@ Once you have a high-confidence set of variants, **do not** filter out records b
 ## Create CESAnalysis
 The CESAnalysis object is the primary data structure of cancereffectsizeR. A CESAnalysis always
 has an associated _refset_. Optionally, you can also define a set of sample groupings, if you want to be able to run future steps with different parameter choices for each group of samples. For example, if you will want to calculate gene mutation rates separately for sample subsets A and B, and run signature analysis separately for subsets 1, 2, and 3, then you may need to define six groups to account for all combinations: A1, A2, A3, B1, B2, B3. If not already present, you can add a group column to the table(s) generated by preload_maf().
-```R
+```{r eval = F}
   # Create CESAnalysis with default reference data set (ces.refset.hg19)
   cesa = CESAnalysis()
   
@@ -95,7 +101,7 @@ has an associated _refset_. Optionally, you can also define a set of sample grou
 
 ## Load MAF data
 Next, use `load_maf()` to load your MAF data into your CESAnalysis. If your CESAnalyses specifies sample groups (see Create CESAnalysis, above), specify `group_col`.
-```{r tidy = T}
+```{r eval = F}
 # Use the more_cols option to keep extra data column(s) during preload_maf
 maf = preload_maf(maf = "my_maf_with_groups.txt", more_cols = "tumor_grade")
 cesa = CESAnalysis(sample_groups = c('I', 'II', 'III'))
@@ -119,7 +125,7 @@ By default, data is assumed to be derived from whole-exome sequencing. Whole-gen
 
 
 ### More examples
-```R
+```{r eval = F}
   ## Example 1
   cesa = CESAnalysis(refset = "ces.refset.hg19")
   
@@ -139,9 +145,16 @@ By default, data is assumed to be derived from whole-exome sequencing. Whole-gen
   # Create a CESAnalysis with samples divided into tumor stage groups
   cesa = CESAnalysis(refset = "ces.refset.hg19", sample_groups = 1:4)
   
-  # Load exome data with known target regions (should be available whenever the exome capture kit is known)
-  # Also supplying some interval padding to allow variant calls with 100bp of the covered intervals.
-  cesa = load_maf(cesa, maf = "my_multistage.maf", group_col = "stage",
+  # Load exome data with known coverage intervals (should be available whenever the exome capture kit is known).
+  maf = preload_maf(maf = "my_multistage.maf", coverage_intervals_to_check = "my_exome_targets.bed")
+  
+  # Imagine that we inspected the preloaded MAF and found that a good number of variants
+  # are just outside covered intervals, which is reasonable since some high-quality
+  # sequencing reads can be expected to extend past the targeted regions. Therefore, we
+  # supply covered_regions_padding to accept most of these variants. (Those far outside
+  # the covered regions may come from multi-mapping reads or other sequencing error that
+  # should have been filtered out.)
+  cesa = load_maf(cesa, maf = maf, group_col = "stage",
                   coverage = "exome", covered_regions = "my_exome_targets.bed", 
                   covered_regions_name = "my_exome", covered_regions_padding = 100)
 ```
@@ -155,7 +168,7 @@ After loading in data, run the following functions to prepare for calculation of
 
 If you have defined `sample_groups` in your CESAnalysis, you can call each of these functions multiple times, specifying one or more sample groups per run. 
 
-```
+```{r eval = F}
   # Create CESAnalysis object and define chronological tumor progression states
   analysis = CESAnalysis(refset = "ces.refset.hg19", sample_groups = c("Primary", "Metastatic"))
   analysis = load_maf(analysis, maf = "luad_data.maf", group_col = "pri_met")

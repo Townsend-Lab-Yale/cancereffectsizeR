@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Calculate variant effect size — ces_variant • cancereffectsizeR</title>
+<title>Catch duplicate samples — check_sample_overlap • cancereffectsizeR</title>
 
 <!-- favicons -->
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
@@ -52,15 +52,14 @@
 
 
 
-<meta property="og:title" content="Calculate variant effect size — ces_variant" />
-<meta property="og:description" content="This function calculates variant effect sizes under the chosen model of selection. By
-default, a variant is assumed to have a consistent selection intensity across all
-samples. Set `model = &quot;sswm_sequential&quot;` to allow selection intensity to vary among
-sequential sample groups (e.g., stages 1-4; local/distant metastases). Use `groups` to
-define group ordering or to restrict which groups are considered under either built-in
-model. By default, only variants with MAF frequency &amp;gt; 1 (i.e., recurrent variants) are
-tested. To include all variants, or to otherwise customize which variants to include,
-call select_variants() with desired parameters." />
+<meta property="og:title" content="Catch duplicate samples — check_sample_overlap" />
+<meta property="og:description" content="Takes in a data.table of MAF data (produced, typically, with preload_maf()) and
+identifies samples with relatively high proportions of shared SNV mutations. Some
+flagged sample pairs may reflect shared driver mutations or chance overlap of variants
+in SNV or sequencing error hotspots. Very high overlap may indicate sample duplication,
+re-use of samples across data sources, or within-experiment sample contamination. To limit
+the influence of shared calling error, it's recommended to run this function after
+any quality filtering of MAF records, as a final step." />
 <meta property="og:image" content="https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/logo.png" />
 
 
@@ -159,106 +158,51 @@ call select_variants() with desired parameters." />
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Calculate variant effect size</h1>
-    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/R/ces_variant.R'><code>R/ces_variant.R</code></a></small>
-    <div class="hidden name"><code>ces_variant.Rd</code></div>
+    <h1>Catch duplicate samples</h1>
+    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/R/preload_maf.R'><code>R/preload_maf.R</code></a></small>
+    <div class="hidden name"><code>check_sample_overlap.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>This function calculates variant effect sizes under the chosen model of selection. By
-default, a variant is assumed to have a consistent selection intensity across all
-samples. Set `model = "sswm_sequential"` to allow selection intensity to vary among
-sequential sample groups (e.g., stages 1-4; local/distant metastases). Use `groups` to
-define group ordering or to restrict which groups are considered under either built-in
-model. By default, only variants with MAF frequency &gt; 1 (i.e., recurrent variants) are
-tested. To include all variants, or to otherwise customize which variants to include,
-call select_variants() with desired parameters.</p>
+    <p>Takes in a data.table of MAF data (produced, typically, with <code><a href='preload_maf.html'>preload_maf()</a></code>) and
+identifies samples with relatively high proportions of shared SNV mutations. Some
+flagged sample pairs may reflect shared driver mutations or chance overlap of variants
+in SNV or sequencing error hotspots. Very high overlap may indicate sample duplication,
+re-use of samples across data sources, or within-experiment sample contamination. To limit
+the influence of shared calling error, it's recommended to run this function after
+any quality filtering of MAF records, as a final step.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>ces_variant</span><span class='op'>(</span>
-  cesa <span class='op'>=</span> <span class='cn'>NULL</span>,
-  variants <span class='op'>=</span> <span class='fu'><a href='select_variants.html'>select_variants</a></span><span class='op'>(</span><span class='va'>cesa</span>, min_freq <span class='op'>=</span> <span class='fl'>2</span><span class='op'>)</span>,
-  run_name <span class='op'>=</span> <span class='st'>"auto"</span>,
-  model <span class='op'>=</span> <span class='st'>"sswm"</span>,
-  groups <span class='op'>=</span> <span class='cn'>NULL</span>,
-  custom_lik_args <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span><span class='op'>(</span><span class='op'>)</span>,
-  hold_out_same_gene_samples <span class='op'>=</span> <span class='st'>"auto"</span>,
-  cores <span class='op'>=</span> <span class='fl'>1</span>,
-  conf <span class='op'>=</span> <span class='fl'>0.95</span>
-<span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>check_sample_overlap</span><span class='op'>(</span><span class='va'>maf_table</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>cesa</th>
-      <td><p>CESAnalysis object</p></td>
-    </tr>
-    <tr>
-      <th>variants</th>
-      <td><p>Variant table from <code><a href='select_variants.html'>select_variants()</a></code>, or a <code>CompoundVariantSet</code> from
-<code><a href='define_compound_variants.html'>define_compound_variants()</a></code>. Defaults to all recurrent noncoding SNVs and
-(SNV-derived) coding mutations, where recurrent means appearing in at least two
-samples in the MAF data set.</p></td>
-    </tr>
-    <tr>
-      <th>run_name</th>
-      <td><p>Optionally, a name to identify the current run.</p></td>
-    </tr>
-    <tr>
-      <th>model</th>
-      <td><p>"sswm" or "sswm_sequential" to use built-in models of selection, or supply a
-custom function factory (see details).</p></td>
-    </tr>
-    <tr>
-      <th>groups</th>
-      <td><p>Which sample groups to include (default all); data for outgroup samples
-will not inform selection calculation. For models (like sswm_sequential) that assume
-ordered groups of samples, use a list to indicate group ordering.
-Examples: <code><a href='https://rdrr.io/r/base/c.html'>c("group1", "group2")</a></code> includes groups 1 and 2, but doesn't indicate
-an ordering, so is invalid for ordered-group models.
-<code><a href='https://rdrr.io/r/base/list.html'>list("Primary", "Metastatic")</a></code> indicates two ordered groups, and
-<code><a href='https://rdrr.io/r/base/list.html'>list("A", c("B", "C"), "D")</a></code> means that group A is first, groups B and C share
-an intermediate state, and group D is last.</p></td>
-    </tr>
-    <tr>
-      <th>custom_lik_args</th>
-      <td><p>Extra arguments, given as a list, to pass to custom likelihood
-functions.</p></td>
-    </tr>
-    <tr>
-      <th>hold_out_same_gene_samples</th>
-      <td><p>When finding likelihood of each variant, hold out
-samples that lack the variant but have any other mutations in the same gene. By default,
-TRUE when running with single variants, FALSE with a CompoundVariantSet.</p></td>
-    </tr>
-    <tr>
-      <th>cores</th>
-      <td><p>number of cores to use</p></td>
-    </tr>
-    <tr>
-      <th>conf</th>
-      <td><p>selection intensity confidence interval width (NULL skips calculation,
-speeds runtime)</p></td>
+      <th>maf_table</th>
+      <td><p>A data.table with MAF data and cancereffectsizeR-style column names,
+as generated by <code><a href='preload_maf.html'>preload_maf()</a></code>.</p></td>
     </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>CESAnalysis object with selection results appended to the selection output list</p>
+    <p>a data.table with overlap statistics</p>
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
-    <p>It's possible to pass in your own selection model. You'll need to create a "function
-factory" that, for any variant, produces a likelihood function that can be evaluated on
-the data. The first two arguments must be rates_tumors_with and rates_tumors_without,
-which take the baseline site mutation rates in samples with and without the variant.
-The third argument must be sample_index, which associates Unique_Patient_Identifiers
-with their sample groups. Values for all three of these arguments will be calculated by
-ces_variant and passed to your function factory automatically. Your function can take
-whatever additional arguments you like, and you can pass in values using
-`custom_lik_args`. The likelihood function parameters that ces_variant will optimize
-should be named and have default values. See the source code of `sswm_sequential_lik()`
-for an example.</p>
+    <p>Sample pairs are flagged when...</p><ul>
+<li><p>Both samples have &lt;6 total SNVs and any shared SNVs.</p></li>
+<li><p>Both samples have &lt;21 total SNVs and &gt;1 shared mutation.</p></li>
+<li><p>One sample has just 1 or 2 total SNVs and has any overlaps with the other sample.</p></li>
+<li><p>The samples have &gt;2 shared SNVs and at least one percent of SNVs are shared (in the sample with fewer SNVs).</p></li>
+</ul><p>In addition to reporting SNV counts, this function divides the genome into 1000-bp
+windows and reports the following:</p><ul>
+<li><p>variant_windows_A: Number of windows in which sample A has a variant.</p></li>
+<li><p>variant_windows_B: Same for B.</p></li>
+<li><p>windows_shared: Number of windows that contain a variant shared between both samples.</p></li>
+</ul><p>Sometimes, samples have little overlap except for a few hotspots that may derive from
+shared calling error or highly mutable regions. These window counts can help
+distinguish such samples from those with more pervasive SNV overlap.</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Calculate variant effect size — ces_variant • cancereffectsizeR</title>
+<title>Read and verify MAF somatic mutation data — preload_maf • cancereffectsizeR</title>
 
 <!-- favicons -->
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
@@ -52,15 +52,14 @@
 
 
 
-<meta property="og:title" content="Calculate variant effect size — ces_variant" />
-<meta property="og:description" content="This function calculates variant effect sizes under the chosen model of selection. By
-default, a variant is assumed to have a consistent selection intensity across all
-samples. Set `model = &quot;sswm_sequential&quot;` to allow selection intensity to vary among
-sequential sample groups (e.g., stages 1-4; local/distant metastases). Use `groups` to
-define group ordering or to restrict which groups are considered under either built-in
-model. By default, only variants with MAF frequency &amp;gt; 1 (i.e., recurrent variants) are
-tested. To include all variants, or to otherwise customize which variants to include,
-call select_variants() with desired parameters." />
+<meta property="og:title" content="Read and verify MAF somatic mutation data — preload_maf" />
+<meta property="og:description" content="Reads MAF-formatted data from a text file or data table, checks for problems, and
+provides a few quality check annotations (if available). If core MAF columns don't have
+standard names (Chromosome, Start_Position, etc., with Tumor_Sample_Barcode used as the
+sample ID column), you can supply your own column names. If the data you are loading is
+from a different genome build than the chosen reference data set (refset) you can use
+the &quot;chain_file&quot; option to supply a UCSC-style chain file, and your MAF coordinates
+will be automatically converted with rtracklayer's version of liftOver." />
 <meta property="og:image" content="https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/logo.png" />
 
 
@@ -159,106 +158,107 @@ call select_variants() with desired parameters." />
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Calculate variant effect size</h1>
-    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/R/ces_variant.R'><code>R/ces_variant.R</code></a></small>
-    <div class="hidden name"><code>ces_variant.Rd</code></div>
+    <h1>Read and verify MAF somatic mutation data</h1>
+    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/R/preload_maf.R'><code>R/preload_maf.R</code></a></small>
+    <div class="hidden name"><code>preload_maf.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>This function calculates variant effect sizes under the chosen model of selection. By
-default, a variant is assumed to have a consistent selection intensity across all
-samples. Set `model = "sswm_sequential"` to allow selection intensity to vary among
-sequential sample groups (e.g., stages 1-4; local/distant metastases). Use `groups` to
-define group ordering or to restrict which groups are considered under either built-in
-model. By default, only variants with MAF frequency &gt; 1 (i.e., recurrent variants) are
-tested. To include all variants, or to otherwise customize which variants to include,
-call select_variants() with desired parameters.</p>
+    <p>Reads MAF-formatted data from a text file or data table, checks for problems, and
+provides a few quality check annotations (if available). If core MAF columns don't have
+standard names (Chromosome, Start_Position, etc., with Tumor_Sample_Barcode used as the
+sample ID column), you can supply your own column names. If the data you are loading is
+from a different genome build than the chosen reference data set (refset) you can use
+the "chain_file" option to supply a UCSC-style chain file, and your MAF coordinates
+will be automatically converted with rtracklayer's version of liftOver.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>ces_variant</span><span class='op'>(</span>
-  cesa <span class='op'>=</span> <span class='cn'>NULL</span>,
-  variants <span class='op'>=</span> <span class='fu'><a href='select_variants.html'>select_variants</a></span><span class='op'>(</span><span class='va'>cesa</span>, min_freq <span class='op'>=</span> <span class='fl'>2</span><span class='op'>)</span>,
-  run_name <span class='op'>=</span> <span class='st'>"auto"</span>,
-  model <span class='op'>=</span> <span class='st'>"sswm"</span>,
-  groups <span class='op'>=</span> <span class='cn'>NULL</span>,
-  custom_lik_args <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span><span class='op'>(</span><span class='op'>)</span>,
-  hold_out_same_gene_samples <span class='op'>=</span> <span class='st'>"auto"</span>,
-  cores <span class='op'>=</span> <span class='fl'>1</span>,
-  conf <span class='op'>=</span> <span class='fl'>0.95</span>
+    <pre class="usage"><span class='fu'>preload_maf</span><span class='op'>(</span>
+  maf <span class='op'>=</span> <span class='cn'>NULL</span>,
+  refset <span class='op'>=</span> <span class='st'>"ces.refset.hg19"</span>,
+  coverage_intervals_to_check <span class='op'>=</span> <span class='cn'>NULL</span>,
+  chain_file <span class='op'>=</span> <span class='cn'>NULL</span>,
+  sample_col <span class='op'>=</span> <span class='st'>"Tumor_Sample_Barcode"</span>,
+  chr_col <span class='op'>=</span> <span class='st'>"Chromosome"</span>,
+  start_col <span class='op'>=</span> <span class='st'>"Start_Position"</span>,
+  ref_col <span class='op'>=</span> <span class='st'>"Reference_Allele"</span>,
+  tumor_allele_col <span class='op'>=</span> <span class='st'>"guess"</span>,
+  more_cols <span class='op'>=</span> <span class='cn'>NULL</span>
 <span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>cesa</th>
-      <td><p>CESAnalysis object</p></td>
+      <th>maf</th>
+      <td><p>Path of tab-delimited text file in MAF format, or a data.table/data.frame with MAF data</p></td>
     </tr>
     <tr>
-      <th>variants</th>
-      <td><p>Variant table from <code><a href='select_variants.html'>select_variants()</a></code>, or a <code>CompoundVariantSet</code> from
-<code><a href='define_compound_variants.html'>define_compound_variants()</a></code>. Defaults to all recurrent noncoding SNVs and
-(SNV-derived) coding mutations, where recurrent means appearing in at least two
-samples in the MAF data set.</p></td>
+      <th>refset</th>
+      <td><p>name of reference data set (refset) to use; run <code><a href='list_ces_refsets.html'>list_ces_refsets()</a></code> for
+available refsets. Alternatively, the path to a custom reference data directory.</p></td>
     </tr>
     <tr>
-      <th>run_name</th>
-      <td><p>Optionally, a name to identify the current run.</p></td>
+      <th>coverage_intervals_to_check</th>
+      <td><p>If available, a BED file or GRanges object
+represented the expected coverage intervals of the sequencing method used to generate
+the MAF data. Unless the coverage intervals are incorrect, most records will be
+covered. Output will show how far away uncovered records are from covered regions,
+which can inform whether to use the covered_regions_padding option in load_maf().
+(For example, some variant callers will identify variants up to 100bp out of the
+target regions, and you may want to pad the covered intervals to allow these variants
+to remain in your data. Alternatively, if all records are already covered, then the
+calls have probably already be trimmed to the coverage intervals, which means no
+padding should be added.)</p></td>
     </tr>
     <tr>
-      <th>model</th>
-      <td><p>"sswm" or "sswm_sequential" to use built-in models of selection, or supply a
-custom function factory (see details).</p></td>
+      <th>sample_col</th>
+      <td><p>column name with sample ID data (Tumor_Sample_Barcode or Unique_Patient_Identifier)</p></td>
     </tr>
     <tr>
-      <th>groups</th>
-      <td><p>Which sample groups to include (default all); data for outgroup samples
-will not inform selection calculation. For models (like sswm_sequential) that assume
-ordered groups of samples, use a list to indicate group ordering.
-Examples: <code><a href='https://rdrr.io/r/base/c.html'>c("group1", "group2")</a></code> includes groups 1 and 2, but doesn't indicate
-an ordering, so is invalid for ordered-group models.
-<code><a href='https://rdrr.io/r/base/list.html'>list("Primary", "Metastatic")</a></code> indicates two ordered groups, and
-<code><a href='https://rdrr.io/r/base/list.html'>list("A", c("B", "C"), "D")</a></code> means that group A is first, groups B and C share
-an intermediate state, and group D is last.</p></td>
+      <th>chr_col</th>
+      <td><p>column name with chromosome data  (Chromosome)</p></td>
     </tr>
     <tr>
-      <th>custom_lik_args</th>
-      <td><p>Extra arguments, given as a list, to pass to custom likelihood
-functions.</p></td>
+      <th>start_col</th>
+      <td><p>column name with start position (Start_Position)</p></td>
     </tr>
     <tr>
-      <th>hold_out_same_gene_samples</th>
-      <td><p>When finding likelihood of each variant, hold out
-samples that lack the variant but have any other mutations in the same gene. By default,
-TRUE when running with single variants, FALSE with a CompoundVariantSet.</p></td>
+      <th>ref_col</th>
+      <td><p>column name with reference allele data (Reference_Allele)</p></td>
     </tr>
     <tr>
-      <th>cores</th>
-      <td><p>number of cores to use</p></td>
+      <th>tumor_allele_col</th>
+      <td><p>column name with alternate allele data; by default,
+values from Tumor_Seq_Allele2 and Tumor_Seq_Allele1 columns are used</p></td>
     </tr>
     <tr>
-      <th>conf</th>
-      <td><p>selection intensity confidence interval width (NULL skips calculation,
-speeds runtime)</p></td>
+      <th>more_cols</th>
+      <td><p>Names of data columns to keep in addition to the core required
+columns. Choose "all" to keep all columns.</p></td>
     </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>CESAnalysis object with selection results appended to the selection output list</p>
+    <p>a data.table of MAF data, with any problematic records flagged and a few
+  quality-control annotations (if available with the chosen refset data).</p>
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
-    <p>It's possible to pass in your own selection model. You'll need to create a "function
-factory" that, for any variant, produces a likelihood function that can be evaluated on
-the data. The first two arguments must be rates_tumors_with and rates_tumors_without,
-which take the baseline site mutation rates in samples with and without the variant.
-The third argument must be sample_index, which associates Unique_Patient_Identifiers
-with their sample groups. Values for all three of these arguments will be calculated by
-ces_variant and passed to your function factory automatically. Your function can take
-whatever additional arguments you like, and you can pass in values using
-`custom_lik_args`. The likelihood function parameters that ces_variant will optimize
-should be named and have default values. See the source code of `sswm_sequential_lik()`
-for an example.</p>
+    <p>The default ces.refset.hg19 provides three annotations that may consider using for
+quality filtering of MAF records:</p><ul>
+<li><p>cosmic_site_tier Indicates if the variant's position overlaps a mutation in
+COSMIC v92's Cancer Mutation Census. Mutations are classified as Tier 1, Tier 2, Tier
+3, and Other. Note that the MAF mutation itself is not necessarily in the census. See
+COSMIC's website for tier definitions.</p></li>
+<li><p>germline_variant_site The variant's position overlaps a site of common germline
+variation. Roughly, this means that gnomAD 2.1.1 shows an overlapping germline variant at
+greater than 1<!-- % prevalence in some population. --></p></li>
+<li><p>repetitive_region The variant overlaps a site marked as repetitive sequence by
+the RepeatMasker tool (data taken from UCSC Table Browser). Variant calls in repetitive
+sites frequently reflect calling error.</p></li>
+</ul>
+
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

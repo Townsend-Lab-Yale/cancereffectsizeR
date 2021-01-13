@@ -43,6 +43,9 @@
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/check_for_ref_data.html</loc>
   </url>
   <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/check_sample_overlap.html</loc>
+  </url>
+  <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/clean_granges_for_cesa.html</loc>
   </url>
   <url>
@@ -127,7 +130,13 @@
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/pairwise_variant_epistasis.html</loc>
   </url>
   <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/preload_maf.html</loc>
+  </url>
+  <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/preload_ref_data.html</loc>
+  </url>
+  <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/read_in_maf.html</loc>
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/run_deconstructSigs.html</loc>
@@ -185,6 +194,9 @@
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/articles/cosmic_cancer_type_note.html</loc>
+  </url>
+  <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/articles/create_custom_covariates.html</loc>
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/articles/custom_refset_instructions.html</loc>

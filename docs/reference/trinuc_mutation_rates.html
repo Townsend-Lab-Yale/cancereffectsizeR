@@ -91,7 +91,7 @@ which means that you need at least some exome or genome data to run." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.0.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.1.0</span>
       </span>
     </div>
 
@@ -99,7 +99,7 @@ which means that you need at least some exome or genome data to run." />
       <ul class="nav navbar-nav">
         <li>
   <a href="../index.html">
-    <span class="fas fa fas fa-home fa-lg"></span>
+    <span class="fas fa-home fa-lg"></span>
      
   </a>
 </li>
@@ -120,6 +120,9 @@ which means that you need at least some exome or genome data to run." />
       <a href="../articles/cosmic_cancer_type_note.html">Cancer type considerations for COSMIC signature extraction</a>
     </li>
     <li>
+      <a href="../articles/create_custom_covariates.html">Generate tissue covariates data</a>
+    </li>
+    <li>
       <a href="../articles/custom_refset_instructions.html">Running with custom reference data</a>
     </li>
   </ul>
@@ -131,7 +134,7 @@ which means that you need at least some exome or genome data to run." />
       <ul class="nav navbar-nav navbar-right">
         <li>
   <a href="https://github.com/Townsend-Lab-Yale/cancereffectsizeR/">
-    <span class="fab fa fab fa-github fa-lg"></span>
+    <span class="fab fa-github fa-lg"></span>
      
   </a>
 </li>
@@ -168,16 +171,16 @@ average trinucleotide mutation rates calculated across all exome/genome data,
 which means that you need at least some exome or genome data to run.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>trinuc_mutation_rates</span>(
-  <span class='no'>cesa</span>,
-  <span class='kw'>signature_set</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
-  <span class='kw'>signatures_to_remove</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/character.html'>character</a></span>(),
-  <span class='kw'>sample_group</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
-  <span class='kw'>cores</span> <span class='kw'>=</span> <span class='fl'>1</span>,
-  <span class='kw'>assume_identical_mutational_processes</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>,
-  <span class='kw'>sig_averaging_threshold</span> <span class='kw'>=</span> <span class='fl'>50</span>,
-  <span class='kw'>use_dS_exome2genome</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>
-)</pre>
+    <pre class="usage"><span class='fu'>trinuc_mutation_rates</span><span class='op'>(</span>
+  <span class='va'>cesa</span>,
+  signature_set <span class='op'>=</span> <span class='cn'>NULL</span>,
+  signatures_to_remove <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/character.html'>character</a></span><span class='op'>(</span><span class='op'>)</span>,
+  sample_group <span class='op'>=</span> <span class='cn'>NULL</span>,
+  cores <span class='op'>=</span> <span class='fl'>1</span>,
+  assume_identical_mutational_processes <span class='op'>=</span> <span class='cn'>FALSE</span>,
+  sig_averaging_threshold <span class='op'>=</span> <span class='fl'>50</span>,
+  use_dS_exome2genome <span class='op'>=</span> <span class='cn'>FALSE</span>
+<span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -274,7 +277,7 @@ can also be supplied. For a template signature set object, run
 </div>
 
 <div class="pkgdown">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.5.1.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.6.1.</p>
 </div>
 
       </footer>
