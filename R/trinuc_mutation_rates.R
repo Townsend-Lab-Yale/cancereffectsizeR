@@ -126,12 +126,6 @@ trinuc_mutation_rates <- function(cesa,
   } else if(is(signature_set, "list")) {
     validate_signature_set(signature_set)
     signature_set_data = signature_set
-    check = tryCatch(get_ces_signature_set(cesa@ref_key,  signature_set_data$name),
-                     error = function(e) NULL)
-    if (! is.null(check)) {
-      stop("Your signature set's name matches one already provided with your CESAnalysis reference data.\n",
-           "If you're trying to supply a custom signature set, change its name.")
-    }
   } else {
     stop("signature_set should be type character; run list_ces_signature_sets() for options.\n",
          "(Or, it can be a custom signature set; see docs.)")
