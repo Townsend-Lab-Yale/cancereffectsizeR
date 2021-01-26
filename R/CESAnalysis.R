@@ -38,7 +38,7 @@ CESAnalysis = function(refset = "ces.refset.hg19", sample_groups = NULL) {
     if (actual_version < req_version) {
       stop("CES reference data set ", refset_name, " is version ", actual_version, ", but your version of cancereffectsizeR requires at least ",
            "version ", req_version, ".\nRun this to update:\n",
-           "remotes::install_github(\"Townsend-Lab-Yale/ces-reference-data/", refset_name, "\")")
+           "remotes::install_github(\"Townsend-Lab-Yale/", refset_name, "\")")
     }
     ref_data_version = actual_version
     data_dir = system.file("refset", package = refset_name)
@@ -177,14 +177,14 @@ load_cesa = function(file) {
   if (refset_name %in% names(.official_refsets)) {
     if(! require(refset_name, character.only = T, quietly = T)) {
       stop("CES reference data set ", refset_name, " not installed. Run this to install:\n", 
-           "remotes::install_github(\"Townsend-Lab-Yale/ces-reference-data/", refset_name, "\")")
+           "remotes::install_github(\"Townsend-Lab-Yale/", refset_name, "\")")
     }
     req_version = .official_refsets[[refset_name]]
     actual_version = packageVersion(refset_name)
     if (actual_version < req_version) {
       stop("CES reference data set ", refset_name, " is version ", actual_version, ", but your version of cancereffectsizeR requires at least ",
            "version ", req_version, ".\nRun this to update:\n",
-           "remotes::install_github(\"Townsend-Lab-Yale/ces-reference-data/", refset_name, "\")")
+           "remotes::install_github(\"Townsend-Lab-Yale/", refset_name, "\")")
     }
     cesa@ref_data_dir = system.file("refset", package = refset_name)
   } else {

@@ -51,27 +51,31 @@ You want to be confident that nearly all of the somatic variants in your MAF fil
 * There should be few to no mutations in repetitive or poorly mapped regions of the genome, as mutations in these sites are difficult to call confidently and should be rare anyways since these regions are usually not functionally important at the small-variant level.
 * When combining data from multiple sources, look out for re-use of samples.
 
-When running with ces.refset.hg19 reference data, preloaded MAFs get annotations relevant to these guidelines. (See the `preload_maf()` reference for details.) In this example, we'll exclude mutations in repetitive regions and at sites of germline variation, with the exception of mutations at sites of known cancer signficance (COSMIC mutation census tiers 1-3). Simultaneously, we'll combine the three MAF data tables together and run a helper function `check_sample_overlap()`, to identify possible duplicate samples across data sources. Lastly, we save one analysis-ready MAF per original MAF.
+When running with ces.refset.hg19 reference data, preloaded MAFs get annotations relevant to these guidelines. (See the `preload_maf()` reference for details.) In this example, we'll exclude mutations at sites of germline variation, and we'll also exclude mutations in repetitive regions except when the sites are of known cancer signficance (COSMIC mutation census tiers 1-3). Next, we'll combine the three MAF data tables and run a helper function `check_sample_overlap()`, to identify possible duplicate samples across data sources. Lastly, we save one analysis-ready MAF per original MAF.
 ```{r eval = F}
   # create named list of MAF tables
+  maf1 = 'my_maf_1.txt'
+  maf2 = 'my_maf_2.txt'
+  maf3 = 'my_maf_3.txt'
   all_mafs = list(maf1 = maf1, maf2 = maf2, maf3 = maf3)
   combined_maf = rbindlist(all_mafs, idcol = 'source', fill = T)
   
-  # remove problematic records (not strictly necessary, but nice for saving clean final MAF files)
+  # remove problematic records (assuming they can't be fixed)
   combined_maf = combined_maf[is.na(problem)]
   
-  # remove variants from repetitive/germline variant sites except for COSMIC Tier 1-3 sites
-  combined_maf = combined_maf[(repetitive_region == F & germline_variant_site == F) | cosmic_site_tier %in% 1:3]
+  # Exclude recrods that overlap germline variant sites, and also 
+  # exclude records in repetitive regions except at COSMIC Tier 1-3 sites.
+  combined_maf = combined_maf[germline_variant_site == F & (repetitive_region == F | cosmic_site_tier %in% 1:3)]
   
   # check for sample duplicates and sample contamination
-  possible_dups = check_sample_overlap(combined_table)
+  possible_dups = check_sample_overlap(combined_maf)
   
-  # After manual review, let's say that we've identified 3 samples that should be removed
+  # After manual review, let's say that we've identified 3 samples that should be removed.
   samples_to_remove = c("Sample_9", "Sample_100", "Sample_150")
   combined_maf = combined_maf[! Unique_Patient_Identifier %in% samples_to_remove]
   
-  # Divide back into three tables
-  # Presumably, you will want to save these as your analysis-read MAF text files
+  # Divide back into three tables.
+  # You'll probably want to save these as your analysis-ready MAF text files.
   maf_1_final = combined_maf[source == "maf1"]
   maf_2_final = combined_maf[source == "maf2"]
   maf_3_final = combined_maf[source == "maf3"]
@@ -79,7 +83,7 @@ When running with ces.refset.hg19 reference data, preloaded MAFs get annotations
   # fwrite(maf_1_final, "maf_1_final.txt", sep = "\t") (etc.)
 ```
 
-Once you have a high-confidence set of variants, **do not** filter out records based on silent mutation status or other functional criteria. cancereffectsizeR needs the full set of high-confidence mutations from all samples. (A note on indels: It's better to leave indels in the data if they're present, but it's okay if they're missing.)
+Once you have a high-confidence set of variants, **do not** filter out records based on silent mutation status or other functional criteria. cancereffectsizeR needs the full set of high-confidence mutations from all samples. (A note on indels: It's better to leave indels in the data if they're present (and to fix them if they're misformatted), but it's okay if they're missing from the data source.)
 
 
 ## Create CESAnalysis

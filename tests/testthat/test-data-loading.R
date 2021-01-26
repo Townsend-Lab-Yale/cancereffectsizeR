@@ -5,7 +5,6 @@ test_that("load_maf and variant annotation", {
                                  sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2"),
                         "do not match the reference genome")
   tiny_ak = load_cesa(get_test_file("tiny_hg19_maf_loaded.rds"))
-  
   expect_equal(tiny$maf[order(variant_id)], tiny_ak$maf[order(variant_id)])
   expect_equal(tiny@excluded, tiny_ak@excluded, ignore.row.order = T)
   expect_equal(tiny@mutations, tiny_ak@mutations)

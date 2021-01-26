@@ -367,7 +367,7 @@ trinuc_mutation_rates <- function(cesa,
     }
     
     rownames(mean_trinuc_prop) = "mean" # deconstructSigs crashes unless a rowname is supplied here
-    message("Determining group-average signatures from well-mutated tumors....")
+    message("Determining group-average signatures from samples with at least ", sig_averaging_threshold, " SNVs...")
     mean_ds <- run_deconstructSigs(tumor_trinuc_counts = mean_trinuc_prop, signatures_df = signatures, 
                                                       signatures_to_remove = signatures_to_remove, tri.counts.method = "default",
                                                       artifact_signatures = mean_calc_artifact_signatures)
@@ -383,7 +383,7 @@ trinuc_mutation_rates <- function(cesa,
     
     # this should never happen
     if(all(mean_weights == 0)) {
-      stop("Somehow, mean signature weights across all well-mutated tumors are all zero.")
+      stop("Somehow, mean signature weights across all samples are all zero.")
     }
     if (assume_identical_mutational_processes) {
       # when assume_identical_mutational_processes is TRUE, this is where trinuc_proportion_matrix gets built

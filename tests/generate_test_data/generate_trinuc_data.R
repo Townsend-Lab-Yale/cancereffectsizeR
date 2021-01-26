@@ -8,4 +8,4 @@ saveRDS(cesa, "cesa_for_trinuc_weighting_calc.rds")
 trimut = trinuc_mutation_rates(cesa, signature_set = "COSMIC_v3.1", 
                                signatures_to_remove = suggest_cosmic_signatures_to_remove("LUAD", TRUE, TRUE))
 saveRDS(trimut@trinucleotide_mutation_weights, "trinuc_mut_weighting.rds")
-
+setwd(prev_dir)

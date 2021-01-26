@@ -78,7 +78,7 @@ preload_maf = function(maf = NULL, refset = "ces.refset.hg19", coverage_interval
     if (actual_version < req_version) {
       stop("CES reference data set ", refset_name, " is version ", actual_version, ", but your version of cancereffectsizeR requires at least ",
            "version ", req_version, ".\nRun this to update:\n",
-           "remotes::install_github(\"Townsend-Lab-Yale/ces-reference-data/", refset_name, "\")")
+           "remotes::install_github(\"Townsend-Lab-Yale/", refset_name, "\")")
     }
     ref_data_version = actual_version
     data_dir = system.file("refset", package = refset_name)

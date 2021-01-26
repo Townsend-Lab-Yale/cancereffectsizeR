@@ -48,7 +48,6 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
   if(cesa@advanced$locked) {
     stop("You can't load more MAF data since you've already calculated some mutation rates. Create a new one if necessary.", call. = F)
   }
-  
   cesa = update_cesa_history(cesa, match.call())
   bsg = get_cesa_bsg(cesa)
   
