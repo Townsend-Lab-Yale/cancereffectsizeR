@@ -51,8 +51,12 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
   mutations = cesa@mutations
   
   # can drop AAC mutations not requested
-  mutations$amino_acid_change = mutations$amino_acid_change[aac_ids]
-  setkey(mutations$amino_acid_change, "aac_id")
+  if(length(aac_ids) > 0) {
+    mutations$amino_acid_change = mutations$amino_acid_change[aac_ids]
+    setkey(mutations$amino_acid_change, "aac_id")
+  } else {
+    mutations$amino_acid_change = data.table()
+  }
   
   
   # Give a progress message if this is going to take more than a few seconds
@@ -66,13 +70,13 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
   
   # produce a table with all pairwise combinations of Unique_Patient_Identifier and relevant genes
   # relevant genes are those associated with one of the AACs/SNVs of interest
-  relevant_genes = union(mutations$amino_acid_change$gene, mutations$snv[snv_id %in% snv_ids, unlist(genes)])
+  relevant_genes = union(mutations$amino_acid_change$gene, mutations$snv[snv_ids, unlist(genes), on = "snv_id"])
   sample_gene_rates = as.data.table(expand.grid(gene = relevant_genes, Unique_Patient_Identifier = samples$Unique_Patient_Identifier, 
                                                 stringsAsFactors = F),key = "Unique_Patient_Identifier")
   
   # add gene mutation rates to the table by using @mutrates and the groups of each samples
   sample_gene_rates = sample_gene_rates[samples[, .(Unique_Patient_Identifier, gene_rate_grp)]]
-  melted_mutrates = melt.data.table(cesa@mutrates[gene %in% relevant_genes], id.vars = c("gene"))
+  melted_mutrates = melt.data.table(cesa@mutrates[relevant_genes, on = "gene"], id.vars = c("gene"))
   setnames(melted_mutrates, c("variable", "value"), c("gene_rate_grp", "raw_rate"))
   sample_gene_rates = melted_mutrates[sample_gene_rates, , on = c("gene", "gene_rate_grp")]
   
@@ -86,7 +90,6 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
   for (row in rownames(trinuc_mat)) { 
     trinuc_rates[[row]] = unname(trinuc_mat[row, ])
   }
-  
   # dot product of trinuc comp and patient's expected relative trinuc rates yields the denominator
   # for site-specific mutation rate calculation; numerator is raw gene rate multipled by the patient's relative rate for the site's trinuc context
   # (this last value gets multipled in by get_baseline functions below)

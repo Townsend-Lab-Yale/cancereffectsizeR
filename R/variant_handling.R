@@ -399,6 +399,9 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = 
       non_intergenic = cesa@maf[variant_type == "snv" & ! variant_id %in% cesa@mutations$snv[intergenic == T, snv_id]]
       maf_gene_counts = sort(table(unlist(non_intergenic$genes))[multi_hit_genes], decreasing = T)
       chosen_aac = character(num_to_check)
+      
+      # poorly optimized; may need to improve if large data sets are analyzed with lots of
+      # overlapping AACs
       for (i in 1:num_to_check) {
         candidates = multi_hits[multi_hits[i, all_aac], nomatch = NULL]
         

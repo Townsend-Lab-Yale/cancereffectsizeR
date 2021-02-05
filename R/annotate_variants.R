@@ -403,7 +403,11 @@ annotate_variants <- function(cesa) {
   }
   cesa@maf = maf
   
-  # add covered_in to annotation tables and return
-	return(update_covered_in(cesa))
+  # Add covered_in to annotation tables and return
+  # Internal note: Confusingly, update_covered_in also has a side effect of updating
+  # cached output of select_variants, because whether using annotate_variants,
+  # add_covered_regions, or add_variants, it always gets called at the end.
+  return(update_covered_in(cesa))
+	
 }
 

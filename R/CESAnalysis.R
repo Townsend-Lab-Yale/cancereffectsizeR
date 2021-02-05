@@ -100,6 +100,8 @@ CESAnalysis = function(refset = "ces.refset.hg19", sample_groups = NULL) {
   ## gene_rates_done: have all samples been through gene_mutation_rates?
   ## uid: a unique-enough identifier for the CESAnalysis (just uses epoch time)
   ## genome_info: environment with stuff like genome build name, species, name of associated BSgenome
+  ## cached_variants (not populated here): output of select_variants() run with default arguments
+  ##      (automatically updated as needed by load_cesa/update_covered_in)
   genome_info = get_ref_data(data_dir, "genome_build_info")
   ces_version = packageVersion("cancereffectsizeR")
   advanced = list("version" = ces_version, annotated = F, using_exome_plus = F, 
@@ -141,6 +143,7 @@ save_cesa = function(cesa, file) {
     stop("filename should end in .rds (indicates R data serialized format)")
   }
   cesa_to_save = update_cesa_history(cesa, match.call())
+  cesa_to_save@advanced$cached_variants = NULL # reduce file size (data recalculated on reload)
   saveRDS(cesa_to_save, file)
 }
 
@@ -209,6 +212,13 @@ load_cesa = function(file) {
     cesa@run_history = c(cesa@run_history, paste0("\n[Now running CES ", current_version, ']'))
   }
   cesa = update_cesa_history(cesa, match.call())
+  
+  
+  # cache variant table for easy user access
+  if(length(cesa@mutations) > 0) {
+    cesa@advanced$cached_variants = select_variants(cesa)
+    setkey(cesa@advanced$cached_variants, 'variant_id', 'variant_type')
+  }
   return(cesa)
 }
 
@@ -348,7 +358,8 @@ get_gene_rates = function(cesa = NULL) {
 
 #' View results from ces_variant
 #' 
-#' returns a list of data tables with results from ces_variant(), plus annotations
+#' returns a list of ces_variant() results tables, with variant annotations added
+#' 
 #' @param cesa CESAnalysis object
 #' @export
 snv_results = function(cesa = NULL) {
@@ -368,8 +379,7 @@ snv_results = function(cesa = NULL) {
       output = c(output, list(curr_selection))
       next
     }
-    annotations = suppressMessages(select_variants(cesa, variant_passlist = curr_selection$variant_id))
-    results = curr_selection[annotations, on = c("variant_id", "variant_type")]
+    results = curr_selection[cesa$variants, on = c("variant_id", "variant_type"), nomatch = NULL]
     results_cols = colnames(results)
     # try to flip variant_name and variant_id columns
     if(results_cols[1] == "variant_id") {

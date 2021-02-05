@@ -198,6 +198,8 @@ assign_gr_to_coverage = function(cesa, gr, covered_regions_name, coverage_type) 
 #' Updates the covered_in annotation for all variants
 #' to include all covered regions in the CESAnalysis
 #' 
+#' Also updated internal cached output of select_variants().
+#' 
 #' @param cesa CESAnalysis
 #' @return CESAnalysis with regenerated covered-in annotations
 #' @keywords internal
@@ -252,5 +254,9 @@ update_covered_in = function(cesa) {
     cesa@mutations$amino_acid_change = aac_table
     setkey(cesa@mutations$amino_acid_change, 'aac_id')
   }
+  
+  # Finally, update internal cached variants
+  cesa@advanced$cached_variants = suppressMessages(select_variants(cesa))
+  setkey(cesa@advanced$cached_variants, 'variant_id', 'variant_type')
   return(cesa)
 }
