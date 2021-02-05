@@ -40,7 +40,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.1.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.1.1</span>
       </span>
     </div>
 
@@ -160,37 +160,39 @@
 <li>There should be few to no mutations in repetitive or poorly mapped regions of the genome, as mutations in these sites are difficult to call confidently and should be rare anyways since these regions are usually not functionally important at the small-variant level.</li>
 <li>When combining data from multiple sources, look out for re-use of samples.</li>
 </ul>
-<p>When running with ces.refset.hg19 reference data, preloaded MAFs get annotations relevant to these guidelines. (See the <code><a href="../reference/preload_maf.html">preload_maf()</a></code> reference for details.) In this example, we’ll exclude mutations in repetitive regions and at sites of germline variation, with the exception of mutations at sites of known cancer signficance (COSMIC mutation census tiers 1-3). Simultaneously, we’ll combine the three MAF data tables together and run a helper function <code><a href="../reference/check_sample_overlap.html">check_sample_overlap()</a></code>, to identify possible duplicate samples across data sources. Lastly, we save one analysis-ready MAF per original MAF.</p>
+<p>When running with ces.refset.hg19 reference data, preloaded MAFs get annotations relevant to these guidelines. (See the <code><a href="../reference/preload_maf.html">preload_maf()</a></code> reference for details.) In this example, we’ll exclude mutations at sites of germline variation, and we’ll also exclude mutations in repetitive regions except when the sites are of known cancer signficance (COSMIC mutation census tiers 1-3). Next, we’ll combine the three MAF data tables and run a helper function <code><a href="../reference/check_sample_overlap.html">check_sample_overlap()</a></code>, to identify possible duplicate samples across data sources. Lastly, we save one analysis-ready MAF per original MAF.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># create named list of MAF tables</span>
+<span class="va">maf1</span> <span class="op">=</span> <span class="st">"my_maf_1.txt"</span>
+<span class="va">maf2</span> <span class="op">=</span> <span class="st">"my_maf_2.txt"</span>
+<span class="va">maf3</span> <span class="op">=</span> <span class="st">"my_maf_3.txt"</span>
 <span class="va">all_mafs</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>maf1 <span class="op">=</span> <span class="va">maf1</span>, maf2 <span class="op">=</span> <span class="va">maf2</span>, maf3 <span class="op">=</span> <span class="va">maf3</span><span class="op">)</span>
 <span class="va">combined_maf</span> <span class="op">=</span> <span class="fu">rbindlist</span><span class="op">(</span><span class="va">all_mafs</span>, idcol <span class="op">=</span> <span class="st">"source"</span>, fill <span class="op">=</span> <span class="cn">T</span><span class="op">)</span>
 
-<span class="co"># remove problematic records (not strictly necessary, but nice for saving clean</span>
-<span class="co"># final MAF files)</span>
+<span class="co"># remove problematic records (assuming they can't be fixed)</span>
 <span class="va">combined_maf</span> <span class="op">=</span> <span class="va">combined_maf</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html">is.na</a></span><span class="op">(</span><span class="va">problem</span><span class="op">)</span><span class="op">]</span>
 
-<span class="co"># remove variants from repetitive/germline variant sites except for COSMIC Tier</span>
-<span class="co"># 1-3 sites</span>
-<span class="va">combined_maf</span> <span class="op">=</span> <span class="va">combined_maf</span><span class="op">[</span><span class="op">(</span><span class="va">repetitive_region</span> <span class="op">==</span> <span class="cn">F</span> <span class="op">&amp;</span> <span class="va">germline_variant_site</span> <span class="op">==</span> <span class="cn">F</span><span class="op">)</span> <span class="op">|</span> 
-    <span class="va">cosmic_site_tier</span> <span class="op">%in%</span> <span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span>
+<span class="co"># Exclude recrods that overlap germline variant sites, and also exclude records</span>
+<span class="co"># in repetitive regions except at COSMIC Tier 1-3 sites.</span>
+<span class="va">combined_maf</span> <span class="op">=</span> <span class="va">combined_maf</span><span class="op">[</span><span class="va">germline_variant_site</span> <span class="op">==</span> <span class="cn">F</span> <span class="op">&amp;</span> <span class="op">(</span><span class="va">repetitive_region</span> <span class="op">==</span> <span class="cn">F</span> <span class="op">|</span> 
+    <span class="va">cosmic_site_tier</span> <span class="op">%in%</span> <span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">)</span><span class="op">]</span>
 
 <span class="co"># check for sample duplicates and sample contamination</span>
-<span class="va">possible_dups</span> <span class="op">=</span> <span class="fu"><a href="../reference/check_sample_overlap.html">check_sample_overlap</a></span><span class="op">(</span><span class="va">combined_table</span><span class="op">)</span>
+<span class="va">possible_dups</span> <span class="op">=</span> <span class="fu"><a href="../reference/check_sample_overlap.html">check_sample_overlap</a></span><span class="op">(</span><span class="va">combined_maf</span><span class="op">)</span>
 
 <span class="co"># After manual review, let's say that we've identified 3 samples that should be</span>
-<span class="co"># removed</span>
+<span class="co"># removed.</span>
 <span class="va">samples_to_remove</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"Sample_9"</span>, <span class="st">"Sample_100"</span>, <span class="st">"Sample_150"</span><span class="op">)</span>
 <span class="va">combined_maf</span> <span class="op">=</span> <span class="va">combined_maf</span><span class="op">[</span><span class="op">!</span><span class="va">Unique_Patient_Identifier</span> <span class="op">%in%</span> <span class="va">samples_to_remove</span><span class="op">]</span>
 
-<span class="co"># Divide back into three tables Presumably, you will want to save these as your</span>
-<span class="co"># analysis-read MAF text files</span>
+<span class="co"># Divide back into three tables.  You'll probably want to save these as your</span>
+<span class="co"># analysis-ready MAF text files.</span>
 <span class="va">maf_1_final</span> <span class="op">=</span> <span class="va">combined_maf</span><span class="op">[</span><span class="va">source</span> <span class="op">==</span> <span class="st">"maf1"</span><span class="op">]</span>
 <span class="va">maf_2_final</span> <span class="op">=</span> <span class="va">combined_maf</span><span class="op">[</span><span class="va">source</span> <span class="op">==</span> <span class="st">"maf2"</span><span class="op">]</span>
 <span class="va">maf_3_final</span> <span class="op">=</span> <span class="va">combined_maf</span><span class="op">[</span><span class="va">source</span> <span class="op">==</span> <span class="st">"maf3"</span><span class="op">]</span>
 
 <span class="co"># fwrite(maf_1_final, 'maf_1_final.txt', sep = '\t') (etc.)</span></code></pre></div>
-<p>Once you have a high-confidence set of variants, <strong>do not</strong> filter out records based on silent mutation status or other functional criteria. cancereffectsizeR needs the full set of high-confidence mutations from all samples. (A note on indels: It’s better to leave indels in the data if they’re present, but it’s okay if they’re missing.)</p>
+<p>Once you have a high-confidence set of variants, <strong>do not</strong> filter out records based on silent mutation status or other functional criteria. cancereffectsizeR needs the full set of high-confidence mutations from all samples. (A note on indels: It’s better to leave indels in the data if they’re present (and to fix them if they’re misformatted), but it’s okay if they’re missing from the data source.)</p>
 </div>
 </div>
 <div id="create-cesanalysis" class="section level2">

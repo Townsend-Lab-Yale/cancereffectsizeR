@@ -1,3 +1,7 @@
+# cancereffectsizeR 2.1.1
+* Minor improvements and documentation updates.
+
+
 # cancereffectsizeR 2.1.0
 * Simple workflow for building custom tissue covariates data, to inform calculation of gene mutation rates.
 * preload_maf() detects problems in MAF data and informs quality filtering of records.

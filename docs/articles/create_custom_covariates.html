@@ -40,7 +40,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.1.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.1.1</span>
       </span>
     </div>
 
@@ -135,9 +135,9 @@
 
   <span class="co"># Load refset data package, if not using a custom refset directory</span>
   <span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va">ces.refset.hg19</span><span class="op">)</span></code></pre></div>
-<p>Get gene information used by the refset of interest. If using a custom refset directory, use <code>readRDS</code> to load the required RefCDS and gr_genes data.</p>
+<p>We need to gather gene information used by the refset of interest. If using a custom refset directory, use <code>readRDS</code> to load the required RefCDS and gr_genes data; here, we can access the data from the refset environment:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="co"># Get gene namds and gene IDs; remove version number suffixes for short IDs</span>
+<code class="sourceCode R"><span class="co"># Get gene names and gene IDs; remove version number suffixes for short IDs</span>
 <span class="va">refset_genes</span> <span class="op">=</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/rbindlist.html">rbindlist</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html">lapply</a></span><span class="op">(</span><span class="va">ces.refset.hg19</span><span class="op">$</span><span class="va">RefCDS</span>, <span class="st">'['</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"gene_id"</span>, <span class="st">"gene_name"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>
 <span class="va">refset_genes</span><span class="op">[</span>, <span class="va">short_gene_id</span> <span class="op">:=</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html">gsub</a></span><span class="op">(</span><span class="st">'\\..*'</span>, <span class="st">''</span>, <span class="va">gene_id</span><span class="op">)</span><span class="op">]</span>
 <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/setkey.html">setkey</a></span><span class="op">(</span><span class="va">refset_genes</span>, <span class="st">"short_gene_id"</span><span class="op">)</span>
@@ -148,7 +148,7 @@
 <div id="process-gene-based-experimental-data" class="section level2">
 <h2 class="hasAnchor">
 <a href="#process-gene-based-experimental-data" class="anchor"></a>Process gene-based experimental data</h2>
-<p>First, we’ll load lung tissue RNA-Seq gene-level read counts from GTEx (Genotype-Tissue expression project). The data file is large because it contains many tissue types. We’ll use the sample attributes file to subset to lung samples.</p>
+<p>First, we’ll load lung tissue RNA-Seq gene-level read counts from GTEx (Genotype-Tissue expression project). The data file is large because it contains many tissue types. We’ll use an accompanying sample attributes file to subset to lung samples.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">gtex</span> <span class="op">=</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/fread.html">fread</a></span><span class="op">(</span><span class="st">"GTEx_Analysis_2016-01-15_v7_RNASeQCv1.1.8_gene_tpm.gct.gz"</span><span class="op">)</span>
 <span class="va">gtex_key</span> <span class="op">=</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/fread.html">fread</a></span><span class="op">(</span><span class="st">"GTEx_v7_Annotations_SampleAttributesDS.txt"</span><span class="op">)</span>
@@ -163,7 +163,7 @@
 <span class="va">gtex</span><span class="op">[</span>, <span class="va">Name</span> <span class="op">:=</span> <span class="cn">NULL</span><span class="op">]</span>
 
 <span class="co"># Consider saving work in progress with saveRDS(gtex, "my_gtex.rds")</span></code></pre></div>
-<p>We repeat this process with cancer cell line RNA-Seq data from DepMap’s CCLE (Cancer Cell Line Encyclopedia). Again, the data file contains many tissue types, and we subset to lung samples.</p>
+<p>We repeat this process with cancer cell line RNA-Seq data from DepMap’s CCLE (Cancer Cell Line Encyclopedia). As above, the data file contains many tissue types, and we subset to lung samples.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">ccle</span> <span class="op">=</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/fread.html">fread</a></span><span class="op">(</span><span class="st">"CCLE_DepMap_18Q1_RNAseq_RPKM_20180214.gct"</span><span class="op">)</span>
 <span class="va">ccle_lung_samples</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html">colnames</a></span><span class="op">(</span><span class="va">ccle</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html">grepl</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html">colnames</a></span><span class="op">(</span><span class="va">ccle</span><span class="op">)</span>, pattern <span class="op">=</span> <span class="st">"lung"</span>, ignore.case <span class="op">=</span> <span class="cn">T</span><span class="op">)</span><span class="op">]</span>
@@ -177,7 +177,7 @@
 <h2 class="hasAnchor">
 <a href="#process-position-based-experimental-data" class="anchor"></a>Process position-based experimental data</h2>
 <p>We will use histone mark data from Roadmap Epigenomics.</p>
-<p>First, the data should be converted from Wig to BigWig format. It’s possible to do this outside of R with other utilities, but we’ll show how to do it in R. This will result in the creation of new data files with the “.bw” extension. They will be significantly larger than the .wig.gz files, so you may want to delete them after completing the workflow.</p>
+<p>First, the data should be converted from Wig to BigWig format. It’s possible to do this outside of R with other utilities, but we’ll show how to do it in R. This will result in the creation of new data files with the “.bw” extension. They will be significantly larger than the .wig.gz files, so you may want to delete them later.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">marks</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"GSM1013123_UCSD.Lung.H3K27ac.STL001.wig.gz"</span>,
           <span class="st">"GSM1059437_UCSD.Lung.H3K36me3.STL001.wig.gz"</span>,
@@ -244,7 +244,7 @@
 <a href="#combine-processed-data-and-run-prcomp" class="anchor"></a>Combine processed data and run <em>prcomp</em>
 </h2>
 <p>We combine information across all refset genes that were present in all gene-based data sources. (Position-based data, such as the chromatin and replication timing data, are presumed to cover all genes.)</p>
-<p>[Aside: Refset genes that are not present in all gene-based data sources will not have any covariates data generated, and cancereffectsizeR’s <code><a href="../reference/gene_mutation_rates.html">gene_mutation_rates()</a></code> will instead use covariates of the nearest available gene. In this example, over 95% of refset.ces.hg19 genes are covered in both CCLE and GTEx data. If you want to use a gene-based data source that leaves out many genes, you may want to adopt another strategy, such as manually inserting a neutral value for missing genes, or using the values of nearby genes.]</p>
+<p>[Aside: Refset genes that are not present in all gene-based data sources will not have any covariates data generated, and cancereffectsizeR’s <code><a href="../reference/gene_mutation_rates.html">gene_mutation_rates()</a></code> will instead use covariates of the nearest available gene. In this example, over 95% of refset.ces.hg19 genes are covered in both CCLE and GTEx data. If you want to use a gene-based data source that leaves out many genes, you may want to adopt another strategy, such as manually inserting an appropriate value for missing genes, or using the values of nearby genes.]</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">final_gene_ids</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/funprog.html">Reduce</a></span><span class="op">(</span><span class="va">intersect</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="va">refset_short_gene_ids</span>, <span class="va">ccle</span><span class="op">$</span><span class="va">short_gene_id</span>, <span class="va">gtex</span><span class="op">$</span><span class="va">short_gene_id</span><span class="op">)</span><span class="op">)</span>
 <span class="va">covariates_input</span> <span class="op">=</span> <span class="va">refset_genes</span><span class="op">[</span><span class="va">final_gene_ids</span>, <span class="fu">.</span><span class="op">(</span><span class="va">short_gene_id</span>, <span class="va">gene_name</span><span class="op">)</span>, on <span class="op">=</span> <span class="st">"short_gene_id"</span><span class="op">]</span>
