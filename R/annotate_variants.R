@@ -21,15 +21,31 @@ annotate_variants <- function(cesa) {
   # calling as.integer to avoid problem with scientific notation (100000->"1e05")
   variants[variant_type == "snv", snv_id := paste0(Chromosome, ':', as.integer(Start_Position), '_', Reference_Allele, '>', Tumor_Allele)]
   
+  # Same-sample variants with 2bp of other variants get set aside as likely MNVs
+  # MNVs are only possible in sample/chromosome combinations with more than one MAF record
+  # Only new SNVs can be involved in MNVs
+  # Will save the possible MNVs now to check later
+  poss_mnv = cesa@maf[variant_type == 'snv']
+  if ("variant_id" %in% names(cesa@maf)) {
+    poss_mnv = poss_mnv[is.na(variant_id)] # restricts to previously unchecked variants
+  }
+  poss_mnv = poss_mnv[order(Unique_Patient_Identifier, 
+                   Chromosome, Start_Position)][, .SD[.N > 1] , by = c("Unique_Patient_Identifier", "Chromosome")]
+  
   # Don't need to re-annotate variants previously annotated in the CESAnalysis (on previous load_maf calls, usually)
   if(! is.null(cesa@mutations$snv)) {
     variants = variants[! cesa@mutations$snv$snv_id, on = "snv_id"]
     variants = variants[variant_type != 'likely_mnv'] # these have already been annotated, too
   }
   
-  
-  variant_grs = GenomicRanges::makeGRangesFromDataFrame(variants, seqnames.field = "Chromosome", 
+  # There may be no variants left, especially if multiple CESAnalyses are being used on one set of variants
+  # But, we can't just return, because MAF and coverage annotations must be updated
+  variant_grs = GenomicRanges::GRanges()
+  if(variants[, .N] > 0) {
+    variant_grs = GenomicRanges::makeGRangesFromDataFrame(variants, seqnames.field = "Chromosome", 
                                                         start.field = "Start_Position", end.field = "Start_Position")
+  }
+
   
   
   # Get gene annotations
@@ -56,15 +72,12 @@ annotate_variants <- function(cesa) {
     variants[, genes := NULL]
     variants[, genes := listed_genes]
   }
- variants[, dist := genes_by_variant_row$dist]
- variants[, intergenic := dist > 0]
- 
- snvs = variants[variant_type == "snv", -"variant_type"]
- indels = variants[variant_type == "indel"]
- if (snvs[, .N] == 0) {
-   warning("annotate_variants() called, but there were zero SNVs requiring annotation.")
-   return(cesa)
- }
+   variants[, dist := genes_by_variant_row$dist]
+   variants[, intergenic := dist > 0]
+   
+   snvs = variants[variant_type == "snv", -"variant_type"]
+   indels = variants[variant_type == "indel"]
+
   
   # Intergenic records definitely aren't coding, so leave them out
   # some of these will still be non-coding and get filtered out later
@@ -292,14 +305,16 @@ annotate_variants <- function(cesa) {
   
 
   #  get deconstructSigs-style trinuc context of each SNV ID
-  genomic_context = BSgenome::getSeq(bsg, snv_table$chr,start=snv_table$pos - 1,
-                                     end=snv_table$pos + 1,
-                                     as.character = TRUE)
-  trinuc_mut_ids = paste0(genomic_context,":", snv_table$alt)
-  
-  # deconstructSigs_notations is a keyed table in CES sysdata
-  snv_table[, trinuc_mut := deconstructSigs_notations[.(genomic_context, snv_table$alt), deconstructSigs_ID]] 
-  
+  if(snv_table[, .N] > 0) {
+    genomic_context = BSgenome::getSeq(bsg, snv_table$chr,start=snv_table$pos - 1,
+                                       end=snv_table$pos + 1,
+                                       as.character = TRUE)
+    trinuc_mut_ids = paste0(genomic_context,":", snv_table$alt)
+    
+    # deconstructSigs_notations is a keyed table in CES sysdata
+    snv_table[, trinuc_mut := deconstructSigs_notations[.(genomic_context, snv_table$alt), deconstructSigs_ID]] 
+  }
+
   
   maf = cesa@maf
   maf[variant_type == "snv", variant_id := paste0(Chromosome, ':', Start_Position, '_', Reference_Allele, '>', Tumor_Allele)]
@@ -379,12 +394,7 @@ annotate_variants <- function(cesa) {
   setnames(maf, c("genes_tmp", "assoc_aac_tmp"), c("genes", "assoc_aac"))
   setcolorder(maf, colnames(cesa@maf)) # put original columns back in the front
   
-  
-  # Same-sample variants with 2bp of other variants get set aside as likely MNVs
-  # MNVs are only possible in sample/chromosome combinations with more than one MAF record
-  # Only new SNVs can be involved in MNVs
-  poss_mnv = maf[snv_table, on = c(variant_id = "snv_id")][order(Unique_Patient_Identifier, 
-                       Chromosome, Start_Position)][, .SD[.N > 1] , by = c("Unique_Patient_Identifier", "Chromosome")]
+  # Handle the possible MNVs identified early in the function
   if (poss_mnv[, .N] > 0) {
     poss_mnv[, dist_to_prev := c(Inf, diff(Start_Position)), by = c("Unique_Patient_Identifier", "Chromosome")]
     poss_mnv[, dist_to_next := c(dist_to_prev[2:.N], Inf), by = c("Unique_Patient_Identifier", "Chromosome")]
@@ -392,7 +402,8 @@ annotate_variants <- function(cesa) {
     maf[poss_mnv, is_mnv := is_mnv, on = c("Unique_Patient_Identifier", "Chromosome", "Start_Position")]
     num_mnv = maf[is_mnv == T, .N]
     
-    if (num_mnv > 0) {
+    # When called internally, skip message (probably called by add_variants)
+    if (num_mnv > 0 & cesa@advanced$recording == TRUE) {
       msg = paste0("Note: ", num_mnv, " MAF records ",
                    "are within 2 bp of other same-sample variants and will be classified as \"likely_mnv\" instead of snv/indel. ",
                    "(That is, they're probably multi-nucleotide variants arising from single events.)")

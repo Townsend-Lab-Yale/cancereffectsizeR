@@ -93,7 +93,7 @@ lollipops = function(si_list, title = "My SIs", ylab = "selection intensity",
       for (col in curr_si_col) {
         final_si_col = c(final_si_col, col)
         final_si_list = c(final_si_list, list(curr_si))
-        # IF EGFR has two SIs, give lables like egfr_pre, egfr_met (otherwise, just call it egfr)
+        # IF EGFR has two SIs, give labels like egfr_pre, egfr_met (otherwise, just call it egfr)
         if (num_in_group > 1) {
           poss_auto_names = c(poss_auto_names, paste(curr_name, col))
         } else {
@@ -248,7 +248,7 @@ lollipops = function(si_list, title = "My SIs", ylab = "selection intensity",
     num_labels = label_data[, .N]
     wrap_width = (3 / curr_label_size) * 42
     min_wrap_width = wrap_width * .6 
-    if (num_labels > 9) {
+    if (num_labels > 3) {
       label_data[, merge_eligible := T]
       label_data[, screen_y := (log_si_max - log_si) / log_si_range]
       while(TRUE) {

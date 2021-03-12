@@ -101,7 +101,7 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = 
   }
   bsg = get_cesa_bsg(cesa)
   
-  if(cesa@maf[, .N] == 0) {
+  if(length(cesa@mutations) == 0) {
     stop("There are no variants in the CESAnalysis.")
   }
   if(length(cesa@mutations) == 0) {
@@ -247,21 +247,30 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = 
   # need to be saved if they pass filters in their own right and don't overlap the AACs kep
   snvs_to_save = selected_snv_ids
   
-  # We'll use the SNV counts to filter selected_snv_ids shortly
-  snv_counts = cesa@maf[variant_type == "snv", .N, by = "variant_id"][N >= min_freq]
-  snvs_to_save = intersect(snvs_to_save, snv_counts$variant_id)
+  # We'll use the SNV counts to filter selected_snv_ids shortly)
+  if(cesa@maf[, .N] > 0) {
+    snv_counts = cesa@maf[variant_type == "snv", .N, by = "variant_id"][N >= min_freq]
+    snvs_to_save = intersect(snvs_to_save, snv_counts$variant_id)
+  } else {
+    snv_counts = NA
+    snvs_to_save = character()
+  }
+
   if (include_subvariants == FALSE) {
     subvariant_snv_ids = cesa@mutations$amino_acid_change[selected_aac_ids, unlist(constituent_snvs), nomatch = NULL]
     selected_snv_ids = setdiff(selected_snv_ids, subvariant_snv_ids)
   }
-  
   selected_snv = cesa@mutations$snv[selected_snv_ids]
   setkey(selected_snv, "snv_id")
   selected_aac = cesa@mutations$amino_acid_change[selected_aac_ids]
   setkey(selected_aac, "aac_id")
 
   # Tabulate variants in MAF data and apply frequency filter, exempting passlist variants from filters
-  aac_counts = cesa@maf[! is.na(assoc_aac), .(aac_id = unlist(assoc_aac))][, .N, by = "aac_id"][N >= min_freq]
+  if (cesa@maf[, .N] > 0) {
+    aac_counts = cesa@maf[! is.na(assoc_aac), .(aac_id = unlist(assoc_aac))][, .N, by = "aac_id"][N >= min_freq]
+  } else {
+    aac_counts = NA
+  }
   selected_snv[, maf_frequency := 0]
   selected_snv = selected_snv[snv_counts, maf_frequency := N]
   good_snv = union(passlisted_ids, selected_snv[maf_frequency >= min_freq, snv_id]) # okay to mix AAC/SNV in passlist
@@ -321,34 +330,35 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = 
   }
   
   all_cov_cols = character() # for output column name ordering
-  for (curr_group in cesa@groups) {
-    curr_samples = cesa@samples[group == curr_group]
-    num_wgs_samples = curr_samples[covered_regions == "genome", .N]
-    cov_counts = curr_samples[, .N, by = "covered_regions"]
-    
-    # this should be made more elegant at some point
-    unique_combos = setdiff(unique(combined$covered_in), c(list(character()), list(NULL))) # various empty entries in sites just covered in WGS
-    setkey(cov_counts, "covered_regions")
-    
-    # If all full-coverage WGS data, then there will be no unique_combos
-    cov_count_colname = ifelse(length(cesa@groups) == 1, "samples_covering", paste0("samples_covering_in_", curr_group))
-    all_cov_cols = c(all_cov_cols, cov_count_colname)
-    if (length(unique_combos) > 0) {
-      combo_counts = sapply(unique_combos, function(x) sum(cov_counts[x, N], na.rm = T))
-      names(combo_counts) = sapply(unique_combos, function(x) paste0(x, collapse = "_"))
-      combined[, (cov_count_colname) := combo_counts[S4Vectors::unstrsplit(covered_in, sep = "_")]]
-      repl = combined[[cov_count_colname]]
-      repl[is.na(repl)] = 0
-      combined[, (cov_count_colname) := repl]
-      combined[, (cov_count_colname) := combined[[cov_count_colname]] + num_wgs_samples]
-    } else {
-      combined[, (cov_count_colname) := num_wgs_samples]
+  if (cesa@samples[, .N] > 0) {
+    for (curr_group in cesa@groups) {
+      curr_samples = cesa@samples[group == curr_group]
+      num_wgs_samples = curr_samples[covered_regions == "genome", .N]
+      cov_counts = curr_samples[, .N, by = "covered_regions"]
+      
+      # this should be made more elegant at some point
+      unique_combos = setdiff(unique(combined$covered_in), c(list(character()), list(NULL))) # various empty entries in sites just covered in WGS
+      setkey(cov_counts, "covered_regions")
+      
+      # If all full-coverage WGS data, then there will be no unique_combos
+      cov_count_colname = ifelse(length(cesa@groups) == 1, "samples_covering", paste0("samples_covering_in_", curr_group))
+      all_cov_cols = c(all_cov_cols, cov_count_colname)
+      if (length(unique_combos) > 0) {
+        combo_counts = sapply(unique_combos, function(x) sum(cov_counts[x, N], na.rm = T))
+        names(combo_counts) = sapply(unique_combos, function(x) paste0(x, collapse = "_"))
+        combined[, (cov_count_colname) := combo_counts[S4Vectors::unstrsplit(covered_in, sep = "_")]]
+        repl = combined[[cov_count_colname]]
+        repl[is.na(repl)] = 0
+        combined[, (cov_count_colname) := repl]
+        combined[, (cov_count_colname) := combined[[cov_count_colname]] + num_wgs_samples]
+      } else {
+        combined[, (cov_count_colname) := num_wgs_samples]
+      }
     }
-  }
-  
-  if (length(cesa@groups) > 1) {
-    combined[, total_samples_covering := rowSums(.SD), .SDcols = all_cov_cols]
-    all_cov_cols = c(all_cov_cols, "total_samples_covering")
+    if (length(cesa@groups) > 1) {
+      combined[, total_samples_covering := rowSums(.SD), .SDcols = all_cov_cols]
+      all_cov_cols = c(all_cov_cols, "total_samples_covering")
+    }
   }
   # convert 0-length covered_in to NA
   combined[which(sapply(covered_in, length) == 0), covered_in := list(NA_character_)]
@@ -356,7 +366,7 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = 
   
   # Break down frequency counts
   maf_freq_cols = character()
-  if (length(cesa@groups) > 1) {
+  if (length(cesa@groups) > 1 & cesa@maf[, .N] > 0) {
     for (curr_group in cesa@groups) {
       curr_col = paste0("maf_freq_in_", curr_group)
       maf_freq_cols = c(maf_freq_cols, curr_col)
@@ -375,7 +385,7 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = 
     }
     setnames(combined, "maf_frequency", "total_maf_freq")
     maf_freq_cols = c(maf_freq_cols, "total_maf_freq")
-  } else {
+  } else if(cesa@maf[, .N] > 0) {
     maf_freq_cols = "maf_frequency"
   }
   # collapse list columns, if specified
@@ -396,19 +406,28 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = 
       setkey(multi_hits, "variant_id")
       # for tie-breaking, count how many mutations are in each gene found in these multi_hit recoreds
       multi_hit_genes = unique(multi_hits[, unlist(all_genes)])
-      non_intergenic = cesa@maf[variant_type == "snv" & ! variant_id %in% cesa@mutations$snv[intergenic == T, snv_id]]
-      maf_gene_counts = sort(table(unlist(non_intergenic$genes))[multi_hit_genes], decreasing = T)
+      if (cesa@maf[, .N] > 0) {
+        non_intergenic = cesa@maf[variant_type == "snv" & ! variant_id %in% cesa@mutations$snv[intergenic == T, snv_id]]
+        maf_gene_counts = sort(table(unlist(non_intergenic$genes))[multi_hit_genes], decreasing = T)
+      } else {
+        maf_gene_counts = table(NA)
+      }
       chosen_aac = character(num_to_check)
       
       # poorly optimized; may need to improve if large data sets are analyzed with lots of
       # overlapping AACs
+      original_multi = copy(multi_hits)
+      multi_hits = multi_hits[, .SD, .SDcols = c("variant_id", "aa_ref", "aa_alt", "essential_splice", "gene", "all_aac", maf_freq_cols)]
+      all_aac_list = multi_hits$all_aac
       for (i in 1:num_to_check) {
-        candidates = multi_hits[multi_hits[i, all_aac], nomatch = NULL]
-        
-        # if already picked an  out of this group, skip
-        if (any(candidates$variant_id %in% chosen_aac)) {
+        # if already picked an AAC out of this group, skip
+        curr_aac = all_aac_list[[i]]
+        if (any(curr_aac %in% chosen_aac)) {
           next
         }
+        candidates = multi_hits[curr_aac, nomatch = NULL]
+        multi_hits = multi_hits[! candidates$variant_id]
+
         # if other candidates are not in table for some reason, use the original entry
         if (candidates[, .N] == 1) {
           chosen_aac[i] = candidates$variant_id
@@ -416,9 +435,11 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = 
         }
         
         # take highest MAF frequency first (will usually be the same for all)
-        freq_col = maf_freq_cols[length(maf_freq_cols)] # last freq col gives total frequency
-        highest_freq = max(candidates[[freq_col]])
-        candidates = candidates[candidates[[freq_col]] == highest_freq]
+        if (cesa@maf[, .N] > 0) {
+          freq_col = maf_freq_cols[length(maf_freq_cols)] # last freq col gives total frequency
+          highest_freq = max(candidates[[freq_col]])
+          candidates = candidates[candidates[[freq_col]] == highest_freq]
+        }
         
         # then, prioritize splice-site variants
         if (any(candidates$essential_splice)) {
@@ -429,16 +450,21 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = 
         if (any(candidates$aa_ref != candidates$aa_alt)) {
           candidates = candidates[aa_ref != aa_alt]
         }
-        
         # next, choose the variant(s) with the most mutations in the gene
-        candidates[, gene_var_count := as.numeric(maf_gene_counts[gene])]
-        max_count = max(candidates$gene_var_count)
-        candidates = candidates[gene_var_count == max_count]
-        
+        # If MAF is empty or has no gene records, skip
+        if (length(maf_gene_counts) > 0) {
+          candidates[, gene_var_count := as.numeric(maf_gene_counts[gene])]
+          # Will be NA if variants are not in MAF and there are also no same-gene records in MAF
+          if(! all(is.na(candidates$gene_var_count))) {
+            max_count = max(candidates$gene_var_count, na.rm = T)
+            candidates = candidates[gene_var_count == max_count]
+          }
+        }
+
         # arbitrarily return first alphabetically of remaining
         chosen_aac[i] = sort(candidates$variant_id)[1]
       }
-      
+      multi_hits = original_multi
       # remove secondary (non-chosen) AACs, but save all SNV IDs and re-select those passing filters
       chosen_aac = chosen_aac[chosen_aac != ""]
       not_chosen_aac = multi_hits[! chosen_aac, variant_id]
@@ -528,7 +554,12 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
   }
   target_cesa = update_cesa_history(target_cesa, match.call())
   if(! identical(target_cesa@advanced$annotated, T)) {
-    stop("target_cesa should be annotated", call. = F)
+    # It's okay if there's no data in the CESAnalysis
+    if(target_cesa@maf[, .N] == 0) {
+      target_cesa@advanced$annotated = T
+    } else {
+      stop("target_cesa should be annotated", call. = F)
+    }
   }
 
   if (! is(padding, "numeric") || length(padding) != 1 || trunc(padding) != padding || padding < 0) {
@@ -549,7 +580,32 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
     if (is.null(source_snv_table)) {
       stop("source_cesa has no SNV annotations", call. = F)
     }
-    snvs_to_annotate = source_cesa@mutations$snv$snv_id
+    
+    if (! identical(target_cesa@ref_key, source_cesa@ref_key)) {
+      stop("The pair of CESAnalysis objects appear to use different reference data sets.")
+    } else {
+      if (! target_cesa@ref_key %in% names(.official_refsets)) {
+        if(! identical(target_cesa@ref_data_dir, source_cesa@ref_data_dir)) {
+          msg = paste0("Custom refset data directories may differ (", target_cesa@ref_data_dir, 
+                 ", ", source_cesa@ref_data_dir, "). If the refsets are not equivalent, annotations will be corrupted.")
+          warning(pretty_message(msg, emit = F))
+        }
+      }
+      if(length(target_cesa@mutations) == 0) {
+        target_cesa@mutations$snv = copy(source_cesa@mutations$snv)
+        target_cesa@mutations$amino_acid_change = copy(source_cesa@mutations$amino_acid_change)
+      } else {
+        new_snvs = source_cesa@mutations$snv[! target_cesa@mutations$snv$snv_id, on = "snv_id"]
+        if (new_snvs[, .N] == 0) {
+          stop("There are no new variants to copy over.")
+        }
+        # covered_in may vary, but doesn't matter because it will be regenerated from scratch
+        target_cesa@mutations$snv = rbind(target_cesa@mutations$snv, new_snvs)
+        new_aacs = source_cesa@mutations$snv[! target_cesa@mutations$amino_acid_change$aac_id, on = "aac_id"]
+        target_cesa@mutations$amino_acid_change = rbind(target_cesa@mutations$amino_acid_change, new_aacs)
+      }
+      return(update_covered_in(target_cesa))
+    }
   }
   
   # Handle gr, bed, variant_table: all get converted to a validated gr before creation of SNV IDs
@@ -558,7 +614,7 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
     bsg = get_cesa_bsg(target_cesa)
     if (! is.null(bed)) {
       if(is.character(bed)) {
-        if (length(BEDFile()) != 1) {
+        if (length(bed) != 1) {
           stop("bed should be a path (one-length character) to a BED file.")
         }
         if (! file.exists(bed)) {
@@ -580,7 +636,9 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
     
     # Validate GRanges and add padding if specified
     gr = clean_granges_for_cesa(cesa = target_cesa, gr = gr, padding = padding)
-    
+    if(length(gr) == 0) {
+      stop("No variants present in the input.")
+    }
     # convert to GPos and put in MAF-like table
     gpos = GenomicRanges::GPos(gr)
     ref = as.character(BSgenome::getSeq(bsg, gpos))
