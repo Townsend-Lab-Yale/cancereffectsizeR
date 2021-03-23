@@ -285,6 +285,10 @@ ces_variant <- function(cesa = NULL,
     message(sprintf("Preparing to calculate selection intensities (batch %i of %i)...", i, num_coverage_groups))
     covered_samples = c(samples[coverage_group, Unique_Patient_Identifier, nomatch = NULL], genome_wide_cov_samples)
     
+    if(length(covered_samples) == 0) {
+      warning("Skipped batch ", i, " because no samples had coverage at the variant sites in the batch.")
+      next
+    }
     # rough size of baseline rates data.table in bytes, if all included in one table
     work_size = length(covered_samples) * curr_variants[,.N] * 8
     

@@ -42,7 +42,7 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
   
   if (! is.null(more_cols)) {
     if(! is.character(more_cols)) {
-      stop("more_cols should be type character (\"all\" to read all columns) or left NULL.")
+      stop("more_cols specified incorrectly (internally)")
     }
     
     if(length(more_cols) == 1 && more_cols == "all") {
@@ -63,6 +63,8 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
       # read in file and suppress warnings about missing columns since this function handles the validation
       withCallingHandlers(
         {
+          # readChar(maf, 2) == '##' could indicate a VCF file
+          # fread(maf, skip = '#CHROM') would skip to end of VCF headers
           if (is.null(select_cols)) {
             maf = fread(maf, sep = "\t", quote ="", blank.lines.skip = T)
           } else {

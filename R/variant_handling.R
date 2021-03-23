@@ -553,14 +553,6 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
     stop("target_cesa should be a CESAnalysis", call. = F)
   }
   target_cesa = update_cesa_history(target_cesa, match.call())
-  if(! identical(target_cesa@advanced$annotated, T)) {
-    # It's okay if there's no data in the CESAnalysis
-    if(target_cesa@maf[, .N] == 0) {
-      target_cesa@advanced$annotated = T
-    } else {
-      stop("target_cesa should be annotated", call. = F)
-    }
-  }
 
   if (! is(padding, "numeric") || length(padding) != 1 || trunc(padding) != padding || padding < 0) {
     stop("padding should be 1-length non-negative integer")

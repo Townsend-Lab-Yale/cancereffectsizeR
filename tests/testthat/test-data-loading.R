@@ -1,7 +1,7 @@
 # get_test_file and get_test_data are loaded automatically from helpers.R by testthat
 tiny_maf = get_test_file("tiny.hg19.maf.txt")
 test_that("load_maf and variant annotation", {
-  tiny = expect_warning(load_maf(cesa = CESAnalysis(refset = "ces.refset.hg19"), annotate = T, maf = tiny_maf,
+  tiny = expect_warning(load_maf(cesa = CESAnalysis(refset = "ces.refset.hg19"), maf = tiny_maf,
                                  sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2"),
                         "do not match the reference genome")
   tiny_ak = load_cesa(get_test_file("tiny_hg19_maf_loaded.rds"))
@@ -14,7 +14,7 @@ test_that("load_maf and variant annotation", {
   # same ranges should be in each coverage GenomicRange (depending on BSgenome version, little contigs may vary)
   expect_equal(lapply(tiny@coverage$exome, IRanges::ranges), lapply(tiny_ak@coverage$exome, IRanges::ranges))
   
-  # undo annotations, verify annotate_variants works the same when called directly
+  # undo annotations, verify that calling internal function annotate_variants works the same called directly
   tiny@maf = tiny@maf[, .(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele, Tumor_Allele, variant_type)]
   tiny@maf[variant_type == "likely_mnv", variant_type := "snv"] # let annotate_variants redo the prediction
   tiny@mutations = list()
@@ -74,14 +74,10 @@ test_that("load_maf and variant annotation", {
 
 
 test_that("load_maf edge cases", {
-  # already annotated data, so should get an error when trying to load new data without annotating
-  # will test the opposite situation later (see progression tests)
   tiny = load_cesa(get_test_file("tiny_hg19_maf_loaded.rds"))
-  expect_error(load_maf(tiny, maf = tiny_maf, annotate = F, sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2"),
-               "already contains annotated variants")
   
   # you can't reload the same MAF (suppressing reference allele mismatch warning)
-  expect_error(expect_warning(load_maf(tiny, maf = tiny_maf, annotate = T, sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2")),
+  expect_error(expect_warning(load_maf(tiny, maf = tiny_maf, sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2")),
                "some sample IDs already appear in previously loaded data")
   
   # try loading empty/non-existent files and data
@@ -97,7 +93,7 @@ test_that("Sample group handling", {
   tiny_maf = get_test_file("tiny.hg19.maf.txt")
   
   # You can't supply a group_col to a CESAnalysis that does not have predefined sample groups
-  expect_error(load_maf(cesa = CESAnalysis(refset = "ces.refset.hg19"), annotate = F, maf = tiny_maf, sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2", group_col = "nonexistent-column"),
+  expect_error(load_maf(cesa = CESAnalysis(refset = "ces.refset.hg19"), maf = tiny_maf, sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2", group_col = "nonexistent-column"),
                "This CESAnalysis does not specify sample groups")
   
   # If CESAnalysis is stage-specific, calls to load_maf must include group_col
@@ -113,12 +109,7 @@ test_that("Sample group handling", {
   expect_error(load_maf(multistage, maf = bad_maf, group_col = "stage"), "samples are associated with multiple groups")
   
   # Absence of a declared progression state in the data triggers a notification
-  multistage = expect_message(suppressWarnings(load_maf(multistage, annotate = F, maf = fread(bad_maf)[2:4], group_col = "stage")), "they weren't present in the MAF data")
-  
-  
-  # Can't load with annotate = T if data has previously been loaded without annotating
-  multistage = expect_error(load_maf(multistage, maf = tiny, annotate = T), "already contains unannotated records")
-  
+  multistage = expect_message(suppressWarnings(load_maf(multistage, maf = fread(bad_maf)[2:4], group_col = "stage")), "they weren't present in the MAF data")
 })
 
 

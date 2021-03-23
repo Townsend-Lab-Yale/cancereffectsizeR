@@ -91,7 +91,6 @@ CESAnalysis = function(refset = "ces.refset.hg19", sample_groups = NULL) {
   }
     
   # advanced is a grab bag of additional stuff to keep track of
-  ## annotated: whether loaded MAF records are annotated
   ## using_exome_plus: whether previously loaded and any future generic exome data uses the "exome+" coverage option 
   ##  (either all generic data must, or none of it, based on choice of enforce_generic_exome_coverage on first load_maf call)
   ## recording: whether "run_history" is currently being recorded (gets set to false during some internal steps for clarity)
@@ -104,7 +103,7 @@ CESAnalysis = function(refset = "ces.refset.hg19", sample_groups = NULL) {
   ##      (automatically updated as needed by load_cesa/update_covered_in)
   genome_info = get_ref_data(data_dir, "genome_build_info")
   ces_version = packageVersion("cancereffectsizeR")
-  advanced = list("version" = ces_version, annotated = F, using_exome_plus = F, 
+  advanced = list("version" = ces_version, using_exome_plus = F, 
                   recording = T, locked = F, trinuc_done = F, gene_rates_done = F,
                   uid = unclass(Sys.time()), genome_info = genome_info)
   cesa = new("CESAnalysis", run_history = character(),  ref_key = refset_name, maf = data.table(), excluded = data.table(),

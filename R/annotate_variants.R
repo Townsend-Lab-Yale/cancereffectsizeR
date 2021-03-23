@@ -1,18 +1,16 @@
 #' Annotate variants
 #' 
-#' Annotates CESAnaysis MAF data with reference genome and gene data
+#' Annotates CESAnaysis MAF data with reference genome and gene data; called by load_maf
 #'
 #' @param cesa CESAnalysis object
-#' @export
+#' @keywords internal
 annotate_variants <- function(cesa) {
   if (! is(cesa, "CESAnalysis")) {
     stop("cesa should be a CESAnalysis", call. = F)
   }
-  cesa = update_cesa_history(cesa, match.call())
   RefCDS = .ces_ref_data[[cesa@ref_key]]$RefCDS
   gr_genes = .ces_ref_data[[cesa@ref_key]]$gr_genes
   bsg = .ces_ref_data[[cesa@ref_key]]$genome
-  cesa@advanced$annotated = TRUE
   
   # non-SNVs are not supported in selection functions yet, so not bothering to annotate them correctly
   # all non-SNV annotations will get set to NA at the end
@@ -54,11 +52,11 @@ annotate_variants <- function(cesa) {
   
   # convert the "subjectHits" index returned by the distanceToNearest function to the corresponding gene name
   gr_gene_names = GenomicRanges::mcols(gr_genes)["names"][,1]
-  nearest[, gene := nearest[, gr_gene_names[subjectHits]]]
+  nearest[, gene := gr_gene_names[subjectHits]]
   
-  # remove all but one of multiple hits from one record to the same gene
-  # this happens when a record overlaps multiple exons in the reference data from different transcripts
-  nearest = nearest[! duplicated(nearest[, .(queryHits, gene)])] 
+  # Sometimes an SNV overlaps the same gene "twice" (probably due to redundant gene definitions)
+  # Uniquify to get one row per variant/gene match
+  nearest = unique(nearest, by = c("queryHits", "gene"))
   
   # queryHits column gives snv table row, gene gives associated gene
   # some records have multiple matching genes; combine them into variable-length vector within each snv table row

@@ -97,12 +97,7 @@ setMethod("show", "CESAnalysis",
       cat("Samples:\n")
       print(object@samples[, .(num_samples = .N), by = "coverage"], row.names = F)
       num_snvs = object@maf[variant_type == "snv", .N]
-      cat("\nMAF data: ", num_snvs, " SNVs loaded", sep = "")
-      if (identical(object@advanced$annotated, TRUE)) {
-        cat(" and annotated.\n")
-      } else {
-        cat(" (but not annotated).\n")
-      }
+      cat("\nMAF data: ", num_snvs, " SNVs loaded.", sep = "")
     }
     signature_set = object@advanced$snv_signatures
     if (! is.null(signature_set)) {

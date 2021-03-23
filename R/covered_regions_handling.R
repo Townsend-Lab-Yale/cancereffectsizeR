@@ -38,9 +38,6 @@ add_covered_regions = function(target_cesa = NULL, source_cesa = NULL, covered_r
       stop("source_cesa should be a CESAnalysis")
     }
     
-    if (! identical(target_cesa@advanced$annotated, T)) {
-      stop("target_cesa should be annotated")
-    }
     if(! identical(get_cesa_bsg(target_cesa), get_cesa_bsg(source_cesa))) {
       stop("target_cesa and source_cesa have different reference genomes")
     }
@@ -78,8 +75,7 @@ add_covered_regions = function(target_cesa = NULL, source_cesa = NULL, covered_r
   } else {
     target_cesa@advanced$recording = prev_recording_status
     return(.add_covered_regions(cesa = target_cesa, coverage_type = coverage_type, covered_regions = covered_regions,
-                                covered_regions_name = covered_regions_name,covered_regions_padding = covered_regions_padding, 
-                                update_anno = target_cesa@advanced$annotated))
+                                covered_regions_name = covered_regions_name,covered_regions_padding = covered_regions_padding))
   }
 }
 
@@ -90,10 +86,9 @@ add_covered_regions = function(target_cesa = NULL, source_cesa = NULL, covered_r
 #' @param covered_regions_name A name to identify the covered regions, if not using source_cesa
 #' @param coverage_type exome or targeted, if not using source_cesa
 #' @param covered_regions_padding optionally, add +/- this many bp to each interval in covered_regions
-#' @param update_anno T/F, whether to update the covered_in fields in variant annotations
 #' @keywords internal
 #' @return CESAnalysis given in target_cesa, with the new covered regions added
-.add_covered_regions = function(cesa, coverage_type, covered_regions, covered_regions_name, covered_regions_padding, update_anno) {
+.add_covered_regions = function(cesa, coverage_type, covered_regions, covered_regions_name, covered_regions_padding) {
   if (! is.character(coverage_type) | length(coverage_type) != 1 | ! coverage_type %in% c("exome", "genome", "targeted")) {
     stop("coverage_type should be exome or targeted.", call. = F)
   }
@@ -125,9 +120,7 @@ add_covered_regions = function(target_cesa = NULL, source_cesa = NULL, covered_r
   }
   gr = clean_granges_for_cesa(cesa = cesa, gr = gr, padding = covered_regions_padding)
   cesa = assign_gr_to_coverage(cesa, gr = gr, covered_regions_name = covered_regions_name, coverage_type = coverage_type)
-  if (update_anno) {
-    cesa = update_covered_in(cesa)
-  }
+  cesa = update_covered_in(cesa)
   return(cesa)
 }
 

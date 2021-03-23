@@ -13,7 +13,6 @@
 #' 
 #' @param cesa the CESAnalysis object to load the data into
 #' @param maf Path of tab-delimited text file in MAF format, or an MAF in data.table or data.frame format
-#' @param annotate Annotate mutations with gene and other reference information (required for effect size analysis).
 #' @param sample_col column name with sample ID data (Tumor_Sample_Barcode or Unique_Patient_Identifier)
 #' @param chr_col column name with chromosome data  (Chromosome)           
 #' @param start_col column name with start position (Start_Position)
@@ -37,7 +36,7 @@
 #'   CES genome reference data (default FALSE).
 #' @return CESAnalysis with the specified MAF data loaded
 #' @export
-load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumor_Sample_Barcode", chr_col = "Chromosome", start_col = "Start_Position",
+load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode", chr_col = "Chromosome", start_col = "Start_Position",
                     ref_col = "Reference_Allele", tumor_allele_col = "guess", coverage = "exome", covered_regions = NULL,
                     covered_regions_name = NULL, covered_regions_padding = 0, group_col = NULL, chain_file = NULL, enforce_default_exome_coverage = FALSE) {
   
@@ -62,23 +61,6 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
       stop("The chain_file specified could not be found; check the file path.")
     }
   }
-  
-  if (! is(annotate, "logical") || length(annotate) != 1) {
-    stop("annotate should be T/F", call. = F)
-  }
-  
-  # We're not allowing a mix of annotated and unannotated records
-  # The purpose of annotate = FALSE is to allow quick MAF loading for scratch work, etc.
-  cesa_anno_status = cesa@advanced$annotated # starts false until first annotated data is loaded
-  if(cesa_anno_status == F & annotate == T & cesa@samples[, .N] == 0) {
-    cesa@advanced$annotated = TRUE
-  } else if(cesa_anno_status == T & annotate == F){
-    stop("The CESAnalysis already contains annotated variants, so you need to run with annotate = T.", call. = F)
-  } else if (cesa_anno_status == F & annotate == T) {
-    stop("The CESAnalysis already contains unannotated records. Either run annotate_variants() to annotate\n",
-         "them, or re-run load_maf with annotate = F.", call. = F)
-  }
-
   
   if (is.null(maf)) {
     stop("Supply MAF data via maf=[file path or data.table/data.frame].")
@@ -216,7 +198,8 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
     msg = paste0(num_excluded, " of ", initial_num_records, " MAF records (", 
                  sprintf("%.1f", 100 * num_excluded / initial_num_records), '%) ',
                  "had problems and were excluded: ")
-    print(excluded[, .(num_records = .N), by = "problem"])
+    problem_summary = excluded[, .(num_records = .N), by = "problem"]
+    message(crayon::black(paste0(capture.output(print(problem_summary, row.names = F)), collapse = "\n")))
     
     if(num_excluded / initial_num_records > .05) {
       warning("More than 5% of input records had problems.")
@@ -343,12 +326,8 @@ load_maf = function(cesa = NULL, maf = NULL, annotate = TRUE, sample_col = "Tumo
   }
   
   cesa@maf = rbind(cesa@maf, maf, fill = T)
-  if(annotate) {
-    message("Annotating variants...")
-    cesa@advanced$recording = F
-    cesa = annotate_variants(cesa)
-    cesa@advanced$recording = T
-  }
+  message("Annotating variants...")
+  cesa = annotate_variants(cesa)
 
   current_snv_stats = maf[variant_type == "snv", .(num_samples = length(unique(Unique_Patient_Identifier)), num_snv = .N)]
   message(paste0("Loaded ", current_snv_stats$num_snv, " SNVs from ", current_snv_stats$num_samples, " samples into CESAnalysis."))

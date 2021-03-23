@@ -32,8 +32,8 @@
 #' @param ref_col column name with reference allele data (Reference_Allele)
 #' @param tumor_allele_col column name with alternate allele data; by default,
 #'   values from Tumor_Seq_Allele2 and Tumor_Seq_Allele1 columns are used
-#' @param more_cols Names of data columns to keep in addition to the core required
-#'   columns. Choose "all" to keep all columns.
+#' @param keep_extra_columns TRUE/FALSE to load data columns not needed by cancereffectsizeR,
+#' or a vector of column names to keep.
 #' @param coverage_intervals_to_check If available, a BED file or GRanges object
 #'   represented the expected coverage intervals of the sequencing method used to generate
 #'   the MAF data. Unless the coverage intervals are incorrect, most records will be
@@ -49,7 +49,7 @@
 #' @export
 preload_maf = function(maf = NULL, refset = "ces.refset.hg19", coverage_intervals_to_check = NULL,
                     chain_file = NULL, sample_col = "Tumor_Sample_Barcode", chr_col = "Chromosome", start_col = "Start_Position",
-                    ref_col = "Reference_Allele", tumor_allele_col = "guess", more_cols = NULL) {
+                    ref_col = "Reference_Allele", tumor_allele_col = "guess", keep_extra_columns = FALSE) {
   
   if (is(refset, "environment")) {
     refset_name = as.character(substitute(refset))
@@ -108,6 +108,17 @@ preload_maf = function(maf = NULL, refset = "ces.refset.hg19", coverage_interval
     .ces_ref_data[[refset_name]] = refset_env
   }
   
+  # By default, only load core columns to save time and memory
+  more_cols = NULL
+  if (identical(keep_extra_columns, TRUE)) {
+    more_cols = 'all'
+  } else if (! identical(keep_extra_columns, FALSE)) {
+    if (is.character(keep_extra_columns)) {
+      more_cols = keep_extra_columns
+    } else {
+      stop("keep_extra_columns should be T/F or names of extra columns to include.")
+    }
+  }
   maf = read_in_maf(maf = maf, refset_env = refset_env, chr_col = chr_col, start_col = start_col, ref_col = ref_col,
                     tumor_allele_col = tumor_allele_col, sample_col = sample_col, more_cols = more_cols, chain_file = chain_file)
   
@@ -179,7 +190,8 @@ preload_maf = function(maf = NULL, refset = "ces.refset.hg19", coverage_interval
   
   if(problem_summary[, .N] > 0) {
     pretty_message("Some MAF records have problems:")
-    print(problem_summary, row.names = F)
+    # this is how to print a table nicely in the message stream
+    message(crayon::black(paste0(capture.output(print(problem_summary, row.names = F)), collapse = "\n"))) 
     pretty_message("You can remove or fix these records, or let load_maf() exclude them automatically.")
   }
   return(maf[])
