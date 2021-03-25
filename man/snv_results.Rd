@@ -10,5 +10,5 @@ snv_results(cesa = NULL)
 \item{cesa}{CESAnalysis object}
 }
 \description{
-returns a list of data tables with results from ces_variant(), plus annotations
+returns a list of ces_variant() results tables, with variant annotations added
 }

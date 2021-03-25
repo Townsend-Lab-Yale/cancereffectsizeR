@@ -9,8 +9,7 @@
   coverage_type,
   covered_regions,
   covered_regions_name,
-  covered_regions_padding,
-  update_anno
+  covered_regions_padding
 )
 }
 \arguments{
@@ -22,8 +21,6 @@ if not using source_cesa}
 \item{covered_regions_name}{A name to identify the covered regions, if not using source_cesa}
 
 \item{covered_regions_padding}{optionally, add +/- this many bp to each interval in covered_regions}
-
-\item{update_anno}{T/F, whether to update the covered_in fields in variant annotations}
 }
 \value{
 CESAnalysis given in target_cesa, with the new covered regions added

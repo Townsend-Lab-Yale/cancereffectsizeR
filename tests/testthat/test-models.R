@@ -20,7 +20,7 @@ test_that("ces_variant with sswm", {
   results = cesa@selection_results[[1]]
   expect_equal(attr(results, "si_cols"), "selection_intensity")
   results_ak = fread(get_test_file("fruit_sswm_out.txt"))
-  expect_equal(results[order(variant_id)], results_ak[order(variant_id)], check.attributes = F)
+  expect_equal(results[order(variant_id)], results_ak[order(variant_id)], check.attributes = F, tolerance = 1e-7)
 })
 
 test_that("ces_variant with sswm_sequential", {
@@ -29,7 +29,7 @@ test_that("ces_variant with sswm_sequential", {
   results = cesa@selection_results[[1]] # previous run not saved due to test_that scoping
   expect_equal(attr(results, "si_cols"), c("si_1", "si_2"))
   results_ak = fread(get_test_file("fruit_sswm_sequential_out.txt"))
-  expect_equal(results[order(variant_id)], results_ak[order(variant_id)], check.attributes = F)
+  expect_equal(results[order(variant_id)], results_ak[order(variant_id)], check.attributes = F, tolerance = 1e-6)
 })
 
 test_that("ces_variant bad groups inputs", {
@@ -73,8 +73,8 @@ test_that("ces_variant on subsets of samples", {
                              coverage_type = "exome")
   
   egfr_variants = select_variants(cesa, genes = "EGFR", min_freq = 2)
-  expect_true(egfr_variants[variant_name == "EGFR_L858R", identical(unlist(covered_in), c("exome", "exome+"))])
-  expect_true(egfr_variants[variant_name != "EGFR_L858R", length(unlist(unique(covered_in))) == 3])
+  expect_true(egfr_variants[variant_name == "EGFR_L858R", identical(unlist(covered_in), "exome+")])
+  expect_true(egfr_variants[variant_name != "EGFR_L858R", length(unlist(unique(covered_in))) == 2])
   
   # illegally adding new samples/data
   cesa@samples = rbind(cesa@samples, new_samples)
@@ -101,9 +101,10 @@ test_that("Variant-level epistasis", {
   results = ces_epistasis(cesa, variants = list(c("KRAS G12V", "GSTP1_L184L")), conf = .9)@epistasis[[1]]
   to_test = results[, as.numeric(.(ces_v1, ces_v2, ces_v1_after_v2, ces_v2_after_v1, joint_cov_samples_just_v1,
                                    joint_cov_samples_just_v2, joint_cov_samples_with_both, joint_cov_samples_with_neither))]
-  expect_equal(to_test, c(28864.82, 1432.69, 549695.3, 9508.182, 6, 2, 1, 100), tolerance = 1e-3)
+  expect_equal(to_test, c(28968.7748, 1433.0835, 547585.0949, 9610.6028, 6, 2, 1, 100), tolerance = 1e-3)
   ci = as.numeric(results[, .SD, .SDcols = patterns("ci")])
-  expect_equal(ci, c(13629.84, 52477.08, 382.9144, 3470.92, NA, 3610458, NA, 85519.34), tolerance = 1e-3)
+  expect_equal(ci, c(13679.6303958998, 52655.730419433, 382.460874437958, 3474.32170799179, 
+                     NA, 3606485.4710287, NA, 85684.8367050739), tolerance = 1e-3)
 })
 
 
@@ -140,7 +141,7 @@ test_that("Compound variant creation", {
   expect_equal(length(pos_comp), 2)
   expect_equal(pos_comp$snv_info[, .N], 5)
   results = ces_variant(cesa, variants = pos_comp, hold_out_same_gene_samples = T, conf = NULL)$selection[[1]]
-  expect_equal(results$selection_intensity, c(7170.178, 32349.204), tolerance = 1e-5)
+  expect_equal(results$selection_intensity, c(7064.35, 32235.97), tolerance = 1e-3)
   # If above output changes, be sure SIs remain between lowest/highest single-variant SIs at each site (see .rds)
   
   expect_equal(length(define_compound_variants(cesa, recurrents, merge_distance = 1000)), 40)

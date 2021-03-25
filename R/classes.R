@@ -27,7 +27,6 @@ setMethod("$", "CESAnalysis",
       cached_variants = x@advanced$cached_variants
       if (is.null(cached_variants)) {
         x@advanced$cached_variants = suppressMessages(select_variants(cesa = x))
-        setkey(x@advanced$cached_variants, 'variant_id', 'variant_type')
         cached_variants = x@advanced$cached_variants
       }
       return(cached_variants)

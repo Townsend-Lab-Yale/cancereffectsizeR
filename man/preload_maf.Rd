@@ -14,7 +14,7 @@ preload_maf(
   start_col = "Start_Position",
   ref_col = "Reference_Allele",
   tumor_allele_col = "guess",
-  more_cols = NULL
+  keep_extra_columns = FALSE
 )
 }
 \arguments{
@@ -45,8 +45,8 @@ padding should be added.)}
 \item{tumor_allele_col}{column name with alternate allele data; by default,
 values from Tumor_Seq_Allele2 and Tumor_Seq_Allele1 columns are used}
 
-\item{more_cols}{Names of data columns to keep in addition to the core required
-columns. Choose "all" to keep all columns.}
+\item{keep_extra_columns}{TRUE/FALSE to load data columns not needed by cancereffectsizeR,
+or a vector of column names to keep.}
 }
 \value{
 a data.table of MAF data, with any problematic records flagged and a few

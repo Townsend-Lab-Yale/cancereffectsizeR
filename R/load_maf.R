@@ -169,11 +169,11 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   } else if (! is.null(covered_regions)) {
     # Use internal function to avoid updating covered_in now (annotate_variants step will handle this larger)
     cesa = .add_covered_regions(cesa = cesa, covered_regions = covered_regions, covered_regions_padding = covered_regions_padding, 
-                               coverage_type = coverage, covered_regions_name = covered_regions_name, update_anno = FALSE)
+                               coverage_type = coverage, covered_regions_name = covered_regions_name)
   }
   
-  refset_env = .ces_ref_data[[cesa@ref_key]]
-  read_args = list(maf = maf, refset_env = refset_env,
+  refset = .ces_ref_data[[cesa@ref_key]]
+  read_args = list(maf = maf, refset_env = refset,
                    sample_col = sample_col, chr_col = chr_col, start_col = start_col,
                    ref_col = ref_col, tumor_allele_col = tumor_allele_col,
                    chain_file = chain_file)
@@ -188,10 +188,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   excluded = maf[! is.na(problem), .(Unique_Patient_Identifier, Chromosome, Start_Position, 
                                      Reference_Allele, Tumor_Allele, problem)]
   maf = maf[is.na(problem), -"problem"]
-  
-  nt = c("A", "T", "C", "G")
-  maf[Reference_Allele %in% nt & Tumor_Allele %in% nt, variant_type := "snv"]
-  maf[is.na(variant_type), variant_type := "indel"]
+  maf = identify_maf_variants(maf) # add variant_type/variant_id columns
 
   num_excluded = excluded[, .N]
   if(num_excluded > 0) {
@@ -204,7 +201,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     if(num_excluded / initial_num_records > .05) {
       warning("More than 5% of input records had problems.")
     }
-    
+    nt = c("A", "C", "G", "T")
     snv_mismatch = excluded[problem == "reference_mismatch" & Reference_Allele %in% nt & Tumor_Allele %in% nt, .N]
     if(snv_mismatch > 0) {
       msg = paste0(snv_mismatch, " SNV variants were excluded for having reference alleles that do not match the reference genome. You should probably figure out why",
@@ -297,20 +294,16 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
                        "Could this be whole-genome data? Or if you know the true covered regions, supply them\n",
                        "with the covered_regions argument."))
       }
-      msg = paste0("Note: ", num_uncovered, " MAF records (", percent, 
-                   "%) are at loci not covered in the default exome intervals ",
-                   "in this CESAnalysis's reference data. The samples in this MAF (along with along other MAFs ",
-                   "loaded as default exome data), will be assumed to all share the same coverage, ",
-                   "which we'll call \"exome+\".")
+      msg = paste0("Note: ", format(num_uncovered, big.mark = ','), " MAF records (", percent, 
+                   "%) are outside the CESAnalysis's default exome definitions; expanded exome intervals to include them.")
       pretty_message(msg)
     } else {
-      uncovered.maf = maf[is_uncovered,]
-      uncovered.maf$Exclusion_Reason = paste0("uncovered_in_", covered_regions_name)
-      maf = maf[!is_uncovered,]
-      excluded = rbind(excluded, uncovered.maf)
+      uncovered = maf[is_uncovered, -c("variant_type", "variant_id")]
+      uncovered$Exclusion_Reason = paste0("uncovered_in_", covered_regions_name)
+      maf = maf[!is_uncovered]
+      excluded = rbind(excluded, uncovered)
       message(paste0("Note: ", num_uncovered, " MAF records out of ", total, " (", percent, 
-                     "%) are at loci not covered in the input covered_regions. ",
-                     "\nThese mutations will be excluded from analysis."))
+                     "%) are at loci not covered in the input covered_regions, so they have been excluded."))
     }
   }
   
@@ -325,13 +318,158 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     cesa@excluded = rbind(cesa@excluded, excluded) 
   }
   
-  cesa@maf = rbind(cesa@maf, maf, fill = T)
+  # Set aside new variants for annotation (notably, before MNV prediction; we'll still annotate those as SNVs)
+  if (length(cesa@mutations) > 0) {
+    # To-do: also leave out indels that have previously been annotated (okay to re-annotate for now)
+    to_annotate = maf[! cesa@mutations$snv$snv_id, on = 'variant_id']
+  } else {
+    to_annotate = maf
+  }
   message("Annotating variants...")
-  cesa = annotate_variants(cesa)
+  annotations = annotate_variants(refset = refset, variants = to_annotate)
+  
+  # Check annotations for any SNVs with ambiguous trinuc context; these must be set aside
+  snv_table = annotations$snv
+  aac_table = annotations$amino_acid_change
+  bad_trinuc_context = which(is.na(snv_table$trinuc_mut))
+  num_bad = length(bad_trinuc_context)
+  if (num_bad > 0) {
+    bad_ids = snv_table[bad_trinuc_context, snv_id]
+    bad_trinuc_context_maf = maf[bad_ids, .(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele, Tumor_Allele), on = 'variant_id']
+    maf = maf[! bad_ids, on = 'variant_id']
+    msg = paste0("Note: ", num_bad, " MAF records excluded due to ambiguous trinucleotide context ",
+                  "(likely N's in the reference genome).")
+    pretty_message(msg)
+    bad_trinuc_context_maf$Exclusion_Reason = "ambiguous_trinuc_context"
+    cesa@excluded = rbind(cesa@excluded, bad_trinuc_context_maf)
+    
+    # for simplicity, remove the bad record from SNV and AAC tables
+    bad_aa = unlist(snv_table[bad_trinuc_context, assoc_aac])
+    snv_table = snv_table[! bad_trinuc_context]
+    if(aac_table[, .N] > 0 & length(bad_aa) > 0) {
+      aac_table = aac_table[! bad_aa]
+    }
+  }
+  if (aac_table[, .N] > 0) {
+    cesa@mutations[["amino_acid_change"]] = unique(rbind(cesa@mutations$amino_acid_change, aac_table, fill = T), by = "aac_id")
+    setkey(cesa@mutations$amino_acid_change, "aac_id")
+  }
+  cesa@mutations[["snv"]] = unique(rbind(cesa@mutations$snv, snv_table, fill = T), by = "snv_id")
+  setkey(cesa@mutations$snv, "snv_id")
+  
+  
+  # add genes and assoc_aac to MAF records (may stop including these in near future)
+  # use of _tmp names required as of data.table 1.13.2 to keep join from failing
+  column_order = copy(names(maf))
+  maf[, c("genes_tmp", "assoc_aac_tmp") := list(list(NA_character_), list(NA_character_))]
+  maf[cesa@mutations$snv, c("genes_tmp", "assoc_aac_tmp") := list(genes, assoc_aac), on = c(variant_id = "snv_id")]
+  
+  # No gene for intergenic SNVs
+  intergenic_snv = cesa@mutations$snv[intergenic == T, snv_id]
+  maf[intergenic_snv, genes_tmp := list(NA_character_), on = "variant_id"]
+  
+  
+  # temporary way of annotating non-SNVs
+  non_snv = maf[variant_type != 'snv']
+  if (non_snv[, .N] > 0) {
+    grt = as.data.table(refset$gr_genes)
+    setnames(grt, c("seqnames", "start", "end", "names"), 
+             c("Chromosome", "Start_Position", "End_Position", "gene"))
+    setkey(grt, Chromosome, Start_Position, End_Position)
+    non_snv[, End_Position := Start_Position] # okay for now
+    non_snv_genes = foverlaps(non_snv, grt)
+    # use Start_Position from MAF, not gr
+    non_snv_genes[, Start_Position := i.Start_Position]
+    non_snv_genes = non_snv_genes[, .(genes = list(unique(gene))), by = c("Chromosome", "Start_Position")]
+    non_snv_genes[, is_snv := F]
+    maf[, is_snv := variant_type == 'snv']
+    maf[non_snv_genes, c("genes_tmp", "assoc_aac_tmp") := .(genes, list(NA_character_)),
+        on = c("is_snv", "Chromosome", "Start_Position")]
+    maf[, is_snv := NULL]
+  }
+  
+  setnames(maf, c("genes_tmp", "assoc_aac_tmp"), c("genes", "assoc_aac"))
+  setcolorder(maf, column_order) # put original columns back in the front
+  
+  # Same-sample variants with 2bp of other variants get set aside as likely MNVs
+  # MNVs are only possible in sample/chromosome combinations with more than one MAF record
+  poss_mnv = maf[order(Unique_Patient_Identifier, Chromosome, Start_Position)][, .SD[.N > 1], 
+                                                                                    by = c("Unique_Patient_Identifier", "Chromosome")]
+  if (poss_mnv[, .N] > 0) {
+    poss_mnv[, dist_to_prev := c(Inf, diff(Start_Position)), by = c("Unique_Patient_Identifier", "Chromosome")]
+    poss_mnv[, dist_to_next := c(dist_to_prev[2:.N], Inf), by = c("Unique_Patient_Identifier", "Chromosome")]
+    poss_mnv[dist_to_prev < 3 | dist_to_next < 3, is_mnv := T]
+    
+    # organize into groups of likely multi-nucleotide events
+    mnv = poss_mnv[is_mnv == T]
+    mnv[, start_of_group := dist_to_prev > 2]
+    mnv[, mnv_group := cumsum(start_of_group)]
+    
+    # Groups of 2 consecutive SNVs are double-base substitutions
+    # Create DBS entries suitable for MAF table
+    mnv[, is_dbs := .N == 2 && diff(Start_Position) == 1 && variant_type == c("snv", "snv"), by = mnv_group]
+    dbs = mnv[is_dbs == T, 
+                  .(Unique_Patient_Identifier = Unique_Patient_Identifier[1], 
+                    Chromosome = Chromosome[1], Start_Position = Start_Position[1],
+                    Reference_Allele = paste(Reference_Allele, collapse = ''),
+                    Tumor_Allele = paste0(Tumor_Allele, collapse = ''), variant_type = 'dbs',
+                    v1 = variant_id[1], v2 = variant_id[2]), by = mnv_group][, -"mnv_group"]
+    dbs[, dbs_id := paste0(Chromosome, ':', Start_Position, '_', Reference_Allele, '>', Tumor_Allele)]
+    dbs[maf, genes := genes, on = c(v1 = 'variant_id')]
+    dbs[, assoc_aac := list(NA_character_)]
+    
+    # Remove the SNV entries that form the new DBS variants
+    maf[dbs, dbs_id := i.dbs_id, on = c("Unique_Patient_Identifier", variant_id = "v1")]
+    maf[dbs, dbs_id := i.dbs_id, on = c("Unique_Patient_Identifier", variant_id = "v2")]
+    maf_dbs_ind = maf[! is.na(dbs_id), which = T]
+    maf_dbs = maf[maf_dbs_ind, .(Unique_Patient_Identifier, Chromosome, Start_Position, 
+                                 Reference_Allele, Tumor_Allele, 
+                                 Exclusion_Reason = paste0("replaced_with_", dbs_id))]
+    maf = maf[! maf_dbs_ind, -"dbs_id"]
 
-  current_snv_stats = maf[variant_type == "snv", .(num_samples = length(unique(Unique_Patient_Identifier)), num_snv = .N)]
-  message(paste0("Loaded ", current_snv_stats$num_snv, " SNVs from ", current_snv_stats$num_samples, " samples into CESAnalysis."))
+    # Add new DBS entries
+    dbs[, c("v1", "v2") := NULL]
+    setnames(dbs, "dbs_id", "variant_id")
+    maf = rbind(maf, dbs)
+    
+    # For non-DBS mnvs, reclassify as "other"
+    mnv = mnv[is_dbs == F]
+    maf[mnv, variant_type := 'other', on = c('Unique_Patient_Identifier', 'variant_id')]
+    num_new_mnv = uniqueN(mnv$mnv_group) # the DBS variants have already been removed
+    cesa@excluded = rbind(cesa@excluded, maf_dbs)
+    
+    num_dbs = dbs[, .N]
+    if(num_dbs > 0) {
+      msg = paste0('Note: ', num_dbs, ' adjacent pairs of SNVs have be re-annotated as doublet base substitutions (dbs).')
+      pretty_message(msg)
+    }
+    if (num_new_mnv > 0) {
+      msg = ifelse(num_dbs > 0, 'Additionally, ', 'Note: ')
+      grammar = ifelse(num_new_mnv > 1, 's', '')
+      msg = paste0(msg, num_new_mnv, ' group', grammar, ' of same-sample variants within 2 bp of each other have been classified as ',
+              'variant_type = \"other\" (because they probably did not occur independently).')
+      pretty_message(msg)
+    }
+    maf[variant_type == 'other', c("variant_id", "assoc_aac") := list(NA_character_, list(NA_character_))] 
+  }
+  
+  
+  cesa@maf = rbind(cesa@maf, maf, fill = T)
+  
+  
+  # Update coverage fields of annotation tables
+  # Internal note: Confusingly, update_covered_in also has a side effect of updating
+  # cached output of select_variants, because whether using annotate_variants,
+  # add_covered_regions, or add_variants, it always gets called at the end.
+  cesa = update_covered_in(cesa)
+
+  current_snv_stats = maf[variant_type == "snv", .(num_samples = uniqueN(Unique_Patient_Identifier), num_snv = .N)]
+  msg = paste0("Loaded ", format(current_snv_stats$num_snv, big.mark = ','), " SNVs from ", 
+                 format(current_snv_stats$num_samples, big.mark = ','), " samples into CESAnalysis.")
+  pretty_message(msg)
   
   return(cesa)
 }
+
+
 

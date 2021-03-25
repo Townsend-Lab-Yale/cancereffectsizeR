@@ -193,6 +193,12 @@ preload_maf = function(maf = NULL, refset = "ces.refset.hg19", coverage_interval
     # this is how to print a table nicely in the message stream
     message(crayon::black(paste0(capture.output(print(problem_summary, row.names = F)), collapse = "\n"))) 
     pretty_message("You can remove or fix these records, or let load_maf() exclude them automatically.")
+    num_mit = maf[problem == 'unsupported_chr' & Chromosome %like% '^(chr)?MT?$', .N]
+    is_recent_human_build = get_ref_data(data_dir, 'genome_build_info')$build_name %in% c('hg19', 'hg38')
+    if (num_mit > 0 && is_recent_human_build == T) {
+      pretty_message(paste0('FYI, ', num_mit, ' of the unsupported_chr records are mitochondrial variants, which ',
+                          'for a variety of technical reasons cannot be included.'))
+    }
   }
   return(maf[])
 }

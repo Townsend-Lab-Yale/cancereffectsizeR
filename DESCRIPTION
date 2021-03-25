@@ -35,6 +35,7 @@ Suggests:
   rmarkdown,
   formattable,
   mockr,
+  styler,
   testthat (>= 2.1.0)
 License: GPL-3
 Encoding: UTF-8

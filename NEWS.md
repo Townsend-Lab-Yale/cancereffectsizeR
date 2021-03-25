@@ -1,3 +1,7 @@
+# cancereffectsizeR 2.1.2
+* load_maf() detects adjacent SNV records and re-annotates as doublet base substitutions;  improved annotation of insertions, deletions, and more complex multi-nucleotide variants.
+* Peformance improvements and minor bug fixes.
+
 # cancereffectsizeR 2.1.1
 * Minor improvements and documentation updates.
 

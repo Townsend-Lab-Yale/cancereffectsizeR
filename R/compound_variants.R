@@ -170,14 +170,15 @@ CompoundVariantSet = function(cesa, variant_id) {
   # with_all_aac[, favored_gene := mapply(like, compound_snvs[variant_id, compound_name, on = "snv_id"], gene)]
   
   # Bring in lists of gene names and amino-acid-changes (simplify to just the change, as in "G12C", for single-hits)
-  compound_snvs[selected_snvs, c("genes", "all_aac") := list(all_genes, all_aac), on = c(snv_id = "variant_id")]
+  compound_snvs[selected_snvs, c("genes", "all_aac") := .(all_genes, all_aac), on = c(snv_id = "variant_id")]
   aa_changes = lapply(compound_snvs$all_aac, function(x) gsub('(.*)_[^_]*$', "\\1", x, perl = T))
-  single_gene_changes = which(sapply(aa_changes, length) == 1)
-  single_gene_names = compound_snvs[single_gene_changes][, unlist(genes)]
-  single_gene_pattern = paste0('^', single_gene_names, '_')
-  aa_changes[single_gene_changes] = mapply(function(x, y) gsub(y, '', x), aa_changes[single_gene_changes], single_gene_pattern)
-  compound_snvs[, aa_changes := aa_changes][, all_aac := NULL]
+  single_gene_changes = which(sapply(aa_changes, function(x) length(na.omit(x))) == 1)
   
+  # sometimes, there an SNV has two genes but only one AAC (only shorten aa_changes on single gene)
+  single_gene_changes = intersect(single_gene_changes, which(sapply(compound_snvs$genes, length) == 1)) 
+  aa_changes[single_gene_changes] = lapply(aa_changes[single_gene_changes], function(x) gsub(pattern = '.*_', '', x))
+  compound_snvs[, aa_changes := aa_changes]
+  compound_snvs[, all_aac := NULL]
   
   sample_table = cesa@maf[compound_snvs$snv_id, Unique_Patient_Identifier, on = "variant_id", by = "variant_id", nomatch = NULL]
   sample_table[cesa@samples, covered_regions := covered_regions, on = "Unique_Patient_Identifier"]

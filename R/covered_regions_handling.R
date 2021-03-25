@@ -217,10 +217,17 @@ update_covered_in = function(cesa) {
   if(is.null(all_coverage)) {
     snv_table[, covered_in := list()]
   } else {
+    # When exome+ is being used, not much point of including the original "exome" ranges
+    if ('exome+' %in% names(all_coverage)) {
+      all_coverage = all_coverage[names(all_coverage) != 'exome']
+    }
     all_coverage = all_coverage[sort(names(all_coverage))] # sort by covered regions name
     is_covered = as.data.table(lapply(all_coverage, function(x) IRanges::overlapsAny(snv_gr, x, type = "within")))
     all_names = names(is_covered)
     covered_in = apply(is_covered, 1, function(x) all_names[x])
+    if(is(covered_in, "character")) {
+      covered_in = as.list(covered_in)
+    }
     
     # edge case
     if(snv_table[, .N] == 1) {
@@ -228,9 +235,6 @@ update_covered_in = function(cesa) {
     } else {
       snv_table[, covered_in := covered_in]
     }
-    # Note that when exome+ coverage (see load_maf) is used, samples can have both "exome" and "exome+" associated with their mutations,
-    # but the samples themselves are considered "exome+" (be careful not to double-count these)
-    
   }
   cesa@mutations$snv = snv_table
   setkey(cesa@mutations$snv, 'snv_id')

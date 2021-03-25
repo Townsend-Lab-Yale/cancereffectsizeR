@@ -216,7 +216,6 @@ load_cesa = function(file) {
   # cache variant table for easy user access
   if(length(cesa@mutations) > 0) {
     cesa@advanced$cached_variants = select_variants(cesa)
-    setkey(cesa@advanced$cached_variants, 'variant_id', 'variant_type')
   }
   return(cesa)
 }

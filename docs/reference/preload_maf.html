@@ -92,7 +92,7 @@ will be automatically converted with rtracklayer's version of liftOver." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.1.1</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.1.2</span>
       </span>
     </div>
 
@@ -159,7 +159,7 @@ will be automatically converted with rtracklayer's version of liftOver." />
   <div class="col-md-9 contents">
     <div class="page-header">
     <h1>Read and verify MAF somatic mutation data</h1>
-    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/R/preload_maf.R'><code>R/preload_maf.R</code></a></small>
+    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/main/R/preload_maf.R'><code>R/preload_maf.R</code></a></small>
     <div class="hidden name"><code>preload_maf.Rd</code></div>
     </div>
 
@@ -183,7 +183,7 @@ will be automatically converted with rtracklayer's version of liftOver.</p>
   start_col <span class='op'>=</span> <span class='st'>"Start_Position"</span>,
   ref_col <span class='op'>=</span> <span class='st'>"Reference_Allele"</span>,
   tumor_allele_col <span class='op'>=</span> <span class='st'>"guess"</span>,
-  more_cols <span class='op'>=</span> <span class='cn'>NULL</span>
+  keep_extra_columns <span class='op'>=</span> <span class='cn'>FALSE</span>
 <span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
@@ -233,9 +233,9 @@ padding should be added.)</p></td>
 values from Tumor_Seq_Allele2 and Tumor_Seq_Allele1 columns are used</p></td>
     </tr>
     <tr>
-      <th>more_cols</th>
-      <td><p>Names of data columns to keep in addition to the core required
-columns. Choose "all" to keep all columns.</p></td>
+      <th>keep_extra_columns</th>
+      <td><p>TRUE/FALSE to load data columns not needed by cancereffectsizeR,
+or a vector of column names to keep.</p></td>
     </tr>
     </table>
 

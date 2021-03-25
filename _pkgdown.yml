@@ -5,6 +5,8 @@ template:
     docsearch:
       api_key: 85c732458d5af0ba2cd9feb9eb7f9a97
       index_name: cancereffectsizer
+repo:
+  branch: main
 reference:
 - title: Create and manage projects
   desc:  Create, load, and save projects
@@ -21,7 +23,6 @@ reference:
   - select_variants
   - add_variants
   - add_covered_regions
-  - annotate_variants
   - baseline_mutation_rates
 - title: Compound variants
   desc: Combine variants into arbitrary batches and test for batch-level selection

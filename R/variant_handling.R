@@ -498,7 +498,7 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = 
 
   # order output in chr/pos order
   setkey(combined, "chr")
-  combined = combined[BSgenome::seqnames(bsg), nomatch = NULL][, .SD[order(start)], by = "chr"]
+  combined = combined[BSgenome::seqnames(bsg), nomatch = NULL, on = 'chr'][, .SD[order(start)], by = "chr"]
   setcolorder(combined, c("variant_name", "variant_type", "chr", "start", "end", "variant_id", "ref", "alt", "gene", 
                           "strand", "aachange", "essential_splice", "intergenic", "trinuc_mut", "aa_ref", "aa_pos", "aa_alt", "coding_seq", 
                           "center_nt_pos", "pid", "constituent_snvs", "multi_anno_site", "all_aac", "all_genes",
@@ -507,11 +507,6 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = 
   setattr(combined, "cesa_id", cesa@advanced$uid)
   setattr(combined, "nonoverlapping", nonoverlapping)
   
-  # May want to keep track of what covered_regions are in the CESAnalysis, since it's
-  # possible to add more at any time. However, it's not possible to change covered_regions
-  # of already-loaded samples, so plugging an out-of-data variant table into ces_variant
-  # shouldn't ever affect output.
-  #setattr(combined, "cesa_cov_regions", unlist(sapply(cesa@coverage, names), use.names = F))
   return(combined[]) # brackets force the output to print when unassigned (should automatically, but this is a known data.table issue)
 }
 
@@ -687,18 +682,20 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
   snv_id = snvs_to_annotate
   maf = as.data.table(tstrsplit(snv_id, split = '[:_>]'))
   colnames(maf) = c("Chromosome", "Start_Position", "Reference_Allele", "Tumor_Allele")
-  maf$Unique_Patient_Identifier = NA_character_
-  setcolorder(maf, "Unique_Patient_Identifier")
-  maf$variant_type = "snv"
   maf[, Start_Position := as.numeric(Start_Position)]
   
-  # add the new variants to cesa@maf (will remove after annotation)
-  cesa@maf = rbind(cesa@maf, maf, fill = T)
-  prev_recording_status = cesa@advanced$recording
-  cesa@advanced$recording = F
-  cesa = annotate_variants(cesa)
-  cesa@advanced$recording = prev_recording_status
-  cesa@maf = cesa@maf[! is.na(Unique_Patient_Identifier)]
+  annotations = annotate_variants(refset = .ces_ref_data[[target_cesa@ref_key]], variants = maf)
+  aac_table = annotations$amino_acid_change
+  snv_table = annotations$snv
+  if (aac_table[, .N] > 0) {
+    cesa@mutations[["amino_acid_change"]] = unique(rbind(cesa@mutations$amino_acid_change, aac_table, fill = T), by = "aac_id")
+    setkey(cesa@mutations$amino_acid_change, "aac_id")
+  }
+  cesa@mutations[["snv"]] = unique(rbind(cesa@mutations$snv, snv_table, fill = T), by = "snv_id")
+  setkey(cesa@mutations$snv, "snv_id")
+
+  # Record which coverage ranges each new variant is covered in
+  cesa = update_covered_in(cesa)
   return(cesa)
 }
 

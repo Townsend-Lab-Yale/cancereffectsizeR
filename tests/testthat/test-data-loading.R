@@ -14,13 +14,12 @@ test_that("load_maf and variant annotation", {
   # same ranges should be in each coverage GenomicRange (depending on BSgenome version, little contigs may vary)
   expect_equal(lapply(tiny@coverage$exome, IRanges::ranges), lapply(tiny_ak@coverage$exome, IRanges::ranges))
   
-  # undo annotations, verify that calling internal function annotate_variants works the same called directly
-  tiny@maf = tiny@maf[, .(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele, Tumor_Allele, variant_type)]
-  tiny@maf[variant_type == "likely_mnv", variant_type := "snv"] # let annotate_variants redo the prediction
-  tiny@mutations = list()
-  tiny = annotate_variants(tiny)
-  expect_equal(tiny@mutations, tiny_ak@mutations)
-  expect_equal(tiny@maf[order(variant_id)], tiny_ak@maf[order(variant_id)])
+  # Verify that calling internal function annotate_variants works the same called directly
+  variants_to_check = tiny@maf
+  variants_to_check[, variant_type := NULL] # cause variants to be re-identified
+  re_anno = annotate_variants(ces.refset.hg19, variants_to_check)
+  expect_equal(tiny@mutations$amino_acid_change[, -"covered_in"], re_anno$amino_acid_change)
+  expect_equal(tiny@mutations$snv[, -"covered_in"], re_anno$snv)
   
   # expect error when adding a variant already present
   expect_error(add_variants(target_cesa = tiny, snv_id = "13:19752521_T>A"), "all of them are already annotated")
