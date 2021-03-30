@@ -374,6 +374,11 @@ ces_variant <- function(cesa = NULL,
             if (startsWith(conditionMessage(w), "some parameters are on the boundary")) {
               invokeRestart("muffleWarning")
             }
+            if (grepl(x = conditionMessage(w), pattern = "convergence failure")) {
+              # a little dangerous to muffle, but so far these warnings are
+              # quite rare and have been harmless
+              invokeRestart("muffleWarning") 
+            }
           }
         )
         

@@ -201,9 +201,10 @@ CompoundVariantSet = function(cesa, variant_id) {
                                     total_subvariant_freq = sum(total_maf_freq)), by = "compound_name"]
   compound_snvs[, shared_cov := NULL]
   
-  # count just one variant per sample
+  # shared_cov_freq is the number of samples that have one or more of a compound variant, within samples have coverage
+  # at all compound variant sites
   compound_counts_cov = unique(covered_sample_table, by = c("variant_id", "Unique_Patient_Identifier"))
-  compound_counts_cov = compound_counts_cov[, .(shared_cov_freq = .N), by = "compound_name"]
+  compound_counts_cov = compound_counts_cov[, .(shared_cov_freq = uniqueN(Unique_Patient_Identifier)), by = "compound_name"]
   compound_stats = compound_stats[compound_counts_cov, on = "compound_name"]
   compound_counts_total = unique(sample_table, by = c("variant_id", "Unique_Patient_Identifier"))
   
