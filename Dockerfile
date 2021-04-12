@@ -22,15 +22,10 @@ RUN apt-get update \
 	liblzma-dev \
 	libbz2-dev \
 	libgit2-dev \
-	&& rm -rf /var/lib/apt/lists/*
-#	&& echo "options(repos = c(CRAN = '${CRAN_URL}', BIOC = '${BIOC_URL}'), " \
-#	    "download.file.method = 'libcurl')" >> /usr/local/lib/R/etc/Rprofile.site \
-RUN install2.r -s -e -n ${N_CPU_BUILD} BiocManager remotes mockr
-
-RUN echo "options(timeout = 300)" >> /usr/local/lib/R/etc/Rprofile.site
-
-RUN /usr/local/lib/R/site-library/littler/examples/installBioc.r BSgenome.Hsapiens.UCSC.hg19
-
-RUN /usr/local/lib/R/site-library/littler/examples/installBioc.r deconstructSigs \
+	&& rm -rf /var/lib/apt/lists/* \
+    && install2.r -s -e -n ${N_CPU_BUILD} BiocManager remotes mockr \
+    && echo "options(timeout = 300)" >> /usr/local/lib/R/etc/Rprofile.site \
+    && /usr/local/lib/R/site-library/littler/examples/installBioc.r BSgenome.Hsapiens.UCSC.hg19 \
+    && /usr/local/lib/R/site-library/littler/examples/installBioc.r deconstructSigs \
     && installGithub.r -u FALSE im3sanger/dndscv "Townsend-Lab-Yale/cancereffectsizeR@*release" \
-	&& installGithub.r -u FALSE "Townsend-Lab-Yale/ces.refset.hg19@*release"
+    && installGithub.r -u FALSE "Townsend-Lab-Yale/ces.refset.hg19@*release"
