@@ -9,7 +9,7 @@ test_that("Trinucleotide signature weight calculation", {
   
   cesa = trinuc_mutation_rates(cesa, signatures_to_remove = to_remove, signature_set = "COSMIC_v3.1")
   trinuc_ak = get_test_data("trinuc_mut_weighting.rds")
-  expect_equal(cesa@trinucleotide_mutation_weights, trinuc_ak)
+  expect_equal(cesa@trinucleotide_mutation_weights, trinuc_ak, tolerance = 1e-4)
   
   
   
