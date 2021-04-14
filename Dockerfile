@@ -23,9 +23,14 @@ RUN apt-get update \
 	libbz2-dev \
 	libgit2-dev \
 	&& rm -rf /var/lib/apt/lists/* \
-    && install2.r -s -e -n ${N_CPU_BUILD} BiocManager remotes mockr \
-    && echo "options(timeout = 300)" >> /usr/local/lib/R/etc/Rprofile.site \
-    && /usr/local/lib/R/site-library/littler/examples/installBioc.r BSgenome.Hsapiens.UCSC.hg19 \
-    && /usr/local/lib/R/site-library/littler/examples/installBioc.r deconstructSigs \
-    && installGithub.r -u FALSE im3sanger/dndscv "Townsend-Lab-Yale/cancereffectsizeR@*release" \
-    && installGithub.r -u FALSE "Townsend-Lab-Yale/ces.refset.hg19@*release"
+	&& install2.r -s -e -n ${N_CPU_BUILD} BiocManager remotes mockr devtools \
+	&& echo "options(timeout = 300)" >> /usr/local/lib/R/etc/Rprofile.site \
+	&& /usr/local/lib/R/site-library/littler/examples/installBioc.r \
+		BSgenome.Hsapiens.UCSC.hg19 deconstructSigs \
+	&& installGithub.r -u FALSE "im3sanger/dndscv"
+
+COPY . /cancereffectsizeR
+
+RUN R -e 'remotes::install_local("/cancereffectsizeR", upgrade = FALSE, dependencies = TRUE)'
+
+RUN installGithub.r -u FALSE -d FALSE "Townsend-Lab-Yale/ces.refset.hg19@*release"
