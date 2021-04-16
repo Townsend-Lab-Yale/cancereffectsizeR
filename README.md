@@ -90,6 +90,7 @@ cancereffectsizeR requires R 3.5 or later and can be installed from its GitHub r
 On R 4.0 or later, run this:
 ```R
 install.packages("remotes")
+options(timeout = 300)  # allow extra time to download BSgenome.Hsapiens.UCSC.hg19
 remotes::install_github("Townsend-Lab-Yale/cancereffectsizeR@*release")
 ```
 
