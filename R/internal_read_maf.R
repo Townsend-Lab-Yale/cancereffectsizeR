@@ -174,26 +174,34 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
     message("Preparing and running liftOver...")
     chain = rtracklayer::import.chain(chain_file)
     names(chain) = sub("^chr", "", names(chain))
-    prelift_cols = copy(names(maf))
     maf[, rn := 1:.N] # using row number as an identifier to know which intervals fail liftover
     for_liftover = maf[is.na(problem), .(Chromosome, Start_Position, rn)]
     for_liftover[, Chromosome := sub('^chr', '', Chromosome)]
+    
+    # Assume positive strand (if there are ever serious MAF files with minus strand records, may need to change)
     gr = GenomicRanges::makeGRangesFromDataFrame(df = for_liftover, seqnames.field = "Chromosome", 
                                                  start.field = "Start_Position", end.field = "Start_Position",
                                                  keep.extra.columns = T)
+    GenomicRanges::strand(gr) = "+"
     lifted_over = unlist(rtracklayer::liftOver(gr, chain))
     GenomeInfoDb::seqlevelsStyle(lifted_over) = "NCBI"
     lifted_over = as.data.table(lifted_over)
     
     merged_maf = merge.data.table(maf, lifted_over, by = "rn")
+    merged_maf[, liftover_strand_flip := FALSE][strand == "-", liftover_strand_flip := TRUE]
+    setnames(merged_maf, c("Chromosome", "Start_Position"), c("prelift_chr", "prelift_start"))
     merged_maf[, Chromosome := as.character(seqnames)] # seqnames comes back as factor!
     merged_maf[, Start_Position := start]
-    
+    merged_maf[, c("start", "seqnames", "width", "strand", "end") := NULL] 
+
     failed_liftover = maf[is.na(problem) & ! rn %in% merged_maf$rn, -"rn"]
-    maf = merged_maf[, ..prelift_cols]
+    maf[, rn := NULL]
+    setcolorder(merged_maf, names(maf))
+    maf = merged_maf[, -"rn"]
     if (failed_liftover[, .N] > 0) {
       failed_liftover[, problem := 'failed_liftOver']
-      maf = rbind(maf, failed_liftover)
+      setnames(failed_liftover, c("Chromosome", "Start_Position"), c("prelift_chr", "prelift_start"))
+      maf = rbind(maf, failed_liftover, fill = T)
     }
     
     # Different loci in one genome build can get lifted to the same position in the
@@ -201,6 +209,19 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
     # when two mutations in same sample get lifted to the same locus in a newer build.
     lifted_to_same = duplicated(maf[,.(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele)])
     maf[lifted_to_same, problem := 'duplicate_record_after_liftOver']
+    
+    # A few records (e.g., ~0.3% when lifting TCGA UCEC from hg38 to hg19) will need
+    # positions/alleles corrected because of the orientation of the local contig being
+    # reversed across genome builds. All of these basically get the same treatment: flip
+    # start position to opposite end of variant, which means (start - length + 1), and
+    # reverse complement the reference and alternate alleles. Indels have a '-' in either
+    # ref or alt columns, which don't get changed. Since reverseComplement returns
+    # identity on '-', we don't actually have to worry about this.
+    maf[liftover_strand_flip == TRUE, 
+        c("Start_Position", "Reference_Allele", "Tumor_Allele") := 
+        .(Start_Position - nchar(Reference_Allele) + 1,
+          as.character(Biostrings::reverseComplement(DNAStringSet(Reference_Allele))),
+          as.character(Biostrings::reverseComplement(DNAStringSet(Tumor_Allele))))]
   }
   
   # strip chr prefixes from chr column, if present ("NCBI-style"), and flag unsupported chromosomes
@@ -212,13 +233,18 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
   maf[supported == FALSE, problem := 'unsupported_chr']
   maf[, c("stripped_chr", "supported") := NULL]
   
+  # If LiftOver is not being used (which would catch problems earlier), make sure all records are in-bounds.
+  if (is.null(chain_file)) {
+    max_lengths = GenomeInfoDb::seqlengths(refset_env$genome)
+    maf[Start_Position > max_lengths[Chromosome], problem := 'out_of_bounds']
+  }
   
   # Ensure reference alleles of mutations match reference genome (Note: Insertions won't match if their reference allele is "-")
   message("Checking that reference alleles match the reference genome...")
   ref_allele_lengths = nchar(maf[is.na(problem), Reference_Allele])
   ref_alleles_to_test = maf[is.na(problem), Reference_Allele]
   end_pos = maf[is.na(problem), Start_Position] + ref_allele_lengths - 1 # for multi-base deletions, check that all deleted bases match reference
-  reference_alleles <- as.character(BSgenome::getSeq(refset_env$genome, maf[is.na(problem), Chromosome],
+  reference_alleles = as.character(BSgenome::getSeq(refset_env$genome, maf[is.na(problem), Chromosome],
                                                      strand="+", start=maf[is.na(problem), Start_Position], end=end_pos))
   
   # For insertions, can't evaluate if record matches reference since MAF reference will be just "-"
@@ -226,6 +252,7 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
   maf[is.na(problem), actual_ref := reference_alleles]
   maf[is.na(problem) & Reference_Allele != '-' & Reference_Allele != actual_ref, problem := 'reference_mismatch']
   maf[, actual_ref := NULL]
+  
   return(maf)
 }
 
@@ -236,6 +263,7 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
 #' @keywords internal
 identify_maf_variants = function(maf) {
   nt = c("A", "T", "C", "G")
+  maf[! Reference_Allele %like% '^[ACTG-]+$']
   maf[Reference_Allele %in% nt & Tumor_Allele %in% nt, 
       c("variant_type", "variant_id") := .("snv", paste0(Chromosome, ':', Start_Position, '_', Reference_Allele, '>', Tumor_Allele))]
   maf[Reference_Allele %like% '^[ACTG]{2}$' & Tumor_Allele %like% '^[ACTG]{2}$', 
@@ -245,6 +273,10 @@ identify_maf_variants = function(maf) {
   maf[Tumor_Allele == '-' & Reference_Allele %like% '^[ACTG]+$', 
       c("variant_type", "variant_id") := .('del', paste0(Chromosome, ':', Start_Position, '_del_', Reference_Allele))]
   maf[is.na(variant_id), variant_type := 'other']
+  
+  # As long as ref/tumor alleles consist of [ACTG], will let them stay as "other"; we don't handle these variants, anyway.
+  maf[variant_type == 'other' & (! Reference_Allele %like% '^[ACTG]+$' | ! Tumor_Allele %like% '^[ACTG]+$'), variant_type == 'illegal']
+  return(maf)
 }
 
   

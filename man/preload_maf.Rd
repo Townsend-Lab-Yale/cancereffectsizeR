@@ -62,7 +62,7 @@ the "chain_file" option to supply a UCSC-style chain file, and your MAF coordina
 will be automatically converted with rtracklayer's version of liftOver.
 }
 \details{
-The default ces.refset.hg19 provides three annotations that may consider using for
+The default ces.refset.hg19 provides three annotations that you may consider using for
 quality filtering of MAF records:
 \itemize{
 \item cosmic_site_tier Indicates if the variant's position overlaps a mutation in

@@ -8,7 +8,7 @@
 #' the "chain_file" option to supply a UCSC-style chain file, and your MAF coordinates
 #' will be automatically converted with rtracklayer's version of liftOver.
 #' 
-#' The default ces.refset.hg19 provides three annotations that may consider using for
+#' The default ces.refset.hg19 provides three annotations that you may consider using for
 #' quality filtering of MAF records:
 #' \itemize{
 #' \item cosmic_site_tier Indicates if the variant's position overlaps a mutation in
@@ -154,16 +154,17 @@ preload_maf = function(maf = NULL, refset = "ces.refset.hg19", coverage_interval
   
   
   # Make MAF-based gr if needed
-  which_no_problem = maf[is.na(problem), which = T]
+  # Will annotate all good records, and also bad ones that have valid chr/start
+  valid_loci = maf[! is.na(Chromosome) & ! is.na(Start_Position) & ! problem %in% c("out_of_bounds", "unsupported_chr"), which = T]
   if (! is.null(coverage_gr) || length(anno_grs) > 0) {
-    maf_gr = makeGRangesFromDataFrame(maf[which_no_problem], start.field = "Start_Position", end.field = "Start_Position",
+    maf_gr = makeGRangesFromDataFrame(maf[valid_loci], start.field = "Start_Position", end.field = "Start_Position",
                              seqnames.field = "Chromosome")
   }
   
   
   if(! is.null(coverage_gr)) {
     dist = as.data.table(distanceToNearest(maf_gr, coverage_gr))
-    maf[which_no_problem, dist_to_coverage_intervals := dist$distance]
+    maf[valid_loci, dist_to_coverage_intervals := dist$distance]
   }
 
 
@@ -171,7 +172,7 @@ preload_maf = function(maf = NULL, refset = "ces.refset.hg19", coverage_interval
     # can either be a GRanges or a list of them
     if (is(gr, "GRanges")) {
       anno_colname = attr(gr, "anno_col_name", exact = T)
-      maf[which_no_problem, (anno_colname) := maf_gr %within% gr]
+      maf[valid_loci, (anno_colname) := maf_gr %within% gr]
     } else if (is(gr, "list") && unique(sapply(gr, function(x) is(x, "GRanges"))) == T) {
       # will go in reverse order since ranges are listed in order of precedence (first gr's overlaps should always appear)
       anno_colname = attr(gr, "anno_col_name", exact = T)
@@ -180,13 +181,13 @@ preload_maf = function(maf = NULL, refset = "ces.refset.hg19", coverage_interval
       for (i in 1:length(labels)) {
         curr_label = labels[i]
         has_overlap = maf_gr %within% gr[[i]]
-        maf[which_no_problem[has_overlap], (anno_colname) := curr_label]
+        maf[valid_loci[has_overlap], (anno_colname) := curr_label]
       }
     } else {
       warning("A misformatted annotation source was skipped.")
     }
   }
-  problem_summary = maf[! which_no_problem, .(num_records = .N), by = "problem"]
+  problem_summary = maf[! is.na(problem), .(num_records = .N), by = "problem"]
   
   if(problem_summary[, .N] > 0) {
     pretty_message("Some MAF records have problems:")
@@ -194,10 +195,28 @@ preload_maf = function(maf = NULL, refset = "ces.refset.hg19", coverage_interval
     message(crayon::black(paste0(capture.output(print(problem_summary, row.names = F)), collapse = "\n"))) 
     pretty_message("You can remove or fix these records, or let load_maf() exclude them automatically.")
     num_mit = maf[problem == 'unsupported_chr' & Chromosome %like% '^(chr)?MT?$', .N]
-    is_recent_human_build = get_ref_data(data_dir, 'genome_build_info')$build_name %in% c('hg19', 'hg38')
+    build_name = get_ref_data(data_dir, 'genome_build_info')$build_name
+    is_recent_human_build = build_name %in% c('hg19', 'hg38')
     if (num_mit > 0 && is_recent_human_build == T) {
       pretty_message(paste0('FYI, ', num_mit, ' of the unsupported_chr records are mitochondrial variants, which ',
                           'for a variety of technical reasons cannot be included.'))
+    }
+    num_out_out_bounds = maf[problem == 'out_of_bounds', .N]
+    frac_mismatch = maf[problem == 'reference_mismatch', .N] / maf[, .N]
+    if (num_out_out_bounds > 0 | frac_mismatch > .05) {
+      if (is.null(chain_file)) {
+        msg = paste0("Presence of out-of-bounds MAF records (position greater than chromosome length) ",
+               "or having many reference mismatches typically indicates use of an incorrect genome build. ", 
+               'Make sure (all) of your input data uses ', build_name, ' coordinates, or use a chain file ',
+               'to convert the coordinates if necessary.')
+      } else {
+        msg = paste0("Having many reference mismatches typically indicates use of an incorrect genome build. ",
+                     "Since you supplied a chain file to convert coordinates, make sure it's the correct chain file ",
+                     "to convert from the data's original coordinate system to ", build_name, '.')
+      }
+      msg = paste0(msg, " (Or, if you didn't intend to use ", build_name, ", use the \"refset\" argument to specify the ",
+            "reference data set that matches your desired build.)")
+      warning(pretty_message(msg, emit = F))
     }
   }
   return(maf[])
