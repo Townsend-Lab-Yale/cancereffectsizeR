@@ -263,19 +263,21 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
 #' @keywords internal
 identify_maf_variants = function(maf) {
   nt = c("A", "T", "C", "G")
+  maf[, start_char := format(Start_Position, scientific = F, justify = 'none', trim = T)] # to avoid stuff like 100000 > "1e5"
   maf[! Reference_Allele %like% '^[ACTG-]+$']
   maf[Reference_Allele %in% nt & Tumor_Allele %in% nt, 
-      c("variant_type", "variant_id") := .("snv", paste0(Chromosome, ':', Start_Position, '_', Reference_Allele, '>', Tumor_Allele))]
+      c("variant_type", "variant_id") := .("snv", paste0(Chromosome, ':', start_char, '_', Reference_Allele, '>', Tumor_Allele))]
   maf[Reference_Allele %like% '^[ACTG]{2}$' & Tumor_Allele %like% '^[ACTG]{2}$', 
-      c("variant_type", "variant_id") := .('dbs', paste0(Chromosome, ':', Start_Position, '_', Reference_Allele, '>', Tumor_Allele))]
+      c("variant_type", "variant_id") := .('dbs', paste0(Chromosome, ':', start_char, '_', Reference_Allele, '>', Tumor_Allele))]
   maf[Reference_Allele == '-' & Tumor_Allele %like% '^[ACTG]+$', 
-      c("variant_type", "variant_id") := .('ins', paste0(Chromosome, ':', Start_Position, '_ins_', Tumor_Allele))]
+      c("variant_type", "variant_id") := .('ins', paste0(Chromosome, ':', start_char, '_ins_', Tumor_Allele))]
   maf[Tumor_Allele == '-' & Reference_Allele %like% '^[ACTG]+$', 
-      c("variant_type", "variant_id") := .('del', paste0(Chromosome, ':', Start_Position, '_del_', Reference_Allele))]
+      c("variant_type", "variant_id") := .('del', paste0(Chromosome, ':', start_char, '_del_', Reference_Allele))]
   maf[is.na(variant_id), variant_type := 'other']
   
   # As long as ref/tumor alleles consist of [ACTG], will let them stay as "other"; we don't handle these variants, anyway.
   maf[variant_type == 'other' & (! Reference_Allele %like% '^[ACTG]+$' | ! Tumor_Allele %like% '^[ACTG]+$'), variant_type == 'illegal']
+  maf[, start_char := NULL]
   return(maf)
 }
 

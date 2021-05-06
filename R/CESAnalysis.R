@@ -106,10 +106,23 @@ CESAnalysis = function(refset = "ces.refset.hg19", sample_groups = NULL) {
   advanced = list("version" = ces_version, using_exome_plus = F, 
                   recording = T, locked = F, trinuc_done = F, gene_rates_done = F,
                   uid = unclass(Sys.time()), genome_info = genome_info)
+  
+  # Mutation table specifications
+  aac_table = data.table(aac_id = character(), gene = character(), aachange = character(), 
+                         strand = integer(), chr = character(), pid = character(), aa_ref = character(), 
+                         aa_pos = numeric(), aa_alt = character(), 
+                         nt1_pos = numeric(), nt2_pos = numeric(), nt3_pos = numeric(), 
+                         coding_seq = character(), constituent_snvs = list(), essential_splice = logical(), 
+                         covered_in = list())
+  snv_table = data.table(snv_id = character(), chr = character(), pos = numeric(), 
+                         ref = character(), alt = character(), genes = list(), intergenic = logical(), 
+                         assoc_aac = list(), trinuc_mut = character(), essential_splice = logical(), 
+                         covered_in = list())
+  mutation_tables = list(amino_acid_change = aac_table, snv = snv_table)
   cesa = new("CESAnalysis", run_history = character(),  ref_key = refset_name, maf = data.table(), excluded = data.table(),
              groups = sample_groups, mutrates = data.table(),
              selection_results = list(), ref_data_dir = data_dir, epistasis = list(),
-             advanced = advanced, samples = data.table(), mutations = list())
+             advanced = advanced, samples = data.table(), mutations = mutation_tables)
   cesa@run_history = c(paste0("[Version: cancereffectsizeR ", ces_version, "]" ))
   cesa = update_cesa_history(cesa, match.call())
 

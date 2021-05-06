@@ -2,17 +2,18 @@
 pbopts = pbapply::pboptions(type="none")
 
 # restore user preference on teardown
-teardown(pbapply::pboptions(pbopts))
+withr::defer(pbapply::pboptions(pbopts), teardown_env())
 
 # this overrides efforts by devtools::test to use withr::with_collate("C",...
 Sys.setlocale(locale = "")
 
-# maximize text width so that messages don't get newlines inserted,
-# which otherwise makes expect_message fail sometimes
-width_opt = options(width = 10000)$width
+# Set text width so that messages don't get unexpected newlines inserted,
+# which can expect_message fail
+width_opt = options(width = 150)$width
 
 # restore text width on teardown
-teardown(options(width = width_opt))
+withr::defer(options(width = width_opt), teardown_env())
+
 
 # override load_cesa warning messages
 load_cesa = function(...) {

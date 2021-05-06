@@ -163,8 +163,12 @@ preload_maf = function(maf = NULL, refset = "ces.refset.hg19", coverage_interval
   
   
   if(! is.null(coverage_gr)) {
-    dist = as.data.table(distanceToNearest(maf_gr, coverage_gr))
-    maf[valid_loci, dist_to_coverage_intervals := dist$distance]
+    maf[valid_loci, is_covered := maf_gr %within% coverage_gr]
+    uncovered_gr = maf_gr[maf[is_covered == F, which = T]]
+    maf[valid_loci, dist_to_coverage_intervals := 0]
+    # distToNearest gives gap width, so off-by-one records get a confusing 0 unless we add 1
+    maf[is_covered == F, dist_to_coverage_intervals := as.data.table(distanceToNearest(uncovered_gr, coverage_gr))$distance + 1]
+    maf[, is_covered := NULL]
   }
 
 

@@ -58,5 +58,6 @@ or transcript, only the longest complete CDS sequence is encoded in RefCDS outpu
 \details{
 Required columns are seqnames, start, end, strand, gene_name, gene_id, protein_id, and
 type. When output_by = "transcript", there must also be a transcript_id column. Only
-rows that have type == "CDS" will be used. Strand should be "+" or "-".
+rows that have type == "CDS" will be used. Strand should be
+"+" or "-".
 }

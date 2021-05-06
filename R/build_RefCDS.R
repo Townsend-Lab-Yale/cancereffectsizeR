@@ -7,7 +7,8 @@
 #'
 #' Required columns are seqnames, start, end, strand, gene_name, gene_id, protein_id, and
 #' type. When output_by = "transcript", there must also be a transcript_id column. Only
-#' rows that have type == "CDS" will be used. Strand should be "+" or "-".
+#' rows that have type == "CDS" will be used. Strand should be
+#' "+" or "-".
 #' 
 #' @return A two-item list: RefCDS (which is itself a big list, with one entry per gene or
 #'   transcript), and gr_genes, a GRanges object that defines the genomic intervals
@@ -95,6 +96,9 @@ build_RefCDS = function(gtf, genome, output_by = "gene", cds_ranges_lack_stop_co
   gtf = gtf[, ..required_cols]
   reftable = gtf[type == "CDS", -"type"]
   
+  if(reftable[, .N] == 0) {
+    stop("No entries of type \"CDS\" in GTF input; these entries are required.")
+  }
   
   char_cols = c("seqnames", "gene_id", "gene_name", "strand", "protein_id", transcript_col)
   num_cols = c("start", "end")

@@ -167,7 +167,6 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     }
     pretty_message("Assuming this data has default exome coverage (it's better to supply covered intervals if you have them; see docs)...")
   } else if (! is.null(covered_regions)) {
-    # Use internal function to avoid updating covered_in now (annotate_variants step will handle this larger)
     cesa = .add_covered_regions(cesa = cesa, covered_regions = covered_regions, covered_regions_padding = covered_regions_padding, 
                                coverage_type = coverage, covered_regions_name = covered_regions_name)
   }
@@ -319,7 +318,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   }
   
   # Set aside new variants for annotation (notably, before MNV prediction; we'll still annotate those as SNVs)
-  if (length(cesa@mutations) > 0) {
+  if (cesa@mutations$snv[, .N] > 0) {
     # To-do: also leave out indels that have previously been annotated (okay to re-annotate for now)
     to_annotate = maf[! cesa@mutations$snv$snv_id, on = 'variant_id']
   } else {
@@ -440,14 +439,15 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     
     num_dbs = dbs[, .N]
     if(num_dbs > 0) {
-      msg = paste0('Note: ', num_dbs, ' adjacent pairs of SNVs have be re-annotated as doublet base substitutions (dbs).')
+      grammar = ifelse(num_dbs == 1, 'has', 'have')
+      msg = paste0('Note: ', num_dbs, ' adjacent pairs of SNVs ', grammar, ' been re-annotated as doublet base substitutions (dbs).')
       pretty_message(msg)
     }
     if (num_new_mnv > 0) {
       msg = ifelse(num_dbs > 0, 'Additionally, ', 'Note: ')
       grammar = ifelse(num_new_mnv > 1, 's', '')
-      msg = paste0(msg, num_new_mnv, ' group', grammar, ' of same-sample variants within 2 bp of each other have been classified as ',
-              'variant_type = \"other\" (because they probably did not occur independently).')
+      msg = paste0(msg, num_new_mnv, ' group', grammar, ' of same-sample variants within 2 bp of each other have been reclassified as ',
+              'combined variants of type \"other\" (because they probably did not occur independently).')
       pretty_message(msg)
     }
     maf[variant_type == 'other', c("variant_id", "assoc_aac") := list(NA_character_, list(NA_character_))] 
@@ -459,8 +459,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   
   # Update coverage fields of annotation tables
   # Internal note: Confusingly, update_covered_in also has a side effect of updating
-  # cached output of select_variants, because whether using annotate_variants,
-  # add_covered_regions, or add_variants, it always gets called at the end.
+  # cached output of select_variants; this should change in the future.
   cesa = update_covered_in(cesa)
 
   current_snv_stats = maf[variant_type == "snv", .(num_samples = uniqueN(Unique_Patient_Identifier), num_snv = .N)]

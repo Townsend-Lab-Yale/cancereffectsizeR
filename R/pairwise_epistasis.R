@@ -174,10 +174,6 @@ ces_epistasis = function(cesa = NULL, variants = NULL, run_name = "auto", cores 
     }
   }
   
-  if (is.null(cesa@mutations$snv)) {
-    stop("The CESAnalysis must have mutation annotations.", call. = F)
-  } 
-  
   if (! is.null(variants) && length(variants) < 1) {
     stop("variants is 0-length.", call. = F)
   }

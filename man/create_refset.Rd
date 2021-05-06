@@ -39,7 +39,7 @@ documentation, that defines default exome capture intervals for the genome. When
 cancereffectsizeR without specifying the genomic intervals that are covered by their
 sequencing data, these intervals inform some calculations. They can also be used to
 exclude non-covered variant calls. Including a default exome is optional but
-recommended, and users can always choose to user their own coverage definitions
+recommended, and users can always choose to use their own coverage definitions
 instead.}
 
 \item{exome_interval_padding}{Number of bases to pad start/end of each covered

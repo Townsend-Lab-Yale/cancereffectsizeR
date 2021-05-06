@@ -191,21 +191,23 @@ assign_gr_to_coverage = function(cesa, gr, covered_regions_name, coverage_type) 
 #' Updates the covered_in annotation for all variants
 #' to include all covered regions in the CESAnalysis
 #' 
-#' Also updated internal cached output of select_variants().
+#' Also updates internal cached output of select_variants().
 #' 
 #' @param cesa CESAnalysis
 #' @return CESAnalysis with regenerated covered-in annotations
 #' @keywords internal
 update_covered_in = function(cesa) {
+  # if no SNVs, nothing to update (may change once indels are supported)
+  if(cesa@mutations$snv[, .N] == 0) {
+    return(cesa)
+  }
   
-  # Note that AAC table might be absent if there are no AACs in the data set
   snv_table = cesa@mutations$snv
   aac_table = cesa@mutations$amino_acid_change
   
-  # if already existing coverage annotation, simpler to delete old annotations and re-do rather than updating
-  if ("covered_in" %in% colnames(snv_table)) {
-    snv_table[, covered_in := NULL]
-  }
+  # simpler to delete old annotations and re-do rather than updating
+  snv_table[, covered_in := NULL]
+
   
   snv_gr = GenomicRanges::makeGRangesFromDataFrame(snv_table, seqnames.field = "chr", start.field = "pos", end.field = "pos")
   
@@ -247,7 +249,13 @@ update_covered_in = function(cesa) {
     }
     aac_coverage = snv_table[, .(aac_id = unlist(assoc_aac), covered_in), by = "snv_id"]
     aac_coverage = aac_coverage[, .(covered_in = list(sort(unique(unlist(covered_in))))), by = "aac_id"]
-    aac_table[aac_coverage, covered_in := covered_in, on = "aac_id"]
+    
+    # edge case of adding single variant to empty CESAnalysis
+    if(aac_coverage[, .N] == 1 & is.null(aac_coverage$covered_in[[1]])) {
+      aac_table[, covered_in := list(NA_character_)]
+    } else {
+      aac_table[aac_coverage, covered_in := covered_in, on = "aac_id"]
+    }
     cesa@mutations$amino_acid_change = aac_table
     setkey(cesa@mutations$amino_acid_change, 'aac_id')
   }

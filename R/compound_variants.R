@@ -24,7 +24,7 @@ CompoundVariantSet = function(cesa, variant_id) {
     stop("cesa should be a CESAnalysis.")
   }
   
-  if (length(cesa@mutations) == 0) {
+  if (cesa@mutations$snv[, .N] == 0) {
     stop("There are no mutation annotations in the CESAnalysis")
   }
   setkey(cesa@mutations$amino_acid_change, "aac_id")

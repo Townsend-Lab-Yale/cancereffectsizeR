@@ -17,6 +17,6 @@ Updates the covered_in annotation for all variants
 to include all covered regions in the CESAnalysis
 }
 \details{
-Also updated internal cached output of select_variants().
+Also updates internal cached output of select_variants().
 }
 \keyword{internal}

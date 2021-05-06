@@ -101,12 +101,11 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = 
   }
   bsg = get_cesa_bsg(cesa)
   
-  if(length(cesa@mutations) == 0) {
+  # Soon we'll check indels, too
+  if(cesa@mutations$snv[, .N] == 0) {
     stop("There are no variants in the CESAnalysis.")
   }
-  if(length(cesa@mutations) == 0) {
-    stop("There are no variant annotations (run annotate_variants or re-run load_maf with annotate = TRUE).")
-  }
+  
   if(! is.numeric(min_freq) || length(min_freq) > 1 || min_freq - as.integer(min_freq) != 0) {
     stop("min_freq should be 1-length integer at least zero")
   }
@@ -677,7 +676,7 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
     warning("You're adding a lot of variants! Let us know if you have any issues.", immediate. = T, call. = F)
   }
   
-  # convert snv_id into MAF-like table, with an NA UPI
+  # split snv_ids into MAF-like table for annotation
   cesa = target_cesa
   snv_id = snvs_to_annotate
   maf = as.data.table(tstrsplit(snv_id, split = '[:_>]'))
