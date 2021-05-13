@@ -11,8 +11,6 @@
 #' display nicely, we would love to hear about it!)
 #' 
 #' 
-#' @import ggplot2
-#' @import ggrepel
 #' @param si_list Selection output table or named list of selection output tables. Each
 #'   table should have columns called "variant_name", "variant_type", and "gene", plus a
 #'   selection intensity column (or columns, and then each column will have its values
@@ -32,7 +30,8 @@
 #' @examples 
 #' \dontrun{
 #' # Compare cancer subtypes from different analyses
-#' lollipops(si_list = list(luad = luad_cesa$selection$selection.1, lusc = lusc_cesa$selection$selection.1))
+#' lollipops(si_list = list(luad = luad_cesa$selection$selection.1, 
+#'                          lusc = lusc_cesa$selection$selection.1))
 #' 
 #' # Compare results for two genes
 #' tp53 = cesa$selection$sswm[gene == 'TP53']
@@ -43,7 +42,9 @@
 lollipops = function(si_list, title = "My SIs", ylab = "selection intensity", 
                      max_sites = 50, label_size = 3.0, merge_dist = .04, 
                      si_col = "auto", group_names = "auto") {
-  
+  if (! requireNamespace("ggplot2") || ! requireNamespace("ggrepel")) {
+    stop("To use lollipops(), install ggplot2 and ggrepel: install.packages(c('ggplot2', 'ggrepel')).")
+  }
   # help out user if they called the function on cesa instead of [cesa]$seleciton
   if (is(si_list, "CESAnalysis")) {
     if(length(si_list@selection_results) > 0) {

@@ -221,7 +221,7 @@ trinuc_mutation_rates <- function(cesa,
   for (gr_name in gr_names) {
     if (gr_name %in% c("exome", "exome+")) {
       if (use_dS_exome2genome) {
-        data("tri.counts.exome", package = "deconstructSigs")
+        data("tri.counts.exome", package = "deconstructSigs", envir = environment())
         tri_counts_by_gr[[gr_name]] = tri.counts.exome
       } else {
         tri_counts_by_gr[[gr_name]] = get_ref_data(cesa, "tri.counts.exome")

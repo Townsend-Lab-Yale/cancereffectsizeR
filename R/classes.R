@@ -4,51 +4,6 @@ setClass("CESAnalysis", representation(maf = "data.table", trinucleotide_mutatio
           ref_key = "character", advanced = "list", ref_data_dir = "character", run_history = "character", samples = "data.table", 
           mutations = "list"))
 
-
-setMethod("$", "CESAnalysis",
-  function(x, name)
-  {
-    if(name == "maf") {
-      if(x@maf[, .N] > 0) {
-        return(maf_records(x))
-      } 
-    } else if (name == "samples") {
-      return(get_sample_info(x))
-    } else if (name == "excluded") {
-      return(excluded_maf_records(x))
-    } else if (name == "trinuc_rates") {
-      return(get_trinuc_rates(x))
-    } else if (name == "mutational_signatures") {
-      return(list(relative_biological = get_signature_weights(x, artifacts_zeroed = T),
-                  all = get_signature_weights(x, artifacts_zeroed = F)))
-    } else if (name == "gene_rates") {
-      return(get_gene_rates(x))
-    } else if (name == "variants") {
-      cached_variants = x@advanced$cached_variants
-      if (is.null(cached_variants)) {
-        x@advanced$cached_variants = suppressMessages(select_variants(cesa = x))
-        cached_variants = x@advanced$cached_variants
-      }
-      return(cached_variants)
-    } else if (name == "selection") {
-      return(snv_results(x))
-    } else if (name == "epistasis") {
-      return(epistasis_results(x))
-    } else if (name == "reference_data") {
-      ref_data = list(genome = .ces_ref_data[[x@ref_key]]$genome)
-      snv_signatures = x@advanced$snv_signatures
-      if (! is.null(snv_signatures)) {
-        ref_data = c(ref_data, list(snv_signatures = snv_signatures))
-      }
-      return(invisible(ref_data))
-    } else if (name == "coverage_ranges") {
-        return(x@coverage)
-    } else if (name == "run_history") {
-      CES_Run_History(x@run_history)
-    }
-  }
-)
-
 #' @export
 .DollarNames.CESAnalysis <- function(x, pattern = "") {
   features = character()
@@ -82,6 +37,50 @@ setMethod("$", "CESAnalysis",
   features = c(features, c("reference_data", "coverage_ranges", "run_history"))
   grep(pattern, features, value=TRUE)
 }
+
+setMethod("$", "CESAnalysis",
+          function(x, name)
+          {
+            if(name == "maf") {
+              if(x@maf[, .N] > 0) {
+                return(maf_records(x))
+              } 
+            } else if (name == "samples") {
+              return(get_sample_info(x))
+            } else if (name == "excluded") {
+              return(excluded_maf_records(x))
+            } else if (name == "trinuc_rates") {
+              return(get_trinuc_rates(x))
+            } else if (name == "mutational_signatures") {
+              return(list(relative_biological = get_signature_weights(x, artifacts_zeroed = T),
+                          all = get_signature_weights(x, artifacts_zeroed = F)))
+            } else if (name == "gene_rates") {
+              return(get_gene_rates(x))
+            } else if (name == "variants") {
+              cached_variants = x@advanced$cached_variants
+              if (is.null(cached_variants)) {
+                x@advanced$cached_variants = suppressMessages(select_variants(cesa = x))
+                cached_variants = x@advanced$cached_variants
+              }
+              return(cached_variants)
+            } else if (name == "selection") {
+              return(snv_results(x))
+            } else if (name == "epistasis") {
+              return(epistasis_results(x))
+            } else if (name == "reference_data") {
+              ref_data = list(genome = .ces_ref_data[[x@ref_key]]$genome)
+              snv_signatures = x@advanced$snv_signatures
+              if (! is.null(snv_signatures)) {
+                ref_data = c(ref_data, list(snv_signatures = snv_signatures))
+              }
+              return(invisible(ref_data))
+            } else if (name == "coverage_ranges") {
+              return(x@coverage)
+            } else if (name == "run_history") {
+              CES_Run_History(x@run_history)
+            }
+          }
+)
 
 
 setMethod("show", "CESAnalysis", 
@@ -171,7 +170,7 @@ setMethod("$", "CompoundVariantSet",
       return(x@sample_calls)
     }else if (name == "definitions") {
       tmp = x@snvs[, .(snvs = list(snv_id)), by = "compound_name"]
-      return(setNames(tmp$snvs, tmp$compound_name))
+      return(stats::setNames(tmp$snvs, tmp$compound_name))
     }
   }
 )

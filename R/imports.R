@@ -1,6 +1,9 @@
 #' @import data.table
 #' @import GenomeInfoDb
 #' @import BSgenome
+#' @importFrom utils .DollarNames data packageVersion
+#' @importFrom methods is new
+#' @importFrom stats na.omit
 .datatable.aware = TRUE
 .ces_ref_data = new.env()
 
@@ -19,6 +22,5 @@ pretty_message = function(msg, emit = T, black = emit) {
     return(msg)
   }
 }
-
 
 NULL

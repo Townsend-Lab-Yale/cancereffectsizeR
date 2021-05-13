@@ -195,7 +195,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
                  sprintf("%.1f", 100 * num_excluded / initial_num_records), '%) ',
                  "had problems and were excluded: ")
     problem_summary = excluded[, .(num_records = .N), by = "problem"]
-    message(crayon::black(paste0(capture.output(print(problem_summary, row.names = F)), collapse = "\n")))
+    message(crayon::black(paste0(utils::capture.output(print(problem_summary, row.names = F)), collapse = "\n")))
     
     if(num_excluded / initial_num_records > .05) {
       warning("More than 5% of input records had problems.")

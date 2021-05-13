@@ -57,7 +57,8 @@ display nicely, we would love to hear about it!)
 \examples{
 \dontrun{
 # Compare cancer subtypes from different analyses
-lollipops(si_list = list(luad = luad_cesa$selection$selection.1, lusc = lusc_cesa$selection$selection.1))
+lollipops(si_list = list(luad = luad_cesa$selection$selection.1, 
+                         lusc = lusc_cesa$selection$selection.1))
 
 # Compare results for two genes
 tp53 = cesa$selection$sswm[gene == 'TP53']

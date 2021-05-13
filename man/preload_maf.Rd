@@ -34,6 +34,9 @@ to remain in your data. Alternatively, if all records are already covered, then 
 calls have probably already be trimmed to the coverage intervals, which means no
 padding should be added.)}
 
+\item{chain_file}{a LiftOver chain file (text format, name ends in .chain) to convert MAF
+records to the genome build used in the CESAnalysis.}
+
 \item{sample_col}{column name with sample ID data (Tumor_Sample_Barcode or Unique_Patient_Identifier)}
 
 \item{chr_col}{column name with chromosome data  (Chromosome)}

@@ -1,12 +1,14 @@
 ^user_guide$
-^data/all_gene_trinuc_data\.RData$
+^cancereffectsizeR\.sublime-workspace$
+^cancereffectsizeR\.sublime-project$
+^cancereffectsizeR\.Rproj$
 ^\.Rproj$
-^builder$
-^AA_mutation_matrix_builder$
 ^\.Rproj\.user$
 ^data-raw$
 ^doc$
 ^Meta$
+^index.md$
 ^_pkgdown\.yml$
 ^docs$
 ^pkgdown$
+^vignettes/

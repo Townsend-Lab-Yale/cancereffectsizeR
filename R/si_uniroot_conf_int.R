@@ -11,7 +11,7 @@
 #' @keywords internal
 univariate_si_conf_ints = function(fit, lik_fn, min_si, max_si, conf) {
   max_ll = -1 * as.numeric(bbmle::logLik(fit))
-  offset = qchisq(conf, 1)/2
+  offset = stats::qchisq(conf, 1)/2
   selection_intensity = bbmle::coef(fit)
   num_pars = length(selection_intensity)
   conf_ints = list(num_pars * 2)
@@ -32,13 +32,13 @@ univariate_si_conf_ints = function(fit, lik_fn, min_si, max_si, conf) {
       if(ulik(min_si) < 0) {
         lower = NA_real_
       } else {
-        lower = max(uniroot(ulik, lower = min_si, upper = selection_intensity[i])$root, min_si)
+        lower = max(stats::uniroot(ulik, lower = min_si, upper = selection_intensity[i])$root, min_si)
       }
       if(ulik(max_si) < 0){
         # this really shouldn't happen
         upper = NA_real_
       } else {
-        upper = uniroot(ulik, lower = selection_intensity[i], upper = max_si)$root
+        upper = stats::uniroot(ulik, lower = selection_intensity[i], upper = max_si)$root
       }
     }
     conf_ints[[i * 2 - 1]] = lower

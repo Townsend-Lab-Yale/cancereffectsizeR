@@ -210,7 +210,7 @@ CompoundVariantSet = function(cesa, variant_id) {
   
   # Record which samples (including those outside shared coverage) have the variant
   samples_by_variant = compound_counts_total[, .(samples = list(unique(Unique_Patient_Identifier))), by = "compound_name"]
-  samples_with = setNames(samples_by_variant$samples, samples_by_variant$compound_name)
+  samples_with = stats::setNames(samples_by_variant$samples, samples_by_variant$compound_name)
   compound_counts_total = samples_by_variant[, .(total_freq = length(samples[[1]])), by = "compound_name"]
   compound_stats = compound_stats[compound_counts_total, on = "compound_name"]
   setcolorder(compound_stats, c("compound_name", "num_snv", "shared_cov", "shared_cov_freq", "total_freq"))

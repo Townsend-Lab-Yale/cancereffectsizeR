@@ -34,6 +34,8 @@
 #'   values from Tumor_Seq_Allele2 and Tumor_Seq_Allele1 columns are used
 #' @param keep_extra_columns TRUE/FALSE to load data columns not needed by cancereffectsizeR,
 #' or a vector of column names to keep.
+#' @param chain_file a LiftOver chain file (text format, name ends in .chain) to convert MAF
+#'   records to the genome build used in the CESAnalysis.
 #' @param coverage_intervals_to_check If available, a BED file or GRanges object
 #'   represented the expected coverage intervals of the sequencing method used to generate
 #'   the MAF data. Unless the coverage intervals are incorrect, most records will be
@@ -196,7 +198,7 @@ preload_maf = function(maf = NULL, refset = "ces.refset.hg19", coverage_interval
   if(problem_summary[, .N] > 0) {
     pretty_message("Some MAF records have problems:")
     # this is how to print a table nicely in the message stream
-    message(crayon::black(paste0(capture.output(print(problem_summary, row.names = F)), collapse = "\n"))) 
+    message(crayon::black(paste0(utils::capture.output(print(problem_summary, row.names = F)), collapse = "\n"))) 
     pretty_message("You can remove or fix these records, or let load_maf() exclude them automatically.")
     num_mit = maf[problem == 'unsupported_chr' & Chromosome %like% '^(chr)?MT?$', .N]
     build_name = get_ref_data(data_dir, 'genome_build_info')$build_name
