@@ -29,11 +29,10 @@ install.packages("https://cran.r-project.org/src/contrib/Archive/XML/XML_3.99-0.
                  type = "source", repos = NULL)
 ```
 
-
 ## Publications and version note
 Our 2018 JNCI paper [Effect sizes of somatic mutations in cancer](https://doi.org/10.1093/jnci/djy168) describes [Version 0.1.0](https://github.com/Townsend-Lab-Yale/cancereffectsizeR/releases/tag/0.1.0) of this package, which was developed by Cannataro, V. L., Gaffney, S. G., and Townsend, J. P. 
 
-This site describes the latest version, which has methodological and performance improvements, including support for whole-genome and targeted gene sequencing data. A user guide for v0.1.0 is available [here](https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/master/user_guide/cancereffectsizeR_user_guide.md).
+This site describes the latest version, which has methodological and performance improvements, including support for whole-genome and targeted gene sequencing data. A user guide for v0.1.0 is available [here](https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/main/user_guide/cancereffectsizeR_user_guide.md).
 
 
 
