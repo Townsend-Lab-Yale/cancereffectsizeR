@@ -318,12 +318,8 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   }
   
   # Set aside new variants for annotation (notably, before MNV prediction; we'll still annotate those as SNVs)
-  if (cesa@mutations$snv[, .N] > 0) {
-    # To-do: also leave out indels that have previously been annotated (okay to re-annotate for now)
-    to_annotate = maf[! cesa@mutations$snv$snv_id, on = 'variant_id']
-  } else {
-    to_annotate = maf
-  }
+  # To-do: also leave out indels that have previously been annotated (okay to re-annotate for now)
+  to_annotate = maf[! cesa@mutations$snv$snv_id, on = 'variant_id']
   message("Annotating variants...")
   annotations = annotate_variants(refset = refset, variants = to_annotate)
   
@@ -349,13 +345,10 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
       aac_table = aac_table[! bad_aa]
     }
   }
-  if (aac_table[, .N] > 0) {
-    cesa@mutations[["amino_acid_change"]] = unique(rbind(cesa@mutations$amino_acid_change, aac_table, fill = T), by = "aac_id")
-    setkey(cesa@mutations$amino_acid_change, "aac_id")
-  }
+  cesa@mutations[["amino_acid_change"]] = unique(rbind(cesa@mutations$amino_acid_change, aac_table, fill = T), by = "aac_id")
+  setkey(cesa@mutations$amino_acid_change, "aac_id")
   cesa@mutations[["snv"]] = unique(rbind(cesa@mutations$snv, snv_table, fill = T), by = "snv_id")
   setkey(cesa@mutations$snv, "snv_id")
-  
   
   # add genes and assoc_aac to MAF records (may stop including these in near future)
   # use of _tmp names required as of data.table 1.13.2 to keep join from failing
@@ -363,7 +356,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   maf[, c("genes_tmp", "assoc_aac_tmp") := list(list(NA_character_), list(NA_character_))]
   maf[cesa@mutations$snv, c("genes_tmp", "assoc_aac_tmp") := list(genes, assoc_aac), on = c(variant_id = "snv_id")]
   
-  # No gene for intergenic SNVs
+  # No gene for intergenic SNVs (SNV annotation table gives nearest gene, but we won't show that in MAF table)
   intergenic_snv = cesa@mutations$snv[intergenic == T, snv_id]
   maf[intergenic_snv, genes_tmp := list(NA_character_), on = "variant_id"]
   
@@ -371,7 +364,11 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   # temporary way of annotating non-SNVs
   non_snv = maf[variant_type != 'snv']
   if (non_snv[, .N] > 0) {
-    grt = as.data.table(refset$gr_genes)
+    grt = as.data.table(refset$gr_genes) # Name will change to gr_cds later
+    if ("gene" %in% names(grt)) {
+      grt[, names := gene] # use gene field instead of names field (applies when CDS gr has multiple CDS per gene)
+      grt[, gene := NULL]
+    }
     setnames(grt, c("seqnames", "start", "end", "names"), 
              c("Chromosome", "Start_Position", "End_Position", "gene"))
     setkey(grt, Chromosome, Start_Position, End_Position)
@@ -406,7 +403,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     
     # Groups of 2 consecutive SNVs are double-base substitutions
     # Create DBS entries suitable for MAF table
-    mnv[, is_dbs := .N == 2 && diff(Start_Position) == 1 && variant_type == c("snv", "snv"), by = mnv_group]
+    mnv[, is_dbs := .N == 2 && diff(Start_Position) == 1 && variant_type[1] == 'snv' && variant_type[2] == 'snv', by = mnv_group]
     dbs = mnv[is_dbs == T, 
                   .(Unique_Patient_Identifier = Unique_Patient_Identifier[1], 
                     Chromosome = Chromosome[1], Start_Position = Start_Position[1],
@@ -424,6 +421,11 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     maf_dbs = maf[maf_dbs_ind, .(Unique_Patient_Identifier, Chromosome, Start_Position, 
                                  Reference_Allele, Tumor_Allele, 
                                  Exclusion_Reason = paste0("replaced_with_", dbs_id))]
+    
+    if (all(c("prelift_chr", "prelift_start", "liftover_strand_flip") %in% names(maf))) {
+      dbs[maf, c("prelift_chr", "prelift_start", "liftover_strand_flip") := list(prelift_chr, prelift_start, liftover_strand_flip), on = c(v1 = 'variant_id')]
+    }
+    
     maf = maf[! maf_dbs_ind, -"dbs_id"]
 
     # Add new DBS entries

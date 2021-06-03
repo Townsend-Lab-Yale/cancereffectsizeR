@@ -52,6 +52,12 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
     }
   }
   
+  # If it looks like this function's liftOver functionality has previously been used
+  # on this data, we'll keep the columns that it generated.
+  if (is.null(chain_file)) {
+    select_cols = unique(c(select_cols, "prelift_chr", "prelift_start", "liftover_strand_flip"))
+  }
+  
   
 
   bad_maf_msg = "Input MAF is expected to be a data frame or the filename of an MAF-formatted tab-delimited text file."

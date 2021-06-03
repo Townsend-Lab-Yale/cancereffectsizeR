@@ -296,7 +296,9 @@ build_RefCDS = function(gtf, genome, output_by = "gene", cds_ranges_lack_stop_co
   setkey(reftable, "protein_id")
   
   # Get splice site info for the final CDS set
-  # Get essential splice sites: 1,2 bp upstream (3') and 1,2,5 bp downstream (5')
+  # Get essential splice sites: 1,2 bp upstream of exon start (5') and 1,2,5 bp downstream of exon end (3')
+  # These are described as the most important positions for correct splicing in 10.1534/genetics.105.044677,
+  # but no reasoning or citations are given.
   # Note that single-exon transcripts have no splice sites; they'll be processed incorrectly and then fixed below
   spl_neg = data.table()
   if(reftable[strand == '-', .N] > 0) {
@@ -499,10 +501,15 @@ build_RefCDS = function(gtf, genome, output_by = "gene", cds_ranges_lack_stop_co
   df_genes$chr = unlist(sapply(1:length(refcds), function(x) rep(refcds[[x]]$chr,nrow(refcds[[x]]$intervals_cds)+length(refcds[[x]]$intervals_splice))))
   df_genes$gene = sapply(refcds, function(x) x$gene_name)[df_genes$ind]
   
+  
   gr_genes = GenomicRanges::GRanges(df_genes$chr, IRanges::IRanges(df_genes$start, df_genes$end))
   GenomicRanges::mcols(gr_genes)$names = df_genes$gene
   
   if (by_transcript) {
+    # since df_genes$gene is actually a transcript_ID, match with the "gene_name" in 
+    # df_genes (also transcript ID), and get corresponding real_gene_name
+    actual_gene_names = gene_info[df_genes, real_gene_name, on = c(gene_name = "gene")]
+    GenomicRanges::mcols(gr_genes)$gene = actual_gene_names
     pretty_message(paste0("Note: For compatibility with dNdScv, the \"gene_name\" attribute of each RefCDS entry is\n",
                    "actually the transcript ID (sorry). A \"real_gene_name\" attribute has also been added\n",
                    "to each entry, and cancereffectsizeR will automatically keep gene names and transcript\n",
