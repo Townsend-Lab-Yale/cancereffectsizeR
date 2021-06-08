@@ -83,5 +83,5 @@ Genome_Min.
 }
 If you don't have any metadata available for your signature set, an empty data table
 can also be supplied. For a template signature set object, run 
-\code{sig_set = get_ces_signature_set("ces.refset.hg19", "COSMIC_v3.1")}.
+\code{sig_set = get_ces_signature_set("ces.refset.hg19", "COSMIC_v3.2")}.
 }

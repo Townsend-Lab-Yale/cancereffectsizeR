@@ -5,7 +5,7 @@ test_that("Trinucleotide signature weight calculation", {
                                 "SBS14", "SBS16", "SBS19", "SBS20", "SBS21", "SBS22", "SBS23", "SBS24", "SBS25",
                                 "SBS26", "SBS30", "SBS31", "SBS32", "SBS33", "SBS34", "SBS35", "SBS36", "SBS37",
                                 "SBS38", "SBS39", "SBS41", "SBS42", "SBS44", "SBS84", "SBS85", "SBS86", "SBS87",
-                                "SBS88", "SBS89", "SBS90"))
+                                "SBS88", "SBS89", "SBS90", "SBS91", "SBS92", "SBS93", "SBS94"))
   
   cesa = trinuc_mutation_rates(cesa, signatures_to_remove = to_remove, signature_set = "COSMIC_v3.1")
   trinuc_ak = get_test_data("trinuc_mut_weighting.rds")

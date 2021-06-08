@@ -3,7 +3,7 @@ title: "Cancer type considerations for COSMIC signature extraction"
 ---
 The `trinuc_mutation_rates()` function uses mutational signature extraction to calculate relative trinucleotide-specific SNV mutation rates in tumors. The "signatures_to_remove" option allows some signatures to be excluded from this analysis, which means each tumor will receive a weight of 0 for these signatures, indicating that none of the tumor's SNVs are attributable to these signatures. This page describes the behavior of the helper function `suggest_cosmic_signatures_to_remove()` and the reasoning behind it.
 
-In [Alexandrov 2020](https://doi.org/10.1038/s41586-020-1943-3), the authors of the COSMIC mutational signatures say that some signatures do not appear in certain cancer types. Consider excluding some or all of these signatures in `trinuc_mutation_rates()`.
+As reported in [Alexandrov 2020](https://doi.org/10.1038/s41586-020-1943-3), and in COSMIC v3.1/v3.2 mutational signature releases, some signatures are only expected to appear in certain cancer types. For more reliable signature extraction, consider excluding implausible signatures when running `trinuc_mutation_rates()`.
 
 There are also some signatures associated with various drug treatments (SBS11, SBS31, SBS32, SBS35, SBS86, SBS87, SBS90), so you if you know that your samples are treatment-naive or haven't been exposed to the implicated drugs, some or all of these signatures can be excluded.
 
@@ -17,19 +17,17 @@ cancer type and treatment status.
   suggest_cosmic_signatures_to_remove(cancer_type = "Kidney-RCC")
 ```
 
-The cancer type recommendations are based on Extended Data Figure 5 of Alexandrov 2020. The first two columns of the table below, also based on that figure, give the labels accepted by the `cancer_type` argument. (Note: SBS84 and SBS85 are absent from the Alexandrov figure, but they are elsewhere described in the paper as specific to lymphoid neoplasms.)
+The cancer type recommendations are based on Extended Data Figure 5 of Alexandrov 2020 and the COSMIC website (for signatures released after the paper's publication). The first two columns of the table below give the labels accepted by the `cancer_type` argument.
 
-Before excluding signatures, make sure your data set does not contain tumors from multiple PCAWG categories. For example, TCGA HNSC (head and neck cancer) includes oral cancers, which are listed separately here as Oral-SCC, so excluding all signatures that do not appear in Head-SCC (such as SBS29, tobacco chewing) would not be appropriate.  
+Before excluding signatures, make sure your data set does not contain tumors from multiple PCAWG categories. For example, TCGA HNSC (head and neck cancer) includes oral cancers, which are listed separately here as Oral-SCC, so excluding all signatures that do not appear in Head-SCC (such as SBS29, tobacco chewing) would not be appropriate.
+
+(You can access a text version of this table [here](https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/main/inst/extdata/COSMIC_v3.2_signatures_by_cancer_type.txt).)
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
-  data_source = paste0(system.file("extdata", package = "cancereffectsizeR"), '/COSMIC_v3_signatures_by_cancer_type.txt')
+  data_source = paste0(system.file("extdata", package = "cancereffectsizeR"), '/COSMIC_v3.2_signatures_by_cancer_type.txt')
   cancer_type = data.table::fread(data_source)
   cancer_type[is.na(cancer_type)] = "(none)"
-  formattable::formattable(cancer_type[, .(PCAWG, Applicable_TCGA, Number_of_tumors, Description)])
+  cancer_type[, "SBS signatures found" := sapply(apply(cancer_type, 1, function(x) names(cancer_type)[x == 1]), paste, collapse = ", ")]
+  formattable::formattable(cancer_type[, .(PCAWG, "Applicable TCGA" = Applicable_TCGA, Description, `SBS signatures found`)])
 ```
-
-### COSMIC 3.1 Update
-The new treament-associated signatures introduced in COSMIC 3.1 in July 2020 have been added to this page. 
-Additionally, SBS88, associated with colibactin exposure, is not in the above table, but the COSMIC signature
-site says that it is found in head and neck, oral, urinary tract, and colorectal cancers.
 

@@ -11,16 +11,16 @@ suggest_cosmic_signatures_to_remove(
 )
 }
 \arguments{
-\item{cancer_type}{See chart on website for possible cancer type labels}
+\item{cancer_type}{See chart on website for supported cancer type labels}
 
 \item{treatment_naive}{give TRUE if samples were taken pre-treatment; FALSE or leave NULL otherwise}
 
 \item{quiet}{(default false) for non-interactive use, suppress explanations and advice}
 }
 \value{
-a string of signatures to feed to signatures_to_remove
+a vector of signatures to feed to signatures_to_remove
 }
 \description{
-Get suggestions on signatures_to_remove for trinuc_mutation_rates for COSMIC v3/v3.1 signatures.
+Get suggestions on signatures_to_remove for trinuc_mutation_rates for COSMIC signatures v3 and later.
 For details, see \code{vignette("cosmic_cancer_type_note")}.
 }

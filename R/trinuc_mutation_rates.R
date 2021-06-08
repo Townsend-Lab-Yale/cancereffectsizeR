@@ -37,7 +37,7 @@
 #' }
 #' If you don't have any metadata available for your signature set, an empty data table
 #' can also be supplied. For a template signature set object, run 
-#' \code{sig_set = get_ces_signature_set("ces.refset.hg19", "COSMIC_v3.1")}.
+#' \code{sig_set = get_ces_signature_set("ces.refset.hg19", "COSMIC_v3.2")}.
 #'
 #' @param cesa CESAnalysis object
 #' @param signature_set name of built-in signature set (see \code{list_ces_signature_sets()}), or a custom signature set (see details)
@@ -138,13 +138,11 @@ trinuc_mutation_rates <- function(cesa,
   # If they're present, we'll enforce their signature mutation count minimums for each tumor
   mutation_count_rules = "Exome_Min" %in% colnames(signature_metadata)
 
-  # If running COSMIC v3.0, help out the user by dropping 3.1-exclusive signatures from signatures_to_remove
+  # If running with v3.0/v3.1 COSMIC signature set, help out the user by dropping signatures from future releases
   if(signature_set_name %in% c("COSMIC v3", "COSMIC v3.1")) {
-    if (signature_set_name == "COSMIC v3") {
-      # automatically strip out v3.1 signatures when running v3
-      new_in_3_1 = setdiff(rownames(get_ces_signature_set(cesa@ref_key, "COSMIC_v3.1")$signatures), rownames(signatures))
-      signatures_to_remove = signatures_to_remove[! signatures_to_remove %in% new_in_3_1]
-    }
+    # automatically strip out v3.1 signatures when running v3
+    future_signatures = setdiff(rownames(get_ces_signature_set(cesa@ref_key, "COSMIC_v3.2")$signatures), rownames(signatures))
+    signatures_to_remove = signatures_to_remove[! signatures_to_remove %in% future_signatures]
   }
   
   # Save signature set to CESAnalysis
