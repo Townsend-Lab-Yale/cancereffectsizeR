@@ -8,7 +8,7 @@
 .ces_ref_data = new.env()
 
 # Data package names and minimum required version
-.official_refsets = list(ces.refset.hg19 = as.package_version("1.1.1"))
+.official_refsets = list(ces.refset.hg19 = as.package_version("1.1.0"))
 
 # format a string the way R should automatically, then feed it to message()
 pretty_message = function(msg, emit = T, black = emit) {

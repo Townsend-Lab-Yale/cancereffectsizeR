@@ -7,7 +7,7 @@
 build_RefCDS(
   gtf,
   genome,
-  output_by = "gene",
+  use_all_transcripts = F,
   cds_ranges_lack_stop_codons = T,
   cores = 1,
   additional_essential_splice_pos = NULL,
@@ -15,18 +15,19 @@ build_RefCDS(
 )
 }
 \arguments{
-\item{gtf}{Path of a Gencode-GTF-formatted text file, or an equivalently formatted data
-table. See details for required columns (features). It's possible to build a suitable
+\item{gtf}{Path of a Gencode-style GTF file, or an equivalently formatted data
+table. See details for required columns (features). It's possible to build such a 
 table using data pulled from biomaRt, but it's easier to use a GTF.}
 
 \item{genome}{genome assembly name (e.g., "hg19"); an associated BSgenome object must be
 available to load.}
 
-\item{output_by}{"gene" (default) or "transcript", indicating whether the RefCDS output
+\item{use_all_transcripts}{T/F indicates whether to use all complete transcripts or just the longest
+one for each gene (defaults to the latter).
 should have one CDS annotation per gene or transcript.}
 
 \item{cds_ranges_lack_stop_codons}{The CDS records in Gencode GTFs don't include the
-stop codons in their genomic intervals. If your input table does include the stop 
+stop codons in their genomic intervals. If your input does include the stop 
 codons within CDS records, set to FALSE.}
 
 \item{cores}{how many cores to use for parallel computations}
@@ -45,19 +46,22 @@ position misses automatic "essential splice" annotation by 1 base.)}
 standard genetic code, is supported}
 }
 \value{
-A two-item list: RefCDS (which is itself a big list, with one entry per gene or
-  transcript), and gr_genes, a GRanges object that defines the genomic intervals
-  covered by each gene.
+A two-item list: RefCDS (which is itself a big list, with each entry containing
+  information on one coding sequence (CDS)), and a GRanges object that defines the
+  genomic intervals covered by each CDS.
 }
 \description{
 Based on the buildref function in Inigo Martincorena's package dNdScv, this function
-takes in gene/transcript/CDS data and creates a dNdScv-style RefCDS object and
-gr_genes, an associated GenomicRanges object also required to run dNdScv. For each gene
-or transcript, only the longest complete CDS sequence is encoded in RefCDS output.
+takes in gene/transcript/CDS definitions and creates a dNdScv-style RefCDS object and
+an associated GenomicRanges object also required to run dNdScv.
 }
 \details{
 Required columns are seqnames, start, end, strand, gene_name, gene_id, protein_id, and
-type. When output_by = "transcript", there must also be a transcript_id column. Only
-rows that have type == "CDS" will be used. Strand should be
+type.  Only rows that have type == "CDS" will be used. Strand should be
 "+" or "-".
+
+By default, only one the longest complete transcript is used from each gene in the
+input. If you set use_all_transcripts = TRUE, then all complete transcripts will be
+used, resulting in multiple RefCDS entries for some genes. If you do this, you may
+want to first eliminate low-confidence or superfluous transcripts from the input data.
 }

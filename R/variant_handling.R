@@ -363,6 +363,85 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = 
   combined[which(sapply(covered_in, length) == 0), covered_in := list(NA_character_)]
   
   
+  # collapse list columns, if specified
+  if (collapse_lists) {
+    # Problem: unstrsplit converts NA to "NA"
+    # "NA" is not a valid value for any of these except all_genes, and going to assume there is not a gene called "NA"
+    list_cols = c("constituent_snvs", "covered_in", "all_genes", "all_aac")
+    combined[, (list_cols) := lapply(.SD, function(x) S4Vectors::unstrsplit(x, sep = ",")), .SDcols = list_cols]
+    combined[, (list_cols) := lapply(.SD, function(x) gsub('NA', NA_character_, x)), .SDcols = list_cols]
+
+  }
+  
+  # handle overlapping  mutations using tiebreakers explained below
+  if (remove_secondary_aac) {
+    multi_hits = combined[sapply(all_aac, length) > 1 & variant_type == "aac"]
+    num_to_check = multi_hits[, .N]
+    if (num_to_check > 0) {
+      setkey(multi_hits, "variant_id")
+      # for tie-breaking, count how many mutations are in each gene found in these multi_hit recoreds
+      multi_hit_pid = unique(multi_hits$pid)
+      maf_pid_counts = combined[multi_hit_pid, .(count = sum(maf_frequency)), keyby = "pid", on = "pid"]
+      multi_hits[maf_pid_counts, pid_freq := count, on = 'pid']
+      
+      # Any set of overlapping AACs has a single AAC chosen based on the following criteria:
+      # MAF frequency (usually equal among all), essential splice status, nonsilent status,
+      # which protein has the most overall mutations in MAF data (will usually favor longer transcripts),
+      # and finally just alphabetical on variant ID
+      multi_hits = multi_hits[order(-maf_frequency, -essential_splice, aa_ref == aa_alt, -pid_freq, variant_id)]
+      setkey(multi_hits, 'variant_id')
+      chosen_aac = new.env(parent = emptyenv())
+      processed_aac = new.env(parent = emptyenv())
+      aac_priority = multi_hits$variant_id
+      for (i in seq_along(multi_hits$variant_id)) {
+        curr_candidate = multi_hits$variant_id[[i]]
+        curr_hits = multi_hits$all_aac[[i]] # will include curr_candidate
+        add_current = TRUE
+        for (j in seq_along(curr_hits)) {
+          curr_aac = curr_hits[j]
+          # if any of the overlapping AACs is already being taken, can't use any
+          if(exists(curr_aac, processed_aac)) {
+            add_current = FALSE
+          } else {
+            processed_aac[[curr_aac]] = TRUE
+          }
+        }
+        if (add_current) {
+          chosen_aac[[curr_candidate]] = TRUE
+        }
+      }
+      
+      # remove secondary (non-chosen) AACs, but save all SNV IDs and re-select those passing filters
+      chosen_aac = ls(chosen_aac)
+      not_chosen_aac = multi_hits[! chosen_aac, variant_id]
+      all_const_snv = unlist(multi_hits$constituent_snvs)
+      remaining_const_snv = multi_hits[chosen_aac, unlist(constituent_snvs)]
+      combined = combined[! not_chosen_aac, on = 'variant_id']
+      
+      # Edge case: Need to get annotations for SNVs that passed user's filters (given in
+      # subvariant_snv_ids), but that are now no longer constituent SNVs
+      snv_to_reselect = intersect(snvs_to_save, setdiff(all_const_snv, remaining_const_snv))
+      
+      if (length(snv_to_reselect) > 0) {
+        reselected = select_variants(cesa, variant_passlist = snv_to_reselect)
+        combined = rbind(combined, reselected[snv_to_reselect, on = "variant_id"])
+      }
+    }
+  }
+  
+  
+  # confirm that output table will be eligible for functions that require non-overlapping variants (e.g., ces_variant)
+  # presume overlapping when remove_secondary_aac == FALSE
+  nonoverlapping = FALSE 
+  if (remove_secondary_aac) {
+    if (length(intersect(combined[variant_type == "snv", variant_id], unlist(combined[variant_type == "aac", constituent_snvs]))) == 0) {
+      nonoverlapping = TRUE
+    } else {
+      pretty_message(paste0("FYI, your output has overlapping variants (as in, it lists both an amino-acid-change variant and a constituent SNV as separate records). ",
+                     "That means the output can't be fed into functions like ces_variant() that assume non-overlapping variants."))
+    }
+  }
+  
   # Break down frequency counts
   maf_freq_cols = character()
   if (length(cesa@groups) > 1 & cesa@maf[, .N] > 0) {
@@ -387,113 +466,6 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = 
   } else if(cesa@maf[, .N] > 0) {
     maf_freq_cols = "maf_frequency"
   }
-  # collapse list columns, if specified
-  if (collapse_lists) {
-    # Problem: unstrsplit converts NA to "NA"
-    # "NA" is not a valid value for any of these except all_genes, and going to assume there is not a gene called "NA"
-    list_cols = c("constituent_snvs", "covered_in", "all_genes", "all_aac")
-    combined[, (list_cols) := lapply(.SD, function(x) S4Vectors::unstrsplit(x, sep = ",")), .SDcols = list_cols]
-    combined[, (list_cols) := lapply(.SD, function(x) gsub('NA', NA_character_, x)), .SDcols = list_cols]
-
-  }
-  
-  # handle overlapping  mutations
-  if (remove_secondary_aac) {
-    multi_hits = combined[sapply(all_aac, length) > 1 & variant_type == "aac"]
-    num_to_check = multi_hits[, .N]
-    if (num_to_check > 0) {
-      setkey(multi_hits, "variant_id")
-      # for tie-breaking, count how many mutations are in each gene found in these multi_hit recoreds
-      multi_hit_genes = unique(multi_hits[, unlist(all_genes)])
-      if (cesa@maf[, .N] > 0) {
-        non_intergenic = cesa@maf[variant_type == "snv" & ! variant_id %in% cesa@mutations$snv[intergenic == T, snv_id]]
-        maf_gene_counts = sort(table(unlist(non_intergenic$genes))[multi_hit_genes], decreasing = T)
-      } else {
-        maf_gene_counts = table(NA)
-      }
-      chosen_aac = character(num_to_check)
-      
-      # poorly optimized; may need to improve if large data sets are analyzed with lots of
-      # overlapping AACs
-      original_multi = copy(multi_hits)
-      multi_hits = multi_hits[, .SD, .SDcols = c("variant_id", "aa_ref", "aa_alt", "essential_splice", "gene", "all_aac", maf_freq_cols)]
-      all_aac_list = multi_hits$all_aac
-      for (i in 1:num_to_check) {
-        # if already picked an AAC out of this group, skip
-        curr_aac = all_aac_list[[i]]
-        if (any(curr_aac %in% chosen_aac)) {
-          next
-        }
-        candidates = multi_hits[curr_aac, nomatch = NULL]
-        multi_hits = multi_hits[! candidates$variant_id]
-
-        # if other candidates are not in table for some reason, use the original entry
-        if (candidates[, .N] == 1) {
-          chosen_aac[i] = candidates$variant_id
-          next
-        }
-        
-        # take highest MAF frequency first (will usually be the same for all)
-        if (cesa@maf[, .N] > 0) {
-          freq_col = maf_freq_cols[length(maf_freq_cols)] # last freq col gives total frequency
-          highest_freq = max(candidates[[freq_col]])
-          candidates = candidates[candidates[[freq_col]] == highest_freq]
-        }
-        
-        # then, prioritize splice-site variants
-        if (any(candidates$essential_splice)) {
-          candidates = candidates[essential_splice == T]
-        }
-        
-        # next, choose non-silent over silent
-        if (any(candidates$aa_ref != candidates$aa_alt)) {
-          candidates = candidates[aa_ref != aa_alt]
-        }
-        # next, choose the variant(s) with the most mutations in the gene
-        # If MAF is empty or has no gene records, skip
-        if (length(maf_gene_counts) > 0) {
-          candidates[, gene_var_count := as.numeric(maf_gene_counts[gene])]
-          # Will be NA if variants are not in MAF and there are also no same-gene records in MAF
-          if(! all(is.na(candidates$gene_var_count))) {
-            max_count = max(candidates$gene_var_count, na.rm = T)
-            candidates = candidates[gene_var_count == max_count]
-          }
-        }
-
-        # arbitrarily return first alphabetically of remaining
-        chosen_aac[i] = sort(candidates$variant_id)[1]
-      }
-      multi_hits = original_multi
-      # remove secondary (non-chosen) AACs, but save all SNV IDs and re-select those passing filters
-      chosen_aac = chosen_aac[chosen_aac != ""]
-      not_chosen_aac = multi_hits[! chosen_aac, variant_id]
-      all_const_snv = unlist(multi_hits$constituent_snvs)
-      remaining_const_snv = multi_hits[chosen_aac, unlist(constituent_snvs)]
-      combined = combined[! not_chosen_aac, on = "variant_id"]
-      
-      # Need to get annotations for SNVs that passed user's filters (given in subvariant_snv_ids),
-      # and that are now no longer constituent SNVs
-      snv_to_reselect = intersect(snvs_to_save, setdiff(all_const_snv, remaining_const_snv))
-      
-      if (length(snv_to_reselect) > 0) {
-        reselected = select_variants(cesa, variant_passlist = snv_to_reselect)
-        combined = rbind(combined, reselected[snv_to_reselect, on = "variant_id"])
-      }
-    }
-  }
-  
-  # confirm that output table will be eligible for functions that require non-overlapping variants (e.g., ces_variant)
-  # presume overlapping when remove_secondary_aac == FALSE
-  nonoverlapping = FALSE 
-  if (remove_secondary_aac) {
-    if (length(intersect(combined[variant_type == "snv", variant_id], unlist(combined[variant_type == "aac", constituent_snvs]))) == 0) {
-      nonoverlapping = TRUE
-    } else {
-      pretty_message(paste0("FYI, your output has overlapping variants (as in, it lists both an amino-acid-change variant and a constituent SNV as separate records). ",
-                     "That means the output can't be fed into functions like ces_variant() that assume non-overlapping variants."))
-    }
-  }
-  
 
   # order output in chr/pos order
   setkey(combined, "chr")

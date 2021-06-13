@@ -12,6 +12,7 @@ knitr::opts_chunk$set(echo = TRUE, tidy = 'styler')
 ```
 
 ```{r eval = FALSE}
+options(timeout = 600) # large download, so we increase the download time limit to be safe
 remotes::install_github("Townsend-Lab-Yale/ces.refset.hg19@*release")
 ```
 

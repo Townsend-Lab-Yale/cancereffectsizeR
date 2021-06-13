@@ -202,7 +202,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     }
     nt = c("A", "C", "G", "T")
     snv_mismatch = excluded[problem == "reference_mismatch" & Reference_Allele %in% nt & Tumor_Allele %in% nt, .N]
-    if(snv_mismatch > 0) {
+    if(snv_mismatch / initial_num_records > .01) {
       msg = paste0(snv_mismatch, " SNV variants were excluded for having reference alleles that do not match the reference genome. You should probably figure out why",
                           " and make sure that the rest of your data set is okay to use before continuing.")
       warning(pretty_message(msg, emit = F))

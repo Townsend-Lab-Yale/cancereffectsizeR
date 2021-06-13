@@ -1,9 +1,8 @@
 # get_test_file and get_test_data are loaded automatically from helpers.R by testthat
 tiny_maf = get_test_file("tiny.hg19.maf.txt")
 test_that("load_maf and variant annotation", {
-  tiny = expect_warning(load_maf(cesa = CESAnalysis(refset = "ces.refset.hg19"), maf = tiny_maf,
-                                 sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2"),
-                        "do not match the reference genome")
+  tiny = load_maf(cesa = CESAnalysis(refset = "ces.refset.hg19"), maf = tiny_maf,
+                                 sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2")
   tiny_ak = load_cesa(get_test_file("tiny_hg19_maf_loaded.rds"))
   expect_equal(tiny$maf[order(variant_id)], tiny_ak$maf[order(variant_id)])
   expect_equal(tiny@excluded, tiny_ak@excluded, ignore.row.order = T)

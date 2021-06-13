@@ -2,7 +2,7 @@
 % Please edit documentation in R/suggest_cosmic_signatures_to_remove.R
 \name{suggest_cosmic_signatures_to_remove}
 \alias{suggest_cosmic_signatures_to_remove}
-\title{Identify mutational signatures to exclude from analysis}
+\title{Tissue-specific mutational signature exclusions}
 \usage{
 suggest_cosmic_signatures_to_remove(
   cancer_type = NULL,

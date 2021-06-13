@@ -1,7 +1,8 @@
-#' Identify mutational signatures to exclude from analysis
+#' Tissue-specific mutational signature exclusions
 #'
 #' Get suggestions on signatures_to_remove for trinuc_mutation_rates for COSMIC signatures v3 and later.
 #' For details, see \code{vignette("cosmic_cancer_type_note")}.
+#' 
 #' @param cancer_type See chart on website for supported cancer type labels
 #' @param treatment_naive give TRUE if samples were taken pre-treatment; FALSE or leave NULL otherwise
 #' @param quiet (default false) for non-interactive use, suppress explanations and advice
@@ -26,12 +27,21 @@ suggest_cosmic_signatures_to_remove = function(cancer_type = NULL, treatment_nai
     treatment_naive = FALSE
   }
   
+  if (! identical(quiet, TRUE) && ! identical(quiet, FALSE) ) {
+    stop("argument quiet should be T/F")
+  }
   if(! require("ces.refset.hg19", character.only = T)) {
       message("Install ces.refset.hg19 like this:\n",
               "remotes::install_github(\"Townsend-Lab-Yale/ces.refset.hg19@*release\")")
       stop("Reference data package not installed (this function requires ces.refset.hg19).")
   }
-  sig_metadata = get_ces_signature_set("ces.refset.hg19", "COSMIC_v3.2")$meta
+  
+  # Use v3.2 if refset package is up-to-date; otherwise, use v3.1.
+  signature_set_path = system.file("refset/signatures/COSMIC_v3.2_signatures.rds", package = "ces.refset.hg19")
+  if (signature_set_path == '') {
+    signature_set_path = system.file("refset/signatures/COSMIC_v3.1_signatures.rds", package = "ces.refset.hg19")
+  }
+  sig_metadata = readRDS(signature_set_path)$meta
   original_sig_order = copy(sig_metadata$Signature)
   setkey(sig_metadata, "Signature")
   
@@ -54,6 +64,7 @@ suggest_cosmic_signatures_to_remove = function(cancer_type = NULL, treatment_nai
       stop()
     }
     to_remove = c(names(which(unlist(dt[index,]) == 0)))
+    to_remove = intersect(to_remove, sig_metadata$Signature) # compatibility with v3.1, when using
     if(! quiet) {
       pretty_message(paste0("The following signatures are suggested absent in ", cancer_type, ", either by Alexandrov 2020 or the COSMIC signature website:"))
       print(sig_metadata[to_remove, .(Signature, Etiology)])

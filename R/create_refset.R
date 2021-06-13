@@ -105,6 +105,7 @@ create_refset = function(output_dir, refcds_output, species_name, genome_build_n
   # deconstructSigs_trinuc_string is internal to cancereffectsizeR (find with getAnywhere if necessary).
   # Here, we need unique trinucleotide contexts (without mutations) in deconstructSigs ordering,
   # which is why we produce this by converting from their column headings.
+  # Convert stuff like "A[C>G]A" format to "ACA" (just the reference trinucleotide context).
   context_names = unique(sub("\\[([ACTG]).*\\]", "\\1", deconstructSigs_trinuc_string))
   context_names = sort(context_names)
   reverse_complement_names = unique(as.character(Biostrings::reverseComplement(Biostrings::DNAStringSet(context_names))))
@@ -117,13 +118,13 @@ create_refset = function(output_dir, refcds_output, species_name, genome_build_n
   genome_counts = genome_tri[context_names] + genome_tri[reverse_complement_names]
   genome_counts = data.frame(x = genome_counts)
   
+  
   # Create trinuc context counts for CDS sequences
-  # Convert stuff like "A[C>G]A" format to "ACA" (just the reference trinucleotide context)
-  context_names = sub("\\[([ACTG]).*\\]", "\\1", deconstructSigs_trinuc_string)
+  # There will be redundant counts for each possible substitution in a given context
+  trinuc_mut_names = sub("\\[([ACTG]).*\\]", "\\1", deconstructSigs_trinuc_string)
   
   # deconstructSigs only includes C/T as central nucleotides; we need reverse complement for A/G in center
-  reverse_complement_names = as.character(Biostrings::reverseComplement(Biostrings::DNAStringSet(context_names)))
-  
+  reverse_trinuc_mut_names = as.character(Biostrings::reverseComplement(Biostrings::DNAStringSet(context_names)))
   
   # go through all the transcripts in the RefCDS object
   gene_trinuc_comp  = new.env(parent = emptyenv())
@@ -152,7 +153,7 @@ create_refset = function(output_dir, refcds_output, species_name, genome_build_n
       cds_counts = Biostrings::trinucleotideFrequency(seq)
       
       # order the counts in deconstructSigs order and add them to total counts for this transcript
-      total_counts = cds_counts[context_names] + cds_counts[reverse_complement_names] + total_counts
+      total_counts = cds_counts[trinuc_mut_names] + cds_counts[reverse_trinuc_mut_names] + total_counts
       
       # next cds sequence starts with next base in the seq_cds sequence
       start = end + 1
@@ -186,7 +187,7 @@ create_refset = function(output_dir, refcds_output, species_name, genome_build_n
     seqlevels(default_exome) = supported_chr
     default_exome = reduce(sort(default_exome), drop.empty.ranges = T)
     
-    # Add interval padding of 100 nt
+    # Add interval padding (often 100bp)
     start(default_exome) = start(default_exome) - exome_interval_padding
     end(default_exome) = end(default_exome) + exome_interval_padding
     default_exome = reduce(default_exome, drop.empty.ranges = T)
@@ -215,7 +216,12 @@ create_refset = function(output_dir, refcds_output, species_name, genome_build_n
   gr_genes = refcds_output[[2]]
   saveRDS(refcds, paste0(output_dir, "/RefCDS.rds"))
   saveRDS(gr_genes, paste0(output_dir, "/gr_genes.rds"))
-  saveRDS(unique(gr_genes$names), paste0(output_dir, "/gene_names.rds"))
+  if (is.null(gr_genes$gene)) {
+    gene_names = unique(gr_genes$names)
+  } else {
+    gene_names = unique(gr_genes$gene)
+  }
+  saveRDS(gene_names, paste0(output_dir, "/gene_names.rds"))
   saveRDS(gene_trinuc_comp, paste0(output_dir, "/gene_trinuc_comp.rds"))
 }
 

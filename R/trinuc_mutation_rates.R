@@ -140,9 +140,15 @@ trinuc_mutation_rates <- function(cesa,
 
   # If running with v3.0/v3.1 COSMIC signature set, help out the user by dropping signatures from future releases
   if(signature_set_name %in% c("COSMIC v3", "COSMIC v3.1")) {
-    # automatically strip out v3.1 signatures when running v3
-    future_signatures = setdiff(rownames(get_ces_signature_set(cesa@ref_key, "COSMIC_v3.2")$signatures), rownames(signatures))
-    signatures_to_remove = signatures_to_remove[! signatures_to_remove %in% future_signatures]
+    if (require("ces.refset.hg19", quietly = T)) {
+      latest_set = ces.refset.hg19$signatures$COSMIC_v3.2$signatures
+      if (is.null(latest_set)) {
+        # If refset package is < v1.1.1
+        latest_set = ces.refset.hg19$signatures$COSMIC_v3.1$signatures
+      }
+      future_signatures = setdiff(rownames(latest_set), rownames(signatures))
+      signatures_to_remove = signatures_to_remove[! signatures_to_remove %in% future_signatures]
+    }
   }
   
   # Save signature set to CESAnalysis

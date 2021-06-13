@@ -127,7 +127,7 @@ annotate_variants <- function(refset = NULL, variants = NULL) {
     aac[aa_alt == "Stp", aa_alt := "STOP"]
     
     setnames(aac, old = c("cds", "Chromosome", "Start_Position"), new = c("pid", "chr", "pos"))
-    aac[, aac_id := paste0(entry_name, "_", aachange, "_", pid)]
+    aac[, aac_id := paste0(gene_name, "_", aachange, "_", pid)]
     aac[, c("start", "end", "cds_order", "cum_cds_width") := NULL]
     
     # Some AACs will come from >1 distinct SNV in the MAF data; only need one of each for annotation purposes
