@@ -1,9 +1,12 @@
+# cancereffectsizeR 2.1.4
+* Minor fixes and improvements.
+
 # cancereffectsizeR 2.1.3
 * Improvements to liftOver support.
 * preload_maf() gives more information about problematic records.
 
 # cancereffectsizeR 2.1.2
-* load_maf() detects adjacent SNV records and re-annotates as doublet base substitutions;  improved annotation of insertions, deletions, and more complex multi-nucleotide variants.
+* load_maf() detects adjacent SNV records and re-annotates as doublet base substitutions; improved annotation of insertions, deletions, and more complex multi-nucleotide variants.
 * Peformance improvements and minor bug fixes.
 
 # cancereffectsizeR 2.1.1

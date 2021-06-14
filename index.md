@@ -29,6 +29,8 @@ install.packages("https://cran.r-project.org/src/contrib/Archive/XML/XML_3.99-0.
                  type = "source", repos = NULL)
 ```
 
+Sometimes, if your internet connection or a download server is slow, installation can fail due to dependencies containing large files (such as the human genome) not downloading fast enough. Try increasing the time limit like this: `options(timeout = 600)`.
+
 ## Publications and version note
 Our 2018 JNCI paper [Effect sizes of somatic mutations in cancer](https://doi.org/10.1093/jnci/djy168) describes [Version 0.1.0](https://github.com/Townsend-Lab-Yale/cancereffectsizeR/releases/tag/0.1.0) of this package, which was developed by Cannataro, V. L., Gaffney, S. G., and Townsend, J. P. 
 

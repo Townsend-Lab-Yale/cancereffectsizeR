@@ -54,9 +54,8 @@
 
 <meta property="og:title" content="cancereffectsizeR's RefCDS builder — build_RefCDS" />
 <meta property="og:description" content="Based on the buildref function in Inigo Martincorena's package dNdScv, this function
-takes in gene/transcript/CDS data and creates a dNdScv-style RefCDS object and
-gr_genes, an associated GenomicRanges object also required to run dNdScv. For each gene
-or transcript, only the longest complete CDS sequence is encoded in RefCDS output." />
+takes in gene/transcript/CDS definitions and creates a dNdScv-style RefCDS object and
+an associated GenomicRanges object also required to run dNdScv." />
 <meta property="og:image" content="https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/logo.png" />
 
 
@@ -89,7 +88,7 @@ or transcript, only the longest complete CDS sequence is encoded in RefCDS outpu
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.1.3</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.1.4</span>
       </span>
     </div>
 
@@ -162,15 +161,14 @@ or transcript, only the longest complete CDS sequence is encoded in RefCDS outpu
 
     <div class="ref-description">
     <p>Based on the buildref function in Inigo Martincorena's package dNdScv, this function
-takes in gene/transcript/CDS data and creates a dNdScv-style RefCDS object and
-gr_genes, an associated GenomicRanges object also required to run dNdScv. For each gene
-or transcript, only the longest complete CDS sequence is encoded in RefCDS output.</p>
+takes in gene/transcript/CDS definitions and creates a dNdScv-style RefCDS object and
+an associated GenomicRanges object also required to run dNdScv.</p>
     </div>
 
     <pre class="usage"><span class='fu'>build_RefCDS</span><span class='op'>(</span>
   <span class='va'>gtf</span>,
   <span class='va'>genome</span>,
-  output_by <span class='op'>=</span> <span class='st'>"gene"</span>,
+  use_all_transcripts <span class='op'>=</span> <span class='cn'>F</span>,
   cds_ranges_lack_stop_codons <span class='op'>=</span> <span class='cn'>T</span>,
   cores <span class='op'>=</span> <span class='fl'>1</span>,
   additional_essential_splice_pos <span class='op'>=</span> <span class='cn'>NULL</span>,
@@ -182,8 +180,8 @@ or transcript, only the longest complete CDS sequence is encoded in RefCDS outpu
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
       <th>gtf</th>
-      <td><p>Path of a Gencode-GTF-formatted text file, or an equivalently formatted data
-table. See details for required columns (features). It's possible to build a suitable
+      <td><p>Path of a Gencode-style GTF file, or an equivalently formatted data
+table. See details for required columns (features). It's possible to build such a 
 table using data pulled from biomaRt, but it's easier to use a GTF.</p></td>
     </tr>
     <tr>
@@ -192,14 +190,15 @@ table using data pulled from biomaRt, but it's easier to use a GTF.</p></td>
 available to load.</p></td>
     </tr>
     <tr>
-      <th>output_by</th>
-      <td><p>"gene" (default) or "transcript", indicating whether the RefCDS output
+      <th>use_all_transcripts</th>
+      <td><p>T/F indicates whether to use all complete transcripts or just the longest
+one for each gene (defaults to the latter).
 should have one CDS annotation per gene or transcript.</p></td>
     </tr>
     <tr>
       <th>cds_ranges_lack_stop_codons</th>
       <td><p>The CDS records in Gencode GTFs don't include the
-stop codons in their genomic intervals. If your input table does include the stop 
+stop codons in their genomic intervals. If your input does include the stop 
 codons within CDS records, set to FALSE.</p></td>
     </tr>
     <tr>
@@ -227,15 +226,18 @@ standard genetic code, is supported</p></td>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>A two-item list: RefCDS (which is itself a big list, with one entry per gene or
-  transcript), and gr_genes, a GRanges object that defines the genomic intervals
-  covered by each gene.</p>
+    <p>A two-item list: RefCDS (which is itself a big list, with each entry containing
+  information on one coding sequence (CDS)), and a GRanges object that defines the
+  genomic intervals covered by each CDS.</p>
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
     <p>Required columns are seqnames, start, end, strand, gene_name, gene_id, protein_id, and
-type. When output_by = "transcript", there must also be a transcript_id column. Only
-rows that have type == "CDS" will be used. Strand should be
+type.  Only rows that have type == "CDS" will be used. Strand should be
 "+" or "-".</p>
+<p>By default, only one the longest complete transcript is used from each gene in the
+input. If you set use_all_transcripts = TRUE, then all complete transcripts will be
+used, resulting in multiple RefCDS entries for some genes. If you do this, you may
+want to first eliminate low-confidence or superfluous transcripts from the input data.</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
