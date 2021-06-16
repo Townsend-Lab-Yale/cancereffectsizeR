@@ -335,13 +335,24 @@ annotate_variants <- function(refset = NULL, variants = NULL) {
 	  nearest_gene = as.data.table(GenomicRanges::distanceToNearest(makeGRangesFromDataFrame(snv_table, start.field = 'pos', end.field = 'pos'), 
 	                                                 gr_cds, select = "all"))
 	  gene_names = GenomicRanges::mcols(gr_cds)["gene"][,1]
+	  pid = GenomicRanges::mcols(gr_cds)["names"][,1]
 	  nearest_gene[, gene_name := gene_names[subjectHits]]
+	  nearest_gene[, pid := pid[subjectHits]]
+	  nearest_pid = nearest_gene[! duplicated(nearest_gene[, .(queryHits, pid)])]
 	  nearest_gene = nearest_gene[! duplicated(nearest_gene[, .(queryHits, gene_name)])]
-	  gene_name_by_snv_row = nearest_gene[, .(genes = list(gene_name)), by = "queryHits"]
-	  snv_table = cbind(snv_table, gene_name_by_snv_row[, -"queryHits"])
+	  gene_name_by_snv_row = nearest_gene[, .(genes = list(unique(gene_name))), by = "queryHits"]
+	  pid_by_snv_row = nearest_pid[, .(pid = list(unique(pid))), by = "queryHits"]
+	  snv_table[, genes := list(gene_name_by_snv_row$genes)]
+	  snv_table = snv_table[, nearest_pid := list(pid_by_snv_row$pid)]
 	  snv_table[, cds := NULL]
 	} else {
 	  setnames(snv_table, 'cds', 'genes')
+	  snv_and_gene = snv_table[, .(gene = unlist(genes)), by = "snv_id"]
+	  to_lookup = snv_and_gene[, .(gene = unique(gene))]
+	  to_lookup[, pid := sapply(RefCDS[gene], '[[', 'protein_id')]
+	  snv_and_gene[to_lookup, pid := pid, on = 'gene']
+	  snv_and_pid = snv_and_gene[, .(nearest_pid = list(pid)), by = "snv_id"]
+	  snv_table[snv_and_pid, nearest_pid := nearest_pid, on = "snv_id"]
 	}
 	setkey(snv_table, "snv_id")
 	return(list(amino_acid_change = aac_table, snv = snv_table))

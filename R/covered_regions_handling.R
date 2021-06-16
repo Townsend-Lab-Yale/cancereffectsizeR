@@ -262,6 +262,5 @@ update_covered_in = function(cesa) {
   
   # Finally, update internal cached variants
   cesa@advanced$cached_variants = suppressMessages(select_variants(cesa))
-  setkey(cesa@advanced$cached_variants, 'variant_id', 'variant_type')
   return(cesa)
 }

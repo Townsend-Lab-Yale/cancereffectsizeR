@@ -236,7 +236,7 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
   maf[supported == FALSE, stripped_chr := sub('^chr', '', Chromosome) ]
   maf[supported == FALSE & stripped_chr %in% supported_chr, c("Chromosome", "supported") := list(stripped_chr, TRUE)]
   
-  maf[supported == FALSE, problem := 'unsupported_chr']
+  maf[supported == FALSE & is.na(problem), problem := 'unsupported_chr']
   maf[, c("stripped_chr", "supported") := NULL]
   
   # If LiftOver is not being used (which would catch problems earlier), make sure all records are in-bounds.

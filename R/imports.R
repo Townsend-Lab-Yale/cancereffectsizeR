@@ -10,6 +10,21 @@
 # Data package names and minimum required version
 .official_refsets = list(ces.refset.hg19 = as.package_version("1.1.0"))
 
+
+snv_annotation_template = data.table(snv_id = character(), chr = character(), pos = numeric(), 
+                                     ref = character(), alt = character(), genes = list(), intergenic = logical(), 
+                                     assoc_aac = list(), trinuc_mut = character(), essential_splice = logical(), 
+                                     nearest_pid = list(), covered_in = list())
+
+aac_annotation_template = data.table(aac_id = character(), gene = character(), aachange = character(), 
+                       strand = integer(), chr = character(), pid = character(), aa_ref = character(), 
+                       aa_pos = numeric(), aa_alt = character(), 
+                       nt1_pos = numeric(), nt2_pos = numeric(), nt3_pos = numeric(), 
+                       coding_seq = character(), constituent_snvs = list(), essential_splice = logical(), 
+                       covered_in = list())
+
+
+
 # format a string the way R should automatically, then feed it to message()
 pretty_message = function(msg, emit = T, black = emit) {
   msg = paste0(strwrap(msg), collapse = "\n")

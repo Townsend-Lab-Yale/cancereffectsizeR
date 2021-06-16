@@ -72,7 +72,7 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
   # relevant genes are those associated with one of the AACs/SNVs of interest
   relevant_genes = union(mutations$amino_acid_change$gene, mutations$snv[snv_ids, unlist(genes), on = "snv_id"])
   sample_gene_rates = as.data.table(expand.grid(gene = relevant_genes, Unique_Patient_Identifier = samples$Unique_Patient_Identifier, 
-                                                stringsAsFactors = F),key = "Unique_Patient_Identifier")
+                                                stringsAsFactors = F), key = "Unique_Patient_Identifier")
   
   # add gene mutation rates to the table by using @mutrates and the groups of each samples
   sample_gene_rates = sample_gene_rates[samples[, .(Unique_Patient_Identifier, gene_rate_grp)]]
@@ -184,3 +184,5 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
   setcolorder(baseline_rates, "Unique_Patient_Identifier")
   return(baseline_rates)
 }
+
+

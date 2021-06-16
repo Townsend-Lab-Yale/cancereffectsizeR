@@ -2,11 +2,11 @@
 % Please edit documentation in R/set_gene_rates.R
 \name{set_gene_rates}
 \alias{set_gene_rates}
-\title{Assign pre-calculated neutral gene mutation rates}
+\title{Assign pre-calculated regional mutation rates}
 \usage{
 set_gene_rates(
   cesa = NULL,
-  gene_rates = NULL,
+  rates = NULL,
   sample_group = NULL,
   missing_genes_take_nearest = FALSE
 )
@@ -14,24 +14,24 @@ set_gene_rates(
 \arguments{
 \item{cesa}{CESAnalysis object}
 
-\item{gene_rates}{A two-column data.table with genes in column 1 and rate in column 2}
+\item{rates}{A two-column data.table with either gene name or protein_id in column 1 and rate in column 2}
 
 \item{sample_group}{Character vector giving sample group(s) that the rates apply to. If
 unspecified, the rates are assigned to all samples.}
 
 \item{missing_genes_take_nearest}{Set to TRUE
-to have each gene missing from gene_rates take the rate of the nearest non-missing gene.}
+to have each gene/protein_id missing from rates take the rate of the nearest non-missing gene/protein.}
 }
 \description{
-This function allows you to assign gene mutation rates calculated however you like to
-samples in your CESAnalysis. Rates can be assigned to all samples or to samples
-with the specified sample_group labels (see \code{?CESAnalysis}).
+This function allows you to specify regional rates of mutation--calculated
+however you like--to samples in your CESAnalysis. Rates can be assigned to all samples
+or to samples with the specified sample_group labels (see \code{?CESAnalysis}).
 }
 \details{
-Provide rates in a gene_rates data.table with two columns: gene (character) and rate
-(numeric on \code{[0, 1]}). Gene names must match the CESAnalysis reference data; to
-see all genes in your CESAnalysis \code{cesa}, call
-\code{unique(cesa$reference_data$gene_ranges$names)}. If you don't want to supply rates
-for every gene, set \code{missing_genes_take_nearest = T} to have each missing gene
-take the rate of the nearest non-missing gene.
+Provide rates in a data.table with two columns: gene name or protein ID (character) and
+rate (numeric, non-negative). Gene names or protein IDs must match those in CESAnalysis
+reference data. (Some reference data sets, such as ces.refset.hg19, only allow
+gene-level rates.) If you don't want to supply rates for every gene, set
+\code{missing_genes_take_nearest = T} to have each missing gene or coding region take
+the rate of the nearest non-missing one.
 }

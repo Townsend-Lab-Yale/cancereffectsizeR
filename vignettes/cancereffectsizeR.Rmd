@@ -26,6 +26,8 @@ start by running `preload_maf()`, a function that can catch potential problems i
 ```{r eval = F}
 library(cancereffectsizeR)
 library(ces.refset.hg19)
+library(data.table)
+
 maf1 = preload_maf(maf = "my_maf_1.txt", refset = ces.refset.hg19)
 
 # If you want, load the whole MAF file, rather than just essential columns (may make object large)

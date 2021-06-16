@@ -221,9 +221,13 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = 
       }
       matching_aac_ids = c(matching_aac_ids, aac_matches$aac_id)
       if (any(duplicated(aac_matches$variant_name))) {
-        msg = paste0("Shorthand amino-acid-change names (styled like \"KRAS_G12C\") were recognized and matched, ",
+        msg = paste0("Shorthand amino-acid-change names (styled like \"KRAS_G12C\") were recognized and matched ",
                      "with cancereffectsizeR-style aac_ids. However, some of your variant names matched more than ",
-                     "one aac_id (e.g., same positional change on multiple protein isoforms), and all of these are included in output.")
+                     "one aac_id (i.e., the same amino acid change is possible on multiple protein isoforms, and both are present ",
+                     "in this analysis's variant annotations.) When the underlying SNVs are the same, only one AAC will be returned ",
+                     "(unless you run with remove_secondary_aac = FALSE). Otherwise, all matching variants ",
+                     "will be returned. (There may be additional matching variants with MAF frequency = 0 that are not ",
+                     "annotated in this analysis; these will not be returned.)")
         pretty_message(msg, black = F)
       } else {
         msg = paste0("Shorthand amino-acid-change names (styled like \"KRAS_G12C\") were recognized and uniquely ",
@@ -559,7 +563,7 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
         }
         # covered_in may vary, but doesn't matter because it will be regenerated from scratch
         target_cesa@mutations$snv = rbind(target_cesa@mutations$snv, new_snvs)
-        new_aacs = source_cesa@mutations$snv[! target_cesa@mutations$amino_acid_change$aac_id, on = "aac_id"]
+        new_aacs = source_cesa@mutations$amino_acid_change[! target_cesa@mutations$amino_acid_change$aac_id, on = "aac_id"]
         target_cesa@mutations$amino_acid_change = rbind(target_cesa@mutations$amino_acid_change, new_aacs)
       }
       return(update_covered_in(target_cesa))

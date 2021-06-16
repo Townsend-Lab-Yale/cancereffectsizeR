@@ -107,18 +107,8 @@ CESAnalysis = function(refset = "ces.refset.hg19", sample_groups = NULL) {
                   recording = T, locked = F, trinuc_done = F, gene_rates_done = F,
                   uid = unclass(Sys.time()), genome_info = genome_info)
   
-  # Mutation table specifications
-  aac_table = data.table(aac_id = character(), gene = character(), aachange = character(), 
-                         strand = integer(), chr = character(), pid = character(), aa_ref = character(), 
-                         aa_pos = numeric(), aa_alt = character(), 
-                         nt1_pos = numeric(), nt2_pos = numeric(), nt3_pos = numeric(), 
-                         coding_seq = character(), constituent_snvs = list(), essential_splice = logical(), 
-                         covered_in = list())
-  snv_table = data.table(snv_id = character(), chr = character(), pos = numeric(), 
-                         ref = character(), alt = character(), genes = list(), intergenic = logical(), 
-                         assoc_aac = list(), trinuc_mut = character(), essential_splice = logical(), 
-                         covered_in = list())
-  mutation_tables = list(amino_acid_change = aac_table, snv = snv_table)
+  # Mutation table specifications (see template tables declared in imports.R)
+  mutation_tables = list(amino_acid_change = aac_annotation_template, snv = snv_annotation_template)
   cesa = new("CESAnalysis", run_history = character(),  ref_key = refset_name, maf = data.table(), excluded = data.table(),
              groups = sample_groups, mutrates = data.table(),
              selection_results = list(), ref_data_dir = data_dir, epistasis = list(),
@@ -165,19 +155,23 @@ save_cesa = function(cesa, file) {
 #' @export
 load_cesa = function(file) {
   if (! endsWith(tolower(file), '.rds')) {
-    stop("Expected filename to end in .rds (because saveRDS() is the recommended way to save a CESAnalysis).", call. = F)
+    stop("Expected filename to end in .rds.", call. = F)
   }
   cesa = readRDS(file)
   
   # Data tables must be reset to get them working properly
   cesa@samples = setDT(cesa@samples)
   cesa@maf = setDT(cesa@maf)
-  if (! is.null(cesa@mutations$amino_acid_change)) {
+  
+  # Older versions lack annotation table templates
+  if (is.null(cesa@mutations$snv)) {
+    cesa@mutations = list(amino_acid_change = aac_annotation_template, snv = snv_annotation_template)
+  } else {
     cesa@mutations$amino_acid_change = setDT(cesa@mutations$amino_acid_change, key = "aac_id")
-  }
-  if (! is.null(cesa@mutations$snv)) {
     cesa@mutations$snv = setDT(cesa@mutations$snv, key = "snv_id")
   }
+  
+
   if (! is.null(cesa@trinucleotide_mutation_weights[["signature_weight_table"]])) {
     cesa@trinucleotide_mutation_weights[["signature_weight_table"]] = setDT(cesa@trinucleotide_mutation_weights[["signature_weight_table"]])
   }
@@ -207,7 +201,7 @@ load_cesa = function(file) {
       cesa@ref_data_dir = NA_character_
       msg = paste0("Reference data not found at ", cesa@ref_data_dir, ". You can view the data in this CESAnalysis, ",
                    "but many functions will not work as expected. If this is a custom reference data set, ",
-                   "you can fix the issue by using set_refset_dir() to associate the path to your data with the analyis.")
+                   "you can fix the issue by using set_refset_dir() to associate the path to your data with the analysis.")
       warning(pretty_message(msg, emit = F))
     }
   }
@@ -225,9 +219,21 @@ load_cesa = function(file) {
   }
   cesa = update_cesa_history(cesa, match.call())
   
-  
+  # Before v2.2, nearest_pid not annotated; add it if needed
+  # This would crash on custom refsets with missing data directories, but unlikely
+  # situation will ever arise with a pre-2.2 refset
+  if (! "nearest_pid" %in% names(cesa@mutations$snv)) {
+    snv_and_gene = cesa@mutations$snv[, .(gene = unlist(genes)), by = "snv_id"]
+    to_lookup = snv_and_gene[, .(gene = unique(gene))]
+    RefCDS = get_ref_data(cesa, "RefCDS")
+    to_lookup[, pid := sapply(RefCDS[gene], '[[', 'protein_id')]
+    snv_and_gene[to_lookup, pid := pid, on = 'gene']
+    snv_and_pid = snv_and_gene[, .(nearest_pid = list(pid)), by = "snv_id"]
+    cesa@mutations$snv[snv_and_pid, nearest_pid := nearest_pid, on = "snv_id"]
+  }
+
   # cache variant table for easy user access
-  if(length(cesa@mutations) > 0) {
+  if(length(cesa@mutations$snv[, .N]) > 0) {
     cesa@advanced$cached_variants = select_variants(cesa)
   }
   return(cesa)
@@ -359,9 +365,9 @@ get_gene_rates = function(cesa = NULL) {
   if(! is(cesa, "CESAnalysis")) {
     stop("\nUsage: get_gene_rates(cesa), where cesa is a CESAnalysis")
   }
-  gene_rates = cesa@mutrates
-  if (ncol(gene_rates) == 2) {
-    colnames(gene_rates) = c("gene", "rate")
+  gene_rates = copy(cesa@mutrates)
+  if (sum(grepl('rate_grp', names(gene_rates))) == 1) {
+    setnames(gene_rates, 'rate_grp_1', 'rate')
   }
   return(gene_rates)
 }

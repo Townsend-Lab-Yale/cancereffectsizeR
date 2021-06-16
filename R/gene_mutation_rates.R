@@ -42,8 +42,7 @@ gene_mutation_rates <- function(cesa, covariates = NULL, sample_group = NULL, sa
   cesa = update_cesa_history(cesa, match.call())
 
   RefCDS = .ces_ref_data[[cesa@ref_key]]$RefCDS
-  gr_genes = .ces_ref_data[[cesa@ref_key]]$gr_genes
-  
+  gr_genes = .ces_ref_data[[cesa@ref_key]]$gr_genes # CDS definitions
   
   # select MAF records to use for gene mutation rate calculation (via dNdScv)
   # for now, records from TGS samples are kept out; in the future, we could check out dNdScv's panel sequencing features
@@ -65,14 +64,16 @@ gene_mutation_rates <- function(cesa, covariates = NULL, sample_group = NULL, sa
     }
   }
   
-  
+  using_custom_covariates = TRUE
   if(is.null(covariates)){
+    using_custom_covariates = FALSE
     cv = NULL
     genes_in_pca = NULL
     warning("Calculating gene mutation rates with no covariate data; stop and re-run with covariates if available.\n",
             "(Check with list_ces_covariates(); for hg19 only, you can also specify \"default\" for dNdScv default\n",
             "covariates.)", call. = F, immediate. = T)
   } else if (is(covariates, "character") && covariates[1] == "default") {
+    using_custom_covariates = FALSE
     if(cesa@ref_key == "ces.refset.hg19") {
       pretty_message("Loading dNdScv default covariates for hg19 (stop and re-run with tissue-specific covariates if available)...")
       data("covariates_hg19", package = "dndscv", envir = environment())
@@ -102,6 +103,29 @@ gene_mutation_rates <- function(cesa, covariates = NULL, sample_group = NULL, sa
                        .(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele, Tumor_Allele)]
   if(mutations[, .N] == 0) {
     stop("Can't run dNdScv because there are no usable SNV mutations in the input samples.")
+  }
+  
+  
+  # For now, covariates data are presumed gene-based. If the refset is protein-based (more than one
+  # CDS region per gene), we assume that the same covariates can be used for each.
+  using_cds_rates = FALSE
+  if ("gene" %in% names(GenomicRanges::mcols(gr_genes)) && using_custom_covariates) {
+    using_cds_rates = TRUE
+    pid_to_gene = unique(as.data.table(GenomicRanges::mcols(gr_genes)))
+    setnames(pid_to_gene, 'names', 'pid')
+    
+    # For compatibility with cancereffectsizeR covariates that split isoforms for CDKN2A 
+    # (The isoforms use the same covariates, so we can just copy one.)
+    current_cv_genes = rownames(cv)
+    if (pid_to_gene["CDKN2A", .N, on = "gene"] > 0 && ! "CDKN2A" %in% current_cv_genes & "CDKN2A.p14arf" %in% current_cv_genes) {
+      to_copy = cv["CDKN2A.p14arf", , drop = F]
+      rownames(to_copy) = "CDKN2A"
+      cv = rbind(cv, to_copy)
+    }
+    present_genes = intersect(pid_to_gene$gene, rownames(cv)) # some may be missing, which gets dealt with later
+    present_pid_to_gene = pid_to_gene[present_genes, on = "gene"]
+    cv = cv[present_pid_to_gene$gene, ]
+    rownames(cv) = genes_in_pca = present_pid_to_gene$pid
   }
   
   # Run in separate function for quick unit tests of gene_mutation_rates
@@ -157,9 +181,10 @@ gene_mutation_rates <- function(cesa, covariates = NULL, sample_group = NULL, sa
   setnames(mutrates_dt, "rate", curr_rate_group)
   
   
-  # Genes in gr_genes that are not present in the covariates data (a few are missing, usually),
-  # won't get rates calcualted by dNdScv. Here, we assign them the rate of the nearest gene,
-  # as measured by center-to-center distance.
+  # Genes in gr_genes that are not present in the covariates data (a few are missing,
+  # usually), won't get rates calcualted by dNdScv. Here, we assign them the rate of the
+  # nearest gene, as measured by center-to-center distance. (And, in the case of CDS
+  # rates, this same logic works.)
   missing_genes = setdiff(GenomicRanges::mcols(gr_genes)["names"][,1], mutrates_dt$gene)
   
   tmp = as.data.table(gr_genes)
@@ -186,8 +211,18 @@ gene_mutation_rates <- function(cesa, covariates = NULL, sample_group = NULL, sa
   }
   cesa@samples[group %in% sample_group, gene_rate_grp := curr_rate_group]
   
+  if(using_cds_rates) {
+    setnames(mutrates_dt, 'gene', 'pid')
+    mutrates_dt[pid_to_gene, gene := gene, on = 'pid']
+    setcolorder(mutrates_dt, c('pid', 'gene'))
+  }
+  
   if (ncol(cesa@mutrates) > 0) {
-    cesa@mutrates = cesa@mutrates[mutrates_dt, on = "gene"]
+    if (using_cds_rates) {
+      cesa@mutrates = cesa@mutrates[mutrates_dt, on = "pid"]
+    } else {
+      cesa@mutrates = cesa@mutrates[mutrates_dt, on = "gene"]
+    }
   } else {
     cesa@mutrates = mutrates_dt
   }
@@ -236,38 +271,29 @@ run_dndscv = function(mutations, gene_list, cv, refdb, gr_genes) {
 }
 
 
-
-#' Fill missing genes
+#' Clear regional mutation rates
 #' 
-#' For each gene in gr_genes missing from gene rate table, assign the 
-#' rate of the nearest non-missing gene. Gene rate table is assumed
-#' two-column (gene and rate).
+#' Remove all gene/coding region mutation rates, usually in order to re-run with different
+#' parameters without having to create a new CESAnalysis.
 #' 
-#' @param gr_genes reference data set style gr_genes
-#' @param gene_rates two-column data.table (gene, rate)
-#' @keywords internal
-fill_missing_genes = function(gr_genes, gene_rates) {
-  missing_genes = setdiff(GenomicRanges::mcols(gr_genes)["names"][,1], gene_rates$gene)
-  tmp = as.data.table(gr_genes)
-  gene_intervals = tmp[, .(chr = as.character(seqnames[1]), start = min(start), end = max(end)), by = "names"]
-  setnames(gene_intervals, "names", "gene")
-  gene_intervals[, center := start + trunc((end - start)/2)]
-  gene_intervals = gene_intervals[order(chr, center)]
-  present_genes = gene_intervals[! gene %in% missing_genes]
-  not_present = gene_intervals[gene %in% missing_genes]
+#' @param cesa CESAnalysis
+#' @return The CESAnalysis with rates cleared
+#' @export
+clear_gene_rates = function(cesa = NULL) {
+  if (! is(cesa, "CESAnalysis")) {
+    stop("cesa should be a CESAnalysis")
+  }
   
-  # find nearest genes by chr/center to the missing genes from the present genes,
-  # and eliminate the rare tie by taking the first match for each gene
-  nearest_genes = present_genes[not_present, on = c("chr", "center"), roll = "nearest"]
-  nearest_genes = nearest_genes[! duplicated(i.gene)]
+  cesa@dndscv_out_list = list()
+  cesa@mutrates = data.table()
+  cesa@advanced$gene_rates_done = F
   
-  setkey(gene_rates, "gene")
-  nearest_rates = gene_rates[nearest_genes$gene, -"gene"]
-  missing_rates = cbind(gene = nearest_genes$i.gene, nearest_rates)
-  gene_rates = rbind(gene_rates, missing_rates)
-  return(gene_rates)
+  # Column won't exist if the analysis lacked gene mutation rates to start with
+  if ("gene_rate_grp" %in% names(cesa@samples)) {
+    cesa@samples[, gene_rate_grp := NULL]
+  }
+  
+  cesa = update_cesa_history(cesa, match.call())
+  return(cesa)
 }
-
-
-
 
