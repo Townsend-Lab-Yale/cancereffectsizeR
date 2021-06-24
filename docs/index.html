@@ -128,23 +128,11 @@
 <h2 class="hasAnchor">
 <a href="#installation" class="anchor"></a>Installation</h2>
 <p>cancereffectsizeR requires R 3.5 or later and can be installed from its GitHub repository via the remotes package. Since we’re not able to test all installation environments, please help by letting us know if you have any installation problems.</p>
-<div id="r-40-and-later" class="section level4">
-<h4 class="hasAnchor">
-<a href="#r-40-and-later" class="anchor"></a>R 4.0 and later</h4>
-<p>On R 4.0 or later, run this:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html">install.packages</a></span><span class="op">(</span><span class="st">"remotes"</span><span class="op">)</span>
-<span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html">install_github</a></span><span class="op">(</span><span class="st">"Townsend-Lab-Yale/cancereffectsizeR@*release"</span><span class="op">)</span></code></pre></div>
-</div>
-<div id="r-35-and-36" class="section level4">
-<h4 class="hasAnchor">
-<a href="#r-35-and-36" class="anchor"></a>R 3.5 and 3.6</h4>
-<p>Install as above, but first you need to install an archived version of a missing dependency:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html">install.packages</a></span><span class="op">(</span><span class="st">"https://cran.r-project.org/src/contrib/Archive/XML/XML_3.99-0.3.tar.gz"</span>, 
-                 type <span class="op">=</span> <span class="st">"source"</span>, repos <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></code></pre></div>
-<p>Sometimes, if your internet connection or a download server is slow, installation can fail due to dependencies containing large files (such as the human genome) not downloading fast enough. Try increasing the time limit like this: <code><a href="https://rdrr.io/r/base/options.html">options(timeout = 600)</a></code>.</p>
-</div>
+<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/base/options.html">options</a></span><span class="op">(</span>timeout <span class="op">=</span> <span class="fl">600</span><span class="op">)</span>
+<span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html">install.packages</a></span><span class="op">(</span><span class="st">"remotes"</span><span class="op">)</span>
+<span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html">install_github</a></span><span class="op">(</span><span class="st">"Townsend-Lab-Yale/cancereffectsizeR@*release"</span>, dependencies <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></code></pre></div>
+<p>We suggest increasing R’s file download time limit (as shown above) because otherwise cancereffectsizeR’s larger dependencies might time out on download, causing the installation to fail. For a minimal installation, leave out the dependencies argument to install just required dependencies, rather than both required and suggested.</p>
 </div>
 <div id="publications-and-version-note" class="section level2">
 <h2 class="hasAnchor">
