@@ -24,25 +24,65 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
     stop("No trinucleotide mutation rates found, so can't calculate variant-level mutation rates.")
   }
   
+  if (! is.null(variant_ids) && (! is.null(snv_ids) || ! is.null(aac_ids))) {
+    stop("You can use snv_ids/aac_ids or variant_ids, but not a combination.")
+  }
+  
+  if (! is.null(aac_ids)) {
+    if(! is.character(aac_ids)) {
+      stop("aac_ids should be type character")
+    }
+  }
+  
+  if (! is.null(snv_ids)) {
+    if(! is.character(snv_ids)) {
+      stop("snv_ids should be type character")
+    }
+  }
+  
+  if (! is.null(variant_ids)) {
+    if(! is.character(variant_ids)) {
+      stop("variant_ids should be type character")
+    }
+  }
+  
   # Helping the user out
   aac_ids = unique(na.omit(aac_ids))
   snv_ids = unique(na.omit(snv_ids))
+  variant_ids = unique(na.omit(variant_ids))
   
+  # If variant IDs is used, snv/aac IDs were not
   if (! is.null(variant_ids)) {
-    variant_ids = na.omit(variant_ids)
-    aac_ids = unique(c(aac_ids, cesa@mutations$amino_acid_change[variant_ids, aac_id, nomatch = NULL]))
-    snv_ids = unique(c(snv_ids, cesa@mutations$snv[variant_ids, snv_id, nomatch = NULL]))
+    aac_ids = cesa@mutations$amino_acid_change[variant_ids, aac_id, nomatch = NULL]
+    snv_ids = cesa@mutations$snv[variant_ids, snv_id, nomatch = NULL]
+    
+    if (length(snv_ids) + length(aac_ids) != length(variant_ids)) {
+      unknown_ids = setdiff(variant_ids, union(aac_ids, snv_ids))
+      stop(length(unknown_ids), " variant IDs are either invalid or not present in annotation tables: ", 
+           paste(unknown_ids, collapse = ", "), ".")
+    }
+  } else {
+    missing_aac = setdiff(aac_ids, cesa@mutations$amino_acid_change[aac_ids, aac_id, nomatch = NULL])
+    missing_snv = setdiff(snv_ids, cesa@mutations$snv[snv_ids, snv_id, nomatch = NULL])
+    all_missing = c(missing_snv, missing_aac)
+    num_missing = length(all_missing)
+    if(num_missing > 0) {
+      stop(num_missing, " variant IDs are either invalid or not present in annotation tables: ", 
+           paste(all_missing, collapse = ", "), ".")
+    }
   }
   
   # Let user specify a subset of samples to calculate rates (or, by default, use all samples)
   if(! is.null(samples)) {
     if (! is.character(samples)) {
-      stop("Samples should be character vector", call. = F)
+      stop("Samples should be character vector")
     }
-    samples = unique(samples)
-    subsetted_samples = cesa@samples[samples, on = "Unique_Patient_Identifier"]
+    samples = unique(na.omit(samples))
+    subsetted_samples = cesa@samples[samples, on = "Unique_Patient_Identifier", nomatch = NULL]
     if(subsetted_samples[, .N] != length(samples)) {
-      stop("One or more of the requested samples isn't in the CESAnalysis", call. = F)
+      invalid_samples = setdiff(samples, subsetted_samples$Unique_Patient_Identifier)
+      stop(length(samples), " samples are not in the CESAnalysis samples table: ", 
+           paste(invalid_samples, collapse = ", "), ".")
     }
     samples = subsetted_samples
   } else {
@@ -61,6 +101,11 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
   
   # Give a progress message if this is going to take more than a few seconds
   num_variants = length(aac_ids) + length(snv_ids)
+  
+  if(num_variants == 0) {
+    stop("Can't calculate mutation rates because no variants were input.")
+  }
+  
   num_samples = samples[, .N]
   if(num_variants * num_samples > 1e7) {
     num_variants = format(num_variants, big.mark = ",") # big.mark? R is so weird
@@ -68,45 +113,67 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
     message(sprintf("Preparing to calculate baseline mutation rates in %s samples across %s sites...", num_samples, num_variants))
   }
   
-  # produce a table with all pairwise combinations of Unique_Patient_Identifier and relevant genes
-  # relevant genes are those associated with one of the AACs/SNVs of interest
-  relevant_genes = union(mutations$amino_acid_change$gene, mutations$snv[snv_ids, unlist(genes), on = "snv_id"])
-  sample_gene_rates = as.data.table(expand.grid(gene = relevant_genes, Unique_Patient_Identifier = samples$Unique_Patient_Identifier, 
-                                                stringsAsFactors = F), key = "Unique_Patient_Identifier")
+  # produce a table with all pairwise combinations of Unique_Patient_Identifier and relevant regional rates
+  # relevant genes/pids are those associated with one of the AACs/SNVs of interest
+  using_pid = FALSE
+  if ("pid" %in% names(cesa@mutrates)) {
+    using_pid = TRUE
+    # Note that unlist(NULL data.table) returns NULL (which is okay)
+    relevant_regions = union(mutations$amino_acid_change$pid, unlist(mutations$snv[snv_ids, nearest_pid, on = "snv_id"]))
+  } else {
+    relevant_regions = union(mutations$amino_acid_change$gene, unlist(mutations$snv[snv_ids, genes, on = "snv_id"]))
+  }
+  sample_region_rates = as.data.table(expand.grid(region = relevant_regions, Unique_Patient_Identifier = samples$Unique_Patient_Identifier, 
+                                                  stringsAsFactors = F), key = "Unique_Patient_Identifier")
+
+  # add gene (regional) mutation rates to the table by using @mutrates and the groups of each samples
+  sample_region_rates = sample_region_rates[samples[, .(Unique_Patient_Identifier, gene_rate_grp)]]
   
-  # add gene mutation rates to the table by using @mutrates and the groups of each samples
-  sample_gene_rates = sample_gene_rates[samples[, .(Unique_Patient_Identifier, gene_rate_grp)]]
-  melted_mutrates = melt.data.table(cesa@mutrates[relevant_genes, on = "gene"], id.vars = c("gene"))
+  if (using_pid) {
+    # there's also a gene given in transcript rates tables, but we'll drop it here
+    melted_mutrates = melt.data.table(cesa@mutrates[relevant_regions, -"gene", on = "pid"], id.vars = c("pid"))
+    setnames(melted_mutrates, "pid", "region")
+  } else {
+    melted_mutrates = melt.data.table(cesa@mutrates[relevant_regions, on = "gene"], id.vars = c("gene"))
+    setnames(melted_mutrates, "gene", "region")
+  }
+  
   setnames(melted_mutrates, c("variable", "value"), c("gene_rate_grp", "raw_rate"))
-  sample_gene_rates = melted_mutrates[sample_gene_rates, , on = c("gene", "gene_rate_grp")]
+  sample_region_rates = melted_mutrates[sample_region_rates, , on = c("region", "gene_rate_grp")]
   
-  gene_trinuc_comp = .ces_ref_data[[cesa@ref_key]][["gene_trinuc_comp"]]
+  cds_trinuc_comp = .ces_ref_data[[cesa@ref_key]][["gene_trinuc_comp"]]
   
   
-  # Hash trinuc rates for faster runtime with huge data sets (where there could be millions of queries of trinuc_mat)
+  # Hash trinuc rates for faster runtime with large data sets (where there could be millions of queries of trinuc_mat)
   # Will also be using the trinuc_mat directly for summed rates, so need to subset it to just samples of interest
-  trinuc_rates = new.env()
-  trinuc_mat = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix[samples$Unique_Patient_Identifier,]
+  trinuc_rates = new.env(parent = emptyenv())
+  trinuc_mat = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix[samples$Unique_Patient_Identifier, , drop = F]
   for (row in rownames(trinuc_mat)) { 
     trinuc_rates[[row]] = unname(trinuc_mat[row, ])
   }
   # dot product of trinuc comp and patient's expected relative trinuc rates yields the denominator
   # for site-specific mutation rate calculation; numerator is raw gene rate multipled by the patient's relative rate for the site's trinuc context
   # (this last value gets multipled in by get_baseline functions below)
-  sample_gene_rates[, aggregate_rate := raw_rate / sum(gene_trinuc_comp[[gene]] * trinuc_rates[[Unique_Patient_Identifier]]), by = c("gene", "Unique_Patient_Identifier")]
-  setkey(sample_gene_rates, "gene")
+  sample_region_rates[, aggregate_rate := raw_rate / sum(cds_trinuc_comp[[region]] * trinuc_rates[[Unique_Patient_Identifier]]), by = c("region", "Unique_Patient_Identifier")]
+  setkey(sample_region_rates, "region")
   
   if(length(aac_ids > 0)) {
     trinuc_mut_by_aac = mutations$amino_acid_change[, .(trinuc_mut = list(mutations$snv[unlist(constituent_snvs), trinuc_mut])), by = "aac_id"]
-    gene_by_aac = mutations$amino_acid_change[aac_ids, gene]
-    aac_genes = unique(gene_by_aac)
+    
+    if (using_pid) {
+      mutations$amino_acid_change[, region := pid]
+    } else {
+      mutations$amino_acid_change[, region := gene]
+    }
+    region_by_aac = mutations$amino_acid_change[aac_ids, region]
+    aac_regions = unique(region_by_aac)
     
     # build vector agg_rates (see above comment) corresponding to each aac
-    tmp = sample_gene_rates[aac_genes, .(list(aggregate_rate)), by = c("gene")]
-    agg_rates_by_gene = tmp$V1
-    names(agg_rates_by_gene) = tmp$gene
-    agg_rates_by_gene = agg_rates_by_gene[gene_by_aac]
-    agg_rates_by_gene = lapply(agg_rates_by_gene, unlist)
+    tmp = sample_region_rates[aac_regions, .(list(aggregate_rate)), by = c("region")]
+    agg_rates_by_region = tmp$V1
+    names(agg_rates_by_region) = tmp$region
+    agg_rates_by_region = agg_rates_by_region[region_by_aac]
+    agg_rates_by_region = lapply(agg_rates_by_region, unlist)
     
     # for each sample, multiply agg_rate by relative trinuc rate of the context for all AAC sites
     get_baseline_aac = function(aac, agg_rates) {
@@ -126,7 +193,7 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
     if (cores > 1) {
       original_dt_threads = setDTthreads(1)
     }
-    aac_rate_list = pbapply::pblapply(1:length(aac_ids), function(x) get_baseline_aac(aac_ids[x], agg_rates_by_gene[[x]]), cl = cores)
+    aac_rate_list = pbapply::pblapply(1:length(aac_ids), function(x) get_baseline_aac(aac_ids[x], agg_rates_by_region[[x]]), cl = cores)
     if (cores > 1) {
       setDTthreads(original_dt_threads)
     }
@@ -137,22 +204,26 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
   }
   
 
-  # repeat with SNVs (slightly different handling since SNVs can have more than one gene associated)
+  # repeat with SNVs (slightly different handling since SNVs can have more than one gene/pid associated)
   if (length(snv_ids) > 0) {
-    trinuc_mut_by_snv = mutations$snv[snv_ids, trinuc_mut, keyby="snv_id"]
-    gene_by_snv = mutations$snv[snv_ids, genes, by = "snv_id"]
-    snv_genes = unique(unlist(gene_by_snv$genes))
-    tmp = sample_gene_rates[snv_genes, .(list(aggregate_rate)), by = c("gene")]
-    agg_rates_by_gene = tmp$V1
-    names(agg_rates_by_gene) = tmp$gene
+    trinuc_mut_by_snv = mutations$snv[snv_ids, trinuc_mut, keyby = "snv_id"]
+    if (using_pid) {
+      region_by_snv = mutations$snv[snv_ids, .(region = nearest_pid), by = "snv_id"]
+    } else {
+      region_by_snv = mutations$snv[snv_ids, .(region = genes), by = "snv_id"]
+    }
+    snv_regions = unique(unlist(region_by_snv$region))
+    tmp = sample_region_rates[snv_regions, .(list(aggregate_rate)), by = "region"]
+    agg_rates_by_region = tmp$V1
+    names(agg_rates_by_region) = tmp$region
     
-    get_baseline_snv = function(snv, genes) {
+    get_baseline_snv = function(snv, region) {
       trinuc_mut = trinuc_mut_by_snv[snv, trinuc_mut]
       sample_rates = trinuc_mat[, trinuc_mut, drop = F]
-      if(length(genes) > 1) {
-        agg_rates = rowMeans(simplify2array(agg_rates_by_gene[genes]))
+      if(length(region) > 1) {
+        agg_rates = rowMeans(simplify2array(agg_rates_by_region[region]))
       } else {
-        agg_rates = agg_rates_by_gene[[genes]]
+        agg_rates = agg_rates_by_region[[region]]
       }
       return(as.numeric(agg_rates * sample_rates))
     }
@@ -167,7 +238,7 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
     if (cores > 1) {
       original_dt_threads = setDTthreads(1)
     }
-    snv_rate_list = pbapply::pblapply(1:length(snv_ids), function(x) get_baseline_snv(snv_ids[x], gene_by_snv$genes[[x]]), cl = cores)
+    snv_rate_list = pbapply::pblapply(1:length(snv_ids), function(x) get_baseline_snv(snv_ids[x], region_by_snv$region[[x]]), cl = cores)
     if (cores > 1) {
       setDTthreads(original_dt_threads)
     }

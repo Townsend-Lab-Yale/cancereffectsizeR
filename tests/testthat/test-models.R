@@ -10,6 +10,29 @@ precalc_rates = fread(get_test_file("luad_fruit_gene_rates.txt"))
 cesa = set_gene_rates(cesa, precalc_rates[, .(gene, rate_grp_1)], sample_group = "marionberry")
 cesa = set_gene_rates(cesa, precalc_rates[, .(gene, rate_grp_2)], sample_group = c("cherry", "mountain_apple"))
 
+# Make sure baseline_mutation_rates is working (requires full mutation ID)
+# Try taking just one AAC rate in one sample
+# Try taking one AAC rate
+rate_a = baseline_mutation_rates(cesa, variant_ids = "FAT1_D1508H_ENSP00000406229", samples = "sample-5")
+rate_b = baseline_mutation_rates(cesa, aac_ids = "FAT1_D1508H_ENSP00000406229", samples = "sample-5")
+expect_equal(rate_a, rate_b)
+expect_equal(rate_a[[1]], 'sample-5')
+expect_equal(rate_a[[2]], 1.055027e-06)
+
+
+# Try taking one SNV rate in one sample
+snv_rate = baseline_mutation_rates(cesa, snv_ids = "3:186276363_T>A", 
+                                     samples = 'sample-106')
+expect_equal(snv_rate[[1]], 'sample-106')
+expect_equal(snv_rate[[2]], 1.208587e-06)
+snv_rate_other_way = baseline_mutation_rates(cesa, variant_ids = "3:186276363_T>A", 
+                                             samples = 'sample-106')
+expect_identical(snv_rate, snv_rate_other_way)
+
+# Invalid inputs
+expect_error(baseline_mutation_rates(cesa), "no variants were input")
+expect_error(baseline_mutation_rates(cesa, variant_ids = c("3:186276363_T>A", 'hi')), 
+             "1 variant IDs are either invalid or not present")
 
 # genes to plug into ces_variant; some with high-effect-size SNVs, others random
 test_genes = c("EGFR", "ASXL3", "KRAS", "RYR2", "USH2A", "CSMD3", "TP53", "CSMD1", "LRP1B",
@@ -47,6 +70,7 @@ test_that("ces_variant with user-supplied variants", {
   expect_equal(ces_variant(cesa, variants = variants)@selection_results[[1]][, .N], 9)
 })
 
+#baseline_mutation_rates(cesa, aac_ids = 'EGFR_L858R_ENSP00000275493')
 test_that("ces_variant on subsets of samples", {
   # EGFR L858R appears 5 times in cherry, 4 in mountain apple, 0 in marionberry
   egfr = select_variants(cesa, variant_passlist = "EGFR_L858R_ENSP00000275493")
