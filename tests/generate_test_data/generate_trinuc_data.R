@@ -6,6 +6,7 @@ prev_dir = setwd(system.file("tests/test_data/", package = "cancereffectsizeR"))
 cesa = load_maf(cesa = CESAnalysis("ces.refset.hg19"), maf = get_test_file("trinuc_rate_test_maf.txt"))
 save_cesa(cesa, "cesa_for_trinuc_weighting_calc.rds")
 trimut = trinuc_mutation_rates(cesa, signature_set = "COSMIC_v3.1", 
-                               signatures_to_remove = suggest_cosmic_signatures_to_remove("LUAD", TRUE, TRUE))
+                               signatures_to_remove = suggest_cosmic_signatures_to_remove("LUAD", TRUE, TRUE),
+                               signature_extractor = 'deconstructSigs')
 saveRDS(trimut@trinucleotide_mutation_weights, "trinuc_mut_weighting.rds")
 setwd(prev_dir)

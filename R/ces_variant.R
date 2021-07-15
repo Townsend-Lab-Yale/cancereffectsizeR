@@ -340,7 +340,11 @@ ces_variant <- function(cesa = NULL,
         # usually but not always just 1 gene when not compound (when compound, anything possible)
         if (hold_out_same_gene_samples) {
           if (length(all_genes) == 1) {
-            tumors_with_gene_mutated = tumors_with_variants_by_gene[[all_genes]]
+            if(is.na(all_genes)) {
+              tumors_with_gene_mutated = tumors_with_variant
+            } else {
+              tumors_with_gene_mutated = tumors_with_variants_by_gene[[all_genes]]
+            }
           } else {
             tumors_with_gene_mutated = unique(sapply(all_genes, function(x) tumors_with_variants_by_gene[[x]]))
           }

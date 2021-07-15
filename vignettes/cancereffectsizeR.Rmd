@@ -170,7 +170,9 @@ By default, data is assumed to be derived from whole-exome sequencing. Whole-gen
 ## Calculate mutation rates and estimate selection
 After loading in data, run the following functions to prepare for calculation of cancer effect size. See each function's documentation for details.
 
-* `trinuc_mutation_rates()` uses deconstructSigs to extract mutational signature weightings from each tumor's SNV mutation profile, and from there calculates trinucleotide-context-specific SNV mutation rates. See also `vignette("cosmic_cancer_type_note")` for advice on excluding certain signatures that may be presumed absent from your tumors. 
+* `trinuc_mutation_rates()` uses MutationalPatterns or deconstructSigs to extract mutational 
+signature weightings from each tumor's SNV mutation profile, and from there calculates trinucleotide-context-specific SNV mutation rates. See also `vignette("cosmic_cancer_type_note")` 
+for advice on excluding certain signatures that may be presumed absent from your tumors. 
 * `gene_mutation_rates()` uses dNdScv to calculate gene-level mutation rates. It's highly recommended to supply tissue-specific covariate data if available. Covariates for many human tissue types are included in `ces.refset.hg19`. If no appropriate covariates are available, you can [make your own](create_custom_covariates.html), or use dNdScv's non-specific hg19 covariates.
 
 If you have defined `sample_groups` in your CESAnalysis, you can call each of these functions multiple times, specifying one or more sample groups per run. 

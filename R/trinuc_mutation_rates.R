@@ -1,11 +1,11 @@
 #' Calculate relative rates of trinucleotide-context-specific mutations by extracting underlying mutational processes
 #'
 #' This function calculates expected relative rates of trinucleotide-context-specific SNV
-#' mutations within tumors by attributing SNVs to mutational processes represented
-#' in mutation signature sets (such as COSMIC v3). deconstructSigs is used to extract mutational 
-#' signature weights in each tumor. Tumors with targeted sequencing data are assigned the
-#' average trinucleotide mutation rates calculated across all exome/genome data, 
-#' which means that you need at least some exome or genome data to run.
+#' mutations within tumors by attributing SNVs to mutational processes represented in
+#' mutation signature sets (such as COSMIC v3). Signature extraction can be done with
+#' MutationalPatterns (default) or deconstructSigs. Tumors with targeted sequencing data
+#' are assigned the average trinucleotide mutation rates calculated across all
+#' exome/genome data, which means that you need at least some exome or genome data to run.
 #' 
 #' To reduce the influence of selection on the estimation of relative trinucleotide mutation
 #' rates, only non-recurrent SNVs (those that do not appear in more than one 
@@ -44,10 +44,15 @@
 #' @param signatures_to_remove specify any signatures to exclude from analysis; use \code{suggest_cosmic_signatures_to_remove()} for advice on COSMIC signatures
 #' @param sample_group vector of sample group(s) to calculate rates for (default all)
 #' @param cores how many cores to use for processing tumors in parallel
-#' @param sig_averaging_threshold Mutational threshold (default 50) that determines which
-#'   tumors inform the calculation of group-average signature weights. When
-#'   assume_identical_mutational_processes == FALSE (the default), these group averages
-#'   are blended into the signature weights of sub-threshold tumors.
+#' @param signature_extractor one of "MutationalPatterns" (default) or "deconstructSigs"
+#' @param mp_strict_args Named list of arguments to pass to MutationalPatterns'
+#'   fit_to_signatures_strict function. Note that mut_matrix and signatures arguments are
+#'   generated automatically, and that if you'd rather not use the strict method, you can
+#'   emulate fit_to_signatures by setting max_delta = 0.
+#' @param sig_averaging_threshold Mutation prevalence threshold (default 50) that
+#'   determines which tumors inform the calculation of group-average signature weights.
+#'   When assume_identical_mutational_processes == FALSE (the default), these group
+#'   averages are blended into the signature weights of sub-threshold tumors.
 #' @param assume_identical_mutational_processes use well-mutated tumors (those with number
 #'   of eligible mutations meeting sig_averaging_threshold) to calculate group average
 #'   signature weights, and assign these to all tumors
@@ -56,24 +61,39 @@
 #'   trinucleotide-context-specific relative mutation rates. Note that tumors with few
 #'   mutations (group_avg_blended == TRUE in the signature weights tables) have weights
 #'   influenced by the average weights of well-mutated tumors; you may want to exclude
-#'   these from some mutational signature analyses.
+#'   these samples for some mutational signature analyses.
 #' @export
-#'
-#'
 #'
 trinuc_mutation_rates <- function(cesa,
                                   signature_set = NULL,
                                   signatures_to_remove = character(),
                                   sample_group = NULL,
                                   cores = 1,
+                                  signature_extractor = "MutationalPatterns",
+                                  mp_strict_args = list(),
                                   assume_identical_mutational_processes = FALSE,
                                   sig_averaging_threshold = 50,
-                                  use_dS_exome2genome = FALSE
-                                  ){  
+                                  use_dS_exome2genome = FALSE) {  
   if(is.null(cesa) || ! is(cesa, "CESAnalysis")) {
     stop("Expected cesa to be a CESAnalysis object", call. = F)
   }
   cesa = update_cesa_history(cesa, match.call())
+  
+  if (! is(signature_extractor, "character") || length(signature_extractor) != 1 || 
+      ! tolower(signature_extractor) %in% c('mutationalpatterns', 'deconstructsigs')) {
+    stop("signature_extractor must be 'MutationalPatterns' or 'deconstructSigs'. (Or, use set_signature_weights to ",
+         "load signature weights determined with some other method.)")
+  }
+  signature_extractor = ifelse(tolower(signature_extractor) == "mutationalpatterns", 'MutationalPatterns', 'deconstructSigs')
+  
+  if (! requireNamespace(signature_extractor, quietly = T)) {
+    stop(signature_extractor, " is the chosen signature method, but it doesn't seem to be installed..")
+  }
+  
+  # fit_to_signatures_strict and many other MP features appear just before v3 release; for simplicity, we won't support older.
+  if(signature_extractor == "MutationalPatterns" && packageVersion(signature_extractor) < as.package_version("2.99.4")) {
+    stop("Please update MutationalPatterns to v2.99.4 or later.")
+  }
   
   if(cesa@maf[, .N] == 0) {
     stop("No MAF data in the CESAnalysis", call. = F)
@@ -99,8 +119,6 @@ trinuc_mutation_rates <- function(cesa,
   if (curr_sample_info[, .N] == 0) {
     stop("No selected samples to run (no samples in the chosen group?).")
   }
-  
-  bsg = get_cesa_bsg(cesa)
   
   if(all(curr_sample_info$coverage == "targeted")) {
     stop("We can't estimate relative trinucleotide mutation rates without some exome/genome data in the CESAnalysis (all data is targeted sequencing).", call. = F)
@@ -163,7 +181,7 @@ trinuc_mutation_rates <- function(cesa,
   
   
   
-  # Put columns of sgnature data.frame into canonical deconstructSigs order (to match up with exome count order, etc.)
+  # Put columns of signature data.frame into canonical deconstructSigs order (to match up with exome count order, etc.)
   signatures = signatures[, deconstructSigs_trinuc_string]
   
   # make sure all signatures that user has requested removed are actually valid signatures
@@ -171,17 +189,6 @@ trinuc_mutation_rates <- function(cesa,
     if(any(! signatures_to_remove %in% rownames(signatures))) {
       stop("One or more signatures in signatures_to_remove are not in the signature set.", call. = F)
     }
-  }
-
-  # keeping TGS data (and data from other groups, if applicable) in the ds_maf until after recurrency testing
-  ds_maf = cesa@maf[variant_type == "snv"]
-
-  # remove all recurrent SNVs (SNVs appearing in more than one sample)
-  duplicated_vec_first <- duplicated(ds_maf[,.(Chromosome, Start_Position, Tumor_Allele)])
-  duplicated_vec_last <- duplicated(ds_maf[,.(Chromosome, Start_Position, Tumor_Allele)],fromLast=T)
-  duplicated_vec_pos <- which(duplicated_vec_first | duplicated_vec_last)
-  if (length(duplicated_vec_pos) > 0) {
-    ds_maf <- ds_maf[-duplicated_vec_pos,]
   }
 
   setkey(curr_sample_info, "Unique_Patient_Identifier")
@@ -193,18 +200,26 @@ trinuc_mutation_rates <- function(cesa,
     stop("Trinucleotide-context-specific mutation rates have already been calculated for some or all of these tumors.")
   }
   
+  # Get SNV counts. Yes, always getting MutationalPatterns style, and then will convert to deconstructSigs format
+  # later if needed.
+  full_trinuc_snv_counts = cesa@trinucleotide_mutation_weights$trinuc_snv_counts
+  if (is.null(full_trinuc_snv_counts)) {
+    full_trinuc_snv_counts = trinuc_snv_counts(cesa@maf, genome = get_cesa_bsg(cesa), 
+                                               exclude_recurrent = TRUE, style = 'MutationalPatterns')
+  }
+  
+  # all_tumors means all in current run, which may include tumors with no SNVs.
+  # need to intersect because tumors with 0 SNVs won't appear in SNV counts.
+  trinuc_breakdown_per_tumor = full_trinuc_snv_counts[, intersect(colnames(full_trinuc_snv_counts), all_tumors)] 
   
   # can only find signatures in tumors with exome/genome data that have non-recurrent SNVs
-  tumors_eligible_for_trinuc_calc = intersect(curr_sample_info[coverage != "targeted", Unique_Patient_Identifier], unique(ds_maf$Unique_Patient_Identifier))
+  tumors_eligible_for_trinuc_calc = intersect(curr_sample_info[coverage != "targeted", Unique_Patient_Identifier], unique(colnames(trinuc_breakdown_per_tumor)))
   tumors_needing_group_average_rates = setdiff(all_tumors, tumors_eligible_for_trinuc_calc)
   
-  # subset to just the tumors that will be run through deconstructSigs
-  ds_maf = ds_maf[Unique_Patient_Identifier %in% tumors_eligible_for_trinuc_calc]
+  substitution_counts = colSums(trinuc_breakdown_per_tumor)
+  substitution_counts = substitution_counts[tumors_eligible_for_trinuc_calc]
   
-  substitution_counts = table(ds_maf$Unique_Patient_Identifier)
-  
-  
-  tumors_above_threshold = names(which(substitution_counts>= sig_averaging_threshold))
+  tumors_above_threshold = names(which(substitution_counts >= sig_averaging_threshold))
   if(length(tumors_above_threshold) == 0) {
     stop(paste0("No tumors have enough mutations to confidently assess mutational signatures. To run anyway, lower\n",
                 "sig_averaging_threshold (possibly to 0), and consider setting assume_identical_mutational_processes = TRUE"))
@@ -212,61 +227,45 @@ trinuc_mutation_rates <- function(cesa,
   # identify tumors that will have average weights blended into their weights (normally)
   # when assume_identical_mutational_processes = TRUE, data from these tumors isn't used at all
   tumors_below_threshold = names(which(substitution_counts < sig_averaging_threshold))
-
-
+  
   tri.counts.genome = get_ref_data(cesa, "tri.counts.genome")
   
-  # for each exome coverage gr (besides default generic, which is pre-calculated), tabulate trinucs
-  tri_counts_by_gr = list()
-  exome_cov_to_calc = curr_sample_info[coverage == "exome", unique(covered_regions)]
-  genome_cov_to_calc = curr_sample_info[coverage == "genome", setdiff(unique(covered_regions), "genome")]
-  grs_to_calc = c(cesa@coverage$exome[exome_cov_to_calc], cesa@coverage$genome[genome_cov_to_calc])
-  gr_names = names(grs_to_calc)
-  for (gr_name in gr_names) {
-    if (gr_name %in% c("exome", "exome+")) {
-      if (use_dS_exome2genome) {
-        data("tri.counts.exome", package = "deconstructSigs", envir = environment())
-        tri_counts_by_gr[[gr_name]] = tri.counts.exome
+  # only used for deconstructSigs since MutationalPatterns doesn't support normalization
+  if (signature_extractor == 'deconstructSigs') {
+    # for each exome coverage gr (besides default generic, which is pre-calculated), tabulate trinucs
+    tri_counts_by_gr = list()
+    exome_cov_to_calc = curr_sample_info[coverage == "exome", unique(covered_regions)]
+    genome_cov_to_calc = curr_sample_info[coverage == "genome", setdiff(unique(covered_regions), "genome")]
+    grs_to_calc = c(cesa@coverage$exome[exome_cov_to_calc], cesa@coverage$genome[genome_cov_to_calc])
+    gr_names = names(grs_to_calc)
+    for (gr_name in gr_names) {
+      if (gr_name %in% c("exome", "exome+")) {
+        if (use_dS_exome2genome) {
+          data("tri.counts.exome", package = "deconstructSigs", envir = environment())
+          tri_counts_by_gr[[gr_name]] = tri.counts.exome
+        } else {
+          tri_counts_by_gr[[gr_name]] = get_ref_data(cesa, "tri.counts.exome")
+        }
       } else {
-        tri_counts_by_gr[[gr_name]] = get_ref_data(cesa, "tri.counts.exome")
+        bsg = get_cesa_bsg(cesa)
+        covered_seq = BSgenome::getSeq(bsg, grs_to_calc[[gr_name]])
+        tri_contexts = Biostrings::trinucleotideFrequency(covered_seq)
+        tri_contexts = colSums(tri_contexts)
+        
+        # deconstructSigs_trinuc_string is internal in cancereffectsizeR
+        # here, we need unique trinucleotide contexts (without mutations) in deconstructSigs ordering,
+        # which is why we produce this by converting from their column headings
+        context_names = unique(sub("\\[([ACTG]).*\\]", "\\1", deconstructSigs_trinuc_string))
+        context_names = sort(context_names)
+        reverse_complement_names = unique(as.character(Biostrings::reverseComplement(Biostrings::DNAStringSet(context_names))))
+        
+        # reorder the counts as desired, then save as a data.frame since that's what deconstructSigs wants
+        tri_counts = tri_contexts[context_names] + tri_contexts[reverse_complement_names]
+        tri_counts = data.frame(x = tri_counts)
+        tri_counts_by_gr[[gr_name]] = tri_counts
       }
-    } else {
-      covered_seq = BSgenome::getSeq(bsg, grs_to_calc[[gr_name]])
-      tri_contexts = Biostrings::trinucleotideFrequency(covered_seq)
-      tri_contexts = colSums(tri_contexts)
-      
-      # deconstructSigs_trinuc_string is internal in cancereffectsizeR
-      # here, we need unique trinucleotide contexts (without mutations) in deconstructSigs ordering,
-      # which is why we produce this by converting from their column headings
-      context_names = unique(sub("\\[([ACTG]).*\\]", "\\1", deconstructSigs_trinuc_string))
-      context_names = sort(context_names)
-      reverse_complement_names = unique(as.character(Biostrings::reverseComplement(Biostrings::DNAStringSet(context_names))))
-      
-      # reorder the counts as desired, then save as a data frame since that's what deconstructSigs wants
-      tri_counts = tri_contexts[context_names] + tri_contexts[reverse_complement_names]
-      tri_counts = data.frame(x = tri_counts)
-      tri_counts_by_gr[[gr_name]] = tri_counts
-    }
+    } 
   }
-  
-  
-  # build the data.frame required by deconstructSigs (and probably similar to what is required by most other SNV signature software)
-  # rows are samples, columns are counts of each of 96 trinuc-context-specific mutations in the order expected by deconstructSigs
-  trinuc = BSgenome::getSeq(bsg, ds_maf$Chromosome, ds_maf$Start_Position - 1, ds_maf$Start_Position + 1, as.character = T)
-  
-  # internal table converts trinuc/mut (e.g., GTA:C) into deconstructSigs format ("G[T>C]A")
-  ds_muts = factor(deconstructSigs_notations[.(trinuc, ds_maf$Tumor_Allele), deconstructSigs_ID], levels = deconstructSigs_trinuc_string)
-  
-  # mysteriously convert two-way table to data frame
-  tmp = table(ds_maf$Unique_Patient_Identifier, ds_muts)
-  counts = apply(tmp, 2, rbind)
-  
-  # edge case: when just 1 sample in data set, counts comes back as integer vector but need matrix
-  if(! is.matrix(counts)) {
-    counts = t(as.matrix(counts))
-  }
-  rownames(counts) = rownames(tmp)
-  trinuc_breakdown_per_tumor = as.data.frame(counts)
 
   artifact_signatures = NULL
   if (! "Likely_Artifact" %in% colnames(signature_metadata)) {
@@ -281,13 +280,13 @@ trinuc_mutation_rates <- function(cesa,
               "which will change how artifact accounting behaves (usually, all artifact signatures should be left in).")
     }
   }
+  
+  signature_names = rownames(signatures)
 
   # for parallelization, a function to process each tumor
   process_tumor = function(tumor_name) {
-    tumor_trinuc_counts = as.data.frame(trinuc_breakdown_per_tumor[tumor_name,]) # deconstructSigs requires a data.frame
+    tumor_trinuc_counts = trinuc_breakdown_per_tumor[, tumor_name]
     num_variants = sum(tumor_trinuc_counts)
-
-
     current_sigs_to_remove = signatures_to_remove
     
     # Hypermutation signatures have Exome_Min and Genome_Min values in metadata that give the smallest
@@ -301,42 +300,58 @@ trinuc_mutation_rates <- function(cesa,
         current_sigs_to_remove = union(current_sigs_to_remove, signature_metadata[num_variants < Genome_Min, Signature])
       }
     }
+    
+    if (signature_extractor == 'MutationalPatterns') {
+      # MutationalPatterns requires a matrix where columns are samples
+      tumor_trinuc_counts = as.matrix(tumor_trinuc_counts)
 
-    # Set normalization argument for deconstructSigs based on coverage
-    covered_regions = curr_sample_info[tumor_name, covered_regions]
-    if (covered_regions == "genome") {
-      normalization = "default" # this actually means no normalization (since signatures and MAF coverage are both whole-genome)
+      all_weights = run_mutational_patterns(tumor_trinuc_counts = tumor_trinuc_counts, signatures_df = signatures, 
+                                       signatures_to_remove = current_sigs_to_remove, mp_strict_args = mp_strict_args)
     } else {
-      normalization = tri.counts.genome / tri_counts_by_gr[[covered_regions]]
+      # Set normalization argument for deconstructSigs based on coverage
+      covered_regions = curr_sample_info[tumor_name, covered_regions]
+      if (covered_regions == "genome") {
+        # this actually means no normalization (since signatures and MAF coverage are both whole-genome)
+        normalization = "default"
+      } else  {
+        normalization = tri.counts.genome / tri_counts_by_gr[[covered_regions]]
+      }
+      
+      # deconstructSigs requires a data.frame where the rows are samples
+      tumor_trinuc_counts = as.data.frame(t(trinuc_breakdown_per_tumor[,tumor_name]))
+      # must provide column names (referring to trinucleotide mutations)
+      # otherwise deconstructSigs crashes
+      colnames(tumor_trinuc_counts) = rownames(trinuc_breakdown_per_tumor)
+
+      all_weights = run_deconstructSigs(tumor_trinuc_counts = tumor_trinuc_counts, tri.counts.method = normalization,
+                                        signatures_df = signatures, signatures_to_remove = current_sigs_to_remove)
     }
-    return(run_deconstructSigs(tumor_trinuc_counts = tumor_trinuc_counts, tri.counts.method = normalization,
-                                                signatures_df = signatures, signatures_to_remove = current_sigs_to_remove, artifact_signatures = artifact_signatures))
+    return(all_weights)
   }
 
   
   
   # store results
   # matrix with rows = tumors, columns = relative rates of mutation for each trinuc SNV (starts empty)
-  trinuc_proportion_matrix <- matrix(data = NA, nrow = length(all_tumors), ncol = ncol(trinuc_breakdown_per_tumor),
-                                     dimnames = list(all_tumors, colnames(trinuc_breakdown_per_tumor)))
-  signatures_output_list = list()
+  trinuc_proportion_matrix <- matrix(data = NA, nrow = length(all_tumors), ncol = nrow(trinuc_breakdown_per_tumor),
+                                     dimnames = list(all_tumors, rownames(trinuc_breakdown_per_tumor)))
   
   
-  zeroed_out_tumors = character() # for tumors that get all zero signature weights (rare)
   message("Extracting mutational signatures from SNVs...")
-  ds_output = pbapply::pblapply(tumors_eligible_for_trinuc_calc, process_tumor, cl = cores)
-  for(i in 1:length(ds_output)) {
-    tumor_name = tumors_eligible_for_trinuc_calc[i]
-    signatures_output = ds_output[[i]]
-    signatures_output_list[[tumor_name]] = signatures_output
-    
-    # rarely, weights will come out all 0, so trinuc_prop will be NULL; these tumors are "zeroed-out"
-    if(is.null(signatures_output$adjusted_sig_output$trinuc_prop)) {
-      zeroed_out_tumors = c(zeroed_out_tumors, tumor_name)
-    } else {
-      trinuc_proportion_matrix[tumor_name, ] = signatures_output$adjusted_sig_output$trinuc_prop
-    }
-  }
+  raw_signature_output = rbindlist(pbapply::pblapply(tumors_eligible_for_trinuc_calc, process_tumor, cl = cores))
+  raw_signature_output$Unique_Patient_Identifier = tumors_eligible_for_trinuc_calc
+
+  rel_bio_weights = artifact_account(raw_signature_output, signature_names, artifact_signatures, 
+                                              fail_if_zeroed = FALSE)
+  trinuc_rates = calculate_trinuc_rates(weights = as.matrix(rel_bio_weights[, -c("Unique_Patient_Identifier")]),
+                                        signatures = as.matrix(signatures), tumor_names = tumors_eligible_for_trinuc_calc)
+  
+  # Set aside tumors that get all-zero biological signature weights (rare).
+  # For the rest, put trinuc rates in output matrix.
+  zeroed_out_tumors = rownames(trinuc_rates)[rowSums(trinuc_rates) == 0]
+  not_zeroed_tumors = setdiff(rownames(trinuc_rates), zeroed_out_tumors)
+  trinuc_proportion_matrix[not_zeroed_tumors, ] = trinuc_rates[not_zeroed_tumors,]
+
   # in the (very rare) occurrence of zeroed-out tumors, set them aside to be assigned group average signature weightings
   tumors_above_threshold = setdiff(tumors_above_threshold, zeroed_out_tumors)
   tumors_below_threshold = union(tumors_below_threshold, zeroed_out_tumors)
@@ -351,13 +366,10 @@ trinuc_mutation_rates <- function(cesa,
   if(length(tumors_below_threshold) > 0 || length(tumors_needing_group_average_rates) > 0) {
     if(length(tumors_above_threshold) == 0) {
       stop(paste0("No tumors have enough mutations to inform group-average signature extraction\n", 
-                  "(or, rarely, all such tumors have all their mutations attributed to artifacts)."))
+                  "(or, nearly impossibly, all such tumors have all their mutations attributed to artifacts)."))
     }
     mean_trinuc_prop = colMeans(trinuc_proportion_matrix[tumors_above_threshold, , drop = F])
 
-    # convert to data frame because that's what deconstructSigs wants
-    mean_trinuc_prop = as.data.frame(t(mean_trinuc_prop))
-    
     
     # Signatures that "expect" more mutations than are present in any of the subthreshold
     # tumors will be treated like artifact signatures: included in deconstructSigs
@@ -370,14 +382,32 @@ trinuc_mutation_rates <- function(cesa,
       mean_calc_artifact_signatures = union(artifact_signatures, signature_metadata[sig_averaging_threshold < Exome_Min, Signature])
     }
     
-    rownames(mean_trinuc_prop) = "mean" # deconstructSigs crashes unless a rowname is supplied here
     message("Determining group-average signatures from samples with at least ", sig_averaging_threshold, " SNVs...")
-    mean_ds <- run_deconstructSigs(tumor_trinuc_counts = mean_trinuc_prop, signatures_df = signatures, 
-                                                      signatures_to_remove = signatures_to_remove, tri.counts.method = "default",
-                                                      artifact_signatures = mean_calc_artifact_signatures)
+    if (signature_extractor == "MutationalPatterns") {
+      # supply sample data in columns and as matrix as required by MutationalPatterns
+      mean_trinuc_prop = as.matrix(mean_trinuc_prop)
+      mean_all_weights <- run_mutational_patterns(tumor_trinuc_counts = mean_trinuc_prop, signatures_df = signatures, 
+                                              signatures_to_remove = signatures_to_remove)
+    } else {
+      # convert to data.frame and supply rowname as required by deconstructSigs
+      mean_trinuc_prop = as.data.frame(t(mean_trinuc_prop))
+      rownames(mean_trinuc_prop) = 'mean'
+      
+      mean_all_weights <- run_deconstructSigs(tumor_trinuc_counts = mean_trinuc_prop, signatures_df = signatures, 
+                                              signatures_to_remove = signatures_to_remove, tri.counts.method = "default")
+    }
     
-    mean_weights = mean_ds$adjusted_sig_output$weights
-    mean_weights_raw = mean_ds$adjusted_sig_output$raw_weights
+    mean_all_weights = as.data.table(mean_all_weights)
+    mean_all_weights$Unique_Patient_Identifier = 'mean'
+    mean_rel_bio_weights = artifact_account(weights = mean_all_weights, signature_names = signature_names,
+                                                     artifact_signatures = artifact_signatures, fail_if_zeroed = FALSE)
+    mean_all_weights[, Unique_Patient_Identifier := NULL]
+    mean_rel_bio_weights[, Unique_Patient_Identifier := NULL]
+    mean_all_weights = as.data.frame(mean_all_weights)
+    mean_rel_bio_weights = as.data.frame(mean_rel_bio_weights)
+    rownames(mean_rel_bio_weights) = rownames(mean_all_weights) = 'mean'
+    
+    mean_ds = list(rel_bio_weights = mean_rel_bio_weights, all_weights = mean_all_weights)
     mean_trinuc_prop = as.numeric(mean_trinuc_prop) # convert back to numeric for insertion into trinuc_proportion_matrix
     
     # TGS tumors, tumors with zeroed-out weights, and tumors with no non-recurrent SNVs get assigned group-average rates
@@ -385,8 +415,11 @@ trinuc_mutation_rates <- function(cesa,
       trinuc_proportion_matrix[tumor, ] = mean_trinuc_prop
     }
     
+    setkey(raw_signature_output, 'Unique_Patient_Identifier')
+    setkey(rel_bio_weights, "Unique_Patient_Identifier")
+    blended_weights = copy(raw_signature_output)
     # this should never happen
-    if(all(mean_weights == 0)) {
+    if(all(mean_rel_bio_weights == 0)) {
       stop("Somehow, mean signature weights across all samples are all zero.")
     }
     if (assume_identical_mutational_processes) {
@@ -408,94 +441,70 @@ trinuc_mutation_rates <- function(cesa,
           }
           group_weighting = 1 - own_weighting
           mean_blended_trinuc_prop = trinuc_proportion_matrix[tumor, ] * own_weighting + mean_trinuc_prop * group_weighting
-          ds_output = signatures_output_list[[tumor]]
-          mean_blended_weights = ds_output$adjusted_sig_output$weights * own_weighting + mean_weights * group_weighting
-          raw_mean_blended = ds_output$adjusted_sig_output$raw_weights * own_weighting + mean_weights_raw * group_weighting
-          ds_output$mean_blended = list(weights = mean_blended_weights, trinuc_prop = mean_blended_trinuc_prop, raw_weights = raw_mean_blended)
+          rel_bio_weights[tumor, (signature_names) :=  as.numeric(.SD) * own_weighting + mean_rel_bio_weights * group_weighting, .SDcols = signature_names]
+          blended_weights[tumor, (signature_names) := as.numeric(.SD) * own_weighting + mean_all_weights * group_weighting, .SDcols = signature_names]
           trinuc_proportion_matrix[tumor, ] = mean_blended_trinuc_prop
-          signatures_output_list[[tumor]] = ds_output
         }
       }  
     }
   }
   
-  # If this is the first setting of trinuc rates, create lists
+  # If this run is the first setting of trinuc rates, create lists
   if (length(cesa@trinucleotide_mutation_weights) == 0) {
-    cesa@trinucleotide_mutation_weights = list(trinuc_proportion_matrix=trinuc_proportion_matrix,
-                                               signatures_output_list=signatures_output_list)
+    cesa@trinucleotide_mutation_weights = list(trinuc_snv_counts = full_trinuc_snv_counts,
+                                               trinuc_proportion_matrix=trinuc_proportion_matrix)
   } else {
     new_mat = rbind(trinuc_proportion_matrix, cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix)
     cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix = new_mat
-    new_sig_out_list = c(signatures_output_list, cesa@trinucleotide_mutation_weights$signatures_output_list)
-    cesa@trinucleotide_mutation_weights$signatures_output_list = new_sig_out_list
   }
   
   # Put together signature weight tables
   if (! assume_identical_mutational_processes) {
-    # identify tumors with weights informed by well-mutated (above SNV threshold) tumors
-    blended_tumors = names(which(sapply(signatures_output_list, function(x) ! is.null(x$mean_blended))))
-    
-    blended_weights = data.table(t(sapply(blended_tumors, function(x) as.numeric(signatures_output_list[[x]]$mean_blended$weights))), 
-                                 keep.rownames = "Unique_Patient_Identifier")
-    blended_raw_weights = data.table(t(sapply(blended_tumors, function(x) as.numeric(signatures_output_list[[x]]$mean_blended$raw_weights))), 
-                                     keep.rownames = "Unique_Patient_Identifier")
-    
-    nonblended_tumors = setdiff(names(signatures_output_list), blended_tumors)
-    above_threshold_weights = data.table(t(sapply(nonblended_tumors, function(x) as.numeric(signatures_output_list[[x]]$adjusted_sig_output$weights))), 
-                                         keep.rownames = "Unique_Patient_Identifier")
-    above_threshold_raw_weights = data.table(t(sapply(nonblended_tumors, function(x) as.numeric(signatures_output_list[[x]]$adjusted_sig_output$raw_weights))), 
-                                             keep.rownames = "Unique_Patient_Identifier")
-    
     # get all signature weights into a data table (one row per sample)
-    # sig_table_raw includes artifact signature_weights
-    sig_table = rbind(above_threshold_weights, blended_weights)
-    sig_table_raw = rbind(above_threshold_raw_weights, blended_raw_weights)
+    # adjusted_sig_table includes artifact signature_weights
+    bio_sig_table = rel_bio_weights
+    adjusted_sig_table = blended_weights
+    bio_sig_table[, group_avg_blended := Unique_Patient_Identifier %in% tumors_below_threshold] # will include zeroed tumors
+    bio_sig_table[, sig_extraction_snvs := as.numeric(substitution_counts[Unique_Patient_Identifier])] # otherwise will be "table" class
+    total_snv_counts = cesa@maf[variant_type == "snv"][bio_sig_table, .(total_snvs = .N), on = "Unique_Patient_Identifier", by = "Unique_Patient_Identifier"]
+    bio_sig_table = bio_sig_table[total_snv_counts, on = "Unique_Patient_Identifier"]
     
-    
-    # use first sample to set column names to signature names
-    colnames(sig_table)[2:ncol(sig_table)] = colnames(signatures_output_list[[1]]$adjusted_sig_output$weights)
-    colnames(sig_table_raw) = colnames(sig_table)
-    sig_table[, group_avg_blended := Unique_Patient_Identifier %in% blended_tumors]
-    sig_table[, sig_extraction_snvs := as.numeric(substitution_counts[Unique_Patient_Identifier])] # otherwise will be "table" class
-    total_snv_counts = cesa@maf[variant_type == "snv"][sig_table, .(total_snvs = .N), on = "Unique_Patient_Identifier", by = "Unique_Patient_Identifier"]
-    sig_table = sig_table[total_snv_counts, on = "Unique_Patient_Identifier"]
-    
-    
-    sig_table_raw = sig_table_raw[sig_table[,.(Unique_Patient_Identifier, group_avg_blended, sig_extraction_snvs, total_snvs)], ,
-                                  on = "Unique_Patient_Identifier"]
+    adjusted_sig_table[bio_sig_table, 
+                  c("group_avg_blended", "sig_extraction_snvs", "total_snvs") := list(group_avg_blended, sig_extraction_snvs, total_snvs),
+                  on = "Unique_Patient_Identifier"]
     
     # to reflect that no SNVs informed inferred weights of zeroed-out tumors, set sig_extraction_snvs to 0
-    # note that sig_table_raw keeps the actual counts used by dS
-    sig_table[Unique_Patient_Identifier %in% zeroed_out_tumors, sig_extraction_snvs := 0] 
+    # note that adjusted_sig_table keeps the actual counts used by signature extractor
+    bio_sig_table[Unique_Patient_Identifier %in% zeroed_out_tumors, sig_extraction_snvs := 0] 
     
     
-    tumors_without_data = setdiff(curr_sample_info$Unique_Patient_Identifier, sig_table$Unique_Patient_Identifier)
+    tumors_without_data = setdiff(curr_sample_info$Unique_Patient_Identifier, bio_sig_table$Unique_Patient_Identifier)
     num_to_add = length(tumors_without_data)
     if (num_to_add > 0) {
-      group_avg_weights = as.numeric(mean_ds$adjusted_sig_output$weights)
+      group_avg_weights = as.numeric(mean_ds$rel_bio_weights)
       new_rows = matrix(nrow = num_to_add, data = rep.int(group_avg_weights, num_to_add), byrow = T)
-      colnames(new_rows) = colnames(mean_ds$adjusted_sig_output$weights)
+      colnames(new_rows) = colnames(mean_ds$rel_bio_weights)
       total_snvs = cesa@maf[variant_type == "snv"][, .N, keyby = "Unique_Patient_Identifier"][tumors_without_data, N]
       total_snvs[is.na(total_snvs)] = 0
       new_table = data.table(Unique_Patient_Identifier = tumors_without_data, total_snvs = total_snvs, 
                              sig_extraction_snvs = 0, group_avg_blended = T)
-      sig_table = rbind(sig_table, cbind(new_table, new_rows))
+      bio_sig_table = rbind(bio_sig_table, cbind(new_table, new_rows))
       
       # repeat for table that includes artifacts
-      group_avg_weights_raw = as.numeric(mean_ds$adjusted_sig_out$raw_weights)
+      group_avg_weights_raw = as.numeric(mean_ds$all_weights)
       new_rows_raw = matrix(nrow = num_to_add, data = rep.int(group_avg_weights_raw, num_to_add), byrow = T)
-      colnames(new_rows_raw) = colnames(mean_ds$adjusted_sig_out$raw_weights)
+      colnames(new_rows_raw) = colnames(mean_ds$all_weights)
       new_table[, sig_extraction_snvs := as.numeric(substitution_counts[Unique_Patient_Identifier])]
       new_table[is.na(sig_extraction_snvs), sig_extraction_snvs := 0]
-      sig_table_raw = rbind(sig_table_raw, cbind(new_table, new_rows_raw))
+      adjusted_sig_table = rbind(adjusted_sig_table, cbind(new_table, new_rows_raw))
     }
-    setcolorder(sig_table, c("Unique_Patient_Identifier", "total_snvs", "sig_extraction_snvs", "group_avg_blended"))
-    setcolorder(sig_table_raw, c("Unique_Patient_Identifier", "total_snvs", "sig_extraction_snvs", "group_avg_blended"))
+    setcolorder(bio_sig_table, c("Unique_Patient_Identifier", "total_snvs", "sig_extraction_snvs", "group_avg_blended"))
+    setcolorder(adjusted_sig_table, c("Unique_Patient_Identifier", "total_snvs", "sig_extraction_snvs", "group_avg_blended"))
     
-    new_sig_table = rbind(cesa@trinucleotide_mutation_weights[["signature_weight_table"]], sig_table)
-    cesa@trinucleotide_mutation_weights[["signature_weight_table"]] = new_sig_table
-    new_sig_raw_table = rbind(cesa@trinucleotide_mutation_weights[["signature_weight_table_with_artifacts"]], sig_table_raw)
-    cesa@trinucleotide_mutation_weights[["signature_weight_table_with_artifacts"]] = new_sig_raw_table
+    new_bio_sig_table = rbind(cesa@trinucleotide_mutation_weights[["signature_weight_table"]], bio_sig_table)
+    cesa@trinucleotide_mutation_weights[["signature_weight_table"]] = new_bio_sig_table
+    new_adjusted_sig_table = rbind(cesa@trinucleotide_mutation_weights[["signature_weight_table_with_artifacts"]], adjusted_sig_table)
+    cesa@trinucleotide_mutation_weights[["signature_weight_table_with_artifacts"]] = new_adjusted_sig_table
   }
   
   if(! is.null(mean_ds)) {
@@ -510,7 +519,96 @@ trinuc_mutation_rates <- function(cesa,
   if(nrow(cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix) == cesa@samples[, .N]) {
     cesa@advanced$trinuc_done = T
   }
+  
   return(cesa)
+}
+
+#' Tabulate SNVs by trinucleotide context
+#' 
+#' This function prodcues trinculeotide-context-specific SNV counts from MAF data for
+#' input to mutational signature extraction tools. Output can be tailored to meet
+#' formatting requirements of MutationalPatterns or deconstructSigs, which are probably
+#' similar to formats used by other tools.
+#' 
+#' @param maf a cancereffectsizeR-style MAF data table
+#' @param genome BSgenome reference genome (for looking up trinucleotide contexts)
+#' @param exclude_recurrent When TRUE (default), only mutations private to each sample are included in counts, in order to
+#' reduce the influence of selection.
+#' @param style "MutationalPatterns" or "deconstructSigs"
+#' @return Matrix or data frame of SNV counts, suitable for use with MutationalPatterns or
+#'   deconstructSigs. Samples with zero passing SNVs will not appear.
+#' @export
+#' 
+#' 
+trinuc_snv_counts = function(maf,
+                             genome,
+                             exclude_recurrent = TRUE,
+                             style = "MutationalPatterns"
+                             ) {
+  if(! is(maf, "data.table")) {
+    "maf should be an MAF-like data.table."
+  }
+  
+  if(maf[, .N] == 0) {
+    stop("No MAF data in the CESAnalysis", call. = F)
+  }
+  
+  if(! all(c("variant_type", "Unique_Patient_Identifier") %in% names(maf))) {
+    stop("Expected columns Unique_Patient_Identifier and variant_type in maf, as seen in MAF tables validated by preload_maf().")
+  }
+  
+  bsg = genome
+  if (! is(bsg, "BSgenome")) {
+    stop("genome should be a BSgenome object.")
+  }
+  
+  if(! is.logical(exclude_recurrent) || length(exclude_recurrent) != 1) {
+    stop("exclude_recurrent should be TRUE/FALSE.")
+  }
+  
+  if (! is(style, "character") || length(style) != 1 || 
+      ! tolower(style) %in% c('mutationalpatterns', 'deconstructsigs')) {
+    stop("style must be 'MutationalPatterns' or 'deconstructSigs'.")
+  }
+  style = ifelse(tolower(style) == "mutationalpatterns", 'MutationalPatterns', 'deconstructSigs')
+  
+  # All data in MAF (even if it's TGS, etc.) impacts recurrency testing
+  ds_maf = maf[variant_type == "snv"]
+  
+  if (exclude_recurrent) {
+    # remove all recurrent SNVs (SNVs appearing in more than one sample)
+    duplicated_vec_first <- duplicated(ds_maf[,.(Chromosome, Start_Position, Tumor_Allele)])
+    duplicated_vec_last <- duplicated(ds_maf[,.(Chromosome, Start_Position, Tumor_Allele)],fromLast=T)
+    duplicated_vec_pos <- which(duplicated_vec_first | duplicated_vec_last)
+    if (length(duplicated_vec_pos) > 0) {
+      ds_maf <- ds_maf[-duplicated_vec_pos,]
+    }
+  }
+  
+  # build the data.frame required by MutationalPatterns (similar to deconstructSigs)
+  # rows are samples, columns are counts of each of the 96 trinuc-context-specific mutations in the 
+  # order expected by deconstructSigs
+  trinuc = BSgenome::getSeq(bsg, ds_maf$Chromosome, ds_maf$Start_Position - 1, ds_maf$Start_Position + 1, as.character = T)
+  
+  # internal table converts trinuc/mut (e.g., GTA:C) into deconstructSigs format ("G[T>C]A")
+  trinuc_snv = factor(deconstructSigs_notations[.(trinuc, ds_maf$Tumor_Allele), deconstructSigs_ID], levels = deconstructSigs_trinuc_string)
+  
+  # mysteriously convert two-way table to data.frame
+  tmp = table(ds_maf$Unique_Patient_Identifier, trinuc_snv)
+  counts = apply(tmp, 2, rbind)
+  
+  # edge case: when just 1 sample in data set, counts comes back as integer vector but need matrix
+  if(! is.matrix(counts)) {
+    counts = t(as.matrix(counts))
+  }
+
+  rownames(counts) = rownames(tmp)
+  
+  if (style == 'MutationalPatterns') {
+    return(t(counts))
+  } else {
+    return(as.data.frame(counts))
+  }
 }
 
 

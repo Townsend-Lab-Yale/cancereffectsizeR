@@ -68,7 +68,16 @@ test_that("ces_variant with user-supplied variants", {
   expect_equal(ces_variant(cesa, variants = select_variants(cesa, variant_passlist = "10:100190376_C>A"))@selection_results[[1]][, .N], 1)
   variants = select_variants(cesa, genes = c("TP53", "KRAS"), variant_passlist = "KRAS_G12D_ENSP00000256078", min_freq = 2)
   expect_equal(ces_variant(cesa, variants = variants)@selection_results[[1]][, .N], 9)
+  
+  # Test an SNV that doesn't overlap a gene. Should get same result regardless of hold-out option.
+  expected_si = 4504.649
+  expect_equal(ces_variant(cesa, variants = select_variants(cesa, variant_passlist = '1:1903518_G>A'))@selection_results[[1]]$selection_intensity,
+               expected_si, tolerance = 1e-4)
+  expect_equal(ces_variant(cesa, variants = select_variants(cesa, variant_passlist = '1:1903518_G>A'),
+                           hold_out_same_gene_samples = F)@selection_results[[1]]$selection_intensity, 
+               expected_si, tolerance = 1e-4)
 })
+
 
 #baseline_mutation_rates(cesa, aac_ids = 'EGFR_L858R_ENSP00000275493')
 test_that("ces_variant on subsets of samples", {
