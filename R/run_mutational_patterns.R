@@ -23,11 +23,22 @@ run_mutational_patterns = function(tumor_trinuc_counts, signatures_df, signature
   signatures_to_include <- data.matrix(signatures_to_include)
   
   args = c(mp_strict_args, list(mut_matrix = tumor_trinuc_counts, signatures = signatures_to_include))
-  signatures_output = do.call(MutationalPatterns::fit_to_signatures_strict, args)
+  
+  # have to deal with a rare MP bug
+  signatures_output = tryCatch(
+  {
+    do.call(MutationalPatterns::fit_to_signatures_strict, args)$fit_res
+  }, error = function(e) {
+    if (grepl('a dimension is zero', conditionMessage(e)))  {
+      MutationalPatterns::fit_to_signatures(mut_matrix = tumor_trinuc_counts, signatures = signatures_to_include)
+    } else {
+      e
+    }
+  })
   
   # must convert to data.frame and transpose so that result is compatible with
   # trinuc_mutation_rates
-  weights = t(as.data.frame(signatures_output$fit_res$contribution))
+  weights = t(as.data.frame(signatures_output$contribution))
   
   # add columns for any removed signatures into output matrix (with zero values)
   if(!is.null(signatures_to_remove)) {

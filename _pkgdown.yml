@@ -35,6 +35,7 @@ reference:
   - trinuc_mutation_rates
   - suggest_cosmic_signatures_to_remove
   - trinuc_snv_counts
+  - convert_signature_weights_for_mp
   - set_signature_weights
   - set_trinuc_rates
   - assign_group_average_trinuc_rates

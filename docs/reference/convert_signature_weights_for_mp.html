@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Changelog • cancereffectsizeR</title>
+<title>Get MutationalPatterns contributions matrix — convert_signature_weights_for_mp • cancereffectsizeR</title>
 
 <!-- favicons -->
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
@@ -52,7 +52,10 @@
 
 
 
-<meta property="og:title" content="Changelog" />
+<meta property="og:title" content="Get MutationalPatterns contributions matrix — convert_signature_weights_for_mp" />
+<meta property="og:description" content="Reformat a signature weights table from mutational signature analysis into the
+contributions matrix required for MutationalPatterns functions, including
+visualizations." />
 <meta property="og:image" content="https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/logo.png" />
 
 
@@ -72,7 +75,7 @@
   </head>
 
   <body data-spy="scroll" data-target="#toc">
-    <div class="container template-news">
+    <div class="container template-reference-topic">
       <header>
       <div class="navbar navbar-default navbar-fixed-top" role="navigation">
   <div class="container">
@@ -151,87 +154,36 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-      <h1 data-toc-skip>Changelog <small></small></h1>
-      <small>Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/main/NEWS.md'><code>NEWS.md</code></a></small>
+    <h1>Get MutationalPatterns contributions matrix</h1>
+    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/main/R/set_signature_weights.R'><code>R/set_signature_weights.R</code></a></small>
+    <div class="hidden name"><code>convert_signature_weights_for_mp.Rd</code></div>
     </div>
 
-    <div id="cancereffectsizer-220" class="section level1">
-<h1 class="page-header" data-toc-text="2.2.0">
-<a href="#cancereffectsizer-220" class="anchor"></a>cancereffectsizeR 2.2.0</h1>
-<ul>
-<li>Support for using MutationalPatterns for signature extraction. The MutationalPatterns fit_to_signatures_strict method is now the default used by trinuc_mutation_rates().</li>
-<li>Helper function trinuc_snv_counts eases exploratory signature analysis, and the counts used internally by trinuc_mutation_rates() are now viewable.</li>
-<li>convert_signature_weights_for_mp() makes it easy to input mutational signature weights into MutationalPatterns functions, such as visualizations.</li>
-<li>Custom reference data sets can now contain multiple transcripts per gene.</li>
-<li>Fixed bug that that inflated selection intensities of noncoding SNVs when using default model/workflow.</li>
-</ul>
-</div>
-    <div id="cancereffectsizer-214" class="section level1">
-<h1 class="page-header" data-toc-text="2.1.4">
-<a href="#cancereffectsizer-214" class="anchor"></a>cancereffectsizeR 2.1.4</h1>
-<ul>
-<li>Minor fixes and improvements.</li>
-</ul>
-</div>
-    <div id="cancereffectsizer-213" class="section level1">
-<h1 class="page-header" data-toc-text="2.1.3">
-<a href="#cancereffectsizer-213" class="anchor"></a>cancereffectsizeR 2.1.3</h1>
-<ul>
-<li>Improvements to liftOver support.</li>
-<li>preload_maf() gives more information about problematic records.</li>
-</ul>
-</div>
-    <div id="cancereffectsizer-212" class="section level1">
-<h1 class="page-header" data-toc-text="2.1.2">
-<a href="#cancereffectsizer-212" class="anchor"></a>cancereffectsizeR 2.1.2</h1>
-<ul>
-<li>load_maf() detects adjacent SNV records and re-annotates as doublet base substitutions; improved annotation of insertions, deletions, and more complex multi-nucleotide variants.</li>
-<li>Peformance improvements and minor bug fixes.</li>
-</ul>
-</div>
-    <div id="cancereffectsizer-211" class="section level1">
-<h1 class="page-header" data-toc-text="2.1.1">
-<a href="#cancereffectsizer-211" class="anchor"></a>cancereffectsizeR 2.1.1</h1>
-<ul>
-<li>Minor improvements and documentation updates.</li>
-</ul>
-</div>
-    <div id="cancereffectsizer-210" class="section level1">
-<h1 class="page-header" data-toc-text="2.1.0">
-<a href="#cancereffectsizer-210" class="anchor"></a>cancereffectsizeR 2.1.0</h1>
-<ul>
-<li>Simple workflow for building custom tissue covariates data, to inform calculation of gene mutation rates.</li>
-<li>preload_maf() detects problems in MAF data and informs quality filtering of records.</li>
-<li>check_sample_overlap() offers a simple way of spotting possible sample duplicates.</li>
-<li>Bug fixes.</li>
-</ul>
-</div>
-    <div id="cancereffectsizer-200" class="section level1">
-<h1 class="page-header" data-toc-text="2.0.0">
-<a href="#cancereffectsizer-200" class="anchor"></a>cancereffectsizeR 2.0.0</h1>
-<ul>
-<li>Supports targeted, whole-exome, and whole-genome sequencing data with proper handling of covered regions.</li>
-<li>Define sample groups and run analyses with different parameters for each group.</li>
-<li>Provides powerful and flexible mutation rate calculation methods; also support for loading in arbitrary rates.</li>
-<li>Supports arbitrary genome/reference information, with tools for building custom reference data sets (refsets).</li>
-<li>Reference data has been separated into its own package (see ces.refset.hg19).</li>
-<li>Supports signature extraction with built-in or custom SNV signature definitions.</li>
-<li>Adds a model of stage/grade-specific variant selection and models of variant- and gene-level epistatic selection.</li>
-<li>Variant annotations are revamped and new functions assist in filtering variants and viewing annotations.</li>
-<li>Collections of variants can be batched into “compound variants” and treated like single variants.</li>
-<li>Variant effect sizes can be visualized with plotting functionality.</li>
-<li>Save, share, and reload entire analyses.</li>
-<li>Numerous performance and usability improvements.</li>
-</ul>
-</div>
-  </div>
+    <div class="ref-description">
+    <p>Reformat a signature weights table from mutational signature analysis into the
+contributions matrix required for MutationalPatterns functions, including
+visualizations.</p>
+    </div>
 
+    <pre class="usage"><span class='fu'>convert_signature_weights_for_mp</span><span class='op'>(</span><span class='va'>signature_weight_table</span><span class='op'>)</span></pre>
+
+    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
+    <table class="ref-arguments">
+    <colgroup><col class="name" /><col class="desc" /></colgroup>
+    <tr>
+      <th>signature_weight_table</th>
+      <td><p>As created by trinuc_mutation_rates(); typically accessed
+via (CESAnalysis)$mutational_signatures.</p></td>
+    </tr>
+    </table>
+
+
+  </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">
       <h2 data-toc-skip>Contents</h2>
     </nav>
   </div>
-
 </div>
 
 

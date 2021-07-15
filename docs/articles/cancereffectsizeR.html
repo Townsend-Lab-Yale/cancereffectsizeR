@@ -141,7 +141,7 @@
 <span class="va">maf1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/preload_maf.html">preload_maf</a></span><span class="op">(</span>maf <span class="op">=</span> <span class="st">"my_maf_1.txt"</span>, refset <span class="op">=</span> <span class="va">ces.refset.hg19</span><span class="op">)</span>
 
 <span class="co"># If you want, load the whole MAF file, rather than just essential columns (may make object large)</span>
-<span class="va">maf2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/preload_maf.html">preload_maf</a></span><span class="op">(</span>maf <span class="op">=</span> <span class="st">"my_maf_2.txt"</span>, refset <span class="op">=</span> <span class="va">ces.refset.hg19</span>, more_cols <span class="op">=</span> <span class="st">"all"</span><span class="op">)</span>
+<span class="va">maf2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/preload_maf.html">preload_maf</a></span><span class="op">(</span>maf <span class="op">=</span> <span class="st">"my_maf_2.txt"</span>, refset <span class="op">=</span> <span class="va">ces.refset.hg19</span>, keep_extra_columns <span class="op">=</span> <span class="cn">T</span><span class="op">)</span>
 
 <span class="co"># Imagine this MAF has non-standard column names</span>
 <span class="va">maf3</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/preload_maf.html">preload_maf</a></span><span class="op">(</span>
@@ -218,8 +218,8 @@
 <a href="#load-maf-data" class="anchor"></a>Load MAF data</h2>
 <p>Next, use <code><a href="../reference/load_maf.html">load_maf()</a></code> to load your MAF data into your CESAnalysis. If your CESAnalyses specifies sample groups (see Create CESAnalysis, above), specify <code>group_col</code>.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="co"># Use the more_cols option to keep extra data column(s) during preload_maf</span>
-<span class="va">maf</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/preload_maf.html">preload_maf</a></span><span class="op">(</span>maf <span class="op">=</span> <span class="st">"my_maf_with_groups.txt"</span>, more_cols <span class="op">=</span> <span class="st">"tumor_grade"</span><span class="op">)</span>
+<code class="sourceCode R"><span class="co"># Use the keep_extra_columns option to keep extra data column(s) during preload_maf</span>
+<span class="va">maf</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/preload_maf.html">preload_maf</a></span><span class="op">(</span>maf <span class="op">=</span> <span class="st">"my_maf_with_groups.txt"</span>, keep_extra_columns <span class="op">=</span> <span class="st">"tumor_grade"</span><span class="op">)</span>
 <span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/CESAnalysis.html">CESAnalysis</a></span><span class="op">(</span>sample_groups <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"I"</span>, <span class="st">"II"</span>, <span class="st">"III"</span><span class="op">)</span><span class="op">)</span>
 <span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/load_maf.html">load_maf</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, maf <span class="op">=</span> <span class="va">maf</span>, group_col <span class="op">=</span> <span class="st">"tumor_grade"</span><span class="op">)</span>
 

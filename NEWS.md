@@ -1,7 +1,7 @@
 # cancereffectsizeR 2.2.0
-* Support for using MutationalPatterns for signature extraction.
-* Helper function trinuc_snv_counts eases exploratory signature analysis, and the counts used internally trinuc_mutation_rates()
-are now viewable.
+* Support for using MutationalPatterns for signature extraction. The MutationalPatterns fit_to_signatures_strict method is now the default used by trinuc_mutation_rates().
+* Helper function trinuc_snv_counts eases exploratory signature analysis, and the counts used internally by trinuc_mutation_rates() are now viewable.
+* convert_signature_weights_for_mp() makes it easy to input mutational signature weights into MutationalPatterns functions, such as visualizations.
 * Custom reference data sets can now contain multiple transcripts per gene.
 * Fixed bug that that inflated selection intensities of noncoding SNVs when using default model/workflow.
 

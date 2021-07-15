@@ -31,7 +31,7 @@ library(data.table)
 maf1 = preload_maf(maf = "my_maf_1.txt", refset = ces.refset.hg19)
 
 # If you want, load the whole MAF file, rather than just essential columns (may make object large)
-maf2 = preload_maf(maf = "my_maf_2.txt", refset = ces.refset.hg19, more_cols = "all")
+maf2 = preload_maf(maf = "my_maf_2.txt", refset = ces.refset.hg19, keep_extra_columns = T)
 
 # Imagine this MAF has non-standard column names
 maf3 = preload_maf(maf = "my_maf_3.txt", refset = ces.refset.hg19, 
@@ -109,8 +109,8 @@ has an associated reference data set, or _refset_. Optionally, you can also defi
 ## Load MAF data
 Next, use `load_maf()` to load your MAF data into your CESAnalysis. If your CESAnalyses specifies sample groups (see Create CESAnalysis, above), specify `group_col`.
 ```{r eval = F}
-# Use the more_cols option to keep extra data column(s) during preload_maf
-maf = preload_maf(maf = "my_maf_with_groups.txt", more_cols = "tumor_grade")
+# Use the keep_extra_columns option to keep extra data column(s) during preload_maf
+maf = preload_maf(maf = "my_maf_with_groups.txt", keep_extra_columns = "tumor_grade")
 cesa = CESAnalysis(sample_groups = c('I', 'II', 'III'))
 cesa = load_maf(cesa = cesa, maf = maf, group_col = 'tumor_grade')
 

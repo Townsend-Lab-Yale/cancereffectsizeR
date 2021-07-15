@@ -160,7 +160,7 @@ preload_maf = function(maf = NULL, refset = "ces.refset.hg19", coverage_interval
   valid_loci = maf[! is.na(Chromosome) & ! is.na(Start_Position) & ! problem %in% c("out_of_bounds", "unsupported_chr"), which = T]
   if (! is.null(coverage_gr) || length(anno_grs) > 0) {
     maf_gr = makeGRangesFromDataFrame(maf[valid_loci], start.field = "Start_Position", end.field = "Start_Position",
-                             seqnames.field = "Chromosome")
+                             seqnames.field = "Chromosome", ignore.strand = TRUE) # don't want possible user strand field parsed
   }
   
   
