@@ -95,6 +95,13 @@ trinuc_mutation_rates <- function(cesa,
     stop("Please update MutationalPatterns to v2.99.4 or later.")
   }
   
+  if (! is(mp_strict_args, "list") || uniqueN(names(mp_strict_args)) != length(mp_strict_args)) {
+    stop("mp_strict_args should a named list of arguments to pass.")
+  }
+  if (any(c("signatures", "mut_matrix") %in% names(mp_strict_args))) {
+    stop("mp_strict_args: You can't supply mut_matrix or signatures because this function generates them automatically.")
+  }
+  
   if(cesa@maf[, .N] == 0) {
     stop("No MAF data in the CESAnalysis", call. = F)
   }

@@ -19,6 +19,9 @@
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/annotate_variants.html</loc>
   </url>
   <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/artifact_account.html</loc>
+  </url>
+  <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/assign_gr_to_coverage.html</loc>
   </url>
   <url>
@@ -29,6 +32,9 @@
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/build_RefCDS.html</loc>
+  </url>
+  <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/calculate_trinuc_rates.html</loc>
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/ces_epistasis.html</loc>
@@ -49,6 +55,9 @@
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/clean_granges_for_cesa.html</loc>
   </url>
   <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/clear_gene_rates.html</loc>
+  </url>
+  <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/create_refset.html</loc>
   </url>
   <url>
@@ -62,9 +71,6 @@
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/excluded_maf_records.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/fill_missing_genes.html</loc>
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/gene_mutation_rates.html</loc>
@@ -145,6 +151,9 @@
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/run_dndscv.html</loc>
   </url>
   <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/run_mutational_patterns.html</loc>
+  </url>
+  <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/save_cesa.html</loc>
   </url>
   <url>
@@ -176,6 +185,9 @@
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/trinuc_mutation_rates.html</loc>
+  </url>
+  <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/trinuc_snv_counts.html</loc>
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/univariate_si_conf_ints.html</loc>

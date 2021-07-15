@@ -53,8 +53,8 @@
 
 
 <meta property="og:title" content="cancereffectsizeR wrapper for deconstructSigs — run_deconstructSigs" />
-<meta property="og:description" content="This function gets called internally by trinuc_mutation_rates() for each tumor in a CESAnalysis, accepting its
-a data.frame of mutation counts and returning deconstructSigs output." />
+<meta property="og:description" content="This function gets called internally by trinuc_mutation_rates() for each tumor in a CESAnalysis, accepting
+a data.frame of mutation counts and returning a data.frame of signature weights." />
 <meta property="og:image" content="https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/logo.png" />
 
 
@@ -87,7 +87,7 @@ a data.frame of mutation counts and returning deconstructSigs output." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.1.4</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.2.0</span>
       </span>
     </div>
 
@@ -159,15 +159,14 @@ a data.frame of mutation counts and returning deconstructSigs output." />
     </div>
 
     <div class="ref-description">
-    <p>This function gets called internally by trinuc_mutation_rates() for each tumor in a CESAnalysis, accepting its
-a data.frame of mutation counts and returning deconstructSigs output.</p>
+    <p>This function gets called internally by trinuc_mutation_rates() for each tumor in a CESAnalysis, accepting
+a data.frame of mutation counts and returning a data.frame of signature weights.</p>
     </div>
 
     <pre class="usage"><span class='fu'>run_deconstructSigs</span><span class='op'>(</span>
   <span class='va'>tumor_trinuc_counts</span>,
   <span class='va'>signatures_df</span>,
   <span class='va'>signatures_to_remove</span>,
-  <span class='va'>artifact_signatures</span>,
   <span class='va'>tri.counts.method</span>
 <span class='op'>)</span></pre>
 
@@ -187,11 +186,6 @@ a data.frame of mutation counts and returning deconstructSigs output.</p>
       <td><p>names of signatures in signatures_df to keep out of deconstructSigs and assign zero weights</p></td>
     </tr>
     <tr>
-      <th>artifact_signatures</th>
-      <td><p>names of signatures that should be treated as experimental (e.g., sequencing) artifacts
-(these have weights calculated but are then normalized out when calculating true trinuc proportions)</p></td>
-    </tr>
-    <tr>
       <th>tri.counts.method</th>
       <td><p>exome/genome trinucleotide content normalization argument to pass to deconstructSigs (see its docs)</p></td>
     </tr>
@@ -199,10 +193,7 @@ a data.frame of mutation counts and returning deconstructSigs output.</p>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>a list with 2 items: raw_sig_output (exactly what comes out of deconstructSigs) and adjusted_sig_output, which contains
-        artifact-accounted signature weights (which will match raw if there are no
-        artifact signatures) and expected relative trinuc mutation rates based on the
-        artifact-accounted signature weights</p>
+    <p>a data.frame of signature weights</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

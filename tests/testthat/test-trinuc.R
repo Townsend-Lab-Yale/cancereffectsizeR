@@ -10,20 +10,7 @@ test_that("Trinucleotide signature weight calculation", {
   cesa = trinuc_mutation_rates(cesa, signatures_to_remove = to_remove, signature_set = "COSMIC_v3.1",
                                signature_extractor = 'deconstructSigs')
   trinuc_ak = get_test_data("trinuc_mut_weighting.rds")
-  
-  # Uncommenting the following modifications allows for the tests to pass with the refactored code.
-  
-  trinuc_ak$group_average_dS_output$all$rel_bio_weights = trinuc_ak$group_average_dS_output$all$adjusted_sig_output$weights
-  trinuc_ak$group_average_dS_output$all$all_weights = trinuc_ak$group_average_dS_output$all$adjusted_sig_output$raw_weights
-  trinuc_ak$group_average_dS_output$all$adjusted_sig_output = NULL
-  trinuc_ak$group_average_dS_output$all$raw_sig_output = NULL
-
-  trinuc_ak$signatures_output_list = NULL
-  
-  # End of modifications.
-  
-  #expect_equal(cesa@trinucleotide_mutation_weights, trinuc_ak, tolerance = 1e-4)
-  expect_equal(cesa@trinucleotide_mutation_weights[c(2:5)], trinuc_ak, tolerance = 1e-4)
+  expect_equal(cesa@trinucleotide_mutation_weights, trinuc_ak, tolerance = 1e-4)
   
   
   # Ensure SNV counts (total and used by dS) look right

@@ -34,6 +34,7 @@ reference:
   contents:
   - trinuc_mutation_rates
   - suggest_cosmic_signatures_to_remove
+  - trinuc_snv_counts
   - set_signature_weights
   - set_trinuc_rates
   - assign_group_average_trinuc_rates
@@ -42,6 +43,7 @@ reference:
   contents:
   - gene_mutation_rates
   - set_gene_rates
+  - clear_gene_rates
 - title: Cancer variant effect sizes
   desc: Quantify selection for variants under models of single-variant or epistatic selection
   contents:

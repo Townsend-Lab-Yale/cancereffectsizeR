@@ -54,11 +54,11 @@
 
 <meta property="og:title" content="Calculate relative rates of trinucleotide-context-specific mutations by extracting underlying mutational processes — trinuc_mutation_rates" />
 <meta property="og:description" content="This function calculates expected relative rates of trinucleotide-context-specific SNV
-mutations within tumors by attributing SNVs to mutational processes represented
-in mutation signature sets (such as COSMIC v3). deconstructSigs is used to extract mutational 
-signature weights in each tumor. Tumors with targeted sequencing data are assigned the
-average trinucleotide mutation rates calculated across all exome/genome data, 
-which means that you need at least some exome or genome data to run." />
+mutations within tumors by attributing SNVs to mutational processes represented in
+mutation signature sets (such as COSMIC v3). Signature extraction can be done with
+MutationalPatterns (default) or deconstructSigs. Tumors with targeted sequencing data
+are assigned the average trinucleotide mutation rates calculated across all
+exome/genome data, which means that you need at least some exome or genome data to run." />
 <meta property="og:image" content="https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/logo.png" />
 
 
@@ -91,7 +91,7 @@ which means that you need at least some exome or genome data to run." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.1.4</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.2.0</span>
       </span>
     </div>
 
@@ -164,11 +164,11 @@ which means that you need at least some exome or genome data to run." />
 
     <div class="ref-description">
     <p>This function calculates expected relative rates of trinucleotide-context-specific SNV
-mutations within tumors by attributing SNVs to mutational processes represented
-in mutation signature sets (such as COSMIC v3). deconstructSigs is used to extract mutational 
-signature weights in each tumor. Tumors with targeted sequencing data are assigned the
-average trinucleotide mutation rates calculated across all exome/genome data, 
-which means that you need at least some exome or genome data to run.</p>
+mutations within tumors by attributing SNVs to mutational processes represented in
+mutation signature sets (such as COSMIC v3). Signature extraction can be done with
+MutationalPatterns (default) or deconstructSigs. Tumors with targeted sequencing data
+are assigned the average trinucleotide mutation rates calculated across all
+exome/genome data, which means that you need at least some exome or genome data to run.</p>
     </div>
 
     <pre class="usage"><span class='fu'>trinuc_mutation_rates</span><span class='op'>(</span>
@@ -177,6 +177,8 @@ which means that you need at least some exome or genome data to run.</p>
   signatures_to_remove <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/character.html'>character</a></span><span class='op'>(</span><span class='op'>)</span>,
   sample_group <span class='op'>=</span> <span class='cn'>NULL</span>,
   cores <span class='op'>=</span> <span class='fl'>1</span>,
+  signature_extractor <span class='op'>=</span> <span class='st'>"MutationalPatterns"</span>,
+  mp_strict_args <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span><span class='op'>(</span><span class='op'>)</span>,
   assume_identical_mutational_processes <span class='op'>=</span> <span class='cn'>FALSE</span>,
   sig_averaging_threshold <span class='op'>=</span> <span class='fl'>50</span>,
   use_dS_exome2genome <span class='op'>=</span> <span class='cn'>FALSE</span>
@@ -206,6 +208,17 @@ which means that you need at least some exome or genome data to run.</p>
       <td><p>how many cores to use for processing tumors in parallel</p></td>
     </tr>
     <tr>
+      <th>signature_extractor</th>
+      <td><p>one of "MutationalPatterns" (default) or "deconstructSigs"</p></td>
+    </tr>
+    <tr>
+      <th>mp_strict_args</th>
+      <td><p>Named list of arguments to pass to MutationalPatterns'
+fit_to_signatures_strict function. Note that mut_matrix and signatures arguments are
+generated automatically, and that if you'd rather not use the strict method, you can
+emulate fit_to_signatures by setting max_delta = 0.</p></td>
+    </tr>
+    <tr>
       <th>assume_identical_mutational_processes</th>
       <td><p>use well-mutated tumors (those with number
 of eligible mutations meeting sig_averaging_threshold) to calculate group average
@@ -213,10 +226,10 @@ signature weights, and assign these to all tumors</p></td>
     </tr>
     <tr>
       <th>sig_averaging_threshold</th>
-      <td><p>Mutational threshold (default 50) that determines which
-tumors inform the calculation of group-average signature weights. When
-assume_identical_mutational_processes == FALSE (the default), these group averages
-are blended into the signature weights of sub-threshold tumors.</p></td>
+      <td><p>Mutation prevalence threshold (default 50) that
+determines which tumors inform the calculation of group-average signature weights.
+When assume_identical_mutational_processes == FALSE (the default), these group
+averages are blended into the signature weights of sub-threshold tumors.</p></td>
     </tr>
     <tr>
       <th>use_dS_exome2genome</th>
@@ -230,7 +243,7 @@ are blended into the signature weights of sub-threshold tumors.</p></td>
   trinucleotide-context-specific relative mutation rates. Note that tumors with few
   mutations (group_avg_blended == TRUE in the signature weights tables) have weights
   influenced by the average weights of well-mutated tumors; you may want to exclude
-  these from some mutational signature analyses.</p>
+  these samples for some mutational signature analyses.</p>
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
     <p>To reduce the influence of selection on the estimation of relative trinucleotide mutation

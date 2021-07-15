@@ -10,6 +10,8 @@ trinuc_mutation_rates(
   signatures_to_remove = character(),
   sample_group = NULL,
   cores = 1,
+  signature_extractor = "MutationalPatterns",
+  mp_strict_args = list(),
   assume_identical_mutational_processes = FALSE,
   sig_averaging_threshold = 50,
   use_dS_exome2genome = FALSE
@@ -26,14 +28,21 @@ trinuc_mutation_rates(
 
 \item{cores}{how many cores to use for processing tumors in parallel}
 
+\item{signature_extractor}{one of "MutationalPatterns" (default) or "deconstructSigs"}
+
+\item{mp_strict_args}{Named list of arguments to pass to MutationalPatterns'
+fit_to_signatures_strict function. Note that mut_matrix and signatures arguments are
+generated automatically, and that if you'd rather not use the strict method, you can
+emulate fit_to_signatures by setting max_delta = 0.}
+
 \item{assume_identical_mutational_processes}{use well-mutated tumors (those with number
 of eligible mutations meeting sig_averaging_threshold) to calculate group average
 signature weights, and assign these to all tumors}
 
-\item{sig_averaging_threshold}{Mutational threshold (default 50) that determines which
-tumors inform the calculation of group-average signature weights. When
-assume_identical_mutational_processes == FALSE (the default), these group averages
-are blended into the signature weights of sub-threshold tumors.}
+\item{sig_averaging_threshold}{Mutation prevalence threshold (default 50) that
+determines which tumors inform the calculation of group-average signature weights.
+When assume_identical_mutational_processes == FALSE (the default), these group
+averages are blended into the signature weights of sub-threshold tumors.}
 
 \item{use_dS_exome2genome}{historical dev option (don't use)}
 }
@@ -42,15 +51,15 @@ CESAnalysis with sample-specific signature weights and inferred
   trinucleotide-context-specific relative mutation rates. Note that tumors with few
   mutations (group_avg_blended == TRUE in the signature weights tables) have weights
   influenced by the average weights of well-mutated tumors; you may want to exclude
-  these from some mutational signature analyses.
+  these samples for some mutational signature analyses.
 }
 \description{
 This function calculates expected relative rates of trinucleotide-context-specific SNV
-mutations within tumors by attributing SNVs to mutational processes represented
-in mutation signature sets (such as COSMIC v3). deconstructSigs is used to extract mutational 
-signature weights in each tumor. Tumors with targeted sequencing data are assigned the
-average trinucleotide mutation rates calculated across all exome/genome data, 
-which means that you need at least some exome or genome data to run.
+mutations within tumors by attributing SNVs to mutational processes represented in
+mutation signature sets (such as COSMIC v3). Signature extraction can be done with
+MutationalPatterns (default) or deconstructSigs. Tumors with targeted sequencing data
+are assigned the average trinucleotide mutation rates calculated across all
+exome/genome data, which means that you need at least some exome or genome data to run.
 }
 \details{
 To reduce the influence of selection on the estimation of relative trinucleotide mutation

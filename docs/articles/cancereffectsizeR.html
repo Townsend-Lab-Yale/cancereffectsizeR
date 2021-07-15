@@ -40,7 +40,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.1.4</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.2.0</span>
       </span>
     </div>
 
@@ -103,7 +103,7 @@
 
       
 
-      </header><script src="cancereffectsizeR_files/accessible-code-block-0.0.1/empty-anchor.js"></script><div class="row">
+      </header><script src="cancereffectsizeR_files/header-attrs-2.9/header-attrs.js"></script><div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>Getting started</h1>
@@ -136,6 +136,8 @@
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://townsend-lab-yale.github.io/cancereffectsizeR">cancereffectsizeR</a></span><span class="op">)</span>
 <span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va">ces.refset.hg19</span><span class="op">)</span>
+<span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://r-datatable.com">data.table</a></span><span class="op">)</span>
+
 <span class="va">maf1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/preload_maf.html">preload_maf</a></span><span class="op">(</span>maf <span class="op">=</span> <span class="st">"my_maf_1.txt"</span>, refset <span class="op">=</span> <span class="va">ces.refset.hg19</span><span class="op">)</span>
 
 <span class="co"># If you want, load the whole MAF file, rather than just essential columns (may make object large)</span>
@@ -169,7 +171,7 @@
 <span class="va">maf2</span> <span class="op">&lt;-</span> <span class="st">"my_maf_2.txt"</span>
 <span class="va">maf3</span> <span class="op">&lt;-</span> <span class="st">"my_maf_3.txt"</span>
 <span class="va">all_mafs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>maf1 <span class="op">=</span> <span class="va">maf1</span>, maf2 <span class="op">=</span> <span class="va">maf2</span>, maf3 <span class="op">=</span> <span class="va">maf3</span><span class="op">)</span>
-<span class="va">combined_maf</span> <span class="op">&lt;-</span> <span class="fu">rbindlist</span><span class="op">(</span><span class="va">all_mafs</span>, idcol <span class="op">=</span> <span class="st">"source"</span>, fill <span class="op">=</span> <span class="cn">T</span><span class="op">)</span>
+<span class="va">combined_maf</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/rbindlist.html">rbindlist</a></span><span class="op">(</span><span class="va">all_mafs</span>, idcol <span class="op">=</span> <span class="st">"source"</span>, fill <span class="op">=</span> <span class="cn">T</span><span class="op">)</span>
 
 <span class="co"># remove problematic records (assuming they can't be fixed)</span>
 <span class="va">combined_maf</span> <span class="op">&lt;-</span> <span class="va">combined_maf</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html">is.na</a></span><span class="op">(</span><span class="va">problem</span><span class="op">)</span><span class="op">]</span>
@@ -224,7 +226,7 @@
 <span class="co"># Or, carefully create the group column yourself using other data.</span>
 <span class="co"># This is a simplified example. Often, you'll need to deal with NA values, missing samples, etc.</span>
 <span class="va">maf</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/preload_maf.html">preload_maf</a></span><span class="op">(</span>maf <span class="op">=</span> <span class="st">"my_maf.txt"</span><span class="op">)</span>
-<span class="va">smoking_by_sample</span> <span class="op">&lt;-</span> <span class="fu">fread</span><span class="op">(</span><span class="st">"my_clinical_data.csv"</span><span class="op">)</span>
+<span class="va">smoking_by_sample</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/fread.html">fread</a></span><span class="op">(</span><span class="st">"my_clinical_data.csv"</span><span class="op">)</span>
 <span class="va">smokers</span> <span class="op">&lt;-</span> <span class="va">smoking_by_sample</span><span class="op">[</span><span class="va">is_smoker</span> <span class="op">==</span> <span class="cn">TRUE</span>, <span class="va">Unique_Patient_Identifier</span><span class="op">]</span>
 
 <span class="va">maf</span><span class="op">[</span>, <span class="va">group</span> <span class="op">:=</span> <span class="st">"nonsmoker"</span><span class="op">]</span> <span class="co"># assuming everyone not marked as a smoker is a nonsmoker</span>
@@ -283,7 +285,7 @@
 <p>After loading in data, run the following functions to prepare for calculation of cancer effect size. See each function’s documentation for details.</p>
 <ul>
 <li>
-<code><a href="../reference/trinuc_mutation_rates.html">trinuc_mutation_rates()</a></code> uses deconstructSigs to extract mutational signature weightings from each tumor’s SNV mutation profile, and from there calculates trinucleotide-context-specific SNV mutation rates. See also <code><a href="../articles/cosmic_cancer_type_note.html">vignette("cosmic_cancer_type_note")</a></code> for advice on excluding certain signatures that may be presumed absent from your tumors.</li>
+<code><a href="../reference/trinuc_mutation_rates.html">trinuc_mutation_rates()</a></code> uses MutationalPatterns or deconstructSigs to extract mutational signature weightings from each tumor’s SNV mutation profile, and from there calculates trinucleotide-context-specific SNV mutation rates. See also <code><a href="../articles/cosmic_cancer_type_note.html">vignette("cosmic_cancer_type_note")</a></code> for advice on excluding certain signatures that may be presumed absent from your tumors.</li>
 <li>
 <code><a href="../reference/gene_mutation_rates.html">gene_mutation_rates()</a></code> uses dNdScv to calculate gene-level mutation rates. It’s highly recommended to supply tissue-specific covariate data if available. Covariates for many human tissue types are included in <code>ces.refset.hg19</code>. If no appropriate covariates are available, you can <a href="create_custom_covariates.html">make your own</a>, or use dNdScv’s non-specific hg19 covariates.</li>
 </ul>

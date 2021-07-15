@@ -147,7 +147,7 @@ set_signature_weights = function(cesa, signature_set, weights, ignore_extra_samp
 #' @param artifact_signatures vector of artifact signature names (or NULL)
 #' @param signature_names names of signatures in weights (i.e., all column names)
 #' @param fail_if_zeroed T/F on whether to exit if a tumor would have all-zero weights.
-#' @param keyword internal
+#' @keywords internal
 artifact_account = function(weights, signature_names, artifact_signatures = NULL, fail_if_zeroed = FALSE) {
   bio_weights = copy(weights)
   bio_weights[, initial_weight_sum := rowSums(.SD), .SDcols = signature_names]
@@ -176,7 +176,7 @@ artifact_account = function(weights, signature_names, artifact_signatures = NULL
 #' @param signatures matrix of signatures
 #' @param tumor_names names of tumors corresponding to rows of weights
 #' @return matrix of trinuc rates where each row corresponds to a tumor
-#' @export
+#' @keywords internal
 calculate_trinuc_rates = function(weights, signatures, tumor_names) {
   # get trinuc rates and normalize to relative rates
   trinuc_rates = weights %*% signatures

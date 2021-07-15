@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Assign pre-calculated neutral gene mutation rates — set_gene_rates • cancereffectsizeR</title>
+<title>Assign pre-calculated regional mutation rates — set_gene_rates • cancereffectsizeR</title>
 
 <!-- favicons -->
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
@@ -52,10 +52,10 @@
 
 
 
-<meta property="og:title" content="Assign pre-calculated neutral gene mutation rates — set_gene_rates" />
-<meta property="og:description" content="This function allows you to assign gene mutation rates calculated however you like to
-samples in your CESAnalysis. Rates can be assigned to all samples or to samples
-with the specified sample_group labels (see ?CESAnalysis)." />
+<meta property="og:title" content="Assign pre-calculated regional mutation rates — set_gene_rates" />
+<meta property="og:description" content="This function allows you to specify regional rates of mutation--calculated
+however you like--to samples in your CESAnalysis. Rates can be assigned to all samples
+or to samples with the specified sample_group labels (see ?CESAnalysis)." />
 <meta property="og:image" content="https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/logo.png" />
 
 
@@ -88,7 +88,7 @@ with the specified sample_group labels (see ?CESAnalysis)." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.1.4</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.2.0</span>
       </span>
     </div>
 
@@ -154,20 +154,20 @@ with the specified sample_group labels (see ?CESAnalysis)." />
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Assign pre-calculated neutral gene mutation rates</h1>
+    <h1>Assign pre-calculated regional mutation rates</h1>
     <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/main/R/set_gene_rates.R'><code>R/set_gene_rates.R</code></a></small>
     <div class="hidden name"><code>set_gene_rates.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>This function allows you to assign gene mutation rates calculated however you like to
-samples in your CESAnalysis. Rates can be assigned to all samples or to samples
-with the specified sample_group labels (see <code><a href='CESAnalysis.html'>?CESAnalysis</a></code>).</p>
+    <p>This function allows you to specify regional rates of mutation--calculated
+however you like--to samples in your CESAnalysis. Rates can be assigned to all samples
+or to samples with the specified sample_group labels (see <code><a href='CESAnalysis.html'>?CESAnalysis</a></code>).</p>
     </div>
 
     <pre class="usage"><span class='fu'>set_gene_rates</span><span class='op'>(</span>
   cesa <span class='op'>=</span> <span class='cn'>NULL</span>,
-  gene_rates <span class='op'>=</span> <span class='cn'>NULL</span>,
+  rates <span class='op'>=</span> <span class='cn'>NULL</span>,
   sample_group <span class='op'>=</span> <span class='cn'>NULL</span>,
   missing_genes_take_nearest <span class='op'>=</span> <span class='cn'>FALSE</span>
 <span class='op'>)</span></pre>
@@ -180,8 +180,8 @@ with the specified sample_group labels (see <code><a href='CESAnalysis.html'>?CE
       <td><p>CESAnalysis object</p></td>
     </tr>
     <tr>
-      <th>gene_rates</th>
-      <td><p>A two-column data.table with genes in column 1 and rate in column 2</p></td>
+      <th>rates</th>
+      <td><p>A two-column data.table with either gene name or protein_id in column 1 and rate in column 2</p></td>
     </tr>
     <tr>
       <th>sample_group</th>
@@ -191,18 +191,18 @@ unspecified, the rates are assigned to all samples.</p></td>
     <tr>
       <th>missing_genes_take_nearest</th>
       <td><p>Set to TRUE
-to have each gene missing from gene_rates take the rate of the nearest non-missing gene.</p></td>
+to have each gene/protein_id missing from rates take the rate of the nearest non-missing gene/protein.</p></td>
     </tr>
     </table>
 
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
-    <p>Provide rates in a gene_rates data.table with two columns: gene (character) and rate
-(numeric on <code>[0, 1]</code>). Gene names must match the CESAnalysis reference data; to
-see all genes in your CESAnalysis <code>cesa</code>, call
-<code><a href='https://rdrr.io/r/base/unique.html'>unique(cesa$reference_data$gene_ranges$names)</a></code>. If you don't want to supply rates
-for every gene, set <code>missing_genes_take_nearest = T</code> to have each missing gene
-take the rate of the nearest non-missing gene.</p>
+    <p>Provide rates in a data.table with two columns: gene name or protein ID (character) and
+rate (numeric, non-negative). Gene names or protein IDs must match those in CESAnalysis
+reference data. (Some reference data sets, such as ces.refset.hg19, only allow
+gene-level rates.) If you don't want to supply rates for every gene, set
+<code>missing_genes_take_nearest = T</code> to have each missing gene or coding region take
+the rate of the nearest non-missing one.</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
