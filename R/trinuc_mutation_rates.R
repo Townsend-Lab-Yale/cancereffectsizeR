@@ -326,9 +326,10 @@ trinuc_mutation_rates <- function(cesa,
       
       # deconstructSigs requires a data.frame where the rows are samples
       tumor_trinuc_counts = as.data.frame(t(trinuc_breakdown_per_tumor[,tumor_name]))
-      # must provide column names (referring to trinucleotide mutations)
-      # otherwise deconstructSigs crashes
+      # must provide column names (trinucleotide mutations) and row names (tumors) otherwise
+      # deconstructSigs crashes
       colnames(tumor_trinuc_counts) = rownames(trinuc_breakdown_per_tumor)
+      rownames(tumor_trinuc_counts) = tumor_name
 
       all_weights = run_deconstructSigs(tumor_trinuc_counts = tumor_trinuc_counts, tri.counts.method = normalization,
                                         signatures_df = signatures, signatures_to_remove = current_sigs_to_remove)
@@ -352,6 +353,10 @@ trinuc_mutation_rates <- function(cesa,
                                               fail_if_zeroed = FALSE)
   trinuc_rates = calculate_trinuc_rates(weights = as.matrix(rel_bio_weights[, -c("Unique_Patient_Identifier")]),
                                         signatures = as.matrix(signatures), tumor_names = tumors_eligible_for_trinuc_calc)
+  
+  setkey(raw_signature_output, 'Unique_Patient_Identifier')
+  setkey(rel_bio_weights, "Unique_Patient_Identifier")
+  blended_weights = copy(raw_signature_output)
   
   # Set aside tumors that get all-zero biological signature weights (rare).
   # For the rest, put trinuc rates in output matrix.
@@ -422,9 +427,6 @@ trinuc_mutation_rates <- function(cesa,
       trinuc_proportion_matrix[tumor, ] = mean_trinuc_prop
     }
     
-    setkey(raw_signature_output, 'Unique_Patient_Identifier')
-    setkey(rel_bio_weights, "Unique_Patient_Identifier")
-    blended_weights = copy(raw_signature_output)
     # this should never happen
     if(all(mean_rel_bio_weights == 0)) {
       stop("Somehow, mean signature weights across all samples are all zero.")
