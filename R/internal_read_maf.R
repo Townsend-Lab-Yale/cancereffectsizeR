@@ -54,7 +54,8 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
   
   # If it looks like this function's liftOver functionality has previously been used
   # on this data, we'll keep the columns that it generated.
-  if (is.null(chain_file)) {
+  if (is.null(chain_file) && ! is.null(select_cols)) {
+    if (! is.null(select_cols))
     select_cols = unique(c(select_cols, "prelift_chr", "prelift_start", "liftover_strand_flip"))
   }
   

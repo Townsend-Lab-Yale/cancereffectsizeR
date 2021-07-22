@@ -428,6 +428,12 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = 
       
       if (length(snv_to_reselect) > 0) {
         reselected = select_variants(cesa, variant_passlist = snv_to_reselect)
+        
+        # Reselecting calculated some frequencies that we may need to redundantly recalculate
+        # In the near future, all freq columns except maf_frequency will be removed.
+        setnames(reselected, "total_maf_freq", "maf_frequency", skip_absent = TRUE)
+        extra_freq_cols = names(reselected)[grepl('^maf_freq_in', names(reselected))]
+        reselected[, (extra_freq_cols) := NULL]
         combined = rbind(combined, reselected[snv_to_reselect, on = "variant_id"])
       }
     }
@@ -458,10 +464,12 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = 
       if(snv_counts[, .N] > 0) {
         combined[snv_counts, (curr_col) := N, on = "variant_id"]
         # can't be AACs unless there are SNVs, hence nested
-        aac_counts = group_maf[! is.na(assoc_aac), .(aac_id = unlist(assoc_aac)), by = "variant_id"]
-        if(aac_counts[, .N] > 0) {
-          aac_counts = aac_counts[, .N, by = "aac_id"]
-          combined[aac_counts, (curr_col) := N, on = c(variant_id = "aac_id")]
+        if (any(! is.na(group_maf$assoc_aac))) {
+          aac_counts = group_maf[! is.na(assoc_aac), .(aac_id = unlist(assoc_aac)), by = "variant_id"]
+          if(aac_counts[, .N] > 0) {
+            aac_counts = aac_counts[, .N, by = "aac_id"]
+            combined[aac_counts, (curr_col) := N, on = c(variant_id = "aac_id")]
+          }
         }
       }
     }
