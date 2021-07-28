@@ -307,7 +307,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   }
   
   # drop any samples that had all mutations excluded
-  new_samples = new_samples[Unique_Patient_Identifier %in% maf$Unique_Patient_Identifier]
+  new_samples = new_samples[unique(maf$Unique_Patient_Identifier), on = "Unique_Patient_Identifier", nomatch = NULL]
   cesa@samples = rbind(cesa@samples, new_samples)
   setcolorder(cesa@samples, c("Unique_Patient_Identifier", "coverage", "covered_regions", "group"))
   setkey(cesa@samples, "Unique_Patient_Identifier")

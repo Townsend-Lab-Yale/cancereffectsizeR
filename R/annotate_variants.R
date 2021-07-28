@@ -285,13 +285,18 @@ annotate_variants <- function(refset = NULL, variants = NULL) {
   
 
   #  get deconstructSigs-style trinuc context of each SNV ID
-  genomic_context = BSgenome::getSeq(bsg, snv_table$chr,start=snv_table$pos - 1,
-                                     end=snv_table$pos + 1,
-                                     as.character = TRUE)
-  trinuc_mut_ids = paste0(genomic_context,":", snv_table$alt)
-  
-  # deconstructSigs_notations is a keyed table in CES sysdata
-  snv_table[, trinuc_mut := deconstructSigs_notations[.(genomic_context, snv_table$alt), deconstructSigs_ID]] 
+  if (snv_table[, .N] > 0) {
+    genomic_context = BSgenome::getSeq(bsg, snv_table$chr,start=snv_table$pos - 1,
+                                       end=snv_table$pos + 1,
+                                       as.character = TRUE)
+    trinuc_mut_ids = paste0(genomic_context,":", snv_table$alt)
+    
+    # deconstructSigs_notations is a keyed table in CES sysdata
+    snv_table[, trinuc_mut := deconstructSigs_notations[.(genomic_context, snv_table$alt), deconstructSigs_ID]] 
+  } else {
+    snv_table[, trinuc_mut := character(0)]
+  }
+
 
   # clean up aac table, except when it's empty
   if (aac[, .N] > 0) {
@@ -330,8 +335,9 @@ annotate_variants <- function(refset = NULL, variants = NULL) {
 	  aac_table = data.table()
 	}
 	
-	# workaround to add gene name until this function is properly cleaned up
-	if ("gene" %in% names(GenomicRanges::mcols(gr_cds))) {
+	# Workaround to add gene name until this function is properly cleaned up
+	# Also handle the edge case of no SNVs (occurs if input is all indels)
+	if ("gene" %in% names(GenomicRanges::mcols(gr_cds)) && snv_table[, .N] > 0) {
 	  nearest_gene = as.data.table(GenomicRanges::distanceToNearest(makeGRangesFromDataFrame(snv_table, start.field = 'pos', end.field = 'pos'), 
 	                                                 gr_cds, select = "all"))
 	  gene_names = GenomicRanges::mcols(gr_cds)["gene"][,1]
@@ -345,7 +351,7 @@ annotate_variants <- function(refset = NULL, variants = NULL) {
 	  snv_table[, genes := list(gene_name_by_snv_row$genes)]
 	  snv_table = snv_table[, nearest_pid := list(pid_by_snv_row$pid)]
 	  snv_table[, cds := NULL]
-	} else {
+	} else if (snv_table[, .N] > 0) {
 	  setnames(snv_table, 'cds', 'genes')
 	  snv_and_gene = snv_table[, .(gene = unlist(genes)), by = "snv_id"]
 	  to_lookup = snv_and_gene[, .(gene = unique(gene))]
@@ -353,6 +359,9 @@ annotate_variants <- function(refset = NULL, variants = NULL) {
 	  snv_and_gene[to_lookup, pid := pid, on = 'gene']
 	  snv_and_pid = snv_and_gene[, .(nearest_pid = list(pid)), by = "snv_id"]
 	  snv_table[snv_and_pid, nearest_pid := nearest_pid, on = "snv_id"]
+	} else {
+	  setnames(snv_table, 'cds', 'genes')
+	  snv_table[, nearest_pid := list(list())]
 	}
 	setkey(snv_table, "snv_id")
 	return(list(amino_acid_change = aac_table, snv = snv_table))

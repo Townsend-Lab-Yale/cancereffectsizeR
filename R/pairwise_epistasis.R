@@ -139,7 +139,7 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), run_name = "auto
 #' @param run_name Optionally, a name to identify the current run.
 #' @param conf confidence interval size from 0 to 1 (.95 -> 95%); NULL skips calculation,
 #'   reducing runtime.
-#' @param cores number of cores for parallel processing of gene pairs
+#' @param cores number of cores for parallel processing of variant pairs
 #' @return a data table with pairwise-epistatic selection intensities and variant
 #'   frequencies for in tumors that have coverage at both variants in each pair
 #' @export

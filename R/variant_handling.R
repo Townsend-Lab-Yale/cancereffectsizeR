@@ -269,10 +269,13 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = 
   setkey(selected_aac, "aac_id")
 
   # Tabulate variants in MAF data and apply frequency filter, exempting passlist variants from filters
+  aac_counts = NA
   if (cesa@maf[, .N] > 0) {
-    aac_counts = cesa@maf[! is.na(assoc_aac), .(aac_id = unlist(assoc_aac))][, .N, by = "aac_id"][N >= min_freq]
-  } else {
-    aac_counts = NA
+    aac_in_maf = cesa@maf[! is.na(assoc_aac), .(aac_id = unlist(assoc_aac))]
+    # edge case: aac_in_maf will be a null table if there are no coding variants in the MAF
+    if(aac_in_maf[, .N] > 0) {
+      aac_counts = aac_in_maf[, .N, by = "aac_id"][N >= min_freq]
+    }
   }
   selected_snv[, maf_frequency := 0]
   selected_snv = selected_snv[snv_counts, maf_frequency := N]
@@ -318,6 +321,7 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = 
     assoc_aac_by_aac_id = aac_to_snv[, .(assoc_aac = .(unique(unlist(assoc_aac)))), by = "aac_id"]
     selected_aac[all_genes_by_aac_id, all_genes := genes, on = "aac_id"]
     selected_aac[assoc_aac_by_aac_id, all_aac := assoc_aac, on = "aac_id"]
+    selected_aac[, nearest_pid := list(NA_character_)]
   } else {
     selected_aac[, all_genes := list(NA_character_)]
     selected_aac[, all_aac := list(NA_character_)]
@@ -396,21 +400,16 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = 
       setkey(multi_hits, 'variant_id')
       chosen_aac = new.env(parent = emptyenv())
       processed_aac = new.env(parent = emptyenv())
+      covered_snv = new.env(parent = emptyenv())
       aac_priority = multi_hits$variant_id
       for (i in seq_along(multi_hits$variant_id)) {
         curr_candidate = multi_hits$variant_id[[i]]
-        curr_hits = multi_hits$all_aac[[i]] # will include curr_candidate
-        add_current = TRUE
-        for (j in seq_along(curr_hits)) {
-          curr_aac = curr_hits[j]
-          # if any of the overlapping AACs is already being taken, can't use any
-          if(exists(curr_aac, processed_aac)) {
-            add_current = FALSE
-          } else {
-            processed_aac[[curr_aac]] = TRUE
-          }
-        }
+        curr_covered_snv = multi_hits$constituent_snvs[[i]]
+        # We will use the current AAC only if none of the constituent SNVs have been used yet
+        add_current = ifelse(any(unlist(mget(x = curr_covered_snv, envir = covered_snv, ifnotfound = FALSE))),
+                             FALSE, TRUE)
         if (add_current) {
+          sapply(curr_covered_snv, function(x) covered_snv[[x]] = TRUE)
           chosen_aac[[curr_candidate]] = TRUE
         }
       }

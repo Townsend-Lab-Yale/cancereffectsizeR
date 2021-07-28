@@ -161,7 +161,7 @@ trinuc_mutation_rates <- function(cesa,
   
   # columns Exome_Min and Genome_Min always go together in metadata, per signature set validation rules
   # If they're present, we'll enforce their signature mutation count minimums for each tumor
-  mutation_count_rules = "Exome_Min" %in% colnames(signature_metadata)
+  mutation_count_rules = "Exome_Min" %in% names(signature_metadata)
 
   # If running with v3.0/v3.1 COSMIC signature set, help out the user by dropping signatures from future releases
   if(signature_set_name %in% c("COSMIC v3", "COSMIC v3.1")) {
@@ -584,6 +584,13 @@ trinuc_snv_counts = function(maf,
   # All data in MAF (even if it's TGS, etc.) impacts recurrency testing
   ds_maf = maf[variant_type == "snv"]
   
+  if("problem" %in% names(ds_maf)) {
+    problems = ds_maf[! is.na(problem), which = T]
+    if (length(problems) > 0) {
+      ds_maf = ds_maf[! problems]
+      message("Found a preload_maf()-style \"problem\" column and removed ", length(problems), " 46 problematic records.")
+    }
+  }
   if (exclude_recurrent) {
     # remove all recurrent SNVs (SNVs appearing in more than one sample)
     duplicated_vec_first <- duplicated(ds_maf[,.(Chromosome, Start_Position, Tumor_Allele)])

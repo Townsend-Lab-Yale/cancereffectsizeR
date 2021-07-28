@@ -165,7 +165,8 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
   
   maf_cols = c("Unique_Patient_Identifier", "Chromosome", "Start_Position", "Reference_Allele", "Tumor_Allele")
   maf[, problem := NA_character_]
-  looks_empty = apply(maf[, ..maf_cols], 1, function(x) any(is.na(x)) | any(grepl("^[.\"\' ]*$", x)))
+  check = maf[, lapply(.SD, function(x) is.na(x) | grepl("^[.\"\' ]*$", x)), .SDcols = maf_cols]
+  looks_empty = apply(check, 1, any)
   num_bad = sum(looks_empty)
   maf[looks_empty, problem := 'missing_values']
   
