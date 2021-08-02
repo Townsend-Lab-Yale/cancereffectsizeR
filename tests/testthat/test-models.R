@@ -17,14 +17,14 @@ rate_a = baseline_mutation_rates(cesa, variant_ids = "FAT1_D1508H_ENSP0000040622
 rate_b = baseline_mutation_rates(cesa, aac_ids = "FAT1_D1508H_ENSP00000406229", samples = "sample-5")
 expect_equal(rate_a, rate_b)
 expect_equal(rate_a[[1]], 'sample-5')
-expect_equal(rate_a[[2]], 1.055027e-06)
+expect_equal(rate_a[[2]], 2.843945e-06)
 
 
 # Try taking one SNV rate in one sample
 snv_rate = baseline_mutation_rates(cesa, snv_ids = "3:186276363_T>A", 
                                      samples = 'sample-106')
 expect_equal(snv_rate[[1]], 'sample-106')
-expect_equal(snv_rate[[2]], 1.208587e-06)
+expect_equal(snv_rate[[2]], 1.20681e-06)
 snv_rate_other_way = baseline_mutation_rates(cesa, variant_ids = "3:186276363_T>A", 
                                              samples = 'sample-106')
 expect_identical(snv_rate, snv_rate_other_way)
@@ -70,7 +70,7 @@ test_that("ces_variant with user-supplied variants", {
   expect_equal(ces_variant(cesa, variants = variants)@selection_results[[1]][, .N], 9)
   
   # Test an SNV that doesn't overlap a gene. Should get same result regardless of hold-out option.
-  expected_si = 4504.649
+  expected_si = 5134.611
   expect_equal(ces_variant(cesa, variants = select_variants(cesa, variant_passlist = '1:1903518_G>A'))@selection_results[[1]]$selection_intensity,
                expected_si, tolerance = 1e-4)
   expect_equal(ces_variant(cesa, variants = select_variants(cesa, variant_passlist = '1:1903518_G>A'),
@@ -134,10 +134,11 @@ test_that("Variant-level epistasis", {
   results = ces_epistasis(cesa, variants = list(c("KRAS G12V", "GSTP1_L184L")), conf = .9)@epistasis[[1]]
   to_test = results[, as.numeric(.(ces_v1, ces_v2, ces_v1_after_v2, ces_v2_after_v1, joint_cov_samples_just_v1,
                                    joint_cov_samples_just_v2, joint_cov_samples_with_both, joint_cov_samples_with_neither))]
-  expect_equal(to_test, c(28968.7748, 1433.0835, 547585.0949, 9610.6028, 6, 2, 1, 100), tolerance = 1e-3)
+  expect_equal(to_test, c(26867.5225688425, 1441.71206944064, 281837.785451727, 13805.1800777728, 
+                          12, 4, 2, 200), tolerance = 1e-3)
   ci = as.numeric(results[, .SD, .SDcols = patterns("ci")])
-  expect_equal(ci, c(13679.6303958998, 52655.730419433, 382.460874437958, 3474.32170799179, 
-                     NA, 3606485.4710287, NA, 85684.8367050739), tolerance = 1e-3)
+  expect_equal(ci, c(12795.1211307558, 48488.3936128441, 362.207984931453, 3610.84903759668, 
+                     NA, 2180128.54763536, NA, 88952.7367254685), tolerance = 1e-3)
 })
 
 
@@ -174,7 +175,7 @@ test_that("Compound variant creation", {
   expect_equal(length(pos_comp), 2)
   expect_equal(pos_comp$snv_info[, .N], 5)
   results = ces_variant(cesa, variants = pos_comp, hold_out_same_gene_samples = T, conf = NULL)$selection[[1]]
-  expect_equal(results$selection_intensity, c(7064.35, 32235.97), tolerance = 1e-3)
+  expect_equal(results$selection_intensity, c(6482.0086263444, 29946.7385123648), tolerance = 1e-3)
   # If above output changes, be sure SIs remain between lowest/highest single-variant SIs at each site (see .rds)
   
   expect_equal(length(define_compound_variants(cesa, recurrents, merge_distance = 1000)), 40)
