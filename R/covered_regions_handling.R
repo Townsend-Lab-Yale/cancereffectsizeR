@@ -215,14 +215,28 @@ update_covered_in = function(cesa) {
   # this returns a data frame where rows match MAF rows, columns are T/F for each coverage gr
   all_coverage = c(cesa@coverage[["exome"]], cesa@coverage[["targeted"]], cesa@coverage[["genome"]]) # names shouldn't overlap due to add_covered_regions validation
   
+  # When exome+ is being used, not much point of including the original "exome" ranges
+  if ('exome+' %in% names(all_coverage)) {
+    all_coverage = all_coverage[names(all_coverage) != 'exome']
+  }
+  
   # all_coverage will be NULL if there's only full-coverage WGS data
+  just_exome_plus = FALSE
   if(is.null(all_coverage)) {
     snv_table[, covered_in := list()]
+  } else if (length(all_coverage) == 1 && names(all_coverage) == 'exome+' && is.null(cesa@advanced$add_variants_used)) {
+    # If only exome+ data and add_variants() hasn't been used to import (potentially uncovered) variants,
+    # no need to do any calculations.
+    #
+    # Oddity: Consider out-of-exome AACs with multiple constituent SNVs but not all
+    # present in MAF data. Those SNVs get discovered in annotate_variants(), after exome+
+    # coverage has been defined. However, this shortcut will update them to be covered.
+    # But if a user has used add_variants() previously, those SNVs will stay uncovered.
+    # However, this isn't much of an issue because the AACs are still considered covered,
+    # and the issue only occurs on fringe AACs that aren't part of default exome coverage.
+    snv_table[, covered_in := list(list('exome+'))]
+    just_exome_plus = TRUE
   } else {
-    # When exome+ is being used, not much point of including the original "exome" ranges
-    if ('exome+' %in% names(all_coverage)) {
-      all_coverage = all_coverage[names(all_coverage) != 'exome']
-    }
     all_coverage = all_coverage[sort(names(all_coverage))] # sort by covered regions name
     is_covered = as.data.table(lapply(all_coverage, function(x) IRanges::overlapsAny(snv_gr, x, type = "within")))
     all_names = names(is_covered)
@@ -230,13 +244,7 @@ update_covered_in = function(cesa) {
     if(is(covered_in, "character")) {
       covered_in = as.list(covered_in)
     }
-    
-    # edge case
-    if(snv_table[, .N] == 1) {
-      snv_table[, covered_in := list(covered_in)]
-    } else {
-      snv_table[, covered_in := covered_in]
-    }
+    snv_table[, covered_in := list(covered_in)]
   }
   cesa@mutations$snv = snv_table
   setkey(cesa@mutations$snv, 'snv_id')
@@ -244,17 +252,21 @@ update_covered_in = function(cesa) {
   # We're going to cheat and say samples have coverage at aac sites if they have coverage on any of the three codon positions
   # in practice, there probably is coverage even if the coverage intervals disagree
   if (! is.null(aac_table)) {
-    if ("covered_in" %in% colnames(aac_table)) {
-      aac_table[, covered_in := NULL]
-    }
-    aac_coverage = snv_table[, .(aac_id = unlist(assoc_aac), covered_in), by = "snv_id"]
-    aac_coverage = aac_coverage[, .(covered_in = list(sort(unique(unlist(covered_in))))), by = "aac_id"]
-    
-    # edge case of adding single variant to empty CESAnalysis
-    if(aac_coverage[, .N] == 1 & is.null(aac_coverage$covered_in[[1]])) {
-      aac_table[, covered_in := list(NA_character_)]
+    if (just_exome_plus) {
+      aac_table[, covered_in := list(list('exome+'))]
     } else {
-      aac_table[aac_coverage, covered_in := covered_in, on = "aac_id"]
+      if ("covered_in" %in% colnames(aac_table)) {
+        aac_table[, covered_in := NULL]
+      }
+      aac_coverage = snv_table[, .(aac_id = unlist(assoc_aac), covered_in), by = "snv_id"]
+      aac_coverage = aac_coverage[, .(covered_in = list(sort(unique(unlist(covered_in))))), by = "aac_id"]
+      
+      # edge case of adding single variant to empty CESAnalysis
+      if(aac_coverage[, .N] == 1 & is.null(aac_coverage$covered_in[[1]])) {
+        aac_table[, covered_in := list(NA_character_)]
+      } else {
+        aac_table[aac_coverage, covered_in := covered_in, on = "aac_id"]
+      }
     }
     cesa@mutations$amino_acid_change = aac_table
     setkey(cesa@mutations$amino_acid_change, 'aac_id')

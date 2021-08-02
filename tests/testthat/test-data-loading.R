@@ -108,6 +108,7 @@ test_that("Sample group handling", {
   expect_error(load_maf(multistage, maf = bad_maf, group_col = "stage"), "samples are associated with multiple groups")
   
   # Absence of a declared progression state in the data triggers a notification
+  # Also, this test happens to make sure annotate_variants doesn't fail when there are zero possible splice site records
   multistage = expect_message(suppressWarnings(load_maf(multistage, maf = fread(bad_maf)[2:4], group_col = "stage")), "they weren't present in the MAF data")
 })
 

@@ -52,8 +52,8 @@ annotate_variants <- function(refset = NULL, variants = NULL) {
   # queryHits column gives snv table row.
   # Some records have multiple matching entries; combine them into variable-length vector within each snv table row.
   # Also grab the distance to the first matching refcds entry (distances are always equal on multiple hits, since we asked for the nearest)
-  refcds_entries_by_variant_row = nearest[, .(cds = list(refcds_entry), dist = distance[1]), by = "queryHits"]
-  variants = cbind(variants, refcds_entries_by_variant_row[, -"queryHits"])
+  refcds_entries_by_variant_row = setDT(nearest[, .(cds = list(refcds_entry), dist = distance[1]), by = "queryHits"])
+  variants[, c("cds", "dist") := list(refcds_entries_by_variant_row$cds, refcds_entries_by_variant_row$dist)]
   variants[, intergenic := dist > 0] # Not really intergenic, just not coding (need to fix this)
   snvs = variants[variant_type == "snv", -"variant_type"]
   setnames(snvs, 'variant_id', 'snv_id')
@@ -89,7 +89,7 @@ annotate_variants <- function(refset = NULL, variants = NULL) {
     coding_ints[strand == 1, cds_order := seq_len(.N), by = "cds"]
     coding_ints[strand == -1, cds_order := rev(seq_len(.N)), by = "cds"]
     coding_ints = coding_ints[order(cds, cds_order)]
-    coding_ints[, cum_cds_width := cumsum(end - start + 1), by = "cds" ]
+    coding_ints[, cum_cds_width := cumsum(end - start + 1), by = "cds"]
     
     aac[, tmp_end_pos := Start_Position] # need two columns for foverlaps (as of now)
     setkey(aac, "refcds_entry", "Start_Position", "tmp_end_pos") # yeah, it's called gene for transcript_id currently, too
@@ -134,55 +134,45 @@ annotate_variants <- function(refset = NULL, variants = NULL) {
     aac = unique(aac, by = "aac_id")
     
     # To make things easier later, determine which AAC records are possibly spanning splice sites
-    # Genomically, all bases must be within 3bp of a splice position
+    # Genomically, all bases must be within 2bp of a splice position (or codon finishes before crossing site)
     # Later, we'll do a more careful annotation of splice site distance
     # For now, get CDS intervals for relevant genes; potential splice sites will be included in the start/end positions of these
     approx_splice_sites = unique(rbindlist(lapply(RefCDS[entries_with_aac], function(x) return(list(chr = x$chr, splice_pos = x$intervals_cds)))))
-    approx_splice_sites[, start := splice_pos - 3]
-    approx_splice_sites[, end := splice_pos + 3]
+    approx_splice_sites[, start := splice_pos - 2]
+    approx_splice_sites[, end := splice_pos + 2]
     setkey(aac, "chr", "pos", "tmp_end_pos")
     possible_splice_aac_id = foverlaps(approx_splice_sites, aac, by.x = c("chr", "start", "end"), type = "any", nomatch = NULL)[, aac_id]
     setkey(aac, "aac_id")
     aac[, possible_splice := F][possible_splice_aac_id, possible_splice := T]
     
-    
-    # function to get reference positions of every nucleotide in a codon (needed for near splice sites)
-    calc_ref_pos = function(entry_name, nt_pos, strand) {
-      intervals = RefCDS[[entry_name]]$intervals_cds
-      pos = apply(intervals, 1, function(x) abs(x[1]-x[2]) + 1)
-      if(strand == -1) {
-        pos = rev(pos)
-        if (nrow(intervals) > 1) {
-          intervals = apply(intervals, 2, rev) # because 1-row matrix would get coerced to vector by apply
-        }
-      }
-      
-      nt_so_far = cumsum(pos)
-      ind = match(TRUE, nt_so_far >= nt_pos)
-      
-      previous_bases = ifelse(ind == 1, 0, nt_so_far[ind - 1])
-      if (strand == 1) {
-        ref_pos = intervals[ind, 1] + nt_pos - previous_bases - 1
-      } else {
-        if(ncol(intervals) < 2 || nrow(intervals) < ind) {
-          return(0)
-        }
-        ref_pos = intervals[ind, 2] - nt_pos + previous_bases + 1
-        
-      }
-      return(ref_pos)
-    }
+    # figure out nt positions for codons that might span splice sites
+    poss_splice_ints = coding_ints[aac[possible_splice == TRUE, unique(entry_name)], on = 'entry_name']
+    single_exon_entries = poss_splice_ints[, .N, by = "entry_name"][N == 1, entry_name]
+    poss_splice_ints = poss_splice_ints[! single_exon_entries, on = 'entry_name']
+    aac[single_exon_entries, possible_splice := FALSE, on = 'entry_name']
     
     # away from splice sites, all codon nt positions are adjacent
     aac[possible_splice == F, nt1_pos := pos - strand * (codon_pos - 1)]
     aac[possible_splice == F, nt2_pos := pos - strand * (codon_pos - 2)]
     aac[possible_splice == F, nt3_pos := pos - strand * (codon_pos - 3)]
     
-    # figure out nt positions for codons that might span splice sites
-    aac[possible_splice == T, nt1_pos := mapply(calc_ref_pos, entry_name, nt_pos - codon_pos + 1, strand)]
-    aac[possible_splice == T, nt2_pos := mapply(calc_ref_pos, entry_name, nt_pos - codon_pos + 2, strand)]
-    aac[possible_splice == T, nt3_pos := mapply(calc_ref_pos, entry_name, nt_pos - codon_pos + 3, strand)]
     
+    if (poss_splice_ints[, .N] > 0) {
+      poss_splice_ints[, exon_length := abs(end - start) + 1]
+      poss_splice_ints[, previous_bases := c(0, cumsum(exon_length[1:(.N-1)])), by = 'entry_name']
+      poss_splice_ints[strand == 1, ref_offset := start - previous_bases - 1]
+      poss_splice_ints[strand == -1, ref_offset := end + previous_bases + 1]
+      
+      # some SNVs may have multiple entries; splice status may vary
+      poss_splice_table = setDT(aac[possible_splice == T, .(tmp_nt_pos = nt_pos - codon_pos + 1:3, tmp_codon_pos = 1:3, strand), by = c('snv_id', 'entry_name')])
+      ref_offsets = poss_splice_ints[poss_splice_table, ref_offset, on = .(entry_name, cum_cds_width >= tmp_nt_pos), by = .EACHI, mult = "first"]
+      poss_splice_table[, nt_ref_pos := ref_offsets$ref_offset + tmp_nt_pos * strand]
+      aac[poss_splice_table[tmp_codon_pos == 1], nt1_pos := nt_ref_pos, on = c('snv_id', 'entry_name')]
+      aac[poss_splice_table[tmp_codon_pos == 2], nt2_pos := nt_ref_pos, on = c('snv_id', 'entry_name')]
+      aac[poss_splice_table[tmp_codon_pos == 3], nt3_pos := nt_ref_pos, on = c('snv_id', 'entry_name')]
+    }
+
+  
     # get 5'->3' (i.e., standard genomic order) trinucleotide contexts
     first_triseq = BSgenome::getSeq(bsg, names = aac$chr, start =  aac$nt1_pos - 1, end =  aac$nt1_pos + 1)
     second_triseq = BSgenome::getSeq(bsg, names = aac$chr, start =  aac$nt2_pos - 1, end =  aac$nt2_pos + 1)
@@ -234,12 +224,12 @@ annotate_variants <- function(refset = NULL, variants = NULL) {
     # annotate amino acid mutations with all associated SNVs
     snvs_by_aa_mut = snv_table[, .(constituent_snvs = list(snv_id)), by = "aac_id"]
     aac[snvs_by_aa_mut, constituent_snvs := constituent_snvs, on = "aac_id"]
-    snv_table = snv_table[, .(chr, pos, ref, alt, cds, intergenic, assoc_aac = list(sort(aac_id))), by = "snv_id"]
+    snv_table = setDT(snv_table[, .(chr, pos, ref, alt, cds, intergenic, assoc_aac = list(aac_id)), by = "snv_id"])
     
     # add noncoding SNVs to SNV table
-    noncoding = snvs[! snv_id %in% unlist(aac$constituent_snvs)]
-    noncoding = noncoding[, .(chr = Chromosome, pos = Start_Position, ref = Reference_Allele, alt = Tumor_Allele,
-                              cds, intergenic)]
+    noncoding = snvs[! unlist(aac$constituent_snvs), on = 'snv_id']
+    noncoding = setDT(noncoding[, .(chr = Chromosome, pos = Start_Position, ref = Reference_Allele, alt = Tumor_Allele,
+                              cds, intergenic)])
     noncoding[, snv_id := paste0(chr, ':', pos, "_", ref, '>', alt)]
     setcolorder(noncoding, "snv_id")
     # dt can't handle list columns in unique call, but if it could result would be the same
@@ -273,8 +263,8 @@ annotate_variants <- function(refset = NULL, variants = NULL) {
     nearest[, refcds_entry := refcds_entry_names[subjectHits]]
     nearest = nearest[! duplicated(nearest[, .(queryHits, refcds_entry)])]
     
-    refcds_entries_by_variant_row = nearest[, .(cds = list(refcds_entry), dist = distance[1]), by = "queryHits"] 
-    snvs_needing_anno = cbind(snvs_needing_anno, refcds_entries_by_variant_row[, -"queryHits"])
+    refcds_entries_by_variant_row = setDT(nearest[, .(cds = list(refcds_entry), dist = distance[1]), by = "queryHits"] )
+    snvs_needing_anno[, c("cds", "dist") := list(refcds_entries_by_variant_row$cds, refcds_entries_by_variant_row$dist)]
     snvs_needing_anno[, intergenic := dist > 0] # To-do: Intergenic should always be false on these. Confirm and remove.
     
     setkey(snv_table, "snv_id")
@@ -300,9 +290,8 @@ annotate_variants <- function(refset = NULL, variants = NULL) {
 
   # clean up aac table, except when it's empty
   if (aac[, .N] > 0) {
-    aac_table = aac
     # to do: eventually, probably want to keep the entry_name field (call it refcds_entry?)
-    aac_table = aac_table[, .(aac_id, chr, gene = gene_name, strand, pid, aachange, aa_ref, aa_pos, aa_alt, possible_splice, nt1_pos, nt2_pos, nt3_pos, coding_seq, constituent_snvs)]
+    aac_table = setDT(aac[, .(aac_id, chr, gene = gene_name, strand, pid, aachange, aa_ref, aa_pos, aa_alt, possible_splice, nt1_pos, nt2_pos, nt3_pos, coding_seq, constituent_snvs)])
     setcolorder(aac_table, c("aac_id", "gene", "aachange", "strand"))
   }
   

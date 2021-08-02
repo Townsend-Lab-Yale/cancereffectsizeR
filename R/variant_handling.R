@@ -419,7 +419,7 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = 
       not_chosen_aac = multi_hits[! chosen_aac, variant_id]
       all_const_snv = unlist(multi_hits$constituent_snvs)
       remaining_const_snv = multi_hits[chosen_aac, unlist(constituent_snvs)]
-      combined = combined[! not_chosen_aac, on = 'variant_id']
+      combined = setDT(combined[! not_chosen_aac, on = 'variant_id'])
       
       # Edge case: Need to get annotations for SNVs that passed user's filters (given in
       # subvariant_snv_ids), but that are now no longer constituent SNVs
@@ -480,7 +480,7 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = 
 
   # order output in chr/pos order
   setkey(combined, "chr")
-  combined = combined[BSgenome::seqnames(bsg), nomatch = NULL, on = 'chr'][, .SD[order(start)], by = "chr"]
+  combined = setDT(combined[order(start)][BSgenome::seqnames(bsg), nomatch = NULL, on = "chr"])
   setcolorder(combined, c("variant_name", "variant_type", "chr", "start", "end", "variant_id", "ref", "alt", "gene", 
                           "strand", "aachange", "essential_splice", "intergenic", "trinuc_mut", "aa_ref", "aa_pos", "aa_alt", "coding_seq", 
                           "center_nt_pos", "pid", "constituent_snvs", "multi_anno_site", "all_aac", "all_genes",
@@ -677,6 +677,7 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
   setkey(cesa@mutations$snv, "snv_id")
 
   # Record which coverage ranges each new variant is covered in
+  cesa@advanced$add_variants_used = TRUE # if add_variants has run, can't take shortcuts in update_covered_in 
   cesa = update_covered_in(cesa)
   return(cesa)
 }
