@@ -240,9 +240,12 @@ update_covered_in = function(cesa) {
     all_coverage = all_coverage[sort(names(all_coverage))] # sort by covered regions name
     is_covered = as.data.table(lapply(all_coverage, function(x) IRanges::overlapsAny(snv_gr, x, type = "within")))
     all_names = names(is_covered)
+    # when we support just R > 4.1, can just use simplify = F on apply to avoid playing these games
     covered_in = apply(is_covered, 1, function(x) all_names[x])
     if(is(covered_in, "character")) {
       covered_in = as.list(covered_in)
+    } else if(is(covered_in, "matrix")) {
+      covered_in = lapply(1:ncol(covered_in), function(x) covered_in[, x])
     }
     snv_table[, covered_in := list(covered_in)]
   }
