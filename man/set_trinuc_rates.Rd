@@ -14,15 +14,19 @@ set_trinuc_rates(cesa, trinuc_rates, ignore_extra_samples = FALSE)
 \item{ignore_extra_samples}{skip samples in the input table that are not in the CESAnalysis (when false, will stop with an error)}
 }
 \description{
-This function assigns trinucleotide-context-specific relative SNV mutation rates to tumors 
-in a CESAnalysis. (These could be rates previously generated with \code{trinuc_mutation_rates()}, or
-they could calculated using your own methods.) The input rates must be a data.table or matrix.
-If supplying a data table, there must be a Unique_Patient_Identifier column; if supplying a 
-a matrix, the identifiers should be supplied as rownames instead. Either way, all samples in the
-CESAnalysis must be represented in the input rates. To avoid user error, there cannot be any
-superfluous samples in the input rates unless \code{ignore_extra_samples = T}. Besides the identifier
-column (or matrix rownames), there must be 96 columns, with column names exactly matching
-the deconstructSigs naming and order (run this function with incorrect column names, 
-and the names you need to use will be printed). Since CES uses relative trinuc rates,
-rows must sum to 1, with all values greater than 0.
+This function assigns trinucleotide-context-specific relative SNV mutation rates to
+tumors in a CESAnalysis. (These could be rates previously generated with
+\code{trinuc_mutation_rates()}, or they could calculated using your own methods.) The
+input rates must be a data.table or matrix. If supplying a data table, there must be a
+Unique_Patient_Identifier column; if supplying a a matrix, the identifiers should be
+supplied as rownames instead. Either way, all samples in the CESAnalysis must be
+represented in the input rates. To avoid user error, there cannot be any superfluous
+samples in the input rates unless \code{ignore_extra_samples = T}. Besides the
+identifier column (or matrix rownames), there must be 96 columns, with column names
+exactly matching the deconstructSigs/MutationalPatterns naming and order (run this
+function with incorrect column names, and the names you need to use will be printed).
+Since CES uses relative trinuc rates, rows must sum to 1, with all values greater than
+0. You'll get a warning if any rate is less than 1e-9, since (unrealistically) low
+rates may crash selection model likelihood functions that aren't expecting such small
+values.
 }

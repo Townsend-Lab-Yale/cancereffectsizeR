@@ -48,10 +48,13 @@ averages are blended into the signature weights of sub-threshold tumors.}
 }
 \value{
 CESAnalysis with sample-specific signature weights and inferred
-  trinucleotide-context-specific relative mutation rates. Note that tumors with few
-  mutations (group_avg_blended == TRUE in the signature weights tables) have weights
-  influenced by the average weights of well-mutated tumors; you may want to exclude
-  these samples for some mutational signature analyses.
+  trinucleotide-context-specific relative mutation rates. Raw weights are the signature
+  contributions determined by the signature extractor. Blended weights are the same,
+  except samples with few mutations have their weights blended with group-average
+  weights from well-mutated samples. (You may wish to exclude samples with
+  group_average_blended == TRUE from some mutational signature comparisons.) Biological
+  weights are relative contributions of biological signatures, summing to one, with
+  artifact signature weights set to zero. (These are derived from the blended weights.)
 }
 \description{
 This function calculates expected relative rates of trinucleotide-context-specific SNV

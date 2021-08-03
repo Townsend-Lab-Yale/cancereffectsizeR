@@ -1,3 +1,8 @@
+# cancereffectsizeR 2.2.1
+* Reorganization of signature weights data to raw_weights, adjusted_weights, biological_weights. Raw weights come straight from signature extraction.
+* Variant annotation optimized for better performance on large data sets.
+* Fixes for preload_maf/load_maf usability issues.
+
 # cancereffectsizeR 2.2.0
 * Support for using MutationalPatterns for signature extraction. The MutationalPatterns fit_to_signatures_strict method is now the default used by trinuc_mutation_rates().
 * Helper function trinuc_snv_counts eases exploratory signature analysis, and the counts used internally by trinuc_mutation_rates() are now viewable.

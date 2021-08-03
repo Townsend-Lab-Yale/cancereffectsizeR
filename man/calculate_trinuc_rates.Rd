@@ -17,6 +17,10 @@ calculate_trinuc_rates(weights, signatures, tumor_names)
 matrix of trinuc rates where each row corresponds to a tumor
 }
 \description{
-Used interally to calculate trinuc rates from signature weights.
+Used interally to calculate trinuc rates from signature weights
+}
+\details{
+If any relative rate is less than 1e-9, we add the lowest above-threshold rate to all
+rates and renormalize rates so that they sum to 1.
 }
 \keyword{internal}
