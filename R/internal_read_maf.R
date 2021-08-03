@@ -241,7 +241,7 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
   maf[supported == FALSE & is.na(problem), problem := 'unsupported_chr']
   maf[, c("stripped_chr", "supported") := NULL]
   
-  # If LiftOver is not being used (which would catch problems earlier), make sure all records are in-bounds.
+  # If liftOver is not being used (which would catch problems earlier), make sure all records are in-bounds.
   if (is.null(chain_file)) {
     max_lengths = GenomeInfoDb::seqlengths(refset_env$genome)
     maf[Start_Position > max_lengths[Chromosome], problem := 'out_of_bounds']
@@ -261,6 +261,7 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
   maf[is.na(problem) & Reference_Allele != '-' & Reference_Allele != actual_ref, problem := 'reference_mismatch']
   maf[, actual_ref := NULL]
   
+  setcolorder(maf, maf_cols)
   return(maf)
 }
 

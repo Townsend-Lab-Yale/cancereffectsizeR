@@ -227,6 +227,8 @@ preload_maf = function(maf = NULL, refset = "ces.refset.hg19", coverage_interval
     }
   }
   maf = identify_maf_variants(maf)
+  setcolorder(maf, c("Unique_Patient_Identifier", "Chromosome", "Start_Position", 
+                       "Reference_Allele", "Tumor_Allele", "variant_type", "variant_id"))
   return(maf[])
 }
 

@@ -300,8 +300,8 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
       uncovered = maf[is_uncovered, -c("variant_type", "variant_id")]
       uncovered$Exclusion_Reason = paste0("uncovered_in_", covered_regions_name)
       maf = maf[!is_uncovered]
-      excluded = rbind(excluded, uncovered)
-      message(paste0("Note: ", num_uncovered, " MAF records out of ", total, " (", percent, 
+      excluded = rbind(excluded, uncovered[, names(excluded), with = F])
+      pretty_message(paste0("Note: ", num_uncovered, " MAF records out of ", total, " (", percent, 
                      "%) are at loci not covered in the input covered_regions, so they have been excluded."))
     }
   }
