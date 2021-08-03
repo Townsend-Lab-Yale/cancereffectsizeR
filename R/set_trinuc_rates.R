@@ -1,16 +1,20 @@
 #' Assign pre-calculated relative trinucleotide mutation rates
 #'
-#' This function assigns trinucleotide-context-specific relative SNV mutation rates to tumors 
-#' in a CESAnalysis. (These could be rates previously generated with \code{trinuc_mutation_rates()}, or
-#' they could calculated using your own methods.) The input rates must be a data.table or matrix.
-#' If supplying a data table, there must be a Unique_Patient_Identifier column; if supplying a 
-#' a matrix, the identifiers should be supplied as rownames instead. Either way, all samples in the
-#' CESAnalysis must be represented in the input rates. To avoid user error, there cannot be any
-#' superfluous samples in the input rates unless \code{ignore_extra_samples = T}. Besides the identifier
-#' column (or matrix rownames), there must be 96 columns, with column names exactly matching
-#' the deconstructSigs naming and order (run this function with incorrect column names, 
-#' and the names you need to use will be printed). Since CES uses relative trinuc rates,
-#' rows must sum to 1, with all values greater than 0.
+#' This function assigns trinucleotide-context-specific relative SNV mutation rates to
+#' tumors in a CESAnalysis. (These could be rates previously generated with
+#' \code{trinuc_mutation_rates()}, or they could calculated using your own methods.) The
+#' input rates must be a data.table or matrix. If supplying a data table, there must be a
+#' Unique_Patient_Identifier column; if supplying a a matrix, the identifiers should be
+#' supplied as rownames instead. Either way, all samples in the CESAnalysis must be
+#' represented in the input rates. To avoid user error, there cannot be any superfluous
+#' samples in the input rates unless \code{ignore_extra_samples = T}. Besides the
+#' identifier column (or matrix rownames), there must be 96 columns, with column names
+#' exactly matching the deconstructSigs/MutationalPatterns naming and order (run this
+#' function with incorrect column names, and the names you need to use will be printed).
+#' Since CES uses relative trinuc rates, rows must sum to 1, with all values greater than
+#' 0. You'll get a warning if any rate is less than 1e-9, since (unrealistically) low
+#' rates may crash selection model likelihood functions that aren't expecting such small
+#' values.
 #' 
 #' 
 #' @param cesa CESAnalysis object
@@ -67,13 +71,15 @@ set_trinuc_rates = function(cesa, trinuc_rates, ignore_extra_samples = FALSE) {
   if(any(abs(rowSums(trinuc_proportion_matrix) - 1) > .001)) {
     stop("row sums of input rates must all be 1", call. = F)
   }
-  if (any(apply(trinuc_proportion_matrix, 1, function(x) any(x <= 0)))) {
+  if (any(apply(trinuc_proportion_matrix, 1, function(x) any(x <= 1e-9)))) {
     # rate < 0 is invalid
     if (any(apply(trinuc_proportion_matrix, 1, function(x) any(x < 0)))) {
       stop("input rates cannot have negative entries.")
     }
-    warning(paste0("Some mutation rates are zero in some tumors. This could cause problems, especially if",
-                   "any \"impossible\" mutations are in the data set. Consider tweaking your method!"))
+    msg = paste0("Some relative mutation rates are very low (<1e-9). This could cause problems, especially if",
+                   " any \"impossible\" mutations (rate = 0) are in the data set. Very low rates, besides being unrealistic, can also ",
+                   "crash selection model likelihood functions due to numerical precision issues. Consider tweaking your method!")
+    warning(pretty_message(msg, emit = F))
   }
   cesa@trinucleotide_mutation_weights = list(trinuc_proportion_matrix = trinuc_proportion_matrix)
   cesa@advanced$locked = T

@@ -50,5 +50,5 @@ run_mutational_patterns = function(tumor_trinuc_counts, signatures_df, signature
     weights <- weights[,rownames(signatures_df)]
   }
   
-  return(weights / sum(weights)) # normalize to sum to 1
+  return(weights)
 }

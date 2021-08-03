@@ -129,7 +129,8 @@ set_signature_weights = function(cesa, signature_set, weights, ignore_extra_samp
                                         bio_weights$Unique_Patient_Identifier)
   
   cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix = trinuc_rates
-  cesa@trinucleotide_mutation_weights$signature_weight_table_with_artifacts = weights
+  cesa@trinucleotide_mutation_weights$raw_signature_weights = weights
+  cesa@trinucleotide_mutation_weights$signature_weights_table_with_artifacts = data.table(NULL)
   cesa@trinucleotide_mutation_weights$signature_weight_table = bio_weights
   cesa@advanced$locked = TRUE
   cesa@advanced$trinuc_done = TRUE
@@ -150,27 +151,29 @@ set_signature_weights = function(cesa, signature_set, weights, ignore_extra_samp
 #' @keywords internal
 artifact_account = function(weights, signature_names, artifact_signatures = NULL, fail_if_zeroed = FALSE) {
   bio_weights = copy(weights)
-  bio_weights[, initial_weight_sum := rowSums(.SD), .SDcols = signature_names]
   if(! is.null(artifact_signatures)) {
     bio_weights[, (artifact_signatures) := 0]
   }
-  
-  zeroed_out_index = which(bio_weights[, rowSums(.SD), .SDcols = signature_names] == 0)
-  if (fail_if_zeroed && length(zeroed_out_index) > 0) {
-    stop("Some tumor(s) have all-zero weights across non-artifact signatures:\n",
-         paste(bio_weights[zeroed_out_index, Unique_Patient_Identifier], collapse = ", "), ".")
+  bio_weights[, adjust := sum(.SD), .SDcols = signature_names, by = "Unique_Patient_Identifier"]
+  zeroed_out_index = bio_weights[adjust == 0, which = T]
+  if (length(zeroed_out_index) > 0) {
+    if(fail_if_zeroed) {
+      stop("Some tumor(s) have all-zero weights across non-artifact signatures:\n",
+           paste(bio_weights[zeroed_out_index, Unique_Patient_Identifier], collapse = ", "), ".")
+    }
+    bio_weights[zeroed_out_index, adjust := 1] # don't alter all-zero rows
   }
-  bio_weights[zeroed_out_index, adjust := 1]
-  not_zeroed_out = setdiff(1:nrow(bio_weights), zeroed_out_index)
-  bio_weights[not_zeroed_out, adjust := sum(.SD)/initial_weight_sum, by = "Unique_Patient_Identifier", 
-              .SDcols = signature_names]
   bio_weights[, (signature_names) := lapply(.SD, `/`, adjust), .SDcols = signature_names]
-  bio_weights[, c("initial_weight_sum", "adjust") := NULL]
+  bio_weights[, adjust := NULL]
+  return(bio_weights)
 }
 
 #' Calculate trinuc rates
 #' 
-#' Used interally to calculate trinuc rates from signature weights.
+#' Used interally to calculate trinuc rates from signature weights
+#' 
+#' If any relative rate is less than 1e-9, we add the lowest above-threshold rate to all
+#' rates and renormalize rates so that they sum to 1.
 #' 
 #' @param weights matrix of signature weights
 #' @param signatures matrix of signatures
@@ -178,6 +181,7 @@ artifact_account = function(weights, signature_names, artifact_signatures = NULL
 #' @return matrix of trinuc rates where each row corresponds to a tumor
 #' @keywords internal
 calculate_trinuc_rates = function(weights, signatures, tumor_names) {
+  
   # get trinuc rates and normalize to relative rates
   trinuc_rates = weights %*% signatures
   trinuc_rates = t(apply(trinuc_rates, 1, function(x) {
@@ -190,11 +194,12 @@ calculate_trinuc_rates = function(weights, signatures, tumor_names) {
   }))
   rownames(trinuc_rates) = tumor_names
   
-  # if any sample has a rate of zero in any context (possible with the right combination of signatures),
-  # add the lowest nonzero rate to all and renormalze
+  # if any sample has a rate under the floor of 1e-9 in any context (possible with the
+  # right combination of signatures), add the lowest above-threshold rate to all and
+  # renormalize
   add_pseudo = function(x) {
-    if(any(x == 0) && ! all(x == 0)) {
-      next_lowest = min(x[x != 0])
+    if(any(x < 1e-9) && ! all(x < 1e-9)) {
+      next_lowest = min(x[x >= 1e-9])
       x = x + next_lowest
       x = x / sum(x)
     }

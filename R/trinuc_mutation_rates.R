@@ -58,10 +58,13 @@
 #'   signature weights, and assign these to all tumors
 #' @param use_dS_exome2genome historical dev option (don't use)
 #' @return CESAnalysis with sample-specific signature weights and inferred
-#'   trinucleotide-context-specific relative mutation rates. Note that tumors with few
-#'   mutations (group_avg_blended == TRUE in the signature weights tables) have weights
-#'   influenced by the average weights of well-mutated tumors; you may want to exclude
-#'   these samples for some mutational signature analyses.
+#'   trinucleotide-context-specific relative mutation rates. Raw weights are the signature
+#'   contributions determined by the signature extractor. Blended weights are the same,
+#'   except samples with few mutations have their weights blended with group-average
+#'   weights from well-mutated samples. (You may wish to exclude samples with
+#'   group_average_blended == TRUE from some mutational signature comparisons.) Biological
+#'   weights are relative contributions of biological signatures, summing to one, with
+#'   artifact signature weights set to zero. (These are derived from the blended weights.)
 #' @export
 #'
 trinuc_mutation_rates <- function(cesa,
@@ -514,6 +517,9 @@ trinuc_mutation_rates <- function(cesa,
     cesa@trinucleotide_mutation_weights[["signature_weight_table"]] = new_bio_sig_table
     new_adjusted_sig_table = rbind(cesa@trinucleotide_mutation_weights[["signature_weight_table_with_artifacts"]], adjusted_sig_table)
     cesa@trinucleotide_mutation_weights[["signature_weight_table_with_artifacts"]] = new_adjusted_sig_table
+    
+    setcolorder(raw_signature_output, "Unique_Patient_Identifier")
+    cesa@trinucleotide_mutation_weights[["raw_signature_weights"]] = raw_signature_output
   }
   
   if(! is.null(mean_ds)) {

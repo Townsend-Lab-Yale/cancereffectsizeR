@@ -53,8 +53,9 @@ setMethod("$", "CESAnalysis",
               return(get_trinuc_rates(x))
             } else if (name == "mutational_signatures") {
               return(list(snv_counts = x@trinucleotide_mutation_weights$trinuc_snv_counts,
-                          relative_biological = get_signature_weights(x, artifacts_zeroed = T),
-                          all = get_signature_weights(x, artifacts_zeroed = F)))
+                          raw_weights = x@trinucleotide_mutation_weights$raw_signature_weights,
+                          adjusted_weights = get_signature_weights(x, artifacts_zeroed = F),
+                          biological_weights = get_signature_weights(x, artifacts_zeroed = T)))
             } else if (name == "gene_rates") {
               return(get_gene_rates(x))
             } else if (name == "variants") {

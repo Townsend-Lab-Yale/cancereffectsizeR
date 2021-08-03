@@ -48,7 +48,7 @@ test_that("Trinucleotide signature weight calculation", {
   which_pure = prev_relative_bio_sig[group_avg_blended == F, which = T]
   all.equal(cesa3@trinucleotide_mutation_weights$signature_weight_table[which_pure, -c("sig_extraction_snvs", "group_avg_blended")],
             prev_relative_bio_sig[which_pure, -c("sig_extraction_snvs", "group_avg_blended")])
-  all.equal(cesa3@trinucleotide_mutation_weights$signature_weight_table_with_artifacts[,  .SD, .SDcols = patterns("(SBS)|(Uni)")],
+  all.equal(cesa3@trinucleotide_mutation_weights$raw_signature_weights[,  .SD, .SDcols = patterns("(SBS)|(Uni)")],
             raw_weight_input)
   all.equal(cesa3@trinucleotide_mutation_weights$trinuc_proportion_matrix[which_pure,],
             prev_rates_matrix[which_pure, ])
