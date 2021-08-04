@@ -344,7 +344,7 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_passlist = 
       cov_counts = curr_samples[, .N, by = "covered_regions"]
       
       # this should be made more elegant at some point
-      unique_combos = setdiff(unique(combined$covered_in), c(list(character()), list(NULL))) # various empty entries in sites just covered in WGS
+      unique_combos = setdiff(unique(combined$covered_in), c(list(character()), list(NULL), list(list()))) # various empty entries in sites just covered in WGS
       setkey(cov_counts, "covered_regions")
       
       # If all full-coverage WGS data, then there will be no unique_combos
