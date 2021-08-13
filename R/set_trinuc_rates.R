@@ -22,9 +22,10 @@
 #' @param ignore_extra_samples skip samples in the input table that are not in the CESAnalysis (when false, will stop with an error)
 #' @export
 set_trinuc_rates = function(cesa, trinuc_rates, ignore_extra_samples = FALSE) {
-  if(is.null(cesa) || ! is(cesa, "CESAnalysis")) {
+  if(! is(cesa, "CESAnalysis")) {
     stop("Expected cesa to be a CESAnalysis object", call. = F)
   }
+  cesa = copy_cesa(cesa)
   cesa = update_cesa_history(cesa, match.call())
   if(cesa@samples[, .N] == 0) {
     stop("There are no samples in the CESAnalysis", call. = F)

@@ -17,7 +17,7 @@
 #' COSMIC's website for tier definitions.
 #' \item germline_variant_site The variant's position overlaps a site of common germline
 #' variation. Roughly, this means that gnomAD 2.1.1 shows an overlapping germline variant at
-#' greater than 1% prevalence in some population.
+#' greater than 1%% prevalence in some population.
 #' \item repetitive_region The variant overlaps a site marked as repetitive sequence by
 #' the RepeatMasker tool (data taken from UCSC Table Browser). Variant calls in repetitive
 #' sites frequently reflect calling error.
@@ -121,6 +121,7 @@ preload_maf = function(maf = NULL, refset = "ces.refset.hg19", coverage_interval
       stop("keep_extra_columns should be T/F or names of extra columns to include.")
     }
   }
+
   maf = read_in_maf(maf = maf, refset_env = refset_env, chr_col = chr_col, start_col = start_col, ref_col = ref_col,
                     tumor_allele_col = tumor_allele_col, sample_col = sample_col, more_cols = more_cols, chain_file = chain_file)
   

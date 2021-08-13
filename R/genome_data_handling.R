@@ -194,7 +194,11 @@ get_ces_signature_set = function(refset, name) {
 
   sig_file = paste0(refset_dir, "/signatures/", name, "_signatures.rds")
   if (! file.exists(sig_file)) {
-    stop("Couldn't find signature data; expected to find it at ", sig_file)
+    no_spaces = paste0(refset_dir, "/signatures/", gsub(' ', '_', name), "_signatures.rds")
+    if (! file.exists(no_spaces)) {
+      stop("Couldn't find signature data; expected to find it at ", sig_file)
+    }
+    sig_file = no_spaces
   }
   return(readRDS(sig_file))
 }
@@ -233,7 +237,7 @@ validate_signature_set = function(signature_set) {
     stop("Improperly formatted custom signature set: name should be 1-length character, signatures should be data.frame, meta should be data.table", call. = F)
   }
   if(is(signatures, "data.table") || is(signatures, "tbl")) {
-    stop("For compatibility with deconstructSigs, signature definitions must be given as a pure data.frame (see docs).", call. = F)
+    stop("For compatibility with signature extractors, signature definitions must be given as a pure data.frame (see docs).", call. = F)
   }
   if(! identical(sort(deconstructSigs_trinuc_string), sort(colnames(signatures)))) {
     tmp = paste0("\n", 'c("', paste(deconstructSigs_trinuc_string, collapse = '", "'), '")')

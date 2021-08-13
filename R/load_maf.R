@@ -7,7 +7,7 @@
 #' specify "group_col". By default, data is assumed to be derived from whole-exome
 #' sequencing. Whole-genome data and targeted sequencing data are also supported when the
 #' "coverage" option is specified. If the data you are loading is from a different genome
-#' build than your CESAnalysis, you can use the "chain_file" option to supply a UCSC-style
+#' build than your CESAnalysis, you can use the chain_file argument to supply a UCSC-style
 #' chain file, and your MAF coordinates will be automatically converted with
 #' rtracklayer's version of liftOver.
 #' 
@@ -45,22 +45,12 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   }
   
   if(cesa@advanced$locked) {
-    stop("You can't load more MAF data since you've already calculated some mutation rates. Create a new one if necessary.", call. = F)
+    stop("You can't load more MAF data since you've already calculated some mutation rates. Create a new CESAnalysis if necessary.", call. = F)
   }
+  
+  cesa = copy_cesa(cesa)
   cesa = update_cesa_history(cesa, match.call())
   bsg = get_cesa_bsg(cesa)
-  
-  # validate chain_file (presence means liftOver must run)
-  need_to_liftOver = FALSE
-  if(! is.null(chain_file)) {
-    need_to_liftOver = TRUE
-    if(!is(chain_file, "character") || length(chain_file) != 1 || !(endsWith(chain_file, ".chain"))) {
-      stop("Argument chain_file expected to be the filename/path of a text file ending in .chain")
-    }
-    if(! file.exists(chain_file)) {
-      stop("The chain_file specified could not be found; check the file path.")
-    }
-  }
   
   if (is.null(maf)) {
     stop("Supply MAF data via maf=[file path or data.table/data.frame].")

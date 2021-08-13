@@ -14,9 +14,10 @@
 #' @param cesa CESAnalysis object
 #' @export
 assign_group_average_trinuc_rates = function(cesa) {
-  if(is.null(cesa) || ! is(cesa, "CESAnalysis")) {
+  if(! is(cesa, "CESAnalysis")) {
     stop("Expected cesa to be a CESAnalysis object")
   }
+  cesa = copy_cesa(cesa)
   cesa = update_cesa_history(cesa, match.call())
   if(cesa@maf[, .N] == 0) {
     stop("No MAF data in the CESAnalysis")

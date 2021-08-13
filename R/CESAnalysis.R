@@ -99,20 +99,23 @@ CESAnalysis = function(refset = "ces.refset.hg19", sample_groups = NULL) {
   ## gene_rates_done: have all samples been through gene_mutation_rates?
   ## uid: a unique-enough identifier for the CESAnalysis (just uses epoch time)
   ## genome_info: environment with stuff like genome build name, species, name of associated BSgenome
+  ## snv_signatures: List CES signature sets used in the analysis
   ## cached_variants (not populated here): output of select_variants() run with default arguments
   ##      (automatically updated as needed by load_cesa/update_covered_in)
   genome_info = get_ref_data(data_dir, "genome_build_info")
   ces_version = packageVersion("cancereffectsizeR")
   advanced = list("version" = ces_version, using_exome_plus = F, 
                   recording = T, locked = F, trinuc_done = F, gene_rates_done = F,
-                  uid = unclass(Sys.time()), genome_info = genome_info)
+                  uid = unclass(Sys.time()), genome_info = genome_info,
+                  snv_signatures = list())
   
   # Mutation table specifications (see template tables declared in imports.R)
   mutation_tables = list(amino_acid_change = aac_annotation_template, snv = snv_annotation_template)
   cesa = new("CESAnalysis", run_history = character(),  ref_key = refset_name, maf = data.table(), excluded = data.table(),
              groups = sample_groups, mutrates = data.table(),
              selection_results = list(), ref_data_dir = data_dir, epistasis = list(),
-             advanced = advanced, samples = data.table(), mutations = mutation_tables)
+             advanced = advanced, samples = data.table(), mutations = mutation_tables,
+             coverage = list())
   cesa@run_history = c(paste0("[Version: cancereffectsizeR ", ces_version, "]" ))
   cesa = update_cesa_history(cesa, match.call())
 
@@ -121,6 +124,45 @@ CESAnalysis = function(refset = "ces.refset.hg19", sample_groups = NULL) {
   pretty_message(msg)
   return(cesa)
 }
+
+#' Creat an independent copy of a CESAnalysis
+#' 
+#' Used internally to "copy" CESAnalysis objects while keeping memory use to a minimum.
+#'
+#' The trick is to use data.table's copy function on all data.tables (and lists of
+#' data.tables) within CESAnalysis slots. (If you just call copy on the whole object, the
+#' data tables won't be handled in a memory-efficient way. And if you call copy on
+#' non-data.tables, it's actuall less-efficient since it forces immediate copy instead of
+#' the usual copy-on-modify.)
+#' 
+#' @param cesa CESAnalysis
+#' @keywords internal
+copy_cesa = function(cesa) {
+  if(! is(cesa, "CESAnalysis")) {
+    stop("cesa should be a CESAnalysis")
+  }
+  trinuc_orig = cesa@trinucleotide_mutation_weights
+  trinuc_copy = list()
+  if(length(trinuc_orig) > 0) {
+    for (i in c("trinuc_snv_counts", "trinuc_proportion_matrix", "group_average_dS_output")) {
+      trinuc_copy[[i]] = trinuc_orig[[i]]
+    }
+    trinuc_copy[c("signature_weight_table", "signature_weight_table_with_artifacts",
+                  "raw_signature_weights")] = copy(trinuc_orig[c("signature_weight_table", "signature_weight_table_with_artifacts",
+                                                                 "raw_signature_weights")])
+  }
+
+  
+  cesa = new("CESAnalysis", run_history = cesa@run_history,  groups = cesa@groups,
+             ref_key = cesa@ref_key, ref_data_dir = cesa@ref_data_dir, dndscv_out_list = cesa@dndscv_out_list,
+             maf = copy(cesa@maf), excluded = copy(cesa@excluded),
+             mutrates = copy(cesa@mutrates), selection_results = copy(cesa@selection_results),
+             epistasis = copy(cesa@epistasis), samples = copy(cesa@samples), mutations = copy(cesa@mutations),
+             advanced = copy(cesa@advanced), coverage = copy(cesa@coverage),
+             trinucleotide_mutation_weights = trinuc_copy)
+  return(cesa)
+}
+
 
 #' Save a CESAnalysis in progress
 #' 
@@ -144,7 +186,10 @@ save_cesa = function(cesa, file) {
   if(! grepl('\\.rds$', file)) {
     stop("filename should end in .rds (indicates R data serialized format)")
   }
+  # Note updating of history before copying, so save_cesa call is recorded both in the
+  # user's active analysis and in the saved file.
   cesa_to_save = update_cesa_history(cesa, match.call())
+  cesa_to_save = copy_cesa(cesa)
   cesa_to_save@advanced$cached_variants = NULL # reduce file size (data recalculated on reload)
   saveRDS(cesa_to_save, file)
 }
@@ -178,9 +223,28 @@ load_cesa = function(file) {
   if (! is.null(cesa@trinucleotide_mutation_weights[["signature_weight_table_with_artifacts"]])) {
     cesa@trinucleotide_mutation_weights[["signature_weight_table_with_artifacts"]] = setDT(cesa@trinucleotide_mutation_weights[["signature_weight_table_with_artifacts"]])
   }
+  
+  if (! is.null(cesa@trinucleotide_mutation_weights[["raw_signature_weights"]])) {
+    cesa@trinucleotide_mutation_weights[["raw_signature_weights"]] = setDT(cesa@trinucleotide_mutation_weights[["raw_signature_weights"]])
+  }
+  
   cesa@mutrates = setDT(cesa@mutrates)
   cesa@selection_results = lapply(cesa@selection_results, setDT)
   cesa@epistasis = lapply(cesa@epistasis, setDT)
+  
+  # Now a list of signature sets. Formerly just 1 set, so put in enclosing list if necessary.
+  used_sig_sets = cesa@advanced$snv_signatures
+  if (! is.null(used_sig_sets)) {
+    if (! is.list(used_sig_sets[[1]])) {
+      cesa@advanced$snv_signatures = list(cesa@advanced$snv_signatures)
+      names(cesa@advanced$snv_signatures) = cesa@advanced$snv_signatures[[1]]$name
+    }
+    
+    # Get each signature set's meta data.table and call setDT
+    lapply(lapply(cesa@advanced$snv_signatures, '[[', 'meta'), setDT)
+  } else {
+    cesa@advanced$snv_signatures = list()
+  }
   
   refset_name = cesa@ref_key
   if (refset_name %in% names(.official_refsets)) {
@@ -285,7 +349,7 @@ maf_records = function(cesa = NULL) {
   if(cesa@maf[,.N] == 0) {
     stop("No MAF data has been loaded")
   }
-  return(cesa@maf)
+  return(copy(cesa@maf))
 }
 
 #' View excluded MAF data
@@ -303,7 +367,7 @@ excluded_maf_records = function(cesa = NULL) {
   if(cesa@excluded[,.N] == 0) {
     message("Returned an empty data table since no records have been excluded.")
   }
-  return(cesa@excluded)
+  return(copy(cesa@excluded))
 }
 
 #' View sample metadata
@@ -321,13 +385,13 @@ get_sample_info = function(cesa = NULL) {
   
   # user doesn't need group columns for single-group analyses
   if(length(cesa@groups) == 1) {
-    return(cesa@samples[, -c("group")])
+    return(copy(cesa@samples[, -c("group")]))
   } else {
-    return(cesa@samples)
+    return(copy(cesa@samples))
   }
 }
 
-#' Get expected relative trinucleotide-specific SNV mutation rates
+#' Get estimated relative rates of trinucleotide-specific SNV mutation
 #' 
 #' @param cesa CESAnalysis object
 #' @export
@@ -338,22 +402,44 @@ get_trinuc_rates = function(cesa = NULL) {
   return(as.data.table(cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix, keep.rownames = "Unique_Patient_Identifier"))
 }
 
-#' Get table of signature weights by tumor
+#' Get table of signature attributions
+#' 
+#' View SNV signature attributions associated with CESAnalysis samples.
+#' 
+#' 
+#' Use raw = TRUE to get signature attributions as produced by the signature extraction
+#' tool (or as provided by the user with set_signature_weights()), without any of the
+#' adjustments that are made by cancereffectsizeR's trinuc_mutation_rates().
 #' 
 #' @param cesa CESAnalysis object
-#' @param artifacts_zeroed If TRUE, return weights table in which artifact signatures have
-#'   been set to zero and remaining weights renormalized to sum to 1, reflecting relative
-#'   contributions of biological processes to mutations. If FALSE, return a table with
-#'   artifact weights unaltered.
+#' @param raw Default FALSE. When TRUE, return raw signature attributions as found by the
+#'   signature extraction tool. Format may vary by tool.
+#' @param artifacts_zeroed Deprecated.
+#' @return A data.table of signature attributions for each sample. By default, these are
+#'   estimated relative weights of biologically-associated signatures (i.e., non-artifact
+#'   signatures) that sum to 1.
 #' @export
-get_signature_weights = function(cesa = NULL, artifacts_zeroed = T) {
+get_signature_weights = function(cesa = NULL, raw = F, artifacts_zeroed = NULL) {
   if(! is(cesa, "CESAnalysis")) {
     stop("\nUsage: get_signature_weights(cesa), where cesa is a CESAnalysis")
   }
-  if (artifacts_zeroed) {
-    return(cesa@trinucleotide_mutation_weights$signature_weight_table)
+  
+  if(! is(cesa, "CESAnalysis")) {
+    stop("cesa should be a CESAnalysis")
+  }
+  
+  if(! is.logical(raw) || length(raw) != 1) {
+    stop("raw should be T/F.")
+  }
+  
+  if(! is.null(artifacts_zeroed)) {
+    stop("artifacts_zeroed is deprecated. Consider using raw = TRUE.")
+  }
+
+  if (raw == TRUE) {
+    return(copy(cesa@trinucleotide_mutation_weights$raw_signature_weights))
   } else {
-    return(cesa@trinucleotide_mutation_weights$signature_weight_table_with_artifacts)
+    return(copy(cesa@trinucleotide_mutation_weights$signature_weight_table))
   }
 }
 
@@ -391,7 +477,7 @@ snv_results = function(cesa = NULL) {
   for (i in 1:length(cesa@selection_results)) {
     curr_selection = cesa@selection_results[[i]]
     
-    # compound variant runs have already have all available annotations
+    # compound variant runs already have all available annotations
     if (identical(attr(curr_selection, "is_compound"), TRUE)) {
       output = c(output, list(curr_selection))
       next
@@ -410,8 +496,7 @@ snv_results = function(cesa = NULL) {
     output = c(output, list(results))
   }
   names(output) = names(cesa@selection_results)
-  
-  return(output)
+  return(copy(output))
 }
 
 #' View output from epistasis functions
@@ -426,15 +511,15 @@ epistasis_results = function(cesa = NULL) {
   if (length(cesa@epistasis) == 0) {
     stop("No results yet from epistasis functions in this CESAnalysis")
   }
-  return(cesa@epistasis)
+  return(copy(cesa@epistasis))
 }
 
 
 
 #' clean_granges_for_cesa
 #' 
-#' Tries to format an input GRanges object to be compatible with a CESAnalysis's reference
-#' genome. Optionally also applies padding to start and end positions of ranges, stopping
+#' Tries to format an input GRanges object to be compatible with a CESAnalysis reference
+#' genome. Optionally, also applies padding to start and end positions of ranges, stopping
 #' at chromosome ends. Either stops with an error or returns a clean granges object.
 #' 
 #' @param cesa CESAnalysis
@@ -524,7 +609,7 @@ clean_granges_for_cesa = function(cesa = NULL, gr = NULL, padding = 0, refset_en
 
 update_cesa_history = function(cesa, comm) {
   if (identical(cesa@advanced$recording, TRUE)) {
-    cesa@run_history =  c(cesa@run_history, deparse(comm, width.cutoff = 500))
+    cesa@run_history = c(cesa@run_history, deparse(comm, width.cutoff = 500))
   }
   return(cesa)
 }

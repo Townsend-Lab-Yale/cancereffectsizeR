@@ -529,6 +529,7 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
   if(! is(target_cesa, "CESAnalysis")) {
     stop("target_cesa should be a CESAnalysis", call. = F)
   }
+  target_cesa = copy_cesa(target_cesa)
   target_cesa = update_cesa_history(target_cesa, match.call())
 
   if (! is(padding, "numeric") || length(padding) != 1 || trunc(padding) != padding || padding < 0) {

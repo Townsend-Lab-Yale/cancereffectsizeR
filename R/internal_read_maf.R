@@ -52,6 +52,15 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
     }
   }
   
+  if (! is.null(chain_file)) {
+    if(!is(chain_file, "character") || length(chain_file) != 1 || !(endsWith(chain_file, ".chain"))) {
+      stop("Argument chain_file expected to be the filename/path of a text file ending in .chain")
+    }
+    if(! file.exists(chain_file)) {
+      stop("The chain_file specified could not be found; check the file path.")
+    }
+  }
+  
   # If it looks like this function's liftOver functionality has previously been used
   # on this data, we'll keep the columns that it generated.
   if (is.null(chain_file) && ! is.null(select_cols)) {
@@ -73,9 +82,9 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
           # readChar(maf, 2) == '##' could indicate a VCF file
           # fread(maf, skip = '#CHROM') would skip to end of VCF headers
           if (is.null(select_cols)) {
-            maf = fread(maf, sep = "\t", quote ="", blank.lines.skip = T)
+            maf = fread(maf, quote ="", blank.lines.skip = T)
           } else {
-            maf = fread(maf, sep = "\t", quote ="", blank.lines.skip = T, select = select_cols)
+            maf = fread(maf, quote ="", blank.lines.skip = T, select = select_cols)
           }
         },
         error = function(e) {

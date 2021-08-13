@@ -2,18 +2,28 @@
 % Please edit documentation in R/CESAnalysis.R
 \name{get_signature_weights}
 \alias{get_signature_weights}
-\title{Get table of signature weights by tumor}
+\title{Get table of signature attributions}
 \usage{
-get_signature_weights(cesa = NULL, artifacts_zeroed = T)
+get_signature_weights(cesa = NULL, raw = F, artifacts_zeroed = NULL)
 }
 \arguments{
 \item{cesa}{CESAnalysis object}
 
-\item{artifacts_zeroed}{If TRUE, return weights table in which artifact signatures have
-been set to zero and remaining weights renormalized to sum to 1, reflecting relative
-contributions of biological processes to mutations. If FALSE, return a table with
-artifact weights unaltered.}
+\item{raw}{Default FALSE. When TRUE, return raw signature attributions as found by the
+signature extraction tool. Format may vary by tool.}
+
+\item{artifacts_zeroed}{Deprecated.}
+}
+\value{
+A data.table of signature attributions for each sample. By default, these are
+  estimated relative weights of biologically-associated signatures (i.e., non-artifact
+  signatures) that sum to 1.
 }
 \description{
-Get table of signature weights by tumor
+View SNV signature attributions associated with CESAnalysis samples.
+}
+\details{
+Use raw = TRUE to get signature attributions as produced by the signature extraction
+tool (or as provided by the user with set_signature_weights()), without any of the
+adjustments that are made by cancereffectsizeR's trinuc_mutation_rates().
 }

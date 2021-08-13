@@ -11,12 +11,11 @@
 #' @export
 add_covered_regions = function(target_cesa = NULL, source_cesa = NULL, covered_regions = NULL, 
                                covered_regions_name = NULL, coverage_type = NULL, covered_regions_padding = 0) {
-  prev_recording_status = target_cesa@advanced$recording
-  target_cesa = update_cesa_history(target_cesa, match.call())
-  target_cesa@advanced$recording = F
+
   if (! is(target_cesa, "CESAnalysis")) {
     stop("target_cesa should be a CESAnalysis", call. = F)
   }
+  
   if (! is(covered_regions_padding, "numeric") || length(covered_regions_padding) > 1 || covered_regions_padding < 0 ||
       covered_regions_padding - as.integer(covered_regions_padding) != 0) {
     stop("covered_regions_padding should be 1-length integer", call. = F)
@@ -31,6 +30,11 @@ add_covered_regions = function(target_cesa = NULL, source_cesa = NULL, covered_r
     stop("Use source_cesa to copy all covered regions from another CESAnalysis, or\n",
          "covered_regions, covered_regions_name, and coverage_type to add one covered regions set.")
   }
+  
+  target_cesa = copy_cesa(target_cesa)
+  prev_recording_status = target_cesa@advanced$recording
+  target_cesa = update_cesa_history(target_cesa, match.call())
+  target_cesa@advanced$recording = F
   
   # Validate both possible sets of arguments
   if (! is.null(source_cesa)) {

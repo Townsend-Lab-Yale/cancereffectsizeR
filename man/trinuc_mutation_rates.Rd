@@ -33,7 +33,7 @@ trinuc_mutation_rates(
 \item{mp_strict_args}{Named list of arguments to pass to MutationalPatterns'
 fit_to_signatures_strict function. Note that mut_matrix and signatures arguments are
 generated automatically, and that if you'd rather not use the strict method, you can
-emulate fit_to_signatures by setting max_delta = 0.}
+emulate fit_to_signatures() by setting max_delta = 0.}
 
 \item{assume_identical_mutational_processes}{use well-mutated tumors (those with number
 of eligible mutations meeting sig_averaging_threshold) to calculate group average
@@ -48,18 +48,38 @@ averages are blended into the signature weights of sub-threshold tumors.}
 }
 \value{
 CESAnalysis with sample-specific signature weights and inferred
-  trinucleotide-context-specific relative mutation rates. Raw weights are the signature
-  contributions determined by the signature extractor. Blended weights are the same,
-  except samples with few mutations have their weights blended with group-average
-  weights from well-mutated samples. (You may wish to exclude samples with
-  group_average_blended == TRUE from some mutational signature comparisons.) Biological
-  weights are relative contributions of biological signatures, summing to one, with
-  artifact signature weights set to zero. (These are derived from the blended weights.)
+  trinucleotide-context-specific relative mutation rates. The snv_counts matrix gives
+  the numbers of SNVs in each trinucleotide context in all samples in CESAnalysis. (As
+  noted elsewhere, recurrent mutations are excluded to reduce the incluence of
+  selection.) This matrix, produced by `trinuc_snv_counts()`, can be fed directly into
+  MutationalPatterns if you wish to run your own extended signature analysis.
+  
+  The raw_attributions table contains signature attributions as produced by
+  MutationalPatterns or deconstructSigs. The biological_weights table has several
+  differences:
+  \itemize{ 
+  \item Weights for signatures associated with artifactual (as opposed to biological) processes are set to zero.
+  \item The remaining weights are normalized to sum to 1. 
+  \item Tumors with few mutations (defined by `sig_averaging_threshold`, default = 50)
+  have their weights redefined using a blend of their original weights and weights
+  derived from running signature extraction en masse on tumors with above-threshold
+  mutation counts. These samples are identifiable by filtering the table on
+  `group_avg_blended == TRUE`, and we recommend excluding them from most downstream
+  signature analysis. (These weights are useful as a best
+  guess of mutational processes, but they shouldn't be reported in any way that
+  implies their independence from the group-average weights.)
+  
+  Biological weights can be interpreted as the proportion of mutations, out of all known mutational processes,
+  that are produced by the processes associated with each biological signature.
+  
+  Either signature attributions table can be converted into the matrix format used by MutationalPatterns 
+  with `convert_signature_weights_for_mp()`.
+  }
 }
 \description{
 This function calculates expected relative rates of trinucleotide-context-specific SNV
 mutations within tumors by attributing SNVs to mutational processes represented in
-mutation signature sets (such as COSMIC v3). Signature extraction can be done with
+mutation signature sets (such as "COSMIC v3.2"). Signature extraction can be done with
 MutationalPatterns (default) or deconstructSigs. Tumors with targeted sequencing data
 are assigned the average trinucleotide mutation rates calculated across all
 exome/genome data, which means that you need at least some exome or genome data to run.

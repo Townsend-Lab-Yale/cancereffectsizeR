@@ -39,6 +39,11 @@ set_gene_rates = function(cesa = NULL, rates = NULL, sample_group = NULL, missin
     stop("Unrecognized sample groups. Those defined in the CESAnalysis are ", paste(possible_groups, sep = ", "), ".")
   }
   
+  
+  cesa = copy_cesa(cesa)
+  if(cesa@samples[, .N] == 0) {
+    stop("No MAF data loaded. Gene rates should be assigned after loading all variant data.")
+  } 
   curr_samples = cesa@samples[group %in% sample_group, "Unique_Patient_Identifier"]
   if (length(curr_samples) == 0) {
     stop("No samples are in the specified group(s)")

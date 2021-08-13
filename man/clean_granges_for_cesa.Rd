@@ -14,8 +14,8 @@ clean_granges_for_cesa(cesa = NULL, gr = NULL, padding = 0, refset_env = NULL)
 \item{padding}{How many bases to expand start and end of each position}
 }
 \description{
-Tries to format an input GRanges object to be compatible with a CESAnalysis's reference
-genome. Optionally also applies padding to start and end positions of ranges, stopping
+Tries to format an input GRanges object to be compatible with a CESAnalysis reference
+genome. Optionally, also applies padding to start and end positions of ranges, stopping
 at chromosome ends. Either stops with an error or returns a clean granges object.
 }
 \keyword{internal}

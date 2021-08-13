@@ -55,6 +55,14 @@ set_signature_weights = function(cesa, signature_set, weights, ignore_extra_samp
   signatures = signature_set_data$signatures
   signature_metadata = signature_set_data$meta
   
+  previous_set = cesa@advanced$snv_signatures[[signature_set_name]]
+  if (! is.null(previous_set)) {
+    if(! all.equal(previous_set, signature_set_data, check.attributes = F)) {
+      stop("A signature set with the same name has already been used in the CESAnalysis, but it is not ",
+           "identical to the input set.")
+    }
+  }
+  
   if(! is(weights, "data.table")) {
     stop("weights should be a data.table (you may need to convert with as.data.table()).")
   }
@@ -127,14 +135,14 @@ set_signature_weights = function(cesa, signature_set, weights, ignore_extra_samp
   
   trinuc_rates = calculate_trinuc_rates(as.matrix(bio_weights[, ..signature_names]), as.matrix(signatures), 
                                         bio_weights$Unique_Patient_Identifier)
-  
+  cesa = copy_cesa(cesa)
   cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix = trinuc_rates
   cesa@trinucleotide_mutation_weights$raw_signature_weights = weights
   cesa@trinucleotide_mutation_weights$signature_weights_table_with_artifacts = data.table(NULL)
   cesa@trinucleotide_mutation_weights$signature_weight_table = bio_weights
   cesa@advanced$locked = TRUE
   cesa@advanced$trinuc_done = TRUE
-  cesa@advanced$snv_signatures = signature_set_data
+  cesa@advanced$snv_signatures[[signature_set_name]] = copy(signature_set_data)
   cesa = update_cesa_history(cesa, match.call())
   return(cesa)
 }

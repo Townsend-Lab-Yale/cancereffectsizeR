@@ -22,6 +22,7 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), run_name = "auto
   if (! is(cesa, "CESAnalysis")) {
     stop("cesa should be a CESAnalysis.")
   }
+  cesa = copy_cesa(cesa)
   cesa = update_cesa_history(cesa, match.call())
   if (! is(run_name, "character") || length(run_name) != 1) {
     stop("run_name should be 1-length character")
@@ -144,10 +145,6 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), run_name = "auto
 #'   frequencies for in tumors that have coverage at both variants in each pair
 #' @export
 ces_epistasis = function(cesa = NULL, variants = NULL, run_name = "auto", cores = 1, conf = NULL) {
-  if(! is(cesa, "CESAnalysis")) {
-    stop("cesa should specify a CESAnalysis object", call. = F)
-  }
-  cesa = update_cesa_history(cesa, match.call())
   
   if (! is(run_name, "character") || length(run_name) != 1) {
     stop("run_name should be 1-length character")
@@ -155,6 +152,22 @@ ces_epistasis = function(cesa = NULL, variants = NULL, run_name = "auto", cores 
   if (! grepl('^[a-z]', tolower(run_name), perl = T) || grepl('\\s\\s', run_name)) {
     stop("Invalid run name. The name must start with a latter and contain no consecutive spaces.")
   }
+  if(! is.null(conf)) {
+    if(! is(conf, "numeric") || length(conf) > 1 || conf <= 0 || conf >= 1) {
+      stop("conf should be 1-length numeric (e.g., .95 for 95% confidence intervals)", call. = F)
+    }
+  }
+  
+  if (! is.null(variants) && length(variants) < 1) {
+    stop("variants is 0-length.", call. = F)
+  }
+  
+  if(! is(cesa, "CESAnalysis")) {
+    stop("cesa should specify a CESAnalysis object", call. = F)
+  }
+  cesa = copy_cesa(cesa)
+  cesa = update_cesa_history(cesa, match.call())
+  
   if(run_name %in% names(cesa@epistasis)) {
     stop("The run_name you chose has already been used. Please pick a new one.")
   }
@@ -166,16 +179,6 @@ ces_epistasis = function(cesa = NULL, variants = NULL, run_name = "auto", cores 
       run_number = run_number + 1
       run_name = paste0('variant_epistasis_', run_number)
     }
-  }
-  
-  if(! is.null(conf)) {
-    if(! is(conf, "numeric") || length(conf) > 1 || conf <= 0 || conf >= 1) {
-      stop("conf should be 1-length numeric (e.g., .95 for 95% confidence intervals)", call. = F)
-    }
-  }
-  
-  if (! is.null(variants) && length(variants) < 1) {
-    stop("variants is 0-length.", call. = F)
   }
   
   if(is(variants, "CompoundVariantSet")) {

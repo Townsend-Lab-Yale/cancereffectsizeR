@@ -165,6 +165,7 @@ ces_variant <- function(cesa = NULL,
     names(curr_grouping) = curr_samples
     sample_index = c(sample_index, curr_grouping)
   }
+  cesa = copy_cesa(cesa)
   unused_groups = setdiff(cesa@groups, used_groups)
   if (length(unused_groups) > 0) {
     pretty_message(paste0("The following CESAnalysis groups were not included in \"groups\", so they are not informing effect size:\n",

@@ -2,7 +2,7 @@
 #'
 #' This function calculates expected relative rates of trinucleotide-context-specific SNV
 #' mutations within tumors by attributing SNVs to mutational processes represented in
-#' mutation signature sets (such as COSMIC v3). Signature extraction can be done with
+#' mutation signature sets (such as "COSMIC v3.2"). Signature extraction can be done with
 #' MutationalPatterns (default) or deconstructSigs. Tumors with targeted sequencing data
 #' are assigned the average trinucleotide mutation rates calculated across all
 #' exome/genome data, which means that you need at least some exome or genome data to run.
@@ -48,7 +48,7 @@
 #' @param mp_strict_args Named list of arguments to pass to MutationalPatterns'
 #'   fit_to_signatures_strict function. Note that mut_matrix and signatures arguments are
 #'   generated automatically, and that if you'd rather not use the strict method, you can
-#'   emulate fit_to_signatures by setting max_delta = 0.
+#'   emulate fit_to_signatures() by setting max_delta = 0.
 #' @param sig_averaging_threshold Mutation prevalence threshold (default 50) that
 #'   determines which tumors inform the calculation of group-average signature weights.
 #'   When assume_identical_mutational_processes == FALSE (the default), these group
@@ -58,13 +58,33 @@
 #'   signature weights, and assign these to all tumors
 #' @param use_dS_exome2genome historical dev option (don't use)
 #' @return CESAnalysis with sample-specific signature weights and inferred
-#'   trinucleotide-context-specific relative mutation rates. Raw weights are the signature
-#'   contributions determined by the signature extractor. Blended weights are the same,
-#'   except samples with few mutations have their weights blended with group-average
-#'   weights from well-mutated samples. (You may wish to exclude samples with
-#'   group_average_blended == TRUE from some mutational signature comparisons.) Biological
-#'   weights are relative contributions of biological signatures, summing to one, with
-#'   artifact signature weights set to zero. (These are derived from the blended weights.)
+#'   trinucleotide-context-specific relative mutation rates. The snv_counts matrix gives
+#'   the numbers of SNVs in each trinucleotide context in all samples in CESAnalysis. (As
+#'   noted elsewhere, recurrent mutations are excluded to reduce the incluence of
+#'   selection.) This matrix, produced by `trinuc_snv_counts()`, can be fed directly into
+#'   MutationalPatterns if you wish to run your own extended signature analysis.
+#'   
+#'   The raw_attributions table contains signature attributions as produced by
+#'   MutationalPatterns or deconstructSigs. The biological_weights table has several
+#'   differences:
+#'   \itemize{ 
+#'   \item Weights for signatures associated with artifactual (as opposed to biological) processes are set to zero.
+#'   \item The remaining weights are normalized to sum to 1. 
+#'   \item Tumors with few mutations (defined by `sig_averaging_threshold`, default = 50)
+#'   have their weights redefined using a blend of their original weights and weights
+#'   derived from running signature extraction en masse on tumors with above-threshold
+#'   mutation counts. These samples are identifiable by filtering the table on
+#'   `group_avg_blended == TRUE`, and we recommend excluding them from most downstream
+#'   signature analysis. (These weights are useful as a best
+#'   guess of mutational processes, but they shouldn't be reported in any way that
+#'   implies their independence from the group-average weights.)
+#'   
+#'   Biological weights can be interpreted as the proportion of mutations, out of all known mutational processes,
+#'   that are produced by the processes associated with each biological signature.
+#'   
+#'   Either signature attributions table can be converted into the matrix format used by MutationalPatterns 
+#'   with `convert_signature_weights_for_mp()`.
+#'   }
 #' @export
 #'
 trinuc_mutation_rates <- function(cesa,
@@ -77,11 +97,7 @@ trinuc_mutation_rates <- function(cesa,
                                   assume_identical_mutational_processes = FALSE,
                                   sig_averaging_threshold = 50,
                                   use_dS_exome2genome = FALSE) {  
-  if(is.null(cesa) || ! is(cesa, "CESAnalysis")) {
-    stop("Expected cesa to be a CESAnalysis object", call. = F)
-  }
-  cesa = update_cesa_history(cesa, match.call())
-  
+
   if (! is(signature_extractor, "character") || length(signature_extractor) != 1 || 
       ! tolower(signature_extractor) %in% c('mutationalpatterns', 'deconstructsigs')) {
     stop("signature_extractor must be 'MutationalPatterns' or 'deconstructSigs'. (Or, use set_signature_weights to ",
@@ -104,6 +120,39 @@ trinuc_mutation_rates <- function(cesa,
   if (any(c("signatures", "mut_matrix") %in% names(mp_strict_args))) {
     stop("mp_strict_args: You can't supply mut_matrix or signatures because this function generates them automatically.")
   }
+  
+  
+  if(! is.logical(assume_identical_mutational_processes) || length(assume_identical_mutational_processes) != 1 || is.na(assume_identical_mutational_processes)) {
+    stop("Expected assume_identical_mutational_processes to be TRUE/FALSE (default is FALSE).", call. = F)
+  }
+  
+  if(! is.numeric(sig_averaging_threshold) || length(sig_averaging_threshold) != 1 || is.na(sig_averaging_threshold) || sig_averaging_threshold < 0) {
+    stop("Expected positive integer for sig_averaging_threshold", call. = F)
+  }
+  sig_averaging_threshold = as.integer(sig_averaging_threshold) # below, we test that at least one tumor meets this threshold
+  
+  if(! is(signatures_to_remove, "character")) {
+    stop("signatures_to_remove should be a character vector", call. = F)
+  }
+  if(is(signature_set, "character")) {
+    if (length(signature_set) != 1) {
+      stop("signature_set should be 1-length character; run list_ces_signature_sets() for options.\n(Or, it can a custom signature set; see docs.)", call. = F)
+    }
+    signature_set_data = get_ces_signature_set(cesa@ref_key, signature_set)
+  } else if(is(signature_set, "list")) {
+    validate_signature_set(signature_set)
+    signature_set_data = signature_set
+  } else {
+    stop("signature_set should be type character; run list_ces_signature_sets() for options.\n",
+         "(Or, it can be a custom signature set; see docs.)")
+  }
+  
+  
+  if(is.null(cesa) || ! is(cesa, "CESAnalysis")) {
+    stop("Expected cesa to be a CESAnalysis object", call. = F)
+  }
+  cesa = copy_cesa(cesa)
+  cesa = update_cesa_history(cesa, match.call())
   
   if(cesa@maf[, .N] == 0) {
     stop("No MAF data in the CESAnalysis", call. = F)
@@ -134,30 +183,6 @@ trinuc_mutation_rates <- function(cesa,
     stop("We can't estimate relative trinucleotide mutation rates without some exome/genome data in the CESAnalysis (all data is targeted sequencing).", call. = F)
   }
   
-  if(! is.logical(assume_identical_mutational_processes) || length(assume_identical_mutational_processes) != 1 || is.na(assume_identical_mutational_processes)) {
-    stop("Expected assume_identical_mutational_processes to be TRUE/FALSE (default is FALSE).", call. = F)
-  }
-  
-  if(! is.numeric(sig_averaging_threshold) || length(sig_averaging_threshold) != 1 || is.na(sig_averaging_threshold) || sig_averaging_threshold < 0) {
-    stop("Expected positive integer for sig_averaging_threshold", call. = F)
-  }
-  sig_averaging_threshold = as.integer(sig_averaging_threshold) # below, we test that at least one tumor meets this threshold
-  
-  if(! is(signatures_to_remove, "character")) {
-    stop("signatures_to_remove should be a character vector", call. = F)
-  }
-  if(is(signature_set, "character")) {
-    if (length(signature_set) != 1) {
-      stop("signature_set should be 1-length character; run list_ces_signature_sets() for options.\n(Or, it can a custom signature set; see docs.)", call. = F)
-    }
-    signature_set_data = get_ces_signature_set(cesa@ref_key, signature_set)
-  } else if(is(signature_set, "list")) {
-    validate_signature_set(signature_set)
-    signature_set_data = signature_set
-  } else {
-    stop("signature_set should be type character; run list_ces_signature_sets() for options.\n",
-         "(Or, it can be a custom signature set; see docs.)")
-  }
   signature_set_name = signature_set_data$name
   signatures = signature_set_data$signatures
   signature_metadata = signature_set_data$meta
@@ -179,17 +204,18 @@ trinuc_mutation_rates <- function(cesa,
     }
   }
   
-  # Save signature set to CESAnalysis
+  # Save a copy of signature set in the CESAnalysis
   # If already ran with different sample group, make sure signature set data is the same
-  if (! is.null(cesa@advanced$snv_signatures)) {
-    if (! all.equal(cesa@advanced$snv_signatures, signature_set_data, check.attributes = F)) {
-      stop("Signature set does not exactly match the one previously used with this CESAnalysis.")
-    }
+  previously_saved = cesa@advanced$snv_signatures[[signature_set_name]]
+  if (is.null(previously_saved)) {
+    cesa@advanced$snv_signatures[[signature_set_name]] = copy(signature_set_data)
   } else {
-    cesa@advanced$snv_signatures = signature_set_data
+    # Okay if attributes don't match, probably (e.g., one set's table may be keyed from interactive use)
+    if(! all.equal(previously_saved, signature_set_data, check.attributes = F)) {
+      stop("A signature set with the same name has already been used in the CESAnalysis, but it is not ",
+           "identical to the input set.")
+    }
   }
-  
-  
   
   # Put columns of signature data.frame into canonical deconstructSigs order (to match up with exome count order, etc.)
   signatures = signatures[, deconstructSigs_trinuc_string]
@@ -530,11 +556,9 @@ trinuc_mutation_rates <- function(cesa,
     }
   }
   cesa@advanced$locked = T
-  
   if(nrow(cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix) == cesa@samples[, .N]) {
     cesa@advanced$trinuc_done = T
   }
-  
   return(cesa)
 }
 
@@ -632,5 +656,7 @@ trinuc_snv_counts = function(maf,
     return(as.data.frame(counts))
   }
 }
+
+
 
 

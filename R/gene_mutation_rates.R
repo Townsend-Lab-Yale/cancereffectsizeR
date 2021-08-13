@@ -19,14 +19,10 @@
 #' @export
 # don't change this function at all without being sure you're not messing up tests
 gene_mutation_rates <- function(cesa, covariates = NULL, sample_group = NULL, save_all_dndscv_output = FALSE){
-  if (! is(cesa, "CESAnalysis")) {
-    stop("cesa expected to be a CESAnalysis object", call. = F)
-  }
-  
   if(is.null(sample_group)) {
     sample_group = cesa@groups
   }
-  
+
   if(! is(sample_group, "character")) {
     stop("sample_group should be character")
   }
@@ -39,6 +35,10 @@ gene_mutation_rates <- function(cesa, covariates = NULL, sample_group = NULL, sa
     stop("Unrecognized sample groups. Those defined in the CESAnalysis are ", paste(possible_groups, sep = ", "), ".")
   }
   
+  if (! is(cesa, "CESAnalysis")) {
+    stop("cesa expected to be a CESAnalysis object", call. = F)
+  }
+  cesa = copy_cesa(cesa)
   cesa = update_cesa_history(cesa, match.call())
 
   RefCDS = .ces_ref_data[[cesa@ref_key]]$RefCDS
@@ -209,6 +209,7 @@ gene_mutation_rates <- function(cesa, covariates = NULL, sample_group = NULL, sa
   if(! save_all_dndscv_output) {
     dndscv_output = dndscv_output$sel_cv
   }
+  
   cesa@samples[group %in% sample_group, gene_rate_grp := curr_rate_group]
   
   if(using_cds_rates) {
@@ -284,6 +285,7 @@ clear_gene_rates = function(cesa = NULL) {
     stop("cesa should be a CESAnalysis")
   }
   
+  cesa = copy_cesa(cesa)
   cesa@dndscv_out_list = list()
   cesa@mutrates = data.table()
   cesa@advanced$gene_rates_done = F

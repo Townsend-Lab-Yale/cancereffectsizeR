@@ -70,7 +70,7 @@ names. When your CESAnalysis has defined sample groups (see \code{?CESAnalysis})
 specify "group_col". By default, data is assumed to be derived from whole-exome
 sequencing. Whole-genome data and targeted sequencing data are also supported when the
 "coverage" option is specified. If the data you are loading is from a different genome
-build than your CESAnalysis, you can use the "chain_file" option to supply a UCSC-style
+build than your CESAnalysis, you can use the chain_file argument to supply a UCSC-style
 chain file, and your MAF coordinates will be automatically converted with
 rtracklayer's version of liftOver.
 }

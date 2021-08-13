@@ -34,6 +34,9 @@ setClass("CESAnalysis", representation(maf = "data.table", trinucleotide_mutatio
   if(x@mutrates[, .N] > 0) {
     features = c(features, "gene_rates")
   }
+  if(length(x@dndscv_out_list) > 0) {
+    features = c(features, "dNdScv_results")
+  }
   features = c(features, c("reference_data", "coverage_ranges", "run_history"))
   grep(pattern, features, value=TRUE)
 }
@@ -53,16 +56,16 @@ setMethod("$", "CESAnalysis",
               return(get_trinuc_rates(x))
             } else if (name == "mutational_signatures") {
               return(list(snv_counts = x@trinucleotide_mutation_weights$trinuc_snv_counts,
-                          raw_weights = x@trinucleotide_mutation_weights$raw_signature_weights,
-                          adjusted_weights = get_signature_weights(x, artifacts_zeroed = F),
-                          biological_weights = get_signature_weights(x, artifacts_zeroed = T)))
+                          raw_attributions = get_signature_weights(x, raw = T),
+                          biological_weights = get_signature_weights(x, raw = F),
+                          help = function() cat("See Value in ?trinuc_mutation_rates for methods and tips.\n")))
             } else if (name == "gene_rates") {
               return(get_gene_rates(x))
             } else if (name == "variants") {
-              cached_variants = x@advanced$cached_variants
+              cached_variants = copy(x@advanced$cached_variants)
               if (is.null(cached_variants)) {
                 x@advanced$cached_variants = suppressMessages(select_variants(cesa = x))
-                cached_variants = x@advanced$cached_variants
+                cached_variants = copy(x@advanced$cached_variants)
               }
               return(cached_variants)
             } else if (name == "selection") {
@@ -70,15 +73,26 @@ setMethod("$", "CESAnalysis",
             } else if (name == "epistasis") {
               return(epistasis_results(x))
             } else if (name == "reference_data") {
-              ref_data = list(genome = .ces_ref_data[[x@ref_key]]$genome)
-              snv_signatures = x@advanced$snv_signatures
-              if (! is.null(snv_signatures)) {
+              ref_data = list(genome = get_cesa_bsg(x))
+              snv_signatures = copy(x@advanced$snv_signatures)
+              if (length(snv_signatures) > 0) {
                 ref_data = c(ref_data, list(snv_signatures = snv_signatures))
               }
               return(invisible(ref_data))
             } else if (name == "coverage_ranges") {
-              return(x@coverage)
-            } else if (name == "run_history") {
+              return(x@coverage) 
+            } else if(name == "dNdScv_results") {
+              return(lapply(x@dndscv_out_list, 
+                            function(y) {
+                              if(is.data.frame(y)) {
+                                return(copy(setDT(y)))
+                              } else {
+                                # for the rare user who requests all dNdScv output
+                                return(y)
+                              }
+                            }))
+            }
+              else if (name == "run_history") {
               CES_Run_History(x@run_history)
             }
           }
@@ -99,26 +113,14 @@ setMethod("show", "CESAnalysis",
       num_snvs = object@maf[variant_type == "snv", .N]
       cat("\nMAF data: ", num_snvs, " SNVs loaded.", sep = "")
     }
-    signature_set = object@advanced$snv_signatures
-    if (! is.null(signature_set)) {
-      signature_set_name = signature_set$name
-      cat("Mutational processes: Sample-level extraction of ", signature_set_name, " SNV signatures.\n", sep = "")
+    signature_sets = object@advanced$snv_signatures
+    if (length(signature_sets) > 0) {
+      signature_set_names = paste(names(signature_sets), collapse = ', ')
+      cat("Mutational processes: Sample-level extraction of ", signature_set_names, " SNV signatures.\n", sep = "")
     }
     cat("Run history: See [CESAnalysis]$run_history.\n")
     cat(paste0("\n[Created in cancereffectsizeR, version ", object@advanced$version, ".]"))
   }
-)
-
-setValidity("CESAnalysis",
-    function(object) {
-     if(object@maf[, .N] > 0) {
-       if(! identical(colnames(object@maf)[1:5], c("Unique_Patient_Identifier", "Chromosome", "Start_Position",
-                                                   "Reference_Allele", "Tumor_Allele") )) {
-         return("First MAF columns not Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele, Tumor_Allele")
-       }
-     } 
-     TRUE
-    }
 )
 
 setClass("CompoundVariantSet", representation(snvs = "data.table", compounds = "data.table", sample_calls = "list",
@@ -176,8 +178,6 @@ setMethod("$", "CompoundVariantSet",
     }
   }
 )
-
-
 
 
 setClass("CES_Run_History", representation(history = "character"))
