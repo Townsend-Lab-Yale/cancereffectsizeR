@@ -150,7 +150,7 @@ rt_by_gene[is.na(rt_by_gene)] = 0
 
 We combine information across all refset genes that were present in all gene-based data sources. (Position-based data, such as the chromatin and replication timing data, are presumed to cover all genes.)
 
-[Aside: Refset genes that are not present in all gene-based data sources will not have any covariates data generated, and cancereffectsizeR's `gene_mutation_rates()` will instead use covariates of the nearest available gene. In this example, over 95% of refset.ces.hg19 genes are covered in both CCLE and GTEx data. If you want to use a gene-based data source that leaves out many genes, you may want to adopt another strategy, such as manually inserting an appropriate value for missing genes, or using the values of nearby genes.]
+[Aside: refset genes that are not present in all gene-based data sources will not have any covariates data generated, and cancereffectsizeR's `gene_mutation_rates()` will instead use covariates of the nearest available gene. In this example, over 95% of refset.ces.hg19 genes are covered in both CCLE and GTEx data. If you want to use a gene-based data source that leaves out many genes, you may want to adopt another strategy, such as manually inserting an appropriate value for missing genes, or using the values of nearby genes.]
 
 ```{r}
 final_gene_ids = Reduce(intersect, list(refset_short_gene_ids, ccle$short_gene_id, gtex$short_gene_id))

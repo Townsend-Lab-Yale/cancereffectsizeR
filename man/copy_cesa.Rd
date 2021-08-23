@@ -2,7 +2,7 @@
 % Please edit documentation in R/CESAnalysis.R
 \name{copy_cesa}
 \alias{copy_cesa}
-\title{Creat an independent copy of a CESAnalysis}
+\title{Create an independent copy of a CESAnalysis}
 \usage{
 copy_cesa(cesa)
 }
@@ -16,7 +16,7 @@ Used internally to "copy" CESAnalysis objects while keeping memory use to a mini
 The trick is to use data.table's copy function on all data.tables (and lists of
 data.tables) within CESAnalysis slots. (If you just call copy on the whole object, the
 data tables won't be handled in a memory-efficient way. And if you call copy on
-non-data.tables, it's actuall less-efficient since it forces immediate copy instead of
-the usual copy-on-modify.)
+non-data.tables, it's actually less efficient since it forces an immediate full copy
+instead of the usual copy-on-modify.)
 }
 \keyword{internal}

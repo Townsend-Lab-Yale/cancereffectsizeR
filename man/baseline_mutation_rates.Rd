@@ -30,6 +30,6 @@ baseline_mutation_rates(
 a data table of mutation rates with one column per variant, and a Unique_Patient_Identifier column identifying each row
 }
 \description{
-Caculates neutral mutation rates at specific sites based on gene mutation rates and the relative
+Calculates neutral mutation rates at specific sites based on gene mutation rates and the relative
 trinucleotide-context-specific SNV mutation rates of each sample
 }

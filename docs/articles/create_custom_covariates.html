@@ -40,7 +40,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.2.1</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.2.2</span>
       </span>
     </div>
 
@@ -244,7 +244,7 @@
 <a href="#combine-processed-data-and-run-prcomp" class="anchor"></a>Combine processed data and run <em>prcomp</em>
 </h2>
 <p>We combine information across all refset genes that were present in all gene-based data sources. (Position-based data, such as the chromatin and replication timing data, are presumed to cover all genes.)</p>
-<p>[Aside: Refset genes that are not present in all gene-based data sources will not have any covariates data generated, and cancereffectsizeR’s <code><a href="../reference/gene_mutation_rates.html">gene_mutation_rates()</a></code> will instead use covariates of the nearest available gene. In this example, over 95% of refset.ces.hg19 genes are covered in both CCLE and GTEx data. If you want to use a gene-based data source that leaves out many genes, you may want to adopt another strategy, such as manually inserting an appropriate value for missing genes, or using the values of nearby genes.]</p>
+<p>[Aside: refset genes that are not present in all gene-based data sources will not have any covariates data generated, and cancereffectsizeR’s <code><a href="../reference/gene_mutation_rates.html">gene_mutation_rates()</a></code> will instead use covariates of the nearest available gene. In this example, over 95% of refset.ces.hg19 genes are covered in both CCLE and GTEx data. If you want to use a gene-based data source that leaves out many genes, you may want to adopt another strategy, such as manually inserting an appropriate value for missing genes, or using the values of nearby genes.]</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">final_gene_ids</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/funprog.html">Reduce</a></span><span class="op">(</span><span class="va">intersect</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="va">refset_short_gene_ids</span>, <span class="va">ccle</span><span class="op">$</span><span class="va">short_gene_id</span>, <span class="va">gtex</span><span class="op">$</span><span class="va">short_gene_id</span><span class="op">)</span><span class="op">)</span>
 <span class="va">covariates_input</span> <span class="op">=</span> <span class="va">refset_genes</span><span class="op">[</span><span class="va">final_gene_ids</span>, <span class="fu">.</span><span class="op">(</span><span class="va">short_gene_id</span>, <span class="va">gene_name</span><span class="op">)</span>, on <span class="op">=</span> <span class="st">"short_gene_id"</span><span class="op">]</span>

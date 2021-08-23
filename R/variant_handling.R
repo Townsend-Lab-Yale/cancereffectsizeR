@@ -57,7 +57,7 @@
 #' @param variant_position_table Filter out any variants that don't intersect the
 #'   positions given in chr/start/end of this table (1-based closed coordinates).
 #'   Typically, the table comes from a previous \code{select_variants} call and can be expanded
-#'   with \code{padding}. (Gritty detail: Amino acid change SNVS get special handling. Only the
+#'   with \code{padding}. (Gritty detail: Amino acid change SNVs get special handling. Only the
 #'   precise positions in start, end, and center_nt_pos are used. This avoids intersecting
 #'   extra variants between start/end, which on splice-site-spanning variants can be many
 #'   thousands.)
@@ -86,7 +86,7 @@
 #'   the default is to return one AAC in these situations. Tiebreakers are MAF frequency,
 #'   essential splice site status, non-silent status, gene mutation frequency,
 #'   alphabetical. The omitted AACs will still be included in the all_aac column, and if
-#'   any constituent SNVS of the AACs don't overlap, the non-overlapping SNVs from the
+#'   any constituent SNVs of the AACs don't overlap, the non-overlapping SNVs from the
 #'   excluded AACs will still be included in output. If you set remove_secondary_aac to
 #'   FALSE, you can't put the output variant table in selection calculation functions. An
 #'   alternative is to set to FALSE, pick which (non-overlapping) variants you want, and

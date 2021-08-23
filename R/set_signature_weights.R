@@ -178,7 +178,7 @@ artifact_account = function(weights, signature_names, artifact_signatures = NULL
 
 #' Calculate trinuc rates
 #' 
-#' Used interally to calculate trinuc rates from signature weights
+#' Used internally to calculate trinuc rates from signature weights
 #' 
 #' If any relative rate is less than 1e-9, we add the lowest above-threshold rate to all
 #' rates and renormalize rates so that they sum to 1.

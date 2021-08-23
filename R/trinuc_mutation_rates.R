@@ -60,7 +60,7 @@
 #' @return CESAnalysis with sample-specific signature weights and inferred
 #'   trinucleotide-context-specific relative mutation rates. The snv_counts matrix gives
 #'   the numbers of SNVs in each trinucleotide context in all samples in CESAnalysis. (As
-#'   noted elsewhere, recurrent mutations are excluded to reduce the incluence of
+#'   noted elsewhere, recurrent mutations are excluded to reduce the influence of
 #'   selection.) This matrix, produced by `trinuc_snv_counts()`, can be fed directly into
 #'   MutationalPatterns if you wish to run your own extended signature analysis.
 #'   
@@ -79,8 +79,9 @@
 #'   guess of mutational processes, but they shouldn't be reported in any way that
 #'   implies their independence from the group-average weights.)
 #'   
-#'   Biological weights can be interpreted as the proportion of mutations, out of all known mutational processes,
-#'   that are produced by the processes associated with each biological signature.
+#'   Biological weights can be interpreted as follows: Out of all the mutations caused by
+#'   biological processes represented in the signatures, the proportion of mutations
+#'   attributed to given signature is its weight.
 #'   
 #'   Either signature attributions table can be converted into the matrix format used by MutationalPatterns 
 #'   with `convert_signature_weights_for_mp()`.
@@ -564,7 +565,7 @@ trinuc_mutation_rates <- function(cesa,
 
 #' Tabulate SNVs by trinucleotide context
 #' 
-#' This function prodcues trinculeotide-context-specific SNV counts from MAF data for
+#' This function produces trinculeotide-context-specific SNV counts from MAF data for
 #' input to mutational signature extraction tools. Output can be tailored to meet
 #' formatting requirements of MutationalPatterns or deconstructSigs, which are probably
 #' similar to formats used by other tools.

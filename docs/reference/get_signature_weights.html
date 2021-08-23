@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Get table of signature weights by tumor — get_signature_weights • cancereffectsizeR</title>
+<title>Get table of signature attributions — get_signature_weights • cancereffectsizeR</title>
 
 <!-- favicons -->
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
@@ -52,8 +52,8 @@
 
 
 
-<meta property="og:title" content="Get table of signature weights by tumor — get_signature_weights" />
-<meta property="og:description" content="Get table of signature weights by tumor" />
+<meta property="og:title" content="Get table of signature attributions — get_signature_weights" />
+<meta property="og:description" content="View SNV signature attributions associated with CESAnalysis samples." />
 <meta property="og:image" content="https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/logo.png" />
 
 
@@ -86,7 +86,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.2.1</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.2.2</span>
       </span>
     </div>
 
@@ -152,16 +152,16 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Get table of signature weights by tumor</h1>
+    <h1>Get table of signature attributions</h1>
     <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/main/R/CESAnalysis.R'><code>R/CESAnalysis.R</code></a></small>
     <div class="hidden name"><code>get_signature_weights.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Get table of signature weights by tumor</p>
+    <p>View SNV signature attributions associated with CESAnalysis samples.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>get_signature_weights</span><span class='op'>(</span>cesa <span class='op'>=</span> <span class='cn'>NULL</span>, artifacts_zeroed <span class='op'>=</span> <span class='cn'>T</span><span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>get_signature_weights</span><span class='op'>(</span>cesa <span class='op'>=</span> <span class='cn'>NULL</span>, raw <span class='op'>=</span> <span class='cn'>F</span>, artifacts_zeroed <span class='op'>=</span> <span class='cn'>NULL</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -171,14 +171,26 @@
       <td><p>CESAnalysis object</p></td>
     </tr>
     <tr>
+      <th>raw</th>
+      <td><p>Default FALSE. When TRUE, return raw signature attributions as found by the
+signature extraction tool. Format may vary by tool.</p></td>
+    </tr>
+    <tr>
       <th>artifacts_zeroed</th>
-      <td><p>If TRUE, return weights table in which artifact signatures have
-been set to zero and remaining weights renormalized to sum to 1, reflecting relative
-contributions of biological processes to mutations. If FALSE, return a table with
-artifact weights unaltered.</p></td>
+      <td><p>Deprecated.</p></td>
     </tr>
     </table>
 
+    <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
+
+    <p>A data.table of signature attributions for each sample. By default, these are
+  estimated relative weights of biologically-associated signatures (i.e., non-artifact
+  signatures) that sum to 1.</p>
+    <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
+
+    <p>Use raw = TRUE to get signature attributions as produced by the signature extraction
+tool (or as provided by the user with set_signature_weights()), without any of the
+adjustments that are made by cancereffectsizeR's trinuc_mutation_rates().</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

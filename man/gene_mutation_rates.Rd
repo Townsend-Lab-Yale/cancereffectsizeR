@@ -8,17 +8,20 @@ gene_mutation_rates(
   cesa,
   covariates = NULL,
   sample_group = NULL,
+  dndscv_args = list(),
   save_all_dndscv_output = FALSE
 )
 }
 \arguments{
 \item{cesa}{CESAnalysis object}
 
-\item{covariates}{Name of tissue-specific covariates to use (run list_ces_covariates()
-to see choices). For hg19 data only, you can also use "default" for dNdScv's
-non-tissue-specific covariates. If no appropriate covariates data are available, set
-NULL to run without. Finally, you can also supply custom covariates data in the form
-of a prcomp object (see documentation for details).}
+\item{covariates}{Tissue-specific mutation rate covariates. Typically, supply the
+covariates object from your refset (e.g., ces.refset.hg19$covariates$bladder), or the
+object name ("bladder"). Run list_ces_covariates() to see choices. For hg19 data
+only, set to "hg19" to use dNdScv's non-tissue-specific covariates. If no appropriate
+covariates data are available, set to NULL to run without. Finally, you can also
+supply custom covariates data in the form of a matrix or prcomp object (see website
+for details).}
 
 \item{sample_group}{Which sample groups to include in the gene rate calculation;
 defaults to all groups. (To calculate different rates for different groups, you'll 

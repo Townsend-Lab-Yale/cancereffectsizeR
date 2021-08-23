@@ -4,7 +4,7 @@
 \alias{run_dndscv}
 \title{Internal function to run dNdScv}
 \usage{
-run_dndscv(mutations, gene_list, cv, refdb, gr_genes)
+run_dndscv(mutations, gene_list, cv, refdb, gr_genes, ...)
 }
 \description{
 Internal function to run dNdScv

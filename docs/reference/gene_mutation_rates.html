@@ -88,7 +88,7 @@ as described in Martincorena et al." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.2.1</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.2.2</span>
       </span>
     </div>
 
@@ -169,6 +169,7 @@ as described in <a href='https://doi.org/10.1016/j.cell.2017.09.042'>Martincoren
   <span class='va'>cesa</span>,
   covariates <span class='op'>=</span> <span class='cn'>NULL</span>,
   sample_group <span class='op'>=</span> <span class='cn'>NULL</span>,
+  dndscv_args <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span><span class='op'>(</span><span class='op'>)</span>,
   save_all_dndscv_output <span class='op'>=</span> <span class='cn'>FALSE</span>
 <span class='op'>)</span></pre>
 
@@ -181,11 +182,13 @@ as described in <a href='https://doi.org/10.1016/j.cell.2017.09.042'>Martincoren
     </tr>
     <tr>
       <th>covariates</th>
-      <td><p>Name of tissue-specific covariates to use (run list_ces_covariates()
-to see choices). For hg19 data only, you can also use "default" for dNdScv's
-non-tissue-specific covariates. If no appropriate covariates data are available, set
-NULL to run without. Finally, you can also supply custom covariates data in the form
-of a prcomp object (see documentation for details).</p></td>
+      <td><p>Tissue-specific mutation rate covariates. Typically, supply the
+covariates object from your refset (e.g., ces.refset.hg19$covariates$bladder), or the
+object name ("bladder"). Run list_ces_covariates() to see choices. For hg19 data
+only, set to "hg19" to use dNdScv's non-tissue-specific covariates. If no appropriate
+covariates data are available, set to NULL to run without. Finally, you can also
+supply custom covariates data in the form of a matrix or prcomp object (see website
+for details).</p></td>
     </tr>
     <tr>
       <th>sample_group</th>

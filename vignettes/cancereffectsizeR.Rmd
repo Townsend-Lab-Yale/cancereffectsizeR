@@ -54,7 +54,7 @@ You want to be confident that nearly all of the somatic variants in your MAF fil
 * There should be few to no mutations in repetitive or poorly mapped regions of the genome, as mutations in these sites are difficult to call confidently and should be rare anyways since these regions are usually not functionally important at the small-variant level.
 * When combining data from multiple sources, look out for re-use of samples.
 
-When running with ces.refset.hg19 reference data, preloaded MAFs get annotations relevant to these guidelines. (See the `preload_maf()` reference for details.) In this example, we'll exclude mutations at sites of germline variation, and we'll also exclude mutations in repetitive regions except when the sites are of known cancer signficance (COSMIC mutation census tiers 1-3). Next, we'll combine the three MAF data tables and run a helper function `check_sample_overlap()`, to identify possible duplicate samples across data sources. Lastly, we save one analysis-ready MAF per original MAF.
+When running with ces.refset.hg19 reference data, preloaded MAFs get annotations relevant to these guidelines. (See the `preload_maf()` reference for details.) In this example, we'll exclude mutations at sites of germline variation, and we'll also exclude mutations in repetitive regions except when the sites are of known cancer significance (COSMIC mutation census tiers 1-3). Next, we'll combine the three MAF data tables and run a helper function `check_sample_overlap()`, to identify possible duplicate samples across data sources. Lastly, we save one analysis-ready MAF per original MAF.
 ```{r eval = F}
   # create named list of MAF tables
   maf1 = 'my_maf_1.txt'

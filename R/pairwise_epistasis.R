@@ -12,7 +12,7 @@
 #' @param cesa CESAnalysis object
 #' @param genes Vector of gene names; SIs will be calculated for all gene pairs
 #' @param run_name Optionally, a name to identify the current run.
-#' @param conf Confidence interval size from 0 to 1 (.95 -> 95%). NULL skips calculation,
+#' @param conf Confidence interval size from 0 to 1 (.95 -> 95\%). NULL skips calculation,
 #'   which reduces runtime.
 #' @param cores number of cores for parallel processing of gene pairs
 #' @return CESAnalysis with epistasis analysis results added
@@ -138,7 +138,7 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), run_name = "auto
 #'   supply a CompoundVariantSet (see \code{define_compound_variants}) to test all pairs
 #'   of compound variants in the set.
 #' @param run_name Optionally, a name to identify the current run.
-#' @param conf confidence interval size from 0 to 1 (.95 -> 95%); NULL skips calculation,
+#' @param conf confidence interval size from 0 to 1 (.95 -> 95\%); NULL skips calculation,
 #'   reducing runtime.
 #' @param cores number of cores for parallel processing of variant pairs
 #' @return a data table with pairwise-epistatic selection intensities and variant

@@ -1,6 +1,6 @@
 #' Baseline mutation rate calculation
 #' 
-#' Caculates neutral mutation rates at specific sites based on gene mutation rates and the relative
+#' Calculates neutral mutation rates at specific sites based on gene mutation rates and the relative
 #' trinucleotide-context-specific SNV mutation rates of each sample
 #' 
 #' @param cesa CESAnalysis with gene mutation rates and tumor-specific trinucleotide-context-specific mutation rates already calculated

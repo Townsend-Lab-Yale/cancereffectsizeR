@@ -5,11 +5,13 @@
 #' as described in \href{https://doi.org/10.1016/j.cell.2017.09.042}{Martincorena et al.}
 #'
 #' @param cesa CESAnalysis object
-#' @param covariates Name of tissue-specific covariates to use (run list_ces_covariates()
-#'   to see choices). For hg19 data only, you can also use "default" for dNdScv's
-#'   non-tissue-specific covariates. If no appropriate covariates data are available, set
-#'   NULL to run without. Finally, you can also supply custom covariates data in the form
-#'   of a prcomp object (see documentation for details).
+#' @param covariates Tissue-specific mutation rate covariates. Typically, supply the
+#'   covariates object from your refset (e.g., ces.refset.hg19$covariates$bladder), or the
+#'   object name ("bladder"). Run list_ces_covariates() to see choices. For hg19 data
+#'   only, set to "hg19" to use dNdScv's non-tissue-specific covariates. If no appropriate
+#'   covariates data are available, set to NULL to run without. Finally, you can also
+#'   supply custom covariates data in the form of a matrix or prcomp object (see website
+#'   for details).
 #' @param sample_group Which sample groups to include in the gene rate calculation;
 #'   defaults to all groups. (To calculate different rates for different groups, you'll 
 #'   run this function multiple times, changing this argument each time.)
@@ -18,7 +20,7 @@
 #' @return CESAnalysis object with gene-level mutation rates calculated
 #' @export
 # don't change this function at all without being sure you're not messing up tests
-gene_mutation_rates <- function(cesa, covariates = NULL, sample_group = NULL, save_all_dndscv_output = FALSE){
+gene_mutation_rates <- function(cesa, covariates = NULL, sample_group = NULL, dndscv_args = list(), save_all_dndscv_output = FALSE){
   if(is.null(sample_group)) {
     sample_group = cesa@groups
   }
@@ -29,10 +31,20 @@ gene_mutation_rates <- function(cesa, covariates = NULL, sample_group = NULL, sa
   sample_group = unique(sample_group)
   if (! all(sample_group %in% cesa@groups)) {
     possible_groups = setdiff(cesa@groups, "stageless") # historical
-    if (length(possible_groups) == 0) {
+    if (length(pofssible_groups) == 0) {
       stop("The CESAnalysis has no user-defined sample groups, so you can't use the sample_group parameter.")
     }
     stop("Unrecognized sample groups. Those defined in the CESAnalysis are ", paste(possible_groups, sep = ", "), ".")
+  }
+  
+  if (! is(dndscv_args, "list") || uniqueN(names(dndscv_args)) != length(dndscv_args)) {
+    stop("dndscv_args should a named list of arguments to pass.")
+  }
+  
+  reserved_args = c("mutations", "gene_list", "cv", "refdb")
+  if(any(reserved_args %in% names(dndscv_args))) {
+    stop("The following arguments are passed to dNdScv automatically and cannot be specified via ",
+         "dndscv_args:\n", paste(reserved_args, collapse = ", "), '.')
   }
   
   if (! is(cesa, "CESAnalysis")) {
@@ -72,7 +84,7 @@ gene_mutation_rates <- function(cesa, covariates = NULL, sample_group = NULL, sa
     warning("Calculating gene mutation rates with no covariate data; stop and re-run with covariates if available.\n",
             "(Check with list_ces_covariates(); for hg19 only, you can also specify \"default\" for dNdScv default\n",
             "covariates.)", call. = F, immediate. = T)
-  } else if (is(covariates, "character") && covariates[1] == "default") {
+  } else if (is(covariates, "character") && (covariates[1] == "default" || covariates[1] == "hg19")) {
     using_custom_covariates = FALSE
     if(cesa@ref_key == "ces.refset.hg19") {
       pretty_message("Loading dNdScv default covariates for hg19 (stop and re-run with tissue-specific covariates if available)...")
@@ -83,10 +95,39 @@ gene_mutation_rates <- function(cesa, covariates = NULL, sample_group = NULL, sa
       stop("There is no default covariates data for this genome build, so you'll need to supply your own\n",
            "or run without by setting covariates = NULL.", call. = F)
     }
-  } else if (is(covariates, "prcomp")) {
+  } else if (is(covariates, "prcomp") || is(covariates, 'matrix')) {
       # To-do: validate custom covariates
-      cv = covariates$rotation
-      genes_in_pca = rownames(cv)
+      cv = covariates
+      if(is(cv, "prcomp")) {
+        cv = cv$rotation
+      }
+      genes_in_pca = rownames(cv) 
+      if(is.null(genes_in_pca)) {
+        stop("Covariates matrix must have gene names as rownames.")
+      }
+      
+      if (length(genes_in_pca) != uniqueN(genes_in_pca)) {
+        stop("Some gene names are repeated in covariates matrix rownames.")
+      }
+      bad_genes = setdiff(genes_in_pca, get_ref_data(cesa, "gene_names"))
+      
+      # Deal with ces.refset.hg19's special handling of CDKN2A
+      if ("CDKN2A" %in% bad_genes && cesa@ref_key == 'ces.refset.hg19' && 
+          ! any(c("CDKN2A.p14arf", "CDKN2A.p16INK4a") %in% genes_in_pca)) {
+        to_insert = cv[c("CDKN2A", "CDKN2A"), ]
+        rownames(to_insert) = c("CDKN2A.p14arf", "CDKN2A.p16INK4a")
+        cv = cv[! rownames(cv) == "CDKN2A",]
+        cv = rbind(cv, to_insert)
+        bad_genes = setdiff(bad_genes, "CDKN2A")
+        genes_in_pca = rownames(cv)
+      }
+      if(length(bad_genes) > 0) {
+        if(length(bad_genes) > 30) {
+          bad_genes = c(bad_genes[1:30], '...')
+        }
+        stop("Rownames of covariates matrix include genes not present in reference data:\n",
+             paste(bad_genes, collapse = ', '), '.')
+      }
   } else if (! is(covariates, "character") || length(covariates) != 1) {
     stop("covariates expected to be 1-length character. Check available covariates with list_ces_covariates()")
   } else {
@@ -94,11 +135,10 @@ gene_mutation_rates <- function(cesa, covariates = NULL, sample_group = NULL, sa
     if(! check_for_ref_data(cesa, covariates)) {
       stop("Covariates could not be found. Check available covariates with list_ces_covariates().")
     }
-    this_cov_pca <- get_ref_data(cesa, covariates) 
+    this_cov_pca = get_ref_data(cesa, covariates) 
     cv = this_cov_pca$rotation
     genes_in_pca = rownames(cv)
   }
-  
   mutations = cesa@maf[Unique_Patient_Identifier %in% dndscv_samples & variant_type == "snv", 
                        .(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele, Tumor_Allele)]
   if(mutations[, .N] == 0) {
@@ -129,8 +169,10 @@ gene_mutation_rates <- function(cesa, covariates = NULL, sample_group = NULL, sa
   }
   
   # Run in separate function for quick unit tests of gene_mutation_rates
-  dndscv_output = run_dndscv(mutations = mutations, gene_list = genes_in_pca, cv = cv, refdb = RefCDS, gr_genes = gr_genes)
-  
+  dndscv_args = c(list(mutations = mutations, gene_list = genes_in_pca, cv = cv, refdb = RefCDS, 
+                       gr_genes = gr_genes),
+                  dndscv_args)
+  dndscv_output = do.call(run_dndscv, dndscv_args)
   
   # Get RefCDS data on number of synonymous mutations possible at each site
   # Per dNdScv docs, L matrices list "number of synonymous, missense, nonsense and splice sites in each CDS at each trinucleotide context"
@@ -242,7 +284,7 @@ gene_mutation_rates <- function(cesa, covariates = NULL, sample_group = NULL, sa
 #' Internal function to run dNdScv
 #' 
 #' @keywords internal
-run_dndscv = function(mutations, gene_list, cv, refdb, gr_genes) {
+run_dndscv = function(mutations, gene_list, cv, refdb, gr_genes, ...) {
   # hacky way of forcing an object of name gr_genes into the dndscv::dndscv function environment,
   # since the object is required by dndscv but there's no argument to supply your own copy of it
   our_env = new.env(parent = environment(dndscv::dndscv))
@@ -253,7 +295,7 @@ run_dndscv = function(mutations, gene_list, cv, refdb, gr_genes) {
   message("Running dNdScv...")
   withCallingHandlers(
     {
-      dndscv_raw_output = our_dndscv(mutations = mutations, gene_list = gene_list, cv = cv, refdb = refdb)
+      dndscv_raw_output = our_dndscv(mutations = mutations, gene_list = gene_list, cv = cv, refdb = refdb, ...)
     }, error = function(e) {
       if (startsWith(conditionMessage(e), "bad 'file' argument"))  {
         stop("You need to update dNdScv. Try running \"remotes::update_packages(packages = \"dndscv\")\".")

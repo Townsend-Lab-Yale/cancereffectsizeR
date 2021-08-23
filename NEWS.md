@@ -1,3 +1,8 @@
+# cancereffectsizeR 2.2.2
+* View dNdScv results more easily, and support for passing custom parameters to dNdScv.
+* Simplified signature output to two tables: "raw attributions" and "biological weights" (see docs).
+* Miscellaneous small fixes and improvements.
+
 # cancereffectsizeR 2.2.1
 * Reorganization of signature weights data to raw_weights, adjusted_weights, biological_weights. Raw weights come straight from signature extraction.
 * Variant annotation optimized for better performance on large data sets.
@@ -19,7 +24,7 @@
 
 # cancereffectsizeR 2.1.2
 * load_maf() detects adjacent SNV records and re-annotates as doublet base substitutions; improved annotation of insertions, deletions, and more complex multi-nucleotide variants.
-* Peformance improvements and minor bug fixes.
+* Performance improvements and minor bug fixes.
 
 # cancereffectsizeR 2.1.1
 * Minor improvements and documentation updates.

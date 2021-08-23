@@ -26,7 +26,7 @@ Matrix or data frame of SNV counts, suitable for use with MutationalPatterns or
   deconstructSigs. Samples with zero passing SNVs will not appear.
 }
 \description{
-This function prodcues trinculeotide-context-specific SNV counts from MAF data for
+This function produces trinculeotide-context-specific SNV counts from MAF data for
 input to mutational signature extraction tools. Output can be tailored to meet
 formatting requirements of MutationalPatterns or deconstructSigs, which are probably
 similar to formats used by other tools.

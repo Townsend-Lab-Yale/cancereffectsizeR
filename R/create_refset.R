@@ -42,7 +42,7 @@ create_refset = function(output_dir, refcds_output, species_name, genome_build_n
   }
   
   if(file.access(output_dir, mode = 2) != 0) {
-    stop("output_dir doesn't appear to be writeable.")
+    stop("output_dir doesn't appear to be writable.")
   }
   
   if (! is(refcds_output, "list") || length(refcds_output) != 2) {

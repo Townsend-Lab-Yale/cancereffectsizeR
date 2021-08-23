@@ -111,7 +111,7 @@ setMethod("show", "CESAnalysis",
       cat("Samples:\n")
       print(object@samples[, .(num_samples = .N), by = "coverage"], row.names = F)
       num_snvs = object@maf[variant_type == "snv", .N]
-      cat("\nMAF data: ", num_snvs, " SNVs loaded.", sep = "")
+      cat("\nMAF data: ", num_snvs, " SNVs loaded.\n", sep = "")
     }
     signature_sets = object@advanced$snv_signatures
     if (length(signature_sets) > 0) {

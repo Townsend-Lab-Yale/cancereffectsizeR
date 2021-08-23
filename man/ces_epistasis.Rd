@@ -24,7 +24,7 @@ of compound variants in the set.}
 
 \item{cores}{number of cores for parallel processing of variant pairs}
 
-\item{conf}{confidence interval size from 0 to 1 (.95 -> 95%); NULL skips calculation,
+\item{conf}{confidence interval size from 0 to 1 (.95 -> 95\%); NULL skips calculation,
 reducing runtime.}
 }
 \value{
