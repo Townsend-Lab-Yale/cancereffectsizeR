@@ -68,6 +68,35 @@ test_that("load_maf and variant annotation", {
   tiny = add_covered_regions(target_cesa = tiny, covered_regions = GRanges("chr12:132824580"), 
                       covered_regions_name = "precise_target_2", coverage_type = "targeted", covered_regions_padding = 10)
   expect_equal(tiny@mutations$snv["12:132824581_C>A", unlist(covered_in)], "precise_target_2")
+  
+  
+  # check load_sample_data and clear_sample_data
+  original_samples = copy(tiny@samples)
+  t1 = original_samples[, .(Unique_Patient_Identifier = rev(Unique_Patient_Identifier), 
+                            coverage, covered_regions, num = 1:.N)]
+  new_info = load_sample_data(tiny, t1)@samples
+  
+  all.equal(new_info[, .(Unique_Patient_Identifier, coverage, covered_regions, group)], original_samples,
+            check.attributes = F)
+  
+  altered = copy(t1)
+  altered$coverage[5] = 'hello'
+  expect_error(load_sample_data(tiny, altered), "data don't match")
+  
+  t2 = t1[1:5]
+  new_info = load_sample_data(tiny, t2)@samples
+  expect_identical(new_info$num, c(rep(NA, new_info[, .N - 5]), 5:1))
+  
+  expect_error(load_sample_data(tiny, t1[, -"Unique_Patient_Identifier"]), "must have a Unique_Patient_Identifier")
+  expect_error(load_sample_data(tiny, t1[, .(Unique_Patient_Identifier, coverage)]), "There are no new data columns")
+  
+  new_info[, num2 := 1:.N]
+  tiny = load_sample_data(tiny, new_info)
+  
+  expect_error(load_sample_data(tiny, new_info), 'columns in sample_data already appear')
+  expect_error(clear_sample_data(tiny, c('num', 'num2', 'Unique_Patient_Identifier')), 'Internal columns')
+  tiny = clear_sample_data(tiny, c('num', 'num2'))
+  all.equal(tiny@samples, original_samples)
 })
 
 
