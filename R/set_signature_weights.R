@@ -26,7 +26,7 @@
 #' @export
 set_signature_weights = function(cesa, signature_set, weights, ignore_extra_samples = FALSE) {
   if (! is(cesa, "CESAnalysis")) {
-    stop("cesa should be CESAnalysi")
+    stop("cesa should be CESAnalysis.")
   }
   
   if (length(cesa@trinucleotide_mutation_weights) > 0) {
@@ -140,9 +140,8 @@ set_signature_weights = function(cesa, signature_set, weights, ignore_extra_samp
   cesa@trinucleotide_mutation_weights$raw_signature_weights = weights
   cesa@trinucleotide_mutation_weights$signature_weights_table_with_artifacts = data.table(NULL)
   cesa@trinucleotide_mutation_weights$signature_weight_table = bio_weights
-  cesa@advanced$locked = TRUE
-  cesa@advanced$trinuc_done = TRUE
   cesa@advanced$snv_signatures[[signature_set_name]] = copy(signature_set_data)
+  cesa@samples[, sig_analysis_grp := 0L]
   cesa = update_cesa_history(cesa, match.call())
   return(cesa)
 }

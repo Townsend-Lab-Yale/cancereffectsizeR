@@ -17,6 +17,7 @@ load_maf(
   covered_regions_name = NULL,
   covered_regions_padding = 0,
   group_col = NULL,
+  sample_data_cols = character(),
   chain_file = NULL,
   enforce_default_exome_coverage = FALSE
 )
@@ -52,7 +53,7 @@ input data has been trimmed to the targeted regions, leave set to 0.}
 
 \item{group_col}{column in MAF with sample group labels (see \code{?CESAnalysis})}
 
-\item{chain_file}{a LiftOver chain file (text format, name ends in .chain) to convert MAF
+\item{chain_file}{A LiftOver chain file (text format, name ends in .chain) to convert MAF
 records to the genome build used in the CESAnalysis.}
 
 \item{enforce_default_exome_coverage}{When loading default exome data, exclude records

@@ -8,11 +8,12 @@ trinuc_mutation_rates(
   cesa,
   signature_set = NULL,
   signatures_to_remove = character(),
-  sample_group = NULL,
+  samples = character(),
   cores = 1,
   signature_extractor = "MutationalPatterns",
   mp_strict_args = list(),
   assume_identical_mutational_processes = FALSE,
+  sample_group = NULL,
   sig_averaging_threshold = 50,
   use_dS_exome2genome = FALSE
 )
@@ -20,15 +21,17 @@ trinuc_mutation_rates(
 \arguments{
 \item{cesa}{CESAnalysis object}
 
-\item{signature_set}{name of built-in signature set (see \code{list_ces_signature_sets()}), or a custom signature set (see details)}
+\item{signature_set}{Name of built-in signature set (see \code{list_ces_signature_sets()}), or a custom signature set (see details)}
 
-\item{signatures_to_remove}{specify any signatures to exclude from analysis; use \code{suggest_cosmic_signatures_to_remove()} for advice on COSMIC signatures}
+\item{signatures_to_remove}{Specify any signatures to exclude from analysis; use \code{suggest_cosmic_signatures_to_remove()} for advice on COSMIC signatures}
 
-\item{sample_group}{vector of sample group(s) to calculate rates for (default all)}
+\item{samples}{Which samples to include in the current run. Defaults to all samples.
+Can be a vector of Unique_Patient_Identifiers, or a data.table containing rows from
+the CESAnalysis sample table.}
 
-\item{cores}{how many cores to use for processing tumors in parallel}
+\item{cores}{How many cores to use for processing tumors in parallel.}
 
-\item{signature_extractor}{one of "MutationalPatterns" (default) or "deconstructSigs"}
+\item{signature_extractor}{One of "MutationalPatterns" (default) or "deconstructSigs".}
 
 \item{mp_strict_args}{Named list of arguments to pass to MutationalPatterns'
 fit_to_signatures_strict function. Note that mut_matrix and signatures arguments are
@@ -38,6 +41,8 @@ emulate fit_to_signatures() by setting max_delta = 0.}
 \item{assume_identical_mutational_processes}{use well-mutated tumors (those with number
 of eligible mutations meeting sig_averaging_threshold) to calculate group average
 signature weights, and assign these to all tumors}
+
+\item{sample_group}{(Deprecated; use samples.) Vector of sample group(s) to calculate rates for.}
 
 \item{sig_averaging_threshold}{Mutation prevalence threshold (default 50) that
 determines which tumors inform the calculation of group-average signature weights.
@@ -49,9 +54,10 @@ averages are blended into the signature weights of sub-threshold tumors.}
 \value{
 CESAnalysis with sample-specific signature weights and inferred
   trinucleotide-context-specific relative mutation rates. The snv_counts matrix gives
-  the numbers of SNVs in each trinucleotide context in all samples in CESAnalysis. (As
-  noted elsewhere, recurrent mutations are excluded to reduce the influence of
-  selection.) This matrix, produced by `trinuc_snv_counts()`, can be fed directly into
+  the counts of SNVs in each trinucleotide context for all samples in the CESAnalysis.
+  (While recurrent mutations are excluded from signature analysis in
+  trinuc_mutation_rates(), they are present in snv_counts for completeness.) The
+  snv_counts matrix, produced by `trinuc_snv_counts()`, can be fed directly into
   MutationalPatterns if you wish to run your own extended signature analysis.
   
   The raw_attributions table contains signature attributions as produced by
@@ -88,7 +94,7 @@ exome/genome data, which means that you need at least some exome or genome data 
 \details{
 To reduce the influence of selection on the estimation of relative trinucleotide mutation
 rates, only non-recurrent SNVs (those that do not appear in more than one 
-sample in the data set) are used.
+sample in the current run) are used.
 
 A custom signature set should be given as a named three-item list, where "signatures"
 is a pure data.frame with signature definitions, "name" is a 1-length character naming

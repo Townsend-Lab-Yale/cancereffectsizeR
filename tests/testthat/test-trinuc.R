@@ -9,6 +9,10 @@ test_that("Trinucleotide signature weight calculation", {
   
   cesa = trinuc_mutation_rates(cesa, signatures_to_remove = to_remove, signature_set = "COSMIC_v3.1",
                                signature_extractor = 'deconstructSigs')
+  
+  expect_error(trinuc_mutation_rates(cesa, signature_set = "COSMIC_v3.1"), 'have already been run')
+  expect_error(trinuc_mutation_rates(cesa, signature_set = "COSMIC_v3.1", samples = cesa$samples[1]), 'have already been run')
+  
   trinuc_ak = get_test_data("trinuc_mut_weighting.rds")
   expect_equal(cesa@trinucleotide_mutation_weights, trinuc_ak, tolerance = 1e-4)
   
@@ -31,7 +35,7 @@ test_that("Trinucleotide signature weight calculation", {
   prev_rates_matrix = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix
   prev_relative_bio_sig = cesa@trinucleotide_mutation_weights$signature_weight_table
   prev_raw_sig = cesa@trinucleotide_mutation_weights$signature_weight_table_with_artifacts
-  cesa@trinucleotide_mutation_weights = list()
+  cesa = clear_trinuc_rates_and_signatures(cesa)
   
   
   
@@ -40,7 +44,6 @@ test_that("Trinucleotide signature weight calculation", {
   
   # setting signature weights using raw weights will reproduce the same 
   # relative biological weights and trinuc_rates for non-mean-blended samples
-  cesa@trinucleotide_mutation_weights = list()
   raw_weight_input = prev_raw_sig[, .SD, .SDcols = patterns("(SBS)|(Uni)")]
   cesa3 = set_signature_weights(cesa, signature_set = "COSMIC_v3.1", weights = raw_weight_input)
   
@@ -77,7 +80,7 @@ test_that("Trinucleotide signature weight calculation", {
   sim = MutationalPatterns::cos_sim_matrix(mut_mat_1, mut_mat_2)
   
   # The similarity matrix may be worth manually inspecting occasionally.
-  # Here, we just verify the basic expectaton that each sample should high similarity to itself,
+  # Here, we just verify the basic expectaton that each sample should have high similarity to itself,
   # except the dS_zeroed-out sample, which is not zeroed out in MP
   expect_gt(min(diag(sim)[1:4]) - .9, 0)
   expect_lt(sim[5,5], .7)

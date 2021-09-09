@@ -7,21 +7,24 @@
 #' @param aac_ids vector of IDs for amino acid change variants
 #' @param snv_ids vector of IDs for SNVs
 #' @param variant_ids vector of mixed IDs (faster to use snv_ids and aac_ids for large jobs, if already known)
-#' @param samples vector of sample IDs (Unique_Patient_Identifier) to include in mutation rate table (defaults to all samples)
+#' @param samples Which samples to calculate rates for. Defaults to all samples. Can be a
+#'   vector of Unique_Patient_Identifiers, or a data.table containing rows from the
+#'   CESAnalysis sample table.
 #' @param cores number of cores to use for mutation processing (useful for large data sets or mutation lists)
 #' @return a data table of mutation rates with one column per variant, and a Unique_Patient_Identifier column identifying each row
 #' @export
-baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant_ids = NULL, samples = NULL, cores = 1) {
+baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant_ids = NULL, samples = character(), cores = 1) {
   
-  if(! cesa@advanced$trinuc_done) {
-    stop("Some samples lack trinucleotide-context-specific mutation rates, so site-level mutation rates can't be calculated yet.")
+  if(! is(cesa, "CESAnalysis")) {
+    stop("cesa should be CESAnalysis.")
   }
-  if(! cesa@advanced$gene_rates_done) {
-    stop("Some samples lack gene mutation rates, so site-level mutation rates can't be calculated yet.")
+
+  samples = select_samples(cesa, samples)
+  if(samples[, anyNA(sig_analysis_grp)]) {
+    stop("Some input samples lack trinucleotide-context-specific relative mutation rates, so site-specific mutation rates can't be calculated yet.")
   }
-  
-  if(is.null(cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix)) {
-    stop("No trinucleotide mutation rates found, so can't calculate variant-level mutation rates.")
+  if(samples[, anyNA(gene_rate_grp)]) {
+    stop("Some input samples lack gene mutation rates, so site-level mutation rates can't be calculated yet.")
   }
   
   if (! is.null(variant_ids) && (! is.null(snv_ids) || ! is.null(aac_ids))) {
@@ -73,21 +76,6 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
   }
   
   # Let user specify a subset of samples to calculate rates (or, by default, use all samples)
-  if(! is.null(samples)) {
-    if (! is.character(samples)) {
-      stop("Samples should be character vector")
-    }
-    samples = unique(na.omit(samples))
-    subsetted_samples = cesa@samples[samples, on = "Unique_Patient_Identifier", nomatch = NULL]
-    if(subsetted_samples[, .N] != length(samples)) {
-      invalid_samples = setdiff(samples, subsetted_samples$Unique_Patient_Identifier)
-      stop(length(samples), " samples are not in the CESAnalysis samples table: ", 
-           paste(invalid_samples, collapse = ", "), ".")
-    }
-    samples = subsetted_samples
-  } else {
-    samples = cesa@samples
-  }
   mutations = cesa@mutations
   
   # can drop AAC mutations not requested
@@ -127,14 +115,14 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
                                                   stringsAsFactors = F), key = "Unique_Patient_Identifier")
 
   # add gene (regional) mutation rates to the table by using @mutrates and the groups of each samples
-  sample_region_rates = sample_region_rates[samples[, .(Unique_Patient_Identifier, gene_rate_grp)]]
+  sample_region_rates = sample_region_rates[samples[, .(Unique_Patient_Identifier, gene_rate_grp = paste0('rate_grp_', gene_rate_grp))]]
   
   if (using_pid) {
     # there's also a gene given in transcript rates tables, but we'll drop it here
-    melted_mutrates = melt.data.table(cesa@mutrates[relevant_regions, -"gene", on = "pid"], id.vars = c("pid"))
+    melted_mutrates = melt.data.table(cesa@mutrates[relevant_regions, -"gene", on = "pid"], id.vars = c("pid"), variable.factor = F)
     setnames(melted_mutrates, "pid", "region")
   } else {
-    melted_mutrates = melt.data.table(cesa@mutrates[relevant_regions, on = "gene"], id.vars = c("gene"))
+    melted_mutrates = melt.data.table(cesa@mutrates[relevant_regions, on = "gene"], id.vars = c("gene"), variable.factor = F)
     setnames(melted_mutrates, "gene", "region")
   }
   

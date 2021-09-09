@@ -82,9 +82,8 @@ set_trinuc_rates = function(cesa, trinuc_rates, ignore_extra_samples = FALSE) {
                    "crash selection model likelihood functions due to numerical precision issues. Consider tweaking your method!")
     warning(pretty_message(msg, emit = F))
   }
+  cesa@samples[, sig_analysis_grp := 0L]
   cesa@trinucleotide_mutation_weights = list(trinuc_proportion_matrix = trinuc_proportion_matrix)
-  cesa@advanced$locked = T
-  cesa@advanced$trinuc_done = T
   return(cesa)
 }
     

@@ -10,10 +10,11 @@ CESAnalysis(refset = "ces.refset.hg19", sample_groups = NULL)
 \item{refset}{name of reference data set (refset) to use; run \code{list_ces_refsets()} for
 available refsets. Alternatively, the path to a custom reference data directory.}
 
-\item{sample_groups}{Optionally, supply labels identifying different groups of samples.
-Each designated group of samples can be run independently through functions like
-\code{trinuc_mutation_rates()} and \code{gene_mutation_rates()}, and some selection
-models (such as sswm_sequential) require multiple sample groups.}
+\item{sample_groups}{(Deprecated; no longer necessary.) Optionally, supply labels
+identifying different groups of samples. Each designated group of samples can be run
+independently through functions like \code{trinuc_mutation_rates()} and
+\code{gene_mutation_rates()}, and some selection models (such as sswm_sequential)
+require multiple sample groups.}
 }
 \value{
 CESAnalysis object

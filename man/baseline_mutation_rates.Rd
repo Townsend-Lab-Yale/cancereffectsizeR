@@ -9,7 +9,7 @@ baseline_mutation_rates(
   aac_ids = NULL,
   snv_ids = NULL,
   variant_ids = NULL,
-  samples = NULL,
+  samples = character(),
   cores = 1
 )
 }
@@ -22,7 +22,9 @@ baseline_mutation_rates(
 
 \item{variant_ids}{vector of mixed IDs (faster to use snv_ids and aac_ids for large jobs, if already known)}
 
-\item{samples}{vector of sample IDs (Unique_Patient_Identifier) to include in mutation rate table (defaults to all samples)}
+\item{samples}{Which samples to calculate rates for. Defaults to all samples. Can be a
+vector of Unique_Patient_Identifiers, or a data.table containing rows from the
+CESAnalysis sample table.}
 
 \item{cores}{number of cores to use for mutation processing (useful for large data sets or mutation lists)}
 }

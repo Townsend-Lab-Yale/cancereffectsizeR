@@ -29,7 +29,7 @@
 #'   each covered_regions interval, to include variants called just outside of targeted
 #'   regions. Consider setting from 0-100bp, or up to the sequencing read length. If the
 #'   input data has been trimmed to the targeted regions, leave set to 0.
-#' @param chain_file a LiftOver chain file (text format, name ends in .chain) to convert MAF
+#' @param chain_file A LiftOver chain file (text format, name ends in .chain) to convert MAF
 #'   records to the genome build used in the CESAnalysis.
 #' @param enforce_default_exome_coverage When loading default exome data, exclude records
 #'   that aren't covered in the default exome capture intervals included with
@@ -38,14 +38,11 @@
 #' @export
 load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode", chr_col = "Chromosome", start_col = "Start_Position",
                     ref_col = "Reference_Allele", tumor_allele_col = "guess", coverage = "exome", covered_regions = NULL,
-                    covered_regions_name = NULL, covered_regions_padding = 0, group_col = NULL, chain_file = NULL, enforce_default_exome_coverage = FALSE) {
+                    covered_regions_name = NULL, covered_regions_padding = 0, group_col = NULL,
+                    sample_data_cols = character(), chain_file = NULL, enforce_default_exome_coverage = FALSE) {
   
   if (! is(cesa, "CESAnalysis")) {
     stop("cesa should be a CESAnalysis")
-  }
-  
-  if(cesa@advanced$locked) {
-    stop("You can't load more MAF data since you've already calculated some mutation rates. Create a new CESAnalysis if necessary.", call. = F)
   }
   
   cesa = copy_cesa(cesa)
@@ -56,14 +53,28 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     stop("Supply MAF data via maf=[file path or data.table/data.frame].")
   }
   
-  if (is.null(group_col) & length(cesa@groups) != 1) {
-    stop("You must specify group_col in the MAF since this CESAnalysis specifies sample groups.")
+  if(! is.character(sample_data_cols)) {
+    stop("sample_data_cols should be character if used (a vector of column names)")
   }
   
-  if (! is.null(group_col) & length(cesa@groups) == 1) {
-    stop(paste0("This CESAnalysis does not specify sample groups, so you can't use the \"group_col\" argument.\n",
-                "Create a new CESAnalysis with \"sample_groups\" specified to include this information."))
+  # Validate sample_data_cols/group_col (group_col less powerful, deprecated)
+  if (length(sample_data_cols) > 0) {
+    sample_data_cols = unique(na.omit(sample_data_cols))
+    if (! is.null(group_col)) {
+      stop("Both sample_data_cols and group_col were used. Use just sample_data_cols (group_col is deprecated).")
+    }
+  } else {
+    if (is.null(group_col) & length(cesa@groups) != 1) {
+      stop("You must specify group_col in the MAF since this CESAnalysis specifies sample groups.\n",
+           "(To use sample_data_cols instead, start a new CESAnalysis without the deprecated sample_groups argument.")
+    }
+    
+    if (! is.null(group_col) & length(cesa@groups) == 1) {
+      stop("group_col is deprecated. To load sample-level data from an MAF data source, use sample_data_cols.")
+    }
   }
+  
+  
   
   # give a warning if interval padding is really high
   if (covered_regions_padding > 1000) {
@@ -162,16 +173,58 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   }
   
   refset = .ces_ref_data[[cesa@ref_key]]
+  
   read_args = list(maf = maf, refset_env = refset,
                    sample_col = sample_col, chr_col = chr_col, start_col = start_col,
                    ref_col = ref_col, tumor_allele_col = tumor_allele_col,
                    chain_file = chain_file)
+  # Since group_col is deprecated, it can't be used in combination with sample_date_cols
   if (! is.null(group_col)) {
     read_args = c(read_args, list(more_cols = group_col))
+  } else if(length(sample_data_cols) > 0) {
+    read_args = c(read_args, list(more_cols = sample_data_cols))
   }
+  
+  reserved_cols = c("Unique_Patient_Identifier", "Chromosome", "Start_Position", "Reference_Allele", 
+                    "Tumor_Seq_Allele1", "Tumor_Seq_Allele2","Tumor_Allele", "Tumor_Sample_Barcode")
+  illegal_sample_cols = intersect(reserved_cols, read_args[["more_cols"]])
+  if(length(illegal_sample_cols) > 0) {
+    stop("Can't use these column(s) as sample-level data columns: ", paste(illegal_sample_cols, collapse = ", "), '.')
+  }
+  
+  used_twice = intersect(c(sample_col, chr_col, start_col, ref_col, tumor_allele_col), 
+                         read_args[["more_cols"]])
+  if(length(used_twice) > 0) {
+    stop("Re-used column(s): ", paste(used_twice, collapse = ", "), ".\n",
+         "Probably, these should be left out of sample_data_cols.")
+  }
+
   maf = do.call(read_in_maf, args = read_args)
   
-
+  sample_data = NULL
+  if(length(sample_data_cols) > 0) {
+    missing_sample_data = setdiff(sample_data_cols, names(maf))
+    if(length(missing_sample_data) > 0) {
+      stop("Some sample_data_cols not present in MAF: ", paste(missing_sample_data, collapse = ', '), '.')
+    }
+    
+    bad_cols = character()
+    for (col in sample_data_cols) {
+      col_good = maf[, .(good = uniqueN(.SD[[1]]) == 1), by = "Unique_Patient_Identifier", .SDcols = col][, all(good)]
+      if (! col_good) {
+        bad_cols = c(bad_cols, col)
+      }
+    }
+    if(length(bad_cols) > 0) {
+      stop("Sample data column(s) do not have consistent values within each sample: ", paste(bad_cols, collapse = ", "), '.')
+    }
+    
+    # save sample data for later (only need 1 row per sample, since it's all sample-level data)
+    sample_data = unique(maf[, .SD, .SDcols = c("Unique_Patient_Identifier", sample_data_cols)], by = "Unique_Patient_Identifier")
+    maf = maf[, .SD, .SDcols = setdiff(names(maf), sample_data_cols)]
+  }
+  
+  
   # Set aside records with problems and notify user
   initial_num_records = maf[, .N]
   excluded = maf[! is.na(problem), .(Unique_Patient_Identifier, Chromosome, Start_Position, 
@@ -298,7 +351,13 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   
   # drop any samples that had all mutations excluded
   new_samples = new_samples[unique(maf$Unique_Patient_Identifier), on = "Unique_Patient_Identifier", nomatch = NULL]
-  cesa@samples = rbind(cesa@samples, new_samples)
+  
+  # merge in any sample-level data
+  if (! is.null(sample_data)) {
+    new_samples = merge.data.table(new_samples, sample_data, by = "Unique_Patient_Identifier")
+  }
+  
+  cesa@samples = rbind(cesa@samples, new_samples, fill = TRUE)
   setcolorder(cesa@samples, c("Unique_Patient_Identifier", "coverage", "covered_regions", "group"))
   setkey(cesa@samples, "Unique_Patient_Identifier")
   

@@ -4,10 +4,11 @@
 #' 
 #' @param refset name of reference data set (refset) to use; run \code{list_ces_refsets()} for
 #'   available refsets. Alternatively, the path to a custom reference data directory.
-#' @param sample_groups Optionally, supply labels identifying different groups of samples.
-#'   Each designated group of samples can be run independently through functions like
-#'   \code{trinuc_mutation_rates()} and \code{gene_mutation_rates()}, and some selection
-#'   models (such as sswm_sequential) require multiple sample groups.
+#' @param sample_groups (Deprecated; no longer necessary.) Optionally, supply labels
+#'   identifying different groups of samples. Each designated group of samples can be run
+#'   independently through functions like \code{trinuc_mutation_rates()} and
+#'   \code{gene_mutation_rates()}, and some selection models (such as sswm_sequential)
+#'   require multiple sample groups.
 #' @return CESAnalysis object
 #' @export
 CESAnalysis = function(refset = "ces.refset.hg19", sample_groups = NULL) {
@@ -18,7 +19,7 @@ CESAnalysis = function(refset = "ces.refset.hg19", sample_groups = NULL) {
   }
   # Check for and load reference data for the chosen genome/transcriptome data
   if (! is(refset_name, "character")) {
-    stop("refset should be a refset object, the name of an installed refset package, or a path to custom refset directory.")
+    stop("refset should be a refset object, the name of an installed refset package, or a path to a custom refset directory.")
   }
   using_custom_refset = TRUE
   if (refset_name %in% names(.official_refsets)) {
@@ -72,6 +73,8 @@ CESAnalysis = function(refset = "ces.refset.hg19", sample_groups = NULL) {
   # Validate sample_groups
   if (is.null(sample_groups)) {
     sample_groups = c("stageless")
+  } else {
+    warning("sample_groups is deprecated and will be removed in a future update. No downstream functions require declaration of sample_groups.")
   }
   
   if (is.numeric(sample_groups)) {
@@ -94,9 +97,6 @@ CESAnalysis = function(refset = "ces.refset.hg19", sample_groups = NULL) {
   ## using_exome_plus: whether previously loaded and any future generic exome data uses the "exome+" coverage option 
   ##  (either all generic data must, or none of it, based on choice of enforce_generic_exome_coverage on first load_maf call)
   ## recording: whether "run_history" is currently being recorded (gets set to false during some internal steps for clarity)
-  ## locked: whether load_maf can still be used (can't load more data after trinuc_mutation_rates or gene_mutation_rates)
-  ## trinuc_done: have all trinuc mutation rates been calculated?
-  ## gene_rates_done: have all samples been through gene_mutation_rates?
   ## uid: a unique-enough identifier for the CESAnalysis (just uses epoch time)
   ## genome_info: environment with stuff like genome build name, species, name of associated BSgenome
   ## snv_signatures: List CES signature sets used in the analysis
@@ -105,16 +105,16 @@ CESAnalysis = function(refset = "ces.refset.hg19", sample_groups = NULL) {
   genome_info = get_ref_data(data_dir, "genome_build_info")
   ces_version = packageVersion("cancereffectsizeR")
   advanced = list("version" = ces_version, using_exome_plus = F, 
-                  recording = T, locked = F, trinuc_done = F, gene_rates_done = F,
-                  uid = unclass(Sys.time()), genome_info = genome_info,
+                  recording = T, uid = unclass(Sys.time()), genome_info = genome_info,
                   snv_signatures = list())
   
   # Mutation table specifications (see template tables declared in imports.R)
-  mutation_tables = list(amino_acid_change = aac_annotation_template, snv = snv_annotation_template)
+  mutation_tables = list(amino_acid_change = copy(aac_annotation_template), snv = copy(snv_annotation_template))
+  
   cesa = new("CESAnalysis", run_history = character(),  ref_key = refset_name, maf = data.table(), excluded = data.table(),
              groups = sample_groups, mutrates = data.table(),
              selection_results = list(), ref_data_dir = data_dir, epistasis = list(),
-             advanced = advanced, samples = data.table(), mutations = mutation_tables,
+             advanced = advanced, samples = copy(sample_table_template), mutations = mutation_tables,
              coverage = list())
   cesa@run_history = c(paste0("[Version: cancereffectsizeR ", ces_version, "]" ))
   cesa = update_cesa_history(cesa, match.call())
@@ -206,6 +206,23 @@ load_cesa = function(file) {
   
   # Data tables must be reset to get them working properly
   cesa@samples = setDT(cesa@samples)
+  
+  # Convert old versions of sample table
+  if(cesa@samples[, .N] == 0) {
+    cesa@samples = copy(sample_table_template)
+  }
+  if(is.null(cesa@samples$sig_analysis_grp)) {
+    cesa@samples[, sig_analysis_grp := NA_integer_]
+    if(! is.null(cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix)) {
+      cesa@samples[rownames(cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix), sig_analysis_grp := 0]
+    }
+  }
+  if(is.null(cesa@samples$gene_rate_grp)) {
+    cesa@samples[, gene_rate_grp := NA_integer_]
+  } else if(is.character(cesa@samples$gene_rate_grp)) {
+    # previously there was rate_grp_1, etc. here (now just 1, 2, ...)
+    cesa@samples[, gene_rate_grp := as.integer(sub('.*_', '', gene_rate_grp))]
+  }
   cesa@maf = setDT(cesa@maf)
   
   # Older versions lack annotation table templates
@@ -234,7 +251,7 @@ load_cesa = function(file) {
   
   # Now a list of signature sets. Formerly just 1 set, so put in enclosing list if necessary.
   used_sig_sets = cesa@advanced$snv_signatures
-  if (! is.null(used_sig_sets)) {
+  if (! is.null(used_sig_sets) && length(used_sig_sets) > 0) {
     if (! is.list(used_sig_sets[[1]])) {
       cesa@advanced$snv_signatures = list(cesa@advanced$snv_signatures)
       names(cesa@advanced$snv_signatures) = cesa@advanced$snv_signatures[[1]]$name
@@ -379,16 +396,18 @@ get_sample_info = function(cesa = NULL) {
   if(! is(cesa, "CESAnalysis")) {
     stop("\nUsage: get_sample_info(cesa), where cesa is a CESAnalysis")
   }
-  if (cesa@samples[,.N] == 0) {
-    stop("No MAF data has been loaded yet, so naturally there is no sample data.")
-  }
   
-  # user doesn't need group columns for single-group analyses
-  if(length(cesa@groups) == 1) {
-    return(copy(cesa@samples[, -c("group")]))
-  } else {
-    return(copy(cesa@samples))
+  to_include = names(cesa@samples)
+  for(col in c("sig_analysis_grp", "gene_rate_grp")) {
+    if(all(is.na(cesa@samples[[col]]))) {
+      to_include = setdiff(to_include, col)
+    }
   }
+  if(length(cesa@groups) == 1) {
+    to_include = setdiff(to_include, "group")
+  }
+  return(copy(cesa@samples[, .SD, .SDcols = to_include]))
+  
 }
 
 #' Get estimated relative rates of trinucleotide-specific SNV mutation
@@ -452,7 +471,7 @@ get_gene_rates = function(cesa = NULL) {
     stop("\nUsage: get_gene_rates(cesa), where cesa is a CESAnalysis")
   }
   gene_rates = copy(cesa@mutrates)
-  if (sum(grepl('rate_grp', names(gene_rates))) == 1) {
+  if (cesa@samples[, identical(unique(gene_rate_grp), 1L)]) {
     setnames(gene_rates, 'rate_grp_1', 'rate')
   }
   return(gene_rates)

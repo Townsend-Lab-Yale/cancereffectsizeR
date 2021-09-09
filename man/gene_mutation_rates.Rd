@@ -7,9 +7,10 @@
 gene_mutation_rates(
   cesa,
   covariates = NULL,
-  sample_group = NULL,
+  samples = character(),
   dndscv_args = list(),
-  save_all_dndscv_output = FALSE
+  save_all_dndscv_output = FALSE,
+  sample_group = NULL
 )
 }
 \arguments{
@@ -23,12 +24,16 @@ covariates data are available, set to NULL to run without. Finally, you can also
 supply custom covariates data in the form of a matrix or prcomp object (see website
 for details).}
 
+\item{samples}{Which samples to include in the current run. Defaults to all samples.
+Can be a vector of Unique_Patient_Identifiers, or a data.table containing rows from
+the CESAnalysis sample table.}
+
+\item{save_all_dndscv_output}{Default FALSE; when TRUE, saves all dndscv output, not
+just what's needed by cancereffectsizeR. (Full output can be very large, in the gigabytes.)}
+
 \item{sample_group}{Which sample groups to include in the gene rate calculation;
 defaults to all groups. (To calculate different rates for different groups, you'll 
 run this function multiple times, changing this argument each time.)}
-
-\item{save_all_dndscv_output}{default false; when true, saves all dndscv output, not
-just what's needed by cancereffectsizeR (will make object size very large)}
 }
 \value{
 CESAnalysis object with gene-level mutation rates calculated

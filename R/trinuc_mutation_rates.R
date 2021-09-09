@@ -9,7 +9,7 @@
 #' 
 #' To reduce the influence of selection on the estimation of relative trinucleotide mutation
 #' rates, only non-recurrent SNVs (those that do not appear in more than one 
-#' sample in the data set) are used.
+#' sample in the current run) are used.
 #' 
 #' A custom signature set should be given as a named three-item list, where "signatures"
 #' is a pure data.frame with signature definitions, "name" is a 1-length character naming
@@ -40,11 +40,13 @@
 #' \code{sig_set = get_ces_signature_set("ces.refset.hg19", "COSMIC_v3.2")}.
 #'
 #' @param cesa CESAnalysis object
-#' @param signature_set name of built-in signature set (see \code{list_ces_signature_sets()}), or a custom signature set (see details)
-#' @param signatures_to_remove specify any signatures to exclude from analysis; use \code{suggest_cosmic_signatures_to_remove()} for advice on COSMIC signatures
-#' @param sample_group vector of sample group(s) to calculate rates for (default all)
-#' @param cores how many cores to use for processing tumors in parallel
-#' @param signature_extractor one of "MutationalPatterns" (default) or "deconstructSigs"
+#' @param signature_set Name of built-in signature set (see \code{list_ces_signature_sets()}), or a custom signature set (see details)
+#' @param signatures_to_remove Specify any signatures to exclude from analysis; use \code{suggest_cosmic_signatures_to_remove()} for advice on COSMIC signatures
+#' @param samples Which samples to include in the current run. Defaults to all samples.
+#'   Can be a vector of Unique_Patient_Identifiers, or a data.table containing rows from
+#'   the CESAnalysis sample table.
+#' @param cores How many cores to use for processing tumors in parallel.
+#' @param signature_extractor One of "MutationalPatterns" (default) or "deconstructSigs".
 #' @param mp_strict_args Named list of arguments to pass to MutationalPatterns'
 #'   fit_to_signatures_strict function. Note that mut_matrix and signatures arguments are
 #'   generated automatically, and that if you'd rather not use the strict method, you can
@@ -56,12 +58,14 @@
 #' @param assume_identical_mutational_processes use well-mutated tumors (those with number
 #'   of eligible mutations meeting sig_averaging_threshold) to calculate group average
 #'   signature weights, and assign these to all tumors
+#' @param sample_group (Deprecated; use samples.) Vector of sample group(s) to calculate rates for.
 #' @param use_dS_exome2genome historical dev option (don't use)
 #' @return CESAnalysis with sample-specific signature weights and inferred
 #'   trinucleotide-context-specific relative mutation rates. The snv_counts matrix gives
-#'   the numbers of SNVs in each trinucleotide context in all samples in CESAnalysis. (As
-#'   noted elsewhere, recurrent mutations are excluded to reduce the influence of
-#'   selection.) This matrix, produced by `trinuc_snv_counts()`, can be fed directly into
+#'   the counts of SNVs in each trinucleotide context for all samples in the CESAnalysis.
+#'   (While recurrent mutations are excluded from signature analysis in
+#'   trinuc_mutation_rates(), they are present in snv_counts for completeness.) The
+#'   snv_counts matrix, produced by `trinuc_snv_counts()`, can be fed directly into
 #'   MutationalPatterns if you wish to run your own extended signature analysis.
 #'   
 #'   The raw_attributions table contains signature attributions as produced by
@@ -91,11 +95,12 @@
 trinuc_mutation_rates <- function(cesa,
                                   signature_set = NULL,
                                   signatures_to_remove = character(),
-                                  sample_group = NULL,
+                                  samples = character(),
                                   cores = 1,
                                   signature_extractor = "MutationalPatterns",
                                   mp_strict_args = list(),
                                   assume_identical_mutational_processes = FALSE,
+                                  sample_group = NULL,
                                   sig_averaging_threshold = 50,
                                   use_dS_exome2genome = FALSE) {  
 
@@ -159,25 +164,37 @@ trinuc_mutation_rates <- function(cesa,
     stop("No MAF data in the CESAnalysis", call. = F)
   }
   
-  if(! is.null(sample_group) & ! is(sample_group, "character")) {
-    stop("sample_group should be character")
-  }
-  sample_group = unique(sample_group)
-  if (! all(sample_group %in% cesa@groups)) {
-    possible_groups = setdiff(cesa@groups, "stageless") # historical
-    if (length(possible_groups) == 0) {
-      stop("The CESAnalysis has no user-defined sample groups, so you can't use the sample_group parameter.")
-    }
-    stop("Unrecognized sample groups. Those defined in the CESAnalysis are ", paste(possible_groups, sep = ", "), ".")
-  }
+  # get validated subset of cesa@samples for the input samples
+  curr_sample_info = select_samples(cesa, samples)
   
-  if (! is.null(sample_group)) {
+  # handle (deprecated) sample_group method of sample selection
+  if(! is.null(sample_group)) {
+    if(! identical(samples, character())) {
+      stop("Use just one of samples and sample_group (use samples, as sample_group is deprecated).")
+    }
+    warning("sample_group is deprecated and will be removed; \"samples\" is more flexible")
+    if(! is(sample_group, "character")) {
+      stop("sample_group should be character")
+    }
+    sample_group = unique(sample_group)
+    if (! all(sample_group %in% cesa@groups)) {
+      possible_groups = setdiff(cesa@groups, "stageless") # historical
+      if (length(possible_groups) == 0) {
+        stop("The CESAnalysis has no user-defined sample groups, so you can't use the sample_group parameter.")
+      }
+      stop("Unrecognized sample groups. Those defined in the CESAnalysis are ", paste(possible_groups, sep = ", "), ".")
+    }
     curr_sample_info = cesa@samples[group %in% sample_group]
-  } else {
-    curr_sample_info = cesa@samples
+    if (curr_sample_info[, .N] == 0) {
+      stop("No selected samples to run (no samples in the chosen group?).")
+    }
   }
-  if (curr_sample_info[, .N] == 0) {
-    stop("No selected samples to run (no samples in the chosen group?).")
+
+
+  if(! all(is.na(curr_sample_info$sig_analysis_grp))) {
+    msg = pretty_message(paste0("Some samples in current input have already been run. Use clear_trinuc_rates_and_signatures() if ",
+                                "you want to re-run them."), emit = F)
+    stop(msg)
   }
   
   if(all(curr_sample_info$coverage == "targeted")) {
@@ -239,15 +256,19 @@ trinuc_mutation_rates <- function(cesa,
   
   # Get SNV counts. Yes, always getting MutationalPatterns style, and then will convert to deconstructSigs format
   # later if needed.
+  # First, save the full counts across all data for user access. Re-running if user has loaded more MAF data.
   full_trinuc_snv_counts = cesa@trinucleotide_mutation_weights$trinuc_snv_counts
-  if (is.null(full_trinuc_snv_counts)) {
+  if (is.null(full_trinuc_snv_counts) || 
+      ncol(full_trinuc_snv_counts) < cesa@maf[variant_type == 'snv', uniqueN(Unique_Patient_Identifier)]) {
     full_trinuc_snv_counts = trinuc_snv_counts(cesa@maf, genome = get_cesa_bsg(cesa), 
-                                               exclude_recurrent = TRUE, style = 'MutationalPatterns')
+                                               exclude_recurrent = FALSE, style = 'MutationalPatterns')
   }
   
-  # all_tumors means all in current run, which may include tumors with no SNVs.
-  # need to intersect because tumors with 0 SNVs won't appear in SNV counts.
-  trinuc_breakdown_per_tumor = full_trinuc_snv_counts[, intersect(colnames(full_trinuc_snv_counts), all_tumors)] 
+  
+  # Recalculate using just tumors in current run. Tumors with no non-recurrent SNVs won't be included in output.
+  trinuc_breakdown_per_tumor = trinuc_snv_counts(cesa@maf[all_tumors, on = "Unique_Patient_Identifier"],
+                                                 genome = get_cesa_bsg(cesa), exclude_recurrent = TRUE,
+                                                 style = 'MutationalPatterns')
   
   # can only find signatures in tumors with exome/genome data that have non-recurrent SNVs
   tumors_eligible_for_trinuc_calc = intersect(curr_sample_info[coverage != "targeted", Unique_Patient_Identifier], unique(colnames(trinuc_breakdown_per_tumor)))
@@ -495,6 +516,7 @@ trinuc_mutation_rates <- function(cesa,
   } else {
     new_mat = rbind(trinuc_proportion_matrix, cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix)
     cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix = new_mat
+    cesa@trinucleotide_mutation_weights$trinuc_snv_counts = full_trinuc_snv_counts
   }
   
   # Put together signature weight tables
@@ -547,6 +569,8 @@ trinuc_mutation_rates <- function(cesa,
     
     setcolorder(raw_signature_output, "Unique_Patient_Identifier")
     cesa@trinucleotide_mutation_weights[["raw_signature_weights"]] = raw_signature_output
+    
+    
   }
   
   if(! is.null(mean_ds)) {
@@ -556,12 +580,36 @@ trinuc_mutation_rates <- function(cesa,
       cesa@trinucleotide_mutation_weights[["group_average_dS_output"]][[paste(sample_group, collapse = ',')]] = mean_ds
     }
   }
-  cesa@advanced$locked = T
-  if(nrow(cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix) == cesa@samples[, .N]) {
-    cesa@advanced$trinuc_done = T
-  }
+
+  
+  curr_grp_num = max(c(0, na.omit(cesa@samples$sig_analysis_grp))) + 1
+  cesa@samples[curr_sample_info$Unique_Patient_Identifier, sig_analysis_grp := curr_grp_num, on = "Unique_Patient_Identifier"]
   return(cesa)
 }
+
+#' Clear mutational signature attributions and related mutation rate information
+#' 
+#' Removes all data calculated or supplied via trinuc_mutation_rates,
+#' set_signature_weights, set_trinuc_rates, etc. This function can be used if you want to
+#' re-run signature analysis with different sample groupings or parameters.
+#' 
+#' @param cesa CESAnalysis
+#' @export
+clear_trinuc_rates_and_signatures = function(cesa) {
+  if(! is(cesa, "CESAnalysis")) {
+    stop("cesa should be CESAnalysis")
+  }
+  if(all(is.na(cesa@samples$sig_analysis_grp))) {
+    stop("The analysis has no signature extraction or trinucleotide-context-specific mutation rate data.")
+  }
+  cesa = copy_cesa(cesa)
+  cesa = update_cesa_history(cesa, match.call())
+  cesa@trinucleotide_mutation_weights = list()
+  cesa@samples[, sig_analysis_grp := NA_integer_]
+  cesa@advanced$snv_signatures = NULL
+  return(cesa)
+}
+
 
 #' Tabulate SNVs by trinucleotide context
 #' 
@@ -572,8 +620,8 @@ trinuc_mutation_rates <- function(cesa,
 #' 
 #' @param maf a cancereffectsizeR-style MAF data table
 #' @param genome BSgenome reference genome (for looking up trinucleotide contexts)
-#' @param exclude_recurrent When TRUE (default), only mutations private to each sample are included in counts, in order to
-#' reduce the influence of selection.
+#' @param exclude_recurrent Default FALSE. When TRUE, only mutations private to each sample are included in counts, in order to
+#' reduce the influence of selection. (If you load more MAF data into the CESAnalysis later, recurrency may change.)
 #' @param style "MutationalPatterns" or "deconstructSigs"
 #' @return Matrix or data frame of SNV counts, suitable for use with MutationalPatterns or
 #'   deconstructSigs. Samples with zero passing SNVs will not appear.
@@ -582,7 +630,7 @@ trinuc_mutation_rates <- function(cesa,
 #' 
 trinuc_snv_counts = function(maf,
                              genome,
-                             exclude_recurrent = TRUE,
+                             exclude_recurrent = FALSE,
                              style = "MutationalPatterns"
                              ) {
   if(! is(maf, "data.table")) {

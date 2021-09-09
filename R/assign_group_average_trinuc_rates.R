@@ -68,9 +68,7 @@ assign_group_average_trinuc_rates = function(cesa) {
   num_samples = cesa@samples[, .N]
   trinuc_proportion_matrix = matrix(rep(trinuc_prop, num_samples), byrow = T, ncol = 96, 
                                     dimnames = list(cesa@samples$Unique_Patient_Identifier, names(trinuc_prop)))
-
+  cesa@samples[, sig_analysis_grp := 0L]
   cesa@trinucleotide_mutation_weights = list(trinuc_proportion_matrix=trinuc_proportion_matrix)
-  cesa@advanced$locked = T
-  cesa@advanced$trinuc_done = T
   return(cesa)
 }

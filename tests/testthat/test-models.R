@@ -7,8 +7,8 @@ cesa@trinucleotide_mutation_weights$signature_weight_table = sig_weights
 cesa@advanced$snv_signatures[["COSMIC v3.1"]] = get_ces_signature_set("ces.refset.hg19", "COSMIC_v3.1")
 
 precalc_rates = fread(get_test_file("luad_fruit_gene_rates.txt"))
-cesa = set_gene_rates(cesa, precalc_rates[, .(gene, rate_grp_1)], sample_group = "marionberry")
-cesa = set_gene_rates(cesa, precalc_rates[, .(gene, rate_grp_2)], sample_group = c("cherry", "mountain_apple"))
+cesa = set_gene_rates(cesa, precalc_rates[, .(gene, rate_grp_1)], samples = cesa$samples[group == 'marionberry'])
+cesa = set_gene_rates(cesa, precalc_rates[, .(gene, rate_grp_2)], samples = cesa$samples[c("cherry", "mountain_apple"), on = 'group'])
 
 # Make sure baseline_mutation_rates is working (requires full mutation ID)
 # Try taking just one AAC rate in one sample

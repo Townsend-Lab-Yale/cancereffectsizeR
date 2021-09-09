@@ -23,6 +23,10 @@ aac_annotation_template = data.table(aac_id = character(), gene = character(), a
                        coding_seq = character(), constituent_snvs = list(), essential_splice = logical(), 
                        covered_in = list())
 
+sample_table_template = data.table(Unique_Patient_Identifier = character(), coverage = character(), 
+                                  covered_regions = character(), sig_analysis_grp = integer(), gene_rate_grp = integer())
+
+
 
 
 # format a string the way R should automatically, then feed it to message()

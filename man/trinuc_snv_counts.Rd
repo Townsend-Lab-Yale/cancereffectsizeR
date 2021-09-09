@@ -7,7 +7,7 @@
 trinuc_snv_counts(
   maf,
   genome,
-  exclude_recurrent = TRUE,
+  exclude_recurrent = FALSE,
   style = "MutationalPatterns"
 )
 }
@@ -16,8 +16,8 @@ trinuc_snv_counts(
 
 \item{genome}{BSgenome reference genome (for looking up trinucleotide contexts)}
 
-\item{exclude_recurrent}{When TRUE (default), only mutations private to each sample are included in counts, in order to
-reduce the influence of selection.}
+\item{exclude_recurrent}{Default FALSE. When TRUE, only mutations private to each sample are included in counts, in order to
+reduce the influence of selection. (If you load more MAF data into the CESAnalysis later, recurrency may change.)}
 
 \item{style}{"MutationalPatterns" or "deconstructSigs"}
 }

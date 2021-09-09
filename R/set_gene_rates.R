@@ -13,47 +13,57 @@
 #' 
 #' 
 #' @param cesa CESAnalysis object
-#' @param rates A two-column data.table with either gene name or protein_id in column 1 and rate in column 2
-#' @param sample_group Character vector giving sample group(s) that the rates apply to. If
-#'   unspecified, the rates are assigned to all samples.
-#' @param missing_genes_take_nearest Set to TRUE
-#' to have each gene/protein_id missing from rates take the rate of the nearest non-missing gene/protein.
+#' @param rates A two-column data.table with either gene name or protein_id in column 1
+#'   and rate in column 2
+#' @param samples Which samples the input rates apply to. Defaults to all samples. Can be
+#'   a vector of Unique_Patient_Identifiers, or a data.table containing rows from the
+#'   CESAnalysis sample table.
+#' @param missing_genes_take_nearest Set to TRUE to have each gene/protein_id missing from
+#'   rates take the rate of the nearest non-missing gene/protein.
+#' @param sample_group (Deprecated; use samples.) Character vector giving sample group(s)
+#'   that the rates apply to.
 #' @export
-set_gene_rates = function(cesa = NULL, rates = NULL, sample_group = NULL, missing_genes_take_nearest = FALSE) {
+set_gene_rates = function(cesa = NULL, rates = NULL, samples = character(), 
+                          missing_genes_take_nearest = FALSE, sample_group = NULL) {
   stopifnot(is(cesa, "CESAnalysis"),
             is(rates, "data.table"),
             is(missing_genes_take_nearest, "logical"),
             length(missing_genes_take_nearest) == 1)
-  if(is.null(sample_group)) {
-    sample_group = cesa@groups
-  }
-  if(! is(sample_group, "character")) {
-    stop("sample_group should be character")
-  }
-  sample_group = unique(sample_group)
-  if (! all(sample_group %in% cesa@groups)) {
-    possible_groups = setdiff(cesa@groups, "stageless") # historical
-    if (length(possible_groups) == 0) {
-      stop("The CESAnalysis has no user-defined sample groups, so you can't use the sample_group parameter.")
-    }
-    stop("Unrecognized sample groups. Those defined in the CESAnalysis are ", paste(possible_groups, sep = ", "), ".")
-  }
-  
   
   cesa = copy_cesa(cesa)
   if(cesa@samples[, .N] == 0) {
     stop("No MAF data loaded. Gene rates should be assigned after loading all variant data.")
   } 
-  curr_samples = cesa@samples[group %in% sample_group, "Unique_Patient_Identifier"]
-  if (length(curr_samples) == 0) {
-    stop("No samples are in the specified group(s)")
+  
+  curr_sample_info = select_samples(cesa, samples)
+  if(! is.null(sample_group)) {
+    if(! identical(samples, character())) {
+      stop("Use just one of samples and sample_group (use samples, as sample_group is deprecated).")
+    }
+    warning("sample_group is deprecated and will be removed; \"samples\" is more flexible")
+    if(! is(sample_group, "character")) {
+      stop("sample_group should be character")
+    }
+    sample_group = unique(sample_group)
+    if (! all(sample_group %in% cesa@groups)) {
+      possible_groups = setdiff(cesa@groups, "stageless") # historical
+      if (length(possible_groups) == 0) {
+        stop("The CESAnalysis has no user-defined sample groups, so you can't use the sample_group parameter.")
+      }
+      stop("Unrecognized sample groups. Those defined in the CESAnalysis are ", paste(possible_groups, sep = ", "), ".")
+    }
+    curr_sample_info = cesa@samples[group %in% sample_group]
+    if (curr_sample_info[, .N] == 0) {
+      stop("No selected samples to run (no samples in the chosen group?).")
+    }
   }
+
   
   # Don't allow rates to be overwritten (too confusing for now to risk overlapping sample group specification in sequential calls)
-  if (! is.null(cesa@samples$gene_rate_grp)) {
-    if (! all(is.na(cesa@samples[group %in% sample_group, gene_rate_grp]))) {
-      stop("Gene mutation rates have already been calculated/assigned for some or all samples specified.")
-    }
+  if (! all(is.na(curr_sample_info$gene_rate_grp))) {
+    msg = paste0("Gene mutation rates have already been calculated/assigned for some or all samples specified. ",
+         "Use clear_gene_rates() first if you want to assign new rates.")
+    stop(pretty_message(msg, emit = F))
   }
   
   # validate rates
@@ -134,27 +144,24 @@ set_gene_rates = function(cesa = NULL, rates = NULL, sample_group = NULL, missin
     }
   }
   
-  if (ncol(cesa@mutrates) == 0) {
-    curr_rate_group = 'rate_grp_1'
-  } else {
-    curr_rate_group = paste0('rate_grp_', ncol(cesa@mutrates))
-  }
+  curr_rate_group = as.integer(max(c(0, na.omit(cesa@samples$gene_rate_grp))) + 1)
+  rate_grp_colname = paste0('rate_grp_', curr_rate_group)
   
   if (using_pid) {
-    setnames(rates, c("region", "rate"), c("pid", curr_rate_group))
+    setnames(rates, c("region", "rate"), c("pid", rate_grp_colname))
     pid_to_gene = unique(as.data.table(GenomicRanges::mcols(gr_genes)))
     setnames(pid_to_gene, 'names', 'pid')
     rates[pid_to_gene, gene := gene, on = 'pid']
     setcolorder(rates, c('pid', 'gene'))
   } else {
-    setnames(rates, c("region", "rate"), c("gene", curr_rate_group))
+    setnames(rates, c("region", "rate"), c("gene", rate_grp_colname))
   }
   
-  cesa@samples = cesa@samples[group %in% sample_group, gene_rate_grp := curr_rate_group]
+  cesa@samples[curr_sample_info$Unique_Patient_Identifier, gene_rate_grp := curr_rate_group, on = "Unique_Patient_Identifier"]
   
-  if (ncol(cesa@mutrates) > 0) {
+  if (curr_rate_group > 1) {
     if (using_pid) {
-      cesa@mutrates = cesa@mutrates[rates, on = "pid"]
+      cesa@mutrates = cesa@mutrates[rates[, - "gene"], on = "pid"]
     } else {
       cesa@mutrates = cesa@mutrates[rates, on = "gene"]
     }
@@ -162,9 +169,6 @@ set_gene_rates = function(cesa = NULL, rates = NULL, sample_group = NULL, missin
     cesa@mutrates = rates
   }
   
-  if (! any(is.na(cesa@samples$gene_rate_grp))) {
-    cesa@advanced$gene_rates_done = T
-  }
   cesa = update_cesa_history(cesa, match.call())
   return(cesa)
 }

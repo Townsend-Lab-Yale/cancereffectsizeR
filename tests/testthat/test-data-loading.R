@@ -121,19 +121,23 @@ test_that("Sample group handling", {
   tiny_maf = get_test_file("tiny.hg19.maf.txt")
   
   # You can't supply a group_col to a CESAnalysis that does not have predefined sample groups
+  # Also, group_col is depcrecasted and will be removed soon.
   expect_error(load_maf(cesa = CESAnalysis(refset = "ces.refset.hg19"), maf = tiny_maf, sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2", group_col = "nonexistent-column"),
-               "This CESAnalysis does not specify sample groups")
+               "group_col is deprecated")
   
   # If CESAnalysis is stage-specific, calls to load_maf must include group_col
   bad_maf = get_test_file("bad_stages_1.maf.txt")
-  multistage = CESAnalysis(sample_groups = 1:2, refset = "ces.refset.hg19")
-  expect_error(load_maf(multistage, maf = bad_maf), "You must specify group_col")
+  multistage = expect_warning(CESAnalysis(sample_groups = 1:2, refset = "ces.refset.hg19"), 'sample_groups is deprecated')
   
+  # Suppress deprecation warning
+  expect_error(suppressWarnings(load_maf(multistage, maf = bad_maf)), "You must specify group_col")
+  
+  # Suppress deprecation warning
   # Ensuring that MAF data triggers error if progressions are out of bounds
-  expect_error(load_maf(multistage, maf = bad_maf, group_col = "stage"), "The following groups were not declared")
+  expect_error(suppressWarnings(load_maf(multistage, maf = bad_maf, group_col = "stage")), "The following groups were not declared")
   
   # Error if one sample has multiple stages listed in MAF data
-  multistage = CESAnalysis(sample_groups = 1:4, refset = "ces.refset.hg19")
+  multistage = expect_warning(CESAnalysis(sample_groups = 1:4, refset = "ces.refset.hg19"), 'sample_groups is deprecated')
   expect_error(load_maf(multistage, maf = bad_maf, group_col = "stage"), "samples are associated with multiple groups")
   
   # Absence of a declared progression state in the data triggers a notification
