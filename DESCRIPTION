@@ -27,7 +27,8 @@ Imports:
 	pbapply,
 	rtracklayer,
 	S4Vectors,
-	seqinr
+	seqinr,
+	stringi
 Suggests: 
   deconstructSigs,
   formattable,

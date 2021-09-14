@@ -17,11 +17,13 @@
 #' @param cores number of cores for parallel processing of gene pairs
 #' @return CESAnalysis with epistasis analysis results added
 #' @export
-ces_gene_epistasis = function(cesa = NULL, genes = character(), run_name = "auto", cores = 1, conf = NULL)
+ces_gene_epistasis = function(cesa = NULL, genes = character(), samples = character(), run_name = "auto", cores = 1, conf = NULL)
 {
   if (! is(cesa, "CESAnalysis")) {
     stop("cesa should be a CESAnalysis.")
   }
+  
+  samples = select_samples(cesa, samples)
   cesa = copy_cesa(cesa)
   cesa = update_cesa_history(cesa, match.call())
   if (! is(run_name, "character") || length(run_name) != 1) {
@@ -56,21 +58,16 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), run_name = "auto
   if (length(genes) < 2) {
     stop("Supply at least two genes to analyze.")
   }
-  
   maf = cesa@maf[variant_type == "snv"]
-	
 	
 	# subset input genes to those with data
   genes = unique(genes)
-	genes_to_analyze = intersect(unique(unlist(maf$genes)), genes)
-	recurrent_variants = select_variants(cesa = cesa, genes = genes_to_analyze, min_freq = 2, collapse_lists = F)
-	recurrent_snv_id = recurrent_variants[variant_type == "snv", variant_id]
-	recurrent_aac_id = recurrent_variants[variant_type == "aac", variant_id]
+	recurrent_variants = select_variants(cesa = cesa, genes = genes, min_freq = 2)
 	
 	# use "all_genes" column because SNVs might have multiple genes, and only one appears in the "gene" column
 	genes_with_recurrent_variants = unique(unlist(recurrent_variants$all_genes)) 
 
-	genes_to_analyze = intersect(genes_with_recurrent_variants, genes_to_analyze)
+	genes_to_analyze = intersect(genes_with_recurrent_variants, genes)
 	num_passing_genes = length(genes_to_analyze)
   if(num_passing_genes == 0) {
     stop("None of your requested genes have any recurrent variants (see docs for why this is required).", call. = F)
@@ -107,7 +104,7 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), run_name = "auto
     }
   }
   
-  selection_results = pbapply::pblapply(X = gene_pairs, FUN = pairwise_gene_epistasis, cesa=cesa, conf = conf, cl = cores)
+  selection_results = pbapply::pblapply(X = gene_pairs, FUN = pairwise_gene_epistasis, cesa=cesa, validated_samples = samples, conf = conf, cl = cores)
   results = data.table::rbindlist(selection_results)
   
   # pairwise epistasis function uses v1/v2 in parameter names (as in, variants); sub in g1/g2 for gene
@@ -378,9 +375,11 @@ pairwise_variant_epistasis = function(cesa, variant_pair, conf, compound_variant
 #' The genes are assumed to not overlap in any ranges (the calling
 #' function checks for this).
 #' @keywords internal
-pairwise_gene_epistasis = function(cesa, genes, conf) {
+pairwise_gene_epistasis = function(cesa, genes, validated_samples, conf) {
   gene1 = genes[1]
   gene2 = genes[2]
+  
+  #samples = select_samples(cesa, samples)
 
   # When including targeted gene sequencing data, we need to throw out any samples
   # that don't have coverage at ALL recurrent variant sites in these genes. This

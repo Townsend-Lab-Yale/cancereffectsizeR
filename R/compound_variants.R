@@ -68,7 +68,7 @@ CompoundVariantSet = function(cesa, variant_id) {
   # replace spaces with underscores (mainly to allow things like KRAS G12C -> KRAS_G12C)
   variant_id = lapply(variant_id, function(x) gsub(" ", "_", x))
   
-  selected = select_variants(cesa, variant_passlist = all_ids, include_subvariants = T)
+  selected = select_variants(cesa, variant_ids = all_ids, include_subvariants = T)
   selected_snvs = selected[variant_type == "snv"]
   setkey(selected_snvs, "variant_id")
   selected_aacs = selected[variant_type == "aac"]

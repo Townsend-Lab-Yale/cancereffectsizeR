@@ -7,6 +7,7 @@
 ces_gene_epistasis(
   cesa = NULL,
   genes = character(),
+  samples = character(),
   run_name = "auto",
   cores = 1,
   conf = NULL

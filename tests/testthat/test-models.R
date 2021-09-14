@@ -47,7 +47,7 @@ test_that("ces_variant with sswm", {
 })
 
 test_that("ces_variant with sswm_sequential", {
-  cesa = ces_variant(cesa, variants = select_variants(cesa, genes = c("EGFR", "KRAS", "TP53"), variant_passlist = "CR2 R247L"),
+  cesa = ces_variant(cesa, variants = select_variants(cesa, genes = c("EGFR", "KRAS", "TP53"), variant_ids = "CR2 R247L"),
                  model = "sswm_sequential", groups = list(c("marionberry", "cherry"), "mountain_apple"))
   results = cesa@selection_results[[1]] # previous run not saved due to test_that scoping
   expect_equal(attr(results, "si_cols"), c("si_1", "si_2"))
@@ -59,21 +59,21 @@ test_that("ces_variant bad groups inputs", {
   expect_error(ces_variant(cesa, model = "sswm_sequential", groups = c("cherry","cherry")), "groups are re-used")
   expect_error(ces_variant(cesa, model = "sswm_sequential", groups = list(c("cherry", "marionberry"))),
                "should be a list with length at least two")
-  expect_message(ces_variant(cesa, variants = select_variants(cesa, variant_passlist = "CR2 R247L"),
+  expect_message(ces_variant(cesa, variants = select_variants(cesa, variant_ids = "CR2 R247L"),
                              model = "sswm_sequential", groups = c("cherry", "marionberry")),
                   "are not informing effect")
 })
 
 test_that("ces_variant with user-supplied variants", {
-  expect_equal(ces_variant(cesa, variants = select_variants(cesa, variant_passlist = "10:100190376_C>A"))@selection_results[[1]][, .N], 1)
-  variants = select_variants(cesa, genes = c("TP53", "KRAS"), variant_passlist = "KRAS_G12D_ENSP00000256078", min_freq = 2)
+  expect_equal(ces_variant(cesa, variants = select_variants(cesa, variant_ids = "10:100190376_C>A"))@selection_results[[1]][, .N], 1)
+  variants = select_variants(cesa, genes = c("TP53", "KRAS"), variant_ids = "KRAS_G12D_ENSP00000256078", min_freq = 2)
   expect_equal(ces_variant(cesa, variants = variants)@selection_results[[1]][, .N], 9)
   
   # Test an SNV that doesn't overlap a gene. Should get same result regardless of hold-out option.
   expected_si = 5134.611
-  expect_equal(ces_variant(cesa, variants = select_variants(cesa, variant_passlist = '1:1903518_G>A'))@selection_results[[1]]$selection_intensity,
+  expect_equal(ces_variant(cesa, variants = select_variants(cesa, variant_ids = '1:1903518_G>A'))@selection_results[[1]]$selection_intensity,
                expected_si, tolerance = 1e-4)
-  expect_equal(ces_variant(cesa, variants = select_variants(cesa, variant_passlist = '1:1903518_G>A'),
+  expect_equal(ces_variant(cesa, variants = select_variants(cesa, variant_ids = '1:1903518_G>A'),
                            hold_out_same_gene_samples = F)@selection_results[[1]]$selection_intensity, 
                expected_si, tolerance = 1e-4)
 })
@@ -82,7 +82,7 @@ test_that("ces_variant with user-supplied variants", {
 #baseline_mutation_rates(cesa, aac_ids = 'EGFR_L858R_ENSP00000275493')
 test_that("ces_variant on subsets of samples", {
   # EGFR L858R appears 5 times in cherry, 4 in mountain apple, 0 in marionberry
-  egfr = select_variants(cesa, variant_passlist = "EGFR_L858R_ENSP00000275493")
+  egfr = select_variants(cesa, variant_ids = "EGFR_L858R_ENSP00000275493")
   
   just_cherry = ces_variant(cesa, variants = egfr, groups = "cherry")@selection_results[[1]]$selection_intensity
   also_marionberry = ces_variant(cesa, variants = egfr, groups = c("cherry", "marionberry"))@selection_results[[1]]$selection_intensity
@@ -125,7 +125,7 @@ test_that("ces_variant on subsets of samples", {
   cesa@samples[covered_regions == "no_egfr", covered_regions := "whole_genome"]
   
   # need to re-call since covered_in changed without samples changing
-  egfr = select_variants(cesa, variant_passlist = "EGFR_L858R_ENSP00000275493")
+  egfr = select_variants(cesa, variant_ids = "EGFR_L858R_ENSP00000275493")
   with_wgs = ces_variant(cesa, variants = egfr)@selection_results[[1]]
   expect_lt(with_wgs$selection_intensity, with_all)
 })

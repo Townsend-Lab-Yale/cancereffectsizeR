@@ -28,13 +28,15 @@ test_that("load_maf and variant annotation", {
   tiny = add_variants(target_cesa = tiny, snv_id = "12:132824581_C>A")
   
   
-  selected = select_variants(tiny, variant_passlist  = "12:132824581_C>A", genes = "TTN")
+  selected = select_variants(tiny, variant_ids  = "12:132824581_C>A", genes = "TTN")
   expect_equal(selected[variant_id == "12:132824581_C>A", unlist(covered_in)], NA_character_)
   expect_equal(selected[, .N], 3)
-  selected = select_variants(tiny, variant_passlist = "12:132824581_C>A", genes = "TTN", min_freq = 0, include_subvariants = T)
+  selected = select_variants(tiny, variant_ids = "12:132824581_C>A", genes = "TTN", min_freq = 0, include_subvariants = T)
   expect_equal(selected[, .N], 7)
   selected = select_variants(tiny, min_freq = 2)
-  expect_equal(sum(selected$maf_frequency), 55)
+  expect_equal(sum(selected$maf_prevalence), 55)
+  expect_equal(variant_counts(tiny, "12:132824581_C>A")$total_prevalence, 0)
+  expect_equal(sum(variant_counts(tiny, selected$variant_id)$total_prevalence), 55)
   expect_equal(selected[variant_id == "TP53_T125T_ENSP00000269305", essential_splice], T)
   
   # Error when any requested gene is not in RefCDS data

@@ -203,7 +203,7 @@ ces_variant <- function(cesa = NULL,
       if(! "variant_id" %in% names(variants)) {
         stop("variants is missing a variant_id column. Typically, variants is generated using select_variants().")
       }
-      variants = select_variants(cesa, variant_passlist = variants[, variant_id])
+      variants = select_variants(cesa, variant_ids = variants[, variant_id])
     }
   } else if (is(variants, "CompoundVariantSet")) {
     running_compound = TRUE
@@ -215,7 +215,7 @@ ces_variant <- function(cesa = NULL,
            "Please re-generate it.")
     }
     compound_variants = variants
-    variants = select_variants(cesa, variant_passlist = compound_variants@snvs$snv_id, include_subvariants = TRUE)
+    variants = select_variants(cesa, variant_ids = compound_variants@snvs$snv_id, include_subvariants = TRUE)
     
     # copy in compound variant names and overwrite covered_in with value of shared_cov
     variants = variants[compound_variants@snvs, compound_name := compound_name, on = c(variant_id = "snv_id")]

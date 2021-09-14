@@ -37,3 +37,28 @@ select_samples = function(cesa = NULL, samples = character()) {
   }
   return(copy(curr_sample_info))
 }
+
+
+#' Find samples with specified variants
+#'
+#' A convenience function to identify samples with specific variants.
+#'
+#' @param cesa CESAnalysis
+#' @param any_of Select samples with ANY of the given variant names/IDs, such as
+#'   c("8:142506482_C>G", "KRAS G12C"). When a gene has multiple transcripts in reference
+#'   data, you may wish to use full IDs, such as "KRAS_G12C_ENSP00000256078".
+#' @export
+samples_with = function(cesa, any_of = NULL) {
+  if(! is(cesa, "CESAnalysis")) {
+    stop("cesa expected to be CESAnalysis.")
+  }
+  variants_by_type = sort_and_validate_variant_ids(cesa = cesa, input_ids = any_of, drop_unannotated = TRUE)
+  
+  snv_ids = variants_by_type[['snv_id']]
+  aac_ids = variants_by_type[['aac_id']]
+  
+  snv_from_aac = unique(cesa@mutations$amino_acid_change[aac_ids, unlist(constituent_snvs), on = 'aac_id'])
+  all_snv_ids = union(snv_from_aac, snv_ids)
+  
+  return(cesa@maf[all_snv_ids, unique(Unique_Patient_Identifier), on = 'variant_id', nomatch = NULL])
+}
