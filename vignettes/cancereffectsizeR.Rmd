@@ -5,7 +5,7 @@ title: "Getting started"
 cancereffectsizeR is used to analyze somatic single-nucleotide variant data in [MAF format](https://docs.gdc.cancer.gov/Data/File_Formats/MAF_Format). If you want to try out the software with publicly-available data, you can download MAF files covering collections of tumors from many cancer types from the TCGA data portal.
 
 ## Install reference data
-In addition to installing cancereffectsizeR, you need to install a reference data set, or _refset_. Currently, a refset supporting the hg19 genome build is available as a separate data package. Install like this:
+In addition to installing cancereffectsizeR, you need to install a reference data set, or _refset_. Currently, refsets supporting the hg38 and hg18 genome builds are available as separate data packages. Install like this:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, tidy = 'styler')
@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE, tidy = 'styler')
 
 ```{r eval = FALSE}
 options(timeout = 600) # large download, so we increase the download time limit to be safe
-remotes::install_github("Townsend-Lab-Yale/ces.refset.hg19@*release")
+remotes::install_github("Townsend-Lab-Yale/ces.refset.hg38@*release")
 ```
 
 Refsets for more genome builds and species may be added in the future; please let us know if you're interested. There is also full support for [building your own custom refset](custom_refset_instructions.html).
@@ -54,36 +54,30 @@ You want to be confident that nearly all of the somatic variants in your MAF fil
 * There should be few to no mutations in repetitive or poorly mapped regions of the genome, as mutations in these sites are difficult to call confidently and should be rare anyways since these regions are usually not functionally important at the small-variant level.
 * When combining data from multiple sources, look out for re-use of samples.
 
-When running with ces.refset.hg19 reference data, preloaded MAFs get annotations relevant to these guidelines. (See the `preload_maf()` reference for details.) In this example, we'll exclude mutations at sites of germline variation, and we'll also exclude mutations in repetitive regions except when the sites are of known cancer significance (COSMIC mutation census tiers 1-3). Next, we'll combine the three MAF data tables and run a helper function `check_sample_overlap()`, to identify possible duplicate samples across data sources. Lastly, we save one analysis-ready MAF per original MAF.
+When running with provided refset data, preloaded MAFs get annotations relevant to these guidelines. (See the `preload_maf()` reference for details.) In this example, we'll exclude mutations at sites of germline variation, and we'll also exclude mutations in repetitive regions except when the sites are of known cancer significance (COSMIC mutation census tiers 1-3). Next, we'll run a helper function `check_sample_overlap()`, to identify possible duplicate samples across data sources. Lastly, we save copies of the analysis-ready MAFs.
 ```{r eval = F}
-  # create named list of MAF tables
   maf1 = 'my_maf_1.txt'
   maf2 = 'my_maf_2.txt'
-  maf3 = 'my_maf_3.txt'
-  all_mafs = list(maf1 = maf1, maf2 = maf2, maf3 = maf3)
-  combined_maf = rbindlist(all_mafs, idcol = 'source', fill = T)
   
-  # remove problematic records (assuming they can't be fixed)
-  combined_maf = combined_maf[is.na(problem)]
+  # For each MAF, exclude records that overlap germline variant sites, and also exclude
+  # records in repetitive regions except at COSMIC Tier 1-3 sites.
+  maf1 = preload_maf(maf1, refset = "ces.refset.hg38")
+  maf1 = maf1[germline_variant_site == F & (repetitive_region == F | cosmic_site_tier %in% 1:3)]
   
-  # Exclude records that overlap germline variant sites, and also 
-  # exclude records in repetitive regions except at COSMIC Tier 1-3 sites.
-  combined_maf = combined_maf[germline_variant_site == F & (repetitive_region == F | cosmic_site_tier %in% 1:3)]
+  maf2 = preload_maf(maf2, refset = "ces.refset.hg38")
+  maf2 = maf2[germline_variant_site == F & (repetitive_region == F | cosmic_site_tier %in% 1:3)]
   
-  # check for sample duplicates and sample contamination
-  possible_dups = check_sample_overlap(combined_maf)
+  # check for sample duplicates
+  possible_dups = check_sample_overlap(maf_list = list(maf1, maf2))
   
-  # After manual review, let's say that we've identified 3 samples that should be removed.
-  samples_to_remove = c("Sample_9", "Sample_100", "Sample_150")
-  combined_maf = combined_maf[! Unique_Patient_Identifier %in% samples_to_remove]
+  # After manual review, let's say that we've identified 3 samples that should be removed:
+  # A100 from maf1, and B100/B101 from maf2
+  maf1 = maf1[Unique_Patient_Identifier != "A100"]
+  maf2 = maf2[! Unique_Patient_Identifier %in% c('B100', 'B101')]
   
-  # Divide back into three tables.
-  # You'll probably want to save these as your analysis-ready MAF text files.
-  maf_1_final = combined_maf[source == "maf1"]
-  maf_2_final = combined_maf[source == "maf2"]
-  maf_3_final = combined_maf[source == "maf3"]
-  
-  # fwrite(maf_1_final, "maf_1_final.txt", sep = "\t") (etc.)
+  # You'll probably want to save copies of the analysis-ready MAF data.
+  fwrite(maf1, "maf_1_final.txt", sep = "\t")
+  fwrite(maf2, "maf_2_final.txt", sep = "\t")
 ```
 
 Once you have a high-confidence set of variants, **do not** filter out records based on silent mutation status or other functional criteria. cancereffectsizeR needs the full set of high-confidence mutations from all samples. (A note on indels: It's better to leave indels in the data if they're present (and to fix them if they're misformatted), but it's okay if they're missing from the data source.)
@@ -94,7 +88,7 @@ The CESAnalysis object is the primary data structure of cancereffectsizeR. A CES
 has an associated reference data set, or _refset_. Optionally, you can also define a set of sample groupings, if you want to be able to run future steps with different parameter choices for each group of samples. For example, if you will want to calculate gene mutation rates separately for sample subsets A and B, and run signature analysis separately for subsets 1, 2, and 3, then you may need to define six groups to account for all combinations: A1, A2, A3, B1, B2, B3. If not already present, you can add a group column to the table(s) generated by `preload_maf()`.
 ```{r eval = F}
   # Create CESAnalysis with default reference data set (ces.refset.hg19)
-  cesa = CESAnalysis()
+  cesa = CESAnalysis(ces.refset.hg38)
   
   # Same, but with pre-defined sample groups (specific to the data/experiment)
   cesa = CESAnalysis(sample_groups = c("smoking", "nonsmoking"))

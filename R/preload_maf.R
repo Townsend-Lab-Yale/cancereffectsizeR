@@ -230,6 +230,7 @@ preload_maf = function(maf = NULL, refset = "ces.refset.hg19", coverage_interval
   maf = identify_maf_variants(maf)
   setcolorder(maf, c("Unique_Patient_Identifier", "Chromosome", "Start_Position", 
                        "Reference_Allele", "Tumor_Allele", "variant_type", "variant_id"))
+  
   return(maf[])
 }
 
@@ -274,7 +275,7 @@ preload_maf = function(maf = NULL, refset = "ces.refset.hg19", coverage_interval
 check_sample_overlap = function(maf_list) {
 
   if (is(maf_list, "data.table")) {
-    maf_list = list(maf)
+    maf_list = list(maf_list)
   } else if (is(maf_list, "list")) {
     which_not_dt = which(! sapply(maf_list, is, "data.table"))
     if(length(which_not_dt) > 0) {
@@ -333,8 +334,17 @@ check_sample_overlap = function(maf_list) {
   setkey(records_to_check, "Unique_Patient_Identifier")
   setindex(records_to_check, "mut_id")
   
+  if(uniqueN(maf$Unique_Patient_Identifier) < 2) {
+    stop("Less than two samples in MAF input.")
+  }
+  
   # Only need to count samples with recurrent mutations
   samples_to_check = maf[recurrent_muts, unique(Unique_Patient_Identifier), on = 'mut_id']
+  
+  if(length(samples_to_check) < 2) {
+    message("There are no recurrent mutations in the input, so there is no overlap between samples!")
+    return(invisible(data.table()))
+  }
   
   # Function to handle overlap counting
   count_overlaps = function(samples_to_check, dt) {

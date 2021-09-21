@@ -8,12 +8,18 @@
 .ces_ref_data = new.env()
 
 # Data package names and minimum required version
-.official_refsets = list(ces.refset.hg19 = as.package_version("1.1.0"))
+.official_refsets = list(ces.refset.hg19 = as.package_version("1.1.0"), ces.refset.hg38 = as.package_version("1.0.0"))
 
+# If refset packages are loaded, put their data in .ces_ref_data for easy access
+for(refset in names(.official_refsets)) {
+  if(refset %in% loadedNamespaces()) {
+    .ces_ref_data[[refset]] = get(refset, envir = as.environment(paste0('package:', refset)))
+  }
+}
 
 snv_annotation_template = data.table(snv_id = character(), chr = character(), pos = numeric(), 
                                      ref = character(), alt = character(), genes = list(), intergenic = logical(), 
-                                     assoc_aac = list(), trinuc_mut = character(), essential_splice = logical(), 
+                                     trinuc_mut = character(), essential_splice = logical(), 
                                      nearest_pid = list(), covered_in = list())
 
 aac_annotation_template = data.table(aac_id = character(), gene = character(), aachange = character(), 
@@ -23,11 +29,10 @@ aac_annotation_template = data.table(aac_id = character(), gene = character(), a
                        coding_seq = character(), constituent_snvs = list(), essential_splice = logical(), 
                        covered_in = list())
 
+aac_snv_key_template = data.table(aac_id = character(), snv_id = character(), multi_anno_site = logical(), key = 'aac_id')
+
 sample_table_template = data.table(Unique_Patient_Identifier = character(), coverage = character(), 
                                   covered_regions = character(), sig_analysis_grp = integer(), gene_rate_grp = integer())
-
-
-
 
 # format a string the way R should automatically, then feed it to message()
 pretty_message = function(msg, emit = T, black = emit) {

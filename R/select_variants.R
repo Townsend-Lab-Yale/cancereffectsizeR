@@ -30,15 +30,13 @@
 #'   \item essential_splice: Variant is 1,2 bp upstream or
 #'   1,2,5 bp downstream of an annotated splice position (edge case: if an SNV has
 #'   multiple gene/transcript annotations, this doesn't say which one it's essential for)
-#'   \item intergenic: variant does not overlap any gene ranges in the reference data
+#'   \item intergenic: variant does not overlap any coding regions in the reference data
 #'   \item trinuc_mut: for SNVs, the reference trinucleotide context, in deconstructSigs notation
 #'   \item coding_seq: coding strand nucleotides in order of transcription
 #'   \item center_nt_pos: regardless of strand, start/end give positions of two out of three AAC nucleotides; this
 #'                       gives the position of the center nucleotide (maybe useful if the AAC spans a splice site)
 #'   \item constituent_snvs: all SNVs that can produce a given variant 
 #'   \item multi_anno_site: T/F whether variant has multiple gene/transcript/AAC annotations
-#'   \item all_aac: For SNVs, all AACs that the variant is annotated as producing; for
-#'   AACs, all of the AACs that are annotated for all of the constituent SNVs
 #'   \item all_genes: all genes overlapping the variant in reference data
 #'   \item covered_in: the names of all "covered regions" sets in the CESAnalysis that have coverage at the variant site
 #'   \item maf_prevalence: number of occurrences of the variant in MAF data
@@ -81,17 +79,16 @@
 #'   and re-run \code{select_variants()} to put those variants into a new table for
 #'   selection functions.
 #' @param remove_secondary_aac Default TRUE, except overridden (effectively FALSE) when
-#'   include_subvariants = T. Occasionally, due to overlapping coding sequence definitions
-#'   in reference data, a site can have more than one amino-acid-change mutation
-#'   annotation. To avoid returning the same genome-positional variants multiple times,
-#'   the default is to return one AAC in these situations. Tiebreakers are MAF frequency,
-#'   essential splice site status, non-silent status, gene mutation frequency,
-#'   alphabetical. The omitted AACs will still be included in the all_aac column, and if
-#'   any constituent SNVs of the AACs don't overlap, the non-overlapping SNVs from the
-#'   excluded AACs will still be included in output. If you set remove_secondary_aac to
-#'   FALSE, you can't put the output variant table in selection calculation functions. An
-#'   alternative is to set to FALSE, pick which (non-overlapping) variants you want, and
-#'   then re-run select_variants() with those variants specified in \code{variant_ids}.
+#'   include_subvariants = T. Due to overlapping coding region definitions in reference
+#'   data (e.g., genes with multiple transcripts), a site can have more than one
+#'   amino-acid-change mutation annotation. To avoid returning the same genome-positional
+#'   variants multiple times, the default is to return one AAC in these situations.
+#'   Tiebreakers are MAF prevalence, essential splice site status, premature stop codon,
+#'   non-silent status, gene/protein mutation count, alphabetical. If you set
+#'   remove_secondary_aac to FALSE, you can't put the output variant table in selection
+#'   calculation functions. An alternative is to set to FALSE, pick which
+#'   (non-overlapping) variants you want, and then re-run select_variants() with those
+#'   variants specified in \code{variant_ids}.
 #' @return A data table with info on selected variants (see details), or a list of IDs.
 #' @export
 select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL, gr = NULL, variant_position_table = NULL, 
@@ -175,7 +172,7 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
       stop("No mutations captured by input genomic positions (gr/variant_position_table).", call. = F)
     }
     selected_snv_ids = intersect(selected_snv_ids, captured$snv_id)
-    aac_passing_gr = union(character(), captured[!is.na(assoc_aac), unique(unlist(assoc_aac))])
+    aac_passing_gr = cesa@mutations$aac_snv_key[captured$snv_id, unique(aac_id), on = 'snv_id', nomatch = NULL]
     selected_aac_ids = intersect(selected_aac_ids, aac_passing_gr)
   }
   
@@ -270,13 +267,10 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
 
   # Tabulate variants in MAF data and apply frequency filter, exempting passlist variants from filters
   aac_counts = NA
-  if (cesa@maf[, .N] > 0) {
-    aac_in_maf = cesa@maf[! is.na(assoc_aac), .(aac_id = unlist(assoc_aac))]
-    # edge case: aac_in_maf will be a null table if there are no coding variants in the MAF
-    if(aac_in_maf[, .N] > 0) {
-      aac_counts = aac_in_maf[, .N, by = "aac_id"][N >= min_freq]
-    }
+  if(selected_aac[, .N] > 0) {
+    aac_counts = variant_counts(cesa, selected_aac$aac_id)[, .(aac_id = variant_id, N = total_prevalence)]
   }
+  
   selected_snv[, maf_prevalence := 0]
   selected_snv = selected_snv[snv_counts, maf_prevalence := N]
   good_snv = union(passlisted_ids, selected_snv[maf_prevalence >= min_freq, snv_id]) # okay to mix AAC/SNV in passlist
@@ -303,8 +297,9 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
     selected_snv[, gene := character()]
   }
   selected_snv[intergenic == T, genes := list(NA_character_)]
-  selected_snv[, multi_anno_site := F][which(sapply(assoc_aac, length) > 1 | sapply(genes, length) > 1), multi_anno_site := T]
-  setnames(selected_snv, c("genes", "assoc_aac", "snv_id"), c("all_genes", "all_aac", "variant_id"))
+  selected_snv[cesa@mutations$aac_snv_key, multi_anno_site := multi_anno_site, on = 'snv_id']
+  selected_snv[is.na(multi_anno_site), multi_anno_site := FALSE]
+  setnames(selected_snv, c("genes", "snv_id"), c("all_genes", "variant_id"))
   # AACs get a short variant name that might not be uniquely identifying if a gene has more than one CDS
   selected_aac[, variant_name := paste(gene, aachange, sep = "_")]
   selected_aac[, variant_type := "aac"]
@@ -316,17 +311,14 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   
   if (selected_aac[, .N] > 0) {
     aac_to_snv = selected_aac[, .(snv_id = unlist(constituent_snvs)), by = "aac_id"]
-    aac_to_snv[, c("genes", "assoc_aac") := cesa@mutations$snv[aac_to_snv$snv_id, .(genes, assoc_aac)]]
+    aac_to_snv[, genes := cesa@mutations$snv[aac_to_snv$snv_id, genes]]
     all_genes_by_aac_id = aac_to_snv[, .(genes = .(unique(unlist(genes)))), by = "aac_id"]
-    assoc_aac_by_aac_id = aac_to_snv[, .(assoc_aac = .(unique(unlist(assoc_aac)))), by = "aac_id"]
     selected_aac[all_genes_by_aac_id, all_genes := genes, on = "aac_id"]
-    selected_aac[assoc_aac_by_aac_id, all_aac := assoc_aac, on = "aac_id"]
     selected_aac[, nearest_pid := list(NA_character_)]
   } else {
     selected_aac[, all_genes := list(NA_character_)]
-    selected_aac[, all_aac := list(NA_character_)]
   }
-  selected_aac[, multi_anno_site := F][which(sapply(all_aac, length) > 1 | sapply(all_genes, length) > 1), multi_anno_site := T]
+  selected_aac[cesa@mutations$aac_snv_key, multi_anno_site := multi_anno_site, on = 'aac_id']
   setnames(selected_aac, "aac_id", "variant_id")
 
   # Combine SNV and AAC tables
@@ -348,7 +340,7 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   if (collapse_lists) {
     # Problem: unstrsplit converts NA to "NA"
     # "NA" is not a valid value for any of these except all_genes, and going to assume there is not a gene called "NA"
-    list_cols = c("constituent_snvs", "covered_in", "all_genes", "all_aac")
+    list_cols = c("constituent_snvs", "covered_in", "all_genes")
     combined[, (list_cols) := lapply(.SD, function(x) S4Vectors::unstrsplit(x, sep = ",")), .SDcols = list_cols]
     combined[, (list_cols) := lapply(.SD, function(x) gsub('NA', NA_character_, x)), .SDcols = list_cols]
 
@@ -356,7 +348,7 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   
   # handle overlapping  mutations using tiebreakers explained below
   if (remove_secondary_aac) {
-    multi_hits = combined[sapply(all_aac, length) > 1 & variant_type == "aac"]
+    multi_hits = combined[variant_type == "aac" & multi_anno_site == TRUE]
     num_to_check = multi_hits[, .N]
     if (num_to_check > 0) {
       setkey(multi_hits, "variant_id")
@@ -366,10 +358,12 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
       multi_hits[maf_pid_counts, pid_freq := count, on = 'pid']
       
       # Any set of overlapping AACs has a single AAC chosen based on the following criteria:
-      # MAF frequency (usually equal among all), essential splice status, nonsilent status,
+      # MAF frequency (usually equal among all), essential splice status, premature stop codon, nonsilent status,
       # which protein has the most overall mutations in MAF data (will usually favor longer transcripts),
       # and finally just alphabetical on variant ID
-      multi_hits = multi_hits[order(-maf_prevalence, -essential_splice, aa_ref == aa_alt, -pid_freq, variant_id)]
+      multi_hits[, is_premature := aa_alt == "STOP" & aa_ref != "STOP"]
+      multi_hits = multi_hits[order(-maf_prevalence, -essential_splice, -is_premature, aa_ref == aa_alt, -pid_freq, variant_id)]
+      multi_hits[, is_premature := NULL]
       setkey(multi_hits, 'variant_id')
       chosen_aac = new.env(parent = emptyenv())
       processed_aac = new.env(parent = emptyenv())
@@ -423,12 +417,12 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   combined = setDT(combined[order(start)][BSgenome::seqnames(bsg), nomatch = NULL, on = "chr"])
   setcolorder(combined, c("variant_name", "variant_type", "chr", "start", "end", "variant_id", "ref", "alt", "gene", 
                           "strand", "aachange", "essential_splice", "intergenic", "trinuc_mut", "aa_ref", "aa_pos", "aa_alt", "coding_seq", 
-                          "center_nt_pos", "pid", "constituent_snvs", "multi_anno_site", "all_aac", "all_genes",
+                          "center_nt_pos", "pid", "constituent_snvs", "multi_anno_site", "all_genes",
                           "covered_in", "maf_prevalence", "samples_covering"))
   
   setattr(combined, "cesa_id", cesa@advanced$uid)
   setattr(combined, "nonoverlapping", nonoverlapping)
-  
+  setkey(combined, 'variant_id', physical = F)
   return(combined[]) # brackets force the output to print when unassigned (should automatically, but this is a known data.table issue)
 }
 

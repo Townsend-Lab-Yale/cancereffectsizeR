@@ -160,26 +160,14 @@ CompoundVariantSet = function(cesa, variant_id) {
   compound_snvs[, shared_cov := coverage[compound_name]]
   
   # add in simplified AAC/gene annotations
-  with_all_aac = selected_snvs[compound_snvs$snv_id, .(variant_id, all_genes, all_aac), on = "variant_id"]
-  with_all_aac = with_all_aac[, .(gene = unlist(all_genes), all_aac), by = "variant_id"]
-  with_all_aac = with_all_aac[, .(aac = unlist(all_aac)), by = c("variant_id", "gene")]
-  
-  # Often, there will be a gene name in compound names
-  # Possibly implement this later, but may be more complexity than it's worth
-  # favored_names = compound_snvs$compound_name
-  # with_all_aac[, favored_gene := mapply(like, compound_snvs[variant_id, compound_name, on = "snv_id"], gene)]
-  
-  # Bring in lists of gene names and amino-acid-changes (simplify to just the change, as in "G12C", for single-hits)
-  compound_snvs[selected_snvs, c("genes", "all_aac") := .(all_genes, all_aac), on = c(snv_id = "variant_id")]
-  aa_changes = lapply(compound_snvs$all_aac, function(x) gsub('(.*)_[^_]*$', "\\1", x, perl = T))
-  single_gene_changes = which(sapply(aa_changes, function(x) length(na.omit(x))) == 1)
-  
-  # sometimes, there an SNV has two genes but only one AAC (only shorten aa_changes on single gene)
-  single_gene_changes = intersect(single_gene_changes, which(sapply(compound_snvs$genes, length) == 1)) 
-  aa_changes[single_gene_changes] = lapply(aa_changes[single_gene_changes], function(x) gsub(pattern = '.*_', '', x))
-  compound_snvs[, aa_changes := aa_changes]
-  compound_snvs[, all_aac := NULL]
-  
+  aac_anno = cesa@mutations$aac_snv_key[compound_snvs$snv_id, on = 'snv_id', nomatch = NULL]
+  aac_anno[cesa@mutations$amino_acid_change, c("gene", "aachange") := list(gene, aachange), on = 'aac_id']
+  aac_anno[, variant_name := paste0(gene, '_', aachange)]
+  aac_anno = aac_anno[, .(variant_names = list(unique(variant_name)), genes = list(unique(gene)), 
+                          aachanges = list(unique(aachange)), num_genes = uniqueN(gene)), by = 'snv_id']
+  aac_anno[num_genes > 1, aachanges := variant_names]
+  compound_snvs[aac_anno, c('genes', 'aachanges') := list(genes, aachanges), on = 'snv_id']
+
   sample_table = cesa@maf[compound_snvs$snv_id, Unique_Patient_Identifier, on = "variant_id", by = "variant_id", nomatch = NULL]
   sample_table[cesa@samples, covered_regions := covered_regions, on = "Unique_Patient_Identifier"]
   sample_table[compound_snvs, c("compound_name", "shared_cov") := list(compound_name, shared_cov), on = c(variant_id = "snv_id")]

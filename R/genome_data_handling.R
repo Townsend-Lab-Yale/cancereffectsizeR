@@ -72,8 +72,8 @@ preload_ref_data = function(data_dir) {
   ref[["genome"]] = bsg
   ref[["supported_chr"]] = genome_info$supported_chr
 
-  if(check_for_ref_data(data_dir, "generic_exome_gr")) {
-    ref[["default_exome"]] = get_ref_data(data_dir, "generic_exome_gr")
+  if(check_for_ref_data(data_dir, "default_exome_gr")) {
+    ref[["default_exome"]] = get_ref_data(data_dir, "default_exome_gr")
   }
   
   # Load trinuc composition of each gene (composition is a 96-length numeric, deconstructSigs order)

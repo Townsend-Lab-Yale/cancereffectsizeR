@@ -15,7 +15,8 @@ test_that("load_maf and variant annotation", {
   expect_equal(lapply(tiny@coverage$exome, IRanges::ranges), lapply(tiny_ak@coverage$exome, IRanges::ranges))
   
   # Verify that calling internal function annotate_variants works the same called directly
-  variants_to_check = tiny@maf
+  # Note that DBS/MNV correction occurs in load_maf, but the SNVs/AACs annotated will stay the same
+  variants_to_check = copy(tiny@maf)
   variants_to_check[, variant_type := NULL] # cause variants to be re-identified
   re_anno = annotate_variants(ces.refset.hg19, variants_to_check)
   expect_equal(tiny@mutations$amino_acid_change[, -"covered_in"], re_anno$amino_acid_change)
@@ -34,7 +35,7 @@ test_that("load_maf and variant annotation", {
   selected = select_variants(tiny, variant_ids = "12:132824581_C>A", genes = "TTN", min_freq = 0, include_subvariants = T)
   expect_equal(selected[, .N], 7)
   selected = select_variants(tiny, min_freq = 2)
-  expect_equal(sum(selected$maf_prevalence), 55)
+  expect_equal(sum(selected$maf_prevalence), 55) # if you get 57, MNV on sample-D probably got included
   expect_equal(variant_counts(tiny, "12:132824581_C>A")$total_prevalence, 0)
   expect_equal(sum(variant_counts(tiny, selected$variant_id)$total_prevalence), 55)
   expect_equal(selected[variant_id == "TP53_T125T_ENSP00000269305", essential_splice], T)
@@ -78,8 +79,7 @@ test_that("load_maf and variant annotation", {
                             coverage, covered_regions, num = 1:.N)]
   new_info = load_sample_data(tiny, t1)@samples
   
-  all.equal(new_info[, .(Unique_Patient_Identifier, coverage, covered_regions, group)], original_samples,
-            check.attributes = F)
+  expect_equal(new_info[, -"num"], original_samples, check.attributes = F)
   
   altered = copy(t1)
   altered$coverage[5] = 'hello'

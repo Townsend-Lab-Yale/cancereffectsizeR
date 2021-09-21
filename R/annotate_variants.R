@@ -16,7 +16,8 @@ annotate_variants <- function(refset = NULL, variants = NULL) {
   gr_cds = refset$gr_genes
   bsg = refset$genome
   
-
+  aac_snv_key = copy(aac_snv_key_template)
+  
   # For now, return empty data.table if no variants to annotate
   if (variants[, .N] == 0) {
     return(list(amino_acid_change = data.table(), snv = data.table()))
@@ -105,8 +106,7 @@ annotate_variants <- function(refset = NULL, variants = NULL) {
     cds_hits[codon_pos == 0, codon_pos := 3]
     
     cds_names = unique(cds_hits$entry_name)
-    seqs = DNAStringSet(lapply(cds_names, function(x) RefCDS[[x]]$seq_cds))
-    names(seqs) = cds_names
+    seqs = DNAStringSet(lapply(RefCDS[cds_names], '[[', 'seq_cds'))
     ref_seqs = Biostrings::subseq(seqs[cds_hits$entry_name], start = cds_hits$nt_pos - cds_hits$codon_pos + 1, width = 3)
     
     # Records that don't overlap a CDS are not coding mutations
@@ -224,7 +224,10 @@ annotate_variants <- function(refset = NULL, variants = NULL) {
     # annotate amino acid mutations with all associated SNVs
     snvs_by_aa_mut = snv_table[, .(constituent_snvs = list(snv_id)), by = "aac_id"]
     aac[snvs_by_aa_mut, constituent_snvs := constituent_snvs, on = "aac_id"]
-    snv_table = setDT(snv_table[, .(chr, pos, ref, alt, cds, intergenic, assoc_aac = list(aac_id)), by = "snv_id"])
+    
+    aac_snv_key = snv_table[, .(aac_id, snv_id)]
+    aac_snv_key[, multi_anno_site := uniqueN(aac_id) > 1, by = 'snv_id']
+    snv_table = setDT(snv_table[, .(chr, pos, ref, alt, cds, intergenic), by = "snv_id"])
     
     # add noncoding SNVs to SNV table
     noncoding = snvs[! unlist(aac$constituent_snvs), on = 'snv_id']
@@ -234,14 +237,14 @@ annotate_variants <- function(refset = NULL, variants = NULL) {
     setcolorder(noncoding, "snv_id")
     # dt can't handle list columns in unique call, but if it could result would be the same
     noncoding = unique(noncoding, by = c("chr", "pos", "ref", "alt")) 
-    noncoding[, assoc_aac := list(as.list(NA_character_))] # to match coding records
     snv_table = rbind(snv_table, noncoding)
     
   } else {
     # When there are no CDS hits, all the SNVs are noncoding
     snv_table = snvs[, .(chr = Chromosome, pos = Start_Position, ref = Reference_Allele, alt = Tumor_Allele,
-                         cds, intergenic, assoc_aac = list(NA_character_)), by = "snv_id"]
+                         cds, intergenic), by = "snv_id"]
     aac = aac[0] # empty the table
+    aac[, aac_id := character()]
   }
   
 	# uniquify
@@ -286,14 +289,6 @@ annotate_variants <- function(refset = NULL, variants = NULL) {
   } else {
     snv_table[, trinuc_mut := character(0)]
   }
-
-
-  # clean up aac table, except when it's empty
-  if (aac[, .N] > 0) {
-    # to do: eventually, probably want to keep the entry_name field (call it refcds_entry?)
-    aac_table = setDT(aac[, .(aac_id, chr, gene = gene_name, strand, pid, aachange, aa_ref, aa_pos, aa_alt, possible_splice, nt1_pos, nt2_pos, nt3_pos, coding_seq, constituent_snvs)])
-    setcolorder(aac_table, c("aac_id", "gene", "aachange", "strand"))
-  }
   
 	# Annotate SNVs that are at essential splice sites according to RefCDS, and then apply to any associated AACs
 	# Note that we're not keeping track of which genes these splice site positions apply to
@@ -301,6 +296,7 @@ annotate_variants <- function(refset = NULL, variants = NULL) {
 	ind_no_splice = sapply(RefCDS[cds_in_data], function(x) length(x$intervals_splice) == 0)
 	cds_with_splice_sites = cds_in_data[! ind_no_splice]
 	snv_table[, essential_splice := F]
+	aac[, essential_splice := F]
 	if (length(cds_with_splice_sites) > 0) {
 	  essential_splice_sites = unique(rbindlist(lapply(RefCDS[cds_with_splice_sites], function(x) return(list(chr = x$chr, start = x$intervals_splice)))))
 	  essential_splice_sites[, end := start]
@@ -310,19 +306,23 @@ annotate_variants <- function(refset = NULL, variants = NULL) {
 	  snv_table[, tmp_end_pos := NULL]
 	  setkey(snv_table, "snv_id")
 	  snv_table[essential_splice_snv_id, essential_splice := T]
+	  
+	  # Most essential splice sites are noncoding, but a few overlap coding regions
+	  essential_splice_aac_id = aac_snv_key[essential_splice_snv_id, unique(aac_id), on = 'snv_id', nomatch = NULL]
+	  aac[essential_splice_aac_id, essential_splice := T, on = 'aac_id']
 	}
-
 	
-	# If an AAC has any constituent SNV at an essential splice site, we'll say the AAC is at an essential splice site
-	## To-do: If multiple transcript per gene become the norm, probably want to drop this behavior (and update docs)
+	# clean up aac table, except when it's empty
 	if (aac[, .N] > 0) {
-	  setkey(aac_table, "aac_id")
-	  essential_splice_aac_id = snv_table[essential_splice == T & ! is.na(assoc_aac), unique(unlist(assoc_aac))]
-	  aac_table[, essential_splice := F][essential_splice_aac_id, essential_splice := T]
-	  aac_table[, possible_splice := NULL]
+	  # to do: eventually, probably want to keep the entry_name field (call it refcds_entry?)
+	  aac_table = setDT(aac[, .(aac_id, chr, gene = gene_name, strand, pid, aachange, aa_ref, aa_pos, aa_alt, nt1_pos, nt2_pos, nt3_pos, 
+	                            coding_seq, constituent_snvs, essential_splice)],key = 'aac_id')
+	  setcolorder(aac_table, c("aac_id", "gene", "aachange", "strand"))
 	} else {
 	  aac_table = data.table()
 	}
+	
+	
 	
 	# Workaround to add gene name until this function is properly cleaned up
 	# Also handle the edge case of no SNVs (occurs if input is all indels)
@@ -353,6 +353,7 @@ annotate_variants <- function(refset = NULL, variants = NULL) {
 	  snv_table[, nearest_pid := list(list())]
 	}
 	setkey(snv_table, "snv_id")
-	return(list(amino_acid_change = aac_table, snv = snv_table))
+	
+	return(list(amino_acid_change = aac_table, snv = snv_table, aac_snv_key = aac_snv_key))
 }
 

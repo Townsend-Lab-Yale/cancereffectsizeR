@@ -31,6 +31,9 @@ CESAnalysis = function(refset = "ces.refset.hg19", sample_groups = NULL) {
       if(refset_name == "ces.refset.hg19") {
         message("Install ces.refset.hg19 like this:\n",
                 "remotes::install_github(\"Townsend-Lab-Yale/ces.refset.hg19@*release\")")
+      } else if(refset_name == "ces.refset.hg38") {
+        message("Install ces.refset.hg38 like this:\n",
+                "remotes::install_github(\"Townsend-Lab-Yale/ces.refset.hg38@*release\")")
       }
       stop("CES reference data set ", refset_name, " not installed.")
     }
@@ -95,7 +98,7 @@ CESAnalysis = function(refset = "ces.refset.hg19", sample_groups = NULL) {
     
   # advanced is a grab bag of additional stuff to keep track of
   ## using_exome_plus: whether previously loaded and any future generic exome data uses the "exome+" coverage option 
-  ##  (either all generic data must, or none of it, based on choice of enforce_generic_exome_coverage on first load_maf call)
+  ##  (either all generic data must, or none of it, based on choice of enforce_default_exome_coverage on first load_maf call)
   ## recording: whether "run_history" is currently being recorded (gets set to false during some internal steps for clarity)
   ## uid: a unique-enough identifier for the CESAnalysis (just uses epoch time)
   ## genome_info: environment with stuff like genome build name, species, name of associated BSgenome
@@ -109,7 +112,8 @@ CESAnalysis = function(refset = "ces.refset.hg19", sample_groups = NULL) {
                   snv_signatures = list())
   
   # Mutation table specifications (see template tables declared in imports.R)
-  mutation_tables = list(amino_acid_change = copy(aac_annotation_template), snv = copy(snv_annotation_template))
+  mutation_tables = list(amino_acid_change = copy(aac_annotation_template), 
+                         snv = copy(snv_annotation_template), aac_snv_key = copy(aac_snv_key_template))
   
   cesa = new("CESAnalysis", run_history = character(),  ref_key = refset_name, maf = data.table(), excluded = data.table(),
              groups = sample_groups, mutrates = data.table(),
@@ -231,6 +235,10 @@ load_cesa = function(file) {
   } else {
     cesa@mutations$amino_acid_change = setDT(cesa@mutations$amino_acid_change, key = "aac_id")
     cesa@mutations$snv = setDT(cesa@mutations$snv, key = "snv_id")
+    if (! is.null(cesa@mutations$aac_snv_key)) {
+      # if it is NULL, gets handled later
+      cesa@mutations$aac_snv_key = setDT(cesa@mutations$aac_snv_key, key = "aac_id")
+    }
   }
   
 
@@ -312,11 +320,30 @@ load_cesa = function(file) {
     snv_and_pid = snv_and_gene[, .(nearest_pid = list(pid)), by = "snv_id"]
     cesa@mutations$snv[snv_and_pid, nearest_pid := nearest_pid, on = "snv_id"]
   }
+  
+  if (is.null(cesa@mutations$aac_snv_key)) {
+    if (cesa@mutations$amino_acid_change[, .N] == 0) {
+      cesa@mutations$aac_snv_key = copy(aac_snv_key_template)
+    } else {
+      aac_snv_key = cesa@mutations$snv[, .(aac_id = unlist(assoc_aac)), by = 'snv_id'][! is.na(aac_id)]
+      setcolorder(aac_snv_key, c('aac_id', 'snv_id'))
+      aac_snv_key[, multi_anno_site := uniqueN(aac_id) > 1, by = 'snv_id']
+      setkey(aac_snv_key, 'aac_id')
+      cesa@mutations$aac_snv_key = aac_snv_key
+      cesa@mutations$snv[, assoc_aac := NULL]
+      cesa@maf[, assoc_aac := NULL]
+    }
+  }
 
   # cache variant table for easy user access
   if(length(cesa@mutations$snv[, .N]) > 0) {
     cesa@advanced$cached_variants = select_variants(cesa)
+    
+    # Annotate top coding implications of each variant, based on select_variants() tiebreakers
+    consequences = cesa@advanced$cached_variants[variant_type != 'snv', .(snv_id = unlist(constituent_snvs), variant_name, gene), by = 'variant_id']
+    cesa@maf[consequences, c("top_gene", "top_consequence") := list(gene, variant_name), on = c(variant_id = 'snv_id')]
   }
+  
   return(cesa)
 }
 
@@ -501,7 +528,18 @@ snv_results = function(cesa = NULL) {
       output = c(output, list(curr_selection))
       next
     }
-    results = curr_selection[cesa$variants, on = c("variant_id", "variant_type"), nomatch = NULL]
+    
+    results = curr_selection[cesa$variants, on = c("variant_id"), nomatch = NULL]
+    
+    # If user is testing variants that aren't in the cached variant table, need to generate annotations
+    still_need = setdiff(curr_selection$variant_id, results$variant_id)
+    
+    if(length(still_need) > 0) {
+      more_anno = select_variants(cesa, variant_ids = still_need)
+      more_results = curr_selection[more_anno, on = 'variant_id', nomatch = NULL]
+      results = rbind(results, more_results)
+    }
+    
     results_cols = colnames(results)
     # try to flip variant_name and variant_id columns
     if(results_cols[1] == "variant_id") {

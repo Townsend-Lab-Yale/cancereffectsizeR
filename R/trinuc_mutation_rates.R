@@ -59,7 +59,6 @@
 #'   of eligible mutations meeting sig_averaging_threshold) to calculate group average
 #'   signature weights, and assign these to all tumors
 #' @param sample_group (Deprecated; use samples.) Vector of sample group(s) to calculate rates for.
-#' @param use_dS_exome2genome historical dev option (don't use)
 #' @return CESAnalysis with sample-specific signature weights and inferred
 #'   trinucleotide-context-specific relative mutation rates. The snv_counts matrix gives
 #'   the counts of SNVs in each trinucleotide context for all samples in the CESAnalysis.
@@ -101,8 +100,7 @@ trinuc_mutation_rates <- function(cesa,
                                   mp_strict_args = list(),
                                   assume_identical_mutational_processes = FALSE,
                                   sample_group = NULL,
-                                  sig_averaging_threshold = 50,
-                                  use_dS_exome2genome = FALSE) {  
+                                  sig_averaging_threshold = 50) {  
 
   if (! is(signature_extractor, "character") || length(signature_extractor) != 1 || 
       ! tolower(signature_extractor) %in% c('mutationalpatterns', 'deconstructsigs')) {
@@ -298,12 +296,7 @@ trinuc_mutation_rates <- function(cesa,
     gr_names = names(grs_to_calc)
     for (gr_name in gr_names) {
       if (gr_name %in% c("exome", "exome+")) {
-        if (use_dS_exome2genome) {
-          data("tri.counts.exome", package = "deconstructSigs", envir = environment())
-          tri_counts_by_gr[[gr_name]] = tri.counts.exome
-        } else {
           tri_counts_by_gr[[gr_name]] = get_ref_data(cesa, "tri.counts.exome")
-        }
       } else {
         bsg = get_cesa_bsg(cesa)
         covered_seq = BSgenome::getSeq(bsg, grs_to_calc[[gr_name]])

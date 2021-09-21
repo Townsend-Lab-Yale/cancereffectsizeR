@@ -30,17 +30,22 @@ suggest_cosmic_signatures_to_remove = function(cancer_type = NULL, treatment_nai
   if (! identical(quiet, TRUE) && ! identical(quiet, FALSE) ) {
     stop("argument quiet should be T/F")
   }
-  if(! require("ces.refset.hg19", character.only = T)) {
-      message("Install ces.refset.hg19 like this:\n",
-              "remotes::install_github(\"Townsend-Lab-Yale/ces.refset.hg19@*release\")")
-      stop("Reference data package not installed (this function requires ces.refset.hg19).")
+  
+  if(require("ces.refset.hg38", character.only = T)) {
+    signature_set_path = system.file("refset/signatures/COSMIC_v3.2_signatures.rds", package = "ces.refset.hg38")
+  } else if(require("ces.refset.hg19", character.only = T)) {
+    # Use v3.2 if refset package is up-to-date; otherwise, use v3.1.
+    signature_set_path = system.file("refset/signatures/COSMIC_v3.2_signatures.rds", package = "ces.refset.hg19")
+    if (signature_set_path == '') {
+      signature_set_path = system.file("refset/signatures/COSMIC_v3.1_signatures.rds", package = "ces.refset.hg19")
+    }
+  } else {
+    message("To use this function, install ces.refset.h38 or ces.refset.hg19:")
+    message("remotes::install_github(\"Townsend-Lab-Yale/ces.refset.hg38@*release\")")
+    message("remotes::install_github(\"Townsend-Lab-Yale/ces.refset.hg19@*release\")")
+    stop("Required reference data not available; install a CES refset data package.")
   }
   
-  # Use v3.2 if refset package is up-to-date; otherwise, use v3.1.
-  signature_set_path = system.file("refset/signatures/COSMIC_v3.2_signatures.rds", package = "ces.refset.hg19")
-  if (signature_set_path == '') {
-    signature_set_path = system.file("refset/signatures/COSMIC_v3.1_signatures.rds", package = "ces.refset.hg19")
-  }
   sig_metadata = readRDS(signature_set_path)$meta
   original_sig_order = copy(sig_metadata$Signature)
   setkey(sig_metadata, "Signature")

@@ -1,3 +1,11 @@
+# cancereffectsizeR 2.3.0
+* Load sample-level data into a CESAnalysis sample table using add_sample_data(), or during load_maf() with the new sample_data_cols argument.
+* trinuc_mutation_rates(), gene_mutation_rates(), and selection inference functions can be run on arbitrary subsets of samples. The less-flexible CESAnalysis "sample_groups" functionality has been deprecated.
+* samples_with() makes it easy to see which samples have various mutations.
+* variant_counts() provides variant prevalence and coverage information, with the option to break counts down into groups based on sample table columns.  
+* check_sample_overlap() now accepts a list of MAFs; no need to rbind MAFs from different data sources that will ultimately need to be fed into load_maf() individually.
+* In loaded MAF data, columns top_consequence and top_gene give the most significant annotated coding changes for each mutation record. Annotation precedence is determined by MAF prevalence (usually equal), essential splice status, premature stop codon, nonsilent status, MAF mutation prevalence across the transcript (often favors longer transcripts), and finally alphabtical order. The columns are recalculated when more data is loaded, so changes in MAF prevalence can change which variants appear.
+
 # cancereffectsizeR 2.2.2
 * View dNdScv results more easily, and support for passing custom parameters to dNdScv.
 * Simplified signature output to two tables: "raw attributions" and "biological weights" (see docs).

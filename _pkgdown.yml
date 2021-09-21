@@ -15,7 +15,7 @@ reference:
   - load_cesa
   - save_cesa
   - set_refset_dir
-- title: Pre-process variants
+- title: Pre-process MAF data
   contents:
   - preload_maf
   - check_sample_overlap
@@ -23,6 +23,7 @@ reference:
   contents:
   - load_maf
   - select_variants
+  - variant_counts
   - samples_with
   - add_variants
   - add_covered_regions

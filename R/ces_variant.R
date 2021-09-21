@@ -17,7 +17,7 @@
 #' with their sample groups. Values for all three of these arguments will be calculated by
 #' ces_variant and passed to your function factory automatically. Your function can take
 #' whatever additional arguments you like, and you can pass in values using
-#' `custom_lik_args`. The likelihood function parameters that ces_variant will optimize
+#' `lik_args`. The likelihood function parameters that ces_variant will optimize
 #' should be named and have default values. See the source code of `sswm_sequential_lik()`
 #' for an example.
 #' 
@@ -26,41 +26,54 @@
 #' @param cores number of cores to use
 #' @param conf selection intensity confidence interval width (NULL skips calculation,
 #'   speeds runtime)
-#' @param run_name Optionally, a name to identify the current run.
+#' @param samples Which samples to include in inference. Defaults to all samples.
+#'   Can be a vector of Unique_Patient_Identifiers, or a data.table containing rows from
+#'   the CESAnalysis sample table.
 #' @param variants Variant table from \code{select_variants()}, or a \code{CompoundVariantSet} from
 #'   \code{define_compound_variants()}. Defaults to all recurrent noncoding SNVs and
 #'   (SNV-derived) coding mutations, where recurrent means appearing in at least two
 #'   samples in the MAF data set.
-#' @param model "sswm" or "sswm_sequential" to use built-in models of selection, or supply a
+#' @param model "basic" or "sequential" to use built-in models of selection, or supply a
 #' custom function factory (see details).
-#' @param groups Which sample groups to include (default all); data for outgroup samples
-#'   will not inform selection calculation. For models (like sswm_sequential) that assume
-#'   ordered groups of samples, use a list to indicate group ordering.
-#'   Examples: \code{c("group1", "group2")} includes groups 1 and 2, but doesn't indicate
-#'   an ordering, so is invalid for ordered-group models.
-#'   \code{list("Primary", "Metastatic")} indicates two ordered groups, and
-#'   \code{list("A", c("B", "C"), "D")} means that group A is first, groups B and C share
-#'   an intermediate state, and group D is last.
-#' @param custom_lik_args Extra arguments, given as a list, to pass to custom likelihood
-#'   functions.
+#' @param run_name Optionally, a name to identify the current run.
+#' @param lik_args Extra arguments, given as a list, to pass to custom likelihood
+#'   functions. 
+#' @param ordering_col For the sequential model (or possibly custom models), the name of
+#'   the sample table column that defines sample chronology.
+#' @param ordering For the sequential model (or possibly custom models), a character
+#'   vector or list defining the ordering of values in ordering_col. Use a list to assign 
+#'   multiple values in ordering_col the same position (e.g., `list(c("I", "II), c("III", "IV")))`
+#'   for an early vs. late analysis).
 #' @param hold_out_same_gene_samples When finding likelihood of each variant, hold out
 #'   samples that lack the variant but have any other mutations in the same gene. By default,
 #'   TRUE when running with single variants, FALSE with a CompoundVariantSet.
+#' @param groups (Deprecated; use samples and for sequential model, see
+#'   lik_args(ordering_col = ...).) Which sample groups to include in inference. Data for
+#'   outgroup samples will not inform selection calculation. For models (like
+#'   sequential) that assume ordered groups of samples, use a list to indicate group
+#'   ordering. Examples: \code{c("group1", "group2")} includes groups 1 and 2, but doesn't
+#'   indicate an ordering, so is invalid for ordered-group models. \code{list("Primary",
+#'   "Metastatic")} indicates two ordered groups, and \code{list("A", c("B", "C"), "D")}
+#'   means that group A is first, groups B and C share an intermediate state, and group D
+#'   is last.
 #' @return CESAnalysis object with selection results appended to the selection output list
 #' @export
 
 ces_variant <- function(cesa = NULL,
                         variants = select_variants(cesa, min_freq = 2),
+                        samples = character(),
+                        model = "basic",
                         run_name = "auto",
-                        model = "sswm",
-                        groups = NULL,
-                        custom_lik_args = list(),
+                        ordering_col = NULL,
+                        ordering = NULL,
+                        lik_args = list(),
                         hold_out_same_gene_samples = "auto",
+                        groups = NULL,
                         cores = 1,
                         conf = .95) 
 {
   if(! is(cesa, "CESAnalysis")) {
-    stop("cesa should be a CESAnalysis", call. = F)
+    stop("cesa should be a CESAnalysis.")
   }
   if (length(hold_out_same_gene_samples) == 1) {
     if (! is.logical(hold_out_same_gene_samples)) {
@@ -92,91 +105,162 @@ ces_variant <- function(cesa = NULL,
       run_name = paste0('variant_effects_', run_number)
     }
   }
-
   
   if(is(model, "character")) {
-    if(length(model) != 1 || ! model %in% c("sswm", "sswm_sequential")) {
-      stop("model should specify a built-in selection model (sswm, sswm_sequential) or a custom function factory.")
+    # old names were basic, sswm-sequential (no one could remember if hyphen or underscore)
+    model[model == 'sswm'] = 'basic'
+    model[model %like% 'sswm[-_]sequential'] = 'sequential'
+    if(length(model) != 1 || ! model %in% c("basic", "sequential")) {
+      stop("model should specify a built-in selection model (basic, sequential) or a custom function factory.")
     } else {
-      if (model == "sswm") {
+      if (model == 'basic') {
         lik_factory = sswm_lik
-      } else if(model == "sswm_sequential") {
-        if (is.null(groups)) {
-          stop("an ordered list of groups must be supplied with the \"groups\" option to use the sswm_sequential model")
-        }
+      } else if(model == 'sequential') {
         lik_factory = sswm_sequential_lik
       } else {
         stop("Unrecognized model")
       }
     }
   } else if (! is(model, "function")) {
-    stop("model should specify a built-in selection model (sswm, sswm_sequential) or a custom function factory.")
+    stop("model should specify a built-in selection model (\"basic\", \"sequential\") or a custom function factory.")
   } else {
     lik_factory = model
   }
+    
+  if(! is(lik_args, "list")) {
+    stop("lik args should be named list") 
+  }
   
+  if(length(lik_args) > 0 && model %in% c('basic', 'sequential')) {
+    stop("lik_args aren't used in the chosen model.")
+  }
+  if(length(lik_args) != uniqueN(names(lik_args))) {
+    stop('lik_args should be a named list without repeated names.')
+  }
   
+  if(is.null(ordering_col) && ! is.null(ordering)) {
+    stop("Use of ordering requires use of ordering_col")
+  }
+  if (! is.null(ordering_col) && ! is.null(groups)) {
+    stop("groups is deprecated; use ordering_col/ordering (see docs).")
+  }
+  
+  samples = select_samples(cesa, samples)
+  if(samples[, .N] < cesa@samples[, .N]) {
+    num_excluded = cesa@samples[, .N] - samples[, .N]
+    pretty_message(paste0("Note that ", num_excluded, " samples are being excluded from selection inference."))
+  }
+  maf = cesa@maf[samples$Unique_Patient_Identifier, on = "Unique_Patient_Identifier"]
   sample_index = numeric() # named vector giving position of each tumor in sequential ordering (unused in some models)
-  group_ordering = groups
-  if (is.null(group_ordering)) {
-    group_ordering = cesa@groups
-  }
-
-  running_builtin_sswm = FALSE
-  if (identical(lik_factory, sswm_lik)) {
-    running_builtin_sswm = TRUE
-    if (! is(group_ordering, "character")) {
-      stop("\"groups\" should be supplied as a character vector for the sswm model.")
+  if(! is.null(ordering_col)) {
+    if(model == 'basic') {
+      warning("You supplied an ordering_col, but it's not used in the basic model.")
     }
+    if(! is(ordering_col, 'character')) {
+      stop("ordering_col should be type character (a column name from CESAnalysis sample table).")
+    }
+    if(! ordering_col %in% names(cesa@samples)) {
+      stop("Input ordering_col is not present in CESAnalysis sample table.")
+    }
+    if (is.null(ordering)) {
+      stop("Use argument ordering to define sequence of values in ordering_col.")
+    }
+    if (is(ordering, "character")) {
+      ordering = as.list(ordering)
+    } else if(! is(ordering, "list")) {
+      stop("ordering should be character or list.")
+    }
+    if(! all(sapply(ordering, is, "character"))) {
+      stop("All elements of ordering should be character")
+    }
+    if(uniqueN(unlist(ordering)) != length(unlist(ordering))) {
+      stop("ordering contains repeated values.")
+    } 
+    if(length(ordering) < 2) {
+      stop("ordering should length 2 or greater if it's being used.")
+    }
+    samples[, ordering_col := as.character(samples[[ordering_col]])]
+    if(samples[, anyNA(ordering_col)]) {
+      stop("NA values in ordering_col for some samples in current run.")
+    }
+    if(samples[, ! all(unlist(ordering) %in% ordering_col)]) {
+      if(samples[, .N] == cesa@samples[, .N]) {
+        stop("Some values in ordering do not appear in ", ordering_col, " in sample table.")
+      } else {
+        stop("Some values in ordering do not appear in ", ordering_col, " for the samples included in this run.")
+      }
+    }
+    extra_values = setdiff(samples$ordering_col, unlist(ordering))
+    if (length(extra_values) > 0) {
+      msg = paste0("Samples in current run have values in ", ordering_col, " not given in ordering: ", 
+                   paste(extra_values, collapse = ', '), '.')
+      stop(pretty_message(msg, emit = F))
+    }
+    for (i in 1:length(ordering)) {
+      curr_state = ordering[[i]]
+      curr_samples = samples[curr_state, Unique_Patient_Identifier, on = 'ordering_col']
+      curr_grouping = rep(i, length(curr_samples))
+      names(curr_grouping) = curr_samples
+      sample_index = c(sample_index, curr_grouping)
+    }
+  } else if(! is.null(groups)) {
+    if(samples[, .N] != cesa@samples[, .N]) {
+      msg = "groups is deprecated and can't be combined with the new samples argument. (Use ordering_col/ordering instead.)"
+      stop(pretty_message(msg, emit = F))
+    }
+    msg = paste0("groups is deprecated. To limit inference to specific samples, use \"samples\". For the sequential model, use ",
+                 "ordering_col/ordering (see docs for more info).")
+    warning(pretty_message(msg, emit = F))
+    if(is(groups, "character")) {
+      groups = as.list(groups)
+    }
+    if(! is(groups, "list")) {
+      stop("groups should be character vector or list")
+    }
+    group_ordering = groups
+    used_groups = character()
+    for (i in 1:length(group_ordering)) {
+      curr_state = group_ordering[[i]]
+      if (! is(curr_state, "character")) {
+        stop("Each element of group_ordering should be type character")
+      }
+      if (length(curr_state) != length(unique(curr_state))) {
+        stop("Double-check your group_ordering")
+      }
+      if (! all(curr_state %in% cesa@groups)) {
+        invalid_groups = setdiff(curr_state, cesa@groups)
+        stop("Group not declared in CESAnalysis: ", paste0(invalid_groups, collapse = ", "), ".")
+      }
+      curr_samples = cesa@samples[group %in% curr_state, Unique_Patient_Identifier]
+      if (length(curr_samples) == 0) {
+        stop("Some groupings given by group_ordering have no associated samples.")
+      }
+      if (any(curr_state %in% used_groups)) {
+        stop("CESAnalysis groups are re-used in group_ordering")
+      }
+      used_groups = c(curr_state, used_groups)
+      curr_grouping = rep(i, length(curr_samples))
+      names(curr_grouping) = curr_samples
+      sample_index = c(sample_index, curr_grouping)
+    }
+    unused_groups = setdiff(cesa@groups, used_groups)
+    if (length(unused_groups) > 0) {
+      pretty_message(paste0("The following CESAnalysis groups were not included in \"groups\", so they are not informing effect size:\n",
+                            paste(unused_groups, collapse = ", "), "."), black = F)
+      samples = cesa@samples[used_groups, on = "group"]
+      maf = cesa@maf[samples$Unique_Patient_Identifier, on = "Unique_Patient_Identifier"]
+    } else {
+      samples = cesa@samples
+      maf = cesa@maf
+    }
+    if(uniqueN(sample_index) < 2) {
+      stop('groups should be a list with length at least two (except groups is deprecated; better to use ordering_col/ordering).')
+    }
+  } else if(model == 'sequential') {
+    stop('The sequential model requires use of ordering_col/ordering (see docs)')
   }
   
-  if(is(group_ordering, "character")) {
-    group_ordering = as.list(group_ordering)
-  }
-  if(! is(group_ordering, "list")) {
-    stop("group_ordering should be character vector or list")
-  }
-  if (length(group_ordering) < 2 && identical(lik_factory, sswm_sequential_lik)) {
-    stop("\"groups\" should be a list with length at least two for the chosen model")
-  }
-  
-  used_groups = character()
-  for (i in 1:length(group_ordering)) {
-    curr_state = group_ordering[[i]]
-    if (! is(curr_state, "character")) {
-      stop("Each element of group_ordering should be type character")
-    }
-    if (length(curr_state) != length(unique(curr_state))) {
-      stop("Double-check your group_ordering")
-    }
-    if (! all(curr_state %in% cesa@groups)) {
-      invalid_groups = setdiff(curr_state, cesa@groups)
-      stop("Group not declared in CESAnalysis: ", paste0(invalid_groups, collapse = ", "), ".")
-    }
-    curr_samples = cesa@samples[group %in% curr_state, Unique_Patient_Identifier]
-    if (length(curr_samples) == 0) {
-      stop("Some groupings given by group_ordering have no associated samples.")
-    }
-    if (any(curr_state %in% used_groups)) {
-      stop("CESAnalysis groups are re-used in group_ordering")
-    }
-    used_groups = c(curr_state, used_groups)
-    curr_grouping = rep(i, length(curr_samples))
-    names(curr_grouping) = curr_samples
-    sample_index = c(sample_index, curr_grouping)
-  }
   cesa = copy_cesa(cesa)
-  unused_groups = setdiff(cesa@groups, used_groups)
-  if (length(unused_groups) > 0) {
-    pretty_message(paste0("The following CESAnalysis groups were not included in \"groups\", so they are not informing effect size:\n",
-            paste(unused_groups, collapse = ", "), "."), black = F)
-    samples = cesa@samples[used_groups, on = "group"]
-    maf = cesa@maf[samples$Unique_Patient_Identifier, on = "Unique_Patient_Identifier"]
-  } else {
-    samples = cesa@samples
-    maf = cesa@maf
-  }
-  
   cesa = update_cesa_history(cesa, match.call())
   
   # Set keys in case they've been lost
@@ -232,8 +316,7 @@ ces_variant <- function(cesa = NULL,
   aac_ids = variants[variant_type == "aac", variant_id]
   
   # By noncoding, we just mean that SIs are calculated at the SNV site rather than at the AAC level,
-  # regardless of whether there's a CDS annotation. We're not going to check to see if the user's
-  # AACs and SNVs overlap (that's their problem if they decided to supply overlapping variants)
+  # regardless of whether there's a CDS annotation.
   noncoding_snv_ids = variants[variant_type == "snv", variant_id]
   
   if(length(aac_ids) + length(noncoding_snv_ids) == 0) {
@@ -247,17 +330,19 @@ ces_variant <- function(cesa = NULL,
   tumors_with_variants_by_gene = list2env(tumors_with_variants_by_gene)
   
   # identify mutations by sample
-  tmp = maf[! is.na(assoc_aac), .(aac_id = unlist(assoc_aac)), by = "Unique_Patient_Identifier"][, .(samples = list(Unique_Patient_Identifier)), by = "aac_id"]
-  tmp = tmp[aac_ids, on = "aac_id"] # subset to coding mutations in use
-  aacs_by_tumor = tmp$samples
-  names(aacs_by_tumor) = tmp$aac_id
-  
+  snv_aac_of_interest = cesa@mutations$aac_snv_key[aac_ids, on = 'aac_id']
+  tmp = maf[snv_aac_of_interest, .(variant_id), on = c(variant_id = 'snv_id'), 
+            by = "Unique_Patient_Identifier", nomatch = NULL]
+  tmp[snv_aac_of_interest, aac_id := aac_id, on = c(variant_id = 'snv_id')]
+  tmp = tmp[, .(samples = list(unique(Unique_Patient_Identifier))), by = "aac_id"]
+  samples_by_aac = setNames(tmp$samples, tmp$aac_id)
+
   setkey(maf, "variant_id")
   # need nomatch because some noncoding SNVs may not be present in the samples
   tmp = maf[noncoding_snv_ids, variant_id, by = "Unique_Patient_Identifier", nomatch = NULL][, .(samples = list(Unique_Patient_Identifier)), by = "variant_id"]
-  snvs_by_tumor = tmp$samples
-  names(snvs_by_tumor) = tmp$variant_id
-  variants_by_tumor = list2env(c(aacs_by_tumor, snvs_by_tumor))
+  samples_by_snv = tmp$samples
+  names(samples_by_snv) = tmp$variant_id
+  samples_by_variant = list2env(c(samples_by_aac, samples_by_snv))
   
   
   setkey(samples, "covered_regions")
@@ -332,7 +417,7 @@ ces_variant <- function(cesa = NULL,
           # binomial probability of having 1 or more of the mutations (assuming independence)
           rates = apply(rates, 1, function(x) 1 - prod(1 - x))
         } else {
-          tumors_with_variant = variants_by_tumor[[variant_id]]
+          tumors_with_variant = samples_by_variant[[variant_id]]
           all_genes = gene_lookup[[variant_id]]
           rates = baseline_rates[, ..variant_id][[1]]
         }
@@ -357,17 +442,15 @@ ces_variant <- function(cesa = NULL,
         rates_tumors_without = rates[tumors_without]
         
         lik_args = c(list(rates_tumors_with = rates_tumors_with, rates_tumors_without = rates_tumors_without), 
-                     custom_lik_args)
+                     lik_args)
         
         # sample_index supplied if defined and not running our SSWM (it doensn't use it)
-        if(! running_builtin_sswm) {
+        if(! identical(lik_factory, sswm_lik)) {
           lik_args = c(lik_args, list(sample_index = sample_index))
         }
         fn = do.call(lik_factory, lik_args)
-        
         par_init = formals(fn)[[1]]
         names(par_init) = bbmle::parnames(fn)
-        
 
         # find optimized selection intensities
         # the selection intensity for any stage that has 0 variants will be on the lower boundary; will muffle the associated warning

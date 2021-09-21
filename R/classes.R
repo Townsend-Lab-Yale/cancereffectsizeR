@@ -13,7 +13,7 @@ setClass("CESAnalysis", representation(maf = "data.table", trinucleotide_mutatio
   if(x@samples[, .N] > 0) {
     features = c(features, "samples")
   }
-  if(length(x@mutations) > 0) {
+  if(sum(sapply(x@mutations, function(y) y[, .N])) > 0) {
     features = c(features, "variants")
   }
   if(length(x@selection_results) > 0) {
@@ -37,7 +37,11 @@ setClass("CESAnalysis", representation(maf = "data.table", trinucleotide_mutatio
   if(length(x@dndscv_out_list) > 0) {
     features = c(features, "dNdScv_results")
   }
-  features = c(features, c("reference_data", "coverage_ranges", "run_history"))
+  features = c(features, "reference_data")
+  if(length(x@coverage) > 0) {
+    features = c(features, "coverage_ranges")
+  }
+  features = c(features, "run_history")
   grep(pattern, features, value=TRUE)
 }
 

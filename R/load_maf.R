@@ -34,7 +34,16 @@
 #' @param enforce_default_exome_coverage When loading default exome data, exclude records
 #'   that aren't covered in the default exome capture intervals included with
 #'   CES genome reference data (default FALSE).
-#' @return CESAnalysis with the specified MAF data loaded
+#' @return CESAnalysis with the specified MAF data loaded. The MAF data table includes
+#'   CES-generated variant IDs, a list of all genes overlapping the site, and top_gene and
+#'   top_consequence columsn that give the most significant annotated coding changes for
+#'   each mutation record. Annotation precedence is determined by MAF prevalence (usually
+#'   equal), essential splice status, premature stop codon, nonsilent status, MAF mutation
+#'   prevalence across the transcript (often favors longer transcripts), and finally
+#'   alphabtical order. The columns are recalculated when more data is loaded, so changes
+#'   in MAF prevalence can change which variants are highlighted. Note that
+#'   \code{[CESAnalysis]$variants} contains more information about all top_consequence
+#'   variants and all noncoding variants from the MAF.
 #' @export
 load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode", chr_col = "Chromosome", start_col = "Start_Position",
                     ref_col = "Reference_Allele", tumor_allele_col = "guess", coverage = "exome", covered_regions = NULL,
@@ -331,8 +340,8 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
       cesa@coverage[[coverage]][["exome+"]] = covered_regions
 
       # warn if a lot of records are in uncovered areas; may indicate whole-genome data or low quality exome data
-      if (percent > 10) {
-        warning(paste0("More than 10% of MAF records are not within the CES genome's default exome intervals.\n",
+      if (percent > 20) {
+        warning(paste0("More than 20% of MAF records are not within the CES genome's default exome intervals.\n",
                        "Could this be whole-genome data? Or if you know the true covered regions, supply them\n",
                        "with the covered_regions argument."))
       }
@@ -387,8 +396,8 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     bad_trinuc_context_maf$Exclusion_Reason = "ambiguous_trinuc_context"
     cesa@excluded = rbind(cesa@excluded, bad_trinuc_context_maf)
     
-    # for simplicity, remove the bad record from SNV and AAC tables
-    bad_aa = unlist(snv_table[bad_trinuc_context, assoc_aac])
+    # For simplicity, remove the bad record from SNV and AAC tables
+    bad_aa = annotations$aac_snv_key[bad_ids, aac_id, on = 'snv_id', nomatch = NULL]
     snv_table = snv_table[! bad_trinuc_context]
     if(aac_table[, .N] > 0 & length(bad_aa) > 0) {
       aac_table = aac_table[! bad_aa]
@@ -398,12 +407,14 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   setkey(cesa@mutations$amino_acid_change, "aac_id")
   cesa@mutations[["snv"]] = unique(rbind(cesa@mutations$snv, snv_table, fill = T), by = "snv_id")
   setkey(cesa@mutations$snv, "snv_id")
+  cesa@mutations[["aac_snv_key"]] = unique(rbind(cesa@mutations$aac_snv_key, annotations$aac_snv_key))
+  setkey(cesa@mutations$aac_snv_key, 'aac_id')
   
-  # add genes and assoc_aac to MAF records (may stop including these in near future)
+  # add genes list to MAF records (may stop including in near future)
   # use of _tmp names required as of data.table 1.13.2 to keep join from failing
   column_order = copy(names(maf))
-  maf[, c("genes_tmp", "assoc_aac_tmp") := list(list(NA_character_), list(NA_character_))]
-  maf[cesa@mutations$snv, c("genes_tmp", "assoc_aac_tmp") := list(genes, assoc_aac), on = c(variant_id = "snv_id")]
+  maf[, genes_tmp := list(list(NA_character_))]
+  maf[cesa@mutations$snv,  genes_tmp := list(genes), on = c(variant_id = "snv_id")]
   
   # No gene for intergenic SNVs (SNV annotation table gives nearest gene, but we won't show that in MAF table)
   intergenic_snv = cesa@mutations$snv[intergenic == T, snv_id]
@@ -428,12 +439,12 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     non_snv_genes = non_snv_genes[, .(genes = list(unique(gene))), by = c("Chromosome", "Start_Position")]
     non_snv_genes[, is_snv := F]
     maf[, is_snv := variant_type == 'snv']
-    maf[non_snv_genes, c("genes_tmp", "assoc_aac_tmp") := .(genes, list(NA_character_)),
+    maf[non_snv_genes, genes_tmp := genes,
         on = c("is_snv", "Chromosome", "Start_Position")]
     maf[, is_snv := NULL]
   }
   
-  setnames(maf, c("genes_tmp", "assoc_aac_tmp"), c("genes", "assoc_aac"))
+  setnames(maf, "genes_tmp", "genes")
   setcolorder(maf, column_order) # put original columns back in the front
   
   # Same-sample variants with 2bp of other variants get set aside as likely MNVs
@@ -461,7 +472,6 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
                     v1 = variant_id[1], v2 = variant_id[2]), by = mnv_group][, -"mnv_group"]
     dbs[, dbs_id := paste0(Chromosome, ':', Start_Position, '_', Reference_Allele, '>', Tumor_Allele)]
     dbs[maf, genes := genes, on = c(v1 = 'variant_id')]
-    dbs[, assoc_aac := list(NA_character_)]
     
     # Remove the SNV entries that form the new DBS variants
     maf[dbs, dbs_id := i.dbs_id, on = c("Unique_Patient_Identifier", variant_id = "v1")]
@@ -501,17 +511,22 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
               'combined variants of type \"other\" (because they probably did not occur independently).')
       pretty_message(msg)
     }
-    maf[variant_type == 'other', c("variant_id", "assoc_aac") := list(NA_character_, list(NA_character_))] 
+    maf[variant_type == 'other', "variant_id" := NA_character_] 
   }
-  
-  
+  #coding_sites = data.table(snv_id = intersect(maf$variant_id, cesa@mutations$aac_snv_key$snv_id))
+ # maf[coding_sites, top_consequence := varian, on = c('variant_id']
   cesa@maf = rbind(cesa@maf, maf, fill = T)
-  
   
   # Update coverage fields of annotation tables
   # Internal note: Confusingly, update_covered_in also has a side effect of updating
   # cached output of select_variants; this should change in the future.
   cesa = update_covered_in(cesa)
+  
+  # Cached variants is a table of non-overlapping mutations (in terms of genomic position),
+  # with only the "top" (tiebreaker-winning) variant at each site.
+  # For sites that have coding effects, we will add this effect to 
+  consequences = cesa@advanced$cached_variants[variant_type != 'snv', .(snv_id = unlist(constituent_snvs), variant_name, gene), by = 'variant_id']
+  cesa@maf[consequences, c("top_gene", "top_consequence") := list(gene, variant_name), on = c(variant_id = 'snv_id')]
 
   current_snv_stats = maf[variant_type == "snv", .(num_samples = uniqueN(Unique_Patient_Identifier), num_snv = .N)]
   msg = paste0("Loaded ", format(current_snv_stats$num_snv, big.mark = ','), " SNVs from ", 

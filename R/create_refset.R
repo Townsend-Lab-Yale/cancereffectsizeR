@@ -31,7 +31,7 @@
 #' @export
 create_refset = function(output_dir, refcds_output, species_name, genome_build_name, 
                          BSgenome_name, supported_chr = c(1:22, 'X', 'Y'), default_exome_bed = NULL,
-                         exome_interval_padding = 100) {
+                         exome_interval_padding = 0) {
   
   if (! is.character(output_dir) || length(output_dir) != 1) {
     stop("output_dir should be 1-length character (path for a new directory)")

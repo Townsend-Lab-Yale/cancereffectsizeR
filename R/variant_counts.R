@@ -112,7 +112,11 @@ variant_counts = function(cesa, variant_ids = character(), by = character()) {
     if (length(zero_prev_aac) > 0) {
       aac_counts = rbind(aac_counts, data.table(variant_id = zero_prev_aac, N = 0), fill = T)
     }
-    aac_count_output = dcast.data.table(aac_counts, variant_id ~ ..., value.var = "N", fill = 0, drop = F)
+    if(length(by_cols) > 0) {
+      aac_count_output = dcast.data.table(aac_counts, variant_id ~ ..., value.var = "N", fill = 0, drop = F)
+    } else {
+      aac_count_output = copy(aac_counts)
+    }
   }
   
 
@@ -171,13 +175,15 @@ variant_counts = function(cesa, variant_ids = character(), by = character()) {
     cov_counts = by_cov_region[, .(num_cov = sum(num_cov, na.rm = T)), by = "rn"]
     small_cov[cov_counts, num_cov := num_cov, on = 'rn']
     full_cov[small_cov, num_cov := num_cov, on = c(by_cols, 'flat_cov')]
-    cov_output = dcast.data.table(full_cov[, -c("covered_in", "flat_cov")], 
-                                  variant_id ~ ..., value.var = "num_cov", fill = 0, drop = F)
+
     if(length(by_cols) > 0) {
       by_site = full_cov[, .(total_covering = sum(num_cov)), by = 'variant_id']
+      cov_output = dcast.data.table(full_cov[, -c("covered_in", "flat_cov")], 
+                                    variant_id ~ ..., value.var = "num_cov", fill = 0, drop = F)
       cov_output[by_site, total_covering := total_covering, on = 'variant_id']
+    } else {
+      cov_output = full_cov[, .(variant_id, num_cov)]
     }
-    
     return(cov_output)
   }
   

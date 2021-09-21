@@ -47,8 +47,9 @@ test_that("ces_variant with sswm", {
 })
 
 test_that("ces_variant with sswm_sequential", {
-  cesa = ces_variant(cesa, variants = select_variants(cesa, genes = c("EGFR", "KRAS", "TP53"), variant_ids = "CR2 R247L"),
-                 model = "sswm_sequential", groups = list(c("marionberry", "cherry"), "mountain_apple"))
+  cesa = expect_warning(ces_variant(cesa, variants = select_variants(cesa, genes = c("EGFR", "KRAS", "TP53"), variant_ids = "CR2 R247L"), 
+                                    model = "sswm_sequential", groups = list(c("marionberry", "cherry"), "mountain_apple")),
+                        'groups is deprecated')
   results = cesa@selection_results[[1]] # previous run not saved due to test_that scoping
   expect_equal(attr(results, "si_cols"), c("si_1", "si_2"))
   results_ak = fread(get_test_file("fruit_sswm_sequential_out.txt"))
@@ -56,12 +57,14 @@ test_that("ces_variant with sswm_sequential", {
 })
 
 test_that("ces_variant bad groups inputs", {
-  expect_error(ces_variant(cesa, model = "sswm_sequential", groups = c("cherry","cherry")), "groups are re-used")
-  expect_error(ces_variant(cesa, model = "sswm_sequential", groups = list(c("cherry", "marionberry"))),
+  expect_error(suppressWarnings(ces_variant(cesa, model = "sswm_sequential", groups = c("cherry","cherry"))), "groups are re-used")
+  expect_error(ces_variant(cesa, model = "sequential", ordering_col = 'group', ordering = c("cherry","cherry")),
+               "ordering contains repeated values")
+  expect_error(suppressWarnings(ces_variant(cesa, model = "sswm_sequential", groups = list(c("cherry", "marionberry")))),
                "should be a list with length at least two")
   expect_message(ces_variant(cesa, variants = select_variants(cesa, variant_ids = "CR2 R247L"),
-                             model = "sswm_sequential", groups = c("cherry", "marionberry")),
-                  "are not informing effect")
+                             samples = cesa$samples[1:10]),
+                  "samples are being excluded from selection inference")
 })
 
 test_that("ces_variant with user-supplied variants", {
@@ -84,8 +87,10 @@ test_that("ces_variant on subsets of samples", {
   # EGFR L858R appears 5 times in cherry, 4 in mountain apple, 0 in marionberry
   egfr = select_variants(cesa, variant_ids = "EGFR_L858R_ENSP00000275493")
   
-  just_cherry = ces_variant(cesa, variants = egfr, groups = "cherry")@selection_results[[1]]$selection_intensity
-  also_marionberry = ces_variant(cesa, variants = egfr, groups = c("cherry", "marionberry"))@selection_results[[1]]$selection_intensity
+  just_cherry = ces_variant(cesa, variants = egfr, samples = cesa$samples[group == 'cherry'])@selection_results[[1]]$selection_intensity
+  also_marionberry = expect_warning(ces_variant(cesa, variants = egfr, 
+                                                groups = c("cherry", "marionberry"))@selection_results[[1]]$selection_intensity,
+                                    'groups is deprecated')
   with_all = ces_variant(cesa, variants = egfr)@selection_results[[1]]$selection_intensity
   expect_lt(also_marionberry, just_cherry)
   expect_lt(also_marionberry, with_all)
@@ -164,8 +169,13 @@ test_that("Compound variant creation", {
   # should recapitulate single variant results with 1-SNV-size compound variants
   single_snv_comp = define_compound_variants(cesa, all_kras_12_13, by = c("gene", "aa_alt"), merge_distance = 0)
   expect_equal(length(single_snv_comp), 5)
-  results = ces_variant(cesa, variants = single_snv_comp, model = "sswm_sequential", 
-                        groups = list(c("marionberry", "cherry"), "mountain_apple"), hold_out_same_gene_samples = T)
+  results = expect_warning(ces_variant(cesa, variants = single_snv_comp, model = "sswm_sequential", 
+                                         groups = list(c("marionberry", "cherry"), "mountain_apple"), hold_out_same_gene_samples = T),
+                             'groups is deprecated')
+
+  same_results = ces_variant(cesa, variants = single_snv_comp, model = 'sequential', ordering_col = 'group',
+                             ordering = list(c("marionberry", "cherry"), "mountain_apple"), hold_out_same_gene_samples = T)
+  expect_equal(same_results@selection_results, results@selection_results)
   results = results$selection[[1]][c("KRAS.Cys.1", "KRAS.Asp.1", "KRAS.Cys.2", "KRAS.Asp.2", "KRAS.Val.1"), on = "variant_name"]
   prev = fread(get_test_file("fruit_sswm_sequential_out.txt"))[all_kras_12_13$variant_id, on = "variant_id"][, 3:4]
   expect_equal(results[, 3:4], prev, tolerance = 1e-6)

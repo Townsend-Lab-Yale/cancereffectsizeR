@@ -159,9 +159,9 @@ assign_gr_to_coverage = function(cesa, gr, covered_regions_name, coverage_type) 
   }
   
   # If possible, see if covered regions size resembles exome data
-  if (coverage_type %in% c("exome", "genome") & check_for_ref_data(cesa, "generic_exome_gr")) {
+  if (coverage_type %in% c("exome", "genome") && check_for_ref_data(cesa, "default_exome_gr")) {
     covered_regions_bases_covered = sum(IRanges::width(IRanges::ranges(gr)))
-    generic_bases_covered = sum(IRanges::width(IRanges::ranges(get_ref_data(cesa, "generic_exome_gr"))))
+    generic_bases_covered = sum(IRanges::width(IRanges::ranges(get_ref_data(cesa, "default_exome_gr"))))
     if (coverage_type == "exome") {
       if (covered_regions_bases_covered / generic_bases_covered < .4) {
         warning(paste0("Input coverage intervals are described as whole-exome but are less than 40% of the size of this genome's default exome intervals.\n",
@@ -265,8 +265,9 @@ update_covered_in = function(cesa) {
       if ("covered_in" %in% colnames(aac_table)) {
         aac_table[, covered_in := NULL]
       }
-      aac_coverage = snv_table[, .(aac_id = unlist(assoc_aac), covered_in), by = "snv_id"]
-      aac_coverage = aac_coverage[, .(covered_in = list(sort(unique(unlist(covered_in))))), by = "aac_id"]
+      aac_coverage = cesa@mutations$aac_snv_key[cesa@mutations$amino_acid_change$aac_id, on = 'aac_id']
+      aac_coverage[snv_table, covered_in := covered_in, on = 'snv_id']
+      aac_coverage = aac_coverage[, .(covered_in = unique(covered_in)), by = 'aac_id']
       
       # edge case of adding single variant to empty CESAnalysis
       if(aac_coverage[, .N] == 1 & is.null(aac_coverage$covered_in[[1]])) {
