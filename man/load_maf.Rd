@@ -61,7 +61,16 @@ that aren't covered in the default exome capture intervals included with
 CES genome reference data (default FALSE).}
 }
 \value{
-CESAnalysis with the specified MAF data loaded
+CESAnalysis with the specified MAF data loaded. The MAF data table includes
+  CES-generated variant IDs, a list of all genes overlapping the site, and top_gene and
+  top_consequence columsn that give the most significant annotated coding changes for
+  each mutation record. Annotation precedence is determined by MAF prevalence (usually
+  equal), essential splice status, premature stop codon, nonsilent status, MAF mutation
+  prevalence across the transcript (often favors longer transcripts), and finally
+  alphabtical order. The columns are recalculated when more data is loaded, so changes
+  in MAF prevalence can change which variants are highlighted. Note that
+  \code{[CESAnalysis]$variants} contains more information about all top_consequence
+  variants and all noncoding variants from the MAF.
 }
 \description{
 Load MAF data from a text file or data table into your CESAnalysis. If column names

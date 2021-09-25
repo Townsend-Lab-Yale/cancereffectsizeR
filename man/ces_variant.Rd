@@ -7,11 +7,14 @@
 ces_variant(
   cesa = NULL,
   variants = select_variants(cesa, min_freq = 2),
+  samples = character(),
+  model = "basic",
   run_name = "auto",
-  model = "sswm",
-  groups = NULL,
-  custom_lik_args = list(),
+  ordering_col = NULL,
+  ordering = NULL,
+  lik_args = list(),
   hold_out_same_gene_samples = "auto",
+  groups = NULL,
   cores = 1,
   conf = 0.95
 )
@@ -24,26 +27,39 @@ ces_variant(
 (SNV-derived) coding mutations, where recurrent means appearing in at least two
 samples in the MAF data set.}
 
-\item{run_name}{Optionally, a name to identify the current run.}
+\item{samples}{Which samples to include in inference. Defaults to all samples.
+Can be a vector of Unique_Patient_Identifiers, or a data.table containing rows from
+the CESAnalysis sample table.}
 
-\item{model}{"sswm" or "sswm_sequential" to use built-in models of selection, or supply a
+\item{model}{"basic" or "sequential" to use built-in models of selection, or supply a
 custom function factory (see details).}
 
-\item{groups}{Which sample groups to include (default all); data for outgroup samples
-will not inform selection calculation. For models (like sswm_sequential) that assume
-ordered groups of samples, use a list to indicate group ordering.
-Examples: \code{c("group1", "group2")} includes groups 1 and 2, but doesn't indicate
-an ordering, so is invalid for ordered-group models.
-\code{list("Primary", "Metastatic")} indicates two ordered groups, and
-\code{list("A", c("B", "C"), "D")} means that group A is first, groups B and C share
-an intermediate state, and group D is last.}
+\item{run_name}{Optionally, a name to identify the current run.}
 
-\item{custom_lik_args}{Extra arguments, given as a list, to pass to custom likelihood
+\item{ordering_col}{For the sequential model (or possibly custom models), the name of
+the sample table column that defines sample chronology.}
+
+\item{ordering}{For the sequential model (or possibly custom models), a character
+vector or list defining the ordering of values in ordering_col. Use a list to assign 
+multiple values in ordering_col the same position (e.g., `list(c("I", "II), c("III", "IV")))`
+for an early vs. late analysis).}
+
+\item{lik_args}{Extra arguments, given as a list, to pass to custom likelihood
 functions.}
 
 \item{hold_out_same_gene_samples}{When finding likelihood of each variant, hold out
 samples that lack the variant but have any other mutations in the same gene. By default,
 TRUE when running with single variants, FALSE with a CompoundVariantSet.}
+
+\item{groups}{(Deprecated; use samples and for sequential model, see
+lik_args(ordering_col = ...).) Which sample groups to include in inference. Data for
+outgroup samples will not inform selection calculation. For models (like
+sequential) that assume ordered groups of samples, use a list to indicate group
+ordering. Examples: \code{c("group1", "group2")} includes groups 1 and 2, but doesn't
+indicate an ordering, so is invalid for ordered-group models. \code{list("Primary",
+"Metastatic")} indicates two ordered groups, and \code{list("A", c("B", "C"), "D")}
+means that group A is first, groups B and C share an intermediate state, and group D
+is last.}
 
 \item{cores}{number of cores to use}
 
@@ -72,7 +88,7 @@ The third argument must be sample_index, which associates Unique_Patient_Identif
 with their sample groups. Values for all three of these arguments will be calculated by
 ces_variant and passed to your function factory automatically. Your function can take
 whatever additional arguments you like, and you can pass in values using
-`custom_lik_args`. The likelihood function parameters that ces_variant will optimize
+`lik_args`. The likelihood function parameters that ces_variant will optimize
 should be named and have default values. See the source code of `sswm_sequential_lik()`
 for an example.
 }

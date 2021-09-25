@@ -14,8 +14,7 @@ trinuc_mutation_rates(
   mp_strict_args = list(),
   assume_identical_mutational_processes = FALSE,
   sample_group = NULL,
-  sig_averaging_threshold = 50,
-  use_dS_exome2genome = FALSE
+  sig_averaging_threshold = 50
 )
 }
 \arguments{
@@ -48,8 +47,6 @@ signature weights, and assign these to all tumors}
 determines which tumors inform the calculation of group-average signature weights.
 When assume_identical_mutational_processes == FALSE (the default), these group
 averages are blended into the signature weights of sub-threshold tumors.}
-
-\item{use_dS_exome2genome}{historical dev option (don't use)}
 }
 \value{
 CESAnalysis with sample-specific signature weights and inferred

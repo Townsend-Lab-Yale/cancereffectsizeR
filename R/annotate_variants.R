@@ -73,15 +73,17 @@ annotate_variants <- function(refset = NULL, variants = NULL) {
   cds_hits = data.table()
   if (aac[, .N] > 0) {
     # for efficiency, pull out all the necessary RefCDS data together, then split it up
-    ref_subset = lapply(RefCDS[entries_with_aac], function(x) list(meta = list(strand = x$strand, cds = x$protein_id, entry_name = x$gene_name,
-                                                                             gene_name = x$real_gene_name), 
-                                                                 intervals_cds = x$intervals_cds))
-    meta = rbindlist(lapply(lapply(ref_subset, function(x) x$meta), as.data.table))
-    # The RefCDS "gene_name" attribute may not be a gene name (e.g., could be a transcript_id)
-    # The "real_gene_name" attribute, when present, is the actual gene name
-    if(is.null(meta$gene_name)) {
-      meta[, gene_name := entry_name]
+    if(is.null(RefCDS[[1]]$real_gene_name)) {
+      # real_gene_name is used for pid-based RefCDS objects. When null, gene name is already correct
+      ref_subset = lapply(RefCDS[entries_with_aac], function(x) list(meta = list(strand = x$strand, cds = x$protein_id, entry_name = x$gene_name,
+                                                                                 gene_name = x$gene_name), 
+                                                                     intervals_cds = x$intervals_cds))
+    } else {
+      ref_subset = lapply(RefCDS[entries_with_aac], function(x) list(meta = list(strand = x$strand, cds = x$protein_id, entry_name = x$gene_name,
+                                                                                 gene_name = x$real_gene_name), 
+                                                                     intervals_cds = x$intervals_cds))
     }
+    meta = rbindlist(lapply(ref_subset, function(x) x$meta))
     coding_ints = rbindlist(lapply(lapply(ref_subset, function(x) x$intervals_cds), as.data.table), idcol = "entry_name")
     setnames(coding_ints, old = c("V1", "V2"), new = c("start", "end"))
     coding_ints = meta[coding_ints, on = "entry_name"]
@@ -198,13 +200,13 @@ annotate_variants <- function(refset = NULL, variants = NULL) {
     
     
     nt1_snvs = lapply(possible_snvs, function(x) x[[1]])
-    aac[, nt1_snvs := nt1_snvs]
+    aac$nt1_snvs = nt1_snvs
     
     nt2_snvs = lapply(possible_snvs, function(x) x[[2]])
-    aac[, nt2_snvs := nt2_snvs]
+    aac$nt2_snvs = nt2_snvs
     
     nt3_snvs = lapply(possible_snvs, function(x) x[[3]])
-    aac[, nt3_snvs := nt3_snvs]
+    aac$nt3_snvs = nt3_snvs
     
     # create table of all snv_ids, then fix strand of alt alleles
     nt1_dt = aac[, .(chr, strand, pos = nt1_pos, ref = nt1_ref, alt = unlist(nt1_snvs)), by = "aac_id"]
@@ -227,7 +229,7 @@ annotate_variants <- function(refset = NULL, variants = NULL) {
     
     aac_snv_key = snv_table[, .(aac_id, snv_id)]
     aac_snv_key[, multi_anno_site := uniqueN(aac_id) > 1, by = 'snv_id']
-    snv_table = setDT(snv_table[, .(chr, pos, ref, alt, cds, intergenic), by = "snv_id"])
+    snv_table = snv_table[, .(snv_id, chr, pos, ref, alt, cds, intergenic)] # gets uniquified shortly
     
     # add noncoding SNVs to SNV table
     noncoding = snvs[! unlist(aac$constituent_snvs), on = 'snv_id']
@@ -315,8 +317,9 @@ annotate_variants <- function(refset = NULL, variants = NULL) {
 	# clean up aac table, except when it's empty
 	if (aac[, .N] > 0) {
 	  # to do: eventually, probably want to keep the entry_name field (call it refcds_entry?)
-	  aac_table = setDT(aac[, .(aac_id, chr, gene = gene_name, strand, pid, aachange, aa_ref, aa_pos, aa_alt, nt1_pos, nt2_pos, nt3_pos, 
-	                            coding_seq, constituent_snvs, essential_splice)],key = 'aac_id')
+	  aac_table = aac[, .(aac_id, chr, gene = gene_name, strand, pid, aachange, aa_ref, aa_pos, aa_alt, nt1_pos, nt2_pos, nt3_pos, 
+	                            coding_seq, constituent_snvs, essential_splice)]
+	  setkey(aac_table, 'aac_id')
 	  setcolorder(aac_table, c("aac_id", "gene", "aachange", "strand"))
 	} else {
 	  aac_table = data.table()

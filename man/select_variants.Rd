@@ -63,17 +63,16 @@ set collapse_lists = T to convert these columns to comma-delimited strings, whic
 sometimes easier to work with.}
 
 \item{remove_secondary_aac}{Default TRUE, except overridden (effectively FALSE) when
-include_subvariants = T. Occasionally, due to overlapping coding sequence definitions
-in reference data, a site can have more than one amino-acid-change mutation
-annotation. To avoid returning the same genome-positional variants multiple times,
-the default is to return one AAC in these situations. Tiebreakers are MAF frequency,
-essential splice site status, non-silent status, gene mutation frequency,
-alphabetical. The omitted AACs will still be included in the all_aac column, and if
-any constituent SNVs of the AACs don't overlap, the non-overlapping SNVs from the
-excluded AACs will still be included in output. If you set remove_secondary_aac to
-FALSE, you can't put the output variant table in selection calculation functions. An
-alternative is to set to FALSE, pick which (non-overlapping) variants you want, and
-then re-run select_variants() with those variants specified in \code{variant_ids}.}
+include_subvariants = T. Due to overlapping coding region definitions in reference
+data (e.g., genes with multiple transcripts), a site can have more than one
+amino-acid-change mutation annotation. To avoid returning the same genome-positional
+variants multiple times, the default is to return one AAC in these situations.
+Tiebreakers are MAF prevalence, essential splice site status, premature stop codon,
+non-silent status, gene/protein mutation count, alphabetical. If you set
+remove_secondary_aac to FALSE, you can't put the output variant table in selection
+calculation functions. An alternative is to set to FALSE, pick which
+(non-overlapping) variants you want, and then re-run select_variants() with those
+variants specified in \code{variant_ids}.}
 }
 \value{
 A data table with info on selected variants (see details), or a list of IDs.
@@ -110,15 +109,13 @@ Definitions of some less self-explanatory columns:
   \item essential_splice: Variant is 1,2 bp upstream or
   1,2,5 bp downstream of an annotated splice position (edge case: if an SNV has
   multiple gene/transcript annotations, this doesn't say which one it's essential for)
-  \item intergenic: variant does not overlap any gene ranges in the reference data
+  \item intergenic: variant does not overlap any coding regions in the reference data
   \item trinuc_mut: for SNVs, the reference trinucleotide context, in deconstructSigs notation
   \item coding_seq: coding strand nucleotides in order of transcription
   \item center_nt_pos: regardless of strand, start/end give positions of two out of three AAC nucleotides; this
                       gives the position of the center nucleotide (maybe useful if the AAC spans a splice site)
   \item constituent_snvs: all SNVs that can produce a given variant 
   \item multi_anno_site: T/F whether variant has multiple gene/transcript/AAC annotations
-  \item all_aac: For SNVs, all AACs that the variant is annotated as producing; for
-  AACs, all of the AACs that are annotated for all of the constituent SNVs
   \item all_genes: all genes overlapping the variant in reference data
   \item covered_in: the names of all "covered regions" sets in the CESAnalysis that have coverage at the variant site
   \item maf_prevalence: number of occurrences of the variant in MAF data

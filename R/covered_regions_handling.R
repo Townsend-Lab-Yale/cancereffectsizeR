@@ -270,9 +270,9 @@ update_covered_in = function(cesa) {
       aac_coverage = aac_coverage[, .(covered_in = unique(covered_in)), by = 'aac_id']
       
       # edge case of adding single variant to empty CESAnalysis
-      if(aac_coverage[, .N] == 1 & is.null(aac_coverage$covered_in[[1]])) {
+      if(aac_coverage[, .N] == 1 && is.null(aac_coverage$covered_in[[1]])) {
         aac_table[, covered_in := list(NA_character_)]
-      } else {
+      } else if(aac_coverage[, .N] > 0) {
         aac_table[aac_coverage, covered_in := covered_in, on = "aac_id"]
       }
     }

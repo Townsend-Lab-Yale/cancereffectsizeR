@@ -49,10 +49,13 @@
 #' @return a data.table of MAF data, with any problematic records flagged and a few
 #'   quality-control annotations (if available with the chosen refset data).
 #' @export
-preload_maf = function(maf = NULL, refset = "ces.refset.hg19", coverage_intervals_to_check = NULL,
+preload_maf = function(maf = NULL, refset = NULL, coverage_intervals_to_check = NULL,
                     chain_file = NULL, sample_col = "Tumor_Sample_Barcode", chr_col = "Chromosome", start_col = "Start_Position",
                     ref_col = "Reference_Allele", tumor_allele_col = "guess", keep_extra_columns = FALSE) {
-  
+  if(is.null(refset)) {
+    msg = paste0("Required argument refset: Supply a reference data package (e.g., ces.refset.hg38 or ces.refset.hg19).")
+    stop(paste0(strwrap(msg, exdent = 2), collapse = "\n"))
+  }
   if (is(refset, "environment")) {
     refset_name = as.character(substitute(refset))
   } else {
@@ -71,7 +74,12 @@ preload_maf = function(maf = NULL, refset = "ces.refset.hg19", coverage_interval
     if(! require(refset_name, character.only = T)) {
       if(refset_name == "ces.refset.hg19") {
         message("Install ces.refset.hg19 like this:\n",
+                "options(timeout=600)\n",
                 "remotes::install_github(\"Townsend-Lab-Yale/ces.refset.hg19@*release\")")
+      } else if(refset_name == "ces.refset.hg38") {
+        message("Install ces.refset.hg38 like this:\n",
+                "options(timeout=600)\n",
+                "remotes::install_github(\"Townsend-Lab-Yale/ces.refset.hg38@*release\")")
       }
       stop("CES reference data set ", refset_name, " not installed.")
     }
@@ -425,6 +433,11 @@ check_sample_overlap = function(maf_list) {
   setcolorder(to_examine, c("sample_A", "source_A", "variants_A", "variant_windows_A", 
                             "sample_B", "source_B", "variants_B", "variant_windows_B", "windows_shared",
                             "variants_shared", "greater_overlap"))
+  if(length(maf_list) == 1) {
+    to_examine[, source_A := NULL]
+    to_examine[, source_B := NULL]
+  }
+  
   if(to_examine[, .N] == 0) {
     message("No sample pairs met overlap reporting thresholds!")
   } else {

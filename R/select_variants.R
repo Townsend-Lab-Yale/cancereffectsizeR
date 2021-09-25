@@ -242,45 +242,50 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
     passlisted_ids = c(matching_snv_ids, matching_aac_ids)
   }
   
+  
+  # Rare situation: Constituent SNVs of AACs that get tossed in de-overlapping need to be
+  # saved if they pass filters in their own right and don't overlap the AACs kept. Keep
+  # track here of SNVS that need to appear in final output. Note if any of these don't
+  # pass frequency filter, they shouldn't be saved, and they get removed below.
+  snvs_to_recover = selected_snv_ids
+  
   # Remove variants contained in other variants
-  # Rare exception: Constituent SNVs of AACs that get tossed in de-overlapping
-  # need to be saved if they pass filters in their own right and don't overlap the AACs kep
-  snvs_to_save = selected_snv_ids
-  
-  # We'll use the SNV counts to filter selected_snv_ids shortly
-  if(cesa@maf[, .N] > 0) {
-    snv_counts = cesa@maf[variant_type == "snv", .N, by = "variant_id"][N >= min_freq]
-    snvs_to_save = intersect(snvs_to_save, snv_counts$variant_id)
-  } else {
-    snv_counts = NA
-    snvs_to_save = character()
-  }
-
+  aac_snv_key = cesa@mutations$aac_snv_key[selected_aac_ids]
   if (include_subvariants == FALSE) {
-    subvariant_snv_ids = cesa@mutations$amino_acid_change[selected_aac_ids, unlist(constituent_snvs), nomatch = NULL]
-    selected_snv_ids = setdiff(selected_snv_ids, subvariant_snv_ids)
-  }
-  selected_snv = cesa@mutations$snv[selected_snv_ids]
-  setkey(selected_snv, "snv_id")
-  selected_aac = cesa@mutations$amino_acid_change[selected_aac_ids]
-  setkey(selected_aac, "aac_id")
-
-  # Tabulate variants in MAF data and apply frequency filter, exempting passlist variants from filters
-  aac_counts = NA
-  if(selected_aac[, .N] > 0) {
-    aac_counts = variant_counts(cesa, selected_aac$aac_id)[, .(aac_id = variant_id, N = total_prevalence)]
+    selected_snv_ids = setdiff(selected_snv_ids, aac_snv_key$snv_id)
   }
   
-  selected_snv[, maf_prevalence := 0]
-  selected_snv = selected_snv[snv_counts, maf_prevalence := N]
-  good_snv = union(passlisted_ids, selected_snv[maf_prevalence >= min_freq, snv_id]) # okay to mix AAC/SNV in passlist
-  selected_snv = selected_snv[good_snv, nomatch = NULL] # nomatch drops the AACs from passlist
-  selected_aac[, maf_prevalence := 0]
-  selected_aac = selected_aac[aac_counts, maf_prevalence := N]
-  good_aac = union(passlisted_ids, selected_aac[maf_prevalence >= min_freq, aac_id])
-  selected_aac = selected_aac[good_aac, nomatch = NULL]
+  selected_snv = setDT(cesa@mutations$snv[selected_snv_ids])
+  selected_aac = setDT(cesa@mutations$amino_acid_change[selected_aac_ids])
+  
+  # Get variant counts and coverage
+  snv_from_aac = cesa@mutations$aac_snv_key[selected_aac$aac_id, .(aac_id, snv_id)]
+  
+  if(snv_from_aac[, .N] == 0 && length(selected_snv_ids) == 0) {
+    message("No variants passed selection criteria!")
+    return(NULL)
+  }
+  
+  if (cesa@maf[, .N] > 0) {
+    counts_and_cov = .variant_counts(cesa, samples = cesa@samples[, .(Unique_Patient_Identifier, covered_regions)],
+                                     snv_from_aac = aac_snv_key[, .(aac_id, snv_id)],
+                                     noncoding_snv_id = selected_snv_ids)
+    setnames(counts_and_cov, c("total_prevalence", "total_covering"), c("maf_prevalence", "samples_covering"))
+    
+  } else {
+    counts_and_cov = data.table(variant_id = c(selected_aac$aac_id, selected_snv_ids),
+                                variant_type = c(rep('aac', selected_aac[, .N]), rep('snv', length(selected_snv_ids))),
+                                maf_prevalence = 0, samples_covering = 0)
+   
+  }
+
+  selected_snv[counts_and_cov, c("maf_prevalence", "samples_covering") := list(maf_prevalence, samples_covering), on = c(snv_id = 'variant_id')]
+  selected_snv = selected_snv[maf_prevalence >= min_freq | snv_id %in% passlisted_ids]
+  selected_aac[counts_and_cov, c("maf_prevalence", "samples_covering") := list(maf_prevalence, samples_covering), on = c(aac_id = 'variant_id')]
+  selected_aac = selected_aac[maf_prevalence >= min_freq | aac_id %in% passlisted_ids]
+  
   if (any(selected_snv$maf_prevalence < min_freq) || any(selected_aac$maf_prevalence < min_freq)) {
-    pretty_message("Note: Some of your passlist variants have MAF prevalence < min_freq. They will still appear in output.")
+    pretty_message("Note: Some of your specifically-requested variants have MAF prevalence < min_freq. They will still appear in output.")
   }
   
   # Annotate SNV table and prepare to merge with AACs
@@ -300,6 +305,7 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   selected_snv[cesa@mutations$aac_snv_key, multi_anno_site := multi_anno_site, on = 'snv_id']
   selected_snv[is.na(multi_anno_site), multi_anno_site := FALSE]
   setnames(selected_snv, c("genes", "snv_id"), c("all_genes", "variant_id"))
+  
   # AACs get a short variant name that might not be uniquely identifying if a gene has more than one CDS
   selected_aac[, variant_name := paste(gene, aachange, sep = "_")]
   selected_aac[, variant_type := "aac"]
@@ -310,8 +316,9 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   selected_aac[, c("nt1_pos", "nt2_pos", "nt3_pos") := NULL]
   
   if (selected_aac[, .N] > 0) {
-    aac_to_snv = selected_aac[, .(snv_id = unlist(constituent_snvs)), by = "aac_id"]
-    aac_to_snv[, genes := cesa@mutations$snv[aac_to_snv$snv_id, genes]]
+    aac_to_snv = setDT(cesa@mutations$aac_snv_key[selected_aac$aac_id])
+    # this form of assignment avoids data.table semantics and is faster on large list assignments
+    aac_to_snv$genes = cesa@mutations$snv[aac_to_snv$snv_id, genes] 
     all_genes_by_aac_id = aac_to_snv[, .(genes = .(unique(unlist(genes)))), by = "aac_id"]
     selected_aac[all_genes_by_aac_id, all_genes := genes, on = "aac_id"]
     selected_aac[, nearest_pid := list(NA_character_)]
@@ -327,12 +334,6 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
     message("No variants passed selection criteria!")
     return(NULL)
   }
-  
-  tmp = cesa@samples[covered_regions != 'genome', .N, by = "covered_regions"] # genome doesn't appear in covered_in
-  cov_counts = setNames(tmp$N, tmp$covered_regions)
-  num_wgs_samples = cesa@samples[covered_regions == "genome", .N]
-  combined[, samples_covering := sapply(covered_in, function(x) sum(cov_counts[x])) + num_wgs_samples]
-
   # convert 0-length covered_in to NA (for sites just covered in whole-genome)
   combined[which(sapply(covered_in, length) == 0), covered_in := list(NA_character_)]
   
@@ -351,7 +352,6 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
     multi_hits = combined[variant_type == "aac" & multi_anno_site == TRUE]
     num_to_check = multi_hits[, .N]
     if (num_to_check > 0) {
-      setkey(multi_hits, "variant_id")
       # for tie-breaking, count how many mutations are in each gene found in these multi_hit recoreds
       multi_hit_pid = unique(multi_hits$pid)
       maf_pid_counts = combined[multi_hit_pid, .(count = sum(maf_prevalence)), keyby = "pid", on = "pid"]
@@ -364,37 +364,44 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
       multi_hits[, is_premature := aa_alt == "STOP" & aa_ref != "STOP"]
       multi_hits = multi_hits[order(-maf_prevalence, -essential_splice, -is_premature, aa_ref == aa_alt, -pid_freq, variant_id)]
       multi_hits[, is_premature := NULL]
-      setkey(multi_hits, 'variant_id')
-      chosen_aac = new.env(parent = emptyenv())
-      processed_aac = new.env(parent = emptyenv())
-      covered_snv = new.env(parent = emptyenv())
-      aac_priority = multi_hits$variant_id
-      for (i in seq_along(multi_hits$variant_id)) {
-        curr_candidate = multi_hits$variant_id[[i]]
-        curr_covered_snv = multi_hits$constituent_snvs[[i]]
-        # We will use the current AAC only if none of the constituent SNVs have been used yet
-        add_current = ifelse(any(unlist(mget(x = curr_covered_snv, envir = covered_snv, ifnotfound = FALSE))),
-                             FALSE, TRUE)
-        if (add_current) {
-          sapply(curr_covered_snv, function(x) covered_snv[[x]] = TRUE)
+      
+      # When chr/nt/aachange all match, the higher-up entry in the table will always be
+      # chosen to the exclusion of other matches
+      original_multi_hit_ids = multi_hits$variant_id
+      original_const_snv = multi_hits$constituent_snvs
+      multi_hits = unique(multi_hits, by = c("chr", "start", "end", "center_nt_pos", "aa_alt"))
+      setkey(multi_hits, 'variant_id', physical = F) # important not to re-sort since we just sorted
+      chosen_aac = new.env(parent = emptyenv(), size = 30 * multi_hits[, .N])
+      covered_snv = new.env(parent = emptyenv(), size = 60 * multi_hits[, .N])
+      mapply(
+        function(curr_candidate, curr_covered_snv) {
+          # We will use the current AAC only if none of the constituent SNVs have been used yet
+          # if('10:113729312_C>G' %in% curr_covered_snv) {
+          #   browser()
+          # }
+          for (i in curr_covered_snv) {
+            if(exists(i, covered_snv)) {
+              return()
+            }
+          }
+          for (i in curr_covered_snv) {
+            covered_snv[[i]] = TRUE
+          }
           chosen_aac[[curr_candidate]] = TRUE
-        }
-      }
+        }, multi_hits$variant_id, multi_hits$constituent_snvs)
       
       # remove secondary (non-chosen) AACs, but save all SNV IDs and re-select those passing filters
-      chosen_aac = ls(chosen_aac)
-      not_chosen_aac = multi_hits[! chosen_aac, variant_id]
-      all_const_snv = unlist(multi_hits$constituent_snvs)
-      remaining_const_snv = multi_hits[chosen_aac, unlist(constituent_snvs)]
+      chosen_aac = ls(chosen_aac, sorted = FALSE)
+      not_chosen_aac = setdiff(original_multi_hit_ids, chosen_aac)
+      remaining_const_snv = multi_hits[chosen_aac, unlist(constituent_snvs), on = 'variant_id']
       combined = setDT(combined[! not_chosen_aac, on = 'variant_id'])
       
-      # Edge case: Need to get annotations for SNVs that passed user's filters (given in
-      # subvariant_snv_ids), but that are now no longer constituent SNVs
-      snv_to_reselect = intersect(snvs_to_save, setdiff(all_const_snv, remaining_const_snv))
-      
+      # Edge case: Will need to get annotations for SNVs that are in AAC, that passed user's filters,
+      # but that are now no longer constituent SNVs after de-overlapping
+      snv_to_reselect = intersect(snvs_to_recover, setdiff(original_const_snv, remaining_const_snv))
       if (length(snv_to_reselect) > 0) {
-        reselected = select_variants(cesa, variant_ids = snv_to_reselect)
-        combined = rbind(combined, reselected[snv_to_reselect, on = "variant_id"])
+        reselected = select_variants(cesa, variant_ids = snv_to_reselect)[maf_prevalence >= min_freq]
+        combined = rbind(combined, reselected)
       }
     }
   }
@@ -416,7 +423,7 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   setkey(combined, "chr")
   combined = setDT(combined[order(start)][BSgenome::seqnames(bsg), nomatch = NULL, on = "chr"])
   setcolorder(combined, c("variant_name", "variant_type", "chr", "start", "end", "variant_id", "ref", "alt", "gene", 
-                          "strand", "aachange", "essential_splice", "intergenic", "trinuc_mut", "aa_ref", "aa_pos", "aa_alt", "coding_seq", 
+                          "strand", "aachange", "essential_splice", "intergenic", "nearest_pid", "trinuc_mut", "aa_ref", "aa_pos", "aa_alt", "coding_seq", 
                           "center_nt_pos", "pid", "constituent_snvs", "multi_anno_site", "all_genes",
                           "covered_in", "maf_prevalence", "samples_covering"))
   

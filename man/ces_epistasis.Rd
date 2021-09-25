@@ -7,6 +7,7 @@
 ces_epistasis(
   cesa = NULL,
   variants = NULL,
+  samples = character(),
   run_name = "auto",
   cores = 1,
   conf = NULL
@@ -19,6 +20,10 @@ ces_epistasis(
 2-length vector of CES-style variant IDs. Alternatively (and often more usefully),
 supply a CompoundVariantSet (see \code{define_compound_variants}) to test all pairs
 of compound variants in the set.}
+
+\item{samples}{Which samples to include in inference. Defaults to all samples.
+Can be a vector of Unique_Patient_Identifiers, or a data.table containing rows from
+the CESAnalysis sample table.}
 
 \item{run_name}{Optionally, a name to identify the current run.}
 

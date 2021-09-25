@@ -4,13 +4,21 @@
 \alias{pairwise_variant_epistasis}
 \title{Calculate SIs at variant level under pairwise epistasis model}
 \usage{
-pairwise_variant_epistasis(cesa, variant_pair, conf, compound_variants = NULL)
+pairwise_variant_epistasis(
+  cesa,
+  variant_pair,
+  samples,
+  conf,
+  compound_variants = NULL
+)
 }
 \arguments{
 \item{cesa}{CESAnalysis}
 
 \item{variant_pair}{2-length character of variant IDs, or 2-length numeric giving
 indices of CompoundVariantSet for the current two compound variants}
+
+\item{samples}{Validated samples data.table (as from select_samples())}
 }
 \description{
 Calculate SIs at variant level under pairwise epistasis model

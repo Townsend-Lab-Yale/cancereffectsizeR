@@ -115,9 +115,13 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
   missing_cols = character()
   input_maf_cols = colnames(maf)
   
-  if (sample_col == "Tumor_Sample_Barcode" & ! sample_col %in% input_maf_cols & "Unique_Patient_Identifier" %in% input_maf_cols) {
+  if (sample_col == "Tumor_Sample_Barcode" && "Unique_Patient_Identifier" %in% input_maf_cols) {
     sample_col = "Unique_Patient_Identifier"
     pretty_message("Found column Unique_Patient_Identifier; we'll assume this is the correct sample ID column.")
+    if("Tumor_Sample_Barcode" %in% input_maf_cols) {
+      pretty_message("(Delete or rename this column and re-run if you want to use Tumor_Sample_Barcode.)")
+      maf[, Tumor_Sample_Barcode := NULL]
+    }
   }
   cols_to_check = c(sample_col, ref_col, chr_col, start_col)
   if (tumor_allele_col != "guess") {

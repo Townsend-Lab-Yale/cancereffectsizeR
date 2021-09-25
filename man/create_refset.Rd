@@ -12,7 +12,7 @@ create_refset(
   BSgenome_name,
   supported_chr = c(1:22, "X", "Y"),
   default_exome_bed = NULL,
-  exome_interval_padding = 100
+  exome_interval_padding = 0
 )
 }
 \arguments{

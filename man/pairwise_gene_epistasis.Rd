@@ -4,10 +4,19 @@
 \alias{pairwise_gene_epistasis}
 \title{Calculate SIs at gene level under pairwise epistasis model}
 \usage{
-pairwise_gene_epistasis(cesa, genes, validated_samples, conf)
+pairwise_gene_epistasis(cesa, genes, samples, conf)
+}
+\arguments{
+\item{cesa}{CESAnalysis}
+
+\item{genes}{two-length vector of gene names}
+
+\item{samples}{validated sample subset, as from select_samples()}
+
+\item{conf}{confidence level on (0, 1)}
 }
 \description{
 The genes are assumed to not overlap in any ranges (the calling
-function checks for this).
+function checks for this)
 }
 \keyword{internal}

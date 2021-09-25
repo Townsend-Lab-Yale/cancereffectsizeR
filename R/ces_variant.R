@@ -264,8 +264,6 @@ ces_variant <- function(cesa = NULL,
   cesa = update_cesa_history(cesa, match.call())
   
   # Set keys in case they've been lost
-  setkey(cesa@mutations$amino_acid_change, "aac_id")
-  setkey(cesa@mutations$snv, "snv_id")
   mutations = cesa@mutations
   if(! is.null(conf)) {
     if(! is(conf, "numeric") || length(conf) > 1 || conf <= 0 || conf >= 1) {

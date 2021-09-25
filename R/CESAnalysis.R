@@ -11,8 +11,13 @@
 #'   require multiple sample groups.
 #' @return CESAnalysis object
 #' @export
-CESAnalysis = function(refset = "ces.refset.hg19", sample_groups = NULL) {
-  if (is(refset, "environment")) {
+CESAnalysis = function(refset = NULL, sample_groups = NULL) {
+  if(is.null(refset)) {
+    msg = paste0("Required argument refset: Supply a reference data package (e.g., ces.refset.hg38 or ces.refset.hg19), or ",
+                 "custom reference data (see docs).")
+    stop(paste0(strwrap(msg, exdent = 2), collapse = "\n"))
+  }
+  if(is(refset, "environment")) {
     refset_name = as.character(substitute(refset))
   } else {
     refset_name = refset
@@ -30,9 +35,11 @@ CESAnalysis = function(refset = "ces.refset.hg19", sample_groups = NULL) {
     if(! require(refset_name, character.only = T)) {
       if(refset_name == "ces.refset.hg19") {
         message("Install ces.refset.hg19 like this:\n",
+                "options(timeout = 600)\n",
                 "remotes::install_github(\"Townsend-Lab-Yale/ces.refset.hg19@*release\")")
       } else if(refset_name == "ces.refset.hg38") {
         message("Install ces.refset.hg38 like this:\n",
+                "options(timeout = 600)\n",
                 "remotes::install_github(\"Townsend-Lab-Yale/ces.refset.hg38@*release\")")
       }
       stop("CES reference data set ", refset_name, " not installed.")

@@ -6,7 +6,7 @@
 \usage{
 preload_maf(
   maf = NULL,
-  refset = "ces.refset.hg19",
+  refset = NULL,
   coverage_intervals_to_check = NULL,
   chain_file = NULL,
   sample_col = "Tumor_Sample_Barcode",

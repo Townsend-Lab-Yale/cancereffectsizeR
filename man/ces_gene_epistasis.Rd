@@ -16,7 +16,13 @@ ces_gene_epistasis(
 \arguments{
 \item{cesa}{CESAnalysis object}
 
-\item{genes}{Vector of gene names; SIs will be calculated for all gene pairs}
+\item{genes}{Vector of gene names; SIs will be calculated for all gene pairs.}
+
+\item{samples}{Which samples to include in inference. Defaults to all samples. Can be a
+vector of Unique_Patient_Identifiers, or a data.table containing rows from the
+CESAnalysis sample table. NOTE: Even excluded samples are used to determine recurrent
+variant sites. If this is a problem for you, then it's possible to get your desired
+behavior using ces_epistasis().}
 
 \item{run_name}{Optionally, a name to identify the current run.}
 
