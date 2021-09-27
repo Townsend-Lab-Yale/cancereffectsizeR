@@ -58,7 +58,7 @@ provides a few quality check annotations (if available). If core MAF columns don
 standard names (Chromosome, Start_Position, etc., with Tumor_Sample_Barcode used as the
 sample ID column), you can supply your own column names. If the data you are loading is
 from a different genome build than the chosen reference data set (refset) you can use
-the &quot;chain_file&quot; option to supply a UCSC-style chain file, and your MAF coordinates
+the chain_file option to supply a UCSC-style chain file, and your MAF coordinates
 will be automatically converted with rtracklayer's version of liftOver." />
 <meta property="og:image" content="https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/logo.png" />
 
@@ -92,7 +92,7 @@ will be automatically converted with rtracklayer's version of liftOver." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.2.2</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.3.0</span>
       </span>
     </div>
 
@@ -169,13 +169,13 @@ provides a few quality check annotations (if available). If core MAF columns don
 standard names (Chromosome, Start_Position, etc., with Tumor_Sample_Barcode used as the
 sample ID column), you can supply your own column names. If the data you are loading is
 from a different genome build than the chosen reference data set (refset) you can use
-the "chain_file" option to supply a UCSC-style chain file, and your MAF coordinates
+the <code>chain_file</code> option to supply a UCSC-style chain file, and your MAF coordinates
 will be automatically converted with rtracklayer's version of liftOver.</p>
     </div>
 
     <pre class="usage"><span class='fu'>preload_maf</span><span class='op'>(</span>
   maf <span class='op'>=</span> <span class='cn'>NULL</span>,
-  refset <span class='op'>=</span> <span class='st'>"ces.refset.hg19"</span>,
+  refset <span class='op'>=</span> <span class='cn'>NULL</span>,
   coverage_intervals_to_check <span class='op'>=</span> <span class='cn'>NULL</span>,
   chain_file <span class='op'>=</span> <span class='cn'>NULL</span>,
   sample_col <span class='op'>=</span> <span class='st'>"Tumor_Sample_Barcode"</span>,
@@ -250,8 +250,8 @@ or a vector of column names to keep.</p></td>
   quality-control annotations (if available with the chosen refset data).</p>
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
-    <p>The default ces.refset.hg19 provides three annotations that you may consider using for
-quality filtering of MAF records:</p><ul>
+    <p>The <code>ces.refset.hg19</code> <code>ces.refset.hg38</code> refsets provides three annotations
+that you may consider using for quality filtering of MAF records:</p><ul>
 <li><p>cosmic_site_tier Indicates if the variant's position overlaps a mutation in
 COSMIC v92's Cancer Mutation Census. Mutations are classified as Tier 1, Tier 2, Tier
 3, and Other. Note that the MAF mutation itself is not necessarily in the census. See
@@ -261,7 +261,7 @@ variation. Roughly, this means that gnomAD 2.1.1 shows an overlapping germline v
 greater than 1% prevalence in some population.</p></li>
 <li><p>repetitive_region The variant overlaps a site marked as repetitive sequence by
 the RepeatMasker tool (data taken from UCSC Table Browser). Variant calls in repetitive
-sites frequently reflect calling error.</p></li>
+sites frequently reflect sequencing or calling error.</p></li>
 </ul>
 
 

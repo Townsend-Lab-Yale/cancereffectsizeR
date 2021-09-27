@@ -58,7 +58,7 @@ mutation annotation tables. By default, almost all amino-acid-change mutations a
 noncoding SNVs are returned. You can apply a series of filters to restrict output to
 certain genes or genomic regions or require a minimum variant frequency in MAF data.
 You can also specify some variants to include in output regardless of filters with
-variant_passlist. Special behavior: If variant_passlist is used by
+variant_ids. Special behavior: If variant_ids is used by
 itself, then only those specified variants will be returned." />
 <meta property="og:image" content="https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/logo.png" />
 
@@ -92,7 +92,7 @@ itself, then only those specified variants will be returned." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.2.2</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.3.0</span>
       </span>
     </div>
 
@@ -159,7 +159,7 @@ itself, then only those specified variants will be returned." />
   <div class="col-md-9 contents">
     <div class="page-header">
     <h1>Select and filter variants</h1>
-    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/main/R/variant_handling.R'><code>R/variant_handling.R</code></a></small>
+    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/main/R/select_variants.R'><code>R/select_variants.R</code></a></small>
     <div class="hidden name"><code>select_variants.Rd</code></div>
     </div>
 
@@ -169,7 +169,7 @@ mutation annotation tables. By default, almost all amino-acid-change mutations a
 noncoding SNVs are returned. You can apply a series of filters to restrict output to
 certain genes or genomic regions or require a minimum variant frequency in MAF data.
 You can also specify some variants to include in output regardless of filters with
-<code>variant_passlist</code>. Special behavior: If <code>variant_passlist</code> is used by
+<code>variant_ids</code>. Special behavior: If <code>variant_ids</code> is used by
 itself, then only those specified variants will be returned.</p>
     </div>
 
@@ -177,7 +177,7 @@ itself, then only those specified variants will be returned.</p>
   <span class='va'>cesa</span>,
   genes <span class='op'>=</span> <span class='cn'>NULL</span>,
   min_freq <span class='op'>=</span> <span class='fl'>0</span>,
-  variant_passlist <span class='op'>=</span> <span class='cn'>NULL</span>,
+  variant_ids <span class='op'>=</span> <span class='cn'>NULL</span>,
   gr <span class='op'>=</span> <span class='cn'>NULL</span>,
   variant_position_table <span class='op'>=</span> <span class='cn'>NULL</span>,
   include_subvariants <span class='op'>=</span> <span class='cn'>F</span>,
@@ -204,7 +204,7 @@ Note that variants that are not in the annotation tables will never be returned.
 <code><a href='add_variants.html'>add_variants()</a></code> to include variants absent from MAF data in your CESAnalysis.</p></td>
     </tr>
     <tr>
-      <th>variant_passlist</th>
+      <th>variant_ids</th>
       <td><p>Vector of variant IDs to include in output regardless of
 filtering options. You can use CES-style AAC and SNV IDs or variant names like 
 "KRAS G12C". If this argument is used by itself (without any filtering arguments),
@@ -254,17 +254,16 @@ sometimes easier to work with.</p></td>
     <tr>
       <th>remove_secondary_aac</th>
       <td><p>Default TRUE, except overridden (effectively FALSE) when
-include_subvariants = T. Occasionally, due to overlapping coding sequence definitions
-in reference data, a site can have more than one amino-acid-change mutation
-annotation. To avoid returning the same genome-positional variants multiple times,
-the default is to return one AAC in these situations. Tiebreakers are MAF frequency,
-essential splice site status, non-silent status, gene mutation frequency,
-alphabetical. The omitted AACs will still be included in the all_aac column, and if
-any constituent SNVs of the AACs don't overlap, the non-overlapping SNVs from the
-excluded AACs will still be included in output. If you set remove_secondary_aac to
-FALSE, you can't put the output variant table in selection calculation functions. An
-alternative is to set to FALSE, pick which (non-overlapping) variants you want, and
-then re-run select_variants() with those variants specified in <code>variant_passlist</code>.</p></td>
+include_subvariants = T. Due to overlapping coding region definitions in reference
+data (e.g., genes with multiple transcripts), a site can have more than one
+amino-acid-change mutation annotation. To avoid returning the same genome-positional
+variants multiple times, the default is to return one AAC in these situations.
+Tiebreakers are MAF prevalence, essential splice site status, premature stop codon,
+non-silent status, gene/protein mutation count, alphabetical. If you set
+remove_secondary_aac to FALSE, you can't put the output variant table in selection
+calculation functions. An alternative is to set to FALSE, pick which
+(non-overlapping) variants you want, and then re-run select_variants() with those
+variants specified in <code>variant_ids</code>.</p></td>
     </tr>
     </table>
 
@@ -293,18 +292,17 @@ not actually in any gene.</p>
 <li><p>essential_splice: Variant is 1,2 bp upstream or
   1,2,5 bp downstream of an annotated splice position (edge case: if an SNV has
   multiple gene/transcript annotations, this doesn't say which one it's essential for)</p></li>
-<li><p>intergenic: variant does not overlap any gene ranges in the reference data</p></li>
+<li><p>intergenic: variant does not overlap any coding regions in the reference data</p></li>
 <li><p>trinuc_mut: for SNVs, the reference trinucleotide context, in deconstructSigs notation</p></li>
 <li><p>coding_seq: coding strand nucleotides in order of transcription</p></li>
 <li><p>center_nt_pos: regardless of strand, start/end give positions of two out of three AAC nucleotides; this
                       gives the position of the center nucleotide (maybe useful if the AAC spans a splice site)</p></li>
 <li><p>constituent_snvs: all SNVs that can produce a given variant</p></li>
 <li><p>multi_anno_site: T/F whether variant has multiple gene/transcript/AAC annotations</p></li>
-<li><p>all_aac: For SNVs, all AACs that the variant is annotated as producing; for
-  AACs, all of the AACs that are annotated for all of the constituent SNVs</p></li>
 <li><p>all_genes: all genes overlapping the variant in reference data</p></li>
 <li><p>covered_in: the names of all "covered regions" sets in the CESAnalysis that have coverage at the variant site</p></li>
-<li><p>maf_freq: number of occurrences of the variant in MAF data</p></li>
+<li><p>maf_prevalence: number of occurrences of the variant in MAF data</p></li>
+<li><p>samples_covering: number of MAF samples with sequencing coverage at the variant site</p></li>
 </ul>
 
 

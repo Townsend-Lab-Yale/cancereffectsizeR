@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Assign pre-calculated relative trinucleotide mutation rates — set_trinuc_rates • cancereffectsizeR</title>
+<title>Clear mutational signature attributions and related mutation rate information — clear_trinuc_rates_and_signatures • cancereffectsizeR</title>
 
 <!-- favicons -->
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
@@ -52,22 +52,10 @@
 
 
 
-<meta property="og:title" content="Assign pre-calculated relative trinucleotide mutation rates — set_trinuc_rates" />
-<meta property="og:description" content="This function assigns trinucleotide-context-specific relative SNV mutation rates to
-tumors in a CESAnalysis. (These could be rates previously generated with
-trinuc_mutation_rates(), or they could calculated using your own methods.) The
-input rates must be a data.table or matrix. If supplying a data table, there must be a
-Unique_Patient_Identifier column; if supplying a a matrix, the identifiers should be
-supplied as rownames instead. Either way, all samples in the CESAnalysis must be
-represented in the input rates. To avoid user error, there cannot be any superfluous
-samples in the input rates unless ignore_extra_samples = T. Besides the
-identifier column (or matrix rownames), there must be 96 columns, with column names
-exactly matching the deconstructSigs/MutationalPatterns naming and order (run this
-function with incorrect column names, and the names you need to use will be printed).
-Since CES uses relative trinuc rates, rows must sum to 1, with all values greater than
-0. You'll get a warning if any rate is less than 1e-9, since (unrealistically) low
-rates may crash selection model likelihood functions that aren't expecting such small
-values." />
+<meta property="og:title" content="Clear mutational signature attributions and related mutation rate information — clear_trinuc_rates_and_signatures" />
+<meta property="og:description" content="Removes all data calculated or supplied via trinuc_mutation_rates,
+set_signature_weights, set_trinuc_rates, etc. This function can be used if you want to
+re-run signature analysis with different sample groupings or parameters." />
 <meta property="og:image" content="https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/logo.png" />
 
 
@@ -166,45 +154,25 @@ values." />
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Assign pre-calculated relative trinucleotide mutation rates</h1>
-    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/main/R/set_trinuc_rates.R'><code>R/set_trinuc_rates.R</code></a></small>
-    <div class="hidden name"><code>set_trinuc_rates.Rd</code></div>
+    <h1>Clear mutational signature attributions and related mutation rate information</h1>
+    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/main/R/trinuc_mutation_rates.R'><code>R/trinuc_mutation_rates.R</code></a></small>
+    <div class="hidden name"><code>clear_trinuc_rates_and_signatures.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>This function assigns trinucleotide-context-specific relative SNV mutation rates to
-tumors in a CESAnalysis. (These could be rates previously generated with
-<code><a href='trinuc_mutation_rates.html'>trinuc_mutation_rates()</a></code>, or they could calculated using your own methods.) The
-input rates must be a data.table or matrix. If supplying a data table, there must be a
-Unique_Patient_Identifier column; if supplying a a matrix, the identifiers should be
-supplied as rownames instead. Either way, all samples in the CESAnalysis must be
-represented in the input rates. To avoid user error, there cannot be any superfluous
-samples in the input rates unless <code>ignore_extra_samples = T</code>. Besides the
-identifier column (or matrix rownames), there must be 96 columns, with column names
-exactly matching the deconstructSigs/MutationalPatterns naming and order (run this
-function with incorrect column names, and the names you need to use will be printed).
-Since CES uses relative trinuc rates, rows must sum to 1, with all values greater than
-0. You'll get a warning if any rate is less than 1e-9, since (unrealistically) low
-rates may crash selection model likelihood functions that aren't expecting such small
-values.</p>
+    <p>Removes all data calculated or supplied via trinuc_mutation_rates,
+set_signature_weights, set_trinuc_rates, etc. This function can be used if you want to
+re-run signature analysis with different sample groupings or parameters.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>set_trinuc_rates</span><span class='op'>(</span><span class='va'>cesa</span>, <span class='va'>trinuc_rates</span>, ignore_extra_samples <span class='op'>=</span> <span class='cn'>FALSE</span><span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>clear_trinuc_rates_and_signatures</span><span class='op'>(</span><span class='va'>cesa</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
       <th>cesa</th>
-      <td><p>CESAnalysis object</p></td>
-    </tr>
-    <tr>
-      <th>trinuc_rates</th>
-      <td><p>a matrix or data table (see description for format)</p></td>
-    </tr>
-    <tr>
-      <th>ignore_extra_samples</th>
-      <td><p>skip samples in the input table that are not in the CESAnalysis (when false, will stop with an error)</p></td>
+      <td><p>CESAnalysis</p></td>
     </tr>
     </table>
 

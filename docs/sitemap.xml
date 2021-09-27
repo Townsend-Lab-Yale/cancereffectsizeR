@@ -58,6 +58,15 @@
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/clear_gene_rates.html</loc>
   </url>
   <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/clear_sample_data.html</loc>
+  </url>
+  <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/clear_trinuc_rates_and_signatures.html</loc>
+  </url>
+  <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/complete_aac_ids.html</loc>
+  </url>
+  <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/convert_signature_weights_for_mp.html</loc>
   </url>
   <url>
@@ -71,6 +80,9 @@
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/dot-add_covered_regions.html</loc>
+  </url>
+  <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/dot-variant_counts.html</loc>
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/epistasis_results.html</loc>
@@ -127,6 +139,9 @@
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/load_maf.html</loc>
   </url>
   <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/load_sample_data.html</loc>
+  </url>
+  <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/lollipops.html</loc>
   </url>
   <url>
@@ -160,7 +175,13 @@
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/run_mutational_patterns.html</loc>
   </url>
   <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/samples_with.html</loc>
+  </url>
+  <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/save_cesa.html</loc>
+  </url>
+  <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/select_samples.html</loc>
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/select_variants.html</loc>
@@ -179,6 +200,9 @@
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/snv_results.html</loc>
+  </url>
+  <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/sort_and_validate_variant_ids.html</loc>
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/sswm_lik.html</loc>
@@ -202,10 +226,16 @@
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/update_covered_in.html</loc>
   </url>
   <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/validate_aac_ids.html</loc>
+  </url>
+  <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/validate_signature_set.html</loc>
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/validate_snv_ids.html</loc>
+  </url>
+  <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/variant_counts.html</loc>
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/articles/cancereffectsizeR.html</loc>

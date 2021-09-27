@@ -54,7 +54,7 @@
 
 <meta property="og:title" content="Calculate SIs at gene level under pairwise epistasis model — pairwise_gene_epistasis" />
 <meta property="og:description" content="The genes are assumed to not overlap in any ranges (the calling
-function checks for this)." />
+function checks for this)" />
 <meta property="og:image" content="https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/logo.png" />
 
 
@@ -87,7 +87,7 @@ function checks for this)." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.2.2</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.3.0</span>
       </span>
     </div>
 
@@ -160,11 +160,31 @@ function checks for this)." />
 
     <div class="ref-description">
     <p>The genes are assumed to not overlap in any ranges (the calling
-function checks for this).</p>
+function checks for this)</p>
     </div>
 
-    <pre class="usage"><span class='fu'>pairwise_gene_epistasis</span><span class='op'>(</span><span class='va'>cesa</span>, <span class='va'>genes</span>, <span class='va'>conf</span><span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>pairwise_gene_epistasis</span><span class='op'>(</span><span class='va'>cesa</span>, <span class='va'>genes</span>, <span class='va'>samples</span>, <span class='va'>conf</span><span class='op'>)</span></pre>
 
+    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
+    <table class="ref-arguments">
+    <colgroup><col class="name" /><col class="desc" /></colgroup>
+    <tr>
+      <th>cesa</th>
+      <td><p>CESAnalysis</p></td>
+    </tr>
+    <tr>
+      <th>genes</th>
+      <td><p>two-length vector of gene names</p></td>
+    </tr>
+    <tr>
+      <th>samples</th>
+      <td><p>validated sample subset, as from select_samples()</p></td>
+    </tr>
+    <tr>
+      <th>conf</th>
+      <td><p>confidence level on (0, 1)</p></td>
+    </tr>
+    </table>
 
 
   </div>

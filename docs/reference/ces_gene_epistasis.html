@@ -89,7 +89,7 @@ intensity of each gene assumed to vary based on mutational status of the other g
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.2.2</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.3.0</span>
       </span>
     </div>
 
@@ -170,6 +170,7 @@ intensity of each gene assumed to vary based on mutational status of the other g
     <pre class="usage"><span class='fu'>ces_gene_epistasis</span><span class='op'>(</span>
   cesa <span class='op'>=</span> <span class='cn'>NULL</span>,
   genes <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/character.html'>character</a></span><span class='op'>(</span><span class='op'>)</span>,
+  samples <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/character.html'>character</a></span><span class='op'>(</span><span class='op'>)</span>,
   run_name <span class='op'>=</span> <span class='st'>"auto"</span>,
   cores <span class='op'>=</span> <span class='fl'>1</span>,
   conf <span class='op'>=</span> <span class='cn'>NULL</span>
@@ -184,7 +185,15 @@ intensity of each gene assumed to vary based on mutational status of the other g
     </tr>
     <tr>
       <th>genes</th>
-      <td><p>Vector of gene names; SIs will be calculated for all gene pairs</p></td>
+      <td><p>Vector of gene names; SIs will be calculated for all gene pairs.</p></td>
+    </tr>
+    <tr>
+      <th>samples</th>
+      <td><p>Which samples to include in inference. Defaults to all samples. Can be a
+vector of Unique_Patient_Identifiers, or a data.table containing rows from the
+CESAnalysis sample table. NOTE: Even excluded samples are used to determine recurrent
+variant sites. If this is a problem for you, then it's possible to get your desired
+behavior using ces_epistasis().</p></td>
     </tr>
     <tr>
       <th>run_name</th>

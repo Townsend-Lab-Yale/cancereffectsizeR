@@ -55,8 +55,8 @@
 <meta property="og:title" content="Calculate variant effect size — ces_variant" />
 <meta property="og:description" content="This function calculates variant effect sizes under the chosen model of selection. By
 default, a variant is assumed to have a consistent selection intensity across all
-samples. Set `model = &quot;sswm_sequential&quot;` to allow selection intensity to vary among
-sequential sample groups (e.g., stages 1-4; local/distant metastases). Use `groups` to
+samples. Set model = &quot;sswm_sequential&quot; to allow selection intensity to vary among
+sequential sample groups (e.g., stages 1-4; local/distant metastases). Use groups to
 define group ordering or to restrict which groups are considered under either built-in
 model. By default, only variants with MAF frequency &amp;gt; 1 (i.e., recurrent variants) are
 tested. To include all variants, or to otherwise customize which variants to include,
@@ -93,7 +93,7 @@ call select_variants() with desired parameters." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.2.2</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.3.0</span>
       </span>
     </div>
 
@@ -167,22 +167,25 @@ call select_variants() with desired parameters." />
     <div class="ref-description">
     <p>This function calculates variant effect sizes under the chosen model of selection. By
 default, a variant is assumed to have a consistent selection intensity across all
-samples. Set `model = "sswm_sequential"` to allow selection intensity to vary among
-sequential sample groups (e.g., stages 1-4; local/distant metastases). Use `groups` to
+samples. Set <code>model = "sswm_sequential"</code> to allow selection intensity to vary among
+sequential sample groups (e.g., stages 1-4; local/distant metastases). Use <code>groups</code> to
 define group ordering or to restrict which groups are considered under either built-in
 model. By default, only variants with MAF frequency &gt; 1 (i.e., recurrent variants) are
 tested. To include all variants, or to otherwise customize which variants to include,
-call select_variants() with desired parameters.</p>
+call <code><a href='select_variants.html'>select_variants()</a></code> with desired parameters.</p>
     </div>
 
     <pre class="usage"><span class='fu'>ces_variant</span><span class='op'>(</span>
   cesa <span class='op'>=</span> <span class='cn'>NULL</span>,
   variants <span class='op'>=</span> <span class='fu'><a href='select_variants.html'>select_variants</a></span><span class='op'>(</span><span class='va'>cesa</span>, min_freq <span class='op'>=</span> <span class='fl'>2</span><span class='op'>)</span>,
+  samples <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/character.html'>character</a></span><span class='op'>(</span><span class='op'>)</span>,
+  model <span class='op'>=</span> <span class='st'>"basic"</span>,
   run_name <span class='op'>=</span> <span class='st'>"auto"</span>,
-  model <span class='op'>=</span> <span class='st'>"sswm"</span>,
-  groups <span class='op'>=</span> <span class='cn'>NULL</span>,
-  custom_lik_args <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span><span class='op'>(</span><span class='op'>)</span>,
+  ordering_col <span class='op'>=</span> <span class='cn'>NULL</span>,
+  ordering <span class='op'>=</span> <span class='cn'>NULL</span>,
+  lik_args <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span><span class='op'>(</span><span class='op'>)</span>,
   hold_out_same_gene_samples <span class='op'>=</span> <span class='st'>"auto"</span>,
+  groups <span class='op'>=</span> <span class='cn'>NULL</span>,
   cores <span class='op'>=</span> <span class='fl'>1</span>,
   conf <span class='op'>=</span> <span class='fl'>0.95</span>
 <span class='op'>)</span></pre>
@@ -202,27 +205,34 @@ call select_variants() with desired parameters.</p>
 samples in the MAF data set.</p></td>
     </tr>
     <tr>
+      <th>samples</th>
+      <td><p>Which samples to include in inference. Defaults to all samples.
+Can be a vector of Unique_Patient_Identifiers, or a data.table containing rows from
+the CESAnalysis sample table.</p></td>
+    </tr>
+    <tr>
+      <th>model</th>
+      <td><p>"basic" or "sequential" to use built-in models of selection, or supply a
+custom function factory (see details).</p></td>
+    </tr>
+    <tr>
       <th>run_name</th>
       <td><p>Optionally, a name to identify the current run.</p></td>
     </tr>
     <tr>
-      <th>model</th>
-      <td><p>"sswm" or "sswm_sequential" to use built-in models of selection, or supply a
-custom function factory (see details).</p></td>
+      <th>ordering_col</th>
+      <td><p>For the sequential model (or possibly custom models), the name of
+the sample table column that defines sample chronology.</p></td>
     </tr>
     <tr>
-      <th>groups</th>
-      <td><p>Which sample groups to include (default all); data for outgroup samples
-will not inform selection calculation. For models (like sswm_sequential) that assume
-ordered groups of samples, use a list to indicate group ordering.
-Examples: <code><a href='https://rdrr.io/r/base/c.html'>c("group1", "group2")</a></code> includes groups 1 and 2, but doesn't indicate
-an ordering, so is invalid for ordered-group models.
-<code><a href='https://rdrr.io/r/base/list.html'>list("Primary", "Metastatic")</a></code> indicates two ordered groups, and
-<code><a href='https://rdrr.io/r/base/list.html'>list("A", c("B", "C"), "D")</a></code> means that group A is first, groups B and C share
-an intermediate state, and group D is last.</p></td>
+      <th>ordering</th>
+      <td><p>For the sequential model (or possibly custom models), a character
+vector or list defining the ordering of values in ordering_col. Use a list to assign 
+multiple values in ordering_col the same position (e.g., `list(c("I", "II), c("III", "IV")))`
+for an early vs. late analysis).</p></td>
     </tr>
     <tr>
-      <th>custom_lik_args</th>
+      <th>lik_args</th>
       <td><p>Extra arguments, given as a list, to pass to custom likelihood
 functions.</p></td>
     </tr>
@@ -231,6 +241,18 @@ functions.</p></td>
       <td><p>When finding likelihood of each variant, hold out
 samples that lack the variant but have any other mutations in the same gene. By default,
 TRUE when running with single variants, FALSE with a CompoundVariantSet.</p></td>
+    </tr>
+    <tr>
+      <th>groups</th>
+      <td><p>(Deprecated; use samples and for sequential model, see
+lik_args(ordering_col = ...).) Which sample groups to include in inference. Data for
+outgroup samples will not inform selection calculation. For models (like
+sequential) that assume ordered groups of samples, use a list to indicate group
+ordering. Examples: <code><a href='https://rdrr.io/r/base/c.html'>c("group1", "group2")</a></code> includes groups 1 and 2, but doesn't
+indicate an ordering, so is invalid for ordered-group models. <code><a href='https://rdrr.io/r/base/list.html'>list("Primary",
+"Metastatic")</a></code> indicates two ordered groups, and <code><a href='https://rdrr.io/r/base/list.html'>list("A", c("B", "C"), "D")</a></code>
+means that group A is first, groups B and C share an intermediate state, and group D
+is last.</p></td>
     </tr>
     <tr>
       <th>cores</th>
@@ -252,12 +274,12 @@ speeds runtime)</p></td>
 factory" that, for any variant, produces a likelihood function that can be evaluated on
 the data. The first two arguments must be rates_tumors_with and rates_tumors_without,
 which take the baseline site mutation rates in samples with and without the variant.
-The third argument must be sample_index, which associates Unique_Patient_Identifiers
+The third argument must be <code>sample_index</code>, which associates Unique_Patient_Identifiers
 with their sample groups. Values for all three of these arguments will be calculated by
 ces_variant and passed to your function factory automatically. Your function can take
 whatever additional arguments you like, and you can pass in values using
-`custom_lik_args`. The likelihood function parameters that ces_variant will optimize
-should be named and have default values. See the source code of `sswm_sequential_lik()`
+<code>lik_args</code>. The likelihood function parameters that ces_variant will optimize
+should be named and have default values. See the source code of <code><a href='sswm_sequential_lik.html'>sswm_sequential_lik()</a></code>
 for an example.</p>
 
   </div>

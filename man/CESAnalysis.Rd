@@ -20,5 +20,5 @@ require multiple sample groups.}
 CESAnalysis object
 }
 \description{
-Creates a CESAnalysis object, the central data structure of cancereffectsizeR.
+Creates a CESAnalysis, the central data structure of cancereffectsizeR.
 }

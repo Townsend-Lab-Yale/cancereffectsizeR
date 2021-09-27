@@ -88,7 +88,7 @@ or to samples with the specified sample_group labels (see ?CESAnalysis)." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.2.2</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.3.0</span>
       </span>
     </div>
 
@@ -168,8 +168,9 @@ or to samples with the specified sample_group labels (see <code><a href='CESAnal
     <pre class="usage"><span class='fu'>set_gene_rates</span><span class='op'>(</span>
   cesa <span class='op'>=</span> <span class='cn'>NULL</span>,
   rates <span class='op'>=</span> <span class='cn'>NULL</span>,
-  sample_group <span class='op'>=</span> <span class='cn'>NULL</span>,
-  missing_genes_take_nearest <span class='op'>=</span> <span class='cn'>FALSE</span>
+  samples <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/character.html'>character</a></span><span class='op'>(</span><span class='op'>)</span>,
+  missing_genes_take_nearest <span class='op'>=</span> <span class='cn'>FALSE</span>,
+  sample_group <span class='op'>=</span> <span class='cn'>NULL</span>
 <span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
@@ -181,17 +182,24 @@ or to samples with the specified sample_group labels (see <code><a href='CESAnal
     </tr>
     <tr>
       <th>rates</th>
-      <td><p>A two-column data.table with either gene name or protein_id in column 1 and rate in column 2</p></td>
+      <td><p>A two-column data.table with either gene name or protein_id in column 1
+and rate in column 2</p></td>
     </tr>
     <tr>
-      <th>sample_group</th>
-      <td><p>Character vector giving sample group(s) that the rates apply to. If
-unspecified, the rates are assigned to all samples.</p></td>
+      <th>samples</th>
+      <td><p>Which samples the input rates apply to. Defaults to all samples. Can be
+a vector of Unique_Patient_Identifiers, or a data.table containing rows from the
+CESAnalysis sample table.</p></td>
     </tr>
     <tr>
       <th>missing_genes_take_nearest</th>
-      <td><p>Set to TRUE
-to have each gene/protein_id missing from rates take the rate of the nearest non-missing gene/protein.</p></td>
+      <td><p>Set to TRUE to have each gene/protein_id missing from
+rates take the rate of the nearest non-missing gene/protein.</p></td>
+    </tr>
+    <tr>
+      <th>sample_group</th>
+      <td><p>(Deprecated; use samples.) Character vector giving sample group(s)
+that the rates apply to.</p></td>
     </tr>
     </table>
 

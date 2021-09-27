@@ -87,7 +87,7 @@ trinucleotide-context-specific SNV mutation rates of each sample" />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.2.2</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.3.0</span>
       </span>
     </div>
 
@@ -168,7 +168,7 @@ trinucleotide-context-specific SNV mutation rates of each sample</p>
   aac_ids <span class='op'>=</span> <span class='cn'>NULL</span>,
   snv_ids <span class='op'>=</span> <span class='cn'>NULL</span>,
   variant_ids <span class='op'>=</span> <span class='cn'>NULL</span>,
-  samples <span class='op'>=</span> <span class='cn'>NULL</span>,
+  samples <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/character.html'>character</a></span><span class='op'>(</span><span class='op'>)</span>,
   cores <span class='op'>=</span> <span class='fl'>1</span>
 <span class='op'>)</span></pre>
 
@@ -193,7 +193,9 @@ trinucleotide-context-specific SNV mutation rates of each sample</p>
     </tr>
     <tr>
       <th>samples</th>
-      <td><p>vector of sample IDs (Unique_Patient_Identifier) to include in mutation rate table (defaults to all samples)</p></td>
+      <td><p>Which samples to calculate rates for. Defaults to all samples. Can be a
+vector of Unique_Patient_Identifiers, or a data.table containing rows from the
+CESAnalysis sample table.</p></td>
     </tr>
     <tr>
       <th>cores</th>

@@ -85,7 +85,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.2.2</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.3.0</span>
       </span>
     </div>
 
@@ -155,6 +155,20 @@
       <small>Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/main/NEWS.md'><code>NEWS.md</code></a></small>
     </div>
 
+    <div id="cancereffectsizer-230" class="section level1">
+<h1 class="page-header" data-toc-text="2.3.0">
+<a href="#cancereffectsizer-230" class="anchor"></a>cancereffectsizeR 2.3.0</h1>
+<ul>
+<li>Load sample-level data into a CESAnalysis sample table using add_sample_data(), or during load_maf() with the new sample_data_cols argument.</li>
+<li>trinuc_mutation_rates(), gene_mutation_rates(), and selection inference functions can be run on arbitrary subsets of samples. The less-flexible CESAnalysis “sample_groups” functionality has been deprecated.</li>
+<li>samples_with() makes it easy to see which samples have various mutations.</li>
+<li>variant_counts() provides variant prevalence and coverage information, with the option to break counts down into groups based on sample table columns.<br>
+</li>
+<li>check_sample_overlap() now accepts a list of MAFs.</li>
+<li>In loaded MAF data, columns top_consequence and top_gene give the most significant annotated coding changes for each mutation record. Annotation precedence is determined by MAF prevalence (usually equal), essential splice status, premature stop codon, nonsilent status, MAF mutation prevalence across the transcript (often favors longer transcripts), and finally alphabtical order. The columns are recalculated when more data is loaded, so changes in MAF prevalence can change which variants appear.</li>
+<li>Because ces.refset.hg38 is now available, CESAnalysis() and preload_maf() now require reference data sets to be specified by the user (formerly, they defaulted to ces.refset.hg19).</li>
+</ul>
+</div>
     <div id="cancereffectsizer-222" class="section level1">
 <h1 class="page-header" data-toc-text="2.2.2">
 <a href="#cancereffectsizer-222" class="anchor"></a>cancereffectsizeR 2.2.2</h1>

@@ -2,23 +2,23 @@
 #'
 #' This function calculates variant effect sizes under the chosen model of selection. By
 #' default, a variant is assumed to have a consistent selection intensity across all
-#' samples. Set `model = "sswm_sequential"` to allow selection intensity to vary among
-#' sequential sample groups (e.g., stages 1-4; local/distant metastases). Use `groups` to
+#' samples. Set \code{model = "sswm_sequential"} to allow selection intensity to vary among
+#' sequential sample groups (e.g., stages 1-4; local/distant metastases). Use \code{groups} to
 #' define group ordering or to restrict which groups are considered under either built-in
 #' model. By default, only variants with MAF frequency > 1 (i.e., recurrent variants) are
 #' tested. To include all variants, or to otherwise customize which variants to include,
-#' call select_variants() with desired parameters.
+#' call \code{select_variants()} with desired parameters.
 #' 
 #' It's possible to pass in your own selection model. You'll need to create a "function
 #' factory" that, for any variant, produces a likelihood function that can be evaluated on
 #' the data. The first two arguments must be rates_tumors_with and rates_tumors_without,
 #' which take the baseline site mutation rates in samples with and without the variant.
-#' The third argument must be sample_index, which associates Unique_Patient_Identifiers
+#' The third argument must be \code{sample_index}, which associates Unique_Patient_Identifiers
 #' with their sample groups. Values for all three of these arguments will be calculated by
 #' ces_variant and passed to your function factory automatically. Your function can take
 #' whatever additional arguments you like, and you can pass in values using
-#' `lik_args`. The likelihood function parameters that ces_variant will optimize
-#' should be named and have default values. See the source code of `sswm_sequential_lik()`
+#' \code{lik_args}. The likelihood function parameters that ces_variant will optimize
+#' should be named and have default values. See the source code of \code{sswm_sequential_lik()}
 #' for an example.
 #' 
 #' 

@@ -87,7 +87,7 @@ CompoundVariantSets are supported." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.2.2</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.3.0</span>
       </span>
     </div>
 
@@ -166,6 +166,7 @@ CompoundVariantSets are supported.</p>
     <pre class="usage"><span class='fu'>ces_epistasis</span><span class='op'>(</span>
   cesa <span class='op'>=</span> <span class='cn'>NULL</span>,
   variants <span class='op'>=</span> <span class='cn'>NULL</span>,
+  samples <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/character.html'>character</a></span><span class='op'>(</span><span class='op'>)</span>,
   run_name <span class='op'>=</span> <span class='st'>"auto"</span>,
   cores <span class='op'>=</span> <span class='fl'>1</span>,
   conf <span class='op'>=</span> <span class='cn'>NULL</span>
@@ -184,6 +185,12 @@ CompoundVariantSets are supported.</p>
 2-length vector of CES-style variant IDs. Alternatively (and often more usefully),
 supply a CompoundVariantSet (see <code>define_compound_variants</code>) to test all pairs
 of compound variants in the set.</p></td>
+    </tr>
+    <tr>
+      <th>samples</th>
+      <td><p>Which samples to include in inference. Defaults to all samples.
+Can be a vector of Unique_Patient_Identifiers, or a data.table containing rows from
+the CESAnalysis sample table.</p></td>
     </tr>
     <tr>
       <th>run_name</th>

@@ -86,7 +86,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.2.2</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.3.0</span>
       </span>
     </div>
 
@@ -161,7 +161,13 @@
     <p>Calculate SIs at variant level under pairwise epistasis model</p>
     </div>
 
-    <pre class="usage"><span class='fu'>pairwise_variant_epistasis</span><span class='op'>(</span><span class='va'>cesa</span>, <span class='va'>variant_pair</span>, <span class='va'>conf</span>, compound_variants <span class='op'>=</span> <span class='cn'>NULL</span><span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>pairwise_variant_epistasis</span><span class='op'>(</span>
+  <span class='va'>cesa</span>,
+  <span class='va'>variant_pair</span>,
+  <span class='va'>samples</span>,
+  <span class='va'>conf</span>,
+  compound_variants <span class='op'>=</span> <span class='cn'>NULL</span>
+<span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -174,6 +180,10 @@
       <th>variant_pair</th>
       <td><p>2-length character of variant IDs, or 2-length numeric giving
 indices of CompoundVariantSet for the current two compound variants</p></td>
+    </tr>
+    <tr>
+      <th>samples</th>
+      <td><p>Validated samples data.table (as from select_samples())</p></td>
     </tr>
     </table>
 

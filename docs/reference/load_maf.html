@@ -56,12 +56,11 @@
 <meta property="og:description" content="Load MAF data from a text file or data table into your CESAnalysis. If column names
 don't match MAF format specifications (Chromosome, Start_Position, etc., with
 Tumor_Sample_Barcode used as the sample ID column), you can supply your own column
-names. When your CESAnalysis has defined sample groups (see ?CESAnalysis),
-specify &quot;group_col&quot;. By default, data is assumed to be derived from whole-exome
-sequencing. Whole-genome data and targeted sequencing data are also supported when the
-&quot;coverage&quot; option is specified. If the data you are loading is from a different genome
-build than your CESAnalysis, you can use the chain_file argument to supply a UCSC-style
-chain file, and your MAF coordinates will be automatically converted with
+names. By default, data is assumed to be derived from whole-exome sequencing.
+Whole-genome data and targeted sequencing data are also supported when the
+coverage option is specified. If the data you are loading is from a different
+genome build than your CESAnalysis, you can use the chain_file argument to supply a
+UCSC-style chain file, and your MAF coordinates will be automatically converted with
 rtracklayer's version of liftOver." />
 <meta property="og:image" content="https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/logo.png" />
 
@@ -95,7 +94,7 @@ rtracklayer's version of liftOver." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.2.2</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.3.0</span>
       </span>
     </div>
 
@@ -170,12 +169,11 @@ rtracklayer's version of liftOver." />
     <p>Load MAF data from a text file or data table into your CESAnalysis. If column names
 don't match MAF format specifications (Chromosome, Start_Position, etc., with
 Tumor_Sample_Barcode used as the sample ID column), you can supply your own column
-names. When your CESAnalysis has defined sample groups (see <code><a href='CESAnalysis.html'>?CESAnalysis</a></code>),
-specify "group_col". By default, data is assumed to be derived from whole-exome
-sequencing. Whole-genome data and targeted sequencing data are also supported when the
-"coverage" option is specified. If the data you are loading is from a different genome
-build than your CESAnalysis, you can use the chain_file argument to supply a UCSC-style
-chain file, and your MAF coordinates will be automatically converted with
+names. By default, data is assumed to be derived from whole-exome sequencing.
+Whole-genome data and targeted sequencing data are also supported when the
+<code>coverage</code> option is specified. If the data you are loading is from a different
+genome build than your CESAnalysis, you can use the chain_file argument to supply a
+UCSC-style chain file, and your MAF coordinates will be automatically converted with
 rtracklayer's version of liftOver.</p>
     </div>
 
@@ -192,6 +190,7 @@ rtracklayer's version of liftOver.</p>
   covered_regions_name <span class='op'>=</span> <span class='cn'>NULL</span>,
   covered_regions_padding <span class='op'>=</span> <span class='fl'>0</span>,
   group_col <span class='op'>=</span> <span class='cn'>NULL</span>,
+  sample_data_cols <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/character.html'>character</a></span><span class='op'>(</span><span class='op'>)</span>,
   chain_file <span class='op'>=</span> <span class='cn'>NULL</span>,
   enforce_default_exome_coverage <span class='op'>=</span> <span class='cn'>FALSE</span>
 <span class='op'>)</span></pre>
@@ -255,7 +254,7 @@ input data has been trimmed to the targeted regions, leave set to 0.</p></td>
     </tr>
     <tr>
       <th>chain_file</th>
-      <td><p>a LiftOver chain file (text format, name ends in .chain) to convert MAF
+      <td><p>A LiftOver chain file (text format, name ends in .chain) to convert MAF
 records to the genome build used in the CESAnalysis.</p></td>
     </tr>
     <tr>
@@ -268,7 +267,16 @@ CES genome reference data (default FALSE).</p></td>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>CESAnalysis with the specified MAF data loaded</p>
+    <p>CESAnalysis with the specified MAF data loaded. The MAF data table includes
+  CES-generated variant IDs, a list of all genes overlapping the site, and top_gene and
+  top_consequence columsn that give the most significant annotated coding changes for
+  each mutation record. Annotation precedence is determined by MAF prevalence (usually
+  equal), essential splice status, premature stop codon, nonsilent status, MAF mutation
+  prevalence across the transcript (often favors longer transcripts), and finally
+  alphabtical order. The columns are recalculated when more data is loaded, so changes
+  in MAF prevalence can change which variants are highlighted. Note that
+  <code>[CESAnalysis]$variants</code> contains more information about all top_consequence
+  variants and all noncoding variants from the MAF.</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

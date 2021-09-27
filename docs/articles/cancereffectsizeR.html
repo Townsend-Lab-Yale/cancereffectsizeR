@@ -40,7 +40,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.2.2</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.3.0</span>
       </span>
     </div>
 
@@ -120,10 +120,10 @@
 <div id="install-reference-data" class="section level2">
 <h2 class="hasAnchor">
 <a href="#install-reference-data" class="anchor"></a>Install reference data</h2>
-<p>In addition to installing cancereffectsizeR, you need to install a reference data set, or <em>refset</em>. Currently, a refset supporting the hg19 genome build is available as a separate data package. Install like this:</p>
+<p>In addition to installing cancereffectsizeR, you need to install a reference data set, or <em>refset</em>. Currently, refsets supporting the hg38 and hg18 genome builds are available as separate data packages. Install like this:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/base/options.html">options</a></span><span class="op">(</span>timeout <span class="op">=</span> <span class="fl">600</span><span class="op">)</span> <span class="co"># large download, so we increase the download time limit to be safe</span>
-<span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html">install_github</a></span><span class="op">(</span><span class="st">"Townsend-Lab-Yale/ces.refset.hg19@*release"</span><span class="op">)</span></code></pre></div>
+<span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html">install_github</a></span><span class="op">(</span><span class="st">"Townsend-Lab-Yale/ces.refset.hg38@*release"</span><span class="op">)</span></code></pre></div>
 <p>Refsets for more genome builds and species may be added in the future; please let us know if you’re interested. There is also full support for <a href="custom_refset_instructions.html">building your own custom refset</a>.</p>
 </div>
 <div id="maf-pre-processing" class="section level2">
@@ -164,36 +164,30 @@
 <li>There should be few to no mutations in repetitive or poorly mapped regions of the genome, as mutations in these sites are difficult to call confidently and should be rare anyways since these regions are usually not functionally important at the small-variant level.</li>
 <li>When combining data from multiple sources, look out for re-use of samples.</li>
 </ul>
-<p>When running with ces.refset.hg19 reference data, preloaded MAFs get annotations relevant to these guidelines. (See the <code><a href="../reference/preload_maf.html">preload_maf()</a></code> reference for details.) In this example, we’ll exclude mutations at sites of germline variation, and we’ll also exclude mutations in repetitive regions except when the sites are of known cancer significance (COSMIC mutation census tiers 1-3). Next, we’ll combine the three MAF data tables and run a helper function <code><a href="../reference/check_sample_overlap.html">check_sample_overlap()</a></code>, to identify possible duplicate samples across data sources. Lastly, we save one analysis-ready MAF per original MAF.</p>
+<p>When running with provided refset data, preloaded MAFs get annotations relevant to these guidelines. (See the <code><a href="../reference/preload_maf.html">preload_maf()</a></code> reference for details.) In this example, we’ll exclude mutations at sites of germline variation, and we’ll also exclude mutations in repetitive regions except when the sites are of known cancer significance (COSMIC mutation census tiers 1-3). Next, we’ll run a helper function <code><a href="../reference/check_sample_overlap.html">check_sample_overlap()</a></code>, to identify possible duplicate samples across data sources. Lastly, we save copies of the analysis-ready MAFs.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="co"># create named list of MAF tables</span>
-<span class="va">maf1</span> <span class="op">&lt;-</span> <span class="st">"my_maf_1.txt"</span>
+<code class="sourceCode R"><span class="va">maf1</span> <span class="op">&lt;-</span> <span class="st">"my_maf_1.txt"</span>
 <span class="va">maf2</span> <span class="op">&lt;-</span> <span class="st">"my_maf_2.txt"</span>
-<span class="va">maf3</span> <span class="op">&lt;-</span> <span class="st">"my_maf_3.txt"</span>
-<span class="va">all_mafs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>maf1 <span class="op">=</span> <span class="va">maf1</span>, maf2 <span class="op">=</span> <span class="va">maf2</span>, maf3 <span class="op">=</span> <span class="va">maf3</span><span class="op">)</span>
-<span class="va">combined_maf</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/rbindlist.html">rbindlist</a></span><span class="op">(</span><span class="va">all_mafs</span>, idcol <span class="op">=</span> <span class="st">"source"</span>, fill <span class="op">=</span> <span class="cn">T</span><span class="op">)</span>
 
-<span class="co"># remove problematic records (assuming they can't be fixed)</span>
-<span class="va">combined_maf</span> <span class="op">&lt;-</span> <span class="va">combined_maf</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html">is.na</a></span><span class="op">(</span><span class="va">problem</span><span class="op">)</span><span class="op">]</span>
+<span class="co"># For each MAF, exclude records that overlap germline variant sites, and also exclude</span>
+<span class="co"># records in repetitive regions except at COSMIC Tier 1-3 sites.</span>
+<span class="va">maf1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/preload_maf.html">preload_maf</a></span><span class="op">(</span><span class="va">maf1</span>, refset <span class="op">=</span> <span class="st">"ces.refset.hg38"</span><span class="op">)</span>
+<span class="va">maf1</span> <span class="op">&lt;-</span> <span class="va">maf1</span><span class="op">[</span><span class="va">germline_variant_site</span> <span class="op">==</span> <span class="cn">F</span> <span class="op">&amp;</span> <span class="op">(</span><span class="va">repetitive_region</span> <span class="op">==</span> <span class="cn">F</span> <span class="op">|</span> <span class="va">cosmic_site_tier</span> <span class="op">%in%</span> <span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">)</span><span class="op">]</span>
 
-<span class="co"># Exclude records that overlap germline variant sites, and also</span>
-<span class="co"># exclude records in repetitive regions except at COSMIC Tier 1-3 sites.</span>
-<span class="va">combined_maf</span> <span class="op">&lt;-</span> <span class="va">combined_maf</span><span class="op">[</span><span class="va">germline_variant_site</span> <span class="op">==</span> <span class="cn">F</span> <span class="op">&amp;</span> <span class="op">(</span><span class="va">repetitive_region</span> <span class="op">==</span> <span class="cn">F</span> <span class="op">|</span> <span class="va">cosmic_site_tier</span> <span class="op">%in%</span> <span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">)</span><span class="op">]</span>
+<span class="va">maf2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/preload_maf.html">preload_maf</a></span><span class="op">(</span><span class="va">maf2</span>, refset <span class="op">=</span> <span class="st">"ces.refset.hg38"</span><span class="op">)</span>
+<span class="va">maf2</span> <span class="op">&lt;-</span> <span class="va">maf2</span><span class="op">[</span><span class="va">germline_variant_site</span> <span class="op">==</span> <span class="cn">F</span> <span class="op">&amp;</span> <span class="op">(</span><span class="va">repetitive_region</span> <span class="op">==</span> <span class="cn">F</span> <span class="op">|</span> <span class="va">cosmic_site_tier</span> <span class="op">%in%</span> <span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">)</span><span class="op">]</span>
 
-<span class="co"># check for sample duplicates and sample contamination</span>
-<span class="va">possible_dups</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/check_sample_overlap.html">check_sample_overlap</a></span><span class="op">(</span><span class="va">combined_maf</span><span class="op">)</span>
+<span class="co"># check for sample duplicates</span>
+<span class="va">possible_dups</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/check_sample_overlap.html">check_sample_overlap</a></span><span class="op">(</span>maf_list <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="va">maf1</span>, <span class="va">maf2</span><span class="op">)</span><span class="op">)</span>
 
-<span class="co"># After manual review, let's say that we've identified 3 samples that should be removed.</span>
-<span class="va">samples_to_remove</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"Sample_9"</span>, <span class="st">"Sample_100"</span>, <span class="st">"Sample_150"</span><span class="op">)</span>
-<span class="va">combined_maf</span> <span class="op">&lt;-</span> <span class="va">combined_maf</span><span class="op">[</span><span class="op">!</span><span class="va">Unique_Patient_Identifier</span> <span class="op">%in%</span> <span class="va">samples_to_remove</span><span class="op">]</span>
+<span class="co"># After manual review, let's say that we've identified 3 samples that should be removed:</span>
+<span class="co"># A100 from maf1, and B100/B101 from maf2</span>
+<span class="va">maf1</span> <span class="op">&lt;-</span> <span class="va">maf1</span><span class="op">[</span><span class="va">Unique_Patient_Identifier</span> <span class="op">!=</span> <span class="st">"A100"</span><span class="op">]</span>
+<span class="va">maf2</span> <span class="op">&lt;-</span> <span class="va">maf2</span><span class="op">[</span><span class="op">!</span><span class="va">Unique_Patient_Identifier</span> <span class="op">%in%</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"B100"</span>, <span class="st">"B101"</span><span class="op">)</span><span class="op">]</span>
 
-<span class="co"># Divide back into three tables.</span>
-<span class="co"># You'll probably want to save these as your analysis-ready MAF text files.</span>
-<span class="va">maf_1_final</span> <span class="op">&lt;-</span> <span class="va">combined_maf</span><span class="op">[</span><span class="va">source</span> <span class="op">==</span> <span class="st">"maf1"</span><span class="op">]</span>
-<span class="va">maf_2_final</span> <span class="op">&lt;-</span> <span class="va">combined_maf</span><span class="op">[</span><span class="va">source</span> <span class="op">==</span> <span class="st">"maf2"</span><span class="op">]</span>
-<span class="va">maf_3_final</span> <span class="op">&lt;-</span> <span class="va">combined_maf</span><span class="op">[</span><span class="va">source</span> <span class="op">==</span> <span class="st">"maf3"</span><span class="op">]</span>
-
-<span class="co"># fwrite(maf_1_final, "maf_1_final.txt", sep = "\t") (etc.)</span></code></pre></div>
+<span class="co"># You'll probably want to save copies of the analysis-ready MAF data.</span>
+<span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/fwrite.html">fwrite</a></span><span class="op">(</span><span class="va">maf1</span>, <span class="st">"maf_1_final.txt"</span>, sep <span class="op">=</span> <span class="st">"\t"</span><span class="op">)</span>
+<span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/fwrite.html">fwrite</a></span><span class="op">(</span><span class="va">maf2</span>, <span class="st">"maf_2_final.txt"</span>, sep <span class="op">=</span> <span class="st">"\t"</span><span class="op">)</span></code></pre></div>
 <p>Once you have a high-confidence set of variants, <strong>do not</strong> filter out records based on silent mutation status or other functional criteria. cancereffectsizeR needs the full set of high-confidence mutations from all samples. (A note on indels: It’s better to leave indels in the data if they’re present (and to fix them if they’re misformatted), but it’s okay if they’re missing from the data source.)</p>
 </div>
 </div>
@@ -202,16 +196,16 @@
 <a href="#create-cesanalysis" class="anchor"></a>Create CESAnalysis</h2>
 <p>The CESAnalysis object is the primary data structure of cancereffectsizeR. A CESAnalysis always has an associated reference data set, or <em>refset</em>. Optionally, you can also define a set of sample groupings, if you want to be able to run future steps with different parameter choices for each group of samples. For example, if you will want to calculate gene mutation rates separately for sample subsets A and B, and run signature analysis separately for subsets 1, 2, and 3, then you may need to define six groups to account for all combinations: A1, A2, A3, B1, B2, B3. If not already present, you can add a group column to the table(s) generated by <code><a href="../reference/preload_maf.html">preload_maf()</a></code>.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="co"># Create CESAnalysis with default reference data set (ces.refset.hg19)</span>
-<span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/CESAnalysis.html">CESAnalysis</a></span><span class="op">(</span><span class="op">)</span>
+<code class="sourceCode R"><span class="co"># Create CESAnalysis with hg38 reference data set</span>
+<span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/CESAnalysis.html">CESAnalysis</a></span><span class="op">(</span><span class="va">ces.refset.hg38</span><span class="op">)</span>
 
 <span class="co"># Same, but with pre-defined sample groups (specific to the data/experiment)</span>
-<span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/CESAnalysis.html">CESAnalysis</a></span><span class="op">(</span>sample_groups <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"smoking"</span>, <span class="st">"nonsmoking"</span><span class="op">)</span><span class="op">)</span>
+<span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/CESAnalysis.html">CESAnalysis</a></span><span class="op">(</span>refset <span class="op">=</span> <span class="va">ces.refset.hg38</span>, sample_groups <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"smoking"</span>, <span class="st">"nonsmoking"</span><span class="op">)</span><span class="op">)</span>
 
 <span class="co"># Same, but with sample groups that arguably have an evolutionary ordering. The order</span>
 <span class="co"># used to define sample_groups doesn't matter; you'll specify the order later.</span>
 <span class="co"># (Keep in mind that only 1 sample per individual can be included in analysis.)</span>
-<span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/CESAnalysis.html">CESAnalysis</a></span><span class="op">(</span>sample_groups <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"early"</span>, <span class="st">"stage3"</span>, <span class="st">"stage4"</span><span class="op">)</span><span class="op">)</span></code></pre></div>
+<span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/CESAnalysis.html">CESAnalysis</a></span><span class="op">(</span>refset <span class="op">=</span> <span class="va">ces.refset.hg38</span>, sample_groups <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"early"</span>, <span class="st">"stage3"</span>, <span class="st">"stage4"</span><span class="op">)</span><span class="op">)</span></code></pre></div>
 </div>
 <div id="load-maf-data" class="section level2">
 <h2 class="hasAnchor">
@@ -220,7 +214,7 @@
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># Use the keep_extra_columns option to keep extra data column(s) during preload_maf</span>
 <span class="va">maf</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/preload_maf.html">preload_maf</a></span><span class="op">(</span>maf <span class="op">=</span> <span class="st">"my_maf_with_groups.txt"</span>, keep_extra_columns <span class="op">=</span> <span class="st">"tumor_grade"</span><span class="op">)</span>
-<span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/CESAnalysis.html">CESAnalysis</a></span><span class="op">(</span>sample_groups <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"I"</span>, <span class="st">"II"</span>, <span class="st">"III"</span><span class="op">)</span><span class="op">)</span>
+<span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/CESAnalysis.html">CESAnalysis</a></span><span class="op">(</span><span class="va">ces.refset.hg19</span>, sample_groups <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"I"</span>, <span class="st">"II"</span>, <span class="st">"III"</span><span class="op">)</span><span class="op">)</span>
 <span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/load_maf.html">load_maf</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, maf <span class="op">=</span> <span class="va">maf</span>, group_col <span class="op">=</span> <span class="st">"tumor_grade"</span><span class="op">)</span>
 
 <span class="co"># Or, carefully create the group column yourself using other data.</span>

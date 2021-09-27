@@ -88,7 +88,7 @@ as described in Martincorena et al." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.2.2</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.3.0</span>
       </span>
     </div>
 
@@ -168,9 +168,10 @@ as described in <a href='https://doi.org/10.1016/j.cell.2017.09.042'>Martincoren
     <pre class="usage"><span class='fu'>gene_mutation_rates</span><span class='op'>(</span>
   <span class='va'>cesa</span>,
   covariates <span class='op'>=</span> <span class='cn'>NULL</span>,
-  sample_group <span class='op'>=</span> <span class='cn'>NULL</span>,
+  samples <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/character.html'>character</a></span><span class='op'>(</span><span class='op'>)</span>,
   dndscv_args <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span><span class='op'>(</span><span class='op'>)</span>,
-  save_all_dndscv_output <span class='op'>=</span> <span class='cn'>FALSE</span>
+  save_all_dndscv_output <span class='op'>=</span> <span class='cn'>FALSE</span>,
+  sample_group <span class='op'>=</span> <span class='cn'>NULL</span>
 <span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
@@ -191,15 +192,21 @@ supply custom covariates data in the form of a matrix or prcomp object (see webs
 for details).</p></td>
     </tr>
     <tr>
+      <th>samples</th>
+      <td><p>Which samples to include in the current run. Defaults to all samples.
+Can be a vector of Unique_Patient_Identifiers, or a data.table containing rows from
+the CESAnalysis sample table.</p></td>
+    </tr>
+    <tr>
+      <th>save_all_dndscv_output</th>
+      <td><p>Default FALSE; when TRUE, saves all dndscv output, not
+just what's needed by cancereffectsizeR. (Full output can be very large, in the gigabytes.)</p></td>
+    </tr>
+    <tr>
       <th>sample_group</th>
       <td><p>Which sample groups to include in the gene rate calculation;
 defaults to all groups. (To calculate different rates for different groups, you'll 
 run this function multiple times, changing this argument each time.)</p></td>
-    </tr>
-    <tr>
-      <th>save_all_dndscv_output</th>
-      <td><p>default false; when true, saves all dndscv output, not
-just what's needed by cancereffectsizeR (will make object size very large)</p></td>
     </tr>
     </table>
 

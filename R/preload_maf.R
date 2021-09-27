@@ -5,11 +5,11 @@
 #' standard names (Chromosome, Start_Position, etc., with Tumor_Sample_Barcode used as the
 #' sample ID column), you can supply your own column names. If the data you are loading is
 #' from a different genome build than the chosen reference data set (refset) you can use
-#' the "chain_file" option to supply a UCSC-style chain file, and your MAF coordinates
+#' the \code{chain_file} option to supply a UCSC-style chain file, and your MAF coordinates
 #' will be automatically converted with rtracklayer's version of liftOver.
 #' 
-#' The default ces.refset.hg19 provides three annotations that you may consider using for
-#' quality filtering of MAF records:
+#' The \code{ces.refset.hg19} \code{ces.refset.hg38} refsets provides three annotations
+#' that you may consider using for quality filtering of MAF records:
 #' \itemize{
 #' \item cosmic_site_tier Indicates if the variant's position overlaps a mutation in
 #' COSMIC v92's Cancer Mutation Census. Mutations are classified as Tier 1, Tier 2, Tier
@@ -20,7 +20,7 @@
 #' greater than 1\% prevalence in some population.
 #' \item repetitive_region The variant overlaps a site marked as repetitive sequence by
 #' the RepeatMasker tool (data taken from UCSC Table Browser). Variant calls in repetitive
-#' sites frequently reflect calling error.
+#' sites frequently reflect sequencing or calling error.
 #' }
 #' 
 #' @param maf Path of tab-delimited text file in MAF format, or a data.table/data.frame with MAF data

@@ -89,7 +89,7 @@ similar to formats used by other tools." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.2.2</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.3.0</span>
       </span>
     </div>
 
@@ -170,7 +170,7 @@ similar to formats used by other tools.</p>
     <pre class="usage"><span class='fu'>trinuc_snv_counts</span><span class='op'>(</span>
   <span class='va'>maf</span>,
   <span class='va'>genome</span>,
-  exclude_recurrent <span class='op'>=</span> <span class='cn'>TRUE</span>,
+  exclude_recurrent <span class='op'>=</span> <span class='cn'>FALSE</span>,
   style <span class='op'>=</span> <span class='st'>"MutationalPatterns"</span>
 <span class='op'>)</span></pre>
 
@@ -187,8 +187,8 @@ similar to formats used by other tools.</p>
     </tr>
     <tr>
       <th>exclude_recurrent</th>
-      <td><p>When TRUE (default), only mutations private to each sample are included in counts, in order to
-reduce the influence of selection.</p></td>
+      <td><p>Default FALSE. When TRUE, only mutations private to each sample are included in counts, in order to
+reduce the influence of selection. (If you load more MAF data into the CESAnalysis later, recurrency may change.)</p></td>
     </tr>
     <tr>
       <th>style</th>

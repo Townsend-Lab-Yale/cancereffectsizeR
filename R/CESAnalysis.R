@@ -1,6 +1,6 @@
 #' Create a cancereffectsizeR analysis
 #' 
-#' Creates a CESAnalysis object, the central data structure of cancereffectsizeR.
+#' Creates a CESAnalysis, the central data structure of cancereffectsizeR.
 #' 
 #' @param refset name of reference data set (refset) to use; run \code{list_ces_refsets()} for
 #'   available refsets. Alternatively, the path to a custom reference data directory.

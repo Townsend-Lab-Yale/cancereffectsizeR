@@ -76,11 +76,10 @@ CESAnalysis with the specified MAF data loaded. The MAF data table includes
 Load MAF data from a text file or data table into your CESAnalysis. If column names
 don't match MAF format specifications (Chromosome, Start_Position, etc., with
 Tumor_Sample_Barcode used as the sample ID column), you can supply your own column
-names. When your CESAnalysis has defined sample groups (see \code{?CESAnalysis}),
-specify "group_col". By default, data is assumed to be derived from whole-exome
-sequencing. Whole-genome data and targeted sequencing data are also supported when the
-"coverage" option is specified. If the data you are loading is from a different genome
-build than your CESAnalysis, you can use the chain_file argument to supply a UCSC-style
-chain file, and your MAF coordinates will be automatically converted with
+names. By default, data is assumed to be derived from whole-exome sequencing.
+Whole-genome data and targeted sequencing data are also supported when the
+\code{coverage} option is specified. If the data you are loading is from a different
+genome build than your CESAnalysis, you can use the chain_file argument to supply a
+UCSC-style chain file, and your MAF coordinates will be automatically converted with
 rtracklayer's version of liftOver.
 }
