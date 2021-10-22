@@ -18,19 +18,15 @@
 #'   cancereffectsizeR uses NCBI-style chromosome names, which means no chr prefixes ("X",
 #'   not "chrX"). Mitochondrial contigs shouldn't be included since they would require
 #'   special handling that hasn't been implemented.
-#' @param default_exome_bed A BED file, typically acquired from some exome capture kit
-#'   documentation, that defines default exome capture intervals for the genome. When users run
-#'   cancereffectsizeR without specifying the genomic intervals that are covered by their
-#'   sequencing data, these intervals inform some calculations. They can also be used to
-#'   exclude non-covered variant calls. Including a default exome is optional but
-#'   recommended, and users can always choose to use their own coverage definitions
-#'   instead.
+#' @param default_exome A BED file or GRanges object that defines coding regions in the genome as might
+#' be used by an exome capture kit. This file (or GRanges) might be acquired or generated from exome capture kit documentation,
+#' or alternatively, coding regions defined in a GTF file (or the granges output by build_RefCDS()).
 #' @param exome_interval_padding Number of bases to pad start/end of each covered
 #'   interval, to allow for some variants to be called just outside of targeted regions,
 #'   where there still may be pretty good sequencing coverage.
 #' @export
 create_refset = function(output_dir, refcds_output, species_name, genome_build_name, 
-                         BSgenome_name, supported_chr = c(1:22, 'X', 'Y'), default_exome_bed = NULL,
+                         BSgenome_name, supported_chr = c(1:22, 'X', 'Y'), default_exome = NULL,
                          exome_interval_padding = 0) {
   
   if (! is.character(output_dir) || length(output_dir) != 1) {
@@ -63,16 +59,17 @@ create_refset = function(output_dir, refcds_output, species_name, genome_build_n
   if (! is.character(supported_chr) || length(supported_chr) == 0) {
     stop("supported_chr should be type character")
   }
-  
-  if (! is.null(default_exome_bed)) {
-    if(! is.character(default_exome_bed) || length(default_exome_bed) != 1) {
-      stop("default_exome_bed should be 1-length character (file path).")
-    }
-    if (! file.exists(default_exome_bed)) {
-      stop("File specified in default_exome_bed doesn't exist.")
-    }
-  } else {
+  if(is.null(default_exome)) {
     warning("No default exome supplied (okay, but recommended to include if available).")
+  } else if(is.character(default_exome)) {
+    if(length(default_exome) != 1) {
+      stop("default_exome should be 1-length character (file path).")
+    }
+    if (! file.exists(default_exome)) {
+      stop("File specified in default_exome doesn't exist.")
+    }
+  } else if (! is(default_exome, "GRanges")) {
+    stop("default_exome should be a BED file path or GRanges object.")
   }
   
   if (! is.numeric(exome_interval_padding) || length(exome_interval_padding) != 1) {
@@ -93,13 +90,12 @@ create_refset = function(output_dir, refcds_output, species_name, genome_build_n
   genome_info[['BSgenome']] = BSgenome_name
   genome_info[['supported_chr']] = supported_chr
   
-  exome_bed = default_exome_bed
   
   
   # Compute and save genome-wide trinucleotide contexts
-  # (For ces_hg19_v1, this exactly reproduces the existing hg19 counts packaged with deconstructSigs.)
+  # (For ces.refset.hg19, this exactly reproduces the existing hg19 counts packaged with deconstructSigs.)
   bsg = BSgenome::getBSgenome(genome_info[['BSgenome']])
-  seqlevelsStyle(bsg) = "NCBI"
+  suppressWarnings({seqlevelsStyle(bsg) = "NCBI"})
   
   
   # deconstructSigs_trinuc_string is internal to cancereffectsizeR (find with getAnywhere if necessary).
@@ -176,11 +172,14 @@ create_refset = function(output_dir, refcds_output, species_name, genome_build_n
   
   # Optional: load and save default exome intervals ()
   # If you don't set a default exome, the user must always supply coverage intervals.
-  if (! is.null(exome_bed)) {
+  if (! is.null(default_exome)) {
     message("Loading default exome and counting trinucleotide contexts...")
-    default_exome = rtracklayer::import(exome_bed, format = "bed")
     
-    seqlevelsStyle(default_exome) = "NCBI"
+    if(is.character(default_exome)) {
+      default_exome = rtracklayer::import(default_exome, format = "bed")
+    }
+    
+    suppressWarnings({seqlevelsStyle(default_exome) = "NCBI"})
     default_exome = default_exome[as.character(seqnames(default_exome)) %in% supported_chr]
     default_exome = unstrand(default_exome)
     # need to reorder seqlevels (1, 2, ..., X, Y) in cases where the input bed file wasn't sorted

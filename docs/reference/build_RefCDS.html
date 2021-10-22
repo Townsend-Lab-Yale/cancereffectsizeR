@@ -88,7 +88,7 @@ an associated GenomicRanges object also required to run dNdScv." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.3.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.3.1</span>
       </span>
     </div>
 
@@ -168,8 +168,8 @@ an associated GenomicRanges object also required to run dNdScv.</p>
     <pre class="usage"><span class='fu'>build_RefCDS</span><span class='op'>(</span>
   <span class='va'>gtf</span>,
   <span class='va'>genome</span>,
-  use_all_transcripts <span class='op'>=</span> <span class='cn'>F</span>,
-  cds_ranges_lack_stop_codons <span class='op'>=</span> <span class='cn'>T</span>,
+  use_all_transcripts <span class='op'>=</span> <span class='cn'>TRUE</span>,
+  cds_ranges_lack_stop_codons <span class='op'>=</span> <span class='cn'>TRUE</span>,
   cores <span class='op'>=</span> <span class='fl'>1</span>,
   additional_essential_splice_pos <span class='op'>=</span> <span class='cn'>NULL</span>,
   numcode <span class='op'>=</span> <span class='fl'>1</span>
@@ -191,9 +191,8 @@ available to load.</p></td>
     </tr>
     <tr>
       <th>use_all_transcripts</th>
-      <td><p>T/F indicates whether to use all complete transcripts or just the longest
-one for each gene (defaults to the latter).
-should have one CDS annotation per gene or transcript.</p></td>
+      <td><p>T/F (default TRUE): Whether to use all complete transcripts or just the longest
+one for each gene (defaults to the latter).</p></td>
     </tr>
     <tr>
       <th>cds_ranges_lack_stop_codons</th>

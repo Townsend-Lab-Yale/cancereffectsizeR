@@ -2,7 +2,7 @@
 #'
 #' This function calculates variant effect sizes under the chosen model of selection. By
 #' default, a variant is assumed to have a consistent selection intensity across all
-#' samples. Set \code{model = "sswm_sequential"} to allow selection intensity to vary among
+#' samples. Set \code{model = "sequential"} to allow selection intensity to vary among
 #' sequential sample groups (e.g., stages 1-4; local/distant metastases). Use \code{groups} to
 #' define group ordering or to restrict which groups are considered under either built-in
 #' model. By default, only variants with MAF frequency > 1 (i.e., recurrent variants) are
@@ -13,13 +13,14 @@
 #' factory" that, for any variant, produces a likelihood function that can be evaluated on
 #' the data. The first two arguments must be rates_tumors_with and rates_tumors_without,
 #' which take the baseline site mutation rates in samples with and without the variant.
-#' The third argument must be \code{sample_index}, which associates Unique_Patient_Identifiers
-#' with their sample groups. Values for all three of these arguments will be calculated by
-#' ces_variant and passed to your function factory automatically. Your function can take
-#' whatever additional arguments you like, and you can pass in values using
-#' \code{lik_args}. The likelihood function parameters that ces_variant will optimize
-#' should be named and have default values. See the source code of \code{sswm_sequential_lik()}
-#' for an example.
+#' The third argument must be \code{sample_index}, a data.table that associates
+#' Unique_Patient_Identifiers with group names and indices. (This is used by the
+#' sequential model; if your model doesn't incorporate any sample grouping, you can ignore
+#' it.) Values for all three of these arguments will be calculated by ces_variant and
+#' passed to your function factory automatically. Your function can take whatever
+#' additional arguments you like, and you can pass in values using \code{lik_args}. The
+#' likelihood function parameters that ces_variant will optimize should be named and have
+#' default values. See the source code of \code{sswm_sequential_lik()} for an example.
 #' 
 #' 
 #' @param cesa CESAnalysis object
@@ -42,13 +43,13 @@
 #'   the sample table column that defines sample chronology.
 #' @param ordering For the sequential model (or possibly custom models), a character
 #'   vector or list defining the ordering of values in ordering_col. Use a list to assign 
-#'   multiple values in ordering_col the same position (e.g., `list(c("I", "II), c("III", "IV")))`
+#'   multiple values in ordering_col the same position (e.g., `list(early = c("I", "II), late = c("III", "IV")))`
 #'   for an early vs. late analysis).
 #' @param hold_out_same_gene_samples When finding likelihood of each variant, hold out
 #'   samples that lack the variant but have any other mutations in the same gene. By default,
 #'   TRUE when running with single variants, FALSE with a CompoundVariantSet.
 #' @param groups (Deprecated; use samples and for sequential model, see
-#'   lik_args(ordering_col = ...).) Which sample groups to include in inference. Data for
+#'   ordering/ordering_col.) Which sample groups to include in inference. Data for
 #'   outgroup samples will not inform selection calculation. For models (like
 #'   sequential) that assume ordered groups of samples, use a list to indicate group
 #'   ordering. Examples: \code{c("group1", "group2")} includes groups 1 and 2, but doesn't
@@ -150,8 +151,6 @@ ces_variant <- function(cesa = NULL,
     num_excluded = cesa@samples[, .N] - samples[, .N]
     pretty_message(paste0("Note that ", num_excluded, " samples are being excluded from selection inference."))
   }
-  maf = cesa@maf[samples$Unique_Patient_Identifier, on = "Unique_Patient_Identifier"]
-  sample_index = numeric() # named vector giving position of each tumor in sequential ordering (unused in some models)
   if(! is.null(ordering_col)) {
     if(model == 'basic') {
       warning("You supplied an ordering_col, but it's not used in the basic model.")
@@ -180,9 +179,6 @@ ces_variant <- function(cesa = NULL,
       stop("ordering should length 2 or greater if it's being used.")
     }
     samples[, ordering_col := as.character(samples[[ordering_col]])]
-    if(samples[, anyNA(ordering_col)]) {
-      stop("NA values in ordering_col for some samples in current run.")
-    }
     if(samples[, ! all(unlist(ordering) %in% ordering_col)]) {
       if(samples[, .N] == cesa@samples[, .N]) {
         stop("Some values in ordering do not appear in ", ordering_col, " in sample table.")
@@ -190,19 +186,40 @@ ces_variant <- function(cesa = NULL,
         stop("Some values in ordering do not appear in ", ordering_col, " for the samples included in this run.")
       }
     }
+    
+    num_na = samples[, sum(is.na(ordering_col))]
+    if(num_na > 0) {
+      pretty_message(paste0("Note: ", num_na, " samples left out of run due to NA values in ordering_col."), black = F)
+      samples = samples[!is.na(ordering_col)]
+    }
+    
     extra_values = setdiff(samples$ordering_col, unlist(ordering))
     if (length(extra_values) > 0) {
-      msg = paste0("Samples in current run have values in ", ordering_col, " not given in ordering: ", 
+      msg = paste0("Note: Excluding samples with values in ", ordering_col, " not given in ordering: ", 
                    paste(extra_values, collapse = ', '), '.')
-      stop(pretty_message(msg, emit = F))
+      samples = samples[! extra_values, on = "ordering_col"]
+      pretty_message(msg, black = F)
+    }
+    
+    index_by_state = list()
+    name_by_state = list()
+    
+    if(is.null(names(ordering))) {
+      if (length(unlist(ordering)) == length(ordering)) {
+        names(ordering) = unlist(ordering)
+      } else {
+        names(ordering) = 1:length(ordering)
+      }
     }
     for (i in 1:length(ordering)) {
-      curr_state = ordering[[i]]
-      curr_samples = samples[curr_state, Unique_Patient_Identifier, on = 'ordering_col']
-      curr_grouping = rep(i, length(curr_samples))
-      names(curr_grouping) = curr_samples
-      sample_index = c(sample_index, curr_grouping)
+      for (j in 1:length(ordering[[i]])) {
+        index_by_state[[ordering[[i]][j]]] = i
+        name_by_state[[ordering[[i]][j]]] = names(ordering)[i]
+      }
     }
+    sample_index = samples[, .(Unique_Patient_Identifier = Unique_Patient_Identifier,
+                                       group_index = unlist(index_by_state[ordering_col]), 
+                                       group_name = unlist(name_by_state[ordering_col]))]
   } else if(! is.null(groups)) {
     if(samples[, .N] != cesa@samples[, .N]) {
       msg = "groups is deprecated and can't be combined with the new samples argument. (Use ordering_col/ordering instead.)"
@@ -217,15 +234,16 @@ ces_variant <- function(cesa = NULL,
     if(! is(groups, "list")) {
       stop("groups should be character vector or list")
     }
-    group_ordering = groups
+    ordering = groups
     used_groups = character()
-    for (i in 1:length(group_ordering)) {
-      curr_state = group_ordering[[i]]
+    sample_index = data.table()
+    for (i in 1:length(ordering)) {
+      curr_state = ordering[[i]]
       if (! is(curr_state, "character")) {
-        stop("Each element of group_ordering should be type character")
+        stop("Each element of groups should be type character")
       }
       if (length(curr_state) != length(unique(curr_state))) {
-        stop("Double-check your group_ordering")
+        stop("Double-check your groups")
       }
       if (! all(curr_state %in% cesa@groups)) {
         invalid_groups = setdiff(curr_state, cesa@groups)
@@ -233,29 +251,30 @@ ces_variant <- function(cesa = NULL,
       }
       curr_samples = cesa@samples[group %in% curr_state, Unique_Patient_Identifier]
       if (length(curr_samples) == 0) {
-        stop("Some groupings given by group_ordering have no associated samples.")
+        stop("Some groupings given by groups have no associated samples.")
       }
       if (any(curr_state %in% used_groups)) {
-        stop("CESAnalysis groups are re-used in group_ordering")
+        stop("CESAnalysis groups are re-used in groups")
       }
+      sample_index = rbind(sample_index,
+                           data.table(Unique_Patient_Identifier = curr_samples, 
+                                      group_index = i,
+                                      group_name = i))
       used_groups = c(curr_state, used_groups)
-      curr_grouping = rep(i, length(curr_samples))
-      names(curr_grouping) = curr_samples
-      sample_index = c(sample_index, curr_grouping)
     }
+    sample_index[, group_name := as.character(group_name)] # for compatible merges when counting samples later
     unused_groups = setdiff(cesa@groups, used_groups)
     if (length(unused_groups) > 0) {
       pretty_message(paste0("The following CESAnalysis groups were not included in \"groups\", so they are not informing effect size:\n",
                             paste(unused_groups, collapse = ", "), "."), black = F)
       samples = cesa@samples[used_groups, on = "group"]
-      maf = cesa@maf[samples$Unique_Patient_Identifier, on = "Unique_Patient_Identifier"]
     } else {
       samples = cesa@samples
-      maf = cesa@maf
     }
-    if(uniqueN(sample_index) < 2) {
+    if(uniqueN(sample_index$group_index) < 2) {
       stop('groups should be a list with length at least two (except groups is deprecated; better to use ordering_col/ordering).')
     }
+    names(ordering) = 1:length(ordering) # not supporting better group names when using deprecated sample_groups
   } else if(model == 'sequential') {
     stop('The sequential model requires use of ordering_col/ordering (see docs)')
   }
@@ -272,10 +291,18 @@ ces_variant <- function(cesa = NULL,
   }
   
   running_compound = FALSE
+  
+  # If an input variant table came directly from select_variants() and the variants are non-overlapping,
+  # just accept the table. Otherwise, re-select the variants with the variant_id field.
   if (is(variants, "data.table")) {
     nonoverlapping = attr(variants, "nonoverlapping")
     if(is.null(nonoverlapping)) {
-      stop("Input variants table is missing attribute nonoverlapping (probably, it wasn't generated by select_variants()")
+      if ('variant_id' %in% names(variants)) {
+        pretty_message('Taking variants from variant_id column of input table....')
+        variants = select_variants(cesa, variant_ids = variants$variant_id)
+      } else {
+        stop("Input variants table lacks variant_id column.")
+      }
     } else if(! identical(nonoverlapping, TRUE)) {
       stop("Input variants table may contain overlapping variants; re-run select_variants() to get a non-overlapping table.")
     }
@@ -322,6 +349,7 @@ ces_variant <- function(cesa = NULL,
   }
 
   # identify mutations by nearest gene(s)
+  maf = cesa@maf[samples$Unique_Patient_Identifier, on = "Unique_Patient_Identifier"]
   tmp = unique(maf[, .(gene = unlist(genes)), by = "Unique_Patient_Identifier"])[, .(samples = list(Unique_Patient_Identifier)), by = "gene"]
   tumors_with_variants_by_gene = tmp$samples
   names(tumors_with_variants_by_gene) = tmp$gene
@@ -396,7 +424,6 @@ ces_variant <- function(cesa = NULL,
       snv_ids = curr_subgroup[variant_type == "snv", variant_id]
       
       baseline_rates = baseline_mutation_rates(cesa, aac_ids = aac_ids, snv_ids = snv_ids, samples = covered_samples, cores = cores)
-      
       # put gene(s) by variant into env for quick access
       gene_lookup = curr_subgroup[, all_genes]
       names(gene_lookup) = curr_subgroup[, variant_id]
@@ -430,7 +457,7 @@ ces_variant <- function(cesa = NULL,
               tumors_with_gene_mutated = tumors_with_variants_by_gene[[all_genes]]
             }
           } else {
-            tumors_with_gene_mutated = unique(sapply(all_genes, function(x) tumors_with_variants_by_gene[[x]]))
+            tumors_with_gene_mutated = unique(unlist(sapply(all_genes, function(x) tumors_with_variants_by_gene[[x]])))
           }
           tumors_without = setdiff(covered_samples, tumors_with_gene_mutated)
         } else {
@@ -442,14 +469,13 @@ ces_variant <- function(cesa = NULL,
         lik_args = c(list(rates_tumors_with = rates_tumors_with, rates_tumors_without = rates_tumors_without), 
                      lik_args)
         
-        # sample_index supplied if defined and not running our SSWM (it doensn't use it)
+        # sample_index supplied if defined and not running our SSWM (it doesn't use it)
         if(! identical(lik_factory, sswm_lik)) {
           lik_args = c(lik_args, list(sample_index = sample_index))
         }
         fn = do.call(lik_factory, lik_args)
         par_init = formals(fn)[[1]]
         names(par_init) = bbmle::parnames(fn)
-
         # find optimized selection intensities
         # the selection intensity for any stage that has 0 variants will be on the lower boundary; will muffle the associated warning
         withCallingHandlers(
@@ -471,14 +497,35 @@ ces_variant <- function(cesa = NULL,
         selection_intensity = bbmle::coef(fit)
         loglikelihood = as.numeric(bbmle::logLik(fit))
         
-        #dndscv_q = sapply(cesa@dndscv_out_list, function(x) x$sel_cv[x$sel_cv$gene_name == mut_record$gene, "qallsubs_cv"])
         if (running_compound) {
           variant_id = compound_id
         }
         variant_output = c(list(variant_id = variant_id), 
                            as.list(selection_intensity),
                            list(loglikelihood = loglikelihood))
-        
+        if (model == 'basic') {
+          # Record counts of total samples included in inference and included samples with the variant.
+          # This may vary from the naive output of variant_counts() due to issues of sample coverage and 
+          # (by default) the use of hold_out_same_gene_samples = TRUE.
+          
+          
+          num_samples_with = length(tumors_with_variant)
+          num_samples_total = num_samples_with + length(tumors_without)
+          variant_output = c(variant_output, list(included_with_variant = num_samples_with,
+                                                  included_total = num_samples_total))
+        } else {
+          # Build a table of counts, being careful not to drop groups with zero counts
+          counts_total = data.table(group_name = names(ordering), num_with = 0, num_without = 0)
+          counts_with = sample_index[tumors_with_variant, .(num_with = .N), by = 'group_name', on = "Unique_Patient_Identifier"]
+          counts_total[counts_with, num_with := i.num_with, on = 'group_name']
+          counts_without = sample_index[tumors_without, .(num_without = .N), by = 'group_name', on = "Unique_Patient_Identifier"]
+          counts_total[counts_without, num_without := i.num_without, on = 'group_name']
+          counts_total[, num_total := num_with + num_without]
+          
+          counts_with = setNames(counts_total$num_with, paste0('included_with_variant_', counts_total$group_name))
+          counts_total = setNames(counts_total$num_total, paste0('included_total_', counts_total$group_name))
+          variant_output = c(variant_output, unlist(S4Vectors::zipup(counts_with, counts_total), use.names = F))
+        }
         if(! is.null(conf)) {
           variant_output = c(variant_output, univariate_si_conf_ints(fit, fn, .001, 1e20, conf))
         }

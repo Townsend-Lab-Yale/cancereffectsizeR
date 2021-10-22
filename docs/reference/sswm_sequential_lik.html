@@ -92,7 +92,7 @@ intensity applied." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.3.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.3.1</span>
       </span>
     </div>
 
@@ -180,15 +180,17 @@ intensity applied.</p>
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
       <th>rates_tumors_with</th>
-      <td><p>vector of site-specific mutation rates for all tumors with variant</p></td>
+      <td><p>named vector of site-specific mutation rates for all tumors
+with variant</p></td>
     </tr>
     <tr>
       <th>rates_tumors_without</th>
-      <td><p>vector of site-specific mutation rates for all eligible tumors without variant</p></td>
+      <td><p>named vector of site-specific mutation rates for all
+eligible tumors without variant</p></td>
     </tr>
     <tr>
       <th>sample_index</th>
-      <td><p>named numeric associating samples with progression states</p></td>
+      <td><p>data.table with columns Unique_Patient_Identifier, group_name, group_index</p></td>
     </tr>
     </table>
 

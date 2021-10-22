@@ -42,16 +42,20 @@ load_sample_data = function(cesa, sample_data) {
   # internal_columns similar to sample_table_template but with some past/future columns
   internal_columns = c('coverage', 'covered_regions', 'group', 'gene_rate_grp', 'regional_rate_grp', 'sig_analysis_grp')
   already_in_maf = setdiff(names(cesa@samples), c("Unique_Patient_Identifier", internal_columns))
-  reused = intersect(names(sample_data), already_in_maf)
-  if (length(reused) > 0) {
-    stop("The following columns in sample_data already appear in the CESAnalysis sample table: ",
-         paste(reused, collapse = ", "))
-  }
   
   dup_columns = unique(names(sample_data)[duplicated(names(sample_data))])
   if(length(dup_columns) > 0) {
     stop("Some column names in sample_data are used more than once: ", 
          paste(dup_columns, collapse = ", "))
+  }
+  
+  reused = intersect(names(sample_data), already_in_maf)
+  if (length(reused) > 0) {
+    msg = paste0("Ignoring sample_data columns already in samples table (", 
+                 paste(reused, collapse = ", ") , ").")
+    pretty_message(msg, black = F)
+    pretty_message("(Run clear_sample_data() first if you want to overwrite these columns.)", black = F)
+    sample_data = sample_data[, .SD, .SDcols = setdiff(names(sample_data), reused)]
   }
   
   missing_samples = setdiff(sample_data$Unique_Patient_Identifier, cesa@samples$Unique_Patient_Identifier)

@@ -205,7 +205,7 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
                                                  keep.extra.columns = T)
     GenomicRanges::strand(gr) = "+"
     lifted_over = unlist(rtracklayer::liftOver(gr, chain))
-    GenomeInfoDb::seqlevelsStyle(lifted_over) = "NCBI"
+    suppressWarnings({GenomeInfoDb::seqlevelsStyle(lifted_over) = "NCBI"})
     lifted_over = as.data.table(lifted_over)
     
     merged_maf = merge.data.table(maf, lifted_over, by = "rn")

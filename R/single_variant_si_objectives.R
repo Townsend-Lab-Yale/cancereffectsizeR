@@ -42,24 +42,22 @@ sswm_lik = function(rates_tumors_with, rates_tumors_without) {
 #' All arguments to this likelihood function factory are automatically supplied by
 #' \code{ces_variant()}.
 #' 
-#' @param rates_tumors_with vector of site-specific mutation rates for all tumors with variant
-#' @param rates_tumors_without vector of site-specific mutation rates for all eligible tumors without variant
-#' @param sample_index named numeric associating samples with progression states
+#' @param rates_tumors_with named vector of site-specific mutation rates for all tumors
+#'   with variant
+#' @param rates_tumors_without named vector of site-specific mutation rates for all
+#'   eligible tumors without variant
+#' @param sample_index data.table with columns Unique_Patient_Identifier, group_name, group_index
 #' @export
 sswm_sequential_lik <- function(rates_tumors_with, rates_tumors_without, sample_index) {
-  # drop unused samples from rates (happens when some sample groups are not included in the model)
-  rates_tumors_with = na.omit(rates_tumors_with[names(sample_index)])
-  rates_tumors_without = na.omit(rates_tumors_without[names(sample_index)])
-  stages_tumors_with = unname(sample_index[names(rates_tumors_with)])
-  stages_tumors_without = unname(sample_index[names(rates_tumors_without)])
-  
-  
+  stages_tumors_with = sample_index[names(rates_tumors_with), group_index, on = "Unique_Patient_Identifier"]
+  stages_tumors_without = sample_index[names(rates_tumors_without), group_index, on = "Unique_Patient_Identifier"]
+
   # e.g., 1 -> 1; 3 -> 1,2,3 (for vector subsetting)
-  sequential_stages_tumors_with = list() # unused if no sumors
+  sequential_stages_tumors_with = list() # unused if no tumors
   if(length(stages_tumors_with) > 0) {
     sequential_stages_tumors_with = lapply(stages_tumors_with, function(x) 1:x) 
   }
-  num_pars = length(unique(sample_index))
+  num_pars = sample_index[, uniqueN(group_index)]
   
   fn = function(gamma) {
     gamma = unname(gamma)
@@ -92,7 +90,8 @@ sswm_sequential_lik <- function(rates_tumors_with, rates_tumors_without, sample_
   formals(fn)[["gamma"]] = rep.int(1000, num_pars)
   
   # Optimization tool, bbmle::mle, requires that vector of parameters to optimize have named elements
-  bbmle::parnames(fn) = paste0("si_", 1:num_pars)
+  group_names = unique(sample_index[, .(group_index, group_name)], by = 'group_index')[order(group_index), group_name]
+  bbmle::parnames(fn) = paste0("si_", group_names)
   return(fn)
 }
 

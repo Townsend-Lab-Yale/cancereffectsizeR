@@ -41,7 +41,7 @@ the sample table column that defines sample chronology.}
 
 \item{ordering}{For the sequential model (or possibly custom models), a character
 vector or list defining the ordering of values in ordering_col. Use a list to assign 
-multiple values in ordering_col the same position (e.g., `list(c("I", "II), c("III", "IV")))`
+multiple values in ordering_col the same position (e.g., `list(early = c("I", "II), late = c("III", "IV")))`
 for an early vs. late analysis).}
 
 \item{lik_args}{Extra arguments, given as a list, to pass to custom likelihood
@@ -52,7 +52,7 @@ samples that lack the variant but have any other mutations in the same gene. By 
 TRUE when running with single variants, FALSE with a CompoundVariantSet.}
 
 \item{groups}{(Deprecated; use samples and for sequential model, see
-lik_args(ordering_col = ...).) Which sample groups to include in inference. Data for
+ordering/ordering_col.) Which sample groups to include in inference. Data for
 outgroup samples will not inform selection calculation. For models (like
 sequential) that assume ordered groups of samples, use a list to indicate group
 ordering. Examples: \code{c("group1", "group2")} includes groups 1 and 2, but doesn't
@@ -72,7 +72,7 @@ CESAnalysis object with selection results appended to the selection output list
 \description{
 This function calculates variant effect sizes under the chosen model of selection. By
 default, a variant is assumed to have a consistent selection intensity across all
-samples. Set \code{model = "sswm_sequential"} to allow selection intensity to vary among
+samples. Set \code{model = "sequential"} to allow selection intensity to vary among
 sequential sample groups (e.g., stages 1-4; local/distant metastases). Use \code{groups} to
 define group ordering or to restrict which groups are considered under either built-in
 model. By default, only variants with MAF frequency > 1 (i.e., recurrent variants) are
@@ -84,11 +84,12 @@ It's possible to pass in your own selection model. You'll need to create a "func
 factory" that, for any variant, produces a likelihood function that can be evaluated on
 the data. The first two arguments must be rates_tumors_with and rates_tumors_without,
 which take the baseline site mutation rates in samples with and without the variant.
-The third argument must be \code{sample_index}, which associates Unique_Patient_Identifiers
-with their sample groups. Values for all three of these arguments will be calculated by
-ces_variant and passed to your function factory automatically. Your function can take
-whatever additional arguments you like, and you can pass in values using
-\code{lik_args}. The likelihood function parameters that ces_variant will optimize
-should be named and have default values. See the source code of \code{sswm_sequential_lik()}
-for an example.
+The third argument must be \code{sample_index}, a data.table that associates
+Unique_Patient_Identifiers with group names and indices. (This is used by the
+sequential model; if your model doesn't incorporate any sample grouping, you can ignore
+it.) Values for all three of these arguments will be calculated by ces_variant and
+passed to your function factory automatically. Your function can take whatever
+additional arguments you like, and you can pass in values using \code{lik_args}. The
+likelihood function parameters that ces_variant will optimize should be named and have
+default values. See the source code of \code{sswm_sequential_lik()} for an example.
 }

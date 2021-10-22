@@ -88,7 +88,7 @@ arguments are required except default_exome/exome_interval_padding, which are re
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.3.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.3.1</span>
       </span>
     </div>
 
@@ -172,7 +172,7 @@ arguments are required except default_exome/exome_interval_padding, which are re
   <span class='va'>genome_build_name</span>,
   <span class='va'>BSgenome_name</span>,
   supported_chr <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='fl'>1</span><span class='op'>:</span><span class='fl'>22</span>, <span class='st'>"X"</span>, <span class='st'>"Y"</span><span class='op'>)</span>,
-  default_exome_bed <span class='op'>=</span> <span class='cn'>NULL</span>,
+  default_exome <span class='op'>=</span> <span class='cn'>NULL</span>,
   exome_interval_padding <span class='op'>=</span> <span class='fl'>0</span>
 <span class='op'>)</span></pre>
 
@@ -210,14 +210,10 @@ not "chrX"). Mitochondrial contigs shouldn't be included since they would requir
 special handling that hasn't been implemented.</p></td>
     </tr>
     <tr>
-      <th>default_exome_bed</th>
-      <td><p>A BED file, typically acquired from some exome capture kit
-documentation, that defines default exome capture intervals for the genome. When users run
-cancereffectsizeR without specifying the genomic intervals that are covered by their
-sequencing data, these intervals inform some calculations. They can also be used to
-exclude non-covered variant calls. Including a default exome is optional but
-recommended, and users can always choose to use their own coverage definitions
-instead.</p></td>
+      <th>default_exome</th>
+      <td><p>A BED file or GRanges object that defines coding regions in the genome as might
+be used by an exome capture kit. This file (or GRanges) might be acquired or generated from exome capture kit documentation,
+or alternatively, coding regions defined in a GTF file (or the granges output by build_RefCDS()).</p></td>
     </tr>
     <tr>
       <th>exome_interval_padding</th>

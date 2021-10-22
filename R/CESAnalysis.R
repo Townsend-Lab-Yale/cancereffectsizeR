@@ -522,45 +522,8 @@ snv_results = function(cesa = NULL) {
   if(! is(cesa, "CESAnalysis")) {
     stop("\nUsage: snv_results(cesa), where cesa is a CESAnalysis")
   }
-  if (length(cesa@selection_results) == 0) {
-    stop("No results yet from ces_variant in this CESAnalysis")
-  }
-  
-  output = list()
-  for (i in 1:length(cesa@selection_results)) {
-    curr_selection = cesa@selection_results[[i]]
-    
-    # compound variant runs already have all available annotations
-    if (identical(attr(curr_selection, "is_compound"), TRUE)) {
-      output = c(output, list(curr_selection))
-      next
-    }
-    
-    results = curr_selection[cesa$variants, on = c("variant_id"), nomatch = NULL]
-    
-    # If user is testing variants that aren't in the cached variant table, need to generate annotations
-    still_need = setdiff(curr_selection$variant_id, results$variant_id)
-    
-    if(length(still_need) > 0) {
-      more_anno = select_variants(cesa, variant_ids = still_need)
-      more_results = curr_selection[more_anno, on = 'variant_id', nomatch = NULL]
-      results = rbind(results, more_results)
-    }
-    
-    results_cols = colnames(results)
-    # try to flip variant_name and variant_id columns
-    if(results_cols[1] == "variant_id") {
-      name_col = which(results_cols == "variant_name")[1]
-      setcolorder(results, c("variant_name", 
-                             results_cols[2:(name_col - 1)], "variant_id", 
-                             results_cols[(name_col + 1):length(results_cols)]))
-    }
-    setattr(results, "si_cols", attr(curr_selection, "si_cols", T))
-    
-    output = c(output, list(results))
-  }
-  names(output) = names(cesa@selection_results)
-  return(copy(output))
+
+  return(copy(cesa@selection_results))
 }
 
 #' View output from epistasis functions
@@ -612,6 +575,8 @@ clean_granges_for_cesa = function(cesa = NULL, gr = NULL, padding = 0, refset_en
     },
     warning = function(w) {
       if (grepl("more than one best sequence renaming map", conditionMessage(w))) {
+        invokeRestart("muffleWarning")
+      } else if(grepl("cannot switch some of.*to NCBI style", conditionMessage(w))) {
         invokeRestart("muffleWarning")
       }
     }        

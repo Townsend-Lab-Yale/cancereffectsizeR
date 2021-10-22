@@ -555,13 +555,16 @@ trinuc_mutation_rates <- function(cesa,
     setcolorder(bio_sig_table, c("Unique_Patient_Identifier", "total_snvs", "sig_extraction_snvs", "group_avg_blended"))
     setcolorder(adjusted_sig_table, c("Unique_Patient_Identifier", "total_snvs", "sig_extraction_snvs", "group_avg_blended"))
     
-    new_bio_sig_table = rbind(cesa@trinucleotide_mutation_weights[["signature_weight_table"]], bio_sig_table)
+    new_bio_sig_table = rbind(cesa@trinucleotide_mutation_weights[["signature_weight_table"]], bio_sig_table, fill = T)
     cesa@trinucleotide_mutation_weights[["signature_weight_table"]] = new_bio_sig_table
-    new_adjusted_sig_table = rbind(cesa@trinucleotide_mutation_weights[["signature_weight_table_with_artifacts"]], adjusted_sig_table)
+    new_adjusted_sig_table = rbind(cesa@trinucleotide_mutation_weights[["signature_weight_table_with_artifacts"]], adjusted_sig_table, fill = T)
     cesa@trinucleotide_mutation_weights[["signature_weight_table_with_artifacts"]] = new_adjusted_sig_table
     
     setcolorder(raw_signature_output, "Unique_Patient_Identifier")
-    cesa@trinucleotide_mutation_weights[["raw_signature_weights"]] = raw_signature_output
+    
+    new_raw_table = rbind(cesa@trinucleotide_mutation_weights[["raw_signature_weights"]], raw_signature_output, fill = T)
+    setkey(new_raw_table, "Unique_Patient_Identifier")
+    cesa@trinucleotide_mutation_weights[["raw_signature_weights"]] = new_raw_table
     
     
   }

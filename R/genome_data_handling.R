@@ -68,7 +68,7 @@ preload_ref_data = function(data_dir) {
   
   genome_info = get_ref_data(data_dir, "genome_build_info")
   bsg = BSgenome::getBSgenome(genome_info$BSgenome)
-  GenomeInfoDb::seqlevelsStyle(bsg) = "NCBI"
+  suppressWarnings({GenomeInfoDb::seqlevelsStyle(bsg) = "NCBI"}) # new versions complain about not all seqlevels being switchable
   ref[["genome"]] = bsg
   ref[["supported_chr"]] = genome_info$supported_chr
 
@@ -214,7 +214,7 @@ get_cesa_bsg = function(cesa) {
     return(.ces_ref_data[[ref_key]]$genome)
   }
   bsg = BSgenome::getBSgenome(cesa@advanced$genome_info$BSgenome)
-  GenomeInfoDb::seqlevelsStyle(bsg) = "NCBI"
+  suppressWarnings({GenomeInfoDb::seqlevelsStyle(bsg) = "NCBI"}) # avoid unswitchable seqlevels complaints
   return(bsg)
 }
 

@@ -11,7 +11,7 @@ create_refset(
   genome_build_name,
   BSgenome_name,
   supported_chr = c(1:22, "X", "Y"),
-  default_exome_bed = NULL,
+  default_exome = NULL,
   exome_interval_padding = 0
 )
 }
@@ -34,13 +34,9 @@ cancereffectsizeR uses NCBI-style chromosome names, which means no chr prefixes 
 not "chrX"). Mitochondrial contigs shouldn't be included since they would require
 special handling that hasn't been implemented.}
 
-\item{default_exome_bed}{A BED file, typically acquired from some exome capture kit
-documentation, that defines default exome capture intervals for the genome. When users run
-cancereffectsizeR without specifying the genomic intervals that are covered by their
-sequencing data, these intervals inform some calculations. They can also be used to
-exclude non-covered variant calls. Including a default exome is optional but
-recommended, and users can always choose to use their own coverage definitions
-instead.}
+\item{default_exome}{A BED file or GRanges object that defines coding regions in the genome as might
+be used by an exome capture kit. This file (or GRanges) might be acquired or generated from exome capture kit documentation,
+or alternatively, coding regions defined in a GTF file (or the granges output by build_RefCDS()).}
 
 \item{exome_interval_padding}{Number of bases to pad start/end of each covered
 interval, to allow for some variants to be called just outside of targeted regions,

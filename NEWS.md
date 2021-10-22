@@ -1,3 +1,7 @@
+# cancereffectsizeR 2.3.1
+* ces_variant() output includes, for each input variant, the number of samples included in the inference and the number of those samples with the variant. (For various reasons, including the default exclusion of samples with same-gene variants, the total number of samples in a given selection inference can be less than the number of samples in the data set.)
+* Miscellaneous small improvements and fixes.
+
 # cancereffectsizeR 2.3.0
 * Load sample-level data into a CESAnalysis sample table using add_sample_data(), or during load_maf() with the new sample_data_cols argument.
 * trinuc_mutation_rates(), gene_mutation_rates(), and selection inference functions can be run on arbitrary subsets of samples. The less-flexible CESAnalysis "sample_groups" functionality has been deprecated.

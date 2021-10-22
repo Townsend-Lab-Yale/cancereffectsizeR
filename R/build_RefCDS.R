@@ -21,9 +21,8 @@
 #'   table using data pulled from biomaRt, but it's easier to use a GTF.
 #' @param genome genome assembly name (e.g., "hg19"); an associated BSgenome object must be
 #'   available to load.
-#' @param use_all_transcripts T/F indicates whether to use all complete transcripts or just the longest
+#' @param use_all_transcripts T/F (default TRUE): Whether to use all complete transcripts or just the longest
 #'   one for each gene (defaults to the latter).
-#'   should have one CDS annotation per gene or transcript.
 #' @param cds_ranges_lack_stop_codons The CDS records in Gencode GTFs don't include the
 #'   stop codons in their genomic intervals. If your input does include the stop 
 #'   codons within CDS records, set to FALSE.
@@ -41,13 +40,13 @@
 #'   standard genetic code, is supported
 #' @export
 
-build_RefCDS = function(gtf, genome, use_all_transcripts = F, cds_ranges_lack_stop_codons = T, cores = 1, 
+build_RefCDS = function(gtf, genome, use_all_transcripts = TRUE, cds_ranges_lack_stop_codons = TRUE, cores = 1, 
                         additional_essential_splice_pos = NULL, numcode = 1) {
   message("[Step 1/5] Loading data and identifying complete transcripts...")
   
   # Load genome
   bsg = BSgenome::getBSgenome(genome)
-  GenomeInfoDb::seqlevelsStyle(bsg) = "NCBI"
+  suppressWarnings({GenomeInfoDb::seqlevelsStyle(bsg) = "NCBI"}) # avoid unswitchable seqlevels complaints
   
   # Support for alternate genetic codes not yet implemented
   if(numcode != 1 || length(numcode) != 1) {

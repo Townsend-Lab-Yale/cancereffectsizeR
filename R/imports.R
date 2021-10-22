@@ -38,7 +38,12 @@ sample_table_template = data.table(Unique_Patient_Identifier = character(), cove
 pretty_message = function(msg, emit = T, black = emit) {
   msg = paste0(strwrap(msg), collapse = "\n")
   if (black) {
-    msg = crayon::black(msg)
+    # If current theme is dark, make the message white
+    if(Sys.getenv("RSTUDIO") == "1" && rstudioapi::getThemeInfo()$dark) {
+      msg = crayon::white(msg)
+    } else {
+      msg = crayon::black(msg)
+    }
   }
   if (emit) {
     message(msg)

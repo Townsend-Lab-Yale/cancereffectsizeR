@@ -7,8 +7,8 @@
 build_RefCDS(
   gtf,
   genome,
-  use_all_transcripts = F,
-  cds_ranges_lack_stop_codons = T,
+  use_all_transcripts = TRUE,
+  cds_ranges_lack_stop_codons = TRUE,
   cores = 1,
   additional_essential_splice_pos = NULL,
   numcode = 1
@@ -22,9 +22,8 @@ table using data pulled from biomaRt, but it's easier to use a GTF.}
 \item{genome}{genome assembly name (e.g., "hg19"); an associated BSgenome object must be
 available to load.}
 
-\item{use_all_transcripts}{T/F indicates whether to use all complete transcripts or just the longest
-one for each gene (defaults to the latter).
-should have one CDS annotation per gene or transcript.}
+\item{use_all_transcripts}{T/F (default TRUE): Whether to use all complete transcripts or just the longest
+one for each gene (defaults to the latter).}
 
 \item{cds_ranges_lack_stop_codons}{The CDS records in Gencode GTFs don't include the
 stop codons in their genomic intervals. If your input does include the stop 

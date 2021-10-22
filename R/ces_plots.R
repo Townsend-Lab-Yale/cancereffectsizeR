@@ -42,7 +42,7 @@
 lollipops = function(si_list, title = "My SIs", ylab = "selection intensity", 
                      max_sites = 50, label_size = 3.0, merge_dist = .04, 
                      si_col = "auto", group_names = "auto") {
-  if (! requireNamespace("ggplot2") || ! requireNamespace("ggrepel")) {
+  if (! require("ggplot2") || ! require("ggrepel")) {
     stop("To use lollipops(), install ggplot2 and ggrepel: install.packages(c('ggplot2', 'ggrepel')).")
   }
   # help out user if they called the function on cesa instead of [cesa]$seleciton
@@ -156,6 +156,7 @@ lollipops = function(si_list, title = "My SIs", ylab = "selection intensity",
   # greatest of all of these as the SI floor so that no more than max_sites SIs print per lollipop
   min_si = 0
   genes_available = TRUE
+  all_genes = character()
   for (i in 1:num_groups) {
     curr = copy(si_list[[i]])
     curr_cols = colnames(curr)
@@ -211,6 +212,7 @@ lollipops = function(si_list, title = "My SIs", ylab = "selection intensity",
             plot.title = element_text(size = 20, hjust = .5)
           ) + ggtitle(label = title) +  scale_colour_discrete() + 
           scale_x_continuous(breaks = 1:num_groups, labels = group_names, limits = c(xlim_low, xlim_high))
+
   for (i in 1:num_groups) {
     top_hits = si_list[[i]][order(selection_intensity, decreasing = T)]
     if (top_hits[, .N] == 0) {
@@ -227,7 +229,7 @@ lollipops = function(si_list, title = "My SIs", ylab = "selection intensity",
     # since intergenic variants have no gene, specify display color
     top_hits[, display_color := NA_character_]
     if (genes_available) {
-      if (top_hits[variant_type == "aac", .N] > 0 & top_hits[variant_type == "aac", length(unique(gene)) == 1]) {
+      if (length(all_genes) == 1) {
         regex = paste0('^', top_hits[variant_type == "aac", gene], '')
         old_names = top_hits[variant_type == "aac", variant_name_print]
         new_names = mapply(function(r, n) gsub(r, '', n), regex, old_names)

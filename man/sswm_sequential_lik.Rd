@@ -7,11 +7,13 @@
 sswm_sequential_lik(rates_tumors_with, rates_tumors_without, sample_index)
 }
 \arguments{
-\item{rates_tumors_with}{vector of site-specific mutation rates for all tumors with variant}
+\item{rates_tumors_with}{named vector of site-specific mutation rates for all tumors
+with variant}
 
-\item{rates_tumors_without}{vector of site-specific mutation rates for all eligible tumors without variant}
+\item{rates_tumors_without}{named vector of site-specific mutation rates for all
+eligible tumors without variant}
 
-\item{sample_index}{named numeric associating samples with progression states}
+\item{sample_index}{data.table with columns Unique_Patient_Identifier, group_name, group_index}
 }
 \description{
 As in sswm_lik, selection intensities are calculated at variant sites under a "strong
