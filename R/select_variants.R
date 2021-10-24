@@ -325,7 +325,9 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   } else {
     selected_aac[, all_genes := list(NA_character_)]
   }
-  selected_aac[cesa@mutations$aac_snv_key, multi_anno_site := multi_anno_site, on = 'aac_id']
+  
+  # We call an AAC a multi-anno site if any of its SNVs has multiple annotations.
+  selected_aac[cesa@mutations$aac_snv_key, multi_anno_site := any(multi_anno_site), on = 'aac_id']
   setnames(selected_aac, "aac_id", "variant_id")
 
   # Combine SNV and AAC tables
