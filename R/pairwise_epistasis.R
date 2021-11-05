@@ -302,10 +302,10 @@ pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compoun
     tumors_with_neither = setdiff(eligible_tumors, c(tumors_with_v1, tumors_with_v2))
     
     v1_rates = all_rates[, ..v1_ids]
-    v1_rates = apply(v1_rates, 1, function(x) 1 - prod(1 - x))
+    v1_rates = rowSums(v1_rates)
     names(v1_rates) = all_rates$Unique_Patient_Identifier
     v2_rates = all_rates[, ..v2_ids]
-    v2_rates = apply(v2_rates, 1, function(x) 1 - prod(1 - x))
+    v2_rates = rowSums(v2_rates)
     names(v2_rates) = all_rates$Unique_Patient_Identifier
     
     # 2-item lists: first item is baseline rates for v1; second for v2
@@ -445,12 +445,10 @@ pairwise_gene_epistasis = function(cesa, genes, samples, conf) {
 
   # calculate rates across all sites and sum
   baseline_rates_g1 = baseline_mutation_rates(cesa, aac_ids = aac_g1, snv_ids = noncoding_g1, samples = eligible_tumors)
-  g1_tmp = as.matrix(baseline_rates_g1[, -"Unique_Patient_Identifier"], rownames = baseline_rates_g1$Unique_Patient_Identifier)
-  baseline_rates_g1 = apply(g1_tmp, 1, function(x) 1 - prod(1 - x))
+  baseline_rates_g1 = rowSums(as.matrix(baseline_rates_g1[, -"Unique_Patient_Identifier"], rownames = baseline_rates_g1$Unique_Patient_Identifier))
   
   baseline_rates_g2 = baseline_mutation_rates(cesa, aac_ids = aac_g2, snv_ids = noncoding_g2, samples = eligible_tumors)
-  g2_tmp = as.matrix(baseline_rates_g2[, -"Unique_Patient_Identifier"], rownames = baseline_rates_g2$Unique_Patient_Identifier)
-  baseline_rates_g2 = apply(g2_tmp, 1, function(x) 1 - prod(1 - x))
+  baseline_rates_g2  = rowSums(as.matrix(baseline_rates_g2[, -"Unique_Patient_Identifier"], rownames = baseline_rates_g2$Unique_Patient_Identifier))
 
   # Find recurrent mutation status of all tumors in the two genes
   maf = cesa@maf[eligible_tumors, on = "Unique_Patient_Identifier", nomatch = NULL]

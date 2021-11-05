@@ -40,7 +40,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.3.1</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.3.2</span>
       </span>
     </div>
 
@@ -103,7 +103,7 @@
 
       
 
-      </header><script src="custom_refset_instructions_files/header-attrs-2.9/header-attrs.js"></script><div class="row">
+      </header><script src="custom_refset_instructions_files/header-attrs-2.11/header-attrs.js"></script><div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>Running with custom reference data</h1>
@@ -116,7 +116,7 @@
 
     
     
-<p>A refset is a collection of all the reference data required to run a cancereffectsizeR analysis. Currently, an hg19 refset is available in the data package <a href="https://github.com/Townsend-Lab-Yale/ces.refset.hg19">ces.refset.hg19</a>. It’s possible to generate your own reference data for pretty much any species or genome build. Here is the general method:</p>
+<p>A refset is a collection of all the reference data required to run a cancereffectsizeR analysis. Currently, refsets for the hg38 and hg19 human genome builds are available in the form as <a href="https://github.com/Townsend-Lab-Yale/ces.refset.hg38">ces.refset.hg38</a> and <a href="https://github.com/Townsend-Lab-Yale/ces.refset.hg19">ces.refset.hg19</a> data packages. It’s possible to generate your own reference data for pretty much any species or genome build. Here is the general method:</p>
 <ol style="list-style-type: decimal">
 <li><p>Find a GTF file containing coding sequence (CDS) definitions, filter to high-quality and desired CDS regions, and run <code><a href="../reference/build_RefCDS.html">build_RefCDS()</a></code> to get a collection of gene/transcript/CDS information.</p></li>
 <li><p>Run <code><a href="../reference/create_refset.html">create_refset()</a></code>, which will require your RefCDS output and some additional information, to save reference data to an output directory.</p></li>
@@ -126,7 +126,7 @@
 <li><p>A CES Signature Set, containing SNV signature definitions and metadata, is required for mutational signature extraction. As long as you have a matrix of signature definitions (e.g., see those published by COSMIC), you can create your own set. You can include one or more signature set in your refset, or you can pass a signature set as an argument to <code><a href="../reference/trinuc_mutation_rates.html">trinuc_mutation_rates()</a></code>. (In either case, you can also copy a signature set from an existing refset if the genome build is compatible.) See the details in <code><a href="../reference/trinuc_mutation_rates.html">trinuc_mutation_rates()</a></code> for how to make a signature set, then validate with <code><a href="../reference/validate_signature_set.html">validate_signature_set()</a></code>. Finally, to save with your refset, create a subdirectory called “signatures” in your refset directory, and then use <code>saveRDS</code> to save your signature set with the name "[set_name]_signatures.rds".</p></li>
 <li><p>Tissue covariates data inform the calculation of gene mutation rates when cancereffectsizeR calls dNdScv. Covariates data can be saved in a refset subdirectory called “covariates”, or you can supply them as an argument to <code><a href="../reference/gene_mutation_rates.html">gene_mutation_rates()</a></code>. (Example: “covariates/lung.rds” can be specified with <code>covariates = "lung"</code>.) <a href="create_custom_covariates.html">This guide</a> shows how to generate covariates data by combining and processing tissue-specific experimental data from several sources. As a last resort, <code>gene_mutation_rates</code> can be run without covariates, but it’s best to use them if available.</p></li>
 </ol>
-<p>For an example refset, see the ces.refset.hg19 data package’s refset directory <a href="https://github.com/Townsend-Lab-Yale/ces.refset.hg19/tree/main/inst/refset">here</a>. If your refset also uses the hg19 genome build, then you can copy its signatures and covariates data into your own refset, if desired.</p>
+<p>For an example refset, see the ces.refset.hg38 data package’s refset directory <a href="https://github.com/Townsend-Lab-Yale/ces.refset.hg38/tree/main/inst/refset">here</a>. If your refset also uses the hg19 or hg38, you can copy signatures and covariates from the refset packages into your own refset directory if desired.</p>
   </div>
 
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

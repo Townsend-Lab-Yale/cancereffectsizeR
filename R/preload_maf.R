@@ -176,10 +176,14 @@ preload_maf = function(maf = NULL, refset = NULL, coverage_intervals_to_check = 
   if(! is.null(coverage_gr)) {
     maf_gr_covered = maf_gr %within% coverage_gr
     maf[valid_loci, is_covered := maf_gr %within% coverage_gr]
-    uncovered_gr = maf_gr[maf[valid_loci][is_covered == F, which = T]]
     maf[valid_loci, dist_to_coverage_intervals := 0]
+    chr_not_in_coverage = setdiff(refset_env$supported_chr, seqnames(coverage_gr))
+    maf[valid_loci] = maf[valid_loci][Chromosome %in% chr_not_in_coverage, dist_to_coverage_intervals := NA]
+    uncovered_gr = maf_gr[maf[valid_loci][is_covered == F & ! is.na(dist_to_coverage_intervals), which = T]]
+    
     # distToNearest gives gap width, so off-by-one records get a confusing 0 unless we add 1
-    maf[valid_loci] = maf[valid_loci][is_covered == F, dist_to_coverage_intervals := as.data.table(distanceToNearest(uncovered_gr, coverage_gr))$distance + 1]
+    maf[valid_loci] = maf[valid_loci][is_covered == F & ! is.na(dist_to_coverage_intervals), 
+                                      dist_to_coverage_intervals := as.data.table(distanceToNearest(uncovered_gr, coverage_gr))$distance + 1]
     maf[, is_covered := NULL]
   }
 

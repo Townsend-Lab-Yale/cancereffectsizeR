@@ -2,7 +2,7 @@
 title: "Running with custom reference data"
 ---
 
-A refset is a collection of all the reference data required to run a cancereffectsizeR analysis. Currently, an hg19 refset is available in the data package [ces.refset.hg19](https://github.com/Townsend-Lab-Yale/ces.refset.hg19). It's possible to generate your own reference data for pretty much any species or genome build. Here is the general method:
+A refset is a collection of all the reference data required to run a cancereffectsizeR analysis. Currently, refsets for the hg38 and hg19 human genome builds are available in the form as  [ces.refset.hg38](https://github.com/Townsend-Lab-Yale/ces.refset.hg38) and [ces.refset.hg19](https://github.com/Townsend-Lab-Yale/ces.refset.hg19) data packages. It's possible to generate your own reference data for pretty much any species or genome build. Here is the general method:
 
 1. Find a GTF file containing coding sequence (CDS) definitions, filter to high-quality and desired CDS regions, and run `build_RefCDS()` to get a collection of gene/transcript/CDS information.
 
@@ -14,4 +14,4 @@ The output of `create_refset` is usable with cancereffectsizeR, but there are tw
 
 4. Tissue covariates data inform the calculation of gene mutation rates when cancereffectsizeR calls dNdScv. Covariates data can be saved in a refset subdirectory called "covariates", or you can supply them as an argument to `gene_mutation_rates()`. (Example: "covariates/lung.rds" can be specified with `covariates = "lung"`.) [This guide](create_custom_covariates.html) shows how to generate covariates data by combining and processing tissue-specific experimental data from several sources. As a last resort, `gene_mutation_rates` can be run without covariates, but it's best to use them if available.
 
-For an example refset, see the ces.refset.hg19 data package's refset directory [here](https://github.com/Townsend-Lab-Yale/ces.refset.hg19/tree/main/inst/refset). If your refset also uses the hg19 genome build, then you can copy its signatures and covariates data into your own refset, if desired.
+For an example refset, see the ces.refset.hg38 data package's refset directory [here](https://github.com/Townsend-Lab-Yale/ces.refset.hg38/tree/main/inst/refset). If your refset also uses the hg19 or hg38, you can copy signatures and covariates from the refset packages into your own refset directory if desired.

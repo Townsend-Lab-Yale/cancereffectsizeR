@@ -466,6 +466,7 @@ ces_variant <- function(cesa = NULL,
         rates_tumors_with = rates[tumors_with_variant]
         rates_tumors_without = rates[tumors_without]
         
+        
         lik_args = c(list(rates_tumors_with = rates_tumors_with, rates_tumors_without = rates_tumors_without), 
                      lik_args)
         
@@ -517,7 +518,11 @@ ces_variant <- function(cesa = NULL,
           # Build a table of counts, being careful not to drop groups with zero counts
           counts_total = data.table(group_name = names(ordering), num_with = 0, num_without = 0)
           counts_with = sample_index[tumors_with_variant, .(num_with = .N), by = 'group_name', on = "Unique_Patient_Identifier"]
-          counts_total[counts_with, num_with := i.num_with, on = 'group_name']
+          
+          # if no tumors have variant, counts_with will be null
+          if(counts_with[, .N] > 0) {
+            counts_total[counts_with, num_with := i.num_with, on = 'group_name']
+          }
           counts_without = sample_index[tumors_without, .(num_without = .N), by = 'group_name', on = "Unique_Patient_Identifier"]
           counts_total[counts_without, num_without := i.num_without, on = 'group_name']
           counts_total[, num_total := num_with + num_without]

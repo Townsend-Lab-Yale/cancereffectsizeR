@@ -165,7 +165,7 @@ copy_cesa = function(cesa) {
 
   
   cesa = new("CESAnalysis", run_history = cesa@run_history,  groups = cesa@groups,
-             ref_key = cesa@ref_key, ref_data_dir = cesa@ref_data_dir, dndscv_out_list = cesa@dndscv_out_list,
+             ref_key = cesa@ref_key, ref_data_dir = cesa@ref_data_dir, dndscv_out_list = copy(cesa@dndscv_out_list),
              maf = copy(cesa@maf), excluded = copy(cesa@excluded),
              mutrates = copy(cesa@mutrates), selection_results = copy(cesa@selection_results),
              epistasis = copy(cesa@epistasis), samples = copy(cesa@samples), mutations = copy(cesa@mutations),

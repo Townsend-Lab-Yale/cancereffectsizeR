@@ -7,58 +7,42 @@
 load_maf(
   cesa = NULL,
   maf = NULL,
-  sample_col = "Tumor_Sample_Barcode",
-  chr_col = "Chromosome",
-  start_col = "Start_Position",
-  ref_col = "Reference_Allele",
-  tumor_allele_col = "guess",
   coverage = "exome",
   covered_regions = NULL,
   covered_regions_name = NULL,
   covered_regions_padding = 0,
   group_col = NULL,
   sample_data_cols = character(),
-  chain_file = NULL,
   enforce_default_exome_coverage = FALSE
 )
 }
 \arguments{
 \item{cesa}{the CESAnalysis object to load the data into}
 
-\item{maf}{Path of tab-delimited text file in MAF format, or an MAF in data.table or data.frame format}
+\item{maf}{Path of tab-delimited text file in MAF format, or an MAF in data.table or
+data.frame format.}
 
-\item{sample_col}{column name with sample ID data (Tumor_Sample_Barcode or Unique_Patient_Identifier)}
-
-\item{chr_col}{column name with chromosome data  (Chromosome)}
-
-\item{start_col}{column name with start position (Start_Position)}
-
-\item{ref_col}{column name with reference allele data (Reference_Allele)}
-
-\item{tumor_allele_col}{column name with alternate allele data; by default,
-values from Tumor_Seq_Allele2 and Tumor_Seq_Allele1 columns are used.}
-
-\item{coverage}{exome, genome, or targeted (default exome)}
+\item{coverage}{exome, genome, or targeted (default exome).}
 
 \item{covered_regions}{optional for exome, required for targeted: a GRanges object or a
-BED file of covered intervals matching the CESAnalysis genome}
+BED file of covered intervals matching the CESAnalysis genome.}
 
 \item{covered_regions_name}{a name describing the covered regions (e.g.,
-"my_custom_targeted_regions"); required when covered_regions are supplied}
+"my_custom_targeted_regions"); required when covered_regions are supplied.}
 
 \item{covered_regions_padding}{How many bases (default 0) to expand start and end of
 each covered_regions interval, to include variants called just outside of targeted
 regions. Consider setting from 0-100bp, or up to the sequencing read length. If the
 input data has been trimmed to the targeted regions, leave set to 0.}
 
-\item{group_col}{column in MAF with sample group labels (see \code{?CESAnalysis})}
+\item{group_col}{column in MAF with sample group labels (deprecated; no longer needed).}
 
-\item{chain_file}{A LiftOver chain file (text format, name ends in .chain) to convert MAF
-records to the genome build used in the CESAnalysis.}
+\item{sample_data_cols}{MAF columns containing sample-level data (e.g., tumor grade)
+that you would like to have copied into the CESAnalysis samples table.}
 
 \item{enforce_default_exome_coverage}{When loading default exome data, exclude records
-that aren't covered in the default exome capture intervals included with
-CES genome reference data (default FALSE).}
+that aren't covered in the default exome capture intervals included with CES genome
+reference data (default FALSE).}
 }
 \value{
 CESAnalysis with the specified MAF data loaded. The MAF data table includes
@@ -73,13 +57,11 @@ CESAnalysis with the specified MAF data loaded. The MAF data table includes
   variants and all noncoding variants from the MAF.
 }
 \description{
-Load MAF data from a text file or data table into your CESAnalysis. If column names
-don't match MAF format specifications (Chromosome, Start_Position, etc., with
-Tumor_Sample_Barcode used as the sample ID column), you can supply your own column
-names. By default, data is assumed to be derived from whole-exome sequencing.
-Whole-genome data and targeted sequencing data are also supported when the
-\code{coverage} option is specified. If the data you are loading is from a different
-genome build than your CESAnalysis, you can use the chain_file argument to supply a
-UCSC-style chain file, and your MAF coordinates will be automatically converted with
-rtracklayer's version of liftOver.
+Load MAF data from a text file or data table into your CESAnalysis. Column names are
+expected to match MAF format specifications (Chromosome, Start_Position, etc.). It's
+encouraged to use preload_maf() prep the input (including, optionally, liftOver
+conversion of genomic coordinates), but if you have clean MAF data, you can run this
+function directly. By default, data is assumed to be derived from whole-exome
+sequencing. Whole-genome data and targeted sequencing data are also supported when the
+\code{coverage} option is specified.
 }

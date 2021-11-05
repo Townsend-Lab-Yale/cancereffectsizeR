@@ -267,7 +267,7 @@ update_covered_in = function(cesa) {
       }
       aac_coverage = cesa@mutations$aac_snv_key[cesa@mutations$amino_acid_change$aac_id, on = 'aac_id']
       aac_coverage[snv_table, covered_in := covered_in, on = 'snv_id']
-      aac_coverage = aac_coverage[, .(covered_in = unique(covered_in)), by = 'aac_id']
+      aac_coverage = aac_coverage[, .(covered_in = list(unique(unlist(covered_in)))), by = 'aac_id']
       
       # edge case of adding single variant to empty CESAnalysis
       if(aac_coverage[, .N] == 1 && is.null(aac_coverage$covered_in[[1]])) {

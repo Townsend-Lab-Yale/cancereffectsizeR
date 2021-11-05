@@ -1,8 +1,7 @@
 # get_test_file and get_test_data are loaded automatically from helpers.R by testthat
-tiny_maf = get_test_file("tiny.hg19.maf.txt")
+tiny_maf = fread(get_test_file("tiny.hg19.maf.txt"))
 test_that("load_maf and variant annotation", {
-  tiny = load_maf(cesa = CESAnalysis(refset = "ces.refset.hg19"), maf = tiny_maf,
-                                 sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2")
+  tiny = load_maf(cesa = CESAnalysis(refset = "ces.refset.hg19"), maf = tiny_maf)
   tiny_ak = load_cesa(get_test_file("tiny_hg19_maf_loaded.rds"))
   expect_equal(tiny$maf[order(variant_id)], tiny_ak$maf[order(variant_id)])
   expect_equal(tiny@excluded, tiny_ak@excluded, ignore.row.order = T)
@@ -107,7 +106,7 @@ test_that("load_maf edge cases", {
   tiny = load_cesa(get_test_file("tiny_hg19_maf_loaded.rds"))
   
   # you can't reload the same MAF (suppressing reference allele mismatch warning)
-  expect_error(expect_warning(load_maf(tiny, maf = tiny_maf, sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2")),
+  expect_error(expect_warning(load_maf(tiny, maf = tiny_maf)),
                "some sample IDs already appear in previously loaded data")
   
   # try loading empty/non-existent files and data
@@ -124,7 +123,7 @@ test_that("Sample group handling", {
   
   # You can't supply a group_col to a CESAnalysis that does not have predefined sample groups
   # Also, group_col is depcrecasted and will be removed soon.
-  expect_error(load_maf(cesa = CESAnalysis(refset = "ces.refset.hg19"), maf = tiny_maf, sample_col = "sample_id", tumor_allele_col = "Tumor_Seq_Allele2", group_col = "nonexistent-column"),
+  expect_error(load_maf(cesa = CESAnalysis(refset = "ces.refset.hg19"), maf = tiny_maf, group_col = "nonexistent-column"),
                "group_col is deprecated")
   
   # If CESAnalysis is stage-specific, calls to load_maf must include group_col

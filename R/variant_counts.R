@@ -109,7 +109,8 @@ variant_counts = function(cesa, variant_ids = character(), by = character()) {
   aac_count_output = data.table()
   
   if(snv_from_aac[, .N] > 0) {
-    snv_from_aac_counts = setDT(maf[snv_from_aac, .(Unique_Patient_Identifier, aac_id), on = c(variant_id = "snv_id"), nomatch = NULL])
+    snv_from_aac_counts = setDT(maf[snv_from_aac, .(Unique_Patient_Identifier, aac_id), on = c(variant_id = "snv_id"), 
+                                    allow.cartesian = T, nomatch = NULL])
     snv_from_aac_counts = merge.data.table(snv_from_aac_counts, samples, by = "Unique_Patient_Identifier", all.x = TRUE)
     aac_counts = snv_from_aac_counts[, .N, by = c(by_cols, 'aac_id')]
     setnames(aac_counts, 'aac_id', 'variant_id')

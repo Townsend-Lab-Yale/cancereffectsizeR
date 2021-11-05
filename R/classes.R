@@ -88,8 +88,8 @@ setMethod("$", "CESAnalysis",
             } else if(name == "dNdScv_results") {
               return(lapply(x@dndscv_out_list, 
                             function(y) {
-                              if(is.data.frame(y)) {
-                                return(copy(setDT(y)))
+                              if(is.data.table(y)) {
+                                return(copy(y))
                               } else {
                                 # for the rare user who requests all dNdScv output
                                 return(y)

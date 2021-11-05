@@ -41,7 +41,7 @@
 #'
 #' @param cesa CESAnalysis object
 #' @param signature_set Name of built-in signature set (see \code{list_ces_signature_sets()}), or a custom signature set (see details)
-#' @param signatures_to_remove Specify any signatures to exclude from analysis; use \code{suggest_cosmic_signatures_to_remove()} for advice on COSMIC signatures
+#' @param signature_exclusions Specify any signatures to exclude from analysis; use \code{suggest_cosmic_signatures_to_remove()} for advice on COSMIC signatures
 #' @param samples Which samples to include in the current run. Defaults to all samples.
 #'   Can be a vector of Unique_Patient_Identifiers, or a data.table containing rows from
 #'   the CESAnalysis sample table.
@@ -93,15 +93,22 @@
 #'
 trinuc_mutation_rates <- function(cesa,
                                   signature_set = NULL,
-                                  signatures_to_remove = character(),
+                                  signature_exclusions = character(),
                                   samples = character(),
                                   cores = 1,
                                   signature_extractor = "MutationalPatterns",
                                   mp_strict_args = list(),
                                   assume_identical_mutational_processes = FALSE,
                                   sample_group = NULL,
-                                  sig_averaging_threshold = 50) {  
-
+                                  sig_averaging_threshold = 50,
+                                  signatures_to_remove = NULL) {  
+  
+  # Documented argumented name has changed from signatures_to_remove to signatures_to_exclude
+  if (is.null(signatures_to_remove)) {
+    signatures_to_remove = signature_exclusions
+  } else {
+    message("FYI, signatures_to_remove has been renamed signature_exclusions, and will be removed eventually.")
+  }
   if (! is(signature_extractor, "character") || length(signature_extractor) != 1 || 
       ! tolower(signature_extractor) %in% c('mutationalpatterns', 'deconstructsigs')) {
     stop("signature_extractor must be 'MutationalPatterns' or 'deconstructSigs'. (Or, use set_signature_weights to ",

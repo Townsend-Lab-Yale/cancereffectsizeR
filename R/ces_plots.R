@@ -27,17 +27,6 @@
 #'   (.04 = 4 percent of plot space). Either 1-length or same length as si_list. Try tweaking if
 #'   labels are not looking good. Set to zero to prevent any labels being combined.
 #' @return ggplot object with lollipops
-#' @examples 
-#' \dontrun{
-#' # Compare cancer subtypes from different analyses
-#' lollipops(si_list = list(luad = luad_cesa$selection$selection.1, 
-#'                          lusc = lusc_cesa$selection$selection.1))
-#' 
-#' # Compare results for two genes
-#' tp53 = cesa$selection$sswm[gene == 'TP53']
-#' egfr = cesa$selection$sswm[gene == 'EGFR']
-#' lollipops(si_list = list(EGFR = egfr, TP53 = tp53))
-#' }
 #' @export
 lollipops = function(si_list, title = "My SIs", ylab = "selection intensity", 
                      max_sites = 50, label_size = 3.0, merge_dist = .04, 
@@ -164,9 +153,14 @@ lollipops = function(si_list, title = "My SIs", ylab = "selection intensity",
     if (! curr_si_col %in% curr_cols) {
       stop("Selection intensity column not found in input table ", i, " (set with si_col).")
     }
-    if (! all(c("variant_name", "variant_type") %in% curr_cols)) {
-      stop("Missing required columns in input table ", i, " (see help).")
+    if (! 'variant_id' %in% curr_cols) {
+      stop("Missing required column variant_id in input table ", i, " (see help).")
     }
+    curr[variant_type == 'aac', variant_name := gsub('_[^_]*$', '', variant_id)]
+    curr[variant_type == 'snv', variant_name := variant_id]
+    curr[variant_type == 'aac', gene := gsub('_.*', '', variant_name)]
+
+    
     setnames(curr, curr_si_col, "selection_intensity")
     if ("gene" %in% curr_cols) {
       curr = curr[, .(variant_name, variant_type, gene, selection_intensity)]

@@ -7,14 +7,15 @@
 trinuc_mutation_rates(
   cesa,
   signature_set = NULL,
-  signatures_to_remove = character(),
+  signature_exclusions = character(),
   samples = character(),
   cores = 1,
   signature_extractor = "MutationalPatterns",
   mp_strict_args = list(),
   assume_identical_mutational_processes = FALSE,
   sample_group = NULL,
-  sig_averaging_threshold = 50
+  sig_averaging_threshold = 50,
+  signatures_to_remove = NULL
 )
 }
 \arguments{
@@ -22,7 +23,7 @@ trinuc_mutation_rates(
 
 \item{signature_set}{Name of built-in signature set (see \code{list_ces_signature_sets()}), or a custom signature set (see details)}
 
-\item{signatures_to_remove}{Specify any signatures to exclude from analysis; use \code{suggest_cosmic_signatures_to_remove()} for advice on COSMIC signatures}
+\item{signature_exclusions}{Specify any signatures to exclude from analysis; use \code{suggest_cosmic_signatures_to_remove()} for advice on COSMIC signatures}
 
 \item{samples}{Which samples to include in the current run. Defaults to all samples.
 Can be a vector of Unique_Patient_Identifiers, or a data.table containing rows from

@@ -1,38 +1,31 @@
 #' Load MAF somatic mutation data
 #' 
-#' Load MAF data from a text file or data table into your CESAnalysis. If column names
-#' don't match MAF format specifications (Chromosome, Start_Position, etc., with
-#' Tumor_Sample_Barcode used as the sample ID column), you can supply your own column
-#' names. By default, data is assumed to be derived from whole-exome sequencing.
-#' Whole-genome data and targeted sequencing data are also supported when the
-#' \code{coverage} option is specified. If the data you are loading is from a different
-#' genome build than your CESAnalysis, you can use the chain_file argument to supply a
-#' UCSC-style chain file, and your MAF coordinates will be automatically converted with
-#' rtracklayer's version of liftOver.
+#' Load MAF data from a text file or data table into your CESAnalysis. Column names are
+#' expected to match MAF format specifications (Chromosome, Start_Position, etc.). It's
+#' encouraged to use preload_maf() prep the input (including, optionally, liftOver
+#' conversion of genomic coordinates), but if you have clean MAF data, you can run this
+#' function directly. By default, data is assumed to be derived from whole-exome
+#' sequencing. Whole-genome data and targeted sequencing data are also supported when the
+#' \code{coverage} option is specified.
 #' 
 #' @param cesa the CESAnalysis object to load the data into
-#' @param maf Path of tab-delimited text file in MAF format, or an MAF in data.table or data.frame format
-#' @param sample_col column name with sample ID data (Tumor_Sample_Barcode or Unique_Patient_Identifier)
-#' @param chr_col column name with chromosome data  (Chromosome)           
-#' @param start_col column name with start position (Start_Position)
-#' @param ref_col column name with reference allele data (Reference_Allele)
-#' @param tumor_allele_col column name with alternate allele data; by default,
-#'   values from Tumor_Seq_Allele2 and Tumor_Seq_Allele1 columns are used.
-#' @param group_col column in MAF with sample group labels (see \code{?CESAnalysis})
-#' @param coverage exome, genome, or targeted (default exome)
+#' @param maf Path of tab-delimited text file in MAF format, or an MAF in data.table or
+#'   data.frame format.
+#' @param sample_data_cols MAF columns containing sample-level data (e.g., tumor grade)
+#'   that you would like to have copied into the CESAnalysis samples table.
+#' @param coverage exome, genome, or targeted (default exome).
 #' @param covered_regions optional for exome, required for targeted: a GRanges object or a
-#'   BED file of covered intervals matching the CESAnalysis genome
+#'   BED file of covered intervals matching the CESAnalysis genome.
 #' @param covered_regions_name a name describing the covered regions (e.g.,
-#'   "my_custom_targeted_regions"); required when covered_regions are supplied
+#'   "my_custom_targeted_regions"); required when covered_regions are supplied.
 #' @param covered_regions_padding How many bases (default 0) to expand start and end of
 #'   each covered_regions interval, to include variants called just outside of targeted
 #'   regions. Consider setting from 0-100bp, or up to the sequencing read length. If the
 #'   input data has been trimmed to the targeted regions, leave set to 0.
-#' @param chain_file A LiftOver chain file (text format, name ends in .chain) to convert MAF
-#'   records to the genome build used in the CESAnalysis.
 #' @param enforce_default_exome_coverage When loading default exome data, exclude records
-#'   that aren't covered in the default exome capture intervals included with
-#'   CES genome reference data (default FALSE).
+#'   that aren't covered in the default exome capture intervals included with CES genome
+#'   reference data (default FALSE).
+#' @param group_col column in MAF with sample group labels (deprecated; no longer needed).
 #' @return CESAnalysis with the specified MAF data loaded. The MAF data table includes
 #'   CES-generated variant IDs, a list of all genes overlapping the site, and top_gene and
 #'   top_consequence columsn that give the most significant annotated coding changes for
@@ -44,10 +37,9 @@
 #'   \code{[CESAnalysis]$variants} contains more information about all top_consequence
 #'   variants and all noncoding variants from the MAF.
 #' @export
-load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode", chr_col = "Chromosome", start_col = "Start_Position",
-                    ref_col = "Reference_Allele", tumor_allele_col = "guess", coverage = "exome", covered_regions = NULL,
+load_maf = function(cesa = NULL, maf = NULL, coverage = "exome", covered_regions = NULL,
                     covered_regions_name = NULL, covered_regions_padding = 0, group_col = NULL,
-                    sample_data_cols = character(), chain_file = NULL, enforce_default_exome_coverage = FALSE) {
+                    sample_data_cols = character(), enforce_default_exome_coverage = FALSE) {
   
   if (! is(cesa, "CESAnalysis")) {
     stop("cesa should be a CESAnalysis")
@@ -183,9 +175,8 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   refset = .ces_ref_data[[cesa@ref_key]]
   
   read_args = list(maf = maf, refset_env = refset,
-                   sample_col = sample_col, chr_col = chr_col, start_col = start_col,
-                   ref_col = ref_col, tumor_allele_col = tumor_allele_col,
-                   chain_file = chain_file)
+                   sample_col = 'Tumor_Sample_Barcode', chr_col = 'Chromosome', start_col = 'Start_Position',
+                   ref_col = 'Reference_Allele', tumor_allele_col = 'guess')
   # Since group_col is deprecated, it can't be used in combination with sample_date_cols
   if (! is.null(group_col)) {
     read_args = c(read_args, list(more_cols = group_col))
@@ -194,17 +185,10 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   }
   
   reserved_cols = c("Unique_Patient_Identifier", "Chromosome", "Start_Position", "Reference_Allele", 
-                    "Tumor_Seq_Allele1", "Tumor_Seq_Allele2","Tumor_Allele", "Tumor_Sample_Barcode")
+                    "Tumor_Seq_Allele1", "Tumor_Seq_Allele2", "Tumor_Allele", "Tumor_Sample_Barcode")
   illegal_sample_cols = intersect(reserved_cols, read_args[["more_cols"]])
   if(length(illegal_sample_cols) > 0) {
     stop("Can't use these column(s) as sample-level data columns: ", paste(illegal_sample_cols, collapse = ", "), '.')
-  }
-  
-  used_twice = intersect(c(sample_col, chr_col, start_col, ref_col, tumor_allele_col), 
-                         read_args[["more_cols"]])
-  if(length(used_twice) > 0) {
-    stop("Re-used column(s): ", paste(used_twice, collapse = ", "), ".\n",
-         "Probably, these should be left out of sample_data_cols.")
   }
 
   maf = do.call(read_in_maf, args = read_args)
@@ -259,7 +243,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
       warning(pretty_message(msg, emit = F))
     }
   }
-  setnames(excluded, "problem", "Exclusion_Reason")
+  setnames(excluded, "problem", "reason")
   
   # collect sample group information
   if (! is.null(group_col)) {
@@ -349,16 +333,13 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
       pretty_message(msg)
     } else {
       uncovered = maf[is_uncovered, -c("variant_type", "variant_id")]
-      uncovered$Exclusion_Reason = paste0("uncovered_in_", covered_regions_name)
+      uncovered$reason = paste0("uncovered_in_", covered_regions_name)
       maf = maf[!is_uncovered]
       excluded = rbind(excluded, uncovered[, names(excluded), with = F])
       pretty_message(paste0("Note: ", num_uncovered, " MAF records out of ", total, " (", percent, 
                      "%) are at loci not covered in the input covered_regions, so they have been excluded."))
     }
   }
-  
-  # drop any samples that had all mutations excluded
-  new_samples = new_samples[unique(maf$Unique_Patient_Identifier), on = "Unique_Patient_Identifier", nomatch = NULL]
   
   # merge in any sample-level data
   if (! is.null(sample_data)) {
@@ -370,7 +351,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   setkey(cesa@samples, "Unique_Patient_Identifier")
   
   if (nrow(excluded) > 0) {
-    colnames(excluded) = c(colnames(maf)[1:5], "Exclusion_Reason")
+    colnames(excluded) = c(colnames(maf)[1:5], "reason")
     cesa@excluded = rbind(cesa@excluded, excluded) 
   }
   
@@ -392,7 +373,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     msg = paste0("Note: ", num_bad, " MAF records excluded due to ambiguous trinucleotide context ",
                   "(likely N's in the reference genome).")
     pretty_message(msg)
-    bad_trinuc_context_maf$Exclusion_Reason = "ambiguous_trinuc_context"
+    bad_trinuc_context_maf$reason = "ambiguous_trinuc_context"
     cesa@excluded = rbind(cesa@excluded, bad_trinuc_context_maf)
     
     # For simplicity, remove the bad record from SNV and AAC tables
@@ -478,7 +459,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     maf_dbs_ind = maf[! is.na(dbs_id), which = T]
     maf_dbs = maf[maf_dbs_ind, .(Unique_Patient_Identifier, Chromosome, Start_Position, 
                                  Reference_Allele, Tumor_Allele, 
-                                 Exclusion_Reason = paste0("replaced_with_", dbs_id))]
+                                 reason = paste0("replaced_with_", dbs_id))]
     
     if (all(c("prelift_chr", "prelift_start", "liftover_strand_flip") %in% names(maf))) {
       dbs[maf, c("prelift_chr", "prelift_start", "liftover_strand_flip") := list(prelift_chr, prelift_start, liftover_strand_flip), on = c(v1 = 'variant_id')]
@@ -512,8 +493,7 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
     }
     maf[variant_type == 'other', "variant_id" := NA_character_] 
   }
-  #coding_sites = data.table(snv_id = intersect(maf$variant_id, cesa@mutations$aac_snv_key$snv_id))
- # maf[coding_sites, top_consequence := varian, on = c('variant_id']
+
   cesa@maf = rbind(cesa@maf, maf, fill = T)
   
   # Update coverage fields of annotation tables
@@ -527,9 +507,8 @@ load_maf = function(cesa = NULL, maf = NULL, sample_col = "Tumor_Sample_Barcode"
   consequences = cesa@advanced$cached_variants[variant_type != 'snv', .(snv_id = unlist(constituent_snvs), variant_name, gene), by = 'variant_id']
   cesa@maf[consequences, c("top_gene", "top_consequence") := list(gene, variant_name), on = c(variant_id = 'snv_id')]
 
-  current_snv_stats = maf[variant_type == "snv", .(num_samples = uniqueN(Unique_Patient_Identifier), num_snv = .N)]
-  msg = paste0("Loaded ", format(current_snv_stats$num_snv, big.mark = ','), " SNVs from ", 
-                 format(current_snv_stats$num_samples, big.mark = ','), " samples into CESAnalysis.")
+  msg = paste0("Loaded ", format(maf[, .N], big.mark = ','), " variant records from ", 
+                 format(new_samples[, .N], big.mark = ','), " samples into CESAnalysis.")
   pretty_message(msg)
   
   return(cesa)

@@ -262,18 +262,24 @@ gene_mutation_rates <- function(cesa, covariates = NULL, samples = character(), 
   missing_rates = cbind(gene = nearest_genes$i.gene, nearest_rates)
   mutrates_dt = rbind(mutrates_dt, missing_rates)
   
-  # keep just the main gene-level selection output from dNdScv, unless user wanted everything
-  if(! save_all_dndscv_output) {
-    dndscv_output = dndscv_output$sel_cv
-  }
-  
+  # convert dNdScv's main output to data.table
+  setDT(dndscv_output$sel_cv)
+
   cesa@samples[curr_run_grp_samples, gene_rate_grp := curr_rate_group, on = "Unique_Patient_Identifier"]
   
   if(using_cds_rates) {
     setnames(mutrates_dt, 'gene', 'pid')
     mutrates_dt[pid_to_gene, gene := gene, on = 'pid']
     setcolorder(mutrates_dt, c('pid', 'gene'))
+    setnames(dndscv_output$sel_cv, 'gene_name', 'pid')
+    dndscv_output$sel_cv[mutrates_dt, gene := gene, on = 'pid']
   }
+  
+  # keep just the main gene-level selection output from dNdScv, unless user wanted everything
+  if(! save_all_dndscv_output) {
+    dndscv_output = dndscv_output$sel_cv
+  }
+  
   
   if (curr_rate_group > 1) {
     if (using_cds_rates) {

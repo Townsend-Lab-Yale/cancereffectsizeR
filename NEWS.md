@@ -1,3 +1,9 @@
+# cancereffectsizeR 2.3.2
+* New quickstart instructions on the website, and a new tutorial in progress. See the site for the latest version, as it will continue to be updated.
+* For simplicity, load_maf() no longer supports non-standard MAF column names or genome assembly conversion. Instead,
+call preload_maf() first to prep data.
+* Small fixes and tweaks.
+
 # cancereffectsizeR 2.3.1
 * ces_variant() output includes, for each input variant, the number of samples included in the inference and the number of those samples with the variant. (For various reasons, including the default exclusion of samples with same-gene variants, the total number of samples in a given selection inference can be less than the number of samples in the data set.)
 * Miscellaneous small improvements and fixes.

@@ -128,9 +128,7 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
   
   setnames(melted_mutrates, c("variable", "value"), c("gene_rate_grp", "raw_rate"))
   sample_region_rates = melted_mutrates[sample_region_rates, , on = c("region", "gene_rate_grp")]
-  
   cds_trinuc_comp = get_ref_data(cesa, "gene_trinuc_comp")
-  
   
   # Hash trinuc rates for faster runtime with large data sets (where there could be millions of queries of trinuc_mat)
   # Will also be using the trinuc_mat directly for summed rates, so need to subset it to just samples of interest

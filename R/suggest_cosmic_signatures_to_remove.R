@@ -91,7 +91,7 @@ suggest_cosmic_signatures_to_remove = function(cancer_type = NULL, treatment_nai
   to_remove = original_sig_order[original_sig_order %in% to_remove]
   if(! quiet) {
     sig_string = paste0("signatures_to_remove = c(\"", paste(to_remove, collapse = "\", \""), "\")")
-    message(crayon::black("\nIf you want to make all suggested exclusions: "))
+    message(crayon::black("\nSilently returning the following suggested exclusions: "))
     message(crayon::black(sig_string))
   }
   return(invisible(to_remove))
