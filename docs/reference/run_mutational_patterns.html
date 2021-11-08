@@ -169,7 +169,8 @@ if passed in the same format.</p>
   <span class='va'>tumor_trinuc_counts</span>,
   <span class='va'>signatures_df</span>,
   <span class='va'>signatures_to_remove</span>,
-  mp_strict_args <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span><span class='op'>(</span><span class='op'>)</span>
+  mp_strict_args <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span><span class='op'>(</span><span class='op'>)</span>,
+  bootstrap_mutations <span class='op'>=</span> <span class='cn'>FALSE</span>
 <span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
@@ -192,6 +193,11 @@ and assign zero weights. Only occurs when strict == FALSE</p></td>
     <tr>
       <th>mp_strict_args</th>
       <td><p>named list of additional arguments to fit_to_signatures_strict</p></td>
+    </tr>
+    <tr>
+      <th>bootstrap_mutations</th>
+      <td><p>T/F (default FALSE) whether to run
+fit_to_signatures_bootstrapped() with n_boot = 1 instead of fit_to_signatures_strict().</p></td>
     </tr>
     </table>
 

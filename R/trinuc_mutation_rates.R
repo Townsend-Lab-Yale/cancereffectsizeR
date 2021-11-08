@@ -51,6 +51,12 @@
 #'   fit_to_signatures_strict function. Note that mut_matrix and signatures arguments are
 #'   generated automatically, and that if you'd rather not use the strict method, you can
 #'   emulate fit_to_signatures() by setting max_delta = 0.
+#' @param bootstrap_mutations T/F (default FALSE). Instead of using actual SNV counts for
+#'   the samples, do a single bootstrap sampling of each sample (in other words, run
+#'   MutationalPatterns::fit_to_signatures_bootstrapped() with \code{n_boot=1}). This can
+#'   be useful if you intend to run this function multiple times to get a distribution of
+#'   signature attributions and trinuc rates (and downstream cancer effect sizes). This
+#'   option may be replaced with more thorough support for bootstrapping in the future.
 #' @param sig_averaging_threshold Mutation prevalence threshold (default 50) that
 #'   determines which tumors inform the calculation of group-average signature weights.
 #'   When assume_identical_mutational_processes == FALSE (the default), these group
@@ -98,6 +104,7 @@ trinuc_mutation_rates <- function(cesa,
                                   cores = 1,
                                   signature_extractor = "MutationalPatterns",
                                   mp_strict_args = list(),
+                                  bootstrap_mutations = FALSE,
                                   assume_identical_mutational_processes = FALSE,
                                   sample_group = NULL,
                                   sig_averaging_threshold = 50,
@@ -132,6 +139,16 @@ trinuc_mutation_rates <- function(cesa,
     stop("mp_strict_args: You can't supply mut_matrix or signatures because this function generates them automatically.")
   }
   
+  if('n_boot' %in% names(mp_strict_args)) {
+    stop("Sorry, you can't set n_boot with mp_strict_args.")
+  }
+  
+  if(! is.logical(bootstrap_mutations) || length(bootstrap_mutations) != 1) {
+    stop("bootstrap_mutations should be TRUE/FALSE.")
+  }
+  if(bootstrap_mutations == TRUE && signature_extractor != 'MutationalPatterns') {
+    stop("bootstrap_mutations requires use of MutationalPatterns.")
+  }
   
   if(! is.logical(assume_identical_mutational_processes) || length(assume_identical_mutational_processes) != 1 || is.na(assume_identical_mutational_processes)) {
     stop("Expected assume_identical_mutational_processes to be TRUE/FALSE (default is FALSE).", call. = F)
@@ -362,9 +379,9 @@ trinuc_mutation_rates <- function(cesa,
     if (signature_extractor == 'MutationalPatterns') {
       # MutationalPatterns requires a matrix where columns are samples
       tumor_trinuc_counts = as.matrix(tumor_trinuc_counts)
-
       all_weights = run_mutational_patterns(tumor_trinuc_counts = tumor_trinuc_counts, signatures_df = signatures, 
-                                       signatures_to_remove = current_sigs_to_remove, mp_strict_args = mp_strict_args)
+                                       signatures_to_remove = current_sigs_to_remove, mp_strict_args = mp_strict_args,
+                                       bootstrap_mutations = bootstrap_mutations)
     } else {
       # Set normalization argument for deconstructSigs based on coverage
       covered_regions = curr_sample_info[tumor_name, covered_regions]
@@ -448,15 +465,17 @@ trinuc_mutation_rates <- function(cesa,
     message("Determining group-average signatures from samples with at least ", sig_averaging_threshold, " SNVs...")
     if (signature_extractor == "MutationalPatterns") {
       # supply sample data in columns and as matrix as required by MutationalPatterns
+      # Even with the bootstrap_mutations = TRUE method, not going to bootstrap here since tumor_trinuc_counts
+      # were already generated off of bootstrapped samples.
       mean_trinuc_prop = as.matrix(mean_trinuc_prop)
-      mean_all_weights <- run_mutational_patterns(tumor_trinuc_counts = mean_trinuc_prop, signatures_df = signatures, 
+      mean_all_weights = run_mutational_patterns(tumor_trinuc_counts = mean_trinuc_prop, signatures_df = signatures, 
                                               signatures_to_remove = signatures_to_remove)
     } else {
       # convert to data.frame and supply rowname as required by deconstructSigs
       mean_trinuc_prop = as.data.frame(t(mean_trinuc_prop))
       rownames(mean_trinuc_prop) = 'mean'
       
-      mean_all_weights <- run_deconstructSigs(tumor_trinuc_counts = mean_trinuc_prop, signatures_df = signatures, 
+      mean_all_weights = run_deconstructSigs(tumor_trinuc_counts = mean_trinuc_prop, signatures_df = signatures, 
                                               signatures_to_remove = signatures_to_remove, tri.counts.method = "default")
     }
     

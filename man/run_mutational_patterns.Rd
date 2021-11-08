@@ -8,7 +8,8 @@ run_mutational_patterns(
   tumor_trinuc_counts,
   signatures_df,
   signatures_to_remove,
-  mp_strict_args = list()
+  mp_strict_args = list(),
+  bootstrap_mutations = FALSE
 )
 }
 \arguments{
@@ -21,6 +22,9 @@ order of trinucleotide changes match signatures_df}
 and assign zero weights. Only occurs when strict == FALSE}
 
 \item{mp_strict_args}{named list of additional arguments to fit_to_signatures_strict}
+
+\item{bootstrap_mutations}{T/F (default FALSE) whether to run
+fit_to_signatures_bootstrapped() with n_boot = 1 instead of fit_to_signatures_strict().}
 }
 \value{
 a data.frame of signature weights

@@ -7,6 +7,8 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, eval = FALSE, tidy = 'styler')
+library(data.table)
+library(ggplot2)
 ```
 
 Welcome to cancereffectsizeR! This tutorial walks you through some of the package's key features to analyze publicly-available tumor sequencing data. We recommend that you start a fresh R/RStudio session. You can follow along by copy-and-pasting code into an R script (or the console, but it's nice to be able to save the finished product).
@@ -37,7 +39,7 @@ setwd('CES_tutorial')
 
 
 ### Quickstart
-If you want to skip all the details and run through a full, no-frills cancereffectsizeR analysis, see below. Otherwise, take a peek to get a sense of what's to come, or keep reading for a more thorough walkthrough.
+If you want to skip all the details and run through a no-frills cancereffectsizeR analysis now, see below. Otherwise, take a peek to get a sense of what's to come, or keep reading for a more thorough walkthrough.
 <details><summary>(Show/hide quickstart)</summary>
 ```{r}
 library(cancereffectsizR)
@@ -79,20 +81,35 @@ top = selection[order(-selection_intensity)][1:10]
 # Plot top effects 
 library(ggplot2)
 library(ggrepel)
-top[, x := 1:.N] # easiest to number the rows
-top[, display_name := gsub('_', ' ', variant_name)]
-ggplot(top, aes(x, selection_intensity)) + 
+ggplot(top, aes(display_levels, selection_intensity)) + 
   geom_errorbar(aes(ymin = ci_low_95, ymax = ci_high_95), width = .2, color = 'darkgrey') +
-  scale_x_discrete() + scale_y_log10() + 
-  geom_point(aes(color = as.factor(maf_prevalence))) + 
-  geom_label_repel(aes(label = display_name), nudge_y = -.1, min.segment.length = Inf) + 
-  xlab("variant") + ylab("scaled selection coefficient (log10)") +
+  scale_x_discrete() + scale_y_log10() +
+  geom_point(aes(color = as.factor(maf_prevalence)), size = 2.5) + 
+  xlab("variant") + ylab(expression('cancer effect'~scriptstyle(~~(log[10])))) +
   ggtitle('Top cancer effects in TCGA BRCA') +
-  guides(color = guide_legend(title = 'variant prevalence'))
+  guides(color = guide_legend(title = 'variant prevalence')) + 
+  theme_minimal() + theme(legend.position = 'bottom', text = element_text(family = "Arial"),
+                          axis.text.x = element_text(size = 8, family = "Verdana"))
 
 # There's lots more that can be done with cancereffectsizR! See the full tutorial for some
 # important details and a broader view of functionality.
 ```
+
+```{r echo = F, eval = T}
+top = fread(system.file("tutorial/top_BRCA_effects.txt", package = 'cancereffectsizeR')) 
+top[, display_levels := factor(display_name, levels = display_name, ordered = T)] # re-establish factor
+ggplot(top, aes(display_levels, selection_intensity)) + 
+  geom_errorbar(aes(ymin = ci_low_95, ymax = ci_high_95), width = .2, color = 'darkgrey') +
+  scale_x_discrete() + scale_y_log10() +
+  geom_point(aes(color = as.factor(maf_prevalence)), size = 2.5) + 
+  xlab("variant") + ylab(expression('cancer effect'~scriptstyle(~~(log[10])))) +
+  ggtitle('Top cancer effects in TCGA BRCA') +
+  guides(color = guide_legend(title = 'variant prevalence')) + 
+  theme_minimal() + theme(legend.position = 'bottom', text = element_text(family = "Arial"),
+                          axis.text.x = element_text(size = 8, family = "Verdana"))
+```
+
+
 </details>
 
 

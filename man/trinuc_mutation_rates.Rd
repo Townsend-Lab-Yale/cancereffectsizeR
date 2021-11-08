@@ -12,6 +12,7 @@ trinuc_mutation_rates(
   cores = 1,
   signature_extractor = "MutationalPatterns",
   mp_strict_args = list(),
+  bootstrap_mutations = FALSE,
   assume_identical_mutational_processes = FALSE,
   sample_group = NULL,
   sig_averaging_threshold = 50,
@@ -37,6 +38,13 @@ the CESAnalysis sample table.}
 fit_to_signatures_strict function. Note that mut_matrix and signatures arguments are
 generated automatically, and that if you'd rather not use the strict method, you can
 emulate fit_to_signatures() by setting max_delta = 0.}
+
+\item{bootstrap_mutations}{T/F (default FALSE). Instead of using actual SNV counts for
+the samples, do a single bootstrap sampling of each sample (in other words, run
+MutationalPatterns::fit_to_signatures_bootstrapped() with \code{n_boot=1}). This can
+be useful if you intend to run this function multiple times to get a distribution of
+signature attributions and trinuc rates (and downstream cancer effect sizes). This
+option may be replaced with more thorough support for bootstrapping in the future.}
 
 \item{assume_identical_mutational_processes}{use well-mutated tumors (those with number
 of eligible mutations meeting sig_averaging_threshold) to calculate group average
