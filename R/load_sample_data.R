@@ -5,9 +5,7 @@
 #' @param cesa CESAnalysis
 #' @param sample_data data.table or data.frame with a Unique_Patient_Identifier column to
 #'   match the CESAnalysis samples table, with one row per sample. (It's okay if some
-#'   samples aren't present in the table.) For simplicity, columns besides
-#'   Unique_Patient_Identifier must not already be present in the CESAnalysis. (Instead,
-#'   build a single sample_data table and load it with one call to this function.)
+#'   samples aren't present in the table.)
 #' @export
 load_sample_data = function(cesa, sample_data) {
   if(! is(cesa, "CESAnalysis")) {
@@ -37,7 +35,6 @@ load_sample_data = function(cesa, sample_data) {
     stop("sample_data has 0 rows.")
   }
   
-  
   # Check for non-internal columns already present from previous load_sample_data() calls.
   # internal_columns similar to sample_table_template but with some past/future columns
   internal_columns = c('coverage', 'covered_regions', 'group', 'gene_rate_grp', 'regional_rate_grp', 'sig_analysis_grp')
@@ -49,26 +46,11 @@ load_sample_data = function(cesa, sample_data) {
          paste(dup_columns, collapse = ", "))
   }
   
-  reused = intersect(names(sample_data), already_in_maf)
-  if (length(reused) > 0) {
-    msg = paste0("Ignoring sample_data columns already in samples table (", 
-                 paste(reused, collapse = ", ") , ").")
-    pretty_message(msg, black = F)
-    pretty_message("(Run clear_sample_data() first if you want to overwrite these columns.)", black = F)
-    sample_data = sample_data[, .SD, .SDcols = setdiff(names(sample_data), reused)]
-  }
-  
   missing_samples = setdiff(sample_data$Unique_Patient_Identifier, cesa@samples$Unique_Patient_Identifier)
   num_missing = length(missing_samples)
   if (num_missing > 0) {
-    if (num_missing < 25) {
-      stop(num_missing, " samples in sample_data are not present in the CESAnalysis sample table: ",
-           paste(missing_samples, collapse = ", "))
-    } else {
-      missing_samples = missing_samples[1:10]
-      stop(num_missing, " samples in sample_data are not present in the CESAnalysis sample table, including ",
-           paste(missing_samples[1:10], collapse = ", "))
-    }
+    pretty_message(paste0("FYI, ", num_missing, " samples in the input sample data are not present in the CESAnalysis."))
+    sample_data = sample_data[cesa@samples$Unique_Patient_Identifier, on = 'Unique_Patient_Identifier', nomatch = NULL]
   }
   
   repeated_samples = unique(sample_data$Unique_Patient_Identifier[duplicated(sample_data$Unique_Patient_Identifier)])
@@ -97,16 +79,28 @@ load_sample_data = function(cesa, sample_data) {
            paste(disallowed_columns, collapse = ", "))
     }
   }
-  
-  
-  
-  
-  
   cesa = copy_cesa(cesa)
   cesa = update_cesa_history(cesa, match.call())
   
-  # Automatically sorts/keys on Unique_Patient_Identifier, too
-  cesa@samples = merge.data.table(cesa@samples, sample_data, by = 'Unique_Patient_Identifier', all.x = T)
+  # Allow custom data columns to already be present if the values are NA for the samples in sample_data
+  reused_cols = intersect(names(sample_data), already_in_maf)
+  if (length(reused_cols) > 0) {
+    if (! all(is.na(cesa@samples[sample_data$Unique_Patient_Identifier, ..reused_cols]))) {
+      msg = paste0("Pre-existing columns would have non-missing values overwritten by sample_data (", 
+                   paste(reused_cols, collapse = ", ") , ").")
+      msg = pretty_message(msg, emit = F)
+      msg = paste0(msg, "\n", pretty_message("(Run clear_sample_data() first if you want to overwrite these columns.)", emit = F))
+      stop(msg)
+    }
+    for_merge = cesa@samples[sample_data$Unique_Patient_Identifier, .SD, .SDcols = setdiff(names(cesa@samples), reused_cols),
+                       on = 'Unique_Patient_Identifier', nomatch = NULL]
+    for_merge = merge.data.table(for_merge, sample_data, by = 'Unique_Patient_Identifier')
+    cesa@samples = rbind(for_merge, cesa@samples[! for_merge$Unique_Patient_Identifier, on = 'Unique_Patient_Identifier'], fill = T)
+    setkey(cesa@samples, "Unique_Patient_Identifier")
+  } else {
+    # Automatically sorts/keys on Unique_Patient_Identifier, too
+    cesa@samples = merge.data.table(cesa@samples, sample_data, by = 'Unique_Patient_Identifier', all.x = T)
+  }
   return(cesa)
 }
 

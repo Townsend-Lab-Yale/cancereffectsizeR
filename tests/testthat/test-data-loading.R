@@ -94,7 +94,7 @@ test_that("load_maf and variant annotation", {
   new_info[, num2 := 1:.N]
   tiny = load_sample_data(tiny, new_info)
   
-  expect_error(load_sample_data(tiny, new_info), 'There are no new data columns')
+  expect_error(load_sample_data(tiny, new_info), 'non-missing values overwritten by sample_data')
   expect_error(clear_sample_data(tiny, c('num', 'num2', 'Unique_Patient_Identifier')), 'Internal columns')
   tiny = clear_sample_data(tiny, c('num', 'num2'))
   all.equal(tiny@samples, original_samples)

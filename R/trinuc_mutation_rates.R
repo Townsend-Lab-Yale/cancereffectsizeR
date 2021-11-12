@@ -635,7 +635,7 @@ clear_trinuc_rates_and_signatures = function(cesa) {
 
 #' Tabulate SNVs by trinucleotide context
 #' 
-#' This function produces trinculeotide-context-specific SNV counts from MAF data for
+#' This function produces trinucleotide-context-specific SNV counts from MAF data for
 #' input to mutational signature extraction tools. Output can be tailored to meet
 #' formatting requirements of MutationalPatterns or deconstructSigs, which are probably
 #' similar to formats used by other tools.

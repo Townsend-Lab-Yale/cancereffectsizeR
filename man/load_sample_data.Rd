@@ -11,9 +11,7 @@ load_sample_data(cesa, sample_data)
 
 \item{sample_data}{data.table or data.frame with a Unique_Patient_Identifier column to
 match the CESAnalysis samples table, with one row per sample. (It's okay if some
-samples aren't present in the table.) For simplicity, columns besides
-Unique_Patient_Identifier must not already be present in the CESAnalysis. (Instead,
-build a single sample_data table and load it with one call to this function.)}
+samples aren't present in the table.)}
 }
 \description{
 Insert sample-level data into a CESAnalysis samples table.

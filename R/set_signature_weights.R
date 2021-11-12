@@ -12,7 +12,7 @@
 #' The input data table must have a Unique_Patient_Identifier column and one column per
 #' signature in the signature set. All samples in the CESAnalysis must be included in the
 #' input table, and each sample's weights should have a sum on (0, 1]. Since these weights
-#' are used by cancerefffectsizeR to infer trinucleotide-context-specific relative rates
+#' are used by cancereffectsizeR to infer trinucleotide-context-specific relative rates
 #' of SNV mutations, each sample must have at least one non-artifact signature with
 #' nonzero weight. (In the unlikely event that this is a problem, consider assigning
 #' group-average signature weights to the artifact-only samples.)

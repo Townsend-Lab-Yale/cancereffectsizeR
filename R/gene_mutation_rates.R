@@ -239,7 +239,7 @@ gene_mutation_rates <- function(cesa, covariates = NULL, samples = character(), 
   
   
   # Genes in gr_genes that are not present in the covariates data (a few are missing,
-  # usually), won't get rates calcualted by dNdScv. Here, we assign them the rate of the
+  # usually), won't get rates calculated by dNdScv. Here, we assign them the rate of the
   # nearest gene, as measured by center-to-center distance. (And, in the case of CDS
   # rates, this same logic works.)
   missing_genes = setdiff(GenomicRanges::mcols(gr_genes)["names"][,1], mutrates_dt$gene)

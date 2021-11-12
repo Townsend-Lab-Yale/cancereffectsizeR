@@ -139,8 +139,8 @@ test_that("Variant-level epistasis", {
   results = ces_epistasis(cesa, variants = list(c("KRAS G12V", "GSTP1_L184L")), conf = .9)@epistasis[[1]]
   to_test = results[, as.numeric(.(ces_v1, ces_v2, ces_v1_after_v2, ces_v2_after_v1, joint_cov_samples_just_v1,
                                    joint_cov_samples_just_v2, joint_cov_samples_with_both, joint_cov_samples_with_neither))]
-  expect_equal(to_test, c(26867.5225688425, 1441.71206944064, 281837.785451727, 13805.1800777728, 
-                          12, 4, 2, 200), tolerance = 1e-3)
+  expect_equal(to_test[1:4], c(26867.5225688425, 1441.71206944064, 281837.785451727, 13805.1800777728), tolerance = 1e-3)
+  expect_equal(to_test[5:8], c(6, 2, 1, 100))
   ci = as.numeric(results[, .SD, .SDcols = patterns("ci")])
   expect_equal(ci, c(12795.1211307558, 48488.3936128441, 362.207984931453, 3610.84903759668, 
                      NA, 2180128.54763536, NA, 88952.7367254685), tolerance = 1e-3)

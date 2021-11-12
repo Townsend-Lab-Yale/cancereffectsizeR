@@ -20,8 +20,15 @@ options(timeout = 600)
 install.packages("remotes")
 remotes::install_github("Townsend-Lab-Yale/cancereffectsizeR@*release", dependencies = TRUE)
 ```
+For a minimal installation, leave out the dependencies argument to install just required dependencies, rather than both required and suggested.
 
-We suggest increasing R's file download time limit (as shown above) because otherwise cancereffectsizeR's larger dependencies might time out on download, causing the installation to fail. For a minimal installation, leave out the dependencies argument to install just required dependencies, rather than both required and suggested.
+Regrettably, there is a bug in some older versions of the GenomeInfoDb package that may produce cryptic error messages in cancereffectsizeR, along the lines of `!anyNA(m32) is not TRUE`. If you encounter this issue, the simplest way to resolve it is to upgrade your Bioconductor packages: 
+```R
+# Only necessary if the current Bioconductor version is <3.14.
+if (BiocManager::version() < as.package_version('3.14')) {
+  BiocManager::install(version = "3.14")`
+}
+```
 
 ## Publications and version note
 Our 2018 JNCI paper [Effect sizes of somatic mutations in cancer](https://doi.org/10.1093/jnci/djy168) describes [Version 0.1.0](https://github.com/Townsend-Lab-Yale/cancereffectsizeR/releases/tag/0.1.0) of this package, which was developed by Cannataro, V. L., Gaffney, S. G., and Townsend, J. P. 

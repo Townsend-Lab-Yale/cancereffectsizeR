@@ -14,7 +14,7 @@ call preload_maf() first to prep data.
 * samples_with() makes it easy to see which samples have various mutations.
 * variant_counts() provides variant prevalence and coverage information, with the option to break counts down into groups based on sample table columns.  
 * check_sample_overlap() now accepts a list of MAFs.
-* In loaded MAF data, columns top_consequence and top_gene give the most significant annotated coding changes for each mutation record. Annotation precedence is determined by MAF prevalence (usually equal), essential splice status, premature stop codon, nonsilent status, MAF mutation prevalence across the transcript (often favors longer transcripts), and finally alphabtical order. The columns are recalculated when more data is loaded, so changes in MAF prevalence can change which variants appear.
+* In loaded MAF data, columns top_consequence and top_gene give the most significant annotated coding changes for each mutation record. Annotation precedence is determined by MAF prevalence (usually equal), essential splice status, premature stop codon, nonsilent status, MAF mutation prevalence across the transcript (often favors longer transcripts), and finally alphabetical order. The columns are recalculated when more data is loaded, so changes in MAF prevalence can change which variants appear.
 * Because ces.refset.hg38 is now available, CESAnalysis() and preload_maf() now require reference data sets to be specified by the user (formerly, they defaulted to ces.refset.hg19).
 
 # cancereffectsizeR 2.2.2
