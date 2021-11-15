@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>get_refset_dirs — get_refset_dirs • cancereffectsizeR</title>
+<title>Tissue-specific mutational signature exclusions — suggest_cosmic_signature_exclusions • cancereffectsizeR</title>
 
 <!-- favicons -->
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
@@ -52,8 +52,9 @@
 
 
 
-<meta property="og:title" content="get_refset_dirs — get_refset_dirs" />
-<meta property="og:description" content="returns a character vector mapping ref set names to their data directories" />
+<meta property="og:title" content="Tissue-specific mutational signature exclusions — suggest_cosmic_signature_exclusions" />
+<meta property="og:description" content="Get suggestions on signatures_to_remove for trinuc_mutation_rates for COSMIC signatures v3 and later.
+For details, see vignette(&quot;cosmic_cancer_type_note&quot;)." />
 <meta property="og:image" content="https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/logo.png" />
 
 
@@ -152,18 +153,44 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>get_refset_dirs</h1>
-    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/main/R/genome_data_handling.R'><code>R/genome_data_handling.R</code></a></small>
-    <div class="hidden name"><code>get_refset_dirs.Rd</code></div>
+    <h1>Tissue-specific mutational signature exclusions</h1>
+    <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/main/R/suggest_cosmic_signatures_to_remove.R'><code>R/suggest_cosmic_signatures_to_remove.R</code></a></small>
+    <div class="hidden name"><code>suggest_cosmic_signature_exclusions.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>returns a character vector mapping ref set names to their data directories</p>
+    <p>Get suggestions on signatures_to_remove for trinuc_mutation_rates for COSMIC signatures v3 and later.
+For details, see <code><a href='../articles/cosmic_cancer_type_note.html'>vignette("cosmic_cancer_type_note")</a></code>.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>get_refset_dirs</span><span class='op'>(</span><span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>suggest_cosmic_signature_exclusions</span><span class='op'>(</span>
+  cancer_type <span class='op'>=</span> <span class='cn'>NULL</span>,
+  treatment_naive <span class='op'>=</span> <span class='cn'>NULL</span>,
+  quiet <span class='op'>=</span> <span class='cn'>FALSE</span>
+<span class='op'>)</span></pre>
 
+    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
+    <table class="ref-arguments">
+    <colgroup><col class="name" /><col class="desc" /></colgroup>
+    <tr>
+      <th>cancer_type</th>
+      <td><p>See chart on website for supported cancer type labels.</p></td>
+    </tr>
+    <tr>
+      <th>treatment_naive</th>
+      <td><p>give TRUE if samples were taken pre-treatment; FALSE or leave
+NULL otherwise.</p></td>
+    </tr>
+    <tr>
+      <th>quiet</th>
+      <td><p>(default false) for non-interactive use, suppress explanations and advice.</p></td>
+    </tr>
+    </table>
 
+    <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
+
+    <p>a vector of signatures to feed to the <code><a href='trinuc_mutation_rates.html'>trinuc_mutation_rates()</a></code>
+  <code>signature_exclusions</code> argument.</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

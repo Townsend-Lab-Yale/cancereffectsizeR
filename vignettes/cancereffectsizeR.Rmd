@@ -69,7 +69,7 @@ cesa = load_maf(cesa = cesa, maf = maf)
 
 # Infer trinculeotide-context-specific relative rates of SNV mutation from
 # a mutational signature analysis (leaving out signatures not found in BRCA)
-signature_exclusions = suggest_cosmic_signatures_to_remove(cancer_type = 'BRCA', treatment_naive = TRUE)
+signature_exclusions = suggest_cosmic_signature_exclusions(cancer_type = 'BRCA', treatment_naive = TRUE)
 cesa = trinuc_mutation_rates(cesa = cesa, signature_set = ces.refset.hg38$signatures$COSMIC_v3.2,
                              signature_exclusions = signature_exclusions)
 
@@ -272,11 +272,11 @@ counts_by_M[M1_prevalence > 0][order(-M1_prevalence)]
 ## Mutational processes and relative mutation rates
 For each (exome) sample in our data set, `trinuc_mutation_rates()` will perform mutational signature extraction in order to to attribute each sample's set of SNVs to a linear combination of mutational processes. By default, the signature extraction is done using the `MutationalPatterns` package, and `deconstructSigs` is also supported. The signature attribution allows us to infer sample-specific relative rates of SNV mutation for all trinucleotide contexts. TGS samples will be assumed to have mutational processes matching the group-average mutational processes of the exome data. (This isn't optimal, since the metastatic samples may be affected by mutational processes, such as chemotherapy, that are lacking in the primary tumor exome data, but it might be the best we can do without finding another data source.)
 
-We will use signature definitions from the refset (it's also possible to create your own). To improve the accuracy of signature extraction, we will exclude signatures that can safely be presumed absent from the samples; a helper function, `suggest_cosmic_signatures_to_remove()`, can provide some guidance.
+We will use signature definitions from the refset (it's also possible to create your own). To improve the accuracy of signature extraction, we will exclude signatures that can safely be presumed absent from the samples; a helper function, `suggest_cosmic_signature_exclusions()`, can provide some guidance.
 
 ```{r}
 # We'll use all suggested exclusions (TCGA primary tumors are treatment-naive)
-signature_exclusions = suggest_cosmic_signatures_to_remove(cancer_type = 'BRCA', treatment_naive = TRUE)
+signature_exclusions = suggest_cosmic_signature_exclusions(cancer_type = 'BRCA', treatment_naive = TRUE)
 
 cesa = trinuc_mutation_rates(cesa, signature_set = ces.refset.hg38$signatures$COSMIC_v3.2, 
                              signature_exclusions = signature_exclusions)

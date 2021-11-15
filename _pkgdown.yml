@@ -43,7 +43,7 @@ reference:
   desc: Mutational signature extraction and inference of context-specific mutation rates
   contents:
   - trinuc_mutation_rates
-  - suggest_cosmic_signatures_to_remove
+  - suggest_cosmic_signature_exclusions
   - trinuc_snv_counts
   - convert_signature_weights_for_mp
   - clear_trinuc_rates_and_signatures

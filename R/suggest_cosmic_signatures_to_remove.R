@@ -3,12 +3,14 @@
 #' Get suggestions on signatures_to_remove for trinuc_mutation_rates for COSMIC signatures v3 and later.
 #' For details, see \code{vignette("cosmic_cancer_type_note")}.
 #' 
-#' @param cancer_type See chart on website for supported cancer type labels
-#' @param treatment_naive give TRUE if samples were taken pre-treatment; FALSE or leave NULL otherwise
-#' @param quiet (default false) for non-interactive use, suppress explanations and advice
-#' @return a vector of signatures to feed to signatures_to_remove
+#' @param cancer_type See chart on website for supported cancer type labels.
+#' @param treatment_naive give TRUE if samples were taken pre-treatment; FALSE or leave
+#'   NULL otherwise.
+#' @param quiet (default false) for non-interactive use, suppress explanations and advice.
+#' @return a vector of signatures to feed to the \code{trinuc_mutation_rates()}
+#'   \code{signature_exclusions} argument.
 #' @export
-suggest_cosmic_signatures_to_remove = function(cancer_type = NULL, treatment_naive = NULL, quiet = FALSE) {
+suggest_cosmic_signature_exclusions = function(cancer_type = NULL, treatment_naive = NULL, quiet = FALSE) {
   data_source = paste0(system.file("extdata", package = "cancereffectsizeR"), '/COSMIC_v3.2_signatures_by_cancer_type.txt')
   dt = data.table::fread(data_source)
   to_remove = character()
@@ -95,4 +97,18 @@ suggest_cosmic_signatures_to_remove = function(cancer_type = NULL, treatment_nai
     message(crayon::black(sig_string))
   }
   return(invisible(to_remove))
+}
+
+#' Previous name of suggest_cosmic_signature_exclusions
+#' 
+#' This function was renamed suggest_cosmic_signature_exclusions(). For now, calling it
+#' with the old name will simply pass the arguments along to the new version. It will
+#' eventually be removed.
+#' 
+#' @export
+#' @keywords internal
+suggest_cosmic_signatures_to_remove = function(...) {
+  message("Calling suggest_cosmic_signature_exclusions().")
+  message("The alias suggest_cosmic_signatures_to_remove() will itself be removed in a future update.")
+  suggest_cosmic_signature_exclusions(...)
 }

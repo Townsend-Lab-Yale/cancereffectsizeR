@@ -2,25 +2,13 @@
 % Please edit documentation in R/suggest_cosmic_signatures_to_remove.R
 \name{suggest_cosmic_signatures_to_remove}
 \alias{suggest_cosmic_signatures_to_remove}
-\title{Tissue-specific mutational signature exclusions}
+\title{Previous name of suggest_cosmic_signature_exclusions}
 \usage{
-suggest_cosmic_signatures_to_remove(
-  cancer_type = NULL,
-  treatment_naive = NULL,
-  quiet = FALSE
-)
-}
-\arguments{
-\item{cancer_type}{See chart on website for supported cancer type labels}
-
-\item{treatment_naive}{give TRUE if samples were taken pre-treatment; FALSE or leave NULL otherwise}
-
-\item{quiet}{(default false) for non-interactive use, suppress explanations and advice}
-}
-\value{
-a vector of signatures to feed to signatures_to_remove
+suggest_cosmic_signatures_to_remove(...)
 }
 \description{
-Get suggestions on signatures_to_remove for trinuc_mutation_rates for COSMIC signatures v3 and later.
-For details, see \code{vignette("cosmic_cancer_type_note")}.
+This function was renamed suggest_cosmic_signature_exclusions(). For now, calling it
+with the old name will simply pass the arguments along to the new version. It will
+eventually be removed.
 }
+\keyword{internal}

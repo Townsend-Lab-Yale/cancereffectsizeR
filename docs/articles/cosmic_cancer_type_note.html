@@ -40,7 +40,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.3.2</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.3.3</span>
       </span>
     </div>
 
@@ -116,14 +116,14 @@
 
     
     
-<p>The <code><a href="../reference/trinuc_mutation_rates.html">trinuc_mutation_rates()</a></code> function uses mutational signature extraction to calculate relative trinucleotide-specific SNV mutation rates in tumors. The “signatures_to_remove” option allows some signatures to be excluded from this analysis, which means each tumor will receive a weight of 0 for these signatures, indicating that none of the tumor’s SNVs are attributable to these signatures. This page describes the behavior of the helper function <code><a href="../reference/suggest_cosmic_signatures_to_remove.html">suggest_cosmic_signatures_to_remove()</a></code> and the reasoning behind it.</p>
+<p>The <code><a href="../reference/trinuc_mutation_rates.html">trinuc_mutation_rates()</a></code> function uses mutational signature extraction to calculate relative trinucleotide-specific SNV mutation rates in tumors. The “signatures_to_remove” option allows some signatures to be excluded from this analysis, which means each tumor will receive a weight of 0 for these signatures, indicating that none of the tumor’s SNVs are attributable to these signatures. This page describes the behavior of the helper function <code><a href="../reference/suggest_cosmic_signature_exclusions.html">suggest_cosmic_signature_exclusions()</a></code> and the reasoning behind it.</p>
 <p>As reported in <a href="https://doi.org/10.1038/s41586-020-1943-3">Alexandrov 2020</a>, and in COSMIC v3.1/v3.2 mutational signature releases, some signatures are only expected to appear in certain cancer types. For more reliable signature extraction, consider excluding implausible signatures when running <code><a href="../reference/trinuc_mutation_rates.html">trinuc_mutation_rates()</a></code>.</p>
 <p>There are also some signatures associated with various drug treatments (SBS11, SBS31, SBS32, SBS35, SBS86, SBS87, SBS90), so you if you know that your samples are treatment-naive or haven’t been exposed to the implicated drugs, some or all of these signatures can be excluded.</p>
 <p>Note that while some COSMIC signatures are attributed to sequencing artifacts, you shouldn’t exclude these because cancereffectsizeR already handles these signatures specially.</p>
-<p>The <code><a href="../reference/suggest_cosmic_signatures_to_remove.html">suggest_cosmic_signatures_to_remove()</a></code> function will identify possible signature exclusions based on cancer type and treatment status.</p>
+<p>The <code><a href="../reference/suggest_cosmic_signature_exclusions.html">suggest_cosmic_signature_exclusions()</a></code> function will identify possible signature exclusions based on cancer type and treatment status.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R">  <span class="fu"><a href="../reference/suggest_cosmic_signatures_to_remove.html">suggest_cosmic_signatures_to_remove</a></span><span class="op">(</span>cancer_type <span class="op">=</span> <span class="st">"BRCA"</span>, treatment_naive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>
-  <span class="fu"><a href="../reference/suggest_cosmic_signatures_to_remove.html">suggest_cosmic_signatures_to_remove</a></span><span class="op">(</span>cancer_type <span class="op">=</span> <span class="st">"Kidney-RCC"</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R">  <span class="fu"><a href="../reference/suggest_cosmic_signature_exclusions.html">suggest_cosmic_signature_exclusions</a></span><span class="op">(</span>cancer_type <span class="op">=</span> <span class="st">"BRCA"</span>, treatment_naive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>
+  <span class="fu"><a href="../reference/suggest_cosmic_signature_exclusions.html">suggest_cosmic_signature_exclusions</a></span><span class="op">(</span>cancer_type <span class="op">=</span> <span class="st">"Kidney-RCC"</span><span class="op">)</span></code></pre></div>
 <p>The cancer type recommendations are based on Extended Data Figure 5 of Alexandrov 2020 and the COSMIC website (for signatures released after the paper’s publication). The first two columns of the table below give the labels accepted by the <code>cancer_type</code> argument.</p>
 <p>Before excluding signatures, make sure your data set does not contain tumors from multiple PCAWG categories. For example, TCGA HNSC (head and neck cancer) includes oral cancers, which are listed separately here as Oral-SCC, so excluding all signatures that do not appear in Head-SCC (such as SBS29, tobacco chewing) would not be appropriate.</p>
 <p>(You can access a text version of this table <a href="https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/main/inst/extdata/COSMIC_v3.2_signatures_by_cancer_type.txt">here</a>.)</p>

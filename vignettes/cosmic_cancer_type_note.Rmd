@@ -1,7 +1,7 @@
 ---
 title: "Cancer type considerations for COSMIC signature extraction"
 ---
-The `trinuc_mutation_rates()` function uses mutational signature extraction to calculate relative trinucleotide-specific SNV mutation rates in tumors. The "signatures_to_remove" option allows some signatures to be excluded from this analysis, which means each tumor will receive a weight of 0 for these signatures, indicating that none of the tumor's SNVs are attributable to these signatures. This page describes the behavior of the helper function `suggest_cosmic_signatures_to_remove()` and the reasoning behind it.
+The `trinuc_mutation_rates()` function uses mutational signature extraction to calculate relative trinucleotide-specific SNV mutation rates in tumors. The "signatures_to_remove" option allows some signatures to be excluded from this analysis, which means each tumor will receive a weight of 0 for these signatures, indicating that none of the tumor's SNVs are attributable to these signatures. This page describes the behavior of the helper function `suggest_cosmic_signature_exclusions()` and the reasoning behind it.
 
 As reported in [Alexandrov 2020](https://doi.org/10.1038/s41586-020-1943-3), and in COSMIC v3.1/v3.2 mutational signature releases, some signatures are only expected to appear in certain cancer types. For more reliable signature extraction, consider excluding implausible signatures when running `trinuc_mutation_rates()`.
 
@@ -10,11 +10,11 @@ There are also some signatures associated with various drug treatments (SBS11, S
 Note that while some COSMIC signatures are attributed to sequencing artifacts, you shouldn't exclude these because cancereffectsizeR already handles these signatures specially.
 
 
-The `suggest_cosmic_signatures_to_remove()` function will identify possible signature exclusions based on
+The `suggest_cosmic_signature_exclusions()` function will identify possible signature exclusions based on
 cancer type and treatment status.
 ```{r eval = F}
-  suggest_cosmic_signatures_to_remove(cancer_type = "BRCA", treatment_naive = TRUE)
-  suggest_cosmic_signatures_to_remove(cancer_type = "Kidney-RCC")
+  suggest_cosmic_signature_exclusions(cancer_type = "BRCA", treatment_naive = TRUE)
+  suggest_cosmic_signature_exclusions(cancer_type = "Kidney-RCC")
 ```
 
 The cancer type recommendations are based on Extended Data Figure 5 of Alexandrov 2020 and the COSMIC website (for signatures released after the paper's publication). The first two columns of the table below give the labels accepted by the `cancer_type` argument.

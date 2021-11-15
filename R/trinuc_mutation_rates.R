@@ -40,8 +40,10 @@
 #' \code{sig_set = get_ces_signature_set("ces.refset.hg19", "COSMIC_v3.2")}.
 #'
 #' @param cesa CESAnalysis object
-#' @param signature_set Name of built-in signature set (see \code{list_ces_signature_sets()}), or a custom signature set (see details)
-#' @param signature_exclusions Specify any signatures to exclude from analysis; use \code{suggest_cosmic_signatures_to_remove()} for advice on COSMIC signatures
+#' @param signature_set Name of built-in signature set (see
+#'   \code{list_ces_signature_sets()}), or a custom signature set (see details)
+#' @param signature_exclusions Specify any signatures to exclude from analysis; use
+#'   \code{suggest_cosmic_signature_exclusions()} for advice on COSMIC signatures
 #' @param samples Which samples to include in the current run. Defaults to all samples.
 #'   Can be a vector of Unique_Patient_Identifiers, or a data.table containing rows from
 #'   the CESAnalysis sample table.

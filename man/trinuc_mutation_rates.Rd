@@ -22,9 +22,11 @@ trinuc_mutation_rates(
 \arguments{
 \item{cesa}{CESAnalysis object}
 
-\item{signature_set}{Name of built-in signature set (see \code{list_ces_signature_sets()}), or a custom signature set (see details)}
+\item{signature_set}{Name of built-in signature set (see
+\code{list_ces_signature_sets()}), or a custom signature set (see details)}
 
-\item{signature_exclusions}{Specify any signatures to exclude from analysis; use \code{suggest_cosmic_signatures_to_remove()} for advice on COSMIC signatures}
+\item{signature_exclusions}{Specify any signatures to exclude from analysis; use
+\code{suggest_cosmic_signature_exclusions()} for advice on COSMIC signatures}
 
 \item{samples}{Which samples to include in the current run. Defaults to all samples.
 Can be a vector of Unique_Patient_Identifiers, or a data.table containing rows from

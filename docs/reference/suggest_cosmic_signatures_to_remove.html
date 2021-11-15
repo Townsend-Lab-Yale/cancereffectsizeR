@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Tissue-specific mutational signature exclusions — suggest_cosmic_signatures_to_remove • cancereffectsizeR</title>
+<title>Previous name of suggest_cosmic_signature_exclusions — suggest_cosmic_signatures_to_remove • cancereffectsizeR</title>
 
 <!-- favicons -->
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
@@ -52,9 +52,10 @@
 
 
 
-<meta property="og:title" content="Tissue-specific mutational signature exclusions — suggest_cosmic_signatures_to_remove" />
-<meta property="og:description" content="Get suggestions on signatures_to_remove for trinuc_mutation_rates for COSMIC signatures v3 and later.
-For details, see vignette(&quot;cosmic_cancer_type_note&quot;)." />
+<meta property="og:title" content="Previous name of suggest_cosmic_signature_exclusions — suggest_cosmic_signatures_to_remove" />
+<meta property="og:description" content="This function was renamed suggest_cosmic_signature_exclusions(). For now, calling it
+with the old name will simply pass the arguments along to the new version. It will
+eventually be removed." />
 <meta property="og:image" content="https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/logo.png" />
 
 
@@ -87,7 +88,7 @@ For details, see vignette(&quot;cosmic_cancer_type_note&quot;)." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.3.2</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.3.3</span>
       </span>
     </div>
 
@@ -153,42 +154,20 @@ For details, see vignette(&quot;cosmic_cancer_type_note&quot;)." />
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Tissue-specific mutational signature exclusions</h1>
+    <h1>Previous name of suggest_cosmic_signature_exclusions</h1>
     <small class="dont-index">Source: <a href='https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/main/R/suggest_cosmic_signatures_to_remove.R'><code>R/suggest_cosmic_signatures_to_remove.R</code></a></small>
     <div class="hidden name"><code>suggest_cosmic_signatures_to_remove.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Get suggestions on signatures_to_remove for trinuc_mutation_rates for COSMIC signatures v3 and later.
-For details, see <code><a href='../articles/cosmic_cancer_type_note.html'>vignette("cosmic_cancer_type_note")</a></code>.</p>
+    <p>This function was renamed suggest_cosmic_signature_exclusions(). For now, calling it
+with the old name will simply pass the arguments along to the new version. It will
+eventually be removed.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>suggest_cosmic_signatures_to_remove</span><span class='op'>(</span>
-  cancer_type <span class='op'>=</span> <span class='cn'>NULL</span>,
-  treatment_naive <span class='op'>=</span> <span class='cn'>NULL</span>,
-  quiet <span class='op'>=</span> <span class='cn'>FALSE</span>
-<span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>suggest_cosmic_signatures_to_remove</span><span class='op'>(</span><span class='va'>...</span><span class='op'>)</span></pre>
 
-    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
-    <table class="ref-arguments">
-    <colgroup><col class="name" /><col class="desc" /></colgroup>
-    <tr>
-      <th>cancer_type</th>
-      <td><p>See chart on website for supported cancer type labels</p></td>
-    </tr>
-    <tr>
-      <th>treatment_naive</th>
-      <td><p>give TRUE if samples were taken pre-treatment; FALSE or leave NULL otherwise</p></td>
-    </tr>
-    <tr>
-      <th>quiet</th>
-      <td><p>(default false) for non-interactive use, suppress explanations and advice</p></td>
-    </tr>
-    </table>
 
-    <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
-
-    <p>a vector of signatures to feed to signatures_to_remove</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
