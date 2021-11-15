@@ -1,7 +1,7 @@
 # cancereffectsizeR 2.3.3
 * New quickstart instructions on the website, and a new tutorial in progress. See the site for the latest version, as it will continue to be updated.
 * For simplicity, load_maf() no longer supports non-standard MAF column names or genome assembly conversion. Instead,call preload_maf() first to prep data.
-* Renamed function: suggest_cosmic_signature_exclusions() replaces suggest_cosmic_signatures_to_remove(), and the related argument to trinuc_mutation_rates() is now \code{signature_exclusions}.
+* Renamed function: suggest_cosmic_signature_exclusions() replaces suggest_cosmic_signatures_to_remove(), and the related argument to trinuc_mutation_rates() is now signature_exclusions.
 * Small fixes and tweaks.
 
 # cancereffectsizeR 2.3.1
