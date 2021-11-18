@@ -51,15 +51,17 @@ If you want to skip all the details and run through a no-frills cancereffectsize
 ```{r}
 library(cancereffectsizeR)
 library(data.table)
+library(ggplot2)
 
-# Download breast cancer somatic variant data
-tcga_maf_file = 'TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf.gz'
+# Download lung adenocarcinoma (LUAD) somatic variant data.
+# Note that the rest of the tutorial uses BRCA, not LUAD.
+tcga_maf_file = 'inst/tutorial/TCGA.LUAD.mutect.0458c57f-316c-4a7c-9294-ccd11c97c2f9.DR-10.0.somatic.maf.gz'
 if (! file.exists(tcga_maf_file)) {
-  download.file('https://api.gdc.cancer.gov/data/995c0111-d90b-4140-bee7-3845436c3b42', 
+  download.file('https://api.gdc.cancer.gov/data/0458c57f-316c-4a7c-9294-ccd11c97c2f9', 
                 destfile = tcga_maf_file)
 }
 
-# Prepare data and filter a few likely germline/false-positive calls
+# Prepare data and filter out a few likely germline/false-positive calls
 maf = preload_maf(maf = tcga_maf_file, refset = "ces.refset.hg38")
 maf = maf[germline_variant_site == F][repetitive_region == F | cosmic_site_tier %in% 1:3]
 
@@ -68,13 +70,13 @@ cesa = CESAnalysis(refset = "ces.refset.hg38")
 cesa = load_maf(cesa = cesa, maf = maf)
 
 # Infer trinculeotide-context-specific relative rates of SNV mutation from
-# a mutational signature analysis (leaving out signatures not found in BRCA)
-signature_exclusions = suggest_cosmic_signature_exclusions(cancer_type = 'BRCA', treatment_naive = TRUE)
+# a mutational signature analysis (leaving out signatures not found in LUAD)
+signature_exclusions = suggest_cosmic_signature_exclusions(cancer_type = 'LUAD', treatment_naive = TRUE)
 cesa = trinuc_mutation_rates(cesa = cesa, signature_set = ces.refset.hg38$signatures$COSMIC_v3.2,
                              signature_exclusions = signature_exclusions)
 
 # Estimate neutral gene mutation rates using dNdScv, with tissue-specific mutation rate covariates.
-cesa = gene_mutation_rates(cesa, covariates = ces.refset.hg38$covariates$breast)
+cesa = gene_mutation_rates(cesa, covariates = ces.refset.hg38$covariates$lung)
 
 # Infer scaled selection coefficients under the default model of clonal selection.
 # By default, inference is restricted to recurrent mutations.
@@ -83,37 +85,43 @@ cesa = ces_variant(cesa)
 # Copy output, merge in variant annotations, and view top variants
 selection = cesa$selection[[1]]
 selection = selection[cesa$variants, on = 'variant_id', nomatch = NULL]
-top = selection[order(-selection_intensity)][1:10]
 
-# Plot top effects 
-library(ggplot2)
-library(ggrepel)
-ggplot(top, aes(display_levels, selection_intensity)) + 
+# Take top 15 variants, then sort lowest to highest (to plot left to right)
+top = selection[order(-selection_intensity)][1:15]
+top = top[order(selection_intensity)]
+
+# Plot top effects
+top[, display_name := gsub('_', "\n", variant_name)]
+top[, display_levels := factor(display_name, levels = display_name, ordered = T)]
+plot_title = 'Top cancer effects in TCGA LUAD'
+breaks = unique(as.numeric(round(quantile(top$included_with_variant))))
+
+ggplot(top, aes(x = display_levels, y = selection_intensity)) + 
   geom_errorbar(aes(ymin = ci_low_95, ymax = ci_high_95), width = .2, color = 'darkgrey') +
-  scale_x_discrete() + scale_y_log10() +
-  geom_point(aes(color = as.factor(maf_prevalence)), size = 2.5) + 
-  xlab("variant") + ylab(expression('cancer effect'~scriptstyle(~~(log[10])))) +
-  ggtitle('Top cancer effects in TCGA BRCA') +
-  guides(color = guide_legend(title = 'variant prevalence')) + 
-  theme_minimal() + theme(legend.position = 'bottom', text = element_text(family = "Arial"),
-                          axis.text.x = element_text(size = 8, family = "Verdana"))
+  geom_point(aes(color = included_with_variant), size = 3) + 
+  scale_x_discrete() + scale_y_log10() + 
+  scale_color_viridis_c(name = 'variant prevalence', guide = 'colorbar', trans = 'log10', 
+                        option = 'plasma', breaks = breaks) +
+  xlab(element_blank()) +
+  ylab(expression('cancer effect'~scriptstyle(~~(log[10])))) +
+  ggtitle(plot_title) +
+  guides(color = guide_colourbar(ticks = FALSE)) + 
+  theme_minimal() + 
+  theme(text = element_text(family = "Verdana"),
+        axis.title.x = element_text(size = 14), 
+        axis.text.x = element_text(size = 8),
+        legend.position = 'bottom',
+        legend.title = element_text(size = 10),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank())
 
 # There's lots more that can be done with cancereffectsizeR! See the full tutorial for some
 # important details and a broader view of functionality.
 ```
 
 ```{r echo = F, eval = T}
-top = fread(system.file("tutorial/top_BRCA_effects.txt", package = 'cancereffectsizeR')) 
-top[, display_levels := factor(display_name, levels = display_name, ordered = T)] # re-establish factor
-ggplot(top, aes(display_levels, selection_intensity)) + 
-  geom_errorbar(aes(ymin = ci_low_95, ymax = ci_high_95), width = .2, color = 'darkgrey') +
-  scale_x_discrete() + scale_y_log10() +
-  geom_point(aes(color = as.factor(maf_prevalence)), size = 2.5) + 
-  xlab("variant") + ylab(expression('cancer effect'~scriptstyle(~~(log[10])))) +
-  ggtitle('Top cancer effects in TCGA BRCA') +
-  guides(color = guide_legend(title = 'variant prevalence')) + 
-  theme_minimal() + theme(legend.position = 'bottom', text = element_text(family = "Arial"),
-                          axis.text.x = element_text(size = 8, family = "Verdana"))
+p = readRDS(system.file("tutorial/top_LUAD_effects.rds", package = 'cancereffectsizeR'))
+p
 ```
 
 </details>
@@ -322,9 +330,65 @@ Next, we'll use `gene_mutation_rates()` to estimate regional rates of mutation i
 cesa = gene_mutation_rates(cesa, covariates = ces.refset.hg38$covariates$breast)
 ```
 
+Here are the neutral gene mutation rates extracted from dNdScv's regression:
+```{r eval = T, include = F}
+cesa = list(gene_rates = readRDS(system.file("tutorial/BRCA_cesa_gene_rates.rds", 
+                                             package = 'cancereffectsizeR')),
+            dNdScv_results = readRDS(system.file("tutorial/BRCA_dndscv_out.rds", 
+                                                 package = 'cancereffectsizeR')))
+```
+
+```{r eval = T}
+head(cesa$gene_rates)
+```
+
+We can also look at dNdScv's identification of selection at the gene level. We'll filter results to q < .05. Since ces.refset.hg38 covers multiple isoforms for some genes, the dNdScv output is actually per protein, not per gene, so we'll  take the extra step of showing just the lowest q-value for each significant gene.
+
+```{r eval = T}
+dndscv_results = cesa$dNdScv_results[[1]]
+sig_genes = dndscv_results[qallsubs_cv < .05]
+
+# Take lowest q-value record for each gene, and sort by significance.
+sig_genes = sig_genes[, .SD[which.min(qallsubs_cv)], by = 'gene'][order(qallsubs_cv)]
+```
+
+```{r eval = T, echo = F}
+formattable::formattable(sig_genes)
+```
+
+See dNdScv's documentation if you're interested in interpretation of the dNdScv output.
+
 Side note: If we had multiple tissue types in the analysis, we could call gene_mutation_rates() multiple times using the `samples` argument to specify sample groups, with appropriate covariates for each tissue type. Similar functionality is available in `trinuc_mutation_rates()`.
 
 ## Selection inference
-The combination of neutral gene mutation rates and sample-specific rates of trinucleotide mutation allow use to estimate the neutral rate of any somatic substitution in any patient's tumor sample.
+The combination of cohort-level gene mutation rates and sample-level relative rates of trinucletoide-context-specific substitution allow us to estimate the rate at which any somatic substitution occurs in any patient's tumor sample. To be clear, by "rates," we don't mean the frequency of mutations in our somatic variant calls (which we already know anyway). These rates represent how often the mutations can be expected to occur in individual cells. (More specifically, we assume that mutation events in each specific sample and site follow a Poisson distribution, and these rates are the Poisson rates.) It's not typically necessary to look at these rates, but just to show that we can:
+```{r}
+# Let's take the top 3 variants by MAF prevalence. These happen to all be in PIK3CA.
+variants_to_check = cesa$variants[order(-maf_prevalence), variant_id][1:3]
+
+# A few random samples
+samples_to_check = c('TCGA-A2-A3Y0', 'TCGA-XX-A89A', 'P-0000224')
+
+baseline_mutation_rates(cesa = cesa, variant_ids = variants_to_check, samples = samples_to_check)
+```
+
+```{r eval = T, include = F}
+print(readRDS(system.file("tutorial/BRCA_site_rates_example.rds", package = "cancereffectsizeR")))
+```
+
+Interestingly, PIK3CA H1047R, the most prevalent variant in our MAF data (246/1875 samples), is estimated to have a substantially lower rate of occurrence than E545K and E542K in these particular samples.
+
+We can use our estimated rates and the MAF variant data to infer scaled selection coefficients (aka cancer effects) under a model of selection. These cancer effects are directly proportional to the proliferative advantage provided by each variant. First, let's calculate selection under the package's default model of selection with ces_variant():
+
+```{r}
+# Including an optional run_name
+cesa = ces_variant(cesa = cesa, run_name = 'recurrents')
+```
+
+By default, all recurrent variants (variants with prevalence > 1 in MAF data) will be included. (The `variants` option can be used to limit inference to just certain variants, or to test variants with prevalences of 1 or even 0. However, single-hit variants will tend to receive over-estimated cancer effects because the occurence of any non-selected variant is inherently very unlikely.)
+
+Let's visualize the most selected variants:
+
+
 
 (To be continued. Check back in a week for the rest!)
