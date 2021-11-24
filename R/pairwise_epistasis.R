@@ -224,9 +224,9 @@ ces_epistasis = function(cesa = NULL, variants = NULL, samples = character(), ru
           record_by_name = aac_names[variant, on = "variant_name", nomatch = NULL]
           num_records = record_by_name[, .N]
           if (num_records == 0) {
-            stop("Variant ", j, " could not be found. Either it's not present in the CESAnalysis, or it's a bad ID.")
+            stop("Variant ", variant, " could not be found. Either it's not present in the CESAnalysis, or it's a bad ID.")
           } else if (num_records > 1) {
-            stop("More than one variant in the CESAnalysis has the name \"", j, "\". Use a full variant_id to specify which to test.")
+            stop("More than one variant in the CESAnalysis has the name \"", variant, "\". Use a full variant_id to specify which to test.")
           } else {
             notify_name_conversion = T
             variants[[i]][j] = record_by_name[, aac_id]

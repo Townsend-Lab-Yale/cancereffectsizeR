@@ -1529,7 +1529,7 @@ ENSP00000326381.5
 <div id="selection-inference" class="section level2">
 <h2 class="hasAnchor">
 <a href="#selection-inference" class="anchor"></a>Selection inference</h2>
-<p>The combination of cohort-level gene mutation rates and sample-level relative rates of trinucletoide-context-specific substitution allow us to estimate the rate at which any somatic substitution occurs in any patient’s tumor sample. To be clear, by “rates,” we don’t mean the frequency of mutations in our somatic variant calls (which we already know anyway). These rates represent how often the mutations can be expected to occur in individual cells. (More specifically, we assume that mutation events in each specific sample and site follow a Poisson distribution, and these rates are the Poisson rates.) It’s not typically necessary to look at these rates, but just to show that we can:</p>
+<p>The combination of cohort-level gene mutation rates and sample-level relative rates of trinucleotide-context-specific substitution allow us to estimate the rate at which any somatic substitution occurs in any patient’s tumor sample. To be clear, by “rates,” we don’t mean the frequency of mutations in our somatic variant calls (which we already know anyway). These rates represent how often the mutations can be expected to occur in individual cells. (More specifically, we assume that mutation events in each specific sample and site follow a Poisson distribution, and these rates are the Poisson rates.) It’s not typically necessary to look at these rates, but just to show that we can:</p>
 <div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># Let's take the top 3 variants by MAF prevalence. These happen to all be in PIK3CA.</span>
 <span class="va">variants_to_check</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/setorder.html">order</a></span><span class="op">(</span><span class="op">-</span><span class="va">maf_prevalence</span><span class="op">)</span>, <span class="va">variant_id</span><span class="op">]</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span>
@@ -1538,14 +1538,180 @@ ENSP00000326381.5
 <span class="va">samples_to_check</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"TCGA-A2-A3Y0"</span>, <span class="st">"TCGA-XX-A89A"</span>, <span class="st">"P-0000224"</span><span class="op">)</span>
 
 <span class="fu"><a href="../reference/baseline_mutation_rates.html">baseline_mutation_rates</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, variant_ids <span class="op">=</span> <span class="va">variants_to_check</span>, samples <span class="op">=</span> <span class="va">samples_to_check</span><span class="op">)</span></code></pre></div>
+<pre><code>##    Unique_Patient_Identifier PIK3CA_H1047R_ENSP00000263967.3
+## 1:              TCGA-A2-A3Y0                    8.663404e-07
+## 2:              TCGA-XX-A89A                    2.151952e-08
+## 3:                 P-0000224                    7.640495e-07
+##    PIK3CA_E545K_ENSP00000263967.3 PIK3CA_E542K_ENSP00000263967.3
+## 1:                   2.565153e-06                   2.565153e-06
+## 2:                   1.279476e-05                   1.279476e-05
+## 3:                   7.682154e-06                   7.682154e-06</code></pre>
 <p>Interestingly, PIK3CA H1047R, the most prevalent variant in our MAF data (246/1875 samples), is estimated to have a substantially lower rate of occurrence than E545K and E542K in these particular samples.</p>
-<p>We can use our estimated rates and the MAF variant data to infer scaled selection coefficients (aka cancer effects) under a model of selection. These cancer effects are directly proportional to the proliferative advantage provided by each variant. First, let’s calculate selection under the package’s default model of selection with ces_variant():</p>
-<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
+<div id="cancer-effects-basic-model" class="section level3">
+<h3 class="hasAnchor">
+<a href="#cancer-effects-basic-model" class="anchor"></a>Cancer effects (basic model)</h3>
+<p>We can use our estimated rates and the MAF variant data to infer scaled selection coefficients (aka cancer effects, or selection intensity) under a model of selection. These cancer effects are directly proportional to the proliferative advantage provided by each variant. First, let’s calculate selection under the package’s default model of selection with ces_variant():</p>
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># Including an optional run_name</span>
 <span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ces_variant.html">ces_variant</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, run_name <span class="op">=</span> <span class="st">"recurrents"</span><span class="op">)</span></code></pre></div>
-<p>By default, all recurrent variants (variants with prevalence &gt; 1 in MAF data) will be included. (The <code>variants</code> option can be used to limit inference to just certain variants, or to test variants with prevalences of 1 or even 0. However, single-hit variants will tend to receive over-estimated cancer effects because the occurence of any non-selected variant is inherently very unlikely.)</p>
-<p>Let’s visualize the most selected variants:</p>
-<p>(To be continued. Check back in a week for the rest!)</p>
+<p>Let’s visualize the most selected variants. The following ggplot code should be fairly adaptable for a variety of data sets.</p>
+<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org">ggplot2</a></span><span class="op">)</span>
+
+<span class="co"># Extract selection results from CESAnalysis</span>
+<span class="va">top</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">selection</span><span class="op">$</span><span class="va">recurrents</span>
+
+<span class="co"># Merge in variant annotations from cesa$variants.</span>
+<span class="va">top</span> <span class="op">&lt;-</span> <span class="va">top</span><span class="op">[</span><span class="va">cesa</span><span class="op">$</span><span class="va">variants</span>, on <span class="op">=</span> <span class="st">"variant_id"</span>, nomatch <span class="op">=</span> <span class="cn">NULL</span><span class="op">]</span>
+<span class="va">top</span> <span class="op">&lt;-</span> <span class="va">top</span><span class="op">[</span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/setorder.html">order</a></span><span class="op">(</span><span class="op">-</span><span class="va">selection_intensity</span><span class="op">)</span><span class="op">]</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">15</span><span class="op">]</span> <span class="co"># take top 15 by SI</span>
+<span class="va">top</span> <span class="op">&lt;-</span> <span class="va">top</span><span class="op">[</span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/setorder.html">order</a></span><span class="op">(</span><span class="va">selection_intensity</span><span class="op">)</span><span class="op">]</span> <span class="co"># will plot lowest to highest (left to right)</span>
+
+<span class="co"># Use variant names pretty for use in plot labels</span>
+<span class="va">top</span><span class="op">[</span>, <span class="va">display_name</span> <span class="op">:=</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html">gsub</a></span><span class="op">(</span><span class="st">"_"</span>, <span class="st">"\n"</span>, <span class="va">variant_name</span><span class="op">)</span><span class="op">]</span>
+<span class="va">top</span><span class="op">[</span>, <span class="va">display_levels</span> <span class="op">:=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">factor</a></span><span class="op">(</span><span class="va">display_name</span>, levels <span class="op">=</span> <span class="va">display_name</span>, ordered <span class="op">=</span> <span class="cn">T</span><span class="op">)</span><span class="op">]</span>
+
+<span class="va">plot_title</span> <span class="op">&lt;-</span> <span class="st">"Top cancer effects in breast carcinoma (CES tutorial data)"</span>
+<span class="va">breaks</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/duplicated.html">unique</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/quantile.html">quantile</a></span><span class="op">(</span><span class="va">top</span><span class="op">$</span><span class="va">included_with_variant</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>
+<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span><span class="op">(</span><span class="va">top</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">display_levels</span>, y <span class="op">=</span> <span class="va">selection_intensity</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_linerange.html">geom_errorbar</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span><span class="op">(</span>ymin <span class="op">=</span> <span class="va">ci_low_95</span>, ymax <span class="op">=</span> <span class="va">ci_high_95</span><span class="op">)</span>, width <span class="op">=</span> <span class="fl">.2</span>, color <span class="op">=</span> <span class="st">"darkgrey"</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html">geom_point</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span><span class="op">(</span>color <span class="op">=</span> <span class="va">included_with_variant</span><span class="op">)</span>, size <span class="op">=</span> <span class="fl">3</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_discrete.html">scale_x_discrete</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html">scale_y_log10</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html">scale_color_viridis_c</a></span><span class="op">(</span>
+    name <span class="op">=</span> <span class="st">"variant prevalence"</span>, guide <span class="op">=</span> <span class="st">"colorbar"</span>, trans <span class="op">=</span> <span class="st">"log10"</span>,
+    option <span class="op">=</span> <span class="st">"plasma"</span>, breaks <span class="op">=</span> <span class="va">breaks</span>
+  <span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">xlab</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html">element_blank</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">ylab</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/expression.html">expression</a></span><span class="op">(</span><span class="st">"cancer effect"</span> <span class="op">~</span> <span class="fu"><a href="https://rdrr.io/r/grDevices/plotmath.html">scriptstyle</a></span><span class="op">(</span><span class="op">~</span> <span class="op">~</span> <span class="op">(</span><span class="va">log</span><span class="op">[</span><span class="fl">10</span><span class="op">]</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">ggtitle</a></span><span class="op">(</span><span class="va">plot_title</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/guides.html">guides</a></span><span class="op">(</span>color <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/guide_colourbar.html">guide_colourbar</a></span><span class="op">(</span>ticks <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html">theme_minimal</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html">theme</a></span><span class="op">(</span>
+    text <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html">element_text</a></span><span class="op">(</span>family <span class="op">=</span> <span class="st">"Verdana"</span><span class="op">)</span>,
+    axis.title.x <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html">element_text</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">14</span><span class="op">)</span>,
+    axis.text.x <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html">element_text</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">8</span><span class="op">)</span>,
+    legend.position <span class="op">=</span> <span class="st">"bottom"</span>,
+    legend.title <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html">element_text</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">10</span><span class="op">)</span>,
+    panel.grid.major.x <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html">element_blank</a></span><span class="op">(</span><span class="op">)</span>,
+    panel.grid.minor.x <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html">element_blank</a></span><span class="op">(</span><span class="op">)</span>
+  <span class="op">)</span></code></pre></div>
+<p><img src="../inst/tutorial/BRCA_effects.jpg"><em>PIK3CA</em> and <em>ESR1</em> variants take many of the top spots. The deconvolution of mutation rate from selection has revealed that some relatively low-prevalence variants have high effects. Interestingly, according to dNdScv, mutation in <em>ESR1</em> at the gene level was not significantly greater than neutral in the TCGA cohort. The incorporation of TGS data and cancereffectsizeR’s assessment of selection at the variant level confirm <em>ESR1</em>’s importance.</p>
+</div>
+<div id="cancer-effects-sequential-model" class="section level3">
+<h3 class="hasAnchor">
+<a href="#cancer-effects-sequential-model" class="anchor"></a>Cancer effects (sequential model)</h3>
+<p>(Coming soon!)</p>
+</div>
+<div id="more-options" class="section level3">
+<h3 class="hasAnchor">
+<a href="#more-options" class="anchor"></a>More options</h3>
+<p>By default, all recurrent variants (variants with prevalence &gt;1 in MAF data) are included in a ces_variant() run. The <code>variants</code> option can be used to limit inference to just certain variants, or to test variants with prevalences of 1 or even 0. Note that single-hit variants will tend to receive over-estimated cancer effects because the occurrence of any non-selected variant is inherently improbable.</p>
+<p>For each variant site, only samples with coverage at the site will inform selection inference. You can further restrict which samples are used using the <code>samples</code> argument. This could be helpful to compare assess and compare selection in various groups (e.g., smoking vs. non-smoking).</p>
+<p>Besides the basic and sequential models, <code><a href="../reference/ces_variant.html">ces_variant()</a></code> supports user-supplied models of selection; see documentation for details. We hope that some enterprising users will come up with new models, and we are happy to discuss ideas and help work out any kinks.</p>
+</div>
+<div id="epistatic-cancer-effects" class="section level3">
+<h3 class="hasAnchor">
+<a href="#epistatic-cancer-effects" class="anchor"></a>Epistatic cancer effects</h3>
+<p>In the basic model, a variant is assumed to have a single cancer effect across all samples. In reality, we expect a variant’s selection to be influenced by a complex combination of factors including a sample’s mutational background (from substitutions to structural variants), the epigenetic state of the tumor, and various environmental factors. The <code><a href="../reference/ces_epistasis.html">ces_epistasis()</a></code> function allows us to assess selection for any pair of variants under a model of pairwise epistasis, in which the selection intensity for each variant is allowed to very depending on the state of the other site.</p>
+<div id="variant-level-epistasis" class="section level4">
+<h4 class="hasAnchor">
+<a href="#variant-level-epistasis" class="anchor"></a>Variant-level epistasis</h4>
+<p>Let’s try two prevalent BRCA mutations, PIK3CA E545K (n=159) and AKT1 E17K (n=82). Let’s also test E545K with a nearby PIK3CA variant, E542K (n=93).</p>
+<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="co"># Start by pulling full variant IDs (with protein identifier) from variants table</span>
+<span class="va">group1</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"PIK3CA_E545K"</span>, <span class="st">"AKT1_E17K"</span><span class="op">)</span>, <span class="va">variant_id</span>, on <span class="op">=</span> <span class="st">"variant_name"</span><span class="op">]</span>
+<span class="va">group2</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"PIK3CA_E545K"</span>, <span class="st">"PIK3CA_E542K"</span><span class="op">)</span>, <span class="va">variant_id</span>, on <span class="op">=</span> <span class="st">"variant_name"</span><span class="op">]</span>
+
+<span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ces_epistasis.html">ces_epistasis</a></span><span class="op">(</span>
+  cesa <span class="op">=</span> <span class="va">cesa</span>, variants <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="va">group1</span>, <span class="va">group2</span><span class="op">)</span>,
+  conf <span class="op">=</span> <span class="fl">.95</span>, run_name <span class="op">=</span> <span class="st">"variant_epistasis_example"</span>
+<span class="op">)</span>
+<span class="va">cesa</span><span class="op">$</span><span class="va">epistasis</span><span class="op">$</span><span class="va">variant_epistasis_example</span></code></pre></div>
+<pre><code>##                          variant1                       variant2   ces_v1
+## 1: PIK3CA_E545K_ENSP00000263967.3    AKT1_E17K_ENSP00000270202.4 12619.37
+## 2: PIK3CA_E545K_ENSP00000263967.3 PIK3CA_E542K_ENSP00000263967.3 12783.72
+##       ces_v2 ces_v1_after_v2 ces_v2_after_v1 joint_cov_samples_just_v1
+## 1: 17546.150        3107.631           0.001                       158
+## 2:  7477.738           0.001           0.001                       159
+##    joint_cov_samples_just_v2 joint_cov_samples_with_both
+## 1:                        81                           1
+## 2:                        93                           0
+##    joint_cov_samples_with_neither ci_low_95_ces_v1 ci_high_95_ces_v1
+## 1:                           1635         10751.30          14692.65
+## 2:                           1623         10896.69          14877.24
+##    ci_low_95_ces_v2 ci_high_95_ces_v2 ci_low_95_ces_v1_after_v2
+## 1:        14016.501         21624.498                   176.956
+## 2:         6058.092          9102.635                        NA
+##    ci_high_95_ces_v1_after_v2 ci_low_95_ces_v2_after_v1
+## 1:                  13788.098                        NA
+## 2:                   4813.553                        NA
+##    ci_high_95_ces_v2_after_v1
+## 1:                  14104.728
+## 2:                   2763.137</code></pre>
+<p>Confidence intervals tend to be wide in epistatic analyses. Even with the most prevalent somatic variants, both co-occurrence and mutual exclusivity can often be explained by chance. The output for PIK3CA E545K and E542K confirms the negative epistatic relationship that we would have expected given their mutual exclusivity in our data (and our knowledge of their biological effects). For E545K and AKT1 E17K, we see reduced selection for both after the acquisition of the other driver, but the confidence intervals leave open the possibility that selection for E545K is unaffected by AKT1 E17K status. (Additionally, the NA’s on some of the lower bounds indicate that they fall below the lower limit of the optimization algorithm.)</p>
+</div>
+<div id="epistasis-and-compoundvariantsets" class="section level4">
+<h4 class="hasAnchor">
+<a href="#epistasis-and-compoundvariantsets" class="anchor"></a>Epistasis and CompoundVariantSets</h4>
+<p>We can probe this PIK3CA/AKT1 relationship further if we assume that all prevalent PIK3CA mutations share the same epistatic relationship with AKT1 E17K. The <code><a href="../reference/define_compound_variants.html">define_compound_variants()</a></code> feature lets us combine arbitrary variants into “compound variants” that are treated as if they were single variants by cancereffectsizeR’s selection inference functions. (In brief, the mutation rate of the compound variant is equal to the sum of rates of constituent variants, and any sample with one or more of the constituent variants “has the compound variant.”) Below, we define a CompoundVariantSet with two compound variants: All <em>PIK3CA</em> variants with MAF prevalence &gt; 1, and AKT E17K. We then pass the CompoundVariantSet to ces_epistasis(), which will test all pairs of compound variants (here, just the one pair).</p>
+<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="co"># Collect all the variants that we want in the CompoundVariantSet into a table</span>
+<span class="va">top_PIK3CA</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="va">gene</span> <span class="op">==</span> <span class="st">"PIK3CA"</span> <span class="op">&amp;</span> <span class="va">maf_prevalence</span> <span class="op">&gt;</span> <span class="fl">1</span><span class="op">]</span>
+<span class="va">top_akt1</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="va">variant_name</span> <span class="op">==</span> <span class="st">"AKT1_E17K"</span><span class="op">]</span>
+<span class="va">for_compound</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/rbindlist.html">rbind</a></span><span class="op">(</span><span class="va">top_PIK3CA</span>, <span class="va">top_akt1</span><span class="op">)</span>
+
+<span class="co"># see define_compound_variants() documentation for details on arguments</span>
+<span class="va">comp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/define_compound_variants.html">define_compound_variants</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, variant_table <span class="op">=</span> <span class="va">for_compound</span>, by <span class="op">=</span> <span class="st">"gene"</span>, merge_distance <span class="op">=</span> <span class="cn">Inf</span><span class="op">)</span>
+<span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ces_epistasis.html">ces_epistasis</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, variants <span class="op">=</span> <span class="va">comp</span>, conf <span class="op">=</span> <span class="fl">.95</span>, run_name <span class="op">=</span> <span class="st">"AKT1_E17K_vs_PIK3CA"</span><span class="op">)</span>
+<span class="va">cesa</span><span class="op">$</span><span class="va">epistasis</span><span class="op">$</span><span class="va">AKT1_E17K_vs_PIK3CA</span></code></pre></div>
+<pre><code>##    variant1 variant2   ces_v1   ces_v2 ces_v1_after_v2 ces_v2_after_v1
+## 1:   AKT1.1 PIK3CA.1 21000.01 4061.144           0.001        833.1469
+##    joint_cov_samples_just_v1 joint_cov_samples_just_v2
+## 1:                        78                       642
+##    joint_cov_samples_with_both joint_cov_samples_with_neither ci_low_95_ces_v1
+## 1:                           4                           1151         16772.31
+##    ci_high_95_ces_v1 ci_low_95_ces_v2 ci_high_95_ces_v2
+## 1:          25888.22          3752.06          4387.118
+##    ci_low_95_ces_v1_after_v2 ci_high_95_ces_v1_after_v2
+## 1:                        NA                   5098.302
+##    ci_low_95_ces_v2_after_v1 ci_high_95_ces_v2_after_v1
+## 1:                  257.3843                   1955.285</code></pre>
+<p>Note that the effect sizes are smaller for PIK3CA here, since we essentially mixed in lots of lower-effect PIK3CA variants. While 4 samples have both AKT1 E17K and one of the PIK3CA variants, this result strengthens the case for AKT1 mutation reducing selection for PIK3CA mutation.</p>
+</div>
+<div id="gene-level-epistasis" class="section level4">
+<h4 class="hasAnchor">
+<a href="#gene-level-epistasis" class="anchor"></a>Gene-level epistasis</h4>
+<p>The convenience function <code><a href="../reference/ces_gene_epistasis.html">ces_gene_epistasis()</a></code> applies the same model as <code><a href="../reference/ces_epistasis.html">ces_epistasis()</a></code> at the gene level: It takes all recurrent mutations in a set of genes to test for epistatic effects between pairs of genes. Here’s an example:</p>
+<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ces_gene_epistasis.html">ces_gene_epistasis</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, genes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"AKT1"</span>, <span class="st">"PIK3CA"</span>, <span class="st">"TP53"</span><span class="op">)</span>, conf <span class="op">=</span> <span class="fl">.95</span>, run_name <span class="op">=</span> <span class="st">"gene_epistasis_example"</span><span class="op">)</span>
+<span class="va">cesa</span><span class="op">$</span><span class="va">epistasis</span><span class="op">$</span><span class="va">gene_epistasis_example</span></code></pre></div>
+<pre><code>##    gene_1 gene_2    ces_g1   ces_g2 ces_g1_after_g2 ces_g2_after_g1
+## 1:   AKT1 PIK3CA 19764.309 4064.325           0.001        813.1997
+## 2:   AKT1   TP53 24104.483 1061.395        4633.349       2988.8654
+## 3: PIK3CA   TP53  4879.988 1148.400        1432.847       1037.9782
+##    joint_cov_samples_just_g1_mut joint_cov_samples_just_g2_mut
+## 1:                            80                           642
+## 2:                            47                           111
+## 3:                           320                            89
+##    joint_cov_samples_both_mut joint_cov_samples_no_mut ci_low_95_ces_g1
+## 1:                          4                     1149        15829.155
+## 2:                         11                      721        18345.535
+## 3:                         33                      448         4371.569
+##    ci_high_95_ces_g1 ci_low_95_ces_g2 ci_high_95_ces_g2
+## 1:         24305.281        3754.9767          4390.557
+## 2:         30950.945         875.8325          1271.500
+## 3:          5427.038         927.2674          1401.889
+##    ci_low_95_ces_g1_after_g2 ci_high_95_ces_g1_after_g2
+## 1:                        NA                   4776.144
+## 2:                        NA                  49240.801
+## 3:                        NA                   3492.435
+##    ci_low_95_ces_g2_after_g1 ci_high_95_ces_g2_after_g1
+## 1:                  251.2131                   1907.642
+## 2:                 1426.0685                   5417.667
+## 3:                  623.5107                   1563.261</code></pre>
+<p>The output for AKT1/TP53 would be identical to the previous example, except in this run, a second AKT1 variant (with n = 2) is included. Mutational selection in the two oncogenes appears to be reduced after mutation in TP53, while loss of TP53 remains selected on a mutant PIK3CA background and becomes even more favored on a mutant AKT1 background.</p>
+</div>
+</div>
 </div>
   </div>
 

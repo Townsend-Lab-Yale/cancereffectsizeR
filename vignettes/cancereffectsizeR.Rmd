@@ -9,6 +9,8 @@ output:
 knitr::opts_chunk$set(echo = TRUE, eval = FALSE, tidy = 'styler')
 library(data.table)
 library(ggplot2)
+# Using dev directory if present
+tutorial_dir = system.file("tutorial", package = 'cancereffectsizeR') 
 ```
 
 Welcome to cancereffectsizeR! This tutorial walks you through some of the package's key features to analyze publicly-available tumor sequencing data. We recommend that you start a fresh R/RStudio session. You can follow along by copy-and-pasting code into an R script.
@@ -361,7 +363,7 @@ See dNdScv's documentation if you're interested in interpretation of the dNdScv 
 Side note: If we had multiple tissue types in the analysis, we could call gene_mutation_rates() multiple times using the `samples` argument to specify sample groups, with appropriate covariates for each tissue type. Similar functionality is available in `trinuc_mutation_rates()`.
 
 ## Selection inference
-The combination of cohort-level gene mutation rates and sample-level relative rates of trinucletoide-context-specific substitution allow us to estimate the rate at which any somatic substitution occurs in any patient's tumor sample. To be clear, by "rates," we don't mean the frequency of mutations in our somatic variant calls (which we already know anyway). These rates represent how often the mutations can be expected to occur in individual cells. (More specifically, we assume that mutation events in each specific sample and site follow a Poisson distribution, and these rates are the Poisson rates.) It's not typically necessary to look at these rates, but just to show that we can:
+The combination of cohort-level gene mutation rates and sample-level relative rates of trinucleotide-context-specific substitution allow us to estimate the rate at which any somatic substitution occurs in any patient's tumor sample. To be clear, by "rates," we don't mean the frequency of mutations in our somatic variant calls (which we already know anyway). These rates represent how often the mutations can be expected to occur in individual cells. (More specifically, we assume that mutation events in each specific sample and site follow a Poisson distribution, and these rates are the Poisson rates.) It's not typically necessary to look at these rates, but just to show that we can:
 ```{r}
 # Let's take the top 3 variants by MAF prevalence. These happen to all be in PIK3CA.
 variants_to_check = cesa$variants[order(-maf_prevalence), variant_id][1:3]
@@ -372,23 +374,127 @@ samples_to_check = c('TCGA-A2-A3Y0', 'TCGA-XX-A89A', 'P-0000224')
 baseline_mutation_rates(cesa = cesa, variant_ids = variants_to_check, samples = samples_to_check)
 ```
 
-```{r eval = T, include = F}
-print(readRDS(system.file("tutorial/BRCA_site_rates_example.rds", package = "cancereffectsizeR")))
+```{r eval = T, echo = F}
+readRDS(system.file("tutorial/BRCA_site_rates_example.rds", package = "cancereffectsizeR"))
 ```
 
 Interestingly, PIK3CA H1047R, the most prevalent variant in our MAF data (246/1875 samples), is estimated to have a substantially lower rate of occurrence than E545K and E542K in these particular samples.
 
-We can use our estimated rates and the MAF variant data to infer scaled selection coefficients (aka cancer effects) under a model of selection. These cancer effects are directly proportional to the proliferative advantage provided by each variant. First, let's calculate selection under the package's default model of selection with ces_variant():
-
+### Cancer effects (basic model)
+We can use our estimated rates and the MAF variant data to infer scaled selection coefficients (aka cancer effects, or selection intensity) under a model of selection. These cancer effects are directly proportional to the proliferative advantage provided by each variant. First, let's calculate selection under the package's default model of selection with ces_variant():
 ```{r}
 # Including an optional run_name
 cesa = ces_variant(cesa = cesa, run_name = 'recurrents')
 ```
 
-By default, all recurrent variants (variants with prevalence > 1 in MAF data) will be included. (The `variants` option can be used to limit inference to just certain variants, or to test variants with prevalences of 1 or even 0. However, single-hit variants will tend to receive over-estimated cancer effects because the occurence of any non-selected variant is inherently very unlikely.)
+Let's visualize the most selected variants. The following ggplot code should be fairly adaptable for a variety of data sets.
+```{r}
+library(ggplot2)
 
-Let's visualize the most selected variants:
+# Extract selection results from CESAnalysis
+top = cesa$selection$recurrents
+
+# Merge in variant annotations from cesa$variants.
+top = top[cesa$variants, on = 'variant_id', nomatch = NULL]
+top = top[order(-selection_intensity)][1:15] # take top 15 by SI
+top = top[order(selection_intensity)] # will plot lowest to highest (left to right)
+
+# Use variant names pretty for use in plot labels
+top[, display_name := gsub('_', "\n", variant_name)]
+top[, display_levels := factor(display_name, levels = display_name, ordered = T)]
+
+plot_title = 'Top cancer effects in breast carcinoma (CES tutorial data)'
+breaks = unique(as.numeric(round(quantile(top$included_with_variant))))
+ggplot(top, aes(x = display_levels, y = selection_intensity)) + 
+  geom_errorbar(aes(ymin = ci_low_95, ymax = ci_high_95), width = .2, color = 'darkgrey') +
+  geom_point(aes(color = included_with_variant), size = 3) + 
+  scale_x_discrete() + scale_y_log10() + 
+  scale_color_viridis_c(name = 'variant prevalence', guide = 'colorbar', trans = 'log10', 
+                        option = 'plasma', breaks = breaks) +
+  xlab(element_blank()) +
+  ylab(expression('cancer effect'~scriptstyle(~~(log[10])))) +
+  ggtitle(plot_title) +
+  guides(color = guide_colourbar(ticks = FALSE)) + 
+  theme_minimal() + 
+  theme(text = element_text(family = "Verdana"),
+        axis.title.x = element_text(size = 14), 
+        axis.text.x = element_text(size = 8),
+        legend.position = 'bottom',
+        legend.title = element_text(size = 10),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank())
+```
+
+![](../inst/tutorial/BRCA_effects.jpg)
+_PIK3CA_ and _ESR1_ variants take many of the top spots. The deconvolution of mutation rate from selection has revealed that some relatively low-prevalence variants have high effects. Interestingly, according to dNdScv, mutation in _ESR1_ at the gene level was not significantly greater than neutral in the TCGA cohort. The incorporation of TGS data and cancereffectsizeR's assessment of selection at the variant level confirm _ESR1_'s importance.
+
+### Cancer effects (sequential model)
+(Coming soon!)
+
+### More options
+By default, all recurrent variants (variants with prevalence >1 in MAF data) are included in a ces_variant() run. The `variants` option can be used to limit inference to just certain variants, or to test variants with prevalences of 1 or even 0. Note that single-hit variants will tend to receive over-estimated cancer effects because the occurrence of any non-selected variant is inherently improbable.
+
+For each variant site, only samples with coverage at the site will inform selection inference. You can further restrict which samples are used using the `samples` argument. This could be helpful to compare assess and compare selection in various groups (e.g., smoking vs. non-smoking).
+
+Besides the basic and sequential models, `ces_variant()` supports user-supplied models of selection; see documentation for details. We hope that some enterprising users will come up with new models, and we are happy to discuss ideas and help work out any kinks.
+
+### Epistatic cancer effects
+In the basic model, a variant is assumed to have a single cancer effect across all samples. In reality, we expect a variant's selection to be influenced by a complex combination of factors including a sample's mutational background (from substitutions to structural variants), the epigenetic state of the tumor, and various environmental factors. The `ces_epistasis()` function allows us to assess selection for any pair of variants under a model of pairwise epistasis, in which the selection intensity for each variant is allowed to very depending on the state of the other site.
+
+#### Variant-level epistasis
+Let's try two prevalent BRCA mutations, PIK3CA E545K (n=159) and AKT1 E17K (n=82). Let's also test E545K with a nearby PIK3CA variant, E542K (n=93).
+
+```{r}
+# Start by pulling full variant IDs (with protein identifier) from variants table
+group1 = cesa$variants[c("PIK3CA_E545K", "AKT1_E17K"), variant_id, on = 'variant_name']
+group2 = cesa$variants[c("PIK3CA_E545K", "PIK3CA_E542K"), variant_id, on = 'variant_name']
+
+cesa = ces_epistasis(cesa = cesa, variants = list(group1, group2), 
+                     conf = .95, run_name = 'variant_epistasis_example')
+cesa$epistasis$variant_epistasis_example
+```
+
+```{r eval = T, echo = F}
+readRDS(paste0(tutorial_dir, '/variant_ep_example.rds'))
+```
+
+Confidence intervals tend to be wide in epistatic analyses. Even with the most prevalent somatic variants, both co-occurrence and mutual exclusivity can often be explained by chance. The output for PIK3CA E545K and E542K confirms the negative epistatic relationship that we would have expected given their mutual exclusivity in our data (and our knowledge of their biological effects). For E545K and AKT1 E17K, we see reduced selection for both after the acquisition of the other driver, but the confidence intervals leave open the possibility that selection for E545K is unaffected by AKT1 E17K status. (Additionally, the NA's on some of the lower bounds indicate that they fall below the lower limit of the optimization algorithm.)
+
+
+#### Epistasis and CompoundVariantSets
+We can probe this PIK3CA/AKT1 relationship further if we assume that all prevalent PIK3CA mutations share the same epistatic relationship with AKT1 E17K. The `define_compound_variants()` feature lets us combine arbitrary variants into "compound variants" that are treated as if they were single variants by cancereffectsizeR's selection inference functions. (In brief, the mutation rate of the compound variant is equal to the sum of rates of constituent variants, and any sample with one or more of the constituent variants "has the compound variant.") Below, we define a CompoundVariantSet with two compound variants: All _PIK3CA_ variants with MAF prevalence > 1, and AKT E17K. We then pass the CompoundVariantSet to ces_epistasis(), which will test all pairs of compound variants (here, just the one pair).
+
+```{r}
+# Collect all the variants that we want in the CompoundVariantSet into a table
+top_PIK3CA = cesa$variants[gene == 'PIK3CA' & maf_prevalence > 1]
+top_akt1 = cesa$variants[variant_name == 'AKT1_E17K']
+for_compound = rbind(top_PIK3CA, top_akt1)
+
+# see define_compound_variants() documentation for details on arguments
+comp = define_compound_variants(cesa = cesa, variant_table = for_compound, by = "gene", merge_distance = Inf)
+cesa = ces_epistasis(cesa = cesa, variants = comp, conf = .95, run_name = "AKT1_E17K_vs_PIK3CA")
+cesa$epistasis$AKT1_E17K_vs_PIK3CA
+```
+
+```{r eval = T, echo = F}
+readRDS(paste0(tutorial_dir, '/comp_variant_ep.rds'))
+```
+
+Note that the effect sizes are smaller for PIK3CA here, since we essentially mixed in lots of lower-effect PIK3CA variants. While 4 samples have both AKT1 E17K and one of the PIK3CA variants, this result strengthens the case for AKT1 mutation reducing selection for PIK3CA mutation.
+
+#### Gene-level epistasis
+The convenience function `ces_gene_epistasis()` applies the same model as `ces_epistasis()` at the gene level: It takes all recurrent mutations in a set of genes to test for epistatic effects between pairs of genes. Here's an example:
+```{r}
+cesa = ces_gene_epistasis(cesa = cesa, genes = c("AKT1", "PIK3CA", "TP53"), conf = .95, run_name = "gene_epistasis_example")
+cesa$epistasis$gene_epistasis_example
+```
+
+```{r eval = T, echo = F}
+readRDS(paste0(tutorial_dir, '/gene_ep_example.rds'))
+```
+
+The output for AKT1/TP53 would be identical to the previous example, except in this run, a second AKT1 variant (with n = 2) is included. Mutational selection in the two oncogenes appears to be reduced after mutation in TP53, while loss of TP53 remains selected on a mutant PIK3CA background and becomes even more favored on a mutant AKT1 background.
 
 
 
-(To be continued. Check back in a week for the rest!)
+
