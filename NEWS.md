@@ -1,3 +1,8 @@
+# cancereffectsizeR 2.3.4
+* New website and expanded tutorial.
+* Small fixes, including a tweak to variant prioritization.
+
+
 # cancereffectsizeR 2.3.3
 * New quickstart instructions on the website, and a new tutorial in progress. See the site for the latest version, as it will continue to be updated.
 * For simplicity, load_maf() no longer supports non-standard MAF column names or genome assembly conversion. Instead,call preload_maf() first to prep data.

@@ -2,7 +2,7 @@
 % Please edit documentation in R/ces_variant.R
 \name{ces_variant}
 \alias{ces_variant}
-\title{Calculate variant effect size}
+\title{Calculate cancer effects of variants}
 \usage{
 ces_variant(
   cesa = NULL,

@@ -1,0 +1,16 @@
+.grad1 {
+  background: -webkit-linear-gradient(5deg, #8d2014, #d41818);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.grad2 {
+  background: -webkit-linear-gradient(5deg, #f22121, #e20e0e);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.grad3 {
+  background: -webkit-linear-gradient(5deg, #d41818, #8d2014);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}

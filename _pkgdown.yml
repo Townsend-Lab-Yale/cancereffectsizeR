@@ -1,14 +1,15 @@
 destination: docs
 url: https://townsend-lab-yale.github.io/cancereffectsizeR/index.html
 template:
-  params:
-    docsearch:
-      api_key: 85c732458d5af0ba2cd9feb9eb7f9a97
-      index_name: cancereffectsizer
+  bootstrap: 5
+  bootswatch: simplex
+  theme: solarized-light
+  bslib:
+    pkgdown-nav-height: 78px
+    heading_font: avenir
 repo:
   branch: main
 
-  
 reference:
 - title: Create and manage projects
   desc:  Create, load, and save projects
@@ -95,12 +96,27 @@ reference:
   - get_gene_rates
   - snv_results
   - epistasis_results
+
 home:
+  strip_header: true
   description: >
       cancereffectsizeR, an R package from the Townsend Lab at Yale School of Public Health
       for quantifying the effect size of somatic mutations in cancer
-  links:
-  - text: Visit the Townsend Lab
-    href: https://medicine.yale.edu/lab/townsend/
-  
+  sidebar:
+    structure: [townsend, authors, links, license]
+    components:
+      townsend:
+        title: Provided by
+        text: the [Townsend Lab](https://medicine.yale.edu/lab/townsend/) at the<br> [Yale School of Public Health](https://ysph.yale.edu).
+navbar:
+  structure:
+    left:  [intro, reference, articles, tutorials, news]
+    right: [search, github]
+  components:
+    intro:
+        text: Tutorial
+        href: articles/cancereffectsizeR.html
+    news:
+        text: News
+        href: news/index.html
 

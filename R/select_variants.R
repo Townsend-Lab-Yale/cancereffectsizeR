@@ -354,10 +354,16 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
     multi_hits = combined[variant_type == "aac" & multi_anno_site == TRUE]
     num_to_check = multi_hits[, .N]
     if (num_to_check > 0) {
-      # for tie-breaking, count how many mutations are in each gene found in these multi_hit recoreds
-      multi_hit_pid = unique(multi_hits$pid)
-      maf_pid_counts = combined[multi_hit_pid, .(count = sum(maf_prevalence)), keyby = "pid", on = "pid"]
-      multi_hits[maf_pid_counts, pid_freq := count, on = 'pid']
+      # for tie-breaking, count how many mutations are in each gene found in these multi_hit records
+      # will need to produce these counts from scratch since some of the variants may not be in this select_variants() run
+      aac_snv_key = cesa@mutations$aac_snv_key[multi_anno_site == TRUE] # only multi-anno sites need to be counted
+      aac_snv_key[cesa@mutations$amino_acid_change, pid := pid, on = 'aac_id']
+      aac_snv_key = aac_snv_key[unique(multi_hits$pid), on = 'pid']
+      maf_counts = cesa@maf[variant_type == 'snv', .N, by = 'variant_id']
+      aac_snv_key[maf_counts, snv_count := N, on = c(snv_id = 'variant_id')]
+      aac_snv_key[is.na(snv_count), snv_count := 0]
+      maf_pid_counts = aac_snv_key[, .(pid_freq = sum(snv_count)), keyby = "pid"]
+      multi_hits[maf_pid_counts, pid_freq := pid_freq, on = 'pid']
       
       # Any set of overlapping AACs has a single AAC chosen based on the following criteria:
       # MAF frequency (usually equal among all), essential splice status, premature stop codon, nonsilent status,
@@ -378,9 +384,6 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
       mapply(
         function(curr_candidate, curr_covered_snv) {
           # We will use the current AAC only if none of the constituent SNVs have been used yet
-          # if('10:113729312_C>G' %in% curr_covered_snv) {
-          #   browser()
-          # }
           for (i in curr_covered_snv) {
             if(exists(i, covered_snv)) {
               return()

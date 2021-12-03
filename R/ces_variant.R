@@ -1,4 +1,4 @@
-#' Calculate variant effect size
+#' Calculate cancer effects of variants
 #'
 #' This function calculates variant effect sizes under the chosen model of selection. By
 #' default, a variant is assumed to have a consistent selection intensity across all
@@ -394,7 +394,7 @@ ces_variant <- function(cesa = NULL,
       curr_variants = variants[which(sapply(variants$covered_in, function(x) identical(x, coverage_group)))]
     }
     i = i+1
-    message(sprintf("Preparing to calculate selection intensities (batch %i of %i)...", i, num_coverage_groups))
+    message(sprintf("Preparing to calculate cancer effects (batch %i of %i)...", i, num_coverage_groups))
     covered_samples = c(samples[coverage_group, Unique_Patient_Identifier, nomatch = NULL], genome_wide_cov_samples)
     
     if(length(covered_samples) == 0) {
@@ -481,7 +481,7 @@ ces_variant <- function(cesa = NULL,
         # the selection intensity for any stage that has 0 variants will be on the lower boundary; will muffle the associated warning
         withCallingHandlers(
           {
-            fit = bbmle::mle2(fn, method="L-BFGS-B", start = par_init, vecpar = T, lower=1e-3, upper=1e9, control=list(fnscale=1e-12))
+            fit = bbmle::mle2(fn, method="L-BFGS-B", start = par_init, vecpar = T, lower=1e-3, upper=1e9)
           },
           warning = function(w) {
             if (startsWith(conditionMessage(w), "some parameters are on the boundary")) {
@@ -542,7 +542,7 @@ ces_variant <- function(cesa = NULL,
       } else {
         variants_to_run = curr_subgroup$variant_id
       }
-      message("Calculating SIs...")
+      message("Calculating cancer effects...")
       selection_results = rbind(selection_results, rbindlist(pbapply::pblapply(variants_to_run, process_variant, cl = cores)))
     }
   }

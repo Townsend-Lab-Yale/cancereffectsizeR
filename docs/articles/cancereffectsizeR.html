@@ -4,7 +4,8 @@
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="description" content="cancereffectsizeR">
 <title>Tutorial • cancereffectsizeR</title>
 <!-- favicons --><link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32x32.png">
@@ -12,158 +13,141 @@
 <link rel="apple-touch-icon" type="image/png" sizes="120x120" href="../apple-touch-icon-120x120.png">
 <link rel="apple-touch-icon" type="image/png" sizes="76x76" href="../apple-touch-icon-76x76.png">
 <link rel="apple-touch-icon" type="image/png" sizes="60x60" href="../apple-touch-icon-60x60.png">
-<!-- jquery --><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script><!-- Bootstrap --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/css/bootstrap.min.css" integrity="sha256-bZLfwXAP04zRMK2BjiO8iu9pf4FbLqX6zitd+tIvLhE=" crossorigin="anonymous">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha256-nuL8/2cJ5NDSSwnKD8VqreErSWHtnEP9E7AySL+1ev4=" crossorigin="anonymous"></script><!-- bootstrap-toc --><link rel="stylesheet" href="../bootstrap-toc.css">
-<script src="../bootstrap-toc.js"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous">
+<script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<link href="../deps/bootstrap-5.1.0/bootstrap.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.1.0/bootstrap.bundle.min.js"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/v4-shims.min.css" integrity="sha256-wZjR52fzng1pJHwx4aV2AO3yyTOXrcDW7jBpJtTwVxw=" crossorigin="anonymous">
-<!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><!-- headroom.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script><!-- pkgdown --><link href="../pkgdown.css" rel="stylesheet">
-<script src="../pkgdown.js"></script><!-- docsearch --><script src="../docsearch.js"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/docsearch.js/2.6.3/docsearch.min.css" integrity="sha256-QOSRU/ra9ActyXkIBbiIB144aDBdtvXBcNc3OTNuX/Q=" crossorigin="anonymous">
-<link href="../docsearch.css" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/jquery.mark.min.js" integrity="sha256-4HLtjeVgH0eIB3aZ9mLYF6E8oU5chNdjU6p6rrXpl9U=" crossorigin="anonymous"></script><meta property="og:title" content="Tutorial">
+<!-- bootstrap-toc --><script src="https://cdn.rawgit.com/afeld/bootstrap-toc/v1.0.1/dist/bootstrap-toc.min.js"></script><!-- headroom.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script><!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><!-- search --><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/autocomplete.js/0.38.0/autocomplete.jquery.min.js" integrity="sha512-GU9ayf+66Xx2TmpxqJpliWbT5PiGYxpaG8rfnBEk1LL8l1KGkRShhngwdXK1UgqhAzWpZHSiYPc09/NwDQIGyg==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/mark.min.js" integrity="sha512-5CYOlHXGh6QpOFA/TeTylKLWfB3ftPsde7AnmhuitiTX4K5SqCLBeKro6sPS8ilsz1Q4NRx3v8Ko2IBiszzdww==" crossorigin="anonymous"></script><!-- pkgdown --><script src="../pkgdown.js"></script><link href="../extra.css" rel="stylesheet">
+<meta property="og:title" content="Tutorial">
 <meta property="og:description" content="cancereffectsizeR">
-<meta property="og:image" content="https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/logo.png">
 <!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" integrity="sha256-nvJJv9wWKEm88qvoQl9ekL2J+k/RWIsaSScxxlsrv8k=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/config/TeX-AMS-MML_HTMLorMML.js" integrity="sha256-84DKXVJXs0/F8OTMzX4UR909+jtl4G7SPypPavF+GfA=" crossorigin="anonymous"></script><!--[if lt IE 9]>
 <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
 <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
 <![endif]-->
 </head>
-<body data-spy="scroll" data-target="#toc">
-    <div class="container template-article">
-      <header><div class="navbar navbar-default navbar-fixed-top" role="navigation">
-  <div class="container">
-    <div class="navbar-header">
-      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false">
-        <span class="sr-only">Toggle navigation</span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-      </button>
-      <span class="navbar-brand">
-        <a class="navbar-link" href="../index.html">cancereffectsizeR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.3.3</span>
-      </span>
-    </div>
+<body>
+    <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
+    
 
-    <div id="navbar" class="navbar-collapse collapse">
-      <ul class="nav navbar-nav">
-<li>
-  <a href="../index.html">
-    <span class="fas fa-home fa-lg"></span>
-     
-  </a>
+    <nav class="navbar fixed-top navbar-light navbar-expand-lg bg-light"><div class="container">
+    
+    <a class="navbar-brand me-2" href="../index.html">cancereffectsizeR</a>
+
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.3.4</small>
+
+    
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div id="navbar" class="collapse navbar-collapse ms-2">
+      <ul class="navbar-nav me-auto">
+<li class="active nav-item">
+  <a class="nav-link" href="../articles/cancereffectsizeR.html">Tutorial</a>
 </li>
-<li>
-  <a href="../articles/cancereffectsizeR.html">Get started</a>
+<li class="nav-item">
+  <a class="nav-link" href="../reference/index.html">Reference</a>
 </li>
-<li>
-  <a href="../reference/index.html">Reference</a>
-</li>
-<li class="dropdown">
-  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
-    Articles
-     
-    <span class="caret"></span>
-  </a>
-  <ul class="dropdown-menu" role="menu">
-<li>
-      <a href="../articles/cosmic_cancer_type_note.html">Cancer type considerations for COSMIC signature extraction</a>
-    </li>
-    <li>
-      <a href="../articles/create_custom_covariates.html">Generate tissue covariates data</a>
-    </li>
-    <li>
-      <a href="../articles/custom_refset_instructions.html">Running with custom reference data</a>
-    </li>
-  </ul>
-</li>
-<li>
-  <a href="../news/index.html">Changelog</a>
-</li>
-      </ul>
-<ul class="nav navbar-nav navbar-right">
-<li>
-  <a href="https://github.com/Townsend-Lab-Yale/cancereffectsizeR/">
-    <span class="fab fa-github fa-lg"></span>
-     
-  </a>
-</li>
-      </ul>
-<form class="navbar-form navbar-right hidden-xs hidden-sm" role="search">
-        <div class="form-group">
-          <input type="search" class="form-control" name="search-input" id="search-input" placeholder="Search..." aria-label="Search for..." autocomplete="off">
-</div>
-      </form>
-      
-    </div>
-<!--/.nav-collapse -->
+<li class="nav-item dropdown">
+  <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
+  <div class="dropdown-menu" aria-labelledby="dropdown-articles">
+    <a class="dropdown-item" href="../articles/cosmic_cancer_type_note.html">Cancer type considerations for COSMIC signature extraction</a>
+    <a class="dropdown-item" href="../articles/create_custom_covariates.html">Generate tissue covariates data</a>
+    <a class="dropdown-item" href="../articles/custom_refset_instructions.html">Running with custom reference data</a>
   </div>
-<!--/.container -->
+</li>
+<li class="nav-item">
+  <a class="nav-link" href="../news/index.html">News</a>
+</li>
+      </ul>
+<form class="form-inline my-2 my-lg-0" role="search">
+        <input type="search" class="form-control me-sm-2" aria-label="Toggle navigation" name="search-input" data-search-index="../search.json" id="search-input" placeholder="Search for" autocomplete="off">
+</form>
+
+      <ul class="navbar-nav">
+<li class="nav-item">
+  <a class="external-link nav-link" href="https://github.com/Townsend-Lab-Yale/cancereffectsizeR/" aria-label="github">
+    <span class="fab fa fab fa-github fa-lg"></span>
+     
+  </a>
+</li>
+      </ul>
 </div>
-<!--/.navbar -->
 
-      
+    
+  </div>
+</nav><div class="container template-article">
 
-      </header><script src="cancereffectsizeR_files/header-attrs-2.11/header-attrs.js"></script><div class="row">
-  <div class="col-md-9 contents">
-    <div class="page-header toc-ignore">
-      <h1 data-toc-skip>Tutorial</h1>
+<div class="row">
+  <main id="main"><div class="page-header">
+      <img src="" class="logo" alt=""><h1>Tutorial</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/main/vignettes/cancereffectsizeR.Rmd"><code>vignettes/cancereffectsizeR.Rmd</code></a></small>
-      <div class="hidden name"><code>cancereffectsizeR.Rmd</code></div>
-
+      <small class="dont-index">Source: <a href="https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/main/vignettes/cancereffectsizeR.Rmd" class="external-link"><code>vignettes/cancereffectsizeR.Rmd</code></a></small>
+      <div class="d-none name"><code>cancereffectsizeR.Rmd</code></div>
     </div>
 
     
     
-<p>Welcome to cancereffectsizeR! This tutorial walks you through some of the package’s key features to analyze publicly-available tumor sequencing data. We recommend that you start a fresh R/RStudio session. You can follow along by copy-and-pasting code into an R script.</p>
-<div id="installation-and-quickstart" class="section level2">
-<h2 class="hasAnchor">
-<a href="#installation-and-quickstart" class="anchor"></a>Installation and quickstart</h2>
+<p>This tutorial applies some of the package’s key features to analyze publicly-available somatic variant data from tumor sequencing. We recommend that you start a fresh R/RStudio session. You can follow along by copy-and-pasting code into an R script.</p>
+<div class="section level2">
+<h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
+</h2>
 <p>If you haven’t installed the package yet, or if it’s been a while, install the latest release:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># Some dependencies are large, so we increase the download time limit to be safe</span>
-<span class="fu"><a href="https://rdrr.io/r/base/options.html">options</a></span><span class="op">(</span>timeout <span class="op">=</span> <span class="fl">600</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html">install.packages</a></span><span class="op">(</span><span class="st">"remotes"</span><span class="op">)</span>
-<span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html">install_github</a></span><span class="op">(</span><span class="st">"Townsend-Lab-Yale/cancereffectsizeR@*release"</span>, dependencies <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></code></pre></div>
-<p>Regrettably, there is a bug in some older versions of the GenomeInfoDb package that may produce cryptic error messages in cancereffectsizeR, along the lines of <code>!anyNA(m32) is not TRUE</code>. If you encounter this issue, the simplest solution is to update your Bioconductor version:</p>
+<span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>timeout <span class="op">=</span> <span class="fl">600</span><span class="op">)</span>
+<span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"remotes"</span><span class="op">)</span>
+<span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"Townsend-Lab-Yale/cancereffectsizeR@*release"</span>,
+  dependencies <span class="op">=</span> <span class="cn">TRUE</span>
+<span class="op">)</span></code></pre></div>
+<p>Regrettably, there is a bug in some older versions of the GenomeInfoDb package that may produce cryptic error messages in cancereffectsizeR, along the lines of <code>!anyNA(m32) is not TRUE</code>. If you encounter this issue, upgrade your Bioconductor version:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># Only necessary if the current Bioconductor version is &lt;3.14.</span>
-<span class="kw">if</span> <span class="op">(</span><span class="fu">BiocManager</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/BiocManager/man/version.html">version</a></span><span class="op">(</span><span class="op">)</span> <span class="op">&lt;</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric_version.html">as.package_version</a></span><span class="op">(</span><span class="st">"3.14"</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span>
-  <span class="fu">BiocManager</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/BiocManager/man/install.html">install</a></span><span class="op">(</span>version <span class="op">=</span> <span class="st">"3.14"</span><span class="op">)</span>
+<span class="kw">if</span> <span class="op">(</span><span class="fu">BiocManager</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/BiocManager/man/version.html" class="external-link">version</a></span><span class="op">(</span><span class="op">)</span> <span class="op">&lt;</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric_version.html" class="external-link">as.package_version</a></span><span class="op">(</span><span class="st">"3.14"</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span>
+  <span class="fu">BiocManager</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/BiocManager/man/install.html" class="external-link">install</a></span><span class="op">(</span>version <span class="op">=</span> <span class="st">"3.14"</span><span class="op">)</span>
 <span class="op">}</span></code></pre></div>
 <p>In addition to installing cancereffectsizeR, you need to install a reference data set, or <em>refset</em>. These refsets include genomic and gene annotations, mutational signature definitions, and more. Currently, refsets supporting the hg38 and hg19 builds of the human genome are available as separate data packages. (If you want to build your own refset to use a custom genome build or gene set for almost any species, <a href="custom_refset_instructions.html">you can</a>.) For this tutorial, we’ll use the hg38 refset package.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/base/options.html">options</a></span><span class="op">(</span>timeout <span class="op">=</span> <span class="fl">600</span><span class="op">)</span>
-<span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html">install_github</a></span><span class="op">(</span><span class="st">"Townsend-Lab-Yale/ces.refset.hg38@*release"</span><span class="op">)</span></code></pre></div>
-<p>Before continuing, you may want to create a directory for this tutorial to store all the data and output in one place.</p>
+<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>timeout <span class="op">=</span> <span class="fl">600</span><span class="op">)</span>
+<span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"Townsend-Lab-Yale/ces.refset.hg38@*release"</span><span class="op">)</span></code></pre></div>
+<p>Restart R/RStudio after installation. Before continuing, you may want to create a directory for this tutorial to store all the data and output in one place.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># setwd() somewhere, if desired</span>
-<span class="fu"><a href="https://rdrr.io/r/base/files2.html">dir.create</a></span><span class="op">(</span><span class="st">"CES_tutorial"</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/base/getwd.html">setwd</a></span><span class="op">(</span><span class="st">"CES_tutorial"</span><span class="op">)</span></code></pre></div>
-<div id="quickstart" class="section level3">
-<h3 class="hasAnchor">
-<a href="#quickstart" class="anchor"></a>Quickstart</h3>
-If you want to skip all the details and run through a no-frills cancereffectsizeR analysis now, see below. Otherwise, take a peek to get a sense of what’s to come, or keep reading for a more thorough walkthrough.
+<span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="st">"CES_tutorial"</span><span class="op">)</span>
+<span class="fu"><a href="https://rdrr.io/r/base/getwd.html" class="external-link">setwd</a></span><span class="op">(</span><span class="st">"CES_tutorial"</span><span class="op">)</span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="quickstart">Quickstart<a class="anchor" aria-label="anchor" href="#quickstart"></a>
+</h2>
+<div class="section level3">
+<h3 id="theoretical-overview">Theoretical overview<a class="anchor" aria-label="anchor" href="#theoretical-overview"></a>
+</h3>
+<p>Very briefly, we extract mutational signatures from each samples’s SNV mutation profile using <a href="https://bioconductor.org/packages/release/bioc/html/MutationalPatterns.html" class="external-link">MutationalPatterns</a>. The relative weights of biologically associated signatures are used to infer trinucleotide-context-specific relative rates of SNV mutations for each sample. Cohort-wide neutral gene mutation rates are calculated with <a href="https://github.com/im3sanger/dndscv" class="external-link">dNdScv</a>, with tissue-specific covariates provided by <code>ces.refset.hg38</code>. Combining this information, the rate of neutral mutation at a particular variant site is calculated by partitioning the gene mutation rate across all sites in the gene in accordance with the signature-informed relative rates. Comparing rates of observed and expected mutation under a model of somatic selection allows an inference of selection intensity, which we call cancer effect size.</p>
+</div>
+<div class="section level3">
+<h3 id="example-lung-adenocarcinoma-data-from-tcga">Example: Lung adenocarcinoma data from TCGA<a class="anchor" aria-label="anchor" href="#example-lung-adenocarcinoma-data-from-tcga"></a>
+</h3>
+<p>If you want to skip all the details and run through a no-frills cancereffectsizeR analysis now, see below. Otherwise, take a peek to get a sense of what’s to come, or keep reading for a more thorough walkthrough.</p>
 <details><summary>
 (Show/hide quickstart)
 </summary><div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://townsend-lab-yale.github.io/cancereffectsizeR">cancereffectsizeR</a></span><span class="op">)</span>
-<span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://r-datatable.com">data.table</a></span><span class="op">)</span>
-<span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org">ggplot2</a></span><span class="op">)</span>
+<code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://townsend-lab-yale.github.io/cancereffectsizeR" class="external-link">cancereffectsizeR</a></span><span class="op">)</span>
+<span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-datatable.com" class="external-link">data.table</a></span><span class="op">)</span>
+<span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span>
 
 <span class="co"># Download lung adenocarcinoma (LUAD) somatic variant data.</span>
 <span class="co"># Note that the rest of the tutorial uses BRCA, not LUAD.</span>
 <span class="va">tcga_maf_file</span> <span class="op">&lt;-</span> <span class="st">"inst/tutorial/TCGA.LUAD.mutect.0458c57f-316c-4a7c-9294-ccd11c97c2f9.DR-10.0.somatic.maf.gz"</span>
-<span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/files.html">file.exists</a></span><span class="op">(</span><span class="va">tcga_maf_file</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span>
-  <span class="fu"><a href="https://rdrr.io/r/utils/download.file.html">download.file</a></span><span class="op">(</span><span class="st">"https://api.gdc.cancer.gov/data/0458c57f-316c-4a7c-9294-ccd11c97c2f9"</span>,
+<span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="va">tcga_maf_file</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span>
+  <span class="fu"><a href="https://rdrr.io/r/utils/download.file.html" class="external-link">download.file</a></span><span class="op">(</span><span class="st">"https://api.gdc.cancer.gov/data/0458c57f-316c-4a7c-9294-ccd11c97c2f9"</span>,
     destfile <span class="op">=</span> <span class="va">tcga_maf_file</span>
   <span class="op">)</span>
 <span class="op">}</span>
 
 <span class="co"># Prepare data and filter out a few likely germline/false-positive calls</span>
 <span class="va">maf</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/preload_maf.html">preload_maf</a></span><span class="op">(</span>maf <span class="op">=</span> <span class="va">tcga_maf_file</span>, refset <span class="op">=</span> <span class="st">"ces.refset.hg38"</span><span class="op">)</span>
-<span class="va">maf</span> <span class="op">&lt;-</span> <span class="va">maf</span><span class="op">[</span><span class="va">germline_variant_site</span> <span class="op">==</span> <span class="cn">F</span><span class="op">]</span><span class="op">[</span><span class="va">repetitive_region</span> <span class="op">==</span> <span class="cn">F</span> <span class="op">|</span> <span class="va">cosmic_site_tier</span> <span class="op">%in%</span> <span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span>
+<span class="va">maf</span> <span class="op">&lt;-</span> <span class="va">maf</span><span class="op">[</span><span class="va">germline_variant_site</span> <span class="op">==</span> <span class="cn">F</span><span class="op">]</span><span class="op">[</span><span class="va">repetitive_region</span> <span class="op">==</span> <span class="cn">F</span> <span class="op">|</span> <span class="va">cosmic_site_tier</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span>
 
 <span class="co"># Create cancereffectsizeR analysis and load data</span>
 <span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/CESAnalysis.html">CESAnalysis</a></span><span class="op">(</span>refset <span class="op">=</span> <span class="st">"ces.refset.hg38"</span><span class="op">)</span>
@@ -189,37 +173,37 @@ If you want to skip all the details and run through a no-frills cancereffectsize
 <span class="va">selection</span> <span class="op">&lt;-</span> <span class="va">selection</span><span class="op">[</span><span class="va">cesa</span><span class="op">$</span><span class="va">variants</span>, on <span class="op">=</span> <span class="st">"variant_id"</span>, nomatch <span class="op">=</span> <span class="cn">NULL</span><span class="op">]</span>
 
 <span class="co"># Take top 15 variants, then sort lowest to highest (to plot left to right)</span>
-<span class="va">top</span> <span class="op">&lt;-</span> <span class="va">selection</span><span class="op">[</span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/setorder.html">order</a></span><span class="op">(</span><span class="op">-</span><span class="va">selection_intensity</span><span class="op">)</span><span class="op">]</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">15</span><span class="op">]</span>
-<span class="va">top</span> <span class="op">&lt;-</span> <span class="va">top</span><span class="op">[</span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/setorder.html">order</a></span><span class="op">(</span><span class="va">selection_intensity</span><span class="op">)</span><span class="op">]</span>
+<span class="va">top</span> <span class="op">&lt;-</span> <span class="va">selection</span><span class="op">[</span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/setorder.html" class="external-link">order</a></span><span class="op">(</span><span class="op">-</span><span class="va">selection_intensity</span><span class="op">)</span><span class="op">]</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">15</span><span class="op">]</span>
+<span class="va">top</span> <span class="op">&lt;-</span> <span class="va">top</span><span class="op">[</span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/setorder.html" class="external-link">order</a></span><span class="op">(</span><span class="va">selection_intensity</span><span class="op">)</span><span class="op">]</span>
 
 <span class="co"># Plot top effects</span>
-<span class="va">top</span><span class="op">[</span>, <span class="va">display_name</span> <span class="op">:=</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html">gsub</a></span><span class="op">(</span><span class="st">"_"</span>, <span class="st">"\n"</span>, <span class="va">variant_name</span><span class="op">)</span><span class="op">]</span>
-<span class="va">top</span><span class="op">[</span>, <span class="va">display_levels</span> <span class="op">:=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">factor</a></span><span class="op">(</span><span class="va">display_name</span>, levels <span class="op">=</span> <span class="va">display_name</span>, ordered <span class="op">=</span> <span class="cn">T</span><span class="op">)</span><span class="op">]</span>
+<span class="va">top</span><span class="op">[</span>, <span class="va">display_name</span> <span class="op">:=</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">gsub</a></span><span class="op">(</span><span class="st">"_"</span>, <span class="st">"\n"</span>, <span class="va">variant_name</span><span class="op">)</span><span class="op">]</span>
+<span class="va">top</span><span class="op">[</span>, <span class="va">display_levels</span> <span class="op">:=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">display_name</span>, levels <span class="op">=</span> <span class="va">display_name</span>, ordered <span class="op">=</span> <span class="cn">T</span><span class="op">)</span><span class="op">]</span>
 <span class="va">plot_title</span> <span class="op">&lt;-</span> <span class="st">"Top cancer effects in TCGA LUAD"</span>
-<span class="va">breaks</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/duplicated.html">unique</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/quantile.html">quantile</a></span><span class="op">(</span><span class="va">top</span><span class="op">$</span><span class="va">included_with_variant</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>
+<span class="va">breaks</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/duplicated.html" class="external-link">unique</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/quantile.html" class="external-link">quantile</a></span><span class="op">(</span><span class="va">top</span><span class="op">$</span><span class="va">included_with_variant</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>
 
-<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span><span class="op">(</span><span class="va">top</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">display_levels</span>, y <span class="op">=</span> <span class="va">selection_intensity</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_linerange.html">geom_errorbar</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span><span class="op">(</span>ymin <span class="op">=</span> <span class="va">ci_low_95</span>, ymax <span class="op">=</span> <span class="va">ci_high_95</span><span class="op">)</span>, width <span class="op">=</span> <span class="fl">.2</span>, color <span class="op">=</span> <span class="st">"darkgrey"</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html">geom_point</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span><span class="op">(</span>color <span class="op">=</span> <span class="va">included_with_variant</span><span class="op">)</span>, size <span class="op">=</span> <span class="fl">3</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_discrete.html">scale_x_discrete</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html">scale_y_log10</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html">scale_color_viridis_c</a></span><span class="op">(</span>
+<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">top</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">display_levels</span>, y <span class="op">=</span> <span class="va">selection_intensity</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_linerange.html" class="external-link">geom_errorbar</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>ymin <span class="op">=</span> <span class="va">ci_low_95</span>, ymax <span class="op">=</span> <span class="va">ci_high_95</span><span class="op">)</span>, width <span class="op">=</span> <span class="fl">.2</span>, color <span class="op">=</span> <span class="st">"darkgrey"</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>color <span class="op">=</span> <span class="va">included_with_variant</span><span class="op">)</span>, size <span class="op">=</span> <span class="fl">3</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_discrete.html" class="external-link">scale_x_discrete</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_y_log10</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_color_viridis_c</a></span><span class="op">(</span>
     name <span class="op">=</span> <span class="st">"variant prevalence"</span>, guide <span class="op">=</span> <span class="st">"colorbar"</span>, trans <span class="op">=</span> <span class="st">"log10"</span>,
     option <span class="op">=</span> <span class="st">"plasma"</span>, breaks <span class="op">=</span> <span class="va">breaks</span>
   <span class="op">)</span> <span class="op">+</span>
-  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">xlab</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html">element_blank</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">ylab</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/expression.html">expression</a></span><span class="op">(</span><span class="st">"cancer effect"</span> <span class="op">~</span> <span class="fu"><a href="https://rdrr.io/r/grDevices/plotmath.html">scriptstyle</a></span><span class="op">(</span><span class="op">~</span> <span class="op">~</span> <span class="op">(</span><span class="va">log</span><span class="op">[</span><span class="fl">10</span><span class="op">]</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">ggtitle</a></span><span class="op">(</span><span class="va">plot_title</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/guides.html">guides</a></span><span class="op">(</span>color <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/guide_colourbar.html">guide_colourbar</a></span><span class="op">(</span>ticks <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html">theme_minimal</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html">theme</a></span><span class="op">(</span>
-    text <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html">element_text</a></span><span class="op">(</span>family <span class="op">=</span> <span class="st">"Verdana"</span><span class="op">)</span>,
-    axis.title.x <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html">element_text</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">14</span><span class="op">)</span>,
-    axis.text.x <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html">element_text</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">8</span><span class="op">)</span>,
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">xlab</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_blank</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ylab</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/expression.html" class="external-link">expression</a></span><span class="op">(</span><span class="st">"cancer effect"</span> <span class="op">~</span> <span class="fu"><a href="https://rdrr.io/r/grDevices/plotmath.html" class="external-link">scriptstyle</a></span><span class="op">(</span><span class="op">~</span> <span class="op">~</span> <span class="op">(</span><span class="va">log</span><span class="op">[</span><span class="fl">10</span><span class="op">]</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="va">plot_title</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/guides.html" class="external-link">guides</a></span><span class="op">(</span>color <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/guide_colourbar.html" class="external-link">guide_colourbar</a></span><span class="op">(</span>ticks <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>
+    text <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>family <span class="op">=</span> <span class="st">"Verdana"</span><span class="op">)</span>,
+    axis.title.x <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">14</span><span class="op">)</span>,
+    axis.text.x <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">8</span><span class="op">)</span>,
     legend.position <span class="op">=</span> <span class="st">"bottom"</span>,
-    legend.title <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html">element_text</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">10</span><span class="op">)</span>,
-    panel.grid.major.x <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html">element_blank</a></span><span class="op">(</span><span class="op">)</span>,
-    panel.grid.minor.x <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html">element_blank</a></span><span class="op">(</span><span class="op">)</span>
+    legend.title <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">10</span><span class="op">)</span>,
+    panel.grid.major.x <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_blank</a></span><span class="op">(</span><span class="op">)</span>,
+    panel.grid.minor.x <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_blank</a></span><span class="op">(</span><span class="op">)</span>
   <span class="op">)</span>
 
 <span class="co"># There's lots more that can be done with cancereffectsizeR! See the full tutorial for some</span>
@@ -228,34 +212,34 @@ If you want to skip all the details and run through a no-frills cancereffectsize
 </details>
 </div>
 </div>
-<div id="preparing-data" class="section level2">
-<h2 class="hasAnchor">
-<a href="#preparing-data" class="anchor"></a>Preparing data</h2>
+<div class="section level2">
+<h2 id="preparing-data">Preparing data<a class="anchor" aria-label="anchor" href="#preparing-data"></a>
+</h2>
 <p>Load cancereffectsizeR, as well as the data.table package. cancereffectsizeR makes extensive use of data tables, so it’s handy to have the package loaded.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://townsend-lab-yale.github.io/cancereffectsizeR">cancereffectsizeR</a></span><span class="op">)</span>
-<span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://r-datatable.com">data.table</a></span><span class="op">)</span></code></pre></div>
-<p>For this tutorial, we’ll use somatic variant data produced from exome sequencing by the TCGA BRCA (breast carcinoma) project. We will supplement this with targeted sequencing data from the Metastatic Breast Cancer data set <a href="https://www.cbioportal.org/study/summary?id=breast_ink4_msk_2021">hosted at cBioPortal</a>. (We stop at two data sources for brevity; for the best possible analysis of somatic selection, we would want to include as many data sources as we could find.)</p>
+<code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://townsend-lab-yale.github.io/cancereffectsizeR" class="external-link">cancereffectsizeR</a></span><span class="op">)</span>
+<span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-datatable.com" class="external-link">data.table</a></span><span class="op">)</span></code></pre></div>
+<p>For this tutorial, we’ll use somatic variant data produced from exome sequencing by the TCGA BRCA (breast carcinoma) project. We will supplement this with targeted sequencing data from the Metastatic Breast Cancer data set <a href="https://www.cbioportal.org/study/summary?id=breast_ink4_msk_2021" class="external-link">hosted at cBioPortal</a>. (We stop at two data sources for brevity; for the best possible analysis of somatic selection, we would want to include as many data sources as we could find.)</p>
 <p>In cancereffectsizeR, data can be combined from multiple whole-exome, whole-genome, and targeted sequencing sources, although we always need at least one source of whole-exome or whole-genome data to anchor the analysis. Targeted sequencing data can’t be used for mutation rate inference: there are too few mutations, typically, and since they’re mostly in cancer hotspots, they don’t provide a baseline of what mutation rates are like in the absence of selection. Instead, mutation rates in TGS samples will be assumed to be similar to those calculated in WXS/WGS samples.</p>
-<div id="tcga-data-whole-exome" class="section level3">
-<h3 class="hasAnchor">
-<a href="#tcga-data-whole-exome" class="anchor"></a>TCGA data (whole-exome)</h3>
-<p>We’ll begin by downloading variant data from TCGA. The data comes in a large text file listing somatic mutations for a collection of tumors, in accordance with <a href="https://docs.gdc.cancer.gov/Data/File_Formats/MAF_Format">MAF format</a>.</p>
+<div class="section level3">
+<h3 id="tcga-data-whole-exome">TCGA data (whole-exome)<a class="anchor" aria-label="anchor" href="#tcga-data-whole-exome"></a>
+</h3>
+<p>We’ll begin by downloading variant data from TCGA. The data comes in a large text file listing somatic mutations for a collection of tumors, in accordance with <a href="https://docs.gdc.cancer.gov/Data/File_Formats/MAF_Format" class="external-link">MAF format</a>.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">tcga_maf_file</span> <span class="op">&lt;-</span> <span class="st">"TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf.gz"</span>
-<span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/files.html">file.exists</a></span><span class="op">(</span><span class="va">tcga_maf_file</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span>
-  <span class="fu"><a href="https://rdrr.io/r/utils/download.file.html">download.file</a></span><span class="op">(</span><span class="st">"https://api.gdc.cancer.gov/data/995c0111-d90b-4140-bee7-3845436c3b42"</span>, destfile <span class="op">=</span> <span class="va">tcga_maf_file</span><span class="op">)</span>
+<span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="va">tcga_maf_file</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span>
+  <span class="fu"><a href="https://rdrr.io/r/utils/download.file.html" class="external-link">download.file</a></span><span class="op">(</span><span class="st">"https://api.gdc.cancer.gov/data/995c0111-d90b-4140-bee7-3845436c3b42"</span>, destfile <span class="op">=</span> <span class="va">tcga_maf_file</span><span class="op">)</span>
 <span class="op">}</span></code></pre></div>
 <p>Let’s also load and examine a table of patient information. Although the TCGA samples in the data set are all taken from primary tumors, you’ll see that some patients presented with metastatic disease (pM = M1). Hormone receptor status (progesterone or estrogen receptor positive) and HER2 amplification status are also recorded in a combined column.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">tcga_clinical</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/fread.html">fread</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html">system.file</a></span><span class="op">(</span><span class="st">"tutorial/TCGA_BRCA_clinical.txt"</span>, package <span class="op">=</span> <span class="st">"cancereffectsizeR"</span><span class="op">)</span><span class="op">)</span>
+<code class="sourceCode R"><span class="va">tcga_clinical</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/fread.html" class="external-link">fread</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"tutorial/TCGA_BRCA_clinical.txt"</span>, package <span class="op">=</span> <span class="st">"cancereffectsizeR"</span><span class="op">)</span><span class="op">)</span>
 <span class="va">tcga_clinical</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span></code></pre></div>
-<pre><code>##      patient_id   pM receptor_status
-## 1: TCGA-3C-AAAU &lt;NA&gt;       HR+/HER2-
-## 2: TCGA-3C-AALI   M0       HR+/HER2+
-## 3: TCGA-3C-AALJ   M0            &lt;NA&gt;
-## 4: TCGA-3C-AALK   M0       HR+/HER2+
-## 5: TCGA-4H-AAAK   M0            &lt;NA&gt;</code></pre>
+<pre><code><span class="co">##      patient_id   pM receptor_status</span>
+<span class="co">## 1: TCGA-3C-AAAU &lt;NA&gt;       HR+/HER2-</span>
+<span class="co">## 2: TCGA-3C-AALI   M0       HR+/HER2+</span>
+<span class="co">## 3: TCGA-3C-AALJ   M0            &lt;NA&gt;</span>
+<span class="co">## 4: TCGA-3C-AALK   M0       HR+/HER2+</span>
+<span class="co">## 5: TCGA-4H-AAAK   M0            &lt;NA&gt;</span></code></pre>
 <p>The <code><a href="../reference/preload_maf.html">preload_maf()</a></code> function takes in MAF data, finds the columns needed by cancereffectsizeR, adds a couple of genomic annotations, and checks for common problems. Since TCGA data sets are well-curated, this particular run will not reveal any problems. This MAF file already uses the hg38 genome build, but if it didn’t, we could use the <code>chain_file</code> argument to convert records via liftOver.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">tcga_maf</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/preload_maf.html">preload_maf</a></span><span class="op">(</span>maf <span class="op">=</span> <span class="va">tcga_maf_file</span>, refset <span class="op">=</span> <span class="st">"ces.refset.hg38"</span><span class="op">)</span></code></pre></div>
@@ -265,25 +249,25 @@ If you want to skip all the details and run through a no-frills cancereffectsize
 <code class="sourceCode R"><span class="co"># TCGA sample IDs start with the patient ID, luckily. Here, we verify a 1-1 sample-patient</span>
 <span class="co"># relationship. If this check failed, we would need to figure out a sample exclusion</span>
 <span class="co"># strategy before proceeding with analysis.</span>
-<span class="va">tcga_maf</span><span class="op">[</span>, <span class="va">patient_id</span> <span class="op">:=</span> <span class="fu"><a href="https://rdrr.io/r/base/substr.html">substr</a></span><span class="op">(</span><span class="va">Unique_Patient_Identifier</span>, <span class="fl">1</span>, <span class="fl">12</span><span class="op">)</span><span class="op">]</span>
-<span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/duplicated.html">uniqueN</a></span><span class="op">(</span><span class="va">tcga_maf</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span><span class="va">patient_id</span>, <span class="va">Unique_Patient_Identifier</span><span class="op">)</span><span class="op">]</span><span class="op">)</span> <span class="op">==</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/duplicated.html">uniqueN</a></span><span class="op">(</span><span class="va">tcga_maf</span><span class="op">$</span><span class="va">Unique_Patient_Identifier</span><span class="op">)</span>
+<span class="va">tcga_maf</span><span class="op">[</span>, <span class="va">patient_id</span> <span class="op">:=</span> <span class="fu"><a href="https://rdrr.io/r/base/substr.html" class="external-link">substr</a></span><span class="op">(</span><span class="va">Unique_Patient_Identifier</span>, <span class="fl">1</span>, <span class="fl">12</span><span class="op">)</span><span class="op">]</span>
+<span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/duplicated.html" class="external-link">uniqueN</a></span><span class="op">(</span><span class="va">tcga_maf</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span><span class="va">patient_id</span>, <span class="va">Unique_Patient_Identifier</span><span class="op">)</span><span class="op">]</span><span class="op">)</span> <span class="op">==</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/duplicated.html" class="external-link">uniqueN</a></span><span class="op">(</span><span class="va">tcga_maf</span><span class="op">$</span><span class="va">Unique_Patient_Identifier</span><span class="op">)</span>
 
 <span class="co"># We can now use patient_id as the unique identifier.</span>
 <span class="va">tcga_maf</span><span class="op">[</span>, <span class="va">Unique_Patient_Identifier</span> <span class="op">:=</span> <span class="va">patient_id</span><span class="op">]</span>
 <span class="va">tcga_maf</span><span class="op">[</span>, <span class="va">patient_id</span> <span class="op">:=</span> <span class="cn">NULL</span><span class="op">]</span> <span class="co"># remove redundant column</span>
-<span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/setattr.html">setnames</a></span><span class="op">(</span><span class="va">tcga_clinical</span>, <span class="st">"patient_id"</span>, <span class="st">"Unique_Patient_Identifier"</span><span class="op">)</span></code></pre></div>
+<span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/setattr.html" class="external-link">setnames</a></span><span class="op">(</span><span class="va">tcga_clinical</span>, <span class="st">"patient_id"</span>, <span class="st">"Unique_Patient_Identifier"</span><span class="op">)</span></code></pre></div>
 </div>
-<div id="metastatic-data-tgs" class="section level3">
-<h3 class="hasAnchor">
-<a href="#metastatic-data-tgs" class="anchor"></a>Metastatic data (TGS)</h3>
-<p>Our TGS data source (hosted on cBioPortal and <a href="https://cancerdiscovery.aacrjournals.org/content/candisc/early/2021/09/17/2159-8290.CD-20-1726.full.pdf">recently published</a> in Cancer Discovery), consists of metastatic tumors that were sequenced using various MSK-Impact panels. In the full data set, some patients have multiple samples sequenced; the data provided with the package has been subsetted to one sample per patient, and the genome build has been converted to hg38.</p>
+<div class="section level3">
+<h3 id="metastatic-data-tgs">Metastatic data (TGS)<a class="anchor" aria-label="anchor" href="#metastatic-data-tgs"></a>
+</h3>
+<p>Our TGS data source (hosted on cBioPortal and <a href="https://cancerdiscovery.aacrjournals.org/content/candisc/early/2021/09/17/2159-8290.CD-20-1726.full.pdf" class="external-link">recently published</a> in Cancer Discovery), consists of metastatic tumors that were sequenced using various MSK-Impact panels. In the full data set, some patients have multiple samples sequenced; the data provided with the package has been subsetted to one sample per patient, and the genome build has been converted to hg38.</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">tgs_maf_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html">system.file</a></span><span class="op">(</span><span class="st">"tutorial/metastatic_breast_2021_hg38.maf"</span>, package <span class="op">=</span> <span class="st">"cancereffectsizeR"</span><span class="op">)</span>
+<code class="sourceCode R"><span class="va">tgs_maf_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"tutorial/metastatic_breast_2021_hg38.maf"</span>, package <span class="op">=</span> <span class="st">"cancereffectsizeR"</span><span class="op">)</span>
 <span class="va">tgs_maf</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/preload_maf.html">preload_maf</a></span><span class="op">(</span>maf <span class="op">=</span> <span class="va">maf_file</span>, refset <span class="op">=</span> <span class="va">ces.refset.hg38</span><span class="op">)</span></code></pre></div>
 </div>
-<div id="pre-analysis-variant-filtering" class="section level3">
-<h3 class="hasAnchor">
-<a href="#pre-analysis-variant-filtering" class="anchor"></a>Pre-analysis variant filtering</h3>
+<div class="section level3">
+<h3 id="pre-analysis-variant-filtering">Pre-analysis variant filtering<a class="anchor" aria-label="anchor" href="#pre-analysis-variant-filtering"></a>
+</h3>
 <details><summary>
 (Show/hide justification)
 </summary><p>Since our goal is to quantify somatic selection, we want the MAF data to represent a complete set of high-confidence somatic variants from the samples. It’s probably unwise to go too far down the rabbithole of second-guessing the variant calling methods used in the data sources. However, there is some simple filtering that we often use to bring the data into alignment with these tenets:</p>
@@ -300,24 +284,24 @@ If you want to skip all the details and run through a no-frills cancereffectsize
 </ul></details><p>We suggest filtering out all germline site records, as well as records from repetitive regions except for the few with COSMIC annotations. We can apply this filtering like this:</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">tcga_maf</span> <span class="op">&lt;-</span> <span class="va">tcga_maf</span><span class="op">[</span><span class="va">germline_variant_site</span> <span class="op">==</span> <span class="cn">F</span><span class="op">]</span>
-<span class="va">tcga_maf</span> <span class="op">&lt;-</span> <span class="va">tcga_maf</span><span class="op">[</span><span class="va">repetitive_region</span> <span class="op">==</span> <span class="cn">F</span> <span class="op">|</span> <span class="va">cosmic_site_tier</span> <span class="op">%in%</span> <span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span></code></pre></div>
+<span class="va">tcga_maf</span> <span class="op">&lt;-</span> <span class="va">tcga_maf</span><span class="op">[</span><span class="va">repetitive_region</span> <span class="op">==</span> <span class="cn">F</span> <span class="op">|</span> <span class="va">cosmic_site_tier</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span></code></pre></div>
 <p>We don’t apply these filters to TGS data, since it tends to be high-depth sequencing of cancer hotspots.</p>
 <p>When combining data sources, or using data from projects that sequenced multiple samples per patient, it’s important to verify that only one sample per patient is included in your MAF (and in your downstream cancereffectsizeR analysis), since samples from the same patient likely did not evolve independently. Since it’s often hard to be sure that there isn’t re-use of samples across different data sources, we recommend both careful manual curation and the use of <code><a href="../reference/check_sample_overlap.html">check_sample_overlap()</a></code> to catch unexpected sample duplication. (If you try it on <code>tcga_maf</code> and <code>tgs_maf</code>, you’ll see that our data passes this check.)</p>
-<div id="what-not-to-filter" class="section level4">
-<h4 class="hasAnchor">
-<a href="#what-not-to-filter" class="anchor"></a>What not to filter</h4>
+<div class="section level4">
+<h4 id="what-not-to-filter">What not to filter<a class="anchor" aria-label="anchor" href="#what-not-to-filter"></a>
+</h4>
 <p>To get a complete picture of the mutational processes present in tissues, whole-exome/whole-genome variants should not be filtered on any sort of functional criteria. One thing to watch out for: Occasionally, researchers will leave out synonymous variants when publishing their study data. As synonymous variants are essential for calculating gene mutation rates, the synonymous variants should be tracked down before using the data.</p>
 <p>Since TGS data is not used to infer mutation rates, it’s okay to filter TGS data to regions of interest. We are actually about to do this! We will have to take care to accurately report the coverage of the filtered data in the next step.</p>
 </div>
 </div>
 </div>
-<div id="create-cesanalysis-and-load-data" class="section level2">
-<h2 class="hasAnchor">
-<a href="#create-cesanalysis-and-load-data" class="anchor"></a>Create CESAnalysis and load data</h2>
+<div class="section level2">
+<h2 id="create-cesanalysis-and-load-data">Create CESAnalysis and load data<a class="anchor" aria-label="anchor" href="#create-cesanalysis-and-load-data"></a>
+</h2>
 <p>The CESAnalysis is the primary data structure of cancereffectsizeR. The cancereffectsizeR workflow consists of calling a series of functions that take a CESAnalysis as input and return an altered CESAnalysis. Re-using the same variable name will keep things tidy.</p>
-<div id="load-wxs-data" class="section level3">
-<h3 class="hasAnchor">
-<a href="#load-wxs-data" class="anchor"></a>Load WXS data</h3>
+<div class="section level3">
+<h3 id="load-wxs-data">Load WXS data<a class="anchor" aria-label="anchor" href="#load-wxs-data"></a>
+</h3>
 <p>Let’s create a CESAnalysis and call <code><a href="../reference/load_maf.html">load_maf()</a></code> to load the TCGA data.</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/CESAnalysis.html">CESAnalysis</a></span><span class="op">(</span>refset <span class="op">=</span> <span class="st">"ces.refset.hg38"</span><span class="op">)</span>
@@ -330,34 +314,34 @@ If you want to skip all the details and run through a no-frills cancereffectsize
 <span class="va">cesa</span><span class="op">$</span><span class="va">samples</span>
 
 <span class="co"># Let's see the top variants</span>
-<span class="op">(</span><span class="va">top_variants</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/setorder.html">order</a></span><span class="op">(</span><span class="op">-</span><span class="va">maf_prevalence</span><span class="op">)</span><span class="op">]</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span>, <span class="fu">.</span><span class="op">(</span><span class="va">variant_name</span>, <span class="va">chr</span>, <span class="va">start</span>, <span class="va">end</span>, <span class="va">maf_prevalence</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></code></pre></div>
+<span class="op">(</span><span class="va">top_variants</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/setorder.html" class="external-link">order</a></span><span class="op">(</span><span class="op">-</span><span class="va">maf_prevalence</span><span class="op">)</span><span class="op">]</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span>, <span class="fu">.</span><span class="op">(</span><span class="va">variant_name</span>, <span class="va">chr</span>, <span class="va">start</span>, <span class="va">end</span>, <span class="va">maf_prevalence</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></code></pre></div>
 <p>Let’s load the clinical data into the analysis, too.</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/load_sample_data.html">load_sample_data</a></span><span class="op">(</span><span class="va">cesa</span>, <span class="va">tcga_clinical</span><span class="op">)</span></code></pre></div>
 <p>Now that we’ve loaded the sample data, we can, for example, see how variant counts break down across different sample groups. Let’s see a breakdown PIK3CA mutation status by BRCA receptor phenotype.</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># Get samples with 1 or more PIK3CA mutation</span>
-<span class="va">samples_with_pik3ca</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">maf</span><span class="op">[</span><span class="va">top_gene</span> <span class="op">==</span> <span class="st">"PIK3CA"</span>, <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/duplicated.html">unique</a></span><span class="op">(</span><span class="va">Unique_Patient_Identifier</span><span class="op">)</span><span class="op">]</span>
+<span class="va">samples_with_pik3ca</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">maf</span><span class="op">[</span><span class="va">top_gene</span> <span class="op">==</span> <span class="st">"PIK3CA"</span>, <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/duplicated.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">Unique_Patient_Identifier</span><span class="op">)</span><span class="op">]</span>
 <span class="va">pik3ca_sample_counts</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">samples</span><span class="op">[</span><span class="va">samples_with_pik3ca</span>, <span class="fu">.</span><span class="op">(</span>with_PIK3CA <span class="op">=</span> <span class="va">.N</span><span class="op">)</span>,
   by <span class="op">=</span> <span class="st">"receptor_status"</span>, on <span class="op">=</span> <span class="st">"Unique_Patient_Identifier"</span>
 <span class="op">]</span>
 <span class="va">total_sample_counts</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">samples</span><span class="op">[</span>, <span class="va">.N</span>, by <span class="op">=</span> <span class="st">"receptor_status"</span><span class="op">]</span>
-<span class="va">combined_counts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/merge.html">merge.data.table</a></span><span class="op">(</span><span class="va">pik3ca_sample_counts</span>, <span class="va">total_sample_counts</span>, by <span class="op">=</span> <span class="st">"receptor_status"</span><span class="op">)</span>
+<span class="va">combined_counts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/merge.html" class="external-link">merge.data.table</a></span><span class="op">(</span><span class="va">pik3ca_sample_counts</span>, <span class="va">total_sample_counts</span>, by <span class="op">=</span> <span class="st">"receptor_status"</span><span class="op">)</span>
 <span class="va">combined_counts</span><span class="op">[</span>, <span class="va">freq</span> <span class="op">:=</span> <span class="va">with_PIK3CA</span> <span class="op">/</span> <span class="va">N</span><span class="op">]</span>
 <span class="va">combined_counts</span></code></pre></div>
 <p>PIK3CA mutation is least prevalent in triple negative breast cancer.</p>
 </div>
-<div id="load-tgs-data" class="section level3">
-<h3 class="hasAnchor">
-<a href="#load-tgs-data" class="anchor"></a>Load TGS data</h3>
+<div class="section level3">
+<h3 id="load-tgs-data">Load TGS data<a class="anchor" aria-label="anchor" href="#load-tgs-data"></a>
+</h3>
 <p>To load our TGS data, we need to be able to define its coverage. Why? To estimate the selection of a mutation, we need to know which samples have the mutation, which samples do not, and which are unknown due to lack of sequencing coverage. Our TGS samples were sequenced with multiple panels covering different genes, and unfortunately, the exact coverage (defined by genomic coordinates) is not publicly available for all of these. Therefore, for simplicity, we will filter the TGS data to mutations at a handful of top cancer genes that are covered in all of the panels. When we load the data, all records outside of these genes will be excluded, leaving us with greater power to infer selection in these genes without impacting our estimates outside these genes, which will use just the TCGA data. (As mentioned earlier, we shouldn’t filter WXS/WGS data this way, since it would interfere with mutation rate calculation, but TGS samples are not involved in mutation rate calculation.)</p>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># Define coverage using the coding regions of these genes, as defined by the refset</span>
-<span class="va">top_tgs_genes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span>
+<span class="va">top_tgs_genes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>
   <span class="st">"TP53"</span>, <span class="st">"PIK3CA"</span>, <span class="st">"ESR1"</span>, <span class="st">"CDH1"</span>, <span class="st">"GATA3"</span>, <span class="st">"KMT2C"</span>,
   <span class="st">"MAP3K1"</span>, <span class="st">"AKT1"</span>, <span class="st">"ARID1A"</span>, <span class="st">"FOXA1"</span>, <span class="st">"TBX3"</span>, <span class="st">"PTEN"</span>
 <span class="op">)</span>
-<span class="va">tgs_coverage</span> <span class="op">&lt;-</span> <span class="va">ces.refset.hg38</span><span class="op">$</span><span class="va">gr_genes</span><span class="op">[</span><span class="va">ces.refset.hg38</span><span class="op">$</span><span class="va">gr_genes</span><span class="op">$</span><span class="va">gene</span> <span class="op">%in%</span> <span class="va">top_tgs_genes</span><span class="op">]</span></code></pre></div>
+<span class="va">tgs_coverage</span> <span class="op">&lt;-</span> <span class="va">ces.refset.hg38</span><span class="op">$</span><span class="va">gr_genes</span><span class="op">[</span><span class="va">ces.refset.hg38</span><span class="op">$</span><span class="va">gr_genes</span><span class="op">$</span><span class="va">gene</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="va">top_tgs_genes</span><span class="op">]</span></code></pre></div>
 <p>We don’t have a clinical file for the TGS data, but we do know that they’re all metastatic samples. Instead of creating another table and calling <code><a href="../reference/load_sample_data.html">load_sample_data()</a></code>, we can use the <code>sample_data_cols</code> feature of load_maf():</p>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">tgs_maf</span><span class="op">$</span><span class="va">pM</span> <span class="op">&lt;-</span> <span class="st">"M1"</span>
@@ -371,12 +355,12 @@ If you want to skip all the details and run through a no-frills cancereffectsize
   cesa <span class="op">=</span> <span class="va">cesa</span>, variant_ids <span class="op">=</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="va">maf_prevalence</span> <span class="op">&gt;</span> <span class="fl">1</span>, <span class="va">variant_id</span><span class="op">]</span>,
   by <span class="op">=</span> <span class="st">"pM"</span>
 <span class="op">)</span>
-<span class="va">counts_by_M</span><span class="op">[</span><span class="va">M1_prevalence</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">]</span><span class="op">[</span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/setorder.html">order</a></span><span class="op">(</span><span class="op">-</span><span class="va">M1_prevalence</span><span class="op">)</span><span class="op">]</span></code></pre></div>
+<span class="va">counts_by_M</span><span class="op">[</span><span class="va">M1_prevalence</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">]</span><span class="op">[</span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/setorder.html" class="external-link">order</a></span><span class="op">(</span><span class="op">-</span><span class="va">M1_prevalence</span><span class="op">)</span><span class="op">]</span></code></pre></div>
 </div>
 </div>
-<div id="mutational-processes-and-relative-mutation-rates" class="section level2">
-<h2 class="hasAnchor">
-<a href="#mutational-processes-and-relative-mutation-rates" class="anchor"></a>Mutational processes and relative mutation rates</h2>
+<div class="section level2">
+<h2 id="mutational-processes-and-relative-mutation-rates">Mutational processes and relative mutation rates<a class="anchor" aria-label="anchor" href="#mutational-processes-and-relative-mutation-rates"></a>
+</h2>
 <p>For each (exome) sample in our data set, <code><a href="../reference/trinuc_mutation_rates.html">trinuc_mutation_rates()</a></code> will perform mutational signature extraction in order to to attribute each sample’s set of SNVs to a linear combination of mutational processes. By default, the signature extraction is done using the <code>MutationalPatterns</code> package, and <code>deconstructSigs</code> is also supported. The signature attribution allows us to infer sample-specific relative rates of SNV mutation for all trinucleotide contexts. TGS samples will be assumed to have mutational processes matching the group-average mutational processes of the exome data. (This isn’t optimal, since the metastatic samples may be affected by mutational processes, such as chemotherapy, that are lacking in the primary tumor exome data, but it might be the best we can do without finding another data source.)</p>
 <p>We will use signature definitions from the refset (it’s also possible to create your own). To improve the accuracy of signature extraction, we will exclude signatures that can safely be presumed absent from the samples; a helper function, <code><a href="../reference/suggest_cosmic_signature_exclusions.html">suggest_cosmic_signature_exclusions()</a></code>, can provide some guidance.</p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
@@ -387,57 +371,67 @@ If you want to skip all the details and run through a no-frills cancereffectsize
   signature_set <span class="op">=</span> <span class="va">ces.refset.hg38</span><span class="op">$</span><span class="va">signatures</span><span class="op">$</span><span class="va">COSMIC_v3.2</span>,
   signature_exclusions <span class="op">=</span> <span class="va">signature_exclusions</span>
 <span class="op">)</span></code></pre></div>
-<p>The <code><a href="../reference/trinuc_mutation_rates.html">trinuc_mutation_rates()</a></code> run has added some useful information to the CESAnalysis: * <strong>snv_counts</strong>: A matrix of SNV counts by trinucleotide context. (You can also generate such a matrix from MAF data with <code><a href="../reference/trinuc_snv_counts.html">trinuc_snv_counts()</a></code>.) * <strong>raw_attributions</strong>: Signature attributions as generated by the extractor. For MutationalPatterns, this matrix contains the number of mutations attributed to signature for each sample. Naturally, samples with more mutations will tend to have higher raw attributions. * <strong>biological_weights</strong>: The proportion of mutations attributed to each biologically-associated signature within each sample. Mutations attributed to signatures associated with sequencing/processing artifacts are left out. (Technical detail: Due to the instability of signature attributions on samples with few mutations, Samples with few MAF variants have their weights adjusted towards group-average weights, as indicated in the <code>group_avg_blended</code> column. If you want to make claims about subgroup differences in mutational processes, consider leaving these samples out or using the raw attributions. You should also leave out the TGS samples, which in this analysis are treated as having 0 mutations.) * <strong>trinuc_rates</strong>: Inferred relative rates of mutation, produced by matrix-multiplying biological_weights and signature definitions. (These rates will not equal the empirical rates seen in the data.)</p>
+<p>The <code><a href="../reference/trinuc_mutation_rates.html">trinuc_mutation_rates()</a></code> run has added some useful information to the CESAnalysis:</p>
+<ul>
+<li>
+<strong>snv_counts</strong>: A matrix of SNV counts by trinucleotide context. (You can also generate such a matrix from MAF data with <code><a href="../reference/trinuc_snv_counts.html">trinuc_snv_counts()</a></code>.)</li>
+<li>
+<strong>raw_attributions</strong>: Signature attributions as generated by the extractor. For MutationalPatterns, this matrix contains the number of mutations attributed to signature for each sample. Naturally, samples with more mutations will tend to have higher raw attributions.</li>
+<li>
+<strong>biological_weights</strong>: The proportion of mutations attributed to each biologically-associated signature within each sample. Mutations attributed to signatures associated with sequencing/processing artifacts are left out. (Technical detail: Due to the instability of signature attributions on samples with few mutations, Samples with few MAF variants have their weights adjusted towards group-average weights, as indicated in the <code>group_avg_blended</code> column. If you want to make claims about subgroup differences in mutational processes, consider leaving these samples out or using the raw attributions. You should also leave out the TGS samples, which in this analysis are treated as having 0 mutations.)</li>
+<li>
+<strong>trinuc_rates</strong>: Inferred relative rates of mutation, produced by matrix-multiplying biological_weights and signature definitions. (These rates will not equal the empirical rates seen in the data.)</li>
+</ul>
 <p>While we’re here, MutationalPatterns has some nice plot functions that we can use. For example, we can plot the mean SNV profile for each BRCA receptor subtype. (We would not want to include TGS samples in this plot since cancer hotspot mutations are not reflective of overall mutational processes, but since our TGS samples lack receptor_status information, they will be left out without having to specifically exclude them.)</p>
 <div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">snv_counts</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">mutational_signatures</span><span class="op">$</span><span class="va">snv_counts</span></code></pre></div>
 <div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># Counts look like this:</span>
 <span class="va">snv_counts</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span></code></pre></div>
-<pre><code>##           
-## trinuc_snv P-0000015 P-0000075 P-0000102 P-0000120 P-0000155
-##    A[C&gt;A]A         0         0         0         0         0
-##    A[C&gt;A]C         0         0         0         0         0
-##    A[C&gt;A]G         0         0         0         0         0
-##    A[C&gt;A]T         0         0         0         0         0
-##    C[C&gt;A]A         0         0         0         0         0</code></pre>
+<pre><code><span class="co">##           </span>
+<span class="co">## trinuc_snv P-0000015 P-0000075 P-0000102 P-0000120 P-0000155</span>
+<span class="co">##    A[C&gt;A]A         0         0         0         0         0</span>
+<span class="co">##    A[C&gt;A]C         0         0         0         0         0</span>
+<span class="co">##    A[C&gt;A]G         0         0         0         0         0</span>
+<span class="co">##    A[C&gt;A]T         0         0         0         0         0</span>
+<span class="co">##    C[C&gt;A]A         0         0         0         0         0</span></code></pre>
 <div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># We'll sum up the counts by group</span>
-<span class="va">summed_snv_by_group</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/data.table.html">data.table</a></span><span class="op">(</span><span class="op">)</span>
-<span class="va">receptor_groups</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/duplicated.html">unique</a></span><span class="op">(</span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/na.omit.data.table.html">na.omit</a></span><span class="op">(</span><span class="va">cesa</span><span class="op">$</span><span class="va">samples</span><span class="op">$</span><span class="va">receptor_status</span><span class="op">)</span><span class="op">)</span>
+<span class="va">summed_snv_by_group</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/data.table.html" class="external-link">data.table</a></span><span class="op">(</span><span class="op">)</span>
+<span class="va">receptor_groups</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/duplicated.html" class="external-link">unique</a></span><span class="op">(</span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/na.omit.data.table.html" class="external-link">na.omit</a></span><span class="op">(</span><span class="va">cesa</span><span class="op">$</span><span class="va">samples</span><span class="op">$</span><span class="va">receptor_status</span><span class="op">)</span><span class="op">)</span>
 <span class="kw">for</span> <span class="op">(</span><span class="va">grp</span> <span class="kw">in</span> <span class="va">receptor_groups</span><span class="op">)</span> <span class="op">{</span>
   <span class="va">curr_samples</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">samples</span><span class="op">[</span><span class="va">grp</span>, <span class="va">Unique_Patient_Identifier</span>, on <span class="op">=</span> <span class="st">"receptor_status"</span><span class="op">]</span>
-  <span class="va">curr_snv_sum</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/colSums.html">rowSums</a></span><span class="op">(</span><span class="va">snv_counts</span><span class="op">[</span>, <span class="va">curr_samples</span><span class="op">]</span><span class="op">)</span>
+  <span class="va">curr_snv_sum</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">rowSums</a></span><span class="op">(</span><span class="va">snv_counts</span><span class="op">[</span>, <span class="va">curr_samples</span><span class="op">]</span><span class="op">)</span>
   <span class="va">summed_snv_by_group</span><span class="op">[</span>, <span class="op">(</span><span class="va">grp</span><span class="op">)</span> <span class="op">:=</span> <span class="va">curr_snv_sum</span><span class="op">]</span>
 <span class="op">}</span>
-<span class="va">summed_snv_by_group</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/as.matrix.html">as.matrix</a></span><span class="op">(</span><span class="va">summed_snv_by_group</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/base/colnames.html">rownames</a></span><span class="op">(</span><span class="va">summed_snv_by_group</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html">rownames</a></span><span class="op">(</span><span class="va">snv_counts</span><span class="op">)</span>
-<span class="fu">MutationalPatterns</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/MutationalPatterns/man/plot_96_profile.html">plot_96_profile</a></span><span class="op">(</span><span class="va">summed_snv_by_group</span><span class="op">)</span></code></pre></div>
+<span class="va">summed_snv_by_group</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/as.matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">summed_snv_by_group</span><span class="op">)</span>
+<span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">summed_snv_by_group</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">snv_counts</span><span class="op">)</span>
+<span class="fu">MutationalPatterns</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/MutationalPatterns/man/plot_96_profile.html" class="external-link">plot_96_profile</a></span><span class="op">(</span><span class="va">summed_snv_by_group</span><span class="op">)</span></code></pre></div>
 <p><img src="cancereffectsizeR_files/figure-html/unnamed-chunk-24-1.png" width="700"></p>
 </div>
-<div id="gene-mutation-rates" class="section level2">
-<h2 class="hasAnchor">
-<a href="#gene-mutation-rates" class="anchor"></a>Gene mutation rates</h2>
+<div class="section level2">
+<h2 id="gene-mutation-rates">Gene mutation rates<a class="anchor" aria-label="anchor" href="#gene-mutation-rates"></a>
+</h2>
 <p>Next, we’ll use <code><a href="../reference/gene_mutation_rates.html">gene_mutation_rates()</a></code> to estimate regional rates of mutation in the absence of selection. We’ll use the method provided in the dNdScv package, which uses dN/dS ratios and mutation rate covariates. Our refset has pre-computed covariates for a variety of tissue types. As with mutational processes, this analysis will not use the TGS samples, but the calculated rates will be assumed to hold for them.</p>
 <div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gene_mutation_rates.html">gene_mutation_rates</a></span><span class="op">(</span><span class="va">cesa</span>, covariates <span class="op">=</span> <span class="va">ces.refset.hg38</span><span class="op">$</span><span class="va">covariates</span><span class="op">$</span><span class="va">breast</span><span class="op">)</span></code></pre></div>
 <p>Here are the neutral gene mutation rates extracted from dNdScv’s regression:</p>
 <div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/utils/head.html">head</a></span><span class="op">(</span><span class="va">cesa</span><span class="op">$</span><span class="va">gene_rates</span><span class="op">)</span></code></pre></div>
-<pre><code>##                  pid    gene         rate
-## 1: ENSP00000000233.5    ARF5 7.442973e-07
-## 2: ENSP00000000412.3    M6PR 7.487931e-07
-## 3: ENSP00000000442.6   ESRRA 6.086757e-07
-## 4: ENSP00000001008.4   FKBP4 8.920040e-07
-## 5: ENSP00000001146.2 CYP26B1 1.030432e-06
-## 6: ENSP00000002125.4 NDUFAF7 6.829016e-07</code></pre>
+<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">cesa</span><span class="op">$</span><span class="va">gene_rates</span><span class="op">)</span></code></pre></div>
+<pre><code><span class="co">##                  pid    gene         rate</span>
+<span class="co">## 1: ENSP00000000233.5    ARF5 7.442973e-07</span>
+<span class="co">## 2: ENSP00000000412.3    M6PR 7.487931e-07</span>
+<span class="co">## 3: ENSP00000000442.6   ESRRA 6.086757e-07</span>
+<span class="co">## 4: ENSP00000001008.4   FKBP4 8.920040e-07</span>
+<span class="co">## 5: ENSP00000001146.2 CYP26B1 1.030432e-06</span>
+<span class="co">## 6: ENSP00000002125.4 NDUFAF7 6.829016e-07</span></code></pre>
 <p>We can also look at dNdScv’s identification of selection at the gene level. We’ll filter results to q &lt; .05. Since ces.refset.hg38 covers multiple isoforms for some genes, the dNdScv output is actually per protein, not per gene, so we’ll take the extra step of showing just the lowest q-value for each significant gene.</p>
 <div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">dndscv_results</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">dNdScv_results</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span>
 <span class="va">sig_genes</span> <span class="op">&lt;-</span> <span class="va">dndscv_results</span><span class="op">[</span><span class="va">qallsubs_cv</span> <span class="op">&lt;</span> <span class="fl">.05</span><span class="op">]</span>
 
 <span class="co"># Take lowest q-value record for each gene, and sort by significance.</span>
-<span class="va">sig_genes</span> <span class="op">&lt;-</span> <span class="va">sig_genes</span><span class="op">[</span>, <span class="va">.SD</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/which.min.html">which.min</a></span><span class="op">(</span><span class="va">qallsubs_cv</span><span class="op">)</span><span class="op">]</span>, by <span class="op">=</span> <span class="st">"gene"</span><span class="op">]</span><span class="op">[</span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/setorder.html">order</a></span><span class="op">(</span><span class="va">qallsubs_cv</span><span class="op">)</span><span class="op">]</span></code></pre></div>
+<span class="va">sig_genes</span> <span class="op">&lt;-</span> <span class="va">sig_genes</span><span class="op">[</span>, <span class="va">.SD</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/which.min.html" class="external-link">which.min</a></span><span class="op">(</span><span class="va">qallsubs_cv</span><span class="op">)</span><span class="op">]</span>, by <span class="op">=</span> <span class="st">"gene"</span><span class="op">]</span><span class="op">[</span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/setorder.html" class="external-link">order</a></span><span class="op">(</span><span class="va">qallsubs_cv</span><span class="op">)</span><span class="op">]</span></code></pre></div>
 <table class="table table table-condensed">
 <thead><tr>
 <th style="text-align:right;">
@@ -1526,231 +1520,665 @@ ENSP00000326381.5
 <p>See dNdScv’s documentation if you’re interested in interpretation of the dNdScv output.</p>
 <p>Side note: If we had multiple tissue types in the analysis, we could call gene_mutation_rates() multiple times using the <code>samples</code> argument to specify sample groups, with appropriate covariates for each tissue type. Similar functionality is available in <code><a href="../reference/trinuc_mutation_rates.html">trinuc_mutation_rates()</a></code>.</p>
 </div>
-<div id="selection-inference" class="section level2">
-<h2 class="hasAnchor">
-<a href="#selection-inference" class="anchor"></a>Selection inference</h2>
+<div class="section level2">
+<h2 id="selection-inference">Selection inference<a class="anchor" aria-label="anchor" href="#selection-inference"></a>
+</h2>
 <p>The combination of cohort-level gene mutation rates and sample-level relative rates of trinucleotide-context-specific substitution allow us to estimate the rate at which any somatic substitution occurs in any patient’s tumor sample. To be clear, by “rates,” we don’t mean the frequency of mutations in our somatic variant calls (which we already know anyway). These rates represent how often the mutations can be expected to occur in individual cells. (More specifically, we assume that mutation events in each specific sample and site follow a Poisson distribution, and these rates are the Poisson rates.) It’s not typically necessary to look at these rates, but just to show that we can:</p>
 <div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># Let's take the top 3 variants by MAF prevalence. These happen to all be in PIK3CA.</span>
-<span class="va">variants_to_check</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/setorder.html">order</a></span><span class="op">(</span><span class="op">-</span><span class="va">maf_prevalence</span><span class="op">)</span>, <span class="va">variant_id</span><span class="op">]</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span>
+<span class="va">variants_to_check</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/setorder.html" class="external-link">order</a></span><span class="op">(</span><span class="op">-</span><span class="va">maf_prevalence</span><span class="op">)</span>, <span class="va">variant_id</span><span class="op">]</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span>
 
 <span class="co"># A few random samples</span>
-<span class="va">samples_to_check</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"TCGA-A2-A3Y0"</span>, <span class="st">"TCGA-XX-A89A"</span>, <span class="st">"P-0000224"</span><span class="op">)</span>
+<span class="va">samples_to_check</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TCGA-A2-A3Y0"</span>, <span class="st">"TCGA-XX-A89A"</span>, <span class="st">"P-0000224"</span><span class="op">)</span>
 
 <span class="fu"><a href="../reference/baseline_mutation_rates.html">baseline_mutation_rates</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, variant_ids <span class="op">=</span> <span class="va">variants_to_check</span>, samples <span class="op">=</span> <span class="va">samples_to_check</span><span class="op">)</span></code></pre></div>
-<pre><code>##    Unique_Patient_Identifier PIK3CA_H1047R_ENSP00000263967.3
-## 1:              TCGA-A2-A3Y0                    8.663404e-07
-## 2:              TCGA-XX-A89A                    2.151952e-08
-## 3:                 P-0000224                    7.640495e-07
-##    PIK3CA_E545K_ENSP00000263967.3 PIK3CA_E542K_ENSP00000263967.3
-## 1:                   2.565153e-06                   2.565153e-06
-## 2:                   1.279476e-05                   1.279476e-05
-## 3:                   7.682154e-06                   7.682154e-06</code></pre>
+<pre><code><span class="co">##    Unique_Patient_Identifier PIK3CA_H1047R_ENSP00000263967.3</span>
+<span class="co">## 1:              TCGA-A2-A3Y0                    8.663404e-07</span>
+<span class="co">## 2:              TCGA-XX-A89A                    2.151952e-08</span>
+<span class="co">## 3:                 P-0000224                    7.640495e-07</span>
+<span class="co">##    PIK3CA_E545K_ENSP00000263967.3 PIK3CA_E542K_ENSP00000263967.3</span>
+<span class="co">## 1:                   2.565153e-06                   2.565153e-06</span>
+<span class="co">## 2:                   1.279476e-05                   1.279476e-05</span>
+<span class="co">## 3:                   7.682154e-06                   7.682154e-06</span></code></pre>
 <p>Interestingly, PIK3CA H1047R, the most prevalent variant in our MAF data (246/1875 samples), is estimated to have a substantially lower rate of occurrence than E545K and E542K in these particular samples.</p>
-<div id="cancer-effects-basic-model" class="section level3">
-<h3 class="hasAnchor">
-<a href="#cancer-effects-basic-model" class="anchor"></a>Cancer effects (basic model)</h3>
+<div class="section level3">
+<h3 id="basic-model">Basic model<a class="anchor" aria-label="anchor" href="#basic-model"></a>
+</h3>
 <p>We can use our estimated rates and the MAF variant data to infer scaled selection coefficients (aka cancer effects, or selection intensity) under a model of selection. These cancer effects are directly proportional to the proliferative advantage provided by each variant. First, let’s calculate selection under the package’s default model of selection with ces_variant():</p>
 <div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># Including an optional run_name</span>
 <span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ces_variant.html">ces_variant</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, run_name <span class="op">=</span> <span class="st">"recurrents"</span><span class="op">)</span></code></pre></div>
-<p>Let’s visualize the most selected variants. The following ggplot code should be fairly adaptable for a variety of data sets.</p>
+<p>Let’s visualize the most selected variants. The following should be fairly adaptable for a variety of data sets.</p>
 <div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org">ggplot2</a></span><span class="op">)</span>
+<code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span>
 
 <span class="co"># Extract selection results from CESAnalysis</span>
 <span class="va">top</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">selection</span><span class="op">$</span><span class="va">recurrents</span>
 
 <span class="co"># Merge in variant annotations from cesa$variants.</span>
 <span class="va">top</span> <span class="op">&lt;-</span> <span class="va">top</span><span class="op">[</span><span class="va">cesa</span><span class="op">$</span><span class="va">variants</span>, on <span class="op">=</span> <span class="st">"variant_id"</span>, nomatch <span class="op">=</span> <span class="cn">NULL</span><span class="op">]</span>
-<span class="va">top</span> <span class="op">&lt;-</span> <span class="va">top</span><span class="op">[</span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/setorder.html">order</a></span><span class="op">(</span><span class="op">-</span><span class="va">selection_intensity</span><span class="op">)</span><span class="op">]</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">15</span><span class="op">]</span> <span class="co"># take top 15 by SI</span>
-<span class="va">top</span> <span class="op">&lt;-</span> <span class="va">top</span><span class="op">[</span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/setorder.html">order</a></span><span class="op">(</span><span class="va">selection_intensity</span><span class="op">)</span><span class="op">]</span> <span class="co"># will plot lowest to highest (left to right)</span>
+<span class="va">top</span> <span class="op">&lt;-</span> <span class="va">top</span><span class="op">[</span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/setorder.html" class="external-link">order</a></span><span class="op">(</span><span class="op">-</span><span class="va">selection_intensity</span><span class="op">)</span><span class="op">]</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">20</span><span class="op">]</span> <span class="co"># take top 20 by SI</span>
+<span class="va">top</span> <span class="op">&lt;-</span> <span class="va">top</span><span class="op">[</span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/setorder.html" class="external-link">order</a></span><span class="op">(</span><span class="va">selection_intensity</span><span class="op">)</span><span class="op">]</span> <span class="co"># will plot lowest to highest (left to right)</span>
 
 <span class="co"># Use variant names pretty for use in plot labels</span>
-<span class="va">top</span><span class="op">[</span>, <span class="va">display_name</span> <span class="op">:=</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html">gsub</a></span><span class="op">(</span><span class="st">"_"</span>, <span class="st">"\n"</span>, <span class="va">variant_name</span><span class="op">)</span><span class="op">]</span>
-<span class="va">top</span><span class="op">[</span>, <span class="va">display_levels</span> <span class="op">:=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">factor</a></span><span class="op">(</span><span class="va">display_name</span>, levels <span class="op">=</span> <span class="va">display_name</span>, ordered <span class="op">=</span> <span class="cn">T</span><span class="op">)</span><span class="op">]</span>
+<span class="va">top</span><span class="op">[</span>, <span class="va">display_name</span> <span class="op">:=</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">gsub</a></span><span class="op">(</span><span class="st">"_"</span>, <span class="st">"\n"</span>, <span class="va">variant_name</span><span class="op">)</span><span class="op">]</span>
+<span class="va">top</span><span class="op">[</span>, <span class="va">display_levels</span> <span class="op">:=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">display_name</span>, levels <span class="op">=</span> <span class="va">display_name</span>, ordered <span class="op">=</span> <span class="cn">T</span><span class="op">)</span><span class="op">]</span>
 
 <span class="va">plot_title</span> <span class="op">&lt;-</span> <span class="st">"Top cancer effects in breast carcinoma (CES tutorial data)"</span>
-<span class="va">breaks</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/duplicated.html">unique</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/quantile.html">quantile</a></span><span class="op">(</span><span class="va">top</span><span class="op">$</span><span class="va">included_with_variant</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>
-<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span><span class="op">(</span><span class="va">top</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">display_levels</span>, y <span class="op">=</span> <span class="va">selection_intensity</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_linerange.html">geom_errorbar</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span><span class="op">(</span>ymin <span class="op">=</span> <span class="va">ci_low_95</span>, ymax <span class="op">=</span> <span class="va">ci_high_95</span><span class="op">)</span>, width <span class="op">=</span> <span class="fl">.2</span>, color <span class="op">=</span> <span class="st">"darkgrey"</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html">geom_point</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span><span class="op">(</span>color <span class="op">=</span> <span class="va">included_with_variant</span><span class="op">)</span>, size <span class="op">=</span> <span class="fl">3</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_discrete.html">scale_x_discrete</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html">scale_y_log10</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html">scale_color_viridis_c</a></span><span class="op">(</span>
+<span class="va">breaks</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/duplicated.html" class="external-link">unique</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/quantile.html" class="external-link">quantile</a></span><span class="op">(</span><span class="va">top</span><span class="op">$</span><span class="va">included_with_variant</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>
+<span class="va">n.dodge</span> <span class="op">&lt;-</span> <span class="fl">2</span> <span class="co"># can reduce to 1 if labels still fit (e.g., if plotting fewer variants)</span>
+<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">top</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">display_levels</span>, y <span class="op">=</span> <span class="va">selection_intensity</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_linerange.html" class="external-link">geom_errorbar</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>ymin <span class="op">=</span> <span class="va">ci_low_95</span>, ymax <span class="op">=</span> <span class="va">ci_high_95</span><span class="op">)</span>, width <span class="op">=</span> <span class="fl">.2</span>, color <span class="op">=</span> <span class="st">"darkgrey"</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>color <span class="op">=</span> <span class="va">included_with_variant</span><span class="op">)</span>, size <span class="op">=</span> <span class="fl">3</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_discrete.html" class="external-link">scale_x_discrete</a></span><span class="op">(</span>guide <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/guide_axis.html" class="external-link">guide_axis</a></span><span class="op">(</span>n.dodge <span class="op">=</span> <span class="va">n.dodge</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_y_log10</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_color_viridis_c</a></span><span class="op">(</span>
     name <span class="op">=</span> <span class="st">"variant prevalence"</span>, guide <span class="op">=</span> <span class="st">"colorbar"</span>, trans <span class="op">=</span> <span class="st">"log10"</span>,
     option <span class="op">=</span> <span class="st">"plasma"</span>, breaks <span class="op">=</span> <span class="va">breaks</span>
   <span class="op">)</span> <span class="op">+</span>
-  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">xlab</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html">element_blank</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">ylab</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/expression.html">expression</a></span><span class="op">(</span><span class="st">"cancer effect"</span> <span class="op">~</span> <span class="fu"><a href="https://rdrr.io/r/grDevices/plotmath.html">scriptstyle</a></span><span class="op">(</span><span class="op">~</span> <span class="op">~</span> <span class="op">(</span><span class="va">log</span><span class="op">[</span><span class="fl">10</span><span class="op">]</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">ggtitle</a></span><span class="op">(</span><span class="va">plot_title</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/guides.html">guides</a></span><span class="op">(</span>color <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/guide_colourbar.html">guide_colourbar</a></span><span class="op">(</span>ticks <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html">theme_minimal</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html">theme</a></span><span class="op">(</span>
-    text <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html">element_text</a></span><span class="op">(</span>family <span class="op">=</span> <span class="st">"Verdana"</span><span class="op">)</span>,
-    axis.title.x <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html">element_text</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">14</span><span class="op">)</span>,
-    axis.text.x <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html">element_text</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">8</span><span class="op">)</span>,
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">xlab</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_blank</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ylab</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/expression.html" class="external-link">expression</a></span><span class="op">(</span><span class="st">"cancer effect"</span> <span class="op">~</span> <span class="fu"><a href="https://rdrr.io/r/grDevices/plotmath.html" class="external-link">scriptstyle</a></span><span class="op">(</span><span class="op">~</span> <span class="op">~</span> <span class="op">(</span><span class="va">log</span><span class="op">[</span><span class="fl">10</span><span class="op">]</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="va">plot_title</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/guides.html" class="external-link">guides</a></span><span class="op">(</span>color <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/guide_colourbar.html" class="external-link">guide_colourbar</a></span><span class="op">(</span>ticks <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>
+    text <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>family <span class="op">=</span> <span class="st">"Verdana"</span><span class="op">)</span>,
+    axis.title.x <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">14</span><span class="op">)</span>,
+    axis.text.x <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">8</span><span class="op">)</span>,
     legend.position <span class="op">=</span> <span class="st">"bottom"</span>,
-    legend.title <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html">element_text</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">10</span><span class="op">)</span>,
-    panel.grid.major.x <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html">element_blank</a></span><span class="op">(</span><span class="op">)</span>,
-    panel.grid.minor.x <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html">element_blank</a></span><span class="op">(</span><span class="op">)</span>
+    legend.title <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">10</span><span class="op">)</span>,
+    panel.grid.major.x <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_blank</a></span><span class="op">(</span><span class="op">)</span>,
+    panel.grid.minor.x <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_blank</a></span><span class="op">(</span><span class="op">)</span>
   <span class="op">)</span></code></pre></div>
-<p><img src="../inst/tutorial/BRCA_effects.jpg"><em>PIK3CA</em> and <em>ESR1</em> variants take many of the top spots. The deconvolution of mutation rate from selection has revealed that some relatively low-prevalence variants have high effects. Interestingly, according to dNdScv, mutation in <em>ESR1</em> at the gene level was not significantly greater than neutral in the TCGA cohort. The incorporation of TGS data and cancereffectsizeR’s assessment of selection at the variant level confirm <em>ESR1</em>’s importance.</p>
+<p><img src="cancereffectsizeR_files/figure-html/unnamed-chunk-34-1.png" width="700"></p>
+<p><em>PIK3CA</em> and <em>ESR1</em> variants take many of the top spots. The deconvolution of mutation rate from selection has revealed that some relatively low-prevalence variants have high effects. Interestingly, according to dNdScv, mutation in <em>ESR1</em> at the gene level was not significantly greater than neutral in the TCGA cohort of primary tumors. The incorporation of metastatic TGS data and cancereffectsizeR’s assessment of selection at the variant level confirm <em>ESR1</em>’s importance.</p>
 </div>
-<div id="cancer-effects-sequential-model" class="section level3">
-<h3 class="hasAnchor">
-<a href="#cancer-effects-sequential-model" class="anchor"></a>Cancer effects (sequential model)</h3>
-<p>(Coming soon!)</p>
-</div>
-<div id="more-options" class="section level3">
-<h3 class="hasAnchor">
-<a href="#more-options" class="anchor"></a>More options</h3>
-<p>By default, all recurrent variants (variants with prevalence &gt;1 in MAF data) are included in a ces_variant() run. The <code>variants</code> option can be used to limit inference to just certain variants, or to test variants with prevalences of 1 or even 0. Note that single-hit variants will tend to receive over-estimated cancer effects because the occurrence of any non-selected variant is inherently improbable.</p>
-<p>For each variant site, only samples with coverage at the site will inform selection inference. You can further restrict which samples are used using the <code>samples</code> argument. This could be helpful to compare assess and compare selection in various groups (e.g., smoking vs. non-smoking).</p>
-<p>Besides the basic and sequential models, <code><a href="../reference/ces_variant.html">ces_variant()</a></code> supports user-supplied models of selection; see documentation for details. We hope that some enterprising users will come up with new models, and we are happy to discuss ideas and help work out any kinks.</p>
-</div>
-<div id="epistatic-cancer-effects" class="section level3">
-<h3 class="hasAnchor">
-<a href="#epistatic-cancer-effects" class="anchor"></a>Epistatic cancer effects</h3>
-<p>In the basic model, a variant is assumed to have a single cancer effect across all samples. In reality, we expect a variant’s selection to be influenced by a complex combination of factors including a sample’s mutational background (from substitutions to structural variants), the epigenetic state of the tumor, and various environmental factors. The <code><a href="../reference/ces_epistasis.html">ces_epistasis()</a></code> function allows us to assess selection for any pair of variants under a model of pairwise epistasis, in which the selection intensity for each variant is allowed to very depending on the state of the other site.</p>
-<div id="variant-level-epistasis" class="section level4">
-<h4 class="hasAnchor">
-<a href="#variant-level-epistasis" class="anchor"></a>Variant-level epistasis</h4>
-<p>Let’s try two prevalent BRCA mutations, PIK3CA E545K (n=159) and AKT1 E17K (n=82). Let’s also test E545K with a nearby PIK3CA variant, E542K (n=93).</p>
+<div class="section level3">
+<h3 id="sequential-model">Sequential model<a class="anchor" aria-label="anchor" href="#sequential-model"></a>
+</h3>
+<p>In the sequential model, selection is allowed to vary across two or more theoretical timepoints represented in the data. These timepoints should be at least arguably chronological, though not necessarily strictly so. For example, if we assume that tumors progress sequentially from grade I to grade III, we could adopt a three-state sequentially model. For our data set, since the pM annotation tells us which patients had progressed to metastatic disease at the time of sample collection, we’ll do a two-state model with states M0 and M1. (One could certainly argue about whether the few TCGA M1 patients should be lumped in with the M1 TGS data, since the TCGA samples are from primary tissue and the TGS samples are metastatic tissue, but we’ll proceed under the assumption that metastasis occurred due to continued evolution of primary tumors.)</p>
+<p>Under this model, we will find two cancer effects per variant. The idea is that the M0 effect reflects selection for the variant in the M0 samples. In the M1 samples, the M0 effect applied until a point of transition that they have all passed, and since then the M1 effect has held. (This transition may occur at different times in different samples.)</p>
+<p>Since the goal here is to find variants that are differentially selected early and late in the disease, we will restrict our inference to variants that occur more than twice in M0/M1 samples. (We wouldn’t be able to make a convincing case for differential selection for a variant that appears just once or twice in the cohort.) We can use the <code>counts_by_M</code> that we generated earlier to get the eligible variant IDs, and then pull their full annotations from the variants table:</p>
 <div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="co"># counts_by_M produced earlier with a call to variant_counts()</span>
+<span class="va">variants_for_sequential</span> <span class="op">&lt;-</span> <span class="va">counts_by_M</span><span class="op">[</span><span class="va">M0_prevalence</span> <span class="op">+</span> <span class="va">M1_prevalence</span> <span class="op">&gt;</span> <span class="fl">2</span>, <span class="va">variant_id</span><span class="op">]</span>
+<span class="va">variants_for_sequential</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="va">variants_for_sequential</span>, on <span class="op">=</span> <span class="st">"variant_id"</span><span class="op">]</span></code></pre></div>
+<p>Now, we’ll run the sequential model, specifying our variants with the <code>variants</code> argument.</p>
+<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ces_variant.html">ces_variant</a></span><span class="op">(</span><span class="va">cesa</span>,
+  variants <span class="op">=</span> <span class="va">variants_for_sequential</span>, model <span class="op">=</span> <span class="st">"sequential"</span>, run_name <span class="op">=</span> <span class="st">"sequential"</span>,
+  ordering_col <span class="op">=</span> <span class="st">"pM"</span>, ordering <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"M0"</span>, <span class="st">"M1"</span><span class="op">)</span>
+<span class="op">)</span></code></pre></div>
+<p>Since not all samples have pM annotation, we’ll also re-evaluate single-step cancer effects at these sites, using the <code>samples</code> argument to restrict inference to the same samples used in the sequential run. This will let us perform a likelihood ratio test to identify variants whose prevalence is significantly better explained by the two-step model.</p>
+<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="co"># Assess the same variants in the same samples using the single model</span>
+<span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ces_variant.html">ces_variant</a></span><span class="op">(</span><span class="va">cesa</span>,
+  variants <span class="op">=</span> <span class="va">variants_for_sequential</span>, model <span class="op">=</span> <span class="st">"basic"</span>, run_name <span class="op">=</span> <span class="st">"for_sequential_compare"</span>,
+  samples <span class="op">=</span> <span class="va">cesa</span><span class="op">$</span><span class="va">samples</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">pM</span><span class="op">)</span><span class="op">]</span>
+<span class="op">)</span></code></pre></div>
+<p>We merge the two selection output tables, do the likelihood ratio test, and print a simplified table of significantly differentially selected variants.</p>
+<div class="sourceCode" id="cb37"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">combined_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/merge.html" class="external-link">merge.data.table</a></span><span class="op">(</span><span class="va">cesa</span><span class="op">$</span><span class="va">selection</span><span class="op">$</span><span class="va">sequential</span>, <span class="va">cesa</span><span class="op">$</span><span class="va">selection</span><span class="op">$</span><span class="va">for_sequential_compare</span>,
+  all.x <span class="op">=</span> <span class="cn">TRUE</span>, all.y <span class="op">=</span> <span class="cn">FALSE</span>,
+  by <span class="op">=</span> <span class="st">"variant_id"</span>, suffixes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">".sequential"</span>, <span class="st">".single"</span><span class="op">)</span>
+<span class="op">)</span>
+<span class="va">combined_results</span><span class="op">[</span><span class="va">cesa</span><span class="op">$</span><span class="va">variants</span>, <span class="va">variant_name</span> <span class="op">:=</span> <span class="va">variant_name</span>, on <span class="op">=</span> <span class="st">"variant_id"</span><span class="op">]</span>
+
+<span class="co"># Likelihood ratio test</span>
+<span class="va">combined_results</span><span class="op">[</span>, <span class="va">chisquared</span> <span class="op">:=</span> <span class="op">-</span><span class="fl">2</span> <span class="op">*</span> <span class="op">(</span><span class="va">loglikelihood.single</span> <span class="op">-</span> <span class="va">loglikelihood.sequential</span><span class="op">)</span><span class="op">]</span>
+<span class="va">combined_results</span><span class="op">[</span>, <span class="va">p</span> <span class="op">:=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Chisquare.html" class="external-link">pchisq</a></span><span class="op">(</span><span class="va">chisquared</span>, df <span class="op">=</span> <span class="fl">1</span>, lower.tail <span class="op">=</span> <span class="cn">F</span><span class="op">)</span><span class="op">]</span>
+
+<span class="co"># Prep summary output for printing. Not shown here, but all of these variants are covered</span>
+<span class="co"># in both of our data sources.</span>
+<span class="va">for_print</span> <span class="op">&lt;-</span> <span class="va">combined_results</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span><span class="va">variant_name</span>,
+  si_single <span class="op">=</span> <span class="va">selection_intensity</span>, <span class="va">si_M0</span>, <span class="va">si_M1</span>, <span class="va">p</span>,
+  M0_count <span class="op">=</span> <span class="va">included_with_variant_M0</span>, M1_count <span class="op">=</span> <span class="va">included_with_variant_M1</span>
+<span class="op">)</span><span class="op">]</span>
+<span class="va">sequential_signif_output</span> <span class="op">&lt;-</span> <span class="va">for_print</span><span class="op">[</span><span class="va">p</span> <span class="op">&lt;</span> <span class="fl">.05</span><span class="op">]</span><span class="op">[</span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/setorder.html" class="external-link">order</a></span><span class="op">(</span><span class="va">p</span><span class="op">)</span><span class="op">]</span>
+<span class="va">sequential_signif_output</span></code></pre></div>
+<table class="table table table-condensed">
+<thead><tr>
+<th style="text-align:right;">
+variant_name
+</th>
+<th style="text-align:right;">
+si_single
+</th>
+<th style="text-align:right;">
+si_M0
+</th>
+<th style="text-align:right;">
+si_M1
+</th>
+<th style="text-align:right;">
+p
+</th>
+<th style="text-align:right;">
+M0_count
+</th>
+<th style="text-align:right;">
+M1_count
+</th>
+</tr></thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+ESR1_D538G
+</td>
+<td style="text-align:right;">
+1e+05
+</td>
+<td style="text-align:right;">
+1e-03
+</td>
+<td style="text-align:right;">
+2e+05
+</td>
+<td style="text-align:right;">
+3e-21
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+63
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+ESR1_Y537S
+</td>
+<td style="text-align:right;">
+1e+05
+</td>
+<td style="text-align:right;">
+1e-03
+</td>
+<td style="text-align:right;">
+2e+05
+</td>
+<td style="text-align:right;">
+6e-14
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+38
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+ESR1_Y537N
+</td>
+<td style="text-align:right;">
+3e+04
+</td>
+<td style="text-align:right;">
+1e-03
+</td>
+<td style="text-align:right;">
+7e+04
+</td>
+<td style="text-align:right;">
+2e-05
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+13
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+AKT1_E17K
+</td>
+<td style="text-align:right;">
+2e+04
+</td>
+<td style="text-align:right;">
+9e+03
+</td>
+<td style="text-align:right;">
+2e+04
+</td>
+<td style="text-align:right;">
+7e-05
+</td>
+<td style="text-align:right;">
+19
+</td>
+<td style="text-align:right;">
+57
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+ESR1_E207Q
+</td>
+<td style="text-align:right;">
+3e+03
+</td>
+<td style="text-align:right;">
+6e+02
+</td>
+<td style="text-align:right;">
+4e+03
+</td>
+<td style="text-align:right;">
+5e-04
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+17
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+ESR1_Y537C
+</td>
+<td style="text-align:right;">
+3e+03
+</td>
+<td style="text-align:right;">
+1e-03
+</td>
+<td style="text-align:right;">
+7e+03
+</td>
+<td style="text-align:right;">
+0.003
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+6
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+PIK3CA_E545K
+</td>
+<td style="text-align:right;">
+2e+04
+</td>
+<td style="text-align:right;">
+1e+04
+</td>
+<td style="text-align:right;">
+8e+03
+</td>
+<td style="text-align:right;">
+0.007
+</td>
+<td style="text-align:right;">
+50
+</td>
+<td style="text-align:right;">
+99
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+PIK3CA_H1047R
+</td>
+<td style="text-align:right;">
+2e+05
+</td>
+<td style="text-align:right;">
+2e+05
+</td>
+<td style="text-align:right;">
+8e+04
+</td>
+<td style="text-align:right;">
+0.008
+</td>
+<td style="text-align:right;">
+101
+</td>
+<td style="text-align:right;">
+132
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+FOXA1_I176V
+</td>
+<td style="text-align:right;">
+4e+03
+</td>
+<td style="text-align:right;">
+1e-03
+</td>
+<td style="text-align:right;">
+7e+03
+</td>
+<td style="text-align:right;">
+0.010
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+5
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+PIK3CA_N345K
+</td>
+<td style="text-align:right;">
+5e+04
+</td>
+<td style="text-align:right;">
+3e+04
+</td>
+<td style="text-align:right;">
+4e+04
+</td>
+<td style="text-align:right;">
+0.020
+</td>
+<td style="text-align:right;">
+13
+</td>
+<td style="text-align:right;">
+26
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+FOXA1_F266L
+</td>
+<td style="text-align:right;">
+3e+02
+</td>
+<td style="text-align:right;">
+1e-03
+</td>
+<td style="text-align:right;">
+6e+02
+</td>
+<td style="text-align:right;">
+0.020
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+4
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+ESR1_L536P
+</td>
+<td style="text-align:right;">
+3e+03
+</td>
+<td style="text-align:right;">
+1e-03
+</td>
+<td style="text-align:right;">
+7e+03
+</td>
+<td style="text-align:right;">
+0.030
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+3
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+TP53_Y236C
+</td>
+<td style="text-align:right;">
+1e+04
+</td>
+<td style="text-align:right;">
+1e-03
+</td>
+<td style="text-align:right;">
+2e+04
+</td>
+<td style="text-align:right;">
+0.030
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+4
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+ESR1_L536H
+</td>
+<td style="text-align:right;">
+4e+03
+</td>
+<td style="text-align:right;">
+1e-03
+</td>
+<td style="text-align:right;">
+9e+03
+</td>
+<td style="text-align:right;">
+0.040
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+3
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+GATA3_S137L
+</td>
+<td style="text-align:right;">
+6e+02
+</td>
+<td style="text-align:right;">
+1e-03
+</td>
+<td style="text-align:right;">
+1e+03
+</td>
+<td style="text-align:right;">
+0.040
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+3
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+FOXA1_D158N
+</td>
+<td style="text-align:right;">
+6e+02
+</td>
+<td style="text-align:right;">
+1e-03
+</td>
+<td style="text-align:right;">
+1e+03
+</td>
+<td style="text-align:right;">
+0.040
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+3
+</td>
+</tr>
+</tbody>
+</table>
+<p>The increased selection in M1 for <em>ESR1</em> variants is immediately apparent, and it’s especially convincing that so many distinct variants in the gene show the same relationship. Observe that the PIK3CA variants show reduced M1 selection even though the variants actually appear at similar or higher frequencies in the M1 samples. Under the model assumptions, the M1 samples previously experienced M0 selection pressures, so we actually expect these samples to have prevalent PIK3CA mutations regardless of M1 selection.</p>
+<p>Relatively few variants are prevalent enough to test under sequential models, and confidence intervals are often wide. Several of the significant variants are given M0 effects of .001, the lower limit of our optimization, simply because the variants do not appear in the M0 group. Confidence intervals reflect that selection intensity at these sites could be much higher.</p>
+</div>
+<div class="section level3">
+<h3 id="more-options">More options<a class="anchor" aria-label="anchor" href="#more-options"></a>
+</h3>
+<p>By default, all recurrent variants (variants that appear at least twice in MAF data) are included in a <code><a href="../reference/ces_variant.html">ces_variant()</a></code> run. As demonstrated, the <code>variants</code> argument can be used to specify which variants to test. Variants with prevalences of 1 or even 0 (perhaps helpful to establish an effect ceiling) can be included: <code>variants = cesa$variants</code> will include all annotated mutations in the analysis. Note that most single-hit variants will have over-estimated effects because most are probably neutral passengers, and the occurrence of any non-selected variant is inherently improbable.</p>
+<p>For each variant site, only samples with coverage at the site will inform selection inference. As also shown above, the <code>samples</code> argument further limits the inference process to a subset of eligible samples. This could be helpful to assess and compare selection in various groups (e.g., smoking vs. non-smoking).</p>
+<p>Besides the basic and sequential models, <code><a href="../reference/ces_variant.html">ces_variant()</a></code> supports user-supplied models of selection; see documentation for details. We hope that some enterprising users will come up with new models, and we are happy to discuss ideas and help work out any kinks.</p>
+<p>The <code>CompoundVariantSet</code> feature, described in the next section, may sometimes provide improved resolution of somatic selection by batching related variants together.</p>
+</div>
+</div>
+<div class="section level2">
+<h2 id="epistatic-cancer-effects">Epistatic cancer effects<a class="anchor" aria-label="anchor" href="#epistatic-cancer-effects"></a>
+</h2>
+<p>In the basic model, a variant is assumed to have a single cancer effect across all samples. In reality, we expect a variant’s selection to be influenced by a complex combination of factors including a sample’s mutational background (from substitutions to structural variants), the epigenetic state of the tumor, and various environmental factors. The <code><a href="../reference/ces_epistasis.html">ces_epistasis()</a></code> function allows us to assess selection for any pair of variants under a model of pairwise epistasis, in which the selection intensity for each variant is allowed to very depending on the state of the other site.</p>
+<div class="section level3">
+<h3 id="variant-level-epistasis">Variant-level epistasis<a class="anchor" aria-label="anchor" href="#variant-level-epistasis"></a>
+</h3>
+<p>Let’s try two prevalent BRCA mutations, PIK3CA E545K (n=159) and AKT1 E17K (n=82). Let’s also test E545K with a nearby PIK3CA variant, E542K (n=93).</p>
+<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># Start by pulling full variant IDs (with protein identifier) from variants table</span>
-<span class="va">group1</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"PIK3CA_E545K"</span>, <span class="st">"AKT1_E17K"</span><span class="op">)</span>, <span class="va">variant_id</span>, on <span class="op">=</span> <span class="st">"variant_name"</span><span class="op">]</span>
-<span class="va">group2</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"PIK3CA_E545K"</span>, <span class="st">"PIK3CA_E542K"</span><span class="op">)</span>, <span class="va">variant_id</span>, on <span class="op">=</span> <span class="st">"variant_name"</span><span class="op">]</span>
+<span class="va">group1</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"PIK3CA_E545K"</span>, <span class="st">"AKT1_E17K"</span><span class="op">)</span>, <span class="va">variant_id</span>, on <span class="op">=</span> <span class="st">"variant_name"</span><span class="op">]</span>
+<span class="va">group2</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"PIK3CA_E545K"</span>, <span class="st">"PIK3CA_E542K"</span><span class="op">)</span>, <span class="va">variant_id</span>, on <span class="op">=</span> <span class="st">"variant_name"</span><span class="op">]</span>
 
 <span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ces_epistasis.html">ces_epistasis</a></span><span class="op">(</span>
-  cesa <span class="op">=</span> <span class="va">cesa</span>, variants <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="va">group1</span>, <span class="va">group2</span><span class="op">)</span>,
+  cesa <span class="op">=</span> <span class="va">cesa</span>, variants <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">group1</span>, <span class="va">group2</span><span class="op">)</span>,
   conf <span class="op">=</span> <span class="fl">.95</span>, run_name <span class="op">=</span> <span class="st">"variant_epistasis_example"</span>
 <span class="op">)</span>
 <span class="va">cesa</span><span class="op">$</span><span class="va">epistasis</span><span class="op">$</span><span class="va">variant_epistasis_example</span></code></pre></div>
-<pre><code>##                          variant1                       variant2   ces_v1
-## 1: PIK3CA_E545K_ENSP00000263967.3    AKT1_E17K_ENSP00000270202.4 12619.37
-## 2: PIK3CA_E545K_ENSP00000263967.3 PIK3CA_E542K_ENSP00000263967.3 12783.72
-##       ces_v2 ces_v1_after_v2 ces_v2_after_v1 joint_cov_samples_just_v1
-## 1: 17546.150        3107.631           0.001                       158
-## 2:  7477.738           0.001           0.001                       159
-##    joint_cov_samples_just_v2 joint_cov_samples_with_both
-## 1:                        81                           1
-## 2:                        93                           0
-##    joint_cov_samples_with_neither ci_low_95_ces_v1 ci_high_95_ces_v1
-## 1:                           1635         10751.30          14692.65
-## 2:                           1623         10896.69          14877.24
-##    ci_low_95_ces_v2 ci_high_95_ces_v2 ci_low_95_ces_v1_after_v2
-## 1:        14016.501         21624.498                   176.956
-## 2:         6058.092          9102.635                        NA
-##    ci_high_95_ces_v1_after_v2 ci_low_95_ces_v2_after_v1
-## 1:                  13788.098                        NA
-## 2:                   4813.553                        NA
-##    ci_high_95_ces_v2_after_v1
-## 1:                  14104.728
-## 2:                   2763.137</code></pre>
+<pre><code><span class="co">##                          variant1                       variant2   ces_v1</span>
+<span class="co">## 1: PIK3CA_E545K_ENSP00000263967.3    AKT1_E17K_ENSP00000270202.4 12619.37</span>
+<span class="co">## 2: PIK3CA_E545K_ENSP00000263967.3 PIK3CA_E542K_ENSP00000263967.3 12783.72</span>
+<span class="co">##       ces_v2 ces_v1_after_v2 ces_v2_after_v1 joint_cov_samples_just_v1</span>
+<span class="co">## 1: 17546.150        3107.631           0.001                       158</span>
+<span class="co">## 2:  7477.738           0.001           0.001                       159</span>
+<span class="co">##    joint_cov_samples_just_v2 joint_cov_samples_with_both</span>
+<span class="co">## 1:                        81                           1</span>
+<span class="co">## 2:                        93                           0</span>
+<span class="co">##    joint_cov_samples_with_neither ci_low_95_ces_v1 ci_high_95_ces_v1</span>
+<span class="co">## 1:                           1635         10751.30          14692.65</span>
+<span class="co">## 2:                           1623         10896.69          14877.24</span>
+<span class="co">##    ci_low_95_ces_v2 ci_high_95_ces_v2 ci_low_95_ces_v1_after_v2</span>
+<span class="co">## 1:        14016.501         21624.498                   176.956</span>
+<span class="co">## 2:         6058.092          9102.635                        NA</span>
+<span class="co">##    ci_high_95_ces_v1_after_v2 ci_low_95_ces_v2_after_v1</span>
+<span class="co">## 1:                  13788.098                        NA</span>
+<span class="co">## 2:                   4813.553                        NA</span>
+<span class="co">##    ci_high_95_ces_v2_after_v1</span>
+<span class="co">## 1:                  14104.728</span>
+<span class="co">## 2:                   2763.137</span></code></pre>
 <p>Confidence intervals tend to be wide in epistatic analyses. Even with the most prevalent somatic variants, both co-occurrence and mutual exclusivity can often be explained by chance. The output for PIK3CA E545K and E542K confirms the negative epistatic relationship that we would have expected given their mutual exclusivity in our data (and our knowledge of their biological effects). For E545K and AKT1 E17K, we see reduced selection for both after the acquisition of the other driver, but the confidence intervals leave open the possibility that selection for E545K is unaffected by AKT1 E17K status. (Additionally, the NA’s on some of the lower bounds indicate that they fall below the lower limit of the optimization algorithm.)</p>
 </div>
-<div id="epistasis-and-compoundvariantsets" class="section level4">
-<h4 class="hasAnchor">
-<a href="#epistasis-and-compoundvariantsets" class="anchor"></a>Epistasis and CompoundVariantSets</h4>
+<div class="section level3">
+<h3 id="epistasis-and-compoundvariantsets">Epistasis and CompoundVariantSets<a class="anchor" aria-label="anchor" href="#epistasis-and-compoundvariantsets"></a>
+</h3>
 <p>We can probe this PIK3CA/AKT1 relationship further if we assume that all prevalent PIK3CA mutations share the same epistatic relationship with AKT1 E17K. The <code><a href="../reference/define_compound_variants.html">define_compound_variants()</a></code> feature lets us combine arbitrary variants into “compound variants” that are treated as if they were single variants by cancereffectsizeR’s selection inference functions. (In brief, the mutation rate of the compound variant is equal to the sum of rates of constituent variants, and any sample with one or more of the constituent variants “has the compound variant.”) Below, we define a CompoundVariantSet with two compound variants: All <em>PIK3CA</em> variants with MAF prevalence &gt; 1, and AKT E17K. We then pass the CompoundVariantSet to ces_epistasis(), which will test all pairs of compound variants (here, just the one pair).</p>
-<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb40"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># Collect all the variants that we want in the CompoundVariantSet into a table</span>
 <span class="va">top_PIK3CA</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="va">gene</span> <span class="op">==</span> <span class="st">"PIK3CA"</span> <span class="op">&amp;</span> <span class="va">maf_prevalence</span> <span class="op">&gt;</span> <span class="fl">1</span><span class="op">]</span>
 <span class="va">top_akt1</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="va">variant_name</span> <span class="op">==</span> <span class="st">"AKT1_E17K"</span><span class="op">]</span>
-<span class="va">for_compound</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/rbindlist.html">rbind</a></span><span class="op">(</span><span class="va">top_PIK3CA</span>, <span class="va">top_akt1</span><span class="op">)</span>
+<span class="va">for_compound</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/rbindlist.html" class="external-link">rbind</a></span><span class="op">(</span><span class="va">top_PIK3CA</span>, <span class="va">top_akt1</span><span class="op">)</span>
 
 <span class="co"># see define_compound_variants() documentation for details on arguments</span>
 <span class="va">comp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/define_compound_variants.html">define_compound_variants</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, variant_table <span class="op">=</span> <span class="va">for_compound</span>, by <span class="op">=</span> <span class="st">"gene"</span>, merge_distance <span class="op">=</span> <span class="cn">Inf</span><span class="op">)</span>
 <span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ces_epistasis.html">ces_epistasis</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, variants <span class="op">=</span> <span class="va">comp</span>, conf <span class="op">=</span> <span class="fl">.95</span>, run_name <span class="op">=</span> <span class="st">"AKT1_E17K_vs_PIK3CA"</span><span class="op">)</span>
 <span class="va">cesa</span><span class="op">$</span><span class="va">epistasis</span><span class="op">$</span><span class="va">AKT1_E17K_vs_PIK3CA</span></code></pre></div>
-<pre><code>##    variant1 variant2   ces_v1   ces_v2 ces_v1_after_v2 ces_v2_after_v1
-## 1:   AKT1.1 PIK3CA.1 21000.01 4061.144           0.001        833.1469
-##    joint_cov_samples_just_v1 joint_cov_samples_just_v2
-## 1:                        78                       642
-##    joint_cov_samples_with_both joint_cov_samples_with_neither ci_low_95_ces_v1
-## 1:                           4                           1151         16772.31
-##    ci_high_95_ces_v1 ci_low_95_ces_v2 ci_high_95_ces_v2
-## 1:          25888.22          3752.06          4387.118
-##    ci_low_95_ces_v1_after_v2 ci_high_95_ces_v1_after_v2
-## 1:                        NA                   5098.302
-##    ci_low_95_ces_v2_after_v1 ci_high_95_ces_v2_after_v1
-## 1:                  257.3843                   1955.285</code></pre>
+<pre><code><span class="co">##    variant1 variant2   ces_v1   ces_v2 ces_v1_after_v2 ces_v2_after_v1</span>
+<span class="co">## 1:   AKT1.1 PIK3CA.1 21000.01 4061.144           0.001        833.1469</span>
+<span class="co">##    joint_cov_samples_just_v1 joint_cov_samples_just_v2</span>
+<span class="co">## 1:                        78                       642</span>
+<span class="co">##    joint_cov_samples_with_both joint_cov_samples_with_neither ci_low_95_ces_v1</span>
+<span class="co">## 1:                           4                           1151         16772.31</span>
+<span class="co">##    ci_high_95_ces_v1 ci_low_95_ces_v2 ci_high_95_ces_v2</span>
+<span class="co">## 1:          25888.22          3752.06          4387.118</span>
+<span class="co">##    ci_low_95_ces_v1_after_v2 ci_high_95_ces_v1_after_v2</span>
+<span class="co">## 1:                        NA                   5098.302</span>
+<span class="co">##    ci_low_95_ces_v2_after_v1 ci_high_95_ces_v2_after_v1</span>
+<span class="co">## 1:                  257.3843                   1955.285</span></code></pre>
 <p>Note that the effect sizes are smaller for PIK3CA here, since we essentially mixed in lots of lower-effect PIK3CA variants. While 4 samples have both AKT1 E17K and one of the PIK3CA variants, this result strengthens the case for AKT1 mutation reducing selection for PIK3CA mutation.</p>
 </div>
-<div id="gene-level-epistasis" class="section level4">
-<h4 class="hasAnchor">
-<a href="#gene-level-epistasis" class="anchor"></a>Gene-level epistasis</h4>
+<div class="section level3">
+<h3 id="gene-level-epistasis">Gene-level epistasis<a class="anchor" aria-label="anchor" href="#gene-level-epistasis"></a>
+</h3>
 <p>The convenience function <code><a href="../reference/ces_gene_epistasis.html">ces_gene_epistasis()</a></code> applies the same model as <code><a href="../reference/ces_epistasis.html">ces_epistasis()</a></code> at the gene level: It takes all recurrent mutations in a set of genes to test for epistatic effects between pairs of genes. Here’s an example:</p>
-<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ces_gene_epistasis.html">ces_gene_epistasis</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, genes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"AKT1"</span>, <span class="st">"PIK3CA"</span>, <span class="st">"TP53"</span><span class="op">)</span>, conf <span class="op">=</span> <span class="fl">.95</span>, run_name <span class="op">=</span> <span class="st">"gene_epistasis_example"</span><span class="op">)</span>
+<div class="sourceCode" id="cb42"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ces_gene_epistasis.html">ces_gene_epistasis</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, genes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"AKT1"</span>, <span class="st">"PIK3CA"</span>, <span class="st">"TP53"</span><span class="op">)</span>, conf <span class="op">=</span> <span class="fl">.95</span>, run_name <span class="op">=</span> <span class="st">"gene_epistasis_example"</span><span class="op">)</span>
 <span class="va">cesa</span><span class="op">$</span><span class="va">epistasis</span><span class="op">$</span><span class="va">gene_epistasis_example</span></code></pre></div>
-<pre><code>##    gene_1 gene_2    ces_g1   ces_g2 ces_g1_after_g2 ces_g2_after_g1
-## 1:   AKT1 PIK3CA 19764.309 4064.325           0.001        813.1997
-## 2:   AKT1   TP53 24104.483 1061.395        4633.349       2988.8654
-## 3: PIK3CA   TP53  4879.988 1148.400        1432.847       1037.9782
-##    joint_cov_samples_just_g1_mut joint_cov_samples_just_g2_mut
-## 1:                            80                           642
-## 2:                            47                           111
-## 3:                           320                            89
-##    joint_cov_samples_both_mut joint_cov_samples_no_mut ci_low_95_ces_g1
-## 1:                          4                     1149        15829.155
-## 2:                         11                      721        18345.535
-## 3:                         33                      448         4371.569
-##    ci_high_95_ces_g1 ci_low_95_ces_g2 ci_high_95_ces_g2
-## 1:         24305.281        3754.9767          4390.557
-## 2:         30950.945         875.8325          1271.500
-## 3:          5427.038         927.2674          1401.889
-##    ci_low_95_ces_g1_after_g2 ci_high_95_ces_g1_after_g2
-## 1:                        NA                   4776.144
-## 2:                        NA                  49240.801
-## 3:                        NA                   3492.435
-##    ci_low_95_ces_g2_after_g1 ci_high_95_ces_g2_after_g1
-## 1:                  251.2131                   1907.642
-## 2:                 1426.0685                   5417.667
-## 3:                  623.5107                   1563.261</code></pre>
+<pre><code><span class="co">##    gene_1 gene_2    ces_g1   ces_g2 ces_g1_after_g2 ces_g2_after_g1</span>
+<span class="co">## 1:   AKT1 PIK3CA 19764.309 4064.325           0.001        813.1997</span>
+<span class="co">## 2:   AKT1   TP53 24102.949 1052.089        4692.969       2959.6226</span>
+<span class="co">## 3: PIK3CA   TP53  4880.172 1138.091        1430.582       1029.3214</span>
+<span class="co">##    joint_cov_samples_just_g1_mut joint_cov_samples_just_g2_mut</span>
+<span class="co">## 1:                            80                           642</span>
+<span class="co">## 2:                            47                           111</span>
+<span class="co">## 3:                           320                            89</span>
+<span class="co">##    joint_cov_samples_both_mut joint_cov_samples_no_mut ci_low_95_ces_g1</span>
+<span class="co">## 1:                          4                     1149         15829.15</span>
+<span class="co">## 2:                         11                      721         18341.33</span>
+<span class="co">## 3:                         33                      448          4371.75</span>
+<span class="co">##    ci_high_95_ces_g1 ci_low_95_ces_g2 ci_high_95_ces_g2</span>
+<span class="co">## 1:         24305.281        3754.9767          4390.557</span>
+<span class="co">## 2:         30946.598         868.1667          1260.368</span>
+<span class="co">## 3:          5427.228         918.9368          1389.314</span>
+<span class="co">##    ci_low_95_ces_g1_after_g2 ci_high_95_ces_g1_after_g2</span>
+<span class="co">## 1:                        NA                   4776.144</span>
+<span class="co">## 2:                        NA                  49295.053</span>
+<span class="co">## 3:                        NA                   3490.107</span>
+<span class="co">##    ci_low_95_ces_g2_after_g1 ci_high_95_ces_g2_after_g1</span>
+<span class="co">## 1:                  251.2131                   1907.642</span>
+<span class="co">## 2:                 1410.8052                   5366.849</span>
+<span class="co">## 3:                  618.5190                   1549.969</span></code></pre>
 <p>The output for AKT1/TP53 would be identical to the previous example, except in this run, a second AKT1 variant (with n = 2) is included. Mutational selection in the two oncogenes appears to be reduced after mutation in TP53, while loss of TP53 remains selected on a mutant PIK3CA background and becomes even more favored on a mutant AKT1 background.</p>
 </div>
 </div>
+<div class="section level2">
+<h2 id="save-your-work">Save your work<a class="anchor" aria-label="anchor" href="#save-your-work"></a>
+</h2>
+<p>Whether you’ve made it all the way through this tutorial–or simply want to take a break–you can save a commemorative (and space-efficient) copy of your CESAnalysis using <code><a href="../reference/save_cesa.html">save_cesa()</a></code>. You can reload the analysis anytime with <code><a href="../reference/load_cesa.html">load_cesa()</a></code>.</p>
+<div class="sourceCode" id="cb44"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="fu"><a href="../reference/save_cesa.html">save_cesa</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, <span class="st">"cancerffectsizeR_tutorial_analysis.rds"</span><span class="op">)</span>
+
+<span class="co"># In some future R session...</span>
+<span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://townsend-lab-yale.github.io/cancereffectsizeR" class="external-link">cancereffectsizeR</a></span><span class="op">)</span>
+<span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/load_cesa.html">load_cesa</a></span><span class="op">(</span><span class="st">"cancerffectsizeR_tutorial_analysis.rds"</span><span class="op">)</span></code></pre></div>
 </div>
-  </div>
-
-  <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
-
-        <nav id="toc" data-toggle="toc"><h2 data-toc-skip>Contents</h2>
-    </nav>
-</div>
-
-</div>
-
-
-
-      <footer><div class="copyright">
-  <p>Developed by Vincent L. Cannataro, Jeff Mandell.</p>
+  </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>
+    </nav></aside>
 </div>
 
-<div class="pkgdown">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.6.1.</p>
+
+
+    <footer><div class="pkgdown-footer-left">
+  <p></p>
+<p>Developed by Vincent L. Cannataro, Jeff Mandell.</p>
 </div>
 
-      </footer>
+<div class="pkgdown-footer-right">
+  <p></p>
+<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.1.</p>
+</div>
+
+    </footer>
 </div>
 
   
-<script src="https://cdnjs.cloudflare.com/ajax/libs/docsearch.js/2.6.1/docsearch.min.js" integrity="sha256-GKvGqXDznoRYHCwKXGnuchvKSwmx9SRMrZOTh2g4Sb0=" crossorigin="anonymous"></script><script>
-  docsearch({
-    
-    
-    apiKey: '85c732458d5af0ba2cd9feb9eb7f9a97',
-    indexName: 'cancereffectsizer',
-    inputSelector: 'input#search-input.form-control',
-    transformData: function(hits) {
-      return hits.map(function (hit) {
-        hit.url = updateHitURL(hit);
-        return hit;
-      });
-    }
-  });
-</script>
-</body>
+
+  
+
+  </body>
 </html>

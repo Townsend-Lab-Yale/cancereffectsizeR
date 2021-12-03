@@ -146,7 +146,7 @@ top = cesa$selection$recurrents
 
 # Merge in variant annotations from cesa$variants.
 top = top[cesa$variants, on = 'variant_id', nomatch = NULL]
-top = top[order(-selection_intensity)][1:15] # take top 15 by SI
+top = top[order(-selection_intensity)][1:20] # take top 20 by SI
 top = top[order(selection_intensity)] # will plot lowest to highest (left to right)
 
 # Use variant names pretty for use in plot labels
@@ -155,10 +155,11 @@ top[, display_levels := factor(display_name, levels = display_name, ordered = T)
 
 plot_title = 'Top cancer effects in breast carcinoma (CES tutorial data)'
 breaks = unique(as.numeric(round(quantile(top$included_with_variant))))
-ggplot(top, aes(x = display_levels, y = selection_intensity)) + 
+n.dodge = 2 # can reduce to 1 if labels happen to still fit (e.g., if plotting fewer variants)
+p = ggplot(top, aes(x = display_levels, y = selection_intensity)) + 
   geom_errorbar(aes(ymin = ci_low_95, ymax = ci_high_95), width = .2, color = 'darkgrey') +
   geom_point(aes(color = included_with_variant), size = 3) + 
-  scale_x_discrete() + scale_y_log10() + 
+  scale_x_discrete(guide = guide_axis(n.dodge = n.dodge)) + scale_y_log10() + 
   scale_color_viridis_c(name = 'variant prevalence', guide = 'colorbar', trans = 'log10', 
                         option = 'plasma', breaks = breaks) +
   xlab(element_blank()) +
@@ -177,6 +178,51 @@ ggplot(top, aes(x = display_levels, y = selection_intensity)) +
 brca_plot_file = paste0(tutorial_dir, '/top_BRCA_effects.rds')
 saveRDS(p, brca_plot_file)
 
+## Sequential 
+# Take variants that appear at least twice in pM-annotated data
+# We get IDs from the previously generated counts, and then take the corresponding entries
+# from the CESAnalysis variants table.
+
+# (counts_by_M produced earlier in tutorial)
+counts_by_M = variant_counts(cesa = cesa, variant_ids = cesa$variants[maf_prevalence > 1, variant_id],
+                             by = 'pM')
+variants_for_sequential = counts_by_M[M0_prevalence + M1_prevalence > 2, variant_id]
+variants_for_sequential = cesa$variants[variants_for_sequential, on = 'variant_id']
+
+
+cesa = ces_variant(cesa, variants = variants_for_sequential, model = 'sequential', run_name = 'sequential', 
+                   ordering_col = 'pM', ordering = c('M0', 'M1'))
+
+# Assess the same variants in the same samples using the single model
+cesa = ces_variant(cesa, variants = variants_for_sequential, model = 'basic', run_name = 'for_sequential_compare',
+                   samples = cesa$samples[!is.na(pM)])
+
+combined_results = merge.data.table(cesa$selection$sequential, cesa$selection$for_sequential_compare, 
+                                    all.x = TRUE, all.y = FALSE, 
+                                    by = 'variant_id', suffixes = c('.sequential', '.single'))
+combined_results[cesa$variants, variant_name := variant_name, on = 'variant_id']
+
+# Likelihood ratio test
+combined_results[, chisquared := -2 * (loglikelihood.single - loglikelihood.sequential)]
+combined_results[, p := pchisq(chisquared, df = 1, lower.tail = F)]
+
+# Prep summary output for printing. Not shown here, but all of these variants are covered
+# in both of our data sources.
+for_print = combined_results[, .(variant_name, si_single = selection_intensity, si_M0, si_M1, p,
+                                 M0_count = included_with_variant_M0, M1_count = included_with_variant_M1)]
+sequential_signif_output = for_print[p < .05][order(p)]
+
+web_table = copy(sequential_signif_output)
+web_table[, c("si_single", "si_M0", "si_M1", "p") := lapply(.SD, signif, 1), 
+          .SDcols = c("si_single", "si_M0", "si_M1", "p")]
+web_table[p>=.001, char_p := format(round(p, 3))]
+web_table[p < .001, char_p := format(signif(p, 1))]
+col_order = setdiff(names(web_table), "char_p")
+web_table[, p := NULL]
+setnames(web_table, "char_p", "p")
+setcolorder(web_table, col_order)
+sequential_output_file = paste0(tutorial_dir, '/sequential_signif_output.rds')
+saveRDS(web_table, sequential_output_file)
 
 # Epistasis
 
@@ -194,7 +240,7 @@ top_PIK3CA = cesa$variants[gene == 'PIK3CA' & maf_prevalence > 1]
 top_akt1 = cesa$variants[variant_name == 'AKT1_E17K']
 for_compound = rbind(top_PIK3CA, top_akt1)
 
-# see define_compound_variants() documentation for details on arguments
+# See define_compound_variants() documentation for details on arguments
 comp = define_compound_variants(cesa = cesa, variant_table = for_compound, by = "gene", merge_distance = Inf)
 cesa = ces_epistasis(cesa = cesa, variants = comp, conf = .95, run_name = "AKT1_E17K_vs_PIK3CA")
 comp_ep_output = paste0(tutorial_dir, '/comp_variant_ep.rds')
@@ -205,30 +251,9 @@ cesa = ces_gene_epistasis(cesa = cesa, genes = c("AKT1", "PIK3CA", "TP53"), conf
 gene_ep_output = paste0(tutorial_dir, '/gene_ep_example.rds')
 saveRDS(cesa$epistasis$gene_epistasis_example, gene_ep_output)
 
+gene_ep_output = paste0(tutorial_dir, '/gene_ep_example.rds')
+saveRDS(cesa$epistasis$gene_epistasis_example, gene_ep_output)
 
-
-
-
-
-variants_for_sequential = cesa$variants[maf_prevalence > 2]
-
-
-cesa = ces_variant(cesa, variants = variants_for_sequential, model = 'sequential', run_name = 'sequential', 
-                   ordering_col = 'pM', ordering = c('M0', 'M1'))
-
-of_interest = cesa$selection$sequential[ci_high_95_si_M0 < ci_low_95_si_M1 | ci_high_95_si_M1 < ci_low_95_si_M0]
-
-variants_for_compound = cesa$variants[gene %in% c('ESR1', 'PIK3CA', 'TP53')][sapply(covered_in, length) == 2]
-variants_for_compound[aa_ref == aa_alt & essential_splice == F, table(maf_prevalence)]
-variants_for_compound = variants_for_compound[aa_ref != aa_alt | essential_splice == T | variant_type == 'snv']
-comp = define_compound_variants(cesa, variant_table = variants_for_compound, by = 'gene', merge_distance = Inf)
-
-cesa = ces_variant(cesa, variants = comp, model = 'sequential', run_name = 'comp-sequential', ordering_col = 'pM', ordering = c('M0', 'M1'))
-
-
-# Let's look at c("AKT1", 
-
-
-cesa = ces_gene_epistasis(cesa, genes = c('ESR1', 'GATA3', 'FOXA1'))
-
+## Save CESAnalysis for reference/revisions
+#save_cesa(cesa, 'brca_cesa.rds')
 
