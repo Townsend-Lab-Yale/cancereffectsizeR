@@ -114,7 +114,8 @@ set_signature_weights = function(cesa, signature_set, weights, ignore_extra_samp
     stop("There are NA values in the input weights table.")
   }
   
-  weights_okay = apply(weights[, -"Unique_Patient_Identifier"], 1, function(x) { total = sum(x); total > 0 && total <= 1})
+  # Require sum of weights <= 1, but allow some floating point imprecision
+  weights_okay = apply(weights[, -"Unique_Patient_Identifier"], 1, function(x) { total = sum(x); total > 0 && total <= 1 + 100 * .Machine$double.eps})
   if (! all(weights_okay)) {
     bad_samples = weights[which(! weights_okay), Unique_Patient_Identifier]
     stop("Some samples have all-zero weights or weights summing greater than 1:\n", paste(bad_samples, collapse = ", "), ".")
