@@ -101,6 +101,10 @@ build_RefCDS = function(gtf, genome, use_all_transcripts = TRUE, cds_ranges_lack
   reftable[, (char_cols) := lapply(.SD, as.character), .SDcols = char_cols]
   reftable[, (num_cols) := lapply(.SD, as.numeric), .SDcols = num_cols]
   
+  # if strand given as 1/-1, convert to +/-
+  reftable[strand == "1", strand := '+']
+  reftable[strand == "-1", strand := '-']
+  
   # Remove records with chromosomes that don't match reference
   prev_n = reftable[, .N]
   valid_seqnames = as.character(GenomicRanges::seqnames(bsg))
@@ -371,7 +375,7 @@ build_RefCDS = function(gtf, genome, use_all_transcripts = TRUE, cds_ranges_lack
   gene_info[, char_strand := NULL]
   setorder(gene_info, entry_name) # reorder rows by gene name
   
-  # to meet RefCDS specs, re-order table so that CDS intervals are in genomic rather than coding order
+  # to meet RefCDS spec, re-order table so that CDS intervals are in genomic rather than coding order
   reftable = reftable[order(protein_id, genomic_start)]
   cds_intervals = split(reftable[, .(genomic_start, genomic_end)], f = reftable$protein_id)
   cds_intervals = lapply(cds_intervals, function(x) unname(as.matrix(x)))
@@ -505,8 +509,8 @@ build_RefCDS = function(gtf, genome, use_all_transcripts = TRUE, cds_ranges_lack
   GenomicRanges::mcols(gr_cds)$names = df_genes$entry
   
   if (use_all_transcripts) {
-    # since df_genes$gene is actually a transcript_ID, match with the "gene_name" in 
-    # df_genes (also transcript ID), and get corresponding real_gene_name
+    # since df_genes$gene is actually a protein ID, match with the "gene_name" in 
+    # df_genes (also protein ID), and get corresponding real_gene_name
     actual_gene_names = gene_info[df_genes, real_gene_name, on = c(entry_name = "entry")]
     GenomicRanges::mcols(gr_cds)$gene = actual_gene_names
     pretty_message(paste0("Note: For compatibility with dNdScv, the \"gene_name\" attribute of each RefCDS entry is ",

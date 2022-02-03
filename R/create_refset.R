@@ -120,7 +120,7 @@ create_refset = function(output_dir, refcds_output, species_name, genome_build_n
   trinuc_mut_names = sub("\\[([ACTG]).*\\]", "\\1", deconstructSigs_trinuc_string)
   
   # deconstructSigs only includes C/T as central nucleotides; we need reverse complement for A/G in center
-  reverse_trinuc_mut_names = as.character(Biostrings::reverseComplement(Biostrings::DNAStringSet(context_names)))
+  reverse_trinuc_mut_names = as.character(Biostrings::reverseComplement(Biostrings::DNAStringSet(trinuc_mut_names)))
   
   # go through all the transcripts in the RefCDS object
   gene_trinuc_comp  = new.env(parent = emptyenv())

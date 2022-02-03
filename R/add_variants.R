@@ -3,7 +3,7 @@
 #' Use this function to add variant annotations to your CESAnalysis by specifying variants
 #' to add in one of five ways: a data.table containing genomic coordinates (output from
 #' select_variants(), typically), a GRanges object, a BED file, another CESAnalysis, or
-#' SNV IDs.
+#' SNV/AAC IDs.
 #' 
 #' All methods of adding variants work by identifying which SNVs to add and then using the
 #' target_cesa's associated reference data to identify overlapping amino-acid-change
@@ -25,11 +25,12 @@
 #' @param gr A GRanges object. All possible SNVs overlapping the ranges (within \code{padding}
 #'   bases) will be added.
 #' @param snv_id Character vector of CES-style SNV IDs to add.
+#' @param aac_id Character vector of AAC IDs (or short names, like "KRAS_G12C")
 #' @param source_cesa Another CESAnalysis from which to copy snv_ids. SNVs will be
 #'   re-annotated using the target_cesa's associated reference data.
 #' @param padding How many bases (default 0) to expand start and end of each gr range
 #' @export
-add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL, bed = NULL, 
+add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL, aac_id = NULL, bed = NULL, 
                         gr = NULL, source_cesa = NULL, padding = 0) {
   if(! is(target_cesa, "CESAnalysis")) {
     stop("target_cesa should be a CESAnalysis", call. = F)
@@ -42,8 +43,8 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
   }
   
   # just one possible method should be chosen
-  if (sum(sapply(list(variant_table, gr, bed, snv_id, source_cesa), is.null)) != 4){
-    stop("Exactly one method of adding variants must be chosen.")
+  if (sum(sapply(list(variant_table, gr, bed, snv_id, aac_id, source_cesa), is.null)) != 5){
+    stop("Use exactly one option out of variant_table, gr, bed, snv_id, aac_id, source_cesa.")
   }
   
   
@@ -136,7 +137,7 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
   
   # If supplied SNV IDs (rather than source_cesa, gr, bed, variant_table), validate them
   if(! is.null(snv_id)) {
-    if(! is(snv_id, "character") | length(snv_id) == 0) {
+    if(! is(snv_id, "character") || length(snv_id) == 0) {
       stop("Expected snv_id to be character vector of snv_ids (e.g., 1:100_A>G", call. = F)
     }
     # will stop with errror if any IDs fail validation
@@ -144,9 +145,40 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
     snvs_to_annotate = snv_id
   }
   
+  # If supplied aac_id, get constituent SNVs
+  refset = .ces_ref_data[[target_cesa@ref_key]]
+  if (! is.null(aac_id)) {
+    if(! is.character(aac_id) || length(aac_id) == 0) {
+      stop("Expected aac_id to be a character vector of amion-acid-change IDs (or variant names like KRAS_G12C).")
+    }
+    aac_id = complete_aac_ids(partial_ids = aac_id, refset = refset)
+    
+    aac_dt = setDT(tstrsplit(aac_id, split = "_"))
+    setnames(aac_dt, c('gene', 'aachange', 'pid'))
+    if ('gene' %in% names(GenomicRanges::mcols(refset$gr_genes))) {
+      aac_dt[, entry_name := pid]
+    } else {
+      aac_dt[, entry_name := gene]
+    }
+    
+    aac_dt[, char_length := nchar(aachange)]
+    aac_dt[, aa_alt := substr(aachange, char_length, char_length)]
+    aac_dt[, aa_pos := as.numeric(substr(aachange, 2, char_length - 1))]
+    
+    # for compatibility with internal codon table, convert to three-letter codes
+    aac_dt[, aa_alt := seqinr::aaa(aa_alt)]
+    aac_dt[aa_alt == 'Stp', aa_alt := 'STOP'] # also for compatibility
+    
+    snvs_to_annotate = unique(mapply(aac_to_snv_ids, 
+                                     aa_pos = aac_dt$aa_pos,
+                                     aa_alt = aac_dt$aa_alt,
+                                     refcds_entry = refset$RefCDS[aac_dt$entry_name],
+                                     MoreArgs = list(bsg = refset$genome)))
+  }
+  
   num_variants = length(snvs_to_annotate)
   if(num_variants == 0) {
-    stop("No SNVs to add (check your input).")
+    stop("No variants to add (check your input).")
   }
   snvs_to_annotate = setdiff(snvs_to_annotate, target_cesa@mutations$snv$snv_id)
   num_to_add = length(snvs_to_annotate)
@@ -184,10 +216,59 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
     setkey(cesa@mutations$amino_acid_change, "aac_id")
   }
   cesa@mutations[["snv"]] = unique(rbind(cesa@mutations$snv, snv_table, fill = T), by = "snv_id")
+  cesa@mutations[["aac_snv_key"]] = unique(rbind(cesa@mutations$aac_snv_key, annotations$aac_snv_key))
+  setkey(cesa@mutations$aac_snv_key, 'aac_id')
   setkey(cesa@mutations$snv, "snv_id")
   
   # Record which coverage ranges each new variant is covered in
   cesa@advanced$add_variants_used = TRUE # if add_variants has run, can't take shortcuts in update_covered_in 
   cesa = update_covered_in(cesa)
   return(cesa)
+}
+
+#' Get SNVs that cause an amino acid change
+#' 
+#' An internal function to figure out the SNVs that can cause a given amino acid substitution in a transcript
+#' 
+#' @param refcds_entry A RefCDS entry for the relevant transcript
+#' @param aa_pos Integer position of substitution on the transcript.
+#' @param aa_alt Identity of substitution, either a three-letter code ("Lys") or "STOP"
+#' @param bsg A BSgenome ob ject for the genome build associated with the RefCDS entry
+#' @keywords internal
+aac_to_snv_ids = function(refcds_entry, aa_pos, aa_alt, bsg) {
+  entry = refcds_entry
+  chr = entry$chr
+  neg_strand = entry$strand == -1
+  
+  if (neg_strand) {
+    strand = '-'
+    cds_int = as.data.table(entry$intervals_cds)[.N:1][, .(start = V2, end = V1)]
+  } else {
+    strand = '+'
+    cds_int = as.data.table(entry$intervals_cds)[, .(start = V1, end = V2)]
+  }
+  
+  # From the amino acid position, get the genomic positions of the three nucleotides.
+  transcript_pos = 3*(aa_pos - 1) + c(1, 2, 3)
+  genome_pos = unlist(mapply(seq, cds_int$start, cds_int$end))[transcript_pos]
+  
+  # Get the codon and positive-strand reference sequence at the positions 
+  codon = unlist(getSeq(bsg, GPos(seqnames = chr, pos = genome_pos, strand = strand)))
+  ref_seq = codon
+  if (neg_strand) {
+    ref_seq = Biostrings::complement(codon)
+  }
+  
+  to_annotate = codon_snvs_to_aa[[as.character(codon)]][[aa_alt]]
+  snv_id = character()
+  for (i in 1:3) {
+    if(length(to_annotate[[i]]) > 0) {
+      dna_alt =to_annotate[[i]]
+      if(neg_strand) {
+        dna_alt = seqinr::comp(dna_alt, forceToLower = F)
+      }
+      snv_id = c(snv_id, paste0(chr, ':', genome_pos[i], '_', as.character(ref_seq[i]), '>', dna_alt))
+    }
+  }
+  return(snv_id)
 }

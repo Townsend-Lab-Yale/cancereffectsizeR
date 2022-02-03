@@ -20,9 +20,10 @@ fwrite(luad$trinuc_rates, "luad_hg19_trinuc_rates.txt", sep = "\t")
 fwrite(luad$mutational_signatures$all, "luad_hg19_sig_table_with_artifacts.txt", sep = "\t")
 fwrite(luad$mutational_signatures$relative_biological, "luad_hg19_sig_table_biological.txt", sep = "\t")
 
-# to generate test data for dndscv,
+# To generate test data for dndscv,
 # run gene_mutation_rates(luad, covariates = "lung") with breakpoints before/after run_dndscv
-# and save the input list and raw output to the .rds files
+# and save the input list and raw output to the .rds files. Also save the fit object, because
+# a necessary component for generating it won't be saved with the raw output .rds.
 
 luad = gene_mutation_rates(luad, covariates = "lung", sample_group = "marionberry")
 luad = gene_mutation_rates(luad, covariates = "lung", sample_group = c("cherry", "mountain_apple"))

@@ -159,7 +159,7 @@ set_signature_weights = function(cesa, signature_set, weights, ignore_extra_samp
 #' @keywords internal
 artifact_account = function(weights, signature_names, artifact_signatures = NULL, fail_if_zeroed = FALSE) {
   bio_weights = copy(weights)
-  if(! is.null(artifact_signatures)) {
+  if(! is.null(artifact_signatures) && length(artifact_signatures) > 0) {
     bio_weights[, (artifact_signatures) := 0]
   }
   bio_weights[, adjust := sum(.SD), .SDcols = signature_names, by = "Unique_Patient_Identifier"]

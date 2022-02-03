@@ -250,7 +250,7 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   snvs_to_recover = selected_snv_ids
   
   # Remove variants contained in other variants
-  aac_snv_key = cesa@mutations$aac_snv_key[selected_aac_ids]
+  aac_snv_key = cesa@mutations$aac_snv_key[selected_aac_ids, on = 'aac_id']
   if (include_subvariants == FALSE) {
     selected_snv_ids = setdiff(selected_snv_ids, aac_snv_key$snv_id)
   }
@@ -259,7 +259,7 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   selected_aac = setDT(cesa@mutations$amino_acid_change[selected_aac_ids])
   
   # Get variant counts and coverage
-  snv_from_aac = cesa@mutations$aac_snv_key[selected_aac$aac_id, .(aac_id, snv_id)]
+  snv_from_aac = cesa@mutations$aac_snv_key[selected_aac$aac_id, .(aac_id, snv_id), on = 'aac_id']
   
   if(snv_from_aac[, .N] == 0 && length(selected_snv_ids) == 0) {
     message("No variants passed selection criteria!")
@@ -316,7 +316,7 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   selected_aac[, c("nt1_pos", "nt2_pos", "nt3_pos") := NULL]
   
   if (selected_aac[, .N] > 0) {
-    aac_to_snv = setDT(cesa@mutations$aac_snv_key[selected_aac$aac_id])
+    aac_to_snv = setDT(cesa@mutations$aac_snv_key[selected_aac$aac_id, on = 'aac_id'])
     # this form of assignment avoids data.table semantics and is faster on large list assignments
     aac_to_snv$genes = cesa@mutations$snv[aac_to_snv$snv_id, genes] 
     all_genes_by_aac_id = aac_to_snv[, .(genes = .(unique(unlist(genes)))), by = "aac_id"]
@@ -359,8 +359,13 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
       aac_snv_key = cesa@mutations$aac_snv_key[multi_anno_site == TRUE] # only multi-anno sites need to be counted
       aac_snv_key[cesa@mutations$amino_acid_change, pid := pid, on = 'aac_id']
       aac_snv_key = aac_snv_key[unique(multi_hits$pid), on = 'pid']
-      maf_counts = cesa@maf[variant_type == 'snv', .N, by = 'variant_id']
-      aac_snv_key[maf_counts, snv_count := N, on = c(snv_id = 'variant_id')]
+      
+      if (cesa@maf[, .N] > 0) {
+        maf_counts = cesa@maf[variant_type == 'snv', .N, by = 'variant_id']
+        aac_snv_key[maf_counts, snv_count := N, on = c(snv_id = 'variant_id')]
+      } else {
+        aac_snv_key[, snv_count := 0]
+      }
       aac_snv_key[is.na(snv_count), snv_count := 0]
       maf_pid_counts = aac_snv_key[, .(pid_freq = sum(snv_count)), keyby = "pid"]
       multi_hits[maf_pid_counts, pid_freq := pid_freq, on = 'pid']

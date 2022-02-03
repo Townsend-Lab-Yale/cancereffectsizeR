@@ -32,12 +32,8 @@ cesa = gene_mutation_rates(cesa, covariates = ces.refset.hg38$covariates$lung)
 # By default, inference is restricted to recurrent mutations.
 cesa = ces_variant(cesa)
 
-# Copy output, merge in variant annotations, and view top variants
-selection = cesa$selection[[1]]
-selection = selection[cesa$variants, on = 'variant_id', nomatch = NULL]
-
-
 # Take top 15 variants, then sort lowest to highest (to plot left to right)
+selection = cesa$selection[[1]]
 top = selection[order(-selection_intensity)][1:15]
 top = top[order(selection_intensity)]
 
@@ -70,15 +66,12 @@ luad_plot_file = paste0(tutorial_dir, '/top_LUAD_effects.rds')
 saveRDS(p, luad_plot_file)
 
 
-
-
 # rest of tutorial uses BRCA
 tcga_maf_file = 'inst/tutorial/TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf.gz'
 if (! file.exists(tcga_maf_file)) {
   download.file('https://api.gdc.cancer.gov/data/995c0111-d90b-4140-bee7-3845436c3b42', 
                 destfile = tcga_maf_file)
 }
-
 
 tcga_maf = preload_maf(maf = tcga_maf_file, refset = "ces.refset.hg38")
 tcga_maf = tcga_maf[germline_variant_site == F][repetitive_region == F | cosmic_site_tier %in% 1:3]
@@ -97,7 +90,6 @@ setnames(tcga_clinical, "patient_id", "Unique_Patient_Identifier") # change colu
 cesa = CESAnalysis(refset = "ces.refset.hg38")
 cesa = load_maf(cesa = cesa, maf = tcga_maf)
 cesa = load_sample_data(cesa, tcga_clinical)
-
 
 # Load in TGS data
 metastatic_tgs_maf_file = system.file("tutorial/metastatic_breast_2021_hg38.maf", package = "cancereffectsizeR")
@@ -124,8 +116,7 @@ saveRDS(cesa$samples, sample_file)
 
 # Estimate neutral gene mutation rates using dNdScv, with tissue-specific mutation rate covariates.
 cesa = gene_mutation_rates(cesa, covariates = ces.refset.hg38$covariates$breast)
-saveRDS(cesa$gene_rates, 
-        paste0(tutorial_dir, '/BRCA_cesa_gene_rates.rds'))
+saveRDS(cesa$gene_rates, paste0(tutorial_dir, '/BRCA_cesa_gene_rates.rds'))
 
 dndscv_subset = cesa$dNdScv_results[[1]][qallsubs_cv < .05, .SD[which.min(qallsubs_cv)], by = 'gene'][order(qallsubs_cv)]
 saveRDS(list(rate_grp_1 = dndscv_subset), paste0(tutorial_dir, '/BRCA_dndscv_out.rds'))
@@ -141,15 +132,12 @@ saveRDS(site_rates,  paste0(tutorial_dir, '/BRCA_site_rates_example.rds'))
 # By default, inference is restricted to recurrent mutations.
 cesa = ces_variant(cesa, run_name = 'recurrents')
 
-# Extract selection results from CESAnalysis
+# Extract selection results from CESAnalysis and take top variants for visualization
 top = cesa$selection$recurrents
-
-# Merge in variant annotations from cesa$variants.
-top = top[cesa$variants, on = 'variant_id', nomatch = NULL]
 top = top[order(-selection_intensity)][1:20] # take top 20 by SI
 top = top[order(selection_intensity)] # will plot lowest to highest (left to right)
 
-# Use variant names pretty for use in plot labels
+# Make variant names pretty for use in plot labels
 top[, display_name := gsub('_', "\n", variant_name)]
 top[, display_levels := factor(display_name, levels = display_name, ordered = T)]
 
@@ -197,10 +185,10 @@ cesa = ces_variant(cesa, variants = variants_for_sequential, model = 'sequential
 cesa = ces_variant(cesa, variants = variants_for_sequential, model = 'basic', run_name = 'for_sequential_compare',
                    samples = cesa$samples[!is.na(pM)])
 
-combined_results = merge.data.table(cesa$selection$sequential, cesa$selection$for_sequential_compare, 
+combined_results = merge.data.table(cesa$selection$sequential, 
+                                    cesa$selection$for_sequential_compare, 
                                     all.x = TRUE, all.y = FALSE, 
-                                    by = 'variant_id', suffixes = c('.sequential', '.single'))
-combined_results[cesa$variants, variant_name := variant_name, on = 'variant_id']
+                                    by = c('variant_id', 'variant_name', 'variant_type'), suffixes = c('.sequential', '.single'))
 
 # Likelihood ratio test
 combined_results[, chisquared := -2 * (loglikelihood.single - loglikelihood.sequential)]
@@ -242,17 +230,18 @@ for_compound = rbind(top_PIK3CA, top_akt1)
 
 # See define_compound_variants() documentation for details on arguments
 comp = define_compound_variants(cesa = cesa, variant_table = for_compound, by = "gene", merge_distance = Inf)
-cesa = ces_epistasis(cesa = cesa, variants = comp, conf = .95, run_name = "AKT1_E17K_vs_PIK3CA")
+cesa = ces_epistasis(cesa = cesa, variants = comp, run_name = "AKT1_E17K_vs_PIK3CA")
 comp_ep_output = paste0(tutorial_dir, '/comp_variant_ep.rds')
 saveRDS(cesa$epistasis$AKT1_E17K_vs_PIK3CA, comp_ep_output) 
 
 ## Gene epistasis
-cesa = ces_gene_epistasis(cesa = cesa, genes = c("AKT1", "PIK3CA", "TP53"), conf = .95, run_name = "gene_epistasis_example")
+genes = c("AKT1", "PIK3CA", "TP53")
+variants = cesa$variants[variant_type == 'aac' & gene %in% genes & sapply(covered_in, length) == 2]
+variants = variants[aa_ref != aa_alt | essential_splice == T]
+cesa = ces_gene_epistasis(cesa = cesa, genes = genes, variants = variants, run_name = "gene_epistasis_example")
 gene_ep_output = paste0(tutorial_dir, '/gene_ep_example.rds')
 saveRDS(cesa$epistasis$gene_epistasis_example, gene_ep_output)
 
-gene_ep_output = paste0(tutorial_dir, '/gene_ep_example.rds')
-saveRDS(cesa$epistasis$gene_epistasis_example, gene_ep_output)
 
 ## Save CESAnalysis for reference/revisions
 #save_cesa(cesa, 'brca_cesa.rds')

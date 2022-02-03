@@ -2,7 +2,7 @@
 #' 
 #' Creates a CESAnalysis, the central data structure of cancereffectsizeR.
 #' 
-#' @param refset name of reference data set (refset) to use; run \code{list_ces_refsets()} for
+#' @param refset Name of reference data set (refset) to use; run \code{list_ces_refsets()} for
 #'   available refsets. Alternatively, the path to a custom reference data directory.
 #' @param sample_groups (Deprecated; no longer necessary.) Optionally, supply labels
 #'   identifying different groups of samples. Each designated group of samples can be run
@@ -51,9 +51,10 @@ CESAnalysis = function(refset = NULL, sample_groups = NULL) {
            "version ", req_version, ".\nRun this to update:\n",
            "remotes::install_github(\"Townsend-Lab-Yale/", refset_name, "\")")
     }
-    ref_data_version = actual_version
+    refset_version = actual_version
     data_dir = system.file("refset", package = refset_name)
   } else {
+    refset_version = NA_character_
     if (! dir.exists(refset_name)) {
       if (grepl('/', refset_name)) {
         stop("Could not find reference data at ", refset_name)
@@ -116,7 +117,7 @@ CESAnalysis = function(refset = NULL, sample_groups = NULL) {
   ces_version = packageVersion("cancereffectsizeR")
   advanced = list("version" = ces_version, using_exome_plus = F, 
                   recording = T, uid = unclass(Sys.time()), genome_info = genome_info,
-                  snv_signatures = list())
+                  snv_signatures = list(), refset_version = refset_version)
   
   # Mutation table specifications (see template tables declared in imports.R)
   mutation_tables = list(amino_acid_change = copy(aac_annotation_template), 
@@ -127,7 +128,12 @@ CESAnalysis = function(refset = NULL, sample_groups = NULL) {
              selection_results = list(), ref_data_dir = data_dir, epistasis = list(),
              advanced = advanced, samples = copy(sample_table_template), mutations = mutation_tables,
              coverage = list())
+
   cesa@run_history = c(paste0("[Version: cancereffectsizeR ", ces_version, "]" ))
+  if (! is.na(refset_version)) {
+    cesa@run_history= c(cesa@run_history, 
+                        paste0("[Refset: ", refset_name, " ", refset_version, "]"))
+  }
   cesa = update_cesa_history(cesa, match.call())
 
   msg = paste0("This CESAnalysis will use ", refset_name, " reference data and the ", genome_info$species,
@@ -290,6 +296,16 @@ load_cesa = function(file) {
       stop("CES reference data set ", refset_name, " is version ", actual_version, ", but your version of cancereffectsizeR requires at least ",
            "version ", req_version, ".\nRun this to update:\n",
            "remotes::install_github(\"Townsend-Lab-Yale/", refset_name, "\")")
+    }
+    previous_version = cesa@advanced$refset_version
+    if (is.null(previous_version) && refset_name == 'ces.refset.hg38') {
+      msg = paste0("This CESAnalysis was probably created with an older version of ces.refset.hg38 with known issues. ",
+              "You should create a new CESAnalysis and start over if you want to continue analysis.")
+      warning(pretty_message(msg, emit = F))
+    } else if(! is.null(previous_version) && previous_version != actual_version) {
+      msg = paste0("This CESAnalysis was annotated with data from ", refset_name, ' ', previous_version, " and you currently have ",
+              "version ", actual_version, ". You should create a new CESAnalysis and start over if you want to continue analysis.")
+      warning(pretty_message(msg, emit = F))
     }
     cesa@ref_data_dir = system.file("refset", package = refset_name)
   } else {

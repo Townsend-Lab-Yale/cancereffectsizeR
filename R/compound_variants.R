@@ -139,7 +139,7 @@ CompoundVariantSet = function(cesa, variant_id) {
   
   set_size = length(variant_id)
   if (some_incomplete_coverage > 0) {
-    msg = paste0("Note: ", some_incomplete_coverage, " of ", set_size, " compound variants ",
+    msg = paste0("\nNote: ", some_incomplete_coverage, " of ", set_size, " compound variants ",
                  "have sequencing coverage in different sets of samples at different constituent variant sites. ",
                  "Selection functions will only use samples with coverage at all sites. If you want to ",
                  "include more samples, remove uncovered variants from these compound variants.")

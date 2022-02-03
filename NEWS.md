@@ -1,3 +1,12 @@
+# cancereffectsizeR 2.4.0
+* ces_gene_epistasis() gains a variants argument to customize which variants in each gene are used in epistasis inference.
+* Gene mutation rate estimates now come with 95% confidence intervals.
+* add_variants() can now be used to load annotations for amino-acid-changing substitutions into a CESAnalysis.
+* Fixed a bug in create_refset() that caused custom reference data sets to have incorrect values in gene trinucleotide proportions (gene_trinuc_comp).
+* Added utility functions clear_effect_output() and clear_epistasis_output().
+
+
+
 # cancereffectsizeR 2.3.4
 * New website and expanded tutorial.
 * Small fixes, including a tweak to variant prioritization.

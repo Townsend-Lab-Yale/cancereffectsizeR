@@ -10,7 +10,11 @@ test_that("gene mutation rates", {
       expect_equal(list(mutations = mutations, gene_list = gene_list, cv = cv), dndscv_input)
       return(dndscv_raw_output)
     },
+    get_dndscv_model_fit = function(dndscv_output) {
+      return(get_test_data('dndscv_test_fit_object.rds'))
+    },
     gene_mutation_rates(dndscv_cesa, covariates = "lung"))
-  rates_ak = get_test_data("mutrates.rds")
+  rates_ak = get_test_data("gene_mutation_rates_with_ci.rds")
   expect_equal(dndscv_cesa@mutrates, rates_ak)
+  
 })

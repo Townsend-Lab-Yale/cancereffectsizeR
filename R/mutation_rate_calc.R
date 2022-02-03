@@ -117,19 +117,21 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
   # add gene (regional) mutation rates to the table by using @mutrates and the groups of each samples
   sample_region_rates = sample_region_rates[samples[, .(Unique_Patient_Identifier, gene_rate_grp = paste0('rate_grp_', gene_rate_grp))]]
   
+  # drop CI columns
+  mutrates = cesa@mutrates[, .SD, .SDcols = patterns('gene|pid|(rate_grp_\\d+)$')]
   if (using_pid) {
     # there's also a gene given in transcript rates tables, but we'll drop it here
-    melted_mutrates = melt.data.table(cesa@mutrates[relevant_regions, -"gene", on = "pid"], id.vars = c("pid"), variable.factor = F)
+    melted_mutrates = melt.data.table(mutrates[relevant_regions, -"gene", on = "pid"], id.vars = c("pid"), variable.factor = F)
     setnames(melted_mutrates, "pid", "region")
   } else {
-    melted_mutrates = melt.data.table(cesa@mutrates[relevant_regions, on = "gene"], id.vars = c("gene"), variable.factor = F)
+    melted_mutrates = melt.data.table(mutrates[relevant_regions, on = "gene"], id.vars = c("gene"), variable.factor = F)
     setnames(melted_mutrates, "gene", "region")
   }
   
   setnames(melted_mutrates, c("variable", "value"), c("gene_rate_grp", "raw_rate"))
   sample_region_rates = melted_mutrates[sample_region_rates, , on = c("region", "gene_rate_grp")]
   cds_trinuc_comp = get_ref_data(cesa, "gene_trinuc_comp")
-  
+
   # Hash trinuc rates for faster runtime with large data sets (where there could be millions of queries of trinuc_mat)
   # Will also be using the trinuc_mat directly for summed rates, so need to subset it to just samples of interest
   trinuc_rates = new.env(parent = emptyenv())

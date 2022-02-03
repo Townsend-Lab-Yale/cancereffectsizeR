@@ -107,7 +107,12 @@ setMethod("show", "CESAnalysis",
   function(object) {
     genome_name = object@advanced$genome_info$build_name
     cat("CESAnalysis of ", genome_name, " data\n", sep = "")
-    cat("Reference data set: ", object@ref_key, "\n", sep = "")
+    refset_version = object@advanced$refset_version
+    refset_version_msg = ''
+    if(! is.null(refset_version) && ! is.na(refset_version)) {
+      refset_version_msg = paste0(' (v', refset_version, ')')
+    }
+    cat("Reference data set: ", object@ref_key, refset_version_msg, "\n", sep = "")
     if (length(object@groups) > 1) {
       cat("Sample groups: ", paste(object@groups, collapse = ", "), "\n", sep = "")
     }

@@ -148,7 +148,7 @@ test_that("Variant-level epistasis", {
 
 
 test_that("Gene-level SNV epistasis analysis", {
-  cesa = ces_gene_epistasis(cesa, genes = c("EGFR", "KRAS", "TP53"), conf = .95)
+  cesa = ces_gene_epistasis(cesa, genes = c("EGFR", "KRAS", "TP53"), variants = 'recurrent', conf = .95)
   results_ak = get_test_data("epistasis_results.rds")
   expect_equal(cesa@epistasis[[1]], results_ak, tolerance = 1e-3)
   

@@ -92,11 +92,8 @@ cesa = gene_mutation_rates(cesa, covariates = ces.refset.hg38$covariates$lung)
 # By default, inference is restricted to recurrent mutations.
 cesa = ces_variant(cesa)
 
-# Copy output, merge in variant annotations, and view top variants
-selection = cesa$selection[[1]]
-selection = selection[cesa$variants, on = 'variant_id', nomatch = NULL]
-
 # Take top 15 variants, then sort lowest to highest (to plot left to right)
+selection = cesa$selection[[1]]
 top = selection[order(-selection_intensity)][1:15]
 top = top[order(selection_intensity)]
 
@@ -308,7 +305,7 @@ The `trinuc_mutation_rates()` run has added some useful information to the CESAn
 * **biological_weights**: The proportion of mutations attributed to each biologically-associated signature within each sample. Mutations attributed to signatures associated with sequencing/processing artifacts are left out. (Technical detail: Due to the instability of signature attributions on samples with few mutations, Samples with few MAF variants have their weights adjusted towards group-average weights, as indicated in the `group_avg_blended` column. If you want to make claims about subgroup differences in mutational processes, consider leaving these samples out or using the raw attributions. You should also leave out the TGS samples, which in this analysis are treated as having 0 mutations.)
 * **trinuc_rates**: Inferred relative rates of mutation, produced by matrix-multiplying biological_weights and signature definitions. (These rates will not equal the empirical rates seen in the data.)
 
-While we're here, MutationalPatterns has some nice plot functions that we can use. For example, we can plot the mean SNV profile for each BRCA receptor subtype. (We would not want to include TGS samples in this plot since cancer hotspot mutations are not reflective of overall mutational processes, but since our TGS samples lack receptor_status information, they will be left out without having to specifically exclude them.)
+While we're here, MutationalPatterns has some nice plot functions that we can use. For example, we can plot the mean SNV profile for each BRCA receptor subtype. (We would want to exclude TGS samples in this plot because cancer hotspot mutations are not reflective of overall mutational processes, but our TGS samples lack receptor_status information, so they will already be left out without having to specifically exclude them.)
 
 ```{r eval = T, include = F}
 snv_counts = readRDS(system.file("tutorial/BRCA_snv_counts.rds", package = 'cancereffectsizeR'))
@@ -320,7 +317,7 @@ snv_counts = cesa$mutational_signatures$snv_counts
 ```
 ```{r eval = T}
 # Counts look like this:
-snv_counts[1:5, 1:5]
+snv_counts[1:5, c("TCGA-AC-A3W5", "TCGA-AC-A3YI", "TCGA-AC-A3YJ", "TCGA-AC-A4ZE", "TCGA-AC-A5EH", "TCGA-AC-A5EI")]
 
 # We'll sum up the counts by group
 summed_snv_by_group = data.table()
@@ -400,15 +397,12 @@ Let's visualize the most selected variants. The following should be fairly adapt
 ```{r}
 library(ggplot2)
 
-# Extract selection results from CESAnalysis
+# Extract selection results from CESAnalysis and take top variants for visualization
 top = cesa$selection$recurrents
-
-# Merge in variant annotations from cesa$variants.
-top = top[cesa$variants, on = 'variant_id', nomatch = NULL]
 top = top[order(-selection_intensity)][1:20] # take top 20 by SI
 top = top[order(selection_intensity)] # will plot lowest to highest (left to right)
 
-# Use variant names pretty for use in plot labels
+# Make variant names pretty for use in plot labels
 top[, display_name := gsub('_', "\n", variant_name)]
 top[, display_levels := factor(display_name, levels = display_name, ordered = T)]
 
@@ -469,10 +463,11 @@ cesa = ces_variant(cesa, variants = variants_for_sequential, model = 'basic', ru
 
 We merge the two selection output tables, do the likelihood ratio test, and print a simplified table of significantly differentially selected variants.
 ```{r}
-combined_results = merge.data.table(cesa$selection$sequential, cesa$selection$for_sequential_compare, 
+combined_results = merge.data.table(cesa$selection$sequential, 
+                                    cesa$selection$for_sequential_compare, 
                                     all.x = TRUE, all.y = FALSE, 
-                                    by = 'variant_id', suffixes = c('.sequential', '.single'))
-combined_results[cesa$variants, variant_name := variant_name, on = 'variant_id']
+                                    by = c('variant_id', 'variant_name', 'variant_type'), 
+                                    suffixes = c('.sequential', '.single'))
 
 # Likelihood ratio test
 combined_results[, chisquared := -2 * (loglikelihood.single - loglikelihood.sequential)]
@@ -537,7 +532,7 @@ for_compound = rbind(top_PIK3CA, top_akt1)
 
 # see define_compound_variants() documentation for details on arguments
 comp = define_compound_variants(cesa = cesa, variant_table = for_compound, by = "gene", merge_distance = Inf)
-cesa = ces_epistasis(cesa = cesa, variants = comp, conf = .95, run_name = "AKT1_E17K_vs_PIK3CA")
+cesa = ces_epistasis(cesa = cesa, variants = comp, run_name = "AKT1_E17K_vs_PIK3CA")
 cesa$epistasis$AKT1_E17K_vs_PIK3CA
 ```
 
@@ -545,12 +540,19 @@ cesa$epistasis$AKT1_E17K_vs_PIK3CA
 readRDS(paste0(tutorial_dir, '/comp_variant_ep.rds'))
 ```
 
-Note that the effect sizes are smaller for PIK3CA here, since we essentially mixed in lots of lower-effect PIK3CA variants. While 4 samples have both AKT1 E17K and one of the PIK3CA variants, this result strengthens the case for AKT1 mutation reducing selection for PIK3CA mutation.
+Note that the effect sizes are smaller for PIK3CA here, since we mixed in lots of lower-effect PIK3CA variants. While four samples have both AKT1 E17K and one of the PIK3CA variants, this result strengthens the case for AKT1 mutation reducing selection for PIK3CA mutation.
 
 ### Gene-level epistasis
-The convenience function `ces_gene_epistasis()` applies the same model as `ces_epistasis()` at the gene level: It takes all recurrent mutations in a set of genes to test for epistatic effects between pairs of genes. Here's an example:
+The convenience function `ces_gene_epistasis()` provides a simpler way to apply the model of `ces_epistasis()` at the gene level. The `variants` argument offers multiple methods of specifying which variants from each gene to include in the inference: "recurrent" uses all recurrent variants, "nonsilent" uses all coding variants except non-splice-site synonymous variants, or a custom table of variants can be input, as shown here.
 ```{r}
-cesa = ces_gene_epistasis(cesa = cesa, genes = c("AKT1", "PIK3CA", "TP53"), conf = .95, run_name = "gene_epistasis_example")
+
+genes = c("AKT1", "PIK3CA", "TP53")
+
+# We would use the "nonsilent" method, except a handful of variants are not covered in the TGS data,
+# forcing us to exclude those so that the TGS samples can be included inthe inference.
+variants = cesa$variants[variant_type == 'aac' & gene %in% genes & sapply(covered_in, length) == 2]
+variants = variants[aa_ref != aa_alt | essential_splice == T]
+cesa = ces_gene_epistasis(cesa = cesa, genes = genes, variants = variants, run_name = "gene_epistasis_example")
 cesa$epistasis$gene_epistasis_example
 ```
 
@@ -558,7 +560,8 @@ cesa$epistasis$gene_epistasis_example
 readRDS(paste0(tutorial_dir, '/gene_ep_example.rds'))
 ```
 
-The output for AKT1/TP53 would be identical to the previous example, except in this run, a second AKT1 variant (with n = 2) is included. Mutational selection in the two oncogenes appears to be reduced after mutation in TP53, while loss of TP53 remains selected on a mutant PIK3CA background and becomes even more favored on a mutant AKT1 background.
+Mutational selection in the two oncogenes appears to be maintained after mutation in TP53. In constrast, loss of TP53 is less selected after mutations in AKT1/PIK3CA; one explanation is that cell populations in which these powerful drivers have fixed must have already subverted tumor suppression mechanisms, making TP53 mutations superfluous. The two oncogenes also appear to show some mutual exclusivity, in that selection for each is reduced after mutation in the other.
+
 
 ## Save your work
 Whether you've made it all the way through this tutorial--or simply want to take a break--you can save a commemorative (and space-efficient) copy of your CESAnalysis using `save_cesa()`. You can reload the analysis anytime with `load_cesa()`.

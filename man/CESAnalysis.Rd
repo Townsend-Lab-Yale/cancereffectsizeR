@@ -7,7 +7,7 @@
 CESAnalysis(refset = NULL, sample_groups = NULL)
 }
 \arguments{
-\item{refset}{name of reference data set (refset) to use; run \code{list_ces_refsets()} for
+\item{refset}{Name of reference data set (refset) to use; run \code{list_ces_refsets()} for
 available refsets. Alternatively, the path to a custom reference data directory.}
 
 \item{sample_groups}{(Deprecated; no longer necessary.) Optionally, supply labels

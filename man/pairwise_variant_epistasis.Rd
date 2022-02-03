@@ -19,6 +19,8 @@ pairwise_variant_epistasis(
 indices of CompoundVariantSet for the current two compound variants}
 
 \item{samples}{Validated samples data.table (as from select_samples())}
+
+\item{compound_variants}{If testing a pair of compound variants, the CompoundVariantSet defining them}
 }
 \description{
 Calculate SIs at variant level under pairwise epistasis model

@@ -8,6 +8,7 @@ add_variants(
   target_cesa = NULL,
   variant_table = NULL,
   snv_id = NULL,
+  aac_id = NULL,
   bed = NULL,
   gr = NULL,
   source_cesa = NULL,
@@ -27,6 +28,8 @@ splice-site-spanning variants can be many thousands.)}
 
 \item{snv_id}{Character vector of CES-style SNV IDs to add.}
 
+\item{aac_id}{Character vector of AAC IDs (or short names, like "KRAS_G12C")}
+
 \item{bed}{A path to a BED file. All possible SNVs overlapping BED intervals (within
 \code{padding} bases) will be added.}
 
@@ -42,7 +45,7 @@ re-annotated using the target_cesa's associated reference data.}
 Use this function to add variant annotations to your CESAnalysis by specifying variants
 to add in one of five ways: a data.table containing genomic coordinates (output from
 select_variants(), typically), a GRanges object, a BED file, another CESAnalysis, or
-SNV IDs.
+SNV/AAC IDs.
 }
 \details{
 All methods of adding variants work by identifying which SNVs to add and then using the

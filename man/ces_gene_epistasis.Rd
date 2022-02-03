@@ -7,10 +7,11 @@
 ces_gene_epistasis(
   cesa = NULL,
   genes = character(),
+  variants = NULL,
   samples = character(),
   run_name = "auto",
   cores = 1,
-  conf = NULL
+  conf = 0.95
 )
 }
 \arguments{
@@ -18,30 +19,36 @@ ces_gene_epistasis(
 
 \item{genes}{Vector of gene names; SIs will be calculated for all gene pairs.}
 
+\item{variants}{Which variants to include in inference for each gene. Either
+"recurrent" for all variants present in two or more samples (across all MAF data),
+"nonsilent" for all coding variants except non-splice-site synonymous variants, or a
+data.table containing all variants to include (as returned by
+\code{select_variants()} or by subsetting\code{[CESAnalysis\]$variants}). For
+noncoding variants with multiple gene annotations, the one listed in the "gene"
+column is used. In the recurrent method, nearby noncoding variants may be included.}
+
 \item{samples}{Which samples to include in inference. Defaults to all samples. Can be a
 vector of Unique_Patient_Identifiers, or a data.table containing rows from the
-CESAnalysis sample table. NOTE: Even excluded samples are used to determine recurrent
-variant sites. If this is a problem for you, then it's possible to get your desired
-behavior using ces_epistasis().}
+CESAnalysis sample table.}
 
 \item{run_name}{Optionally, a name to identify the current run.}
 
 \item{cores}{number of cores for parallel processing of gene pairs}
 
 \item{conf}{Confidence interval size from 0 to 1 (.95 -> 95\%). NULL skips calculation,
-which reduces runtime.}
+which may be helpful to reduce runtime when analyzing many gene pairs.}
 }
 \value{
 CESAnalysis with epistasis analysis results added
 }
 \description{
 Calculate selection intensity under an assumption of pairwise gene-level epistasis.
-More specifically, selection at the gene level is assumed to act through all recurrent
-variants (variants that appear in just one sample are ignored), with selection
-intensity of each gene assumed to vary based on mutational status of the other gene.
+Selection at the gene level is assumed to act through all 
+specified variants (see options), with the selection for each gene's variants allowed
+to vary based on the mutational status of the other gene's variants.
 }
 \details{
-Only samples that have coverage at all recurrent sites in both genes can be included in
-analysis since samples lacking full coverage may or may not have mutations at the
+Only samples that have coverage at all included sites in both genes can be included in the
+inference since samples lacking full coverage may or may not have mutations at the
 uncovered sites.
 }

@@ -554,9 +554,10 @@ ces_variant <- function(cesa = NULL,
     setattr(selection_results, "is_compound", TRUE)
     setcolorder(selection_results, c("variant_name", "variant_type"))
   } else {
-    selection_results[variants, variant_type := variant_type, on = "variant_id"]
+    selection_results[variants, c("variant_type", "variant_name") := list(variant_type, variant_name), on = "variant_id"]
     setattr(selection_results, "is_compound", FALSE)
-    setcolorder(selection_results, c("variant_id", "variant_type"))
+    setcolorder(selection_results, c("variant_name", "variant_type"))
+    setcolorder(selection_results, c(setdiff(names(selection_results), 'variant_id'), 'variant_id'))
   }
   
   # isolate SI columns for plotting functions (and maybe more, eventually)
@@ -571,7 +572,53 @@ ces_variant <- function(cesa = NULL,
   return(cesa)
 }
 
+#' Clear variant effect output
+#' 
+#' Remove output from previous ces_variant() runs from CESAnalysis
+#' @param cesa CESAnalysis
+#' @param run_names Which previous runs to remove; defaults to removing all.
+#' @export
+clear_effect_output = function(cesa, run_names = names(cesa$selection)) {
+  if (! is(cesa, "CESAnalysis")) {
+    stop("cesa should be a CESAnalysis")
+  }
+  cesa = copy_cesa(cesa)
 
+  if(! is.character(run_names) || length(run_names) < 1) {
+    stop("run_name should be type character.")
+  }
+  
+  if(! all(run_names %in% names(cesa@selection_results))) {
+    stop("Input run_names are not all present in ces_variant() output.")
+  }
+  cesa@selection_results[run_names] = NULL
+  cesa = update_cesa_history(cesa, match.call())
+  return(cesa)
+}
+
+#' Clear epistasis output
+#' 
+#' Remove previous epistatic effect estimations from CESAnalysis.
+#' @param cesa CESAnalysis.
+#' @param run_names Which previous runs to remove; defaults to removing all.
+#' @export
+clear_epistasis_output = function(cesa, run_names = names(cesa$epistasis)) {
+  if (! is(cesa, "CESAnalysis")) {
+    stop("cesa should be a CESAnalysis")
+  }
+  cesa = copy_cesa(cesa)
+  
+  if(! is.character(run_names) || length(run_names) < 1) {
+    stop("run_name should be type character.")
+  }
+  
+  if(! all(run_names %in% names(cesa@epistasis))) {
+    stop("Input run_names are not all present in epistasis output.")
+  }
+  cesa@epistasis[run_names] = NULL
+  cesa = update_cesa_history(cesa, match.call())
+  return(cesa)
+}
 
 
 

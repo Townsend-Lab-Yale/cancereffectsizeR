@@ -10,7 +10,7 @@ ces_epistasis(
   samples = character(),
   run_name = "auto",
   cores = 1,
-  conf = NULL
+  conf = 0.95
 )
 }
 \arguments{

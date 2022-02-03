@@ -70,21 +70,26 @@ complete_aac_ids = function(partial_ids, refset) {
   # Not carefully validating, but if the IDs all look complete already, return them
   looks_complete = grepl('.+_.+_', partial_ids)
   if (all(looks_complete)) {
+    problems = validate_aac_ids(partial_ids, refset)
+    if(length(problems) > 0) {
+      print(problems)
+      stop('Input IDs look like full AAC IDs (gene_aachange_pid), but some are invalid (see above).')
+    }
     return(partial_ids)
   }
   if (any(looks_complete)) {
-    stop('Encountered an apparent mix of partial and full AAC IDs')
+    stop('Encountered an apparent mix of partial and full AAC IDs.')
   }
   
   # replace a space to allow things like "BRAF V600E"
-  aac_ids = sub(" ", "_", partial_ids)
-  gene_names = sub('_.*', '', aac_ids)
+  gene_and_aachange = gsub(" ", "_", partial_ids)
+  dt = data.table(gene_and_aachange = gene_and_aachange)
+  dt[, gene := sub('_.*', '', gene_and_aachange)]
   
-  invalid_genes = setdiff(gene_names, refset$gene_names)
+  invalid_genes = setdiff(dt$gene, refset$gene_names)
   if(length(invalid_genes) > 0) {
     stop("Invalid genes (expected gene_aachange):\n", paste(invalid_genes, collapse = ", "))
   }
-  
   
   refcds = refset$RefCDS
   gr_cds = refset$gr_genes
@@ -92,10 +97,21 @@ complete_aac_ids = function(partial_ids, refset) {
     gene_to_pid = unique(as.data.table(GenomicRanges::mcols(gr_cds)))
     setnames(gene_to_pid, 'names', 'protein_id')
   } else {
-    gene_to_pid = rbindlist(lapply(refcds[unique(gene_names)], '[', 'protein_id'), idcol = 'gene')
+    gene_to_pid = rbindlist(lapply(refcds[unique(dt$gene)], '[', 'protein_id'), idcol = 'gene')
   }
-  pids = gene_to_pid[gene_names, protein_id, on = "gene"]
-  return(paste(aac_ids, pids, sep = '_'))
+  dt = gene_to_pid[dt, on = 'gene'] # take all combinations of pid and gene_aachange (even though some will be invalid)
+  tentative_ids = dt[, paste(gene_and_aachange, protein_id, sep = '_')]
+  # determine which AAC are valid (verifies ref/alt amino acids are correct and possible at given position)
+  bad_ids = unlist(validate_aac_ids(aac_ids = tentative_ids, refset = refset))
+  good_ids = setdiff(tentative_ids, bad_ids)
+  
+  final_gene_and_aachange = unique(gsub('(.*)_[^_]+$', '\\1', good_ids))
+  not_completed = setdiff(gene_and_aachange, final_gene_and_aachange)
+  if(length(not_completed) > 0) {
+    warning(paste0('Some input AAC variant names could not be expanded to valid AAC IDs, so no returned IDs correspond to them:\n',
+                          paste(not_completed, sep = ', '), '.'))
+  }
+  return(good_ids)
 }
 
 
@@ -198,7 +214,16 @@ validate_aac_ids = function(aac_ids, refset) {
   if(length(incorrect_ref) > 0) {
     problems[['incorrect_aa_ref']] = dt[incorrect_ref, input_id]
     dt = dt[! incorrect_ref]
+    codons = codons[-incorrect_ref] # ! doesn't work
   }
+  
+  # drop synonymous records (allowing those for now)
+  is_synonymous = dt[aa_ref == aa_alt, which = T]
+  if(length(is_synonymous) > 0) {
+    dt = dt[! is_synonymous]
+    codons = codons[-is_synonymous]
+  }
+  
   dt[aa_alt %in% c('*', 'STP'), aa_alt := 'STOP']
   dt[aa_alt != 'STOP', aa_alt := suppressWarnings(seqinr::aaa(aa_alt))] # for compatibility with internal table
   
@@ -207,12 +232,11 @@ validate_aac_ids = function(aac_ids, refset) {
   if(length(invalid_alt) > 0) {
     problems[["invalid_aa_alt"]] = dt[invalid_alt, input_id]
     dt = dt[! invalid_alt]
+    codons = codons[-invalid_alt]
   }
   
-  dt[aa_ref == aa_alt, alt_possible := TRUE] # for now, we allow these
-  dt[is.na(alt_possible), alt_possible := mapply(function(codon, alt) length(unlist(codon_snvs_to_aa[[codon]][[alt]])) > 0, 
+  dt[, alt_possible := mapply(function(codon, alt) length(unlist(codon_snvs_to_aa[[codon]][[alt]])) > 0, 
                                                  as.character(codons), aa_alt)]
-  
   impossible_alt = dt[alt_possible == FALSE, which = T]
   if(length(impossible_alt) > 0) {
     problems[["aa_alt_not_possible"]] = dt[impossible_alt, input_id]

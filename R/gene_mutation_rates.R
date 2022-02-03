@@ -192,52 +192,59 @@ gene_mutation_rates <- function(cesa, covariates = NULL, samples = character(), 
                   dndscv_args)
   dndscv_output = do.call(run_dndscv, dndscv_args)
   
+  # Will want to get CIs on gene mutation rates. (Encapsulating use of predict for testing purposes.)
+  fit = get_dndscv_model_fit(dndscv_output)
+  
+  theta = dndscv_output$nbreg$theta # parameter controlling variablity in rates across genes
+  lower = exp(fit$fit - 1.96 * fit$se.fit)
+  upper = exp(fit$fit + 1.96 * fit$se.fit)
+  
+  # Note exp(fit$fit) will be equivalent to dndscv_output$genemuts$exp_syn_cv
+  mle_rate = dndscv_output$genemuts$exp_syn_cv
+  
   # Get RefCDS data on number of synonymous mutations possible at each site
   # Per dNdScv docs, L matrices list "number of synonymous, missense, nonsense and splice sites in each CDS at each trinucleotide context"
-  num_syn = sapply(RefCDS, function(x) colSums(x$L)[1])
-  names(num_syn) = sapply(RefCDS, function(x) x$gene_name)
-  
-  dndscv_genes = dndscv_output$genemuts$gene_name # dndscv uses same set of genes for each stage
-  num_syn = num_syn[names(num_syn) %in% dndscv_genes]
-  
-  
-  message("Using dNdScv output to calculate gene-level mutation rates...")
-  number_of_tumors_in_this_subset <- length(unique(dndscv_output$annotmuts$sampleID))
+  message("Extracting gene mutation rates from dNdScv output...")
+  dndscv_sample_num = uniqueN(dndscv_output$annotmuts$sampleID)
+  actual_syn_counts = dndscv_output$genemuts$n_syn
+  dndscv_gene_names = dndscv_output$genemuts$gene_name
+  nsyn_sites = sapply(RefCDS[dndscv_gene_names], function(x) colSums(x[["L"]])[1])
   if(dndscv_output$nbreg$theta>1){
     # see page e4 of dNdScv paper (Martincorena 2017, Cell)
-    mutrates_vec <- ((dndscv_output$genemuts$n_syn +
-                        dndscv_output$nbreg$theta -
-                        1) /
-                       (1 +
-                          (dndscv_output$nbreg$theta /
-                             dndscv_output$genemuts$exp_syn_cv)
-                       )
-    ) /
-      num_syn /
-      number_of_tumors_in_this_subset
-    
+    mutrates_vec <- ((actual_syn_counts + theta - 1) /
+                    (1 + (theta / mle_rate))) /
+                    nsyn_sites / dndscv_sample_num
+    lower_rates = ((actual_syn_counts + theta - 1) /
+                      (1 + (theta / lower))) /
+                    nsyn_sites / dndscv_sample_num
+    upper_rates = ((actual_syn_counts + theta - 1) /
+                     (1 + (theta / upper))) /
+                    nsyn_sites / dndscv_sample_num
+
   } else{
-    mutrates_vec <- rep(NA,length(dndscv_output$genemuts$exp_syn_cv))
-    syn_sites <- num_syn
+    # theta should definitely be >1, so none of this should really happen
+    mutrates_vec <- rep(NA,length(actual_syn_counts))
     for(i in 1:length(mutrates_vec)){
-      mutrates_vec[i] <-  max(dndscv_output$genemuts$exp_syn_cv[i],  ((dndscv_output$genemuts$n_syn[i] +
-                                                                         dndscv_output$nbreg$theta -
-                                                                         1) /
-                                                                        (1 +
-                                                                           (dndscv_output$nbreg$theta /
-                                                                              dndscv_output$genemuts$exp_syn_cv[i])
-                                                                        ))) /
-        num_syn[i] /
-        number_of_tumors_in_this_subset
+      mutrates_vec[i] <-  max(mle_rate,  
+                              ((actual_syn_counts[i] + theta - 1) /
+                                        (1 +(theta / mle_rate)))) /
+        nsyn_sites[i] /
+        dndscv_sample_num
     }
+    # No CIs when theta<1
+    upper_rates = rep(NA, length(mutrates_vec))
+    lower_rates = upper_rates
   }
   
   curr_rate_group = as.integer(max(c(0, na.omit(cesa@samples$gene_rate_grp))) + 1)
   rate_grp_colname = paste0("rate_grp_", curr_rate_group)
-  mutrates_dt = data.table(gene = dndscv_output$genemuts$gene_name, rate = mutrates_vec)
-  setnames(mutrates_dt, "rate", rate_grp_colname)
+  mutrates_dt = data.table(gene = dndscv_output$genemuts$gene_name, rate = mutrates_vec,
+                           low = lower_rates, high = upper_rates)
   
-  
+  ci_low_name = paste0(rate_grp_colname, '_95_low')
+  ci_high_name = paste0(rate_grp_colname, '_95_high')
+  setnames(mutrates_dt, c("rate", "low", "high"), c(rate_grp_colname, ci_low_name, ci_high_name))
+
   # Genes in gr_genes that are not present in the covariates data (a few are missing,
   # usually), won't get rates calculated by dNdScv. Here, we assign them the rate of the
   # nearest gene, as measured by center-to-center distance. (And, in the case of CDS
@@ -295,6 +302,13 @@ gene_mutation_rates <- function(cesa, covariates = NULL, samples = character(), 
   names(dndscv_output) = rate_grp_colname
   cesa@dndscv_out_list = c(cesa@dndscv_out_list, dndscv_output)
   return(cesa)
+}
+
+#' This little function called by gene_mutation_rates() is separated for testing purposes.
+#'
+#' @keywords internal
+get_dndscv_model_fit = function(dndscv_output) {
+  predict(dndscv_output$nbreg, se.fit = T)
 }
 
 #' Internal function to run dNdScv

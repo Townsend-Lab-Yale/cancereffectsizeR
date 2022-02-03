@@ -17,7 +17,7 @@ load_maf(
 )
 }
 \arguments{
-\item{cesa}{the CESAnalysis object to load the data into}
+\item{cesa}{CESAnalysis.}
 
 \item{maf}{Path of tab-delimited text file in MAF format, or an MAF in data.table or
 data.frame format.}

@@ -8,7 +8,7 @@
 #' sequencing. Whole-genome data and targeted sequencing data are also supported when the
 #' \code{coverage} option is specified.
 #' 
-#' @param cesa the CESAnalysis object to load the data into
+#' @param cesa CESAnalysis.
 #' @param maf Path of tab-delimited text file in MAF format, or an MAF in data.table or
 #'   data.frame format.
 #' @param sample_data_cols MAF columns containing sample-level data (e.g., tumor grade)
@@ -166,7 +166,7 @@ load_maf = function(cesa = NULL, maf = NULL, coverage = "exome", covered_regions
         cesa@coverage$exome[["exome"]] = covered_regions
       }
     }
-    pretty_message("Assuming this data has default exome coverage (it's better to supply covered intervals if you have them; see docs)...")
+    pretty_message("Assuming this data has default exome coverage....")
   } else if (! is.null(covered_regions)) {
     cesa = .add_covered_regions(cesa = cesa, covered_regions = covered_regions, covered_regions_padding = covered_regions_padding, 
                                coverage_type = coverage, covered_regions_name = covered_regions_name)
