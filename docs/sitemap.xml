@@ -34,6 +34,9 @@
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/CompoundVariantSet.html</loc>
   </url>
   <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/aac_to_snv_ids.html</loc>
+  </url>
+  <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/add_covered_regions.html</loc>
   </url>
   <url>
@@ -80,6 +83,12 @@
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/clean_granges_for_cesa.html</loc>
+  </url>
+  <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/clear_effect_output.html</loc>
+  </url>
+  <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/clear_epistasis_output.html</loc>
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/clear_gene_rates.html</loc>
@@ -131,6 +140,9 @@
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/get_cesa_bsg.html</loc>
+  </url>
+  <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/get_dndscv_model_fit.html</loc>
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html/reference/get_gene_rates.html</loc>

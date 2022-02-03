@@ -63,6 +63,8 @@ reference:
   - ces_variant
   - ces_epistasis
   - ces_gene_epistasis
+  - clear_effect_output
+  - clear_epistasis_output
 - title: Visualization
   desc: Display and compare variant effect sizes
   contents:

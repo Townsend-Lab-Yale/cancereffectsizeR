@@ -10,14 +10,14 @@
     
     <a class="navbar-brand me-2" href="../index.html">cancereffectsizeR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.3.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.4.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
 
-    <div id="navbar" class="collapse navbar-collapse ms-2">
+    <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item">
   <a class="nav-link" href="../articles/cancereffectsizeR.html">Tutorial</a>
 </li>
@@ -55,6 +55,14 @@
       <small>Source: <a href="https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2.4.0" id="cancereffectsizer-240">cancereffectsizeR 2.4.0<a class="anchor" aria-label="anchor" href="#cancereffectsizer-240"></a></h2>
+<ul><li>ces_gene_epistasis() gains a variants argument to customize which variants in each gene are used in epistasis inference.</li>
+<li>Gene mutation rate estimates now come with 95% confidence intervals.</li>
+<li>add_variants() can now be used to load annotations for amino-acid-changing substitutions into a CESAnalysis.</li>
+<li>Fixed a bug in create_refset() that caused custom reference data sets to have incorrect values in gene trinucleotide proportions (gene_trinuc_comp).</li>
+<li>Added utility functions clear_effect_output() and clear_epistasis_output().</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2.3.4" id="cancereffectsizer-234">cancereffectsizeR 2.3.4<a class="anchor" aria-label="anchor" href="#cancereffectsizer-234"></a></h2>
 <ul><li>New website and expanded tutorial.</li>
@@ -151,7 +159,7 @@
 </div>
 
 <div class="pkgdown-footer-right">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.1.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.2.</p>
 </div>
 
     </footer></div>
