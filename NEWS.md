@@ -1,3 +1,6 @@
+# cancereffectsizeR 2.5.0
+* Fixed bug where combining WGS data with generic WXS data (without specific coverage definitions) resulted in all variants being annotated as exonic.
+
 # cancereffectsizeR 2.4.0
 * ces_gene_epistasis() gains a variants argument to customize which variants in each gene are used in epistasis inference.
 * Gene mutation rate estimates now come with 95% confidence intervals.

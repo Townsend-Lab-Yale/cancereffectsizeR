@@ -228,7 +228,8 @@ update_covered_in = function(cesa) {
   just_exome_plus = FALSE
   if(is.null(all_coverage)) {
     snv_table[, covered_in := list()]
-  } else if (length(all_coverage) == 1 && names(all_coverage) == 'exome+' && is.null(cesa@advanced$add_variants_used)) {
+  } else if (length(all_coverage) == 1 && names(all_coverage) == 'exome+' && 
+             sum(cesa@samples$covered_regions == 'genome') == 0 && is.null(cesa@advanced$add_variants_used)) {
     # If only exome+ data and add_variants() hasn't been used to import (potentially uncovered) variants,
     # no need to do any calculations.
     #
