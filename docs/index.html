@@ -90,8 +90,7 @@
 <h4 id="quantify-somatic-evolution-in-cancer">Quantify somatic evolution in cancer<a class="anchor" aria-label="anchor" href="#quantify-somatic-evolution-in-cancer"></a>
 </h4>
 <hr>
-<p>Welcome to cancereffectsizeR! This R package contains a variety of tools for analyzing somatic variant data and ultimately characterizing the evolutionary trajectories of cancers.</p>
-<p>Features include:</p>
+<p>Welcome to cancereffectsizeR! This R package contains a variety of tools for analyzing somatic variant data and ultimately characterizing the evolutionary trajectories of cancers:</p>
 <ul>
 <li>Annotate somatic variants with built-in reference data, or create a <a href="articles/custom_refset_instructions.html">custom reference data set</a> for almost any species/genome.</li>
 <li>Attribute mutations to mutational processes by extracting COSMIC signatures, or any custom set of signature definitions.</li>
@@ -99,34 +98,20 @@
 <li>Test single-variant, stage/grade-specific, and epistatic models of selection, or define and test your own models.</li>
 <li>Arbitrarily batch variants by position, gene, or functional annotation, and quantify selection by batch.</li>
 </ul>
+<p>We plan to extend cancereffectsizeR’s functionality as we continue development, and we welcome your feedback, ideas, and bug reports.</p>
 </div>
 <div class="section level2">
-<h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
+<h2 id="installation-and-tutorial">Installation and tutorial<a class="anchor" aria-label="anchor" href="#installation-and-tutorial"></a>
 </h2>
-<p>cancereffectsizeR requires R 3.5 or later and can be installed from its GitHub repository via the remotes package. Since we’re not able to test all installation environments, please help by letting us know if you have any installation problems.</p>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>timeout <span class="op">=</span> <span class="fl">600</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"remotes"</span><span class="op">)</span>
-<span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"Townsend-Lab-Yale/cancereffectsizeR@*release"</span>, 
-                         dependencies <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></code></pre></div>
-<p>For a minimal installation, leave out the dependencies argument to install just required dependencies, rather than both required and suggested.</p>
-<p>Regrettably, there is a bug in some older versions of the GenomeInfoDb package that may produce cryptic error messages in cancereffectsizeR, along the lines of <code>!anyNA(m32) is not TRUE</code>. If you encounter this issue, upgrade your Bioconductor version:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Only necessary if the current Bioconductor version is &lt;3.14.</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (BiocManager<span class="sc">::</span><span class="fu">version</span>() <span class="sc">&lt;</span> <span class="fu">as.package_version</span>(<span class="st">'3.14'</span>)) {</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  BiocManager<span class="sc">::</span><span class="fu">install</span>(<span class="at">version =</span> <span class="st">"3.14"</span>)<span class="st">`</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="at">}</span></span></code></pre></div>
+<p>For installation instructions and an overview of package features, see the <a href="articles/cancereffectsizeR.html">tutorial</a>. The quickstart section offers a condensed introduction to get you running a basic analysis in minutes.</p>
 </div>
 <div class="section level2">
-<h2 id="methods-overview">Methods overview<a class="anchor" aria-label="anchor" href="#methods-overview"></a>
+<h2 id="selected-publications">Selected publications<a class="anchor" aria-label="anchor" href="#selected-publications"></a>
 </h2>
-<p>For a thorough introduction to the package’s usage and underlying methods, see the <a href="articles/cancereffectsizeR.html">tutorial</a>. The quickstart section has a condesned intro to both usage and theory.</p>
-<p>Currently, cancereffectsizeR directly supports analysis of both noncoding and amino-acid-changing SNVs. Current methods provide some insight into interactions with other types of selection; for example, samples could be grouped by copy number status (or any other feature of interest) and assessed for differential SNV selection. We plan to extend cancereffectsizeR’s functionality as we continue development, and we welcome your feedback, ideas, and bug reports.</p>
-</div>
-<div class="section level2">
-<h2 id="publications-and-version-note">Publications and version note<a class="anchor" aria-label="anchor" href="#publications-and-version-note"></a>
-</h2>
-<p>Our 2018 JNCI paper <a href="https://doi.org/10.1093/jnci/djy168" class="external-link">Effect sizes of somatic mutations in cancer</a> describes <a href="https://github.com/Townsend-Lab-Yale/cancereffectsizeR/releases/tag/0.1.0" class="external-link">Version 0.1.0</a> of this package, which was developed by Cannataro, V. L., Gaffney, S. G., and Townsend, J. P.</p>
-<p>This site describes the latest version, which has methodological and performance improvements, including support for whole-genome and targeted gene sequencing data. A user guide for v0.1.0 is available <a href="https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/main/user_guide/cancereffectsizeR_user_guide.md" class="external-link">here</a>.</p>
+<ul>
+<li><p><strong><a href="https://academic.oup.com/mbe/article/39/5/msac084/6570859" class="external-link">Attribution of Cancer Origins to Endogenous, Exogenous, and Preventable Mutational Processes</a></strong>, <em>Molecular Biology and Evolution </em> (2022).<br>Variant effect estimates from cancereffectsizeR are employed in a novel method to determine the relative contributions of various mutational processes to oncogenesis.</p></li>
+<li><p><strong><a href="https://doi.org/10.1093/jnci/djy168" class="external-link">Effect Sizes of Somatic Mutations in Cancer</a></strong>, <em>Journal of the National Cancer Institute </em>(2018).<br>A pan-cancer analysis of cancer effects employs <a href="https://github.com/Townsend-Lab-Yale/cancereffectsizeR/releases/tag/0.1.0" class="external-link">Version 0.1.0</a> of this package. This original version was developed by Vincent Cannataro, Stephen Gaffney, and Jeffrey Townsend.</p></li>
+</ul>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="provided-by">
