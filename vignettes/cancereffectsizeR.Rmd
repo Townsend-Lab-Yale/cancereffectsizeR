@@ -65,7 +65,7 @@ library(ggplot2)
 
 # Download lung adenocarcinoma (LUAD) somatic variant data.
 # Note that the rest of the tutorial uses BRCA, not LUAD.
-tcga_maf_file = 'inst/tutorial/TCGA.LUAD.mutect.0458c57f-316c-4a7c-9294-ccd11c97c2f9.DR-10.0.somatic.maf.gz'
+tcga_maf_file = 'TCGA.LUAD.mutect.0458c57f-316c-4a7c-9294-ccd11c97c2f9.DR-10.0.somatic.maf.gz'
 if (! file.exists(tcga_maf_file)) {
   download.file('https://api.gdc.cancer.gov/data/0458c57f-316c-4a7c-9294-ccd11c97c2f9', 
                 destfile = tcga_maf_file)
