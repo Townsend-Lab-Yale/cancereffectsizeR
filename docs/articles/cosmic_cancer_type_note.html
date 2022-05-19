@@ -92,16 +92,43 @@
 
     
     
-<p>The <code><a href="../reference/trinuc_mutation_rates.html">trinuc_mutation_rates()</a></code> function uses mutational signature extraction to calculate relative trinucleotide-specific SNV mutation rates in tumors. The “signatures_to_remove” option allows some signatures to be excluded from this analysis, which means each tumor will receive a weight of 0 for these signatures, indicating that none of the tumor’s SNVs are attributable to these signatures. This page describes the behavior of the helper function <code><a href="../reference/suggest_cosmic_signature_exclusions.html">suggest_cosmic_signature_exclusions()</a></code> and the reasoning behind it.</p>
-<p>As reported in <a href="https://doi.org/10.1038/s41586-020-1943-3" class="external-link">Alexandrov 2020</a>, and in COSMIC v3.1/v3.2 mutational signature releases, some signatures are only expected to appear in certain cancer types. For more reliable signature extraction, consider excluding implausible signatures when running <code><a href="../reference/trinuc_mutation_rates.html">trinuc_mutation_rates()</a></code>.</p>
-<p>There are also some signatures associated with various drug treatments (SBS11, SBS31, SBS32, SBS35, SBS86, SBS87, SBS90), so you if you know that your samples are treatment-naive or haven’t been exposed to the implicated drugs, some or all of these signatures can be excluded.</p>
-<p>Note that while some COSMIC signatures are attributed to sequencing artifacts, you shouldn’t exclude these because cancereffectsizeR already handles these signatures specially.</p>
-<p>The <code><a href="../reference/suggest_cosmic_signature_exclusions.html">suggest_cosmic_signature_exclusions()</a></code> function will identify possible signature exclusions based on cancer type and treatment status.</p>
+<p>The <code><a href="../reference/trinuc_mutation_rates.html">trinuc_mutation_rates()</a></code> function uses mutational
+signature extraction to calculate relative trinucleotide-specific SNV
+mutation rates in tumors. The “signatures_to_remove” option allows some
+signatures to be excluded from this analysis, which means each tumor
+will receive a weight of 0 for these signatures, indicating that none of
+the tumor’s SNVs are attributable to these signatures. This page
+describes the behavior of the helper function
+<code><a href="../reference/suggest_cosmic_signature_exclusions.html">suggest_cosmic_signature_exclusions()</a></code> and the reasoning
+behind it.</p>
+<p>As reported in <a href="https://doi.org/10.1038/s41586-020-1943-3" class="external-link">Alexandrov 2020</a>,
+and in COSMIC v3.1/v3.2 mutational signature releases, some signatures
+are only expected to appear in certain cancer types. For more reliable
+signature extraction, consider excluding implausible signatures when
+running <code><a href="../reference/trinuc_mutation_rates.html">trinuc_mutation_rates()</a></code>.</p>
+<p>There are also some signatures associated with various drug
+treatments (SBS11, SBS31, SBS32, SBS35, SBS86, SBS87, SBS90), so you if
+you know that your samples are treatment-naive or haven’t been exposed
+to the implicated drugs, some or all of these signatures can be
+excluded.</p>
+<p>Note that while some COSMIC signatures are attributed to sequencing
+artifacts, you shouldn’t exclude these because cancereffectsizeR already
+handles these signatures specially.</p>
+<p>The <code><a href="../reference/suggest_cosmic_signature_exclusions.html">suggest_cosmic_signature_exclusions()</a></code> function will
+identify possible signature exclusions based on cancer type and
+treatment status.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R">  <span class="fu"><a href="../reference/suggest_cosmic_signature_exclusions.html">suggest_cosmic_signature_exclusions</a></span><span class="op">(</span>cancer_type <span class="op">=</span> <span class="st">"BRCA"</span>, treatment_naive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>
   <span class="fu"><a href="../reference/suggest_cosmic_signature_exclusions.html">suggest_cosmic_signature_exclusions</a></span><span class="op">(</span>cancer_type <span class="op">=</span> <span class="st">"Kidney-RCC"</span><span class="op">)</span></code></pre></div>
-<p>The cancer type recommendations are based on Extended Data Figure 5 of Alexandrov 2020 and the COSMIC website (for signatures released after the paper’s publication). The first two columns of the table below give the labels accepted by the <code>cancer_type</code> argument.</p>
-<p>Before excluding signatures, make sure your data set does not contain tumors from multiple PCAWG categories. For example, TCGA HNSC (head and neck cancer) includes oral cancers, which are listed separately here as Oral-SCC, so excluding all signatures that do not appear in Head-SCC (such as SBS29, tobacco chewing) would not be appropriate.</p>
+<p>The cancer type recommendations are based on Extended Data Figure 5
+of Alexandrov 2020 and the COSMIC website (for signatures released after
+the paper’s publication). The first two columns of the table below give
+the labels accepted by the <code>cancer_type</code> argument.</p>
+<p>Before excluding signatures, make sure your data set does not contain
+tumors from multiple PCAWG categories. For example, TCGA HNSC (head and
+neck cancer) includes oral cancers, which are listed separately here as
+Oral-SCC, so excluding all signatures that do not appear in Head-SCC
+(such as SBS29, tobacco chewing) would not be appropriate.</p>
 <p>(You can access a text version of this table <a href="https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/main/inst/extdata/COSMIC_v3.2_signatures_by_cancer_type.txt" class="external-link">here</a>.)</p>
 <table class="table table table-condensed">
 <thead><tr>
@@ -130,7 +157,8 @@ ALL
 acute lymphoblastic leukemia
 </td>
 <td style="text-align:right;">
-SBS1, SBS2, SBS5, SBS7a, SBS7b, SBS7c, SBS7d, SBS10c, SBS10d, SBS13, SBS18, SBS40, SBS84, SBS85, SBS86, SBS87
+SBS1, SBS2, SBS5, SBS7a, SBS7b, SBS7c, SBS7d, SBS10c, SBS10d, SBS13,
+SBS18, SBS40, SBS84, SBS85, SBS86, SBS87
 </td>
 </tr>
 <tr>
@@ -144,7 +172,9 @@ Biliary-AdenoCA
 biliary adenocarcinoma
 </td>
 <td style="text-align:right;">
-SBS1, SBS2, SBS3, SBS4, SBS5, SBS9, SBS10a, SBS10b, SBS10c, SBS10d, SBS12, SBS13, SBS15, SBS16, SBS17a, SBS17b, SBS18, SBS20, SBS21, SBS22, SBS24, SBS28, SBS29, SBS32, SBS38, SBS40, SBS42, SBS44, SBS86, SBS87
+SBS1, SBS2, SBS3, SBS4, SBS5, SBS9, SBS10a, SBS10b, SBS10c, SBS10d,
+SBS12, SBS13, SBS15, SBS16, SBS17a, SBS17b, SBS18, SBS20, SBS21, SBS22,
+SBS24, SBS28, SBS29, SBS32, SBS38, SBS40, SBS42, SBS44, SBS86, SBS87
 </td>
 </tr>
 <tr>
@@ -158,7 +188,8 @@ BLCA
 bladder transitional cell carcinoma
 </td>
 <td style="text-align:right;">
-SBS1, SBS2, SBS3, SBS5, SBS8, SBS10a, SBS10b, SBS10c, SBS10d, SBS13, SBS18, SBS19, SBS22, SBS29, SBS40, SBS86, SBS87, SBS88, SBS92
+SBS1, SBS2, SBS3, SBS5, SBS8, SBS10a, SBS10b, SBS10c, SBS10d, SBS13,
+SBS18, SBS19, SBS22, SBS29, SBS40, SBS86, SBS87, SBS88, SBS92
 </td>
 </tr>
 <tr>
@@ -172,7 +203,8 @@ Bone-Osteosarc
 sarcoma, bone
 </td>
 <td style="text-align:right;">
-SBS1, SBS2, SBS3, SBS5, SBS8, SBS10c, SBS10d, SBS13, SBS17a, SBS17b, SBS30, SBS40, SBS86, SBS87
+SBS1, SBS2, SBS3, SBS5, SBS8, SBS10c, SBS10d, SBS13, SBS17a, SBS17b,
+SBS30, SBS40, SBS86, SBS87
 </td>
 </tr>
 <tr>
@@ -183,10 +215,12 @@ Bone-Other
 (none)
 </td>
 <td style="text-align:right;">
-Paper vague; presumably bone cartilaginous neoplasm osteoblastoma, bone osteofibrous dysplasia, bone neoplasm epithelioid
+Paper vague; presumably bone cartilaginous neoplasm osteoblastoma, bone
+osteofibrous dysplasia, bone neoplasm epithelioid
 </td>
 <td style="text-align:right;">
-SBS1, SBS2, SBS5, SBS8, SBS10c, SBS10d, SBS13, SBS17a, SBS17b, SBS40, SBS86, SBS87
+SBS1, SBS2, SBS5, SBS8, SBS10c, SBS10d, SBS13, SBS17a, SBS17b, SBS40,
+SBS86, SBS87
 </td>
 </tr>
 <tr>
@@ -197,10 +231,13 @@ Breast
 BRCA
 </td>
 <td style="text-align:right;">
-breast adenocarcinoma, ductal carcinoma in situ, breast lobular carcinoma
+breast adenocarcinoma, ductal carcinoma in situ, breast lobular
+carcinoma
 </td>
 <td style="text-align:right;">
-SBS1, SBS2, SBS3, SBS5, SBS8, SBS9, SBS10a, SBS10b, SBS10c, SBS10d, SBS13, SBS15, SBS17a, SBS17b, SBS18, SBS19, SBS21, SBS26, SBS29, SBS30, SBS34, SBS37, SBS39, SBS40, SBS41, SBS44, SBS86, SBS87, SBS90
+SBS1, SBS2, SBS3, SBS5, SBS8, SBS9, SBS10a, SBS10b, SBS10c, SBS10d,
+SBS13, SBS15, SBS17a, SBS17b, SBS18, SBS19, SBS21, SBS26, SBS29, SBS30,
+SBS34, SBS37, SBS39, SBS40, SBS41, SBS44, SBS86, SBS87, SBS90
 </td>
 </tr>
 <tr>
@@ -214,7 +251,8 @@ CESC
 cervical squamous cell carcinoma and adenocarcinoma
 </td>
 <td style="text-align:right;">
-SBS1, SBS2, SBS5, SBS6, SBS10a, SBS10b, SBS10c, SBS10d, SBS13, SBS15, SBS17a, SBS17b, SBS18, SBS26, SBS28, SBS33, SBS40, SBS44, SBS86, SBS87
+SBS1, SBS2, SBS5, SBS6, SBS10a, SBS10b, SBS10c, SBS10d, SBS13, SBS15,
+SBS17a, SBS17b, SBS18, SBS26, SBS28, SBS33, SBS40, SBS44, SBS86, SBS87
 </td>
 </tr>
 <tr>
@@ -228,7 +266,8 @@ GBM
 CNS glioblastoma
 </td>
 <td style="text-align:right;">
-SBS1, SBS2, SBS5, SBS10a, SBS10b, SBS10c, SBS10d, SBS11, SBS13, SBS15, SBS30, SBS37, SBS40, SBS42, SBS86, SBS87
+SBS1, SBS2, SBS5, SBS10a, SBS10b, SBS10c, SBS10d, SBS11, SBS13, SBS15,
+SBS30, SBS37, SBS40, SBS42, SBS86, SBS87
 </td>
 </tr>
 <tr>
@@ -242,7 +281,8 @@ LGG
 CNS lower-grade glioma
 </td>
 <td style="text-align:right;">
-SBS1, SBS5, SBS7b, SBS7c, SBS7d, SBS10c, SBS10d, SBS11, SBS19, SBS86, SBS87
+SBS1, SBS5, SBS7b, SBS7c, SBS7d, SBS10c, SBS10d, SBS11, SBS19, SBS86,
+SBS87
 </td>
 </tr>
 <tr>
@@ -256,7 +296,8 @@ CNS-Medullo
 CNS medulloblastoma
 </td>
 <td style="text-align:right;">
-SBS1, SBS3, SBS5, SBS8, SBS10c, SBS10d, SBS18, SBS39, SBS40, SBS86, SBS87
+SBS1, SBS3, SBS5, SBS8, SBS10c, SBS10d, SBS18, SBS39, SBS40, SBS86,
+SBS87
 </td>
 </tr>
 <tr>
@@ -298,7 +339,9 @@ COAD, READ
 colorectal adenocarcinoma
 </td>
 <td style="text-align:right;">
-SBS1, SBS2, SBS3, SBS5, SBS6, SBS9, SBS10a, SBS10b, SBS10c, SBS10d, SBS13, SBS15, SBS17a, SBS17b, SBS18, SBS20, SBS21, SBS26, SBS28, SBS30, SBS37, SBS40, SBS41, SBS44, SBS86, SBS87, SBS88, SBS94
+SBS1, SBS2, SBS3, SBS5, SBS6, SBS9, SBS10a, SBS10b, SBS10c, SBS10d,
+SBS13, SBS15, SBS17a, SBS17b, SBS18, SBS20, SBS21, SBS26, SBS28, SBS30,
+SBS37, SBS40, SBS41, SBS44, SBS86, SBS87, SBS88, SBS94
 </td>
 </tr>
 <tr>
@@ -312,7 +355,9 @@ ESCA
 esophagus adenocarcinoma
 </td>
 <td style="text-align:right;">
-SBS1, SBS2, SBS3, SBS4, SBS5, SBS6, SBS7b, SBS7c, SBS7d, SBS10c, SBS10d, SBS13, SBS16, SBS17a, SBS17b, SBS18, SBS20, SBS26, SBS28, SBS34, SBS38, SBS40, SBS44, SBS86, SBS87, SBS90
+SBS1, SBS2, SBS3, SBS4, SBS5, SBS6, SBS7b, SBS7c, SBS7d, SBS10c, SBS10d,
+SBS13, SBS16, SBS17a, SBS17b, SBS18, SBS20, SBS26, SBS28, SBS34, SBS38,
+SBS40, SBS44, SBS86, SBS87, SBS90
 </td>
 </tr>
 <tr>
@@ -326,7 +371,8 @@ ESCA
 esophagus squamous cell carcinoma
 </td>
 <td style="text-align:right;">
-SBS1, SBS2, SBS5, SBS9, SBS10b, SBS10c, SBS10d, SBS13, SBS15, SBS17a, SBS17b, SBS18, SBS22, SBS36, SBS44, SBS86, SBS87, SBS90, SBS93
+SBS1, SBS2, SBS5, SBS9, SBS10b, SBS10c, SBS10d, SBS13, SBS15, SBS17a,
+SBS17b, SBS18, SBS22, SBS36, SBS44, SBS86, SBS87, SBS90, SBS93
 </td>
 </tr>
 <tr>
@@ -340,7 +386,8 @@ Ewings
 Ewing’s sarcoma
 </td>
 <td style="text-align:right;">
-SBS1, SBS2, SBS5, SBS7a, SBS7b, SBS7c, SBS7d, SBS10c, SBS10d, SBS13, SBS18, SBS35, SBS40, SBS86, SBS87
+SBS1, SBS2, SBS5, SBS7a, SBS7b, SBS7c, SBS7d, SBS10c, SBS10d, SBS13,
+SBS18, SBS35, SBS40, SBS86, SBS87
 </td>
 </tr>
 <tr>
@@ -365,10 +412,14 @@ Head-SCC
 HNSC
 </td>
 <td style="text-align:right;">
-head-and-neck squamous cell carcinoma (note HNSC also includes some Oral-SCC)
+head-and-neck squamous cell carcinoma (note HNSC also includes some
+Oral-SCC)
 </td>
 <td style="text-align:right;">
-SBS1, SBS2, SBS3, SBS4, SBS5, SBS7a, SBS7b, SBS7c, SBS7d, SBS10a, SBS10b, SBS10c, SBS10d, SBS13, SBS15, SBS16, SBS17a, SBS17b, SBS18, SBS21, SBS30, SBS32, SBS33, SBS36, SBS38, SBS39, SBS40, SBS44, SBS86, SBS87, SBS88
+SBS1, SBS2, SBS3, SBS4, SBS5, SBS7a, SBS7b, SBS7c, SBS7d, SBS10a,
+SBS10b, SBS10c, SBS10d, SBS13, SBS15, SBS16, SBS17a, SBS17b, SBS18,
+SBS21, SBS30, SBS32, SBS33, SBS36, SBS38, SBS39, SBS40, SBS44, SBS86,
+SBS87, SBS88
 </td>
 </tr>
 <tr>
@@ -382,7 +433,8 @@ Kidney-ChRCC
 kidney chromophobe renal cell carcinoma
 </td>
 <td style="text-align:right;">
-SBS1, SBS2, SBS5, SBS10c, SBS10d, SBS13, SBS17a, SBS17b, SBS29, SBS40, SBS86, SBS87
+SBS1, SBS2, SBS5, SBS10c, SBS10d, SBS13, SBS17a, SBS17b, SBS29, SBS40,
+SBS86, SBS87
 </td>
 </tr>
 <tr>
@@ -410,7 +462,8 @@ KIRC
 kidney renal cell carcinoma
 </td>
 <td style="text-align:right;">
-SBS1, SBS2, SBS4, SBS5, SBS10c, SBS10d, SBS12, SBS13, SBS14, SBS22, SBS26, SBS29, SBS40, SBS41, SBS86, SBS87
+SBS1, SBS2, SBS4, SBS5, SBS10c, SBS10d, SBS12, SBS13, SBS14, SBS22,
+SBS26, SBS29, SBS40, SBS41, SBS86, SBS87
 </td>
 </tr>
 <tr>
@@ -424,7 +477,9 @@ LIHC
 liver hepatocellular carcinoma
 </td>
 <td style="text-align:right;">
-SBS1, SBS3, SBS4, SBS5, SBS6, SBS9, SBS10c, SBS10d, SBS12, SBS14, SBS16, SBS17a, SBS17b, SBS18, SBS19, SBS22, SBS23, SBS24, SBS26, SBS28, SBS29, SBS30, SBS31, SBS35, SBS37, SBS40, SBS86, SBS87
+SBS1, SBS3, SBS4, SBS5, SBS6, SBS9, SBS10c, SBS10d, SBS12, SBS14, SBS16,
+SBS17a, SBS17b, SBS18, SBS19, SBS22, SBS23, SBS24, SBS26, SBS28, SBS29,
+SBS30, SBS31, SBS35, SBS37, SBS40, SBS86, SBS87
 </td>
 </tr>
 <tr>
@@ -438,7 +493,8 @@ LUAD
 lung adenocarcinoma
 </td>
 <td style="text-align:right;">
-SBS1, SBS2, SBS3, SBS4, SBS5, SBS6, SBS9, SBS10c, SBS10d, SBS13, SBS15, SBS17a, SBS17b, SBS18, SBS28, SBS29, SBS40, SBS86, SBS87
+SBS1, SBS2, SBS3, SBS4, SBS5, SBS6, SBS9, SBS10c, SBS10d, SBS13, SBS15,
+SBS17a, SBS17b, SBS18, SBS28, SBS29, SBS40, SBS86, SBS87
 </td>
 </tr>
 <tr>
@@ -452,7 +508,8 @@ LUSC
 lung squamous cell carcinoma
 </td>
 <td style="text-align:right;">
-SBS1, SBS2, SBS3, SBS4, SBS5, SBS7a, SBS7b, SBS7c, SBS8, SBS10c, SBS10d, SBS13, SBS15, SBS18, SBS29, SBS30, SBS40, SBS44, SBS86, SBS87
+SBS1, SBS2, SBS3, SBS4, SBS5, SBS7a, SBS7b, SBS7c, SBS8, SBS10c, SBS10d,
+SBS13, SBS15, SBS18, SBS29, SBS30, SBS40, SBS44, SBS86, SBS87
 </td>
 </tr>
 <tr>
@@ -466,7 +523,8 @@ Lymph-BNHL
 lymphoid mature B-cell lymphoma
 </td>
 <td style="text-align:right;">
-SBS1, SBS2, SBS3, SBS5, SBS6, SBS9, SBS10c, SBS10d, SBS13, SBS17a, SBS17b, SBS34, SBS36, SBS37, SBS40, SBS42, SBS84, SBS85, SBS86, SBS87
+SBS1, SBS2, SBS3, SBS5, SBS6, SBS9, SBS10c, SBS10d, SBS13, SBS17a,
+SBS17b, SBS34, SBS36, SBS37, SBS40, SBS42, SBS84, SBS85, SBS86, SBS87
 </td>
 </tr>
 <tr>
@@ -480,7 +538,8 @@ Lymph-CLL
 lymphoid chronic lymphocytic leukemia
 </td>
 <td style="text-align:right;">
-SBS1, SBS5, SBS9, SBS10c, SBS10d, SBS18, SBS40, SBS84, SBS85, SBS86, SBS87
+SBS1, SBS5, SBS9, SBS10c, SBS10d, SBS18, SBS40, SBS84, SBS85, SBS86,
+SBS87
 </td>
 </tr>
 <tr>
@@ -522,7 +581,8 @@ Oral-SCC
 oral squamous cell carcinoma (note some TCGA HNSC are oral)
 </td>
 <td style="text-align:right;">
-SBS1, SBS2, SBS5, SBS7a, SBS7b, SBS7c, SBS7d, SBS10b, SBS10c, SBS10d, SBS13, SBS20, SBS29, SBS86, SBS87, SBS88
+SBS1, SBS2, SBS5, SBS7a, SBS7b, SBS7c, SBS7d, SBS10b, SBS10c, SBS10d,
+SBS13, SBS20, SBS29, SBS86, SBS87, SBS88
 </td>
 </tr>
 <tr>
@@ -536,7 +596,8 @@ OV
 ovary adenocarcinoma
 </td>
 <td style="text-align:right;">
-SBS1, SBS2, SBS3, SBS5, SBS7b, SBS7c, SBS7d, SBS8, SBS10c, SBS10d, SBS13, SBS18, SBS26, SBS35, SBS38, SBS39, SBS40, SBS41, SBS86, SBS87
+SBS1, SBS2, SBS3, SBS5, SBS7b, SBS7c, SBS7d, SBS8, SBS10c, SBS10d,
+SBS13, SBS18, SBS26, SBS35, SBS38, SBS39, SBS40, SBS41, SBS86, SBS87
 </td>
 </tr>
 <tr>
@@ -550,7 +611,9 @@ PAAD
 pancreatic adenocarcinoma
 </td>
 <td style="text-align:right;">
-SBS1, SBS2, SBS3, SBS5, SBS6, SBS8, SBS10a, SBS10b, SBS10c, SBS10d, SBS13, SBS14, SBS15, SBS17a, SBS17b, SBS18, SBS20, SBS26, SBS28, SBS30, SBS31, SBS34, SBS37, SBS40, SBS44, SBS86, SBS87
+SBS1, SBS2, SBS3, SBS5, SBS6, SBS8, SBS10a, SBS10b, SBS10c, SBS10d,
+SBS13, SBS14, SBS15, SBS17a, SBS17b, SBS18, SBS20, SBS26, SBS28, SBS30,
+SBS31, SBS34, SBS37, SBS40, SBS44, SBS86, SBS87
 </td>
 </tr>
 <tr>
@@ -564,7 +627,8 @@ Panc-Endocrine
 pancreatic neuroendocrine tumor
 </td>
 <td style="text-align:right;">
-SBS1, SBS2, SBS3, SBS5, SBS6, SBS8, SBS9, SBS10c, SBS10d, SBS11, SBS13, SBS17a, SBS17b, SBS26, SBS30, SBS36, SBS39, SBS40, SBS86, SBS87
+SBS1, SBS2, SBS3, SBS5, SBS6, SBS8, SBS9, SBS10c, SBS10d, SBS11, SBS13,
+SBS17a, SBS17b, SBS26, SBS30, SBS36, SBS39, SBS40, SBS86, SBS87
 </td>
 </tr>
 <tr>
@@ -578,7 +642,8 @@ PRAD
 prostate adenocarcinoma
 </td>
 <td style="text-align:right;">
-SBS1, SBS2, SBS3, SBS5, SBS6, SBS8, SBS10c, SBS10d, SBS12, SBS13, SBS18, SBS33, SBS37, SBS39, SBS40, SBS41, SBS86, SBS87
+SBS1, SBS2, SBS3, SBS5, SBS6, SBS8, SBS10c, SBS10d, SBS12, SBS13, SBS18,
+SBS33, SBS37, SBS39, SBS40, SBS41, SBS86, SBS87
 </td>
 </tr>
 <tr>
@@ -592,7 +657,8 @@ SARC
 sarcoma
 </td>
 <td style="text-align:right;">
-SBS1, SBS5, SBS7a, SBS7b, SBS7c, SBS7d, SBS10c, SBS10d, SBS18, SBS40, SBS86, SBS87
+SBS1, SBS5, SBS7a, SBS7b, SBS7c, SBS7d, SBS10c, SBS10d, SBS18, SBS40,
+SBS86, SBS87
 </td>
 </tr>
 <tr>
@@ -606,7 +672,8 @@ Sarcoma-bone
 paper unclear; perhaps osteosarcoma and other sarcomas combined?
 </td>
 <td style="text-align:right;">
-SBS1, SBS2, SBS5, SBS7a, SBS7b, SBS7c, SBS7d, SBS10c, SBS10d, SBS13, SBS18, SBS35, SBS40, SBS86, SBS87
+SBS1, SBS2, SBS5, SBS7a, SBS7b, SBS7c, SBS7d, SBS10c, SBS10d, SBS13,
+SBS18, SBS35, SBS40, SBS86, SBS87
 </td>
 </tr>
 <tr>
@@ -620,7 +687,8 @@ Skin-BCC
 skin basal cell carcinoma
 </td>
 <td style="text-align:right;">
-SBS1, SBS2, SBS5, SBS7a, SBS7b, SBS7c, SBS7d, SBS10c, SBS10d, SBS86, SBS87
+SBS1, SBS2, SBS5, SBS7a, SBS7b, SBS7c, SBS7d, SBS10c, SBS10d, SBS86,
+SBS87
 </td>
 </tr>
 <tr>
@@ -634,7 +702,9 @@ SKCM
 skin melanoma
 </td>
 <td style="text-align:right;">
-SBS1, SBS2, SBS3, SBS5, SBS7a, SBS7b, SBS7c, SBS7d, SBS9, SBS10c, SBS10d, SBS11, SBS13, SBS14, SBS17a, SBS17b, SBS31, SBS36, SBS38, SBS40, SBS86, SBS87
+SBS1, SBS2, SBS3, SBS5, SBS7a, SBS7b, SBS7c, SBS7d, SBS9, SBS10c,
+SBS10d, SBS11, SBS13, SBS14, SBS17a, SBS17b, SBS31, SBS36, SBS38, SBS40,
+SBS86, SBS87
 </td>
 </tr>
 <tr>
@@ -648,7 +718,8 @@ Skin-SCC
 skin squamous cell carcinoma
 </td>
 <td style="text-align:right;">
-SBS1, SBS2, SBS5, SBS6, SBS7a, SBS7b, SBS7c, SBS7d, SBS10c, SBS10d, SBS13, SBS40, SBS86, SBS87
+SBS1, SBS2, SBS5, SBS6, SBS7a, SBS7b, SBS7c, SBS7d, SBS10c, SBS10d,
+SBS13, SBS40, SBS86, SBS87
 </td>
 </tr>
 <tr>
@@ -662,7 +733,8 @@ SoftTissue-Leiomyo
 leiomyosarcoma soft tissue
 </td>
 <td style="text-align:right;">
-SBS1, SBS2, SBS5, SBS10c, SBS10d, SBS13, SBS17a, SBS17b, SBS30, SBS40, SBS86, SBS87
+SBS1, SBS2, SBS5, SBS10c, SBS10d, SBS13, SBS17a, SBS17b, SBS30, SBS40,
+SBS86, SBS87
 </td>
 </tr>
 <tr>
@@ -676,7 +748,8 @@ SoftTissue-Liposarc
 liposarcoma soft tissue
 </td>
 <td style="text-align:right;">
-SBS1, SBS2, SBS3, SBS5, SBS10c, SBS10d, SBS13, SBS37, SBS40, SBS86, SBS87
+SBS1, SBS2, SBS3, SBS5, SBS10c, SBS10d, SBS13, SBS37, SBS40, SBS86,
+SBS87
 </td>
 </tr>
 <tr>
@@ -690,7 +763,9 @@ Stomach-AdenoCA
 stomach adenocarcinoma
 </td>
 <td style="text-align:right;">
-SBS1, SBS2, SBS3, SBS5, SBS6, SBS8, SBS10a, SBS10b, SBS10c, SBS10d, SBS13, SBS14, SBS15, SBS17a, SBS17b, SBS18, SBS20, SBS21, SBS26, SBS28, SBS34, SBS40, SBS41, SBS44, SBS86, SBS87, SBS93
+SBS1, SBS2, SBS3, SBS5, SBS6, SBS8, SBS10a, SBS10b, SBS10c, SBS10d,
+SBS13, SBS14, SBS15, SBS17a, SBS17b, SBS18, SBS20, SBS21, SBS26, SBS28,
+SBS34, SBS40, SBS41, SBS44, SBS86, SBS87, SBS93
 </td>
 </tr>
 <tr>
@@ -704,7 +779,8 @@ THCA
 thyroid low-grade adenocarcinoma
 </td>
 <td style="text-align:right;">
-SBS1, SBS2, SBS5, SBS6, SBS10c, SBS10d, SBS13, SBS29, SBS40, SBS86, SBS87
+SBS1, SBS2, SBS5, SBS6, SBS10c, SBS10d, SBS13, SBS29, SBS40, SBS86,
+SBS87
 </td>
 </tr>
 <tr>
@@ -718,7 +794,9 @@ UCEC
 uterus adenocarcinoma
 </td>
 <td style="text-align:right;">
-SBS1, SBS2, SBS3, SBS5, SBS6, SBS7a, SBS7b, SBS7d, SBS10a, SBS10b, SBS10c, SBS10d, SBS13, SBS14, SBS15, SBS20, SBS21, SBS26, SBS28, SBS30, SBS40, SBS44, SBS86, SBS87
+SBS1, SBS2, SBS3, SBS5, SBS6, SBS7a, SBS7b, SBS7d, SBS10a, SBS10b,
+SBS10c, SBS10d, SBS13, SBS14, SBS15, SBS20, SBS21, SBS26, SBS28, SBS30,
+SBS40, SBS44, SBS86, SBS87
 </td>
 </tr>
 </tbody>
@@ -734,7 +812,7 @@ SBS1, SBS2, SBS3, SBS5, SBS6, SBS7a, SBS7b, SBS7d, SBS10a, SBS10b, SBS10c, SBS10
 
 <div class="pkgdown-footer-right">
   <p></p>
-<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.2.</p>
+<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.3.</p>
 </div>
 
     </footer>

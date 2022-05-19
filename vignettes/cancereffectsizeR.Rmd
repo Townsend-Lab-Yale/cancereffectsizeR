@@ -17,7 +17,7 @@ This tutorial applies some of the package's key features to analyze publicly-ava
 
 
 ## Installation
-If you haven't installed the package yet, or if it's been a while, install the latest release:
+Start by installing the latest release:
 ```{r}
 # Some dependencies are large, so we increase the download time limit to be safe
 options(timeout = 600) 
@@ -186,7 +186,7 @@ setnames(tcga_clinical, "patient_id", "Unique_Patient_Identifier")
 Our TGS data source (hosted on cBioPortal and [recently published](https://cancerdiscovery.aacrjournals.org/content/candisc/early/2021/09/17/2159-8290.CD-20-1726.full.pdf) in Cancer Discovery), consists of metastatic tumors that were sequenced using various MSK-Impact panels. In the full data set, some patients have multiple samples sequenced; the data provided with the package has been subsetted to one sample per patient, and the genome build has been converted to hg38.
 ```{r}
 tgs_maf_file = system.file('tutorial/metastatic_breast_2021_hg38.maf', package = 'cancereffectsizeR')
-tgs_maf = preload_maf(maf = maf_file, refset = ces.refset.hg38)
+tgs_maf = preload_maf(maf = tgs_maf_file, refset = ces.refset.hg38)
 ```
 
 ### Pre-analysis variant filtering
