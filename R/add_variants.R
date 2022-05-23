@@ -169,11 +169,11 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
     aac_dt[, aa_alt := seqinr::aaa(aa_alt)]
     aac_dt[aa_alt == 'Stp', aa_alt := 'STOP'] # also for compatibility
     
-    snvs_to_annotate = unique(mapply(aac_to_snv_ids, 
+    snvs_to_annotate = unique(unlist(mapply(aac_to_snv_ids, 
                                      aa_pos = aac_dt$aa_pos,
                                      aa_alt = aac_dt$aa_alt,
                                      refcds_entry = refset$RefCDS[aac_dt$entry_name],
-                                     MoreArgs = list(bsg = refset$genome)))
+                                     MoreArgs = list(bsg = refset$genome))))
   }
   
   num_variants = length(snvs_to_annotate)

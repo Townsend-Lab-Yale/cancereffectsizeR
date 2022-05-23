@@ -101,6 +101,15 @@ test_that("load_maf and variant annotation", {
 })
 
 
+test_that("add_variants", {
+  cesa = CESAnalysis('ces.refset.hg19')
+  cesa = add_variants(cesa, aac_id = 'BRAF_V600E')
+  expect_equal(cesa$variants[, .N], 1)
+  expect_equal(cesa$variants$covered_in[[1]], NA_character_)
+  cesa = CESAnalysis('ces.refset.hg19')
+  cesa = add_variants(cesa, snv_id = "11:18752521_C>A")
+  
+})
 
 test_that("load_maf edge cases", {
   tiny = load_cesa(get_test_file("tiny_hg19_maf_loaded.rds"))

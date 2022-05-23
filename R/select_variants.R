@@ -255,8 +255,8 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
     selected_snv_ids = setdiff(selected_snv_ids, aac_snv_key$snv_id)
   }
   
-  selected_snv = setDT(cesa@mutations$snv[selected_snv_ids])
-  selected_aac = setDT(cesa@mutations$amino_acid_change[selected_aac_ids])
+  selected_snv = setDT(cesa@mutations$snv[selected_snv_ids, on = 'snv_id'])
+  selected_aac = setDT(cesa@mutations$amino_acid_change[selected_aac_ids, on = 'aac_id'])
   
   # Get variant counts and coverage
   snv_from_aac = cesa@mutations$aac_snv_key[selected_aac$aac_id, .(aac_id, snv_id), on = 'aac_id']

@@ -83,7 +83,7 @@ load_maf = function(cesa = NULL, maf = NULL, coverage = "exome", covered_regions
   
   # Validate covered_regions
   previous_covered_regions_names = c(names(cesa@coverage$exome), names(cesa@coverage$targeted)) # may be NULL
-  if (! is.character(coverage) || ! coverage %in% c("exome", "genome", "targeted") || length(coverage) > 1) {
+  if (! is.character(coverage) || length(coverage) > 1 || ! coverage %in% c("exome", "genome", "targeted")) {
     stop("Argument coverage must be \"exome\", \"genome\", or \"targeted\"")
   }
   

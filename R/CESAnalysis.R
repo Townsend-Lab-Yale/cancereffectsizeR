@@ -299,13 +299,16 @@ load_cesa = function(file) {
     }
     previous_version = cesa@advanced$refset_version
     if (is.null(previous_version) && refset_name == 'ces.refset.hg38') {
-      msg = paste0("This CESAnalysis was probably created with an older version of ces.refset.hg38 with known issues. ",
+      msg = paste0("This CESAnalysis was likely created with an older version of ces.refset.hg38 with known issues. ",
               "You should create a new CESAnalysis and start over if you want to continue analysis.")
       warning(pretty_message(msg, emit = F))
-    } else if(! is.null(previous_version) && previous_version != actual_version) {
-      msg = paste0("This CESAnalysis was annotated with data from ", refset_name, ' ', previous_version, " and you currently have ",
-              "version ", actual_version, ". You should create a new CESAnalysis and start over if you want to continue analysis.")
-      warning(pretty_message(msg, emit = F))
+    } else if(! is.null(previous_version)) {
+      previous_version = as.package_version(previous_version)
+      if (previous_version$major != actual_version$major | previous_version$minor != actual_version$minor) {
+        msg = paste0("This CESAnalysis was annotated with data from ", refset_name, ' ', previous_version, " and you currently have ",
+                     "version ", actual_version, ". You should create a new CESAnalysis and start over if you want to continue analysis.")
+        warning(pretty_message(msg, emit = F))
+      }
     }
     cesa@ref_data_dir = system.file("refset", package = refset_name)
   } else {

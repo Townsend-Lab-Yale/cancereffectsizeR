@@ -210,9 +210,10 @@ CompoundVariantSet = function(cesa, variant_id) {
   num_samples = cesa@samples[, .N]
   
   setkey(compound_stats, "compound_name")
-  setkey(compound_snvs, "compound_name")
-  return(new("CompoundVariantSet", snvs = compound_snvs, compounds = compound_stats, sample_calls = samples_with,
-             cesa_uid = cesa@advanced$uid, cesa_num_samples = num_samples))
+  setkey(compound_snvs, "compound_name", physical = FALSE)
+  comp = new("CompoundVariantSet", snvs = compound_snvs, compounds = compound_stats, sample_calls = samples_with,
+             cesa_uid = cesa@advanced$uid, cesa_num_samples = num_samples)
+  return(comp[compound_names]) # Make order match input
 }
 
 
