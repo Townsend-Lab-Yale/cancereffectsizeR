@@ -50,7 +50,7 @@ option may be replaced with more thorough support for bootstrapping in the futur
 
 \item{assume_identical_mutational_processes}{use well-mutated tumors (those with number
 of eligible mutations meeting sig_averaging_threshold) to calculate group average
-signature weights, and assign these to all tumors}
+signature weights, and assign these (and implied trinucleotide mutation rates) to all tumors}
 
 \item{sample_group}{(Deprecated; use samples.) Vector of sample group(s) to calculate rates for.}
 

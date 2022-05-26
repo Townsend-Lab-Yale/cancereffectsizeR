@@ -56,14 +56,14 @@ test_that("Trinucleotide signature weight calculation", {
   all.equal(cesa3@trinucleotide_mutation_weights$trinuc_proportion_matrix[which_pure,],
             prev_rates_matrix[which_pure, ])
   
-  # setting with the biological weights should get the same signature weights results,
-  # but due to quirks in trinuc rate method, the trinuc rates of blended tumors will change slightly
+  # setting with the previous biological weights will yield identical weights/rates to the previous run
   cesa4 = set_signature_weights(cesa, signature_set = "COSMIC_v3.1", weights = prev_relative_bio_sig)
   expect_equal(cesa4@trinucleotide_mutation_weights$signature_weight_table[, -c("sig_extraction_snvs", "group_avg_blended")],
             prev_relative_bio_sig[, -c("sig_extraction_snvs", "group_avg_blended")])
   
-  expect_equal(cesa4@trinucleotide_mutation_weights$trinuc_proportion_matrix[which_pure, ], 
-               prev_rates_matrix[which_pure,])
+  current = cesa4@trinucleotide_mutation_weights$trinuc_proportion_matrix
+  expect_equal(current[sort(rownames(current)),], 
+               prev_rates_matrix[sort(rownames(prev_rates_matrix)),])
   
   
   # Quick tests with MutationalPatterns (may be extended later)
