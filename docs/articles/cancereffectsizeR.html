@@ -33,7 +33,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">cancereffectsizeR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.6.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -173,6 +173,8 @@ walkthrough.</p>
 
 <span class="co"># Download lung adenocarcinoma (LUAD) somatic variant data.</span>
 <span class="co"># Note that the rest of the tutorial uses BRCA, not LUAD.</span>
+<span class="co"># This is an old TCGA file: Outside the tutorial, use get_TCGA_project_MAF() for the</span>
+<span class="co"># latest, most accurate data.</span>
 <span class="va">tcga_maf_file</span> <span class="op">&lt;-</span> <span class="st">"TCGA.LUAD.mutect.0458c57f-316c-4a7c-9294-ccd11c97c2f9.DR-10.0.somatic.maf.gz"</span>
 <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="va">tcga_maf_file</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span>
   <span class="fu"><a href="https://rdrr.io/r/utils/download.file.html" class="external-link">download.file</a></span><span class="op">(</span><span class="st">"https://api.gdc.cancer.gov/data/0458c57f-316c-4a7c-9294-ccd11c97c2f9"</span>,
@@ -180,9 +182,8 @@ walkthrough.</p>
   <span class="op">)</span>
 <span class="op">}</span>
 
-<span class="co"># Prepare data and filter out a few likely germline/false-positive calls</span>
+<span class="co"># Prepare data</span>
 <span class="va">maf</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/preload_maf.html">preload_maf</a></span><span class="op">(</span>maf <span class="op">=</span> <span class="va">tcga_maf_file</span>, refset <span class="op">=</span> <span class="st">"ces.refset.hg38"</span><span class="op">)</span>
-<span class="va">maf</span> <span class="op">&lt;-</span> <span class="va">maf</span><span class="op">[</span><span class="va">germline_variant_site</span> <span class="op">==</span> <span class="cn">F</span><span class="op">]</span><span class="op">[</span><span class="va">repetitive_region</span> <span class="op">==</span> <span class="cn">F</span> <span class="op">|</span> <span class="va">cosmic_site_tier</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span>
 
 <span class="co"># Create cancereffectsizeR analysis and load data</span>
 <span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/CESAnalysis.html">CESAnalysis</a></span><span class="op">(</span>refset <span class="op">=</span> <span class="st">"ces.refset.hg38"</span><span class="op">)</span>
@@ -255,20 +256,17 @@ have the package loaded.</p>
 <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-datatable.com" class="external-link">data.table</a></span><span class="op">)</span></code></pre></div>
 <p>For this tutorial, we’ll use somatic variant data produced from exome
 sequencing by the TCGA BRCA (breast carcinoma) project. We will
-supplement this with targeted sequencing data from the Metastatic Breast
-Cancer data set <a href="https://www.cbioportal.org/study/summary?id=breast_ink4_msk_2021" class="external-link">hosted
-at cBioPortal</a>. (We stop at two data sources for brevity; for the
-best possible analysis of somatic selection, we would want to include as
-many data sources as we could find.)</p>
+supplement the WXS data with targeted sequencing data from the
+Metastatic Breast Cancer data set <a href="https://www.cbioportal.org/study/summary?id=breast_ink4_msk_2021" class="external-link">hosted
+at cBioPortal</a>.</p>
 <p>In cancereffectsizeR, data can be combined from multiple whole-exome,
 whole-genome, and targeted sequencing sources, although we always need
-at least one source of whole-exome or whole-genome data to anchor the
-analysis. Targeted sequencing data can’t be used for mutation rate
-inference: there are too few mutations, typically, and since they’re
-mostly in cancer hotspots, they don’t provide a baseline of what
-mutation rates are like in the absence of selection. Instead, mutation
-rates in TGS samples will be assumed to be similar to those calculated
-in WXS/WGS samples.</p>
+at least one WXS or WGS source to anchor the analysis. Targeted
+sequencing data can’t be used for mutation rate inference: there are too
+few mutations, typically, and since they’re mostly in cancer hotspots,
+they don’t provide a baseline of what mutation rates are like in the
+absence of selection. Instead, mutation rates in TGS samples will be
+assumed to be similar to those calculated in WXS/WGS samples.</p>
 <div class="section level3">
 <h3 id="tcga-data-whole-exome">TCGA data (whole-exome)<a class="anchor" aria-label="anchor" href="#tcga-data-whole-exome"></a>
 </h3>
@@ -277,7 +275,7 @@ a large text file listing somatic mutations for a collection of tumors,
 in accordance with <a href="https://docs.gdc.cancer.gov/Data/File_Formats/MAF_Format" class="external-link">MAF
 format</a>. <strong>This data is from an old release.</strong> For
 future analyses, get the most recent, accurate TCGA somatic variant data
-with get_TCGA_project_MAF().</p>
+with <code><a href="../reference/get_TCGA_project_MAF.html">get_TCGA_project_MAF()</a></code>.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">tcga_maf_file</span> <span class="op">&lt;-</span> <span class="st">"TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf.gz"</span>
 <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="va">tcga_maf_file</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span>
@@ -298,8 +296,8 @@ column.</p>
 <span class="co">## 3: TCGA-3C-AALJ   M0            &lt;NA&gt;</span>
 <span class="co">## 4: TCGA-3C-AALK   M0       HR+/HER2+</span>
 <span class="co">## 5: TCGA-4H-AAAK   M0            &lt;NA&gt;</span></code></pre>
-<p>The <code><a href="../reference/preload_maf.html">preload_maf()</a></code> function takes in MAF data, finds the
-columns needed by cancereffectsizeR, adds a couple of genomic
+<p>The <code><a href="../reference/preload_maf.html">preload_maf()</a></code> function takes in MAF data, extracts
+the columns needed by cancereffectsizeR, adds a couple of genomic
 annotations, and checks for common problems. Since TCGA data sets are
 well-curated, this particular run will not reveal any problems. (For
 your own analyses, see our <a href="MAF_filtering_tips.html">MAF data
@@ -342,6 +340,11 @@ build has been converted to hg38.</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">tgs_maf_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"tutorial/metastatic_breast_2021_hg38.maf"</span>, package <span class="op">=</span> <span class="st">"cancereffectsizeR"</span><span class="op">)</span>
 <span class="va">tgs_maf</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/preload_maf.html">preload_maf</a></span><span class="op">(</span>maf <span class="op">=</span> <span class="va">tgs_maf_file</span>, refset <span class="op">=</span> <span class="va">ces.refset.hg38</span><span class="op">)</span></code></pre></div>
+<p>When combining data from multiple sources,
+<code><a href="../reference/check_sample_overlap.html">check_sample_overlap()</a></code> can detect unexpected sample
+duplication. If you feed in <code>tcga_maf</code> and
+<code>tgs_maf</code>, you will see that no possible duplications are
+found.</p>
 </div>
 </div>
 <div class="section level2">
@@ -352,7 +355,7 @@ The cancereffectsizeR workflow consists of calling a series of functions
 that take a CESAnalysis as input and return an altered CESAnalysis.
 Re-using the same variable name will keep things tidy.</p>
 <div class="section level3">
-<h3 id="load-wxs-data">Load WXS data<a class="anchor" aria-label="anchor" href="#load-wxs-data"></a>
+<h3 id="load-whole-exome-sequencing-data">Load whole-exome sequencing data<a class="anchor" aria-label="anchor" href="#load-whole-exome-sequencing-data"></a>
 </h3>
 <p>Let’s create a CESAnalysis and call <code><a href="../reference/load_maf.html">load_maf()</a></code> to load
 the TCGA data.</p>
@@ -366,8 +369,7 @@ methods at different study sites), this isn’t unexpected. (On the off
 chance that you do know the exact exome capture intervals of whatever
 data you’re using, you should supply those intervals with
 <code><a href="../reference/load_maf.html">load_maf()</a></code>’s <code>covered_regions</code> argument. For WGS
-data, simply set <code>coverage = "genome"</code>. We’ll discuss how to
-load TGS data shortly.)</p>
+data, simply set <code>coverage = "genome"</code>.)</p>
 <p>To navigate a CESAnalysis, use the dollar sign ($). We can use these
 accessors to look at the MAF data as well more detailed variant
 annotations, and if we want we can perform various filtering operations,
@@ -399,7 +401,7 @@ breakdown PIK3CA mutation status by BRCA receptor phenotype.</p>
 cancer.</p>
 </div>
 <div class="section level3">
-<h3 id="load-tgs-data">Load TGS data<a class="anchor" aria-label="anchor" href="#load-tgs-data"></a>
+<h3 id="load-targeted-gene-sequencing-data">Load targeted gene sequencing data<a class="anchor" aria-label="anchor" href="#load-targeted-gene-sequencing-data"></a>
 </h3>
 <p>To load our TGS data, we need to be able to define its coverage. Why?
 To estimate the selection of a mutation, we need to know which samples

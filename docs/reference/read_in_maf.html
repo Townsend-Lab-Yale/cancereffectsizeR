@@ -28,7 +28,7 @@ rtracklayer's version of liftOver."><!-- mathjax --><script src="https://cdnjs.c
     
     <a class="navbar-brand me-2" href="../index.html">cancereffectsizeR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.6.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -45,6 +45,7 @@ rtracklayer's version of liftOver."><!-- mathjax --><script src="https://cdnjs.c
 <li class="nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
+    <a class="dropdown-item" href="../articles/MAF_filtering_tips.html">MAF filtering and sample validation</a>
     <a class="dropdown-item" href="../articles/cosmic_cancer_type_note.html">Cancer type considerations for COSMIC signature extraction</a>
     <a class="dropdown-item" href="../articles/create_custom_covariates.html">Generate tissue covariates data</a>
     <a class="dropdown-item" href="../articles/custom_refset_instructions.html">Running with custom reference data</a>
@@ -98,7 +99,8 @@ rtracklayer's version of liftOver.</p>
   tumor_allele_col <span class="op">=</span> <span class="st">"guess"</span>,
   sample_col <span class="op">=</span> <span class="st">"Tumor_Sample_Barcode"</span>,
   more_cols <span class="op">=</span> <span class="cn">NULL</span>,
-  chain_file <span class="op">=</span> <span class="cn">NULL</span>
+  chain_file <span class="op">=</span> <span class="cn">NULL</span>,
+  separate_old_problems <span class="op">=</span> <span class="cn">FALSE</span>
 <span class="op">)</span></code></pre></div>
     </div>
 
@@ -122,6 +124,11 @@ values from Tumor_Seq_Allele2 and Tumor_Seq_Allele1 columns are used.</p></dd>
 <dt>chain_file</dt>
 <dd><p>a LiftOver chain file (text format, name ends in .chain) to convert MAF
 records to the genome build used in the CESAnalysis.</p></dd>
+<dt>separate_old_problems</dt>
+<dd><p>When TRUE (as used by load_maf), respect old problems that
+look like they came from cancereffectsizeR (typically from preload_maf). These get
+separated as "old_problem", and the records won't be checked. chain_file must be
+NULL.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>

@@ -20,7 +20,7 @@ exome/genome data, which means that you need at least some exome or genome data 
     
     <a class="navbar-brand me-2" href="../index.html">cancereffectsizeR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.6.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,6 +37,7 @@ exome/genome data, which means that you need at least some exome or genome data 
 <li class="nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
+    <a class="dropdown-item" href="../articles/MAF_filtering_tips.html">MAF filtering and sample validation</a>
     <a class="dropdown-item" href="../articles/cosmic_cancer_type_note.html">Cancer type considerations for COSMIC signature extraction</a>
     <a class="dropdown-item" href="../articles/create_custom_covariates.html">Generate tissue covariates data</a>
     <a class="dropdown-item" href="../articles/custom_refset_instructions.html">Running with custom reference data</a>
@@ -126,7 +127,7 @@ option may be replaced with more thorough support for bootstrapping in the futur
 <dt>assume_identical_mutational_processes</dt>
 <dd><p>use well-mutated tumors (those with number
 of eligible mutations meeting sig_averaging_threshold) to calculate group average
-signature weights, and assign these to all tumors</p></dd>
+signature weights, and assign these (and implied trinucleotide mutation rates) to all tumors</p></dd>
 <dt>sample_group</dt>
 <dd><p>(Deprecated; use samples.) Vector of sample group(s) to calculate rates for.</p></dd>
 <dt>sig_averaging_threshold</dt>
