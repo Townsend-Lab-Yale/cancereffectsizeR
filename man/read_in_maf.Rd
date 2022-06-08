@@ -13,7 +13,8 @@ read_in_maf(
   tumor_allele_col = "guess",
   sample_col = "Tumor_Sample_Barcode",
   more_cols = NULL,
-  chain_file = NULL
+  chain_file = NULL,
+  separate_old_problems = FALSE
 )
 }
 \arguments{
@@ -34,6 +35,11 @@ values from Tumor_Seq_Allele2 and Tumor_Seq_Allele1 columns are used.}
 
 \item{chain_file}{a LiftOver chain file (text format, name ends in .chain) to convert MAF
 records to the genome build used in the CESAnalysis.}
+
+\item{separate_old_problems}{When TRUE (as used by load_maf), respect old problems that
+look like they came from cancereffectsizeR (typically from preload_maf). These get
+separated as "old_problem", and the records won't be checked. chain_file must be
+NULL.}
 }
 \value{
 data.table with core MAF columns, any other requested columns, and a "problem" column

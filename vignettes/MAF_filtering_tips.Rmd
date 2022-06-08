@@ -1,0 +1,43 @@
+---
+title: "MAF filtering and sample validation"
+---
+
+Since our goal is to quantify somatic selection, we want MAF data to represent a complete set of high-confidence somatic variants for the sample set. We accordingly expect the following:
+
+* There should be few to no mutations at sites where population databases show common germline variation.
+* There should be few to no mutations in repetitive or poorly mapped regions of the genome.
+* Samples should have little mutational overlap, especially at sites without known cancer association.
+
+#### Filtering to reduce false positive variants
+
+Well-curated data, such as MAF files produced using the Genomic Data Commons Aliquot Ensemble Somatic Variant Merging and Masking workflow, should not need quality filtering. For data produced with other or unknown somatic calling methods, reading an MAF file with `preload_maf()` provides three relevant annotation columns:
+
+* germline_variant_site: The variant overlaps a region that contains a common germline variant according to gnomAD (common being >1% prevalence in some population).
+* repetitive_region: The variant is in a region of the genome marked as repetitive by the RepeatMasker tool.
+* cosmic_site_tier: Indicates if the variant overlaps a site annotated as cancer-related (tiers 1, 2, and 3) by COSMIC. 
+
+A simple strategy to reduce false positive calls is to filter out all germline site records, as well as records from repetitive regions except for the few with COSMIC annotations. We can apply this filtering like this:
+```{r echo = T, eval = F}
+library(cancereffectsizeR)
+maf = preload_maf("my_data.maf", refset = "ces.refset.hg38") # also works with ces.refset.hg19
+maf = maf[germline_variant_site == F][repetitive_region == F | cosmic_site_tier %in% 1:3]
+```
+
+
+#### Sample re-use, contamination, and multi-sample sequencing
+
+When combining data sources, it's important to verify that a patient's mutation data is not duplicated. Since it can be hard to be sure, we recommend both careful manual curation and the use of `check_sample_overlap()` to flag possible sample overlap.
+
+Sometimes, patients from the same data source will show suspiciously high mutational overlap. This could be due to shared calling error, or worse, contamination between samples during sequencing. If the latter appears likely, the data should not be used.
+
+Relatedly, patients with multiple distinct sequenced samples (multi-region sequencing, or multiple timepoints) should contribute just one sample to an effect analysis, unless there is evidence that the tissues evolved independently (unusual).
+
+
+#### What not to filter
+
+We don't apply the above filters to targeted gene sequencing data sets, since they presumably come from high-depth sequencing of cancer hotspots.
+
+To allow a complete picture of the mutational processes present in tissues for mutation rate estimation, whole-exome/whole-genome variants should not be filtered on any sort of functional criteria. One thing to watch out for: Occasionally, researchers will leave out synonymous variants when publishing their study data. As synonymous variants are essential for calculating neutal gene mutation rates, they must be included in any WXS/WGS data.
+
+
+

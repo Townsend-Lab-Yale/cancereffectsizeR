@@ -26,7 +26,8 @@
 #' @param maf Path of tab-delimited text file in MAF format, or a data.table/data.frame with MAF data
 #' @param refset name of reference data set (refset) to use; run \code{list_ces_refsets()} for
 #'   available refsets. Alternatively, the path to a custom reference data directory.
-#' @param sample_col column name with sample ID data (Tumor_Sample_Barcode or Unique_Patient_Identifier)
+#' @param sample_col column name with patient ID; defaults to
+#'   Unique_Patient_Identifier, or, in its absence, Tumor_Sample_Barcode
 #' @param chr_col column name with chromosome data  (Chromosome)           
 #' @param start_col column name with start position (Start_Position)
 #' @param ref_col column name with reference allele data (Reference_Allele)
@@ -46,12 +47,16 @@
 #'   to remain in your data. Alternatively, if all records are already covered, then the
 #'   calls have probably already be trimmed to the coverage intervals, which means no
 #'   padding should be added.)
+#' @param detect_hidden_mnv Find same-sample adjacent SNVs and replace these records with
+#'   DBS (doublet base substitution) records. Also, find groups of same-sample variants
+#'   within 2 bp of each other and replace these records with MNV (multi-nucleotide
+#'   variant) records.
 #' @return a data.table of MAF data, with any problematic records flagged and a few
 #'   quality-control annotations (if available with the chosen refset data).
 #' @export
 preload_maf = function(maf = NULL, refset = NULL, coverage_intervals_to_check = NULL,
-                    chain_file = NULL, sample_col = "Tumor_Sample_Barcode", chr_col = "Chromosome", start_col = "Start_Position",
-                    ref_col = "Reference_Allele", tumor_allele_col = "guess", keep_extra_columns = FALSE) {
+                    chain_file = NULL, sample_col = "Unique_Patient_Identifier", chr_col = "Chromosome", start_col = "Start_Position",
+                    ref_col = "Reference_Allele", tumor_allele_col = "guess", keep_extra_columns = FALSE, detect_hidden_mnv = TRUE) {
   if(is.null(refset)) {
     msg = paste0("Required argument refset: Supply a reference data package (e.g., ces.refset.hg38 or ces.refset.hg19).")
     stop(paste0(strwrap(msg, exdent = 2), collapse = "\n"))
@@ -163,13 +168,124 @@ preload_maf = function(maf = NULL, refset = NULL, coverage_intervals_to_check = 
     }
   }
   
+  if(! is.logical(detect_hidden_mnv) || length(detect_hidden_mnv) != 1) {
+    stop("detect_hidden_mnv should be TRUE/FALSE.")
+  }
   
+  maf = identify_maf_variants(maf)
+  maf[problem %in% c("missing_values", "not_variant", "unsupported_chr", "failed_liftOver", "reference_mismatch", 
+                     "out_of_bounds"), variant_id := NA_character_]
+  
+  if (detect_hidden_mnv) {
+    mnv = detect_mnv(maf[is.na(problem)])
+    
+    if(mnv[, .N] > 0) {
+      # Groups of 2 consecutive SNVs are double-base substitutions
+      # Create DBS entries suitable for MAF table
+      mnv[, is_dbs := .N == 2 && diff(Start_Position) == 1 && variant_type[1] == 'snv' && variant_type[2] == 'snv', by = mnv_group]
+      dbs = mnv[is_dbs == T, 
+                .(Unique_Patient_Identifier = Unique_Patient_Identifier[1], 
+                  Chromosome = Chromosome[1], Start_Position = Start_Position[1],
+                  Reference_Allele = paste(Reference_Allele, collapse = ''),
+                  Tumor_Allele = paste0(Tumor_Allele, collapse = ''), variant_type = 'dbs',
+                  v1 = variant_id[1], v2 = variant_id[2]), by = mnv_group][, -"mnv_group"]
+      dbs[, dbs_id := paste0(Chromosome, ':', Start_Position, '_', Reference_Allele, '>', Tumor_Allele)]
+      
+      # Remove the SNV entries that form the new DBS variants
+      maf[dbs, dbs_id := i.dbs_id, on = c("Unique_Patient_Identifier", variant_id = "v1")]
+      maf[dbs, dbs_id := i.dbs_id, on = c("Unique_Patient_Identifier", variant_id = "v2")]
+      maf_dbs_ind = maf[! is.na(dbs_id), which = T]
+      maf_dbs = maf[maf_dbs_ind, .(Unique_Patient_Identifier, Chromosome, Start_Position, 
+                                   Reference_Allele, Tumor_Allele)]
+      
+      if (all(c("prelift_chr", "prelift_start", "liftover_strand_flip") %in% names(maf))) {
+        dbs[maf, c("prelift_chr", "prelift_start", "liftover_strand_flip") := list(prelift_chr, prelift_start, liftover_strand_flip), on = c(v1 = 'variant_id')]
+      }
+      maf[is.na(problem) & ! is.na(dbs_id), problem := "merged_into_dbs_variant"]
+      maf[, dbs_id := NULL]
+      
+      # Add new DBS entries
+      dbs[, c("v1", "v2") := NULL]
+      setnames(dbs, "dbs_id", "variant_id")
+      dbs[, problem := NA_character_]
+      maf = rbind(maf, dbs)
+      
+      # For non-DBS mnvs, reclassify as "other"
+      mnv = mnv[is_dbs == F]
+      
+      absent_ref = mnv[, .(Start_Position = setdiff(seq(Start_Position[1], Start_Position[.N]), Start_Position)), by = 'mnv_group']
+      absent_ref[mnv, c("Unique_Patient_Identifier", "Chromosome") := .(Unique_Patient_Identifier, Chromosome), on = 'mnv_group']
+      absent_ref[, Reference_Allele := as.character(getSeq(refset_env$genome, names = Chromosome, 
+                                                           start = Start_Position, width = 1))]
+      absent_ref[, Tumor_Allele := Reference_Allele]
+      absent_ref[, variant_type := 'ref']
+      
+      mnv[, in_grp := (1:.N)/.N, by = 'mnv_group']
+      
+      # insertions at the end of a group don't contribute reference bases
+      # insertions before the end contribute their position's reference base
+      mnv[variant_type == 'ins' & in_grp != 1, Reference_Allele := as.character(getSeq(refset_env$genome, names = Chromosome, 
+                                                                                       start = Start_Position, width = 1)),
+          by = 'mnv_group']
+      mnv[variant_type == 'ins' & in_grp == 1, Reference_Allele := '']
+      
+      
+      # For deletions, only need the first deleted base (rest calculated in absent_ref), except a trailing deletion
+      mnv[variant_type == 'del' & in_grp != 1, Reference_Allele := substr(Reference_Allele, 1, 1)]
+      mnv[variant_type == 'del', Tumor_Allele := '']
+      mnv = rbind(mnv, absent_ref, fill = T)[order(mnv_group, Start_Position)]
+      
+      # handle edge case of consecutive insertions (don't want any reference allele for this)
+      mnv[, all_insertions := all(variant_type == 'ins'), by = 'mnv_group']
+      mnv[all_insertions == T, Reference_Allele := ''] 
+      
+      new_records = mnv[, .(Unique_Patient_Identifier = Unique_Patient_Identifier[1], Chromosome = Chromosome[1], 
+                            Start_Position = Start_Position[1], Reference_Allele = paste(Reference_Allele, collapse = ""),
+                            Tumor_Allele = paste(Tumor_Allele, collapse = ""), variant_type = 'other'), by = 'mnv_group']
+      # If all records in group are consecutive deletions, Tumor_Allele will be empty string
+      # These probably shouldn't exist (should have been called as a single larger deletion), but they appear in TCGA data
+      new_records[Tumor_Allele == '', c("Tumor_Allele", "variant_type", "variant_id") := .('-', "del",
+                                                                                           paste0(Chromosome, ':', Start_Position,'_del_', Reference_Allele))]
+      
+      # Same idea for a group of consecutive occurrence (also shouldn't happen, and in TCGA UCEC, doesn't)
+      new_records[Reference_Allele == '', c("Reference_Allele", "variant_type", "variant_id") := .('-', "ins", 
+                                                                                                   paste0(Chromosome, ':', Start_Position,'_ins_', Tumor_Allele))]
+      
+      new_records[is.na(variant_id), variant_id := paste0(Chromosome, ':', Start_Position, '_', Reference_Allele, '>', Tumor_Allele)]
+      
+      mnv[new_records, replacement_variant := i.variant_id, on = 'mnv_group']
+      mnv[, problem := NA_character_]
+      maf[mnv, problem := 'merged_into_other_variant', on = c("Unique_Patient_Identifier", "variant_id", "problem")]
+      
+      if (all(c("prelift_chr", "prelift_start", "liftover_strand_flip") %in% names(maf))) {
+        new_records[, c("prelift_chr", "prelift_start", "liftover_strand_flip") := .(NA_character_, NA_integer_, NA)]
+      }
+      new_records$problem = NA_character_
+      maf = rbind(maf, new_records[, -"mnv_group"])
+      
+      num_new_mnv = new_records[, .N] # the DBS variants have already been removed
+      num_dbs = dbs[, .N]
+      if(num_dbs > 0) {
+        grammar = ifelse(num_dbs == 1, 'has', 'have')
+        msg = paste0('Note: ', num_dbs, ' adjacent pairs of SNVs ', grammar, ' been reclassified as doublet base substitutions (dbs).')
+        pretty_message(msg)
+      }
+      if (num_new_mnv > 0) {
+        msg = ifelse(num_dbs > 0, 'Additionally, ', 'Note: ')
+        grammar = ifelse(num_new_mnv > 1, 's', '')
+        msg = paste0(msg, num_new_mnv, ' group', grammar, ' of same-sample variants within 2 bp of each other have been reclassified as ',
+                     'combined variants of type \"other\" (because they probably did not occur independently).')
+        pretty_message(msg)
+      }
+    }
+  }
+
   # Make MAF-based gr if needed
   # Will annotate all good records, and also bad ones that have valid chr/start
   valid_loci = maf[! is.na(Chromosome) & ! is.na(Start_Position) & ! problem %in% c("out_of_bounds", "unsupported_chr"), which = T]
   if (! is.null(coverage_gr) || length(anno_grs) > 0) {
     maf_gr = makeGRangesFromDataFrame(maf[valid_loci], start.field = "Start_Position", end.field = "Start_Position",
-                             seqnames.field = "Chromosome", ignore.strand = TRUE) # don't want possible user strand field parsed
+                                      seqnames.field = "Chromosome", ignore.strand = TRUE) # don't want possible user strand field parsed
   }
   
   
@@ -186,8 +302,7 @@ preload_maf = function(maf = NULL, refset = NULL, coverage_intervals_to_check = 
                                       dist_to_coverage_intervals := as.data.table(distanceToNearest(uncovered_gr, coverage_gr))$distance + 1]
     maf[, is_covered := NULL]
   }
-
-
+  
   for (gr in anno_grs) {
     # can either be a GRanges or a list of them
     if (is(gr, "GRanges")) {
@@ -207,12 +322,18 @@ preload_maf = function(maf = NULL, refset = NULL, coverage_intervals_to_check = 
       warning("A misformatted annotation source was skipped.")
     }
   }
-  problem_summary = maf[! is.na(problem), .(num_records = .N), by = "problem"]
+  
+  already_reported = c("merged_into_dbs_variant", "merged_into_other_variant")
+  problem_summary = maf[! is.na(problem) & ! problem %in% already_reported, .(num_records = .N), by = "problem"]
   
   if(problem_summary[, .N] > 0) {
     pretty_message("Some MAF records have problems:")
     # this is how to print a table nicely in the message stream
-    message(crayon::black(paste0(utils::capture.output(print(problem_summary, row.names = F)), collapse = "\n"))) 
+    if(Sys.getenv("RSTUDIO") == "1" && rstudioapi::getThemeInfo()$dark) {
+      message(crayon::white(paste0(utils::capture.output(print(problem_summary, row.names = F)), collapse = "\n")))
+    } else {
+      message(crayon::black(paste0(utils::capture.output(print(problem_summary, row.names = F)), collapse = "\n")))
+    }
     pretty_message("You can remove or fix these records, or let load_maf() exclude them automatically.")
     num_mit = maf[problem == 'unsupported_chr' & Chromosome %like% '^(chr)?MT?$', .N]
     build_name = get_ref_data(data_dir, 'genome_build_info')$build_name
@@ -238,14 +359,21 @@ preload_maf = function(maf = NULL, refset = NULL, coverage_intervals_to_check = 
             "reference data set that matches your desired build.)")
       warning(pretty_message(msg, emit = F))
     }
+    
+    tcga_patient_dups = maf[problem == "duplicate_from_TCGA_sample_merge", .N]
+    if(tcga_patient_dups > 0) {
+      pretty_message("(Duplicate records are expected when same-patient TCGA samples are merged.)")
+    }
   }
-  maf = identify_maf_variants(maf)
-  setcolorder(maf, c("Unique_Patient_Identifier", "Chromosome", "Start_Position", 
-                       "Reference_Allele", "Tumor_Allele", "variant_type", "variant_id"))
   
+  setcolorder(maf, c("Unique_Patient_Identifier", "Chromosome", "Start_Position", 
+                     "Reference_Allele", "Tumor_Allele", "variant_type", "variant_id"))
+  
+  # Enable skipping reference allele check on load_maf(), provided user doesn't mess with things.
+  setattr(maf, 'ref_md5', digest::digest(maf[, .(variant_id, Reference_Allele)]))
+  setattr(maf, 'ref_md5_noproblem', digest::digest(maf[is.na(problem), .(variant_id, Reference_Allele)]))
   return(maf[])
 }
-
 
 #' Catch duplicate samples
 #' 

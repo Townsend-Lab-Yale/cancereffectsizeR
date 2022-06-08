@@ -21,24 +21,30 @@
 #'   values from Tumor_Seq_Allele2 and Tumor_Seq_Allele1 columns are used.
 #' @param chain_file a LiftOver chain file (text format, name ends in .chain) to convert MAF
 #'   records to the genome build used in the CESAnalysis.
+#' @param separate_old_problems When TRUE (as used by load_maf), respect old problems that
+#'   look like they came from cancereffectsizeR (typically from preload_maf). These get
+#'   separated as "old_problem", and the records won't be checked. chain_file must be
+#'   NULL.
 #' @return data.table with core MAF columns, any other requested columns, and a "problem" column
 #' @keywords internal
 read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Start_Position", 
-                       ref_col = "Reference_Allele", tumor_allele_col = "guess", sample_col = "Tumor_Sample_Barcode", 
-                       more_cols = NULL, chain_file = NULL) {
+                       ref_col = "Reference_Allele", tumor_allele_col = "guess", sample_col = "Unique_Patient_Identifier", 
+                       more_cols = NULL, chain_file = NULL, separate_old_problems = FALSE) {
   
-  select_cols = c(sample_col, chr_col, start_col, ref_col)
+  select_cols = c(sample_col, chr_col, start_col, ref_col, 'problem')
   if (tumor_allele_col == "guess") {
     select_cols = c(select_cols, "Tumor_Seq_Allele1", "Tumor_Seq_Allele2", "Tumor_Allele")
   } else {
     select_cols = c(select_cols, tumor_allele_col)
   }
   
-  # when sample_col has default value, will also check for Unique_Patient_Identifier if the default isn't found (since CESAnalysis creates this column)
-  if (sample_col == "Tumor_Sample_Barcode") {
-    select_cols = c(select_cols, "Unique_Patient_Identifier")
+  if(separate_old_problems == TRUE & ! is.null(chain_file)) {
+    stop("Can't separate old problems and also run liftOver.")
   }
-  
+  # when sample_col has default value, will also check for Tumor_Sample_Barcode if the default isn't found
+  if (sample_col == "Unique_Patient_Identifier") {
+    select_cols = c(select_cols, "Tumor_Sample_Barcode")
+  }
   
   if (! is.null(more_cols)) {
     if(! is.character(more_cols)) {
@@ -67,8 +73,6 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
     if (! is.null(select_cols))
     select_cols = unique(c(select_cols, "prelift_chr", "prelift_start", "liftover_strand_flip"))
   }
-  
-  
 
   bad_maf_msg = "Input MAF is expected to be a data frame or the filename of an MAF-formatted tab-delimited text file."
   if (is.character(maf)) {
@@ -115,13 +119,10 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
   missing_cols = character()
   input_maf_cols = colnames(maf)
   
-  if (sample_col == "Tumor_Sample_Barcode" && "Unique_Patient_Identifier" %in% input_maf_cols) {
-    sample_col = "Unique_Patient_Identifier"
-    pretty_message("Found column Unique_Patient_Identifier; we'll assume this is the correct sample ID column.")
-    if("Tumor_Sample_Barcode" %in% input_maf_cols) {
-      pretty_message("(Delete or rename this column and re-run if you want to use Tumor_Sample_Barcode.)")
-      maf[, Tumor_Sample_Barcode := NULL]
-    }
+  if (sample_col == "Unique_Patient_Identifier" && ! sample_col %in% input_maf_cols &&
+      "Tumor_Sample_Barcode" %in% input_maf_cols) {
+    sample_col = "Tumor_Sample_Barcode"
+    pretty_message("Found column Tumor_Sample_Barcode; we'll assume that this column identifies patients.")
   }
   cols_to_check = c(sample_col, ref_col, chr_col, start_col)
   if (tumor_allele_col != "guess") {
@@ -177,6 +178,19 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
   }
   
   maf_cols = c("Unique_Patient_Identifier", "Chromosome", "Start_Position", "Reference_Allele", "Tumor_Allele")
+  
+  old_problems = data.table()
+  if('problem' %in% names(maf) && separate_old_problems == TRUE) {
+    if(length(setdiff(unique(maf$problem), c(preload_problems, 'NA', NA))) == 0) {
+        old_problems = maf[! is.na(problem)]
+        setnames(old_problems, 'problem', 'old_problem')
+        old_problems[, problem := NA_character_]
+        maf = maf[is.na(problem)]
+    } else {
+      msg = paste0("Found a \"problem\" column in MAF, but if the table came from cancereffectsizeR, ",
+                   "it's been subsequently altered, so it can't be used.")
+    }
+  }
   maf[, problem := NA_character_]
   check = maf[, lapply(.SD, function(x) is.na(x) | grepl("^[.\"\' ]*$", x)), .SDcols = maf_cols]
   looks_empty = apply(check, 1, any)
@@ -189,6 +203,24 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
   
   duplicate_records = duplicated(maf[,.(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele)])
   maf[duplicate_records, problem := 'duplicate_record']
+  
+  # Change duplicate record annotation for TCGA patients with multiple (essentially replicate) samples
+  if('Tumor_Sample_Barcode' %in% names(maf)) {
+    if(sample_col == 'Unique_Patient_Identifier') {
+      maf[, within_sample_dup := FALSE]
+      sample_barcode_dups = duplicated(maf[,.(Tumor_Sample_Barcode, Chromosome, Start_Position, Reference_Allele)])
+      maf[sample_barcode_dups, within_sample_dup := TRUE]
+      maf[, is_tcga_patient := Unique_Patient_Identifier %like% '^TCGA-.{7}$']
+      maf[within_sample_dup == FALSE & problem == 'duplicate_record' & is_tcga_patient == TRUE, problem := 'duplicate_from_TCGA_sample_merge']
+      maf[, c('within_sample_dup', 'is_tcga_patient') := NULL]
+    }
+    maf[, Tumor_Sample_Barcode := NULL]
+  }
+  
+  
+  
+  
+  
   
   # run liftOver if chain file supplied
   if(! is.null(chain_file)) {
@@ -261,19 +293,36 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
   }
   
   # Ensure reference alleles of mutations match reference genome (Note: Insertions won't match if their reference allele is "-")
-  message("Checking that reference alleles match the reference genome...")
-  ref_allele_lengths = nchar(maf[is.na(problem), Reference_Allele])
-  ref_alleles_to_test = maf[is.na(problem), Reference_Allele]
-  end_pos = maf[is.na(problem), Start_Position] + ref_allele_lengths - 1 # for multi-base deletions, check that all deleted bases match reference
-  reference_alleles = as.character(BSgenome::getSeq(refset_env$genome, maf[is.na(problem), Chromosome],
-                                                     strand="+", start=maf[is.na(problem), Start_Position], end=end_pos))
+  # Can safely skip the reference allele check if the table has previously been checked and still has the same ref alleles
+  skip_ref_check = FALSE
+  prev_md5 = attr(maf, 'ref_md5')
+  if(! is.null(prev_md5)) {
+    maf = identify_maf_variants(maf)
+    prev_md5_noproblem = attr(maf, 'ref_md5_noproblem')
+    current_md5 = digest::digest(maf[, .(variant_id, Reference_Allele)])
+    if (current_md5  %in% c(prev_md5, prev_md5_noproblem)) {
+      skip_ref_check = TRUE
+    }
+    maf[, c("variant_type", "variant_id") := NULL] # inelegant, but they're going to get re-generated later
+  }
+
+  if(! skip_ref_check) {
+    message("Checking that reference alleles match the reference genome...")
+    ref_allele_lengths = nchar(maf[is.na(problem), Reference_Allele])
+    ref_alleles_to_test = maf[is.na(problem), Reference_Allele]
+    end_pos = maf[is.na(problem), Start_Position] + ref_allele_lengths - 1 # for multi-base deletions, check that all deleted bases match reference
+    reference_alleles = as.character(BSgenome::getSeq(refset_env$genome, maf[is.na(problem), Chromosome],
+                                                      strand="+", start=maf[is.na(problem), Start_Position], end=end_pos))
+    
+    # For insertions, can't evaluate if record matches reference since MAF reference will be just "-"
+    # Could conceivably verify that the inserted bases don't match reference....
+    maf[is.na(problem), actual_ref := reference_alleles]
+    maf[is.na(problem) & Reference_Allele != '-' & Reference_Allele != actual_ref, problem := 'reference_mismatch']
+    maf[, actual_ref := NULL]
+  }
   
-  # For insertions, can't evaluate if record matches reference since MAF reference will be just "-"
-  # Could conceivably verify that the inserted bases don't match reference....
-  maf[is.na(problem), actual_ref := reference_alleles]
-  maf[is.na(problem) & Reference_Allele != '-' & Reference_Allele != actual_ref, problem := 'reference_mismatch']
-  maf[, actual_ref := NULL]
   
+  maf = rbind(maf, old_problems, fill = T)
   setcolorder(maf, maf_cols)
   return(maf)
 }
@@ -285,7 +334,7 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
 #' @keywords internal
 identify_maf_variants = function(maf) {
   nt = c("A", "T", "C", "G")
-  maf[, start_char := format(Start_Position, scientific = F, justify = 'none', trim = T)] # to avoid stuff like 100000 > "1e5"
+  maf[, start_char := format(Start_Position, scientific = F, justify = 'none', trim = T)] # to avoid issues like position 100000 getting rendered as "1e5"
   maf[! Reference_Allele %like% '^[ACTG-]+$']
   maf[Reference_Allele %in% nt & Tumor_Allele %in% nt, 
       c("variant_type", "variant_id") := .("snv", paste0(Chromosome, ':', start_char, '_', Reference_Allele, '>', Tumor_Allele))]
@@ -295,10 +344,11 @@ identify_maf_variants = function(maf) {
       c("variant_type", "variant_id") := .('ins', paste0(Chromosome, ':', start_char, '_ins_', Tumor_Allele))]
   maf[Tumor_Allele == '-' & Reference_Allele %like% '^[ACTG]+$', 
       c("variant_type", "variant_id") := .('del', paste0(Chromosome, ':', start_char, '_del_', Reference_Allele))]
-  maf[is.na(variant_id), variant_type := 'other']
+  maf[is.na(variant_id), c("variant_type", "variant_id") := .('other', paste0(Chromosome, ':', start_char, '_', Reference_Allele, '>', Tumor_Allele))]
   
   # As long as ref/tumor alleles consist of [ACTG], will let them stay as "other"; we don't handle these variants, anyway.
-  maf[variant_type == 'other' & (! Reference_Allele %like% '^[ACTG]+$' | ! Tumor_Allele %like% '^[ACTG]+$'), variant_type == 'illegal']
+  maf[variant_type == 'other' & (! Reference_Allele %like% '^[ACTG]+$' | ! Tumor_Allele %like% '^[ACTG]+$'), 
+      c("variant_type", "variant_id") := .('illegal', NA_character_)]
   maf[, start_char := NULL]
   return(maf)
 }

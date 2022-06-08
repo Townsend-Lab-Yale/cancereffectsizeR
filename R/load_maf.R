@@ -175,9 +175,9 @@ load_maf = function(cesa = NULL, maf = NULL, coverage = "exome", covered_regions
   refset = .ces_ref_data[[cesa@ref_key]]
   
   read_args = list(maf = maf, refset_env = refset,
-                   sample_col = 'Tumor_Sample_Barcode', chr_col = 'Chromosome', start_col = 'Start_Position',
-                   ref_col = 'Reference_Allele', tumor_allele_col = 'guess')
-  # Since group_col is deprecated, it can't be used in combination with sample_date_cols
+                   sample_col = 'Unique_Patient_Identifier', chr_col = 'Chromosome', start_col = 'Start_Position',
+                   ref_col = 'Reference_Allele', tumor_allele_col = 'guess', separate_old_problems = TRUE)
+  # Since group_col is deprecated, it can't be used in combination with sample_data_cols
   if (! is.null(group_col)) {
     read_args = c(read_args, list(more_cols = group_col))
   } else if(length(sample_data_cols) > 0) {
@@ -192,6 +192,15 @@ load_maf = function(cesa = NULL, maf = NULL, coverage = "exome", covered_regions
   }
 
   maf = do.call(read_in_maf, args = read_args)
+  old_problems = data.table()
+  if('old_problem' %in% names(maf)) {
+    old_problems = maf[! is.na(old_problem), -"problem"]
+    setnames(old_problems, 'old_problem', 'reason') # to put in exclusion table
+    if(old_problems[, .N] > 0) {
+      pretty_message("Found a \"problem\" column from preload_maf() and excluded records with problems.")
+    }
+    maf = maf[is.na(old_problem), -"old_problem"]
+  }
   
   sample_data = NULL
   if(length(sample_data_cols) > 0) {
@@ -230,8 +239,11 @@ load_maf = function(cesa = NULL, maf = NULL, coverage = "exome", covered_regions
                  sprintf("%.1f", 100 * num_excluded / initial_num_records), '%) ',
                  "had problems and were excluded: ")
     problem_summary = excluded[, .(num_records = .N), by = "problem"]
-    message(crayon::black(paste0(utils::capture.output(print(problem_summary, row.names = F)), collapse = "\n")))
-    
+    if(Sys.getenv("RSTUDIO") == "1" && rstudioapi::getThemeInfo()$dark) {
+      message(crayon::white(paste0(utils::capture.output(print(problem_summary, row.names = F)), collapse = "\n")))
+    } else {
+      message(crayon::black(paste0(utils::capture.output(print(problem_summary, row.names = F)), collapse = "\n")))
+    }
     if(num_excluded / initial_num_records > .05) {
       warning("More than 5% of input records had problems.")
     }
@@ -244,6 +256,12 @@ load_maf = function(cesa = NULL, maf = NULL, coverage = "exome", covered_regions
     }
   }
   setnames(excluded, "problem", "reason")
+  
+  if(old_problems[, .N] > 0) {
+    excluded_cols = names(excluded)
+    excluded = rbind(excluded, old_problems[, ..excluded_cols])
+  }
+  
   
   # collect sample group information
   if (! is.null(group_col)) {
@@ -358,7 +376,7 @@ load_maf = function(cesa = NULL, maf = NULL, coverage = "exome", covered_regions
   # Set aside new variants for annotation (notably, before MNV prediction; we'll still annotate those as SNVs)
   # To-do: also leave out indels that have previously been annotated (okay to re-annotate for now)
   to_annotate = maf[! cesa@mutations$snv$snv_id, on = 'variant_id']
-  message("Annotating variants...")
+  pretty_message("Annotating variants...")
   annotations = annotate_variants(refset = refset, variants = to_annotate)
   
   # Check annotations for any SNVs with ambiguous trinuc context; these must be set aside
@@ -427,71 +445,16 @@ load_maf = function(cesa = NULL, maf = NULL, coverage = "exome", covered_regions
   setnames(maf, "genes_tmp", "genes")
   setcolorder(maf, column_order) # put original columns back in the front
   
+  
   # Same-sample variants with 2bp of other variants get set aside as likely MNVs
   # MNVs are only possible in sample/chromosome combinations with more than one MAF record
-  poss_mnv = maf[order(Unique_Patient_Identifier, Chromosome, Start_Position)][, .SD[.N > 1], 
-                                                                                    by = c("Unique_Patient_Identifier", "Chromosome")]
-  if (poss_mnv[, .N] > 0) {
-    poss_mnv[, dist_to_prev := c(Inf, diff(Start_Position)), by = c("Unique_Patient_Identifier", "Chromosome")]
-    poss_mnv[, dist_to_next := c(dist_to_prev[2:.N], Inf), by = c("Unique_Patient_Identifier", "Chromosome")]
-    poss_mnv[dist_to_prev < 3 | dist_to_next < 3, is_mnv := T]
-    
-    # organize into groups of likely multi-nucleotide events
-    mnv = poss_mnv[is_mnv == T]
-    mnv[, start_of_group := dist_to_prev > 2]
-    mnv[, mnv_group := cumsum(start_of_group)]
-    
-    # Groups of 2 consecutive SNVs are double-base substitutions
-    # Create DBS entries suitable for MAF table
-    mnv[, is_dbs := .N == 2 && diff(Start_Position) == 1 && variant_type[1] == 'snv' && variant_type[2] == 'snv', by = mnv_group]
-    dbs = mnv[is_dbs == T, 
-                  .(Unique_Patient_Identifier = Unique_Patient_Identifier[1], 
-                    Chromosome = Chromosome[1], Start_Position = Start_Position[1],
-                    Reference_Allele = paste(Reference_Allele, collapse = ''),
-                    Tumor_Allele = paste0(Tumor_Allele, collapse = ''), variant_type = 'dbs',
-                    v1 = variant_id[1], v2 = variant_id[2]), by = mnv_group][, -"mnv_group"]
-    dbs[, dbs_id := paste0(Chromosome, ':', Start_Position, '_', Reference_Allele, '>', Tumor_Allele)]
-    dbs[maf, genes := genes, on = c(v1 = 'variant_id')]
-    
-    # Remove the SNV entries that form the new DBS variants
-    maf[dbs, dbs_id := i.dbs_id, on = c("Unique_Patient_Identifier", variant_id = "v1")]
-    maf[dbs, dbs_id := i.dbs_id, on = c("Unique_Patient_Identifier", variant_id = "v2")]
-    maf_dbs_ind = maf[! is.na(dbs_id), which = T]
-    maf_dbs = maf[maf_dbs_ind, .(Unique_Patient_Identifier, Chromosome, Start_Position, 
-                                 Reference_Allele, Tumor_Allele, 
-                                 reason = paste0("replaced_with_", dbs_id))]
-    
-    if (all(c("prelift_chr", "prelift_start", "liftover_strand_flip") %in% names(maf))) {
-      dbs[maf, c("prelift_chr", "prelift_start", "liftover_strand_flip") := list(prelift_chr, prelift_start, liftover_strand_flip), on = c(v1 = 'variant_id')]
-    }
-    
-    maf = maf[! maf_dbs_ind, -"dbs_id"]
-
-    # Add new DBS entries
-    dbs[, c("v1", "v2") := NULL]
-    setnames(dbs, "dbs_id", "variant_id")
-    maf = rbind(maf, dbs)
-    
-    # For non-DBS mnvs, reclassify as "other"
-    mnv = mnv[is_dbs == F]
-    maf[mnv, variant_type := 'other', on = c('Unique_Patient_Identifier', 'variant_id')]
-    num_new_mnv = uniqueN(mnv$mnv_group) # the DBS variants have already been removed
-    cesa@excluded = rbind(cesa@excluded, maf_dbs)
-    
-    num_dbs = dbs[, .N]
-    if(num_dbs > 0) {
-      grammar = ifelse(num_dbs == 1, 'has', 'have')
-      msg = paste0('Note: ', num_dbs, ' adjacent pairs of SNVs ', grammar, ' been re-annotated as doublet base substitutions (dbs).')
-      pretty_message(msg)
-    }
-    if (num_new_mnv > 0) {
-      msg = ifelse(num_dbs > 0, 'Additionally, ', 'Note: ')
-      grammar = ifelse(num_new_mnv > 1, 's', '')
-      msg = paste0(msg, num_new_mnv, ' group', grammar, ' of same-sample variants within 2 bp of each other have been reclassified as ',
-              'combined variants of type \"other\" (because they probably did not occur independently).')
-      pretty_message(msg)
-    }
-    maf[variant_type == 'other', "variant_id" := NA_character_] 
+  mnv = detect_mnv(maf)
+  num_mnv = uniqueN(mnv$mnv_group)
+  if(num_mnv > 0) {
+    msg = paste0("There are ", num_mnv, " groups of same-sample variants within 2 bp of each other. ",
+                 "These likely did not result from independent events. Consider using preload_maf() ",
+                 "to reclassify these variants as doublet substitutions or multinucleotide variants.")
+    warning(pretty_message(msg, emit = F))
   }
 
   cesa@maf = rbind(cesa@maf, maf, fill = T)

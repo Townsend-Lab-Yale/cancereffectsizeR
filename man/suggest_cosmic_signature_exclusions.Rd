@@ -11,7 +11,8 @@ suggest_cosmic_signature_exclusions(
 )
 }
 \arguments{
-\item{cancer_type}{See chart on website for supported cancer type labels.}
+\item{cancer_type}{See \href{https://townsend-lab-yale.github.io/cancereffectsizeR/articles/cosmic_cancer_type_note.html}{here}
+for supported cancer type labels.}
 
 \item{treatment_naive}{give TRUE if samples were taken pre-treatment; FALSE or leave
 NULL otherwise.}
@@ -20,9 +21,10 @@ NULL otherwise.}
 }
 \value{
 a vector of signatures to feed to the \code{trinuc_mutation_rates()}
-  \code{signature_exclusions} argument.
+\code{signature_exclusions} argument.
 }
 \description{
 Get suggestions on signatures_to_remove for trinuc_mutation_rates for COSMIC signatures v3 and later.
-For details, see \code{vignette("cosmic_cancer_type_note")}.
+For details, see \href{https://townsend-lab-yale.github.io/cancereffectsizeR/articles/cosmic_cancer_type_note.html}{this article}
+on our website.
 }

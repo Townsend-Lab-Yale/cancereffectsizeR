@@ -65,15 +65,16 @@ library(ggplot2)
 
 # Download lung adenocarcinoma (LUAD) somatic variant data.
 # Note that the rest of the tutorial uses BRCA, not LUAD.
+# This is an old TCGA file: Outside the tutorial, use get_TCGA_project_MAF() for the
+# latest, most accurate data.
 tcga_maf_file = 'TCGA.LUAD.mutect.0458c57f-316c-4a7c-9294-ccd11c97c2f9.DR-10.0.somatic.maf.gz'
 if (! file.exists(tcga_maf_file)) {
   download.file('https://api.gdc.cancer.gov/data/0458c57f-316c-4a7c-9294-ccd11c97c2f9', 
                 destfile = tcga_maf_file)
 }
 
-# Prepare data and filter out a few likely germline/false-positive calls
+# Prepare data
 maf = preload_maf(maf = tcga_maf_file, refset = "ces.refset.hg38")
-maf = maf[germline_variant_site == F][repetitive_region == F | cosmic_site_tier %in% 1:3]
 
 # Create cancereffectsizeR analysis and load data
 cesa = CESAnalysis(refset = "ces.refset.hg38")
@@ -141,13 +142,15 @@ library(cancereffectsizeR)
 library(data.table)
 ```
 
-For this tutorial, we'll use somatic variant data produced from exome sequencing by the TCGA BRCA (breast carcinoma) project. We will supplement this with targeted sequencing data from the Metastatic Breast Cancer data set [hosted at cBioPortal](https://www.cbioportal.org/study/summary?id=breast_ink4_msk_2021). (We stop at two data sources for brevity; for the best possible analysis of somatic selection, we would want to include as many data sources as we could find.)
+For this tutorial, we'll use somatic variant data produced from exome sequencing by the TCGA BRCA (breast carcinoma) project. We will supplement the WXS data with targeted sequencing data from the Metastatic Breast Cancer data set [hosted at cBioPortal](https://www.cbioportal.org/study/summary?id=breast_ink4_msk_2021).
 
-In cancereffectsizeR, data can be combined from multiple whole-exome, whole-genome, and targeted sequencing sources, although we always need at least one source of whole-exome or whole-genome data to anchor the analysis. Targeted sequencing data can't be used for mutation rate inference: there are too few mutations, typically, and since they're mostly in cancer hotspots, they don't provide a baseline of what mutation rates are like in the absence of selection. Instead, mutation rates in TGS samples will be assumed to be similar to those calculated in WXS/WGS samples.
+In cancereffectsizeR, data can be combined from multiple whole-exome, whole-genome, and targeted sequencing sources, although we always need at least one WXS or WGS source to anchor the analysis. Targeted sequencing data can't be used for mutation rate inference: there are too few mutations, typically, and since they're mostly in cancer hotspots, they don't provide a baseline of what mutation rates are like in the absence of selection. Instead, mutation rates in TGS samples will be assumed to be similar to those calculated in WXS/WGS samples.
 
 
 ### TCGA data (whole-exome)
-We'll begin by downloading variant data from TCGA. The data comes in a large text file listing somatic mutations for a collection of tumors, in accordance with [MAF format](https://docs.gdc.cancer.gov/Data/File_Formats/MAF_Format). 
+
+We'll begin by downloading variant data from TCGA. The data comes in a large text file listing somatic mutations for a collection of tumors, in accordance with [MAF format](https://docs.gdc.cancer.gov/Data/File_Formats/MAF_Format). **This data is from an old release.** For future analyses, get the most recent, accurate TCGA somatic variant data with `get_TCGA_project_MAF()`.
+
 ```{r}
 tcga_maf_file = 'TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf.gz'
 if (! file.exists(tcga_maf_file)) {
@@ -155,20 +158,22 @@ if (! file.exists(tcga_maf_file)) {
 }
 ```
 
-
 Let's also load and examine a table of patient information. Although the TCGA samples in the data set are all taken from primary tumors, you'll see that some patients presented with metastatic disease (pM = M1). Hormone receptor status (progesterone or estrogen receptor positive) and HER2 amplification status are also recorded in a combined column.
 ```{r eval = T}
 tcga_clinical = fread(system.file("tutorial/TCGA_BRCA_clinical.txt", package = "cancereffectsizeR"))
 tcga_clinical[1:5]
 ```
 
-The `preload_maf()` function takes in MAF data, finds the columns needed by cancereffectsizeR, adds a couple of genomic annotations, and checks for common problems. Since TCGA data sets are well-curated, this particular run will not reveal any problems. This MAF file already uses the hg38 genome build, but if it didn't, we could use the `chain_file` argument to convert records via liftOver.
+The `preload_maf()` function takes in MAF data, extracts the columns needed by cancereffectsizeR, adds a couple of genomic annotations, and checks for common problems. Since TCGA data sets are well-curated, this particular run will not reveal any problems. (For your own analyses, see our [MAF data tips](MAF_filtering_tips.html).) This MAF file already uses the hg38 genome build, but if it didn't, we could use the `chain_file` argument to convert records via liftOver.
+
 ```{r}
 tcga_maf = preload_maf(maf = tcga_maf_file, refset = "ces.refset.hg38")
 ```
-If you compare the TCGA MAF and clinical file, you'll see we have a small problem: the clinical file uses patient IDs, while the MAF uses tissue sample IDs. (This column was originally called Tumor_Sample_Barcode, but `preload_maf()` changed it to Unique_Patient_Identifier. cancereffectsizeR uses this column name to emphasize that all MAF samples must derive from distinct patients.)
+
+If you compare the TCGA MAF and clinical file, you'll see we have a small problem: the clinical file uses patient IDs, while the MAF uses tissue sample IDs. (This column was originally called Tumor_Sample_Barcode, but `preload_maf()` changed it to Unique_Patient_Identifier. cancereffectsizeR uses this column name to emphasize that distinct MAF samples must derive from distinct patients.)
 
 Luckily, TCGA IDs are easy to convert. After verifying that each TCGA patient has just one sample in the MAF data, we'll change tissue IDs to patient IDs.
+
 ```{r}
 # TCGA sample IDs start with the patient ID, luckily. Here, we verify a 1-1 sample-patient
 # relationship. If this check failed, we would need to figure out a sample exclusion
@@ -189,47 +194,19 @@ tgs_maf_file = system.file('tutorial/metastatic_breast_2021_hg38.maf', package =
 tgs_maf = preload_maf(maf = tgs_maf_file, refset = ces.refset.hg38)
 ```
 
-### Pre-analysis variant filtering
-<details><summary>(Show/hide justification)</summary>
-Since our goal is to quantify somatic selection, we want the MAF data to represent a complete set of high-confidence somatic variants from the samples. It's probably unwise to go too far down the rabbithole of second-guessing the variant calling methods used in the data sources. However, there is some simple filtering that we often use to bring the data into alignment with these tenets:
-
-* There should be few to no mutations at sites where population databases show common germline variation.
-* There should be few to no mutations in repetitive or poorly mapped regions of the genome, as mutations in these sites are difficult to sequence confidently, and they should be rare anyway since these regions are usually not functionally important at the small-variant level.
-* Samples should have little mutational overlap, especially at sites without known cancer association.
-
-When using ces.refset.hg38 (hg38), the preloaded MAF has three relevant annotation columns:
-
-* germline_variant_site: The variant overlaps a region that contains a common germline variant according to gnomAD (common being >1% prevalence in some population).
-* repetitive_region: The variant is in a region of the genome marked as repetitive by the RepeatMasker tool.
-* cosmic_site_tier: Indicates if the variant overlaps a site annotated as cancer-related (tiers 1, 2, and 3) by COSMIC. 
-</details>
-
-We suggest filtering out all germline site records, as well as records from repetitive regions except for the few with COSMIC annotations. We can apply this filtering like this:
-```{r}
-tcga_maf = tcga_maf[germline_variant_site == F]
-tcga_maf = tcga_maf[repetitive_region == F | cosmic_site_tier %in% 1:3]
-```
-
-We don't apply these filters to TGS data, since it tends to be high-depth sequencing of cancer hotspots.
-
-When combining data sources, or using data from projects that sequenced multiple samples per patient, it's important to verify that only one sample per patient is included in your MAF (and in your downstream cancereffectsizeR analysis), since samples from the same patient likely did not evolve independently. Since it's often hard to be sure that there isn't re-use of samples across different data sources, we recommend both careful manual curation and the use of `check_sample_overlap()` to catch unexpected sample duplication. (If you try it on `tcga_maf` and `tgs_maf`, you'll see that our data passes this check.)
-
-#### What not to filter
-To get a complete picture of the mutational processes present in tissues, whole-exome/whole-genome variants should not be filtered on any sort of functional criteria. One thing to watch out for: Occasionally, researchers will leave out synonymous variants when publishing their study data. As synonymous variants are essential for calculating gene mutation rates, the synonymous variants should be tracked down before using the data.
-
-Since TGS data is not used to infer mutation rates, it's okay to filter TGS data to regions of interest. We are actually about to do this! We will have to take care to accurately report the coverage of the filtered data in the next step.
+When combining data from multiple sources, `check_sample_overlap()` can detect unexpected sample duplication. If you feed in `tcga_maf` and `tgs_maf`, you will see that no possible duplications are found.
 
 ## Create CESAnalysis and load data
 The CESAnalysis is the primary data structure of cancereffectsizeR. The cancereffectsizeR workflow consists of calling a series of functions that take a CESAnalysis as input and return an altered CESAnalysis. Re-using the same variable name will keep things tidy.
 
-### Load WXS data
+### Load whole-exome sequencing data
 Let's create a CESAnalysis and call `load_maf()` to load the TCGA data.
 ```{r}
 cesa = CESAnalysis(refset = "ces.refset.hg38")
 cesa = load_maf(cesa = cesa, maf = tcga_maf)
 ```
 
-You will see a message that some variants fall outside of the refset's exome definitions. Since we don't know exactly what exome capture techniques were used for the BRCA project (probably different methods at different study sites), this isn't unexpected. (On the off chance that you do know the exact exome capture intervals of whatever data you're using, you should supply those intervals with `load_maf()`'s `covered_regions` argument. For WGS data, simply set `coverage = "genome"`. We'll discuss how to load TGS data shortly.)
+You will see a message that some variants fall outside of the refset's exome definitions. Since we don't know exactly what exome capture techniques were used for the BRCA project (probably different methods at different study sites), this isn't unexpected. (On the off chance that you do know the exact exome capture intervals of whatever data you're using, you should supply those intervals with `load_maf()`'s `covered_regions` argument. For WGS data, simply set `coverage = "genome"`.)
 
 To navigate a CESAnalysis, use the dollar sign ($). We can use these accessors to look at the MAF data as well more detailed variant annotations, and if we want we can perform various filtering operations, such as identifying the most prevalent variants in the loaded data.
 ```{r}
@@ -260,7 +237,7 @@ combined_counts
 PIK3CA mutation is least prevalent in triple negative breast cancer.
 
 
-### Load TGS data
+### Load targeted gene sequencing data
 To load our TGS data, we need to be able to define its coverage. Why? To estimate the selection of a mutation, we need to know which samples have the mutation, which samples do not, and which are unknown due to lack of sequencing coverage. Our TGS samples were sequenced with multiple panels covering different genes, and unfortunately, the exact coverage (defined by genomic coordinates) is not publicly available for all of these. Therefore, for simplicity, we will filter the TGS data to mutations at a handful of top cancer genes that are covered in all of the panels. When we load the data, all records outside of these genes will be excluded, leaving us with greater power to infer selection in these genes without impacting our estimates outside these genes, which will use just the TCGA data. (As mentioned earlier, we shouldn't filter WXS/WGS data this way, since it would interfere with mutation rate calculation, but TGS samples are not involved in mutation rate calculation.)
 
 ```{r}

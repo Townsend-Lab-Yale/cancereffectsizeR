@@ -1,13 +1,14 @@
 # get_test_file and get_test_data are loaded automatically from helpers.R by testthat
 tiny_maf = fread(get_test_file("tiny.hg19.maf.txt"))
 test_that("load_maf and variant annotation", {
-  tiny = load_maf(cesa = CESAnalysis(refset = "ces.refset.hg19"), maf = tiny_maf)
+  maf = preload_maf(tiny_maf, 'ces.refset.hg19')
+  tiny = load_maf(cesa = CESAnalysis(refset = "ces.refset.hg19"), maf = maf)
   tiny_ak = load_cesa(get_test_file("tiny_hg19_maf_loaded.rds"))
   expect_equal(tiny$maf[order(variant_id)], tiny_ak$maf[order(variant_id)])
   expect_equal(tiny@excluded, tiny_ak@excluded, ignore.row.order = T)
   expect_equal(tiny@mutations, tiny_ak@mutations)
-  expect_equal(tiny@mutations$snv[, .N], 269)
-  expect_equal(tiny@mutations$amino_acid_change[, .N], 131)
+  expect_equal(tiny@mutations$snv[, .N], 268)
+  expect_equal(tiny@mutations$amino_acid_change[, .N], 129)
   expect_equal(tiny$samples[, .N],84) 
    
   # same ranges should be in each coverage GenomicRange (depending on BSgenome version, little contigs may vary)
@@ -34,7 +35,7 @@ test_that("load_maf and variant annotation", {
   selected = select_variants(tiny, variant_ids = "12:132824581_C>A", genes = "TTN", min_freq = 0, include_subvariants = T)
   expect_equal(selected[, .N], 7)
   selected = select_variants(tiny, min_freq = 2)
-  expect_equal(sum(selected$maf_prevalence), 55) # if you get 57, MNV on sample-D probably got included
+  expect_equal(sum(selected$maf_prevalence), 55) # if you get 57, MNV on sample-D may have been treated as SNVs
   expect_equal(variant_counts(tiny, "12:132824581_C>A")$total_prevalence, 0)
   expect_equal(sum(variant_counts(tiny, selected$variant_id)$total_prevalence), 55)
   expect_equal(selected[variant_id == "TP53_T125T_ENSP00000269305", essential_splice], T)
