@@ -153,6 +153,9 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
     }
     aac_id = complete_aac_ids(partial_ids = aac_id, refset = refset)
     
+    if(length(aac_id) == 0) {
+      stop('No valid aac_id to add.')
+    }
     aac_dt = setDT(tstrsplit(aac_id, split = "_"))
     setnames(aac_dt, c('gene', 'aachange', 'pid'))
     if ('gene' %in% names(GenomicRanges::mcols(refset$gr_genes))) {
@@ -169,11 +172,11 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
     aac_dt[, aa_alt := seqinr::aaa(aa_alt)]
     aac_dt[aa_alt == 'Stp', aa_alt := 'STOP'] # also for compatibility
     
-    snvs_to_annotate = unique(mapply(aac_to_snv_ids, 
+    snvs_to_annotate = unique(unlist(mapply(aac_to_snv_ids, 
                                      aa_pos = aac_dt$aa_pos,
                                      aa_alt = aac_dt$aa_alt,
                                      refcds_entry = refset$RefCDS[aac_dt$entry_name],
-                                     MoreArgs = list(bsg = refset$genome)))
+                                     MoreArgs = list(bsg = refset$genome))))
   }
   
   num_variants = length(snvs_to_annotate)

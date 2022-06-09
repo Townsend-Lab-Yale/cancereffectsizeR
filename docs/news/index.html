@@ -10,7 +10,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">cancereffectsizeR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.6.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -27,6 +27,7 @@
 <li class="nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
+    <a class="dropdown-item" href="../articles/MAF_filtering_tips.html">MAF filtering and sample validation</a>
     <a class="dropdown-item" href="../articles/cosmic_cancer_type_note.html">Cancer type considerations for COSMIC signature extraction</a>
     <a class="dropdown-item" href="../articles/create_custom_covariates.html">Generate tissue covariates data</a>
     <a class="dropdown-item" href="../articles/custom_refset_instructions.html">Running with custom reference data</a>
@@ -55,6 +56,13 @@
       <small>Source: <a href="https://github.com/Townsend-Lab-Yale/cancereffectsizeR/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2.6.0" id="cancereffectsizer-260">cancereffectsizeR 2.6.0<a class="anchor" aria-label="anchor" href="#cancereffectsizer-260"></a></h2>
+<ul><li>get_TCGA_project_MAF(): Conveniently download MAF data from the Genomic Data Commons and create MAF files covering full TCGA projects.</li>
+<li>Change to relative trinucleotide mutation rate calculation for low-mutation samples for consistency with other samples. Impact of the change will typically be small.</li>
+<li>ces_gene_epistasis() now accepts a list of gene pairs to analyze.</li>
+<li>Conversion of adjacent SNVs to DBS/MNV has moved from load_maf() to preload_maf(), and is now optional (but typically recommended).</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2.5.0" id="cancereffectsizer-250">cancereffectsizeR 2.5.0<a class="anchor" aria-label="anchor" href="#cancereffectsizer-250"></a></h2>
 <ul><li>Fixed bug where combining WGS data with generic WXS data (without specific coverage definitions) resulted in all variants being annotated as exonic.</li>

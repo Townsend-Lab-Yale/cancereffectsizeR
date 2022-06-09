@@ -18,10 +18,11 @@ reference:
   - load_cesa
   - save_cesa
   - set_refset_dir
-- title: Pre-process MAF data
+- title: Obtain and prep MAF data
   contents:
   - preload_maf
   - check_sample_overlap
+  - get_TCGA_project_MAF
 - title: Load and manage variants
   contents:
   - load_maf

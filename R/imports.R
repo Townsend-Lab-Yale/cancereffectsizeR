@@ -34,6 +34,13 @@ aac_snv_key_template = data.table(aac_id = character(), snv_id = character(), mu
 sample_table_template = data.table(Unique_Patient_Identifier = character(), coverage = character(), 
                                   covered_regions = character(), sig_analysis_grp = integer(), gene_rate_grp = integer())
 
+# for use when identifying a column previously handled by cancereffectsizeR
+preload_problems = c('missing_values', 'not_variant', 'duplicate_record', 'failed_liftOver', 
+                     'duplicate_record_after_liftOver', 'unsupported_chr', 'out_of_bounds', 
+                     'reference_mismatch', "merged_into_dbs_variant", "merged_into_other_variant",
+                     "duplicate_from_TCGA_sample_merge")
+
+
 # format a string the way R should automatically, then feed it to message()
 pretty_message = function(msg, emit = T, black = emit) {
   msg = paste0(strwrap(msg), collapse = "\n")

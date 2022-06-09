@@ -1,3 +1,11 @@
+Patch updates (as in, x.y.1 -> x.y.2) offer minor bug fixes or small improvements that should not affect the numerical output of cancer effect analyses. Minor/major updates may change some outputs due to bug fixes or intentional tweaks, as described in these version notes.
+
+# cancereffectsizeR 2.6.0
+* get_TCGA_project_MAF(): Conveniently download MAF data from the Genomic Data Commons and create MAF files covering full TCGA projects.
+* Change to relative trinucleotide mutation rate calculation for low-mutation samples for consistency with other samples. Impact of the change will typically be small.
+* ces_gene_epistasis() now accepts a list of gene pairs to analyze.
+* Conversion of adjacent SNVs to DBS/MNV has moved from load_maf() to preload_maf(), and is now optional (but typically recommended).
+
 # cancereffectsizeR 2.5.0
 * Fixed bug where combining WGS data with generic WXS data (without specific coverage definitions) resulted in all variants being annotated as exonic.
 
@@ -8,12 +16,9 @@
 * Fixed a bug in create_refset() that caused custom reference data sets to have incorrect values in gene trinucleotide proportions (gene_trinuc_comp).
 * Added utility functions clear_effect_output() and clear_epistasis_output().
 
-
-
 # cancereffectsizeR 2.3.4
 * New website and expanded tutorial.
 * Small fixes, including a tweak to variant prioritization.
-
 
 # cancereffectsizeR 2.3.3
 * New quickstart instructions on the website, and a new tutorial in progress. See the site for the latest version, as it will continue to be updated.

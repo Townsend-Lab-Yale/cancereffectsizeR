@@ -1,14 +1,17 @@
 #' Tissue-specific mutational signature exclusions
 #'
 #' Get suggestions on signatures_to_remove for trinuc_mutation_rates for COSMIC signatures v3 and later.
-#' For details, see \code{vignette("cosmic_cancer_type_note")}.
+#' For details, see [this article](https://townsend-lab-yale.github.io/cancereffectsizeR/articles/cosmic_cancer_type_note.html)
+#' on our website.
 #' 
-#' @param cancer_type See chart on website for supported cancer type labels.
+#' @param cancer_type See [here](https://townsend-lab-yale.github.io/cancereffectsizeR/articles/cosmic_cancer_type_note.html) 
+#'   for supported cancer type labels.
 #' @param treatment_naive give TRUE if samples were taken pre-treatment; FALSE or leave
 #'   NULL otherwise.
 #' @param quiet (default false) for non-interactive use, suppress explanations and advice.
 #' @return a vector of signatures to feed to the \code{trinuc_mutation_rates()}
 #'   \code{signature_exclusions} argument.
+#' @md
 #' @export
 suggest_cosmic_signature_exclusions = function(cancer_type = NULL, treatment_naive = NULL, quiet = FALSE) {
   data_source = paste0(system.file("extdata", package = "cancereffectsizeR"), '/COSMIC_v3.2_signatures_by_cancer_type.txt')
@@ -33,16 +36,15 @@ suggest_cosmic_signature_exclusions = function(cancer_type = NULL, treatment_nai
     stop("argument quiet should be T/F")
   }
   
-  if(require("ces.refset.hg38", character.only = T)) {
-    signature_set_path = system.file("refset/signatures/COSMIC_v3.2_signatures.rds", package = "ces.refset.hg38")
-  } else if(require("ces.refset.hg19", character.only = T)) {
-    # Use v3.2 if refset package is up-to-date; otherwise, use v3.1.
+  # Use ces.refset.hg38 or ces.refset.hg19 for signature data (will use COSMIC v3.2 for this)
+  signature_set_path = system.file("refset/signatures/COSMIC_v3.2_signatures.rds", package = "ces.refset.hg38")
+  
+  if(signature_set_path == '') {
     signature_set_path = system.file("refset/signatures/COSMIC_v3.2_signatures.rds", package = "ces.refset.hg19")
-    if (signature_set_path == '') {
-      signature_set_path = system.file("refset/signatures/COSMIC_v3.1_signatures.rds", package = "ces.refset.hg19")
-    }
-  } else {
-    message("To use this function, install ces.refset.h38 or ces.refset.hg19:")
+  }
+  
+  if(signature_set_path == '') {
+    message("To use this function, install the latest version ces.refset.h38 or ces.refset.hg19:")
     message("remotes::install_github(\"Townsend-Lab-Yale/ces.refset.hg38@*release\")")
     message("remotes::install_github(\"Townsend-Lab-Yale/ces.refset.hg19@*release\")")
     stop("Required reference data not available; install a CES refset data package.")

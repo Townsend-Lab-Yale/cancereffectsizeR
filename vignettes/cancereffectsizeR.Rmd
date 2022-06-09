@@ -65,15 +65,16 @@ library(ggplot2)
 
 # Download lung adenocarcinoma (LUAD) somatic variant data.
 # Note that the rest of the tutorial uses BRCA, not LUAD.
+# This is an old TCGA file: Outside the tutorial, use get_TCGA_project_MAF() for the
+# latest, most accurate data.
 tcga_maf_file = 'TCGA.LUAD.mutect.0458c57f-316c-4a7c-9294-ccd11c97c2f9.DR-10.0.somatic.maf.gz'
 if (! file.exists(tcga_maf_file)) {
   download.file('https://api.gdc.cancer.gov/data/0458c57f-316c-4a7c-9294-ccd11c97c2f9', 
                 destfile = tcga_maf_file)
 }
 
-# Prepare data and filter out a few likely germline/false-positive calls
+# Prepare data
 maf = preload_maf(maf = tcga_maf_file, refset = "ces.refset.hg38")
-maf = maf[germline_variant_site == F][repetitive_region == F | cosmic_site_tier %in% 1:3]
 
 # Create cancereffectsizeR analysis and load data
 cesa = CESAnalysis(refset = "ces.refset.hg38")
@@ -141,13 +142,15 @@ library(cancereffectsizeR)
 library(data.table)
 ```
 
-For this tutorial, we'll use somatic variant data produced from exome sequencing by the TCGA BRCA (breast carcinoma) project. We will supplement this with targeted sequencing data from the Metastatic Breast Cancer data set [hosted at cBioPortal](https://www.cbioportal.org/study/summary?id=breast_ink4_msk_2021). (We stop at two data sources for brevity; for the best possible analysis of somatic selection, we would want to include as many data sources as we could find.)
+For this tutorial, we'll use somatic variant data produced from exome sequencing by the TCGA BRCA (breast carcinoma) project. We will supplement the WXS data with targeted sequencing data from the Metastatic Breast Cancer data set [hosted at cBioPortal](https://www.cbioportal.org/study/summary?id=breast_ink4_msk_2021).
 
-In cancereffectsizeR, data can be combined from multiple whole-exome, whole-genome, and targeted sequencing sources, although we always need at least one source of whole-exome or whole-genome data to anchor the analysis. Targeted sequencing data can't be used for mutation rate inference: there are too few mutations, typically, and since they're mostly in cancer hotspots, they don't provide a baseline of what mutation rates are like in the absence of selection. Instead, mutation rates in TGS samples will be assumed to be similar to those calculated in WXS/WGS samples.
+In cancereffectsizeR, data can be combined from multiple whole-exome, whole-genome, and targeted sequencing sources, although we always need at least one WXS or WGS source to anchor the analysis. Targeted sequencing data can't be used for mutation rate inference: there are too few mutations, typically, and since they're mostly in cancer hotspots, they don't provide a baseline of what mutation rates are like in the absence of selection. Instead, mutation rates in TGS samples will be assumed to be similar to those calculated in WXS/WGS samples.
 
 
 ### TCGA data (whole-exome)
-We'll begin by downloading variant data from TCGA. The data comes in a large text file listing somatic mutations for a collection of tumors, in accordance with [MAF format](https://docs.gdc.cancer.gov/Data/File_Formats/MAF_Format). 
+
+We'll begin by downloading variant data from TCGA. The data comes in a large text file listing somatic mutations for a collection of tumors, in accordance with [MAF format](https://docs.gdc.cancer.gov/Data/File_Formats/MAF_Format). **This data is from an old release.** For future analyses, get the most recent, accurate TCGA somatic variant data with `get_TCGA_project_MAF()`.
+
 ```{r}
 tcga_maf_file = 'TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf.gz'
 if (! file.exists(tcga_maf_file)) {
@@ -155,20 +158,22 @@ if (! file.exists(tcga_maf_file)) {
 }
 ```
 
-
 Let's also load and examine a table of patient information. Although the TCGA samples in the data set are all taken from primary tumors, you'll see that some patients presented with metastatic disease (pM = M1). Hormone receptor status (progesterone or estrogen receptor positive) and HER2 amplification status are also recorded in a combined column.
 ```{r eval = T}
 tcga_clinical = fread(system.file("tutorial/TCGA_BRCA_clinical.txt", package = "cancereffectsizeR"))
 tcga_clinical[1:5]
 ```
 
-The `preload_maf()` function takes in MAF data, finds the columns needed by cancereffectsizeR, adds a couple of genomic annotations, and checks for common problems. Since TCGA data sets are well-curated, this particular run will not reveal any problems. This MAF file already uses the hg38 genome build, but if it didn't, we could use the `chain_file` argument to convert records via liftOver.
+The `preload_maf()` function takes in MAF data, extracts the columns needed by cancereffectsizeR, adds a couple of genomic annotations, and checks for common problems. Since TCGA data sets are well-curated, this particular run will not reveal any problems. (For your own analyses, see our [MAF data tips](MAF_filtering_tips.html).) This MAF file already uses the hg38 genome build, but if it didn't, we could use the `chain_file` argument to convert records via liftOver.
+
 ```{r}
 tcga_maf = preload_maf(maf = tcga_maf_file, refset = "ces.refset.hg38")
 ```
-f you compare the TCGA MAF and clinical files, you’ll see we have a small problem: the MAF data uses tissue sample IDs, while the clinical file uses patient IDs. (The MAF column was originally called Tumor_Sample_Barcode, but `preload_maf()` changed it to Unique_Patient_Identifier. cancereffectsizeR uses this column name to emphasize that all MAF samples must derive from distinct patients.)
+
+If you compare the TCGA MAF and clinical file, you'll see we have a small problem: the clinical file uses patient IDs, while the MAF uses tissue sample IDs. (This column was originally called Tumor_Sample_Barcode, but `preload_maf()` changed it to Unique_Patient_Identifier. cancereffectsizeR uses this column name to emphasize that distinct MAF samples must derive from distinct patients.)
 
 Luckily, TCGA IDs are easy to convert. After verifying that each TCGA patient has just one sample in the MAF data, we'll change tissue IDs to patient IDs.
+
 ```{r}
 # TCGA sample IDs start with the patient ID, luckily. Here, we verify a 1-1 sample-patient
 # relationship. If this check failed, we would need to figure out a sample exclusion
@@ -189,47 +194,19 @@ tgs_maf_file = system.file('tutorial/metastatic_breast_2021_hg38.maf', package =
 tgs_maf = preload_maf(maf = tgs_maf_file, refset = ces.refset.hg38)
 ```
 
-### Pre-analysis variant filtering
-<details><summary>(Show/hide justification)</summary>
-Since our goal is to quantify somatic selection, we want the MAF data to represent a complete set of high-confidence somatic variants from the samples. It's probably unwise to go too far down the rabbithole of second-guessing the variant calling methods used in the data sources. However, there is some simple filtering that we often use to bring the data into alignment with these tenets:
-
-* There should be few to no mutations at sites where population databases show common germline variation.
-* There should be few to no mutations in repetitive or poorly mapped regions of the genome, as mutations in these sites are difficult to sequence confidently, and they should be rare anyway since these regions are usually not functionally important at the small-variant level.
-* Samples should have little mutational overlap, especially at sites without known cancer association.
-
-When using ces.refset.hg38 (hg38), the preloaded MAF has three relevant annotation columns:
-
-* germline_variant_site: The variant overlaps a region that contains a common germline variant according to gnomAD (common being >1% prevalence in some population).
-* repetitive_region: The variant is in a region of the genome marked as repetitive by the RepeatMasker tool.
-* cosmic_site_tier: Indicates if the variant overlaps a site annotated as cancer-related (tiers 1, 2, and 3) by COSMIC. 
-</details>
-
-We suggest filtering out all germline site records, as well as records from repetitive regions except for the few with COSMIC annotations. We can apply this filtering like this:
-```{r}
-tcga_maf = tcga_maf[germline_variant_site == F]
-tcga_maf = tcga_maf[repetitive_region == F | cosmic_site_tier %in% 1:3]
-```
-
-We don't apply these filters to TGS data, since it tends to be high-depth sequencing of cancer hotspots.
-
-When combining data sources, or using data from projects that sequenced multiple samples per patient, it's important to verify that only one sample per patient is included in your MAF (and in your downstream cancereffectsizeR analysis), since samples from the same patient likely did not evolve independently. Since it's often hard to be sure that there isn't reuse of samples across different data sources, we recommend both careful manual curation and the use of `check_sample_overlap()` to catch unexpected sample duplication. (If you try it on `tcga_maf` and `tgs_maf`, you'll see that our data passes this check.)
-
-#### What not to filter
-To get a complete picture of the mutational processes present in tissues, whole-exome/whole-genome variants should not be filtered on any sort of functional criteria. One thing to watch out for: Occasionally, researchers will leave out synonymous variants when publishing their study data. As synonymous variants are essential for calculating gene mutation rates, the synonymous variants should be tracked down before using the data.
-
-Since TGS data is not used to infer mutation rates, it's okay to filter TGS data to regions of interest. We are actually about to do this! We will have to take care to accurately report the coverage of the filtered data in the next step.
+When combining data from multiple sources, `check_sample_overlap()` can detect unexpected sample duplication. If you feed in `tcga_maf` and `tgs_maf`, you will see that no possible duplications are found.
 
 ## Create CESAnalysis and load data
-The CESAnalysis is the primary data structure of cancereffectsizeR. The cancereffectsizeR workflow consists of calling a series of functions that take a CESAnalysis as input and return an altered CESAnalysis. Reusing the same variable name will keep things tidy.
+The CESAnalysis is the primary data structure of cancereffectsizeR. The cancereffectsizeR workflow consists of calling a series of functions that take a CESAnalysis as input and return an altered CESAnalysis. Re-using the same variable name will keep things tidy.
 
-### Load WXS data
+### Load whole-exome sequencing data
 Let's create a CESAnalysis and call `load_maf()` to load the TCGA data.
 ```{r}
 cesa = CESAnalysis(refset = "ces.refset.hg38")
 cesa = load_maf(cesa = cesa, maf = tcga_maf)
 ```
 
-You will see a message that some variants fall outside of the refset's exome definitions. Since we don't know exactly what exome capture techniques were used for the BRCA project (probably different methods at different study sites), this isn't unexpected. (On the off chance that you do know the exact exome capture intervals of whatever data you're using, you should supply those intervals with `load_maf()`'s `covered_regions` argument. For WGS data, simply set `coverage = "genome"`. We'll discuss how to load TGS data shortly.)
+You will see a message that some variants fall outside of the refset's exome definitions. Since we don't know exactly what exome capture techniques were used for the BRCA project (probably different methods at different study sites), this isn't unexpected. (On the off chance that you do know the exact exome capture intervals of whatever data you're using, you should supply those intervals with `load_maf()`'s `covered_regions` argument. For WGS data, simply set `coverage = "genome"`.)
 
 To navigate a CESAnalysis, use the dollar sign ($). We can use these accessors to look at the MAF data as well more detailed variant annotations, and if we want we can perform various filtering operations, such as identifying the most prevalent variants in the loaded data.
 ```{r}
@@ -246,7 +223,7 @@ Let's load the clinical data into the analysis, too.
 cesa = load_sample_data(cesa, tcga_clinical)
 ```
 
-Now that we've loaded the sample data, we can, for example, see how variant counts break down across different sample groups. Let's see a breakdown _PIK3CA_ mutation status by BRCA receptor phenotype.
+Now that we've loaded the sample data, we can, for example, see how variant counts break down across different sample groups. Let's see a breakdown PIK3CA mutation status by BRCA receptor phenotype.
 ```{r}
 # Get samples with 1 or more PIK3CA mutation
 samples_with_pik3ca = cesa$maf[top_gene == "PIK3CA", unique(Unique_Patient_Identifier)]
@@ -257,11 +234,11 @@ combined_counts = merge.data.table(pik3ca_sample_counts, total_sample_counts, by
 combined_counts[, freq := with_PIK3CA / N]
 combined_counts
 ```
-_PIK3CA_ mutation is least prevalent in triple negative breast cancer.
+PIK3CA mutation is least prevalent in triple negative breast cancer.
 
 
-### Load TGS data
-To load our TGS data, we need to be able to define its coverage. Why? To estimate the selection of a mutation, we need to know which samples have the mutation, which samples do not, and which are unknown due to lack of sequencing coverage. Our TGS samples were sequenced with multiple panels covering different genes, and unfortunately, the exact coverage (defined by genomic coordinates) is not publicly available for all of these. Therefore, for simplicity, we will filter the TGS data to include only mutations in a handful of top cancer genes that are covered in all of the panels. When we load the data, all records outside of these genes will be excluded, leaving us with greater power to infer selection in these genes without impacting our estimates outside these genes, which will use just the TCGA data. (As mentioned earlier, we shouldn't filter WXS/WGS data this way, since it would interfere with mutation rate calculation, but TGS samples are not involved in mutation rate calculation.)
+### Load targeted gene sequencing data
+To load our TGS data, we need to be able to define its coverage. Why? To estimate the selection of a mutation, we need to know which samples have the mutation, which samples do not, and which are unknown due to lack of sequencing coverage. Our TGS samples were sequenced with multiple panels covering different genes, and unfortunately, the exact coverage (defined by genomic coordinates) is not publicly available for all of these. Therefore, for simplicity, we will filter the TGS data to mutations at a handful of top cancer genes that are covered in all of the panels. When we load the data, all records outside of these genes will be excluded, leaving us with greater power to infer selection in these genes without impacting our estimates outside these genes, which will use just the TCGA data. (As mentioned earlier, we shouldn't filter WXS/WGS data this way, since it would interfere with mutation rate calculation, but TGS samples are not involved in mutation rate calculation.)
 
 ```{r}
 # Define coverage using the coding regions of these genes, as defined by the refset
@@ -287,7 +264,7 @@ counts_by_M[M1_prevalence > 0][order(-M1_prevalence)]
 ## Mutational processes and relative mutation rates
 For each (exome) sample in our data set, `trinuc_mutation_rates()` will perform mutational signature extraction in order to to attribute each sample's set of SNVs to a linear combination of mutational processes. By default, the signature extraction is done using the `MutationalPatterns` package, and `deconstructSigs` is also supported. The signature attribution allows us to infer sample-specific relative rates of SNV mutation for all trinucleotide contexts. TGS samples will be assumed to have mutational processes matching the group-average mutational processes of the exome data. (This isn't optimal, since the metastatic samples may be affected by mutational processes, such as chemotherapy, that are lacking in the primary tumor exome data, but it might be the best we can do without finding another data source.)
 
-We will use signature definitions from the refset. (It's also possible to create your own; see `?trinuc_mutation_rates` and `?validate_signature_set`.) To improve the accuracy of signature extraction, we will exclude signatures that can safely be presumed absent from the samples; a helper function, `suggest_cosmic_signature_exclusions()`, can provide some guidance.
+We will use signature definitions from the refset (it's also possible to create your own). To improve the accuracy of signature extraction, we will exclude signatures that can safely be presumed absent from the samples; a helper function, `suggest_cosmic_signature_exclusions()`, can provide some guidance.
 
 ```{r}
 # We'll use all suggested exclusions (TCGA primary tumors are treatment-naive)
@@ -302,8 +279,8 @@ The `trinuc_mutation_rates()` run has added some useful information to the CESAn
 
 * **snv_counts**: A matrix of SNV counts by trinucleotide context. (You can also generate such a matrix from MAF data with `trinuc_snv_counts()`.)
 * **raw_attributions**: Signature attributions as generated by the extractor. For MutationalPatterns, this matrix contains the number of mutations attributed to signature for each sample. Naturally, samples with more mutations will tend to have higher raw attributions.
-* **biological_weights**: The proportion of mutations attributed to each biologically-associated signature within each sample. Mutations attributed to signatures associated with sequencing/processing artifacts are left out. (Technical detail: Due to the instability of signature attributions on samples with few somatic variants, such samples have their weights adjusted towards group-average weights, as indicated in the `group_avg_blended` column. If you want to make claims about subgroup differences in mutational processes, consider leaving these samples out or using the raw attributions. You should also leave out the TGS samples, which in this analysis are treated as having 0 mutations.)
-* **trinuc_rates**: Inferred relative rates of mutation, produced by matrix-multiplying biological weights and signature definitions. (These rates will not equal the empirical rates seen in the data.)
+* **biological_weights**: The proportion of mutations attributed to each biologically-associated signature within each sample. Mutations attributed to signatures associated with sequencing/processing artifacts are left out. (Technical detail: Due to the instability of signature attributions on samples with few mutations, Samples with few MAF variants have their weights adjusted towards group-average weights, as indicated in the `group_avg_blended` column. If you want to make claims about subgroup differences in mutational processes, consider leaving these samples out or using the raw attributions. You should also leave out the TGS samples, which in this analysis are treated as having 0 mutations.)
+* **trinuc_rates**: Inferred relative rates of mutation, produced by matrix-multiplying biological_weights and signature definitions. (These rates will not equal the empirical rates seen in the data.)
 
 While we're here, MutationalPatterns has some nice plot functions that we can use. For example, we can plot the mean SNV profile for each BRCA receptor subtype. (We would want to exclude TGS samples in this plot because cancer hotspot mutations are not reflective of overall mutational processes, but our TGS samples lack receptor_status information, so they will already be left out without having to specifically exclude them.)
 
@@ -366,10 +343,10 @@ formattable::formattable(sig_genes)
 
 See dNdScv's documentation if you're interested in interpretation of the dNdScv output.
 
-Side note: If we had multiple tissue types in the analysis, we could call `gene_mutation_rates()` multiple times using the `samples` argument to specify sample groups, with appropriate covariates for each tissue type. Similar functionality is available in `trinuc_mutation_rates()`.
+Side note: If we had multiple tissue types in the analysis, we could call gene_mutation_rates() multiple times using the `samples` argument to specify sample groups, with appropriate covariates for each tissue type. Similar functionality is available in `trinuc_mutation_rates()`.
 
 ## Selection inference
-The combination of cohort-level gene mutation rates and sample-level relative rates of trinucleotide-context-specific substitution allow us to estimate the rate at which any somatic substitution occurs in any patient's tumor sample. To be clear, by "rate," we don't mean prevalence within a sample cohort (which is already known), but rather how often a mutation can be expected to occur in individual cells. (More specifically, we assume that mutation events in each specific sample and site follow a Poisson distribution, and these rates are the Poisson rates.) It's not typically necessary to look at these rates, but just to show that we can:
+The combination of cohort-level gene mutation rates and sample-level relative rates of trinucleotide-context-specific substitution allow us to estimate the rate at which any somatic substitution occurs in any patient's tumor sample. To be clear, by "rates," we don't mean the frequency of mutations in our somatic variant calls (which we already know anyway). These rates represent how often the mutations can be expected to occur in individual cells. (More specifically, we assume that mutation events in each specific sample and site follow a Poisson distribution, and these rates are the Poisson rates.) It's not typically necessary to look at these rates, but just to show that we can:
 ```{r}
 # Let's take the top 3 variants by MAF prevalence. These happen to all be in PIK3CA.
 variants_to_check = cesa$variants[order(-maf_prevalence), variant_id][1:3]
@@ -384,10 +361,10 @@ baseline_mutation_rates(cesa = cesa, variant_ids = variants_to_check, samples = 
 readRDS(system.file("tutorial/BRCA_site_rates_example.rds", package = "cancereffectsizeR"))
 ```
 
-Interestingly, _PIK3CA_ H1047R, the most prevalent variant in our MAF data (246/1875 samples), is estimated to have a substantially lower rate of occurrence than E545K and E542K in these particular samples.
+Interestingly, PIK3CA H1047R, the most prevalent variant in our MAF data (246/1875 samples), is estimated to have a substantially lower rate of occurrence than E545K and E542K in these particular samples.
 
 ### Basic model
-We can use our estimated rates and the MAF variant data to infer scaled selection coefficients (aka cancer effects, or selection intensity) under a model of selection. These cancer effects are directly proportional to the proliferative advantage provided by each variant. First, let's calculate selection under the package's default model of selection with ces_variant().
+We can use our estimated rates and the MAF variant data to infer scaled selection coefficients (aka cancer effects, or selection intensity) under a model of selection. These cancer effects are directly proportional to the proliferative advantage provided by each variant. First, let's calculate selection under the package's default model of selection with ces_variant():
 ```{r}
 # Including an optional run_name
 cesa = ces_variant(cesa = cesa, run_name = 'recurrents')
@@ -433,7 +410,7 @@ ggplot(top, aes(x = display_levels, y = selection_intensity)) +
 readRDS(paste0(tutorial_dir, '/top_BRCA_effects.rds'))
 ```
 
-_PIK3CA_ and _ESR1_ variants take many of the top spots. The deconvolution of mutation rate from selection has revealed that some relatively low-prevalence variants have high effects. Interestingly, according to dNdScv, mutation in _ESR1_ at the gene level was not significantly greater than neutral in the TCGA cohort of primary tumors. While there is no direct way to  incorporate our metastatic panel data into a dN/dS analysis, its inclusion in cancereffectsizeR's selection inference confirms _ESR1_'s importance.
+_PIK3CA_ and _ESR1_ variants take many of the top spots. The deconvolution of mutation rate from selection has revealed that some relatively low-prevalence variants have high effects. Interestingly, according to dNdScv, mutation in _ESR1_ at the gene level was not significantly greater than neutral in the TCGA cohort of primary tumors. The incorporation of metastatic TGS data and cancereffectsizeR's assessment of selection at the variant level confirm _ESR1_'s importance.
 
 ### Sequential model
 In the sequential model, selection is allowed to vary across two or more theoretical timepoints represented in the data. These timepoints should be at least arguably chronological, though not necessarily strictly so. For example, if we assume that tumors progress sequentially from grade I to grade III, we could adopt a three-state sequentially model. For our data set, since the pM annotation tells us which patients had progressed to metastatic disease at the time of sample collection, we'll do a two-state model with states M0 and M1. (One could certainly argue about whether the few TCGA M1 patients should be lumped in with the M1 TGS data, since the TCGA samples are from primary tissue and the TGS samples are metastatic tissue, but we'll proceed under the assumption that metastasis occurred due to continued evolution of primary tumors.)
@@ -486,7 +463,7 @@ sequential_output_file = paste0(tutorial_dir, '/sequential_signif_output.rds')
 formattable::formattable(readRDS(sequential_output_file), digits = 4)
 ```
 
-The increased selection in M1 for _ESR1_ variants is immediately apparent, and it's especially convincing that so many distinct variants in the gene show the same relationship. Observe that the _PIK3CA_ variants show reduced M1 selection even though the variants actually appear at similar or higher frequencies in the M1 samples. Under the model assumptions, the M1 samples previously experienced M0 selection pressures, so we actually expect these samples to have prevalent _PIK3CA_ mutations regardless of M1 selection.
+The increased selection in M1 for _ESR1_ variants is immediately apparent, and it's especially convincing that so many distinct variants in the gene show the same relationship. Observe that the PIK3CA variants show reduced M1 selection even though the variants actually appear at similar or higher frequencies in the M1 samples. Under the model assumptions, the M1 samples previously experienced M0 selection pressures, so we actually expect these samples to have prevalent PIK3CA mutations regardless of M1 selection.
 
 Relatively few variants are prevalent enough to test under sequential models, and confidence intervals are often wide. Several of the significant variants are given M0 effects of .001, the lower limit of our optimization, simply because the variants do not appear in the M0 group. Confidence intervals reflect that selection intensity at these sites could be much higher.
 
@@ -500,10 +477,10 @@ Besides the basic and sequential models, `ces_variant()` supports user-supplied 
 The `CompoundVariantSet` feature, described in the next section, may sometimes provide improved resolution of somatic selection by batching related variants together. 
 
 ## Epistatic cancer effects
-In the basic model, a variant is assumed to have a single cancer effect across all samples. In reality, we expect a variant's selection to be influenced by a complex combination of factors including a sample's mutational background (from substitutions to structural variants), the epigenetic state of the tumor, and various environmental factors. The `ces_epistasis()` function allows us to assess selection for any pair of variants under a model of pairwise epistasis, in which the selection intensity for each variant is allowed to vary depending on the state of the other site.
+In the basic model, a variant is assumed to have a single cancer effect across all samples. In reality, we expect a variant's selection to be influenced by a complex combination of factors including a sample's mutational background (from substitutions to structural variants), the epigenetic state of the tumor, and various environmental factors. The `ces_epistasis()` function allows us to assess selection for any pair of variants under a model of pairwise epistasis, in which the selection intensity for each variant is allowed to very depending on the state of the other site.
 
 ### Variant-level epistasis
-Let's try two prevalent BRCA mutations, _PIK3CA_ E545K (n=159) and _AKT1_ E17K (n=82). Let's also test E545K with a nearby _PIK3CA_ variant, E542K (n=93).
+Let's try two prevalent BRCA mutations, PIK3CA E545K (n=159) and AKT1 E17K (n=82). Let's also test E545K with a nearby PIK3CA variant, E542K (n=93).
 
 ```{r}
 # Start by pulling full variant IDs (with protein identifier) from variants table
@@ -519,10 +496,10 @@ cesa$epistasis$variant_epistasis_example
 readRDS(paste0(tutorial_dir, '/variant_ep_example.rds'))
 ```
 
-Confidence intervals tend to be wide in epistatic analyses. Even with the most prevalent somatic variants, both co-occurrence and mutual exclusivity can often be explained by chance. The output for _PIK3CA_ E545K and E542K confirms the negative epistatic relationship that we would have expected given their mutual exclusivity in our data (and our knowledge of their biological effects). For _PIK3CA_ E545K and _AKT1_ E17K, we see reduced selection for both after the acquisition of the other driver, but the confidence intervals leave open the possibility that selection for _PIK3CA_ E545K is unaffected by _AKT1_ E17K status. (Additionally, the NA's on some of the lower bounds indicate that they fall below the lower limit of the optimization algorithm, which is to say that negligible or even negative selection cannot be ruled out.)
+Confidence intervals tend to be wide in epistatic analyses. Even with the most prevalent somatic variants, both co-occurrence and mutual exclusivity can often be explained by chance. The output for PIK3CA E545K and E542K confirms the negative epistatic relationship that we would have expected given their mutual exclusivity in our data (and our knowledge of their biological effects). For E545K and AKT1 E17K, we see reduced selection for both after the acquisition of the other driver, but the confidence intervals leave open the possibility that selection for E545K is unaffected by AKT1 E17K status. (Additionally, the NA's on some of the lower bounds indicate that they fall below the lower limit of the optimization algorithm.)
 
 ### Epistasis and CompoundVariantSets
-We can probe this _PIK3CA/AKT1_ relationship further if we assume that all prevalent _PIK3CA_ mutations share the same epistatic relationship with _AKT1_ E17K. The `define_compound_variants()` feature lets us combine arbitrary variants into "compound variants" that are treated as if they were single variants by cancereffectsizeR's selection inference functions. (In brief, the mutation rate of the compound variant is equal to the sum of rates of constituent variants, and any sample with one or more of the constituent variants "has the compound variant.") Below, we define a CompoundVariantSet with two compound variants: All _PIK3CA_ variants with MAF prevalence > 1, and _AKT_ E17K. We then pass the CompoundVariantSet to ces_epistasis(), which will test all pairs of compound variants (here, just the one pair).
+We can probe this PIK3CA/AKT1 relationship further if we assume that all prevalent PIK3CA mutations share the same epistatic relationship with AKT1 E17K. The `define_compound_variants()` feature lets us combine arbitrary variants into "compound variants" that are treated as if they were single variants by cancereffectsizeR's selection inference functions. (In brief, the mutation rate of the compound variant is equal to the sum of rates of constituent variants, and any sample with one or more of the constituent variants "has the compound variant.") Below, we define a CompoundVariantSet with two compound variants: All _PIK3CA_ variants with MAF prevalence > 1, and AKT E17K. We then pass the CompoundVariantSet to ces_epistasis(), which will test all pairs of compound variants (here, just the one pair).
 
 ```{r}
 # Collect all the variants that we want in the CompoundVariantSet into a table
@@ -530,7 +507,7 @@ top_PIK3CA = cesa$variants[gene == 'PIK3CA' & maf_prevalence > 1]
 top_akt1 = cesa$variants[variant_name == 'AKT1_E17K']
 for_compound = rbind(top_PIK3CA, top_akt1)
 
-# See define_compound_variants() documentation for details on arguments
+# see define_compound_variants() documentation for details on arguments
 comp = define_compound_variants(cesa = cesa, variant_table = for_compound, by = "gene", merge_distance = Inf)
 cesa = ces_epistasis(cesa = cesa, variants = comp, run_name = "AKT1_E17K_vs_PIK3CA")
 cesa$epistasis$AKT1_E17K_vs_PIK3CA
@@ -540,7 +517,7 @@ cesa$epistasis$AKT1_E17K_vs_PIK3CA
 readRDS(paste0(tutorial_dir, '/comp_variant_ep.rds'))
 ```
 
-Note that the effect sizes are smaller for _PIK3CA_ here, since we mixed in lots of lower-effect _PIK3CA_ variants. While four samples have both _AKT1_ E17K and one of the _PIK3CA_ variants, this result strengthens the case for _AKT1_ mutation reducing selection for _PIK3CA_ mutation.
+Note that the effect sizes are smaller for PIK3CA here, since we mixed in lots of lower-effect PIK3CA variants. While four samples have both AKT1 E17K and one of the PIK3CA variants, this result strengthens the case for AKT1 mutation reducing selection for PIK3CA mutation.
 
 ### Gene-level epistasis
 The convenience function `ces_gene_epistasis()` provides a simpler way to apply the model of `ces_epistasis()` at the gene level. The `variants` argument offers multiple methods of specifying which variants from each gene to include in the inference: "recurrent" uses all recurrent variants, "nonsilent" uses all coding variants except non-splice-site synonymous variants, or a custom table of variants can be input, as shown here.
@@ -549,7 +526,7 @@ The convenience function `ces_gene_epistasis()` provides a simpler way to apply 
 genes = c("AKT1", "PIK3CA", "TP53")
 
 # We would use the "nonsilent" method, except a handful of variants are not covered in the TGS data,
-# forcing us to exclude those so that the TGS samples can be included in the inference.
+# forcing us to exclude those so that the TGS samples can be included inthe inference.
 variants = cesa$variants[variant_type == 'aac' & gene %in% genes & sapply(covered_in, length) == 2]
 variants = variants[aa_ref != aa_alt | essential_splice == T]
 cesa = ces_gene_epistasis(cesa = cesa, genes = genes, variants = variants, run_name = "gene_epistasis_example")
@@ -560,7 +537,7 @@ cesa$epistasis$gene_epistasis_example
 readRDS(paste0(tutorial_dir, '/gene_ep_example.rds'))
 ```
 
-Mutational selection in the two oncogenes appears to be maintained after mutation in _TP53_. In contrast, loss of _TP53_ is less selected after mutations in _AKT1/PIK3CA_; one explanation is that cell populations in which these powerful driverhave fixed have already subverted tumor suppression mechanisms, making _TP53_ mutation superfluous. The two oncogenes also appear to show some mutual exclusivity, in that selection for each is reduced after mutation in the other.
+Mutational selection in the two oncogenes appears to be maintained after mutation in TP53. In constrast, loss of TP53 is less selected after mutations in AKT1/PIK3CA; one explanation is that cell populations in which these powerful drivers have fixed must have already subverted tumor suppression mechanisms, making TP53 mutations superfluous. The two oncogenes also appear to show some mutual exclusivity, in that selection for each is reduced after mutation in the other.
 
 
 ## Save your work

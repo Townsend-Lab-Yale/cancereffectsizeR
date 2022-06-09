@@ -33,7 +33,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">cancereffectsizeR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.6.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -51,6 +51,7 @@
 <li class="nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
+    <a class="dropdown-item" href="../articles/MAF_filtering_tips.html">MAF filtering and sample validation</a>
     <a class="dropdown-item" href="../articles/cosmic_cancer_type_note.html">Cancer type considerations for COSMIC signature extraction</a>
     <a class="dropdown-item" href="../articles/create_custom_covariates.html">Generate tissue covariates data</a>
     <a class="dropdown-item" href="../articles/custom_refset_instructions.html">Running with custom reference data</a>
@@ -172,6 +173,8 @@ walkthrough.</p>
 
 <span class="co"># Download lung adenocarcinoma (LUAD) somatic variant data.</span>
 <span class="co"># Note that the rest of the tutorial uses BRCA, not LUAD.</span>
+<span class="co"># This is an old TCGA file: Outside the tutorial, use get_TCGA_project_MAF() for the</span>
+<span class="co"># latest, most accurate data.</span>
 <span class="va">tcga_maf_file</span> <span class="op">&lt;-</span> <span class="st">"TCGA.LUAD.mutect.0458c57f-316c-4a7c-9294-ccd11c97c2f9.DR-10.0.somatic.maf.gz"</span>
 <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="va">tcga_maf_file</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span>
   <span class="fu"><a href="https://rdrr.io/r/utils/download.file.html" class="external-link">download.file</a></span><span class="op">(</span><span class="st">"https://api.gdc.cancer.gov/data/0458c57f-316c-4a7c-9294-ccd11c97c2f9"</span>,
@@ -179,9 +182,8 @@ walkthrough.</p>
   <span class="op">)</span>
 <span class="op">}</span>
 
-<span class="co"># Prepare data and filter out a few likely germline/false-positive calls</span>
+<span class="co"># Prepare data</span>
 <span class="va">maf</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/preload_maf.html">preload_maf</a></span><span class="op">(</span>maf <span class="op">=</span> <span class="va">tcga_maf_file</span>, refset <span class="op">=</span> <span class="st">"ces.refset.hg38"</span><span class="op">)</span>
-<span class="va">maf</span> <span class="op">&lt;-</span> <span class="va">maf</span><span class="op">[</span><span class="va">germline_variant_site</span> <span class="op">==</span> <span class="cn">F</span><span class="op">]</span><span class="op">[</span><span class="va">repetitive_region</span> <span class="op">==</span> <span class="cn">F</span> <span class="op">|</span> <span class="va">cosmic_site_tier</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span>
 
 <span class="co"># Create cancereffectsizeR analysis and load data</span>
 <span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/CESAnalysis.html">CESAnalysis</a></span><span class="op">(</span>refset <span class="op">=</span> <span class="st">"ces.refset.hg38"</span><span class="op">)</span>
@@ -254,27 +256,26 @@ have the package loaded.</p>
 <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-datatable.com" class="external-link">data.table</a></span><span class="op">)</span></code></pre></div>
 <p>For this tutorial, we’ll use somatic variant data produced from exome
 sequencing by the TCGA BRCA (breast carcinoma) project. We will
-supplement this with targeted sequencing data from the Metastatic Breast
-Cancer data set <a href="https://www.cbioportal.org/study/summary?id=breast_ink4_msk_2021" class="external-link">hosted
-at cBioPortal</a>. (We stop at two data sources for brevity; for the
-best possible analysis of somatic selection, we would want to include as
-many data sources as we could find.)</p>
+supplement the WXS data with targeted sequencing data from the
+Metastatic Breast Cancer data set <a href="https://www.cbioportal.org/study/summary?id=breast_ink4_msk_2021" class="external-link">hosted
+at cBioPortal</a>.</p>
 <p>In cancereffectsizeR, data can be combined from multiple whole-exome,
 whole-genome, and targeted sequencing sources, although we always need
-at least one source of whole-exome or whole-genome data to anchor the
-analysis. Targeted sequencing data can’t be used for mutation rate
-inference: there are too few mutations, typically, and since they’re
-mostly in cancer hotspots, they don’t provide a baseline of what
-mutation rates are like in the absence of selection. Instead, mutation
-rates in TGS samples will be assumed to be similar to those calculated
-in WXS/WGS samples.</p>
+at least one WXS or WGS source to anchor the analysis. Targeted
+sequencing data can’t be used for mutation rate inference: there are too
+few mutations, typically, and since they’re mostly in cancer hotspots,
+they don’t provide a baseline of what mutation rates are like in the
+absence of selection. Instead, mutation rates in TGS samples will be
+assumed to be similar to those calculated in WXS/WGS samples.</p>
 <div class="section level3">
 <h3 id="tcga-data-whole-exome">TCGA data (whole-exome)<a class="anchor" aria-label="anchor" href="#tcga-data-whole-exome"></a>
 </h3>
 <p>We’ll begin by downloading variant data from TCGA. The data comes in
 a large text file listing somatic mutations for a collection of tumors,
 in accordance with <a href="https://docs.gdc.cancer.gov/Data/File_Formats/MAF_Format" class="external-link">MAF
-format</a>.</p>
+format</a>. <strong>This data is from an old release.</strong> For
+future analyses, get the most recent, accurate TCGA somatic variant data
+with <code><a href="../reference/get_TCGA_project_MAF.html">get_TCGA_project_MAF()</a></code>.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">tcga_maf_file</span> <span class="op">&lt;-</span> <span class="st">"TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf.gz"</span>
 <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="va">tcga_maf_file</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span>
@@ -295,21 +296,23 @@ column.</p>
 <span class="co">## 3: TCGA-3C-AALJ   M0            &lt;NA&gt;</span>
 <span class="co">## 4: TCGA-3C-AALK   M0       HR+/HER2+</span>
 <span class="co">## 5: TCGA-4H-AAAK   M0            &lt;NA&gt;</span></code></pre>
-<p>The <code><a href="../reference/preload_maf.html">preload_maf()</a></code> function takes in MAF data, finds the
-columns needed by cancereffectsizeR, adds a couple of genomic
+<p>The <code><a href="../reference/preload_maf.html">preload_maf()</a></code> function takes in MAF data, extracts
+the columns needed by cancereffectsizeR, adds a couple of genomic
 annotations, and checks for common problems. Since TCGA data sets are
-well-curated, this particular run will not reveal any problems. This MAF
-file already uses the hg38 genome build, but if it didn’t, we could use
-the <code>chain_file</code> argument to convert records via
-liftOver.</p>
+well-curated, this particular run will not reveal any problems. (For
+your own analyses, see our <a href="MAF_filtering_tips.html">MAF data
+tips</a>.) This MAF file already uses the hg38 genome build, but if it
+didn’t, we could use the <code>chain_file</code> argument to convert
+records via liftOver.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">tcga_maf</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/preload_maf.html">preload_maf</a></span><span class="op">(</span>maf <span class="op">=</span> <span class="va">tcga_maf_file</span>, refset <span class="op">=</span> <span class="st">"ces.refset.hg38"</span><span class="op">)</span></code></pre></div>
-<p>f you compare the TCGA MAF and clinical files, you’ll see we have a
-small problem: the MAF data uses tissue sample IDs, while the clinical
-file uses patient IDs. (The MAF column was originally called
+<p>If you compare the TCGA MAF and clinical file, you’ll see we have a
+small problem: the clinical file uses patient IDs, while the MAF uses
+tissue sample IDs. (This column was originally called
 Tumor_Sample_Barcode, but <code><a href="../reference/preload_maf.html">preload_maf()</a></code> changed it to
 Unique_Patient_Identifier. cancereffectsizeR uses this column name to
-emphasize that all MAF samples must derive from distinct patients.)</p>
+emphasize that distinct MAF samples must derive from distinct
+patients.)</p>
 <p>Luckily, TCGA IDs are easy to convert. After verifying that each TCGA
 patient has just one sample in the MAF data, we’ll change tissue IDs to
 patient IDs.</p>
@@ -337,71 +340,11 @@ build has been converted to hg38.</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">tgs_maf_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"tutorial/metastatic_breast_2021_hg38.maf"</span>, package <span class="op">=</span> <span class="st">"cancereffectsizeR"</span><span class="op">)</span>
 <span class="va">tgs_maf</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/preload_maf.html">preload_maf</a></span><span class="op">(</span>maf <span class="op">=</span> <span class="va">tgs_maf_file</span>, refset <span class="op">=</span> <span class="va">ces.refset.hg38</span><span class="op">)</span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="pre-analysis-variant-filtering">Pre-analysis variant filtering<a class="anchor" aria-label="anchor" href="#pre-analysis-variant-filtering"></a>
-</h3>
-<details><summary>
-(Show/hide justification)
-</summary><p>Since our goal is to quantify somatic selection, we want the MAF data
-to represent a complete set of high-confidence somatic variants from the
-samples. It’s probably unwise to go too far down the rabbithole of
-second-guessing the variant calling methods used in the data sources.
-However, there is some simple filtering that we often use to bring the
-data into alignment with these tenets:</p>
-<ul>
-<li>There should be few to no mutations at sites where population
-databases show common germline variation.</li>
-<li>There should be few to no mutations in repetitive or poorly mapped
-regions of the genome, as mutations in these sites are difficult to
-sequence confidently, and they should be rare anyway since these regions
-are usually not functionally important at the small-variant level.</li>
-<li>Samples should have little mutational overlap, especially at sites
-without known cancer association.</li>
-</ul>
-<p>When using ces.refset.hg38 (hg38), the preloaded MAF has three
-relevant annotation columns:</p>
-<ul>
-<li>germline_variant_site: The variant overlaps a region that contains a
-common germline variant according to gnomAD (common being &gt;1%
-prevalence in some population).</li>
-<li>repetitive_region: The variant is in a region of the genome marked
-as repetitive by the RepeatMasker tool.</li>
-<li>cosmic_site_tier: Indicates if the variant overlaps a site annotated
-as cancer-related (tiers 1, 2, and 3) by COSMIC.</li>
-</ul></details><p>We suggest filtering out all germline site records, as well as
-records from repetitive regions except for the few with COSMIC
-annotations. We can apply this filtering like this:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">tcga_maf</span> <span class="op">&lt;-</span> <span class="va">tcga_maf</span><span class="op">[</span><span class="va">germline_variant_site</span> <span class="op">==</span> <span class="cn">F</span><span class="op">]</span>
-<span class="va">tcga_maf</span> <span class="op">&lt;-</span> <span class="va">tcga_maf</span><span class="op">[</span><span class="va">repetitive_region</span> <span class="op">==</span> <span class="cn">F</span> <span class="op">|</span> <span class="va">cosmic_site_tier</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span></code></pre></div>
-<p>We don’t apply these filters to TGS data, since it tends to be
-high-depth sequencing of cancer hotspots.</p>
-<p>When combining data sources, or using data from projects that
-sequenced multiple samples per patient, it’s important to verify that
-only one sample per patient is included in your MAF (and in your
-downstream cancereffectsizeR analysis), since samples from the same
-patient likely did not evolve independently. Since it’s often hard to be
-sure that there isn’t reuse of samples across different data sources, we
-recommend both careful manual curation and the use of
-<code><a href="../reference/check_sample_overlap.html">check_sample_overlap()</a></code> to catch unexpected sample
-duplication. (If you try it on <code>tcga_maf</code> and
-<code>tgs_maf</code>, you’ll see that our data passes this check.)</p>
-<div class="section level4">
-<h4 id="what-not-to-filter">What not to filter<a class="anchor" aria-label="anchor" href="#what-not-to-filter"></a>
-</h4>
-<p>To get a complete picture of the mutational processes present in
-tissues, whole-exome/whole-genome variants should not be filtered on any
-sort of functional criteria. One thing to watch out for: Occasionally,
-researchers will leave out synonymous variants when publishing their
-study data. As synonymous variants are essential for calculating gene
-mutation rates, the synonymous variants should be tracked down before
-using the data.</p>
-<p>Since TGS data is not used to infer mutation rates, it’s okay to
-filter TGS data to regions of interest. We are actually about to do
-this! We will have to take care to accurately report the coverage of the
-filtered data in the next step.</p>
-</div>
+<p>When combining data from multiple sources,
+<code><a href="../reference/check_sample_overlap.html">check_sample_overlap()</a></code> can detect unexpected sample
+duplication. If you feed in <code>tcga_maf</code> and
+<code>tgs_maf</code>, you will see that no possible duplications are
+found.</p>
 </div>
 </div>
 <div class="section level2">
@@ -410,13 +353,13 @@ filtered data in the next step.</p>
 <p>The CESAnalysis is the primary data structure of cancereffectsizeR.
 The cancereffectsizeR workflow consists of calling a series of functions
 that take a CESAnalysis as input and return an altered CESAnalysis.
-Reusing the same variable name will keep things tidy.</p>
+Re-using the same variable name will keep things tidy.</p>
 <div class="section level3">
-<h3 id="load-wxs-data">Load WXS data<a class="anchor" aria-label="anchor" href="#load-wxs-data"></a>
+<h3 id="load-whole-exome-sequencing-data">Load whole-exome sequencing data<a class="anchor" aria-label="anchor" href="#load-whole-exome-sequencing-data"></a>
 </h3>
 <p>Let’s create a CESAnalysis and call <code><a href="../reference/load_maf.html">load_maf()</a></code> to load
 the TCGA data.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/CESAnalysis.html">CESAnalysis</a></span><span class="op">(</span>refset <span class="op">=</span> <span class="st">"ces.refset.hg38"</span><span class="op">)</span>
 <span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/load_maf.html">load_maf</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, maf <span class="op">=</span> <span class="va">tcga_maf</span><span class="op">)</span></code></pre></div>
 <p>You will see a message that some variants fall outside of the
@@ -426,13 +369,12 @@ methods at different study sites), this isn’t unexpected. (On the off
 chance that you do know the exact exome capture intervals of whatever
 data you’re using, you should supply those intervals with
 <code><a href="../reference/load_maf.html">load_maf()</a></code>’s <code>covered_regions</code> argument. For WGS
-data, simply set <code>coverage = "genome"</code>. We’ll discuss how to
-load TGS data shortly.)</p>
+data, simply set <code>coverage = "genome"</code>.)</p>
 <p>To navigate a CESAnalysis, use the dollar sign ($). We can use these
 accessors to look at the MAF data as well more detailed variant
 annotations, and if we want we can perform various filtering operations,
 such as identifying the most prevalent variants in the loaded data.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">cesa</span><span class="op">$</span><span class="va">maf</span>
 <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span>
 <span class="va">cesa</span><span class="op">$</span><span class="va">samples</span>
@@ -440,13 +382,12 @@ such as identifying the most prevalent variants in the loaded data.</p>
 <span class="co"># Let's see the top variants</span>
 <span class="op">(</span><span class="va">top_variants</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/setorder.html" class="external-link">order</a></span><span class="op">(</span><span class="op">-</span><span class="va">maf_prevalence</span><span class="op">)</span><span class="op">]</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span>, <span class="fu">.</span><span class="op">(</span><span class="va">variant_name</span>, <span class="va">chr</span>, <span class="va">start</span>, <span class="va">end</span>, <span class="va">maf_prevalence</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></code></pre></div>
 <p>Let’s load the clinical data into the analysis, too.</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/load_sample_data.html">load_sample_data</a></span><span class="op">(</span><span class="va">cesa</span>, <span class="va">tcga_clinical</span><span class="op">)</span></code></pre></div>
 <p>Now that we’ve loaded the sample data, we can, for example, see how
 variant counts break down across different sample groups. Let’s see a
-breakdown <em>PIK3CA</em> mutation status by BRCA receptor
-phenotype.</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+breakdown PIK3CA mutation status by BRCA receptor phenotype.</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># Get samples with 1 or more PIK3CA mutation</span>
 <span class="va">samples_with_pik3ca</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">maf</span><span class="op">[</span><span class="va">top_gene</span> <span class="op">==</span> <span class="st">"PIK3CA"</span>, <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/duplicated.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">Unique_Patient_Identifier</span><span class="op">)</span><span class="op">]</span>
 <span class="va">pik3ca_sample_counts</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">samples</span><span class="op">[</span><span class="va">samples_with_pik3ca</span>, <span class="fu">.</span><span class="op">(</span>with_PIK3CA <span class="op">=</span> <span class="va">.N</span><span class="op">)</span>,
@@ -456,11 +397,11 @@ phenotype.</p>
 <span class="va">combined_counts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/merge.html" class="external-link">merge.data.table</a></span><span class="op">(</span><span class="va">pik3ca_sample_counts</span>, <span class="va">total_sample_counts</span>, by <span class="op">=</span> <span class="st">"receptor_status"</span><span class="op">)</span>
 <span class="va">combined_counts</span><span class="op">[</span>, <span class="va">freq</span> <span class="op">:=</span> <span class="va">with_PIK3CA</span> <span class="op">/</span> <span class="va">N</span><span class="op">]</span>
 <span class="va">combined_counts</span></code></pre></div>
-<p><em>PIK3CA</em> mutation is least prevalent in triple negative breast
+<p>PIK3CA mutation is least prevalent in triple negative breast
 cancer.</p>
 </div>
 <div class="section level3">
-<h3 id="load-tgs-data">Load TGS data<a class="anchor" aria-label="anchor" href="#load-tgs-data"></a>
+<h3 id="load-targeted-gene-sequencing-data">Load targeted gene sequencing data<a class="anchor" aria-label="anchor" href="#load-targeted-gene-sequencing-data"></a>
 </h3>
 <p>To load our TGS data, we need to be able to define its coverage. Why?
 To estimate the selection of a mutation, we need to know which samples
@@ -469,15 +410,15 @@ lack of sequencing coverage. Our TGS samples were sequenced with
 multiple panels covering different genes, and unfortunately, the exact
 coverage (defined by genomic coordinates) is not publicly available for
 all of these. Therefore, for simplicity, we will filter the TGS data to
-include only mutations in a handful of top cancer genes that are covered
-in all of the panels. When we load the data, all records outside of
-these genes will be excluded, leaving us with greater power to infer
-selection in these genes without impacting our estimates outside these
-genes, which will use just the TCGA data. (As mentioned earlier, we
-shouldn’t filter WXS/WGS data this way, since it would interfere with
-mutation rate calculation, but TGS samples are not involved in mutation
-rate calculation.)</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+mutations at a handful of top cancer genes that are covered in all of
+the panels. When we load the data, all records outside of these genes
+will be excluded, leaving us with greater power to infer selection in
+these genes without impacting our estimates outside these genes, which
+will use just the TCGA data. (As mentioned earlier, we shouldn’t filter
+WXS/WGS data this way, since it would interfere with mutation rate
+calculation, but TGS samples are not involved in mutation rate
+calculation.)</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># Define coverage using the coding regions of these genes, as defined by the refset</span>
 <span class="va">top_tgs_genes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>
   <span class="st">"TP53"</span>, <span class="st">"PIK3CA"</span>, <span class="st">"ESR1"</span>, <span class="st">"CDH1"</span>, <span class="st">"GATA3"</span>, <span class="st">"KMT2C"</span>,
@@ -488,7 +429,7 @@ rate calculation.)</p>
 they’re all metastatic samples. Instead of creating another table and
 calling <code><a href="../reference/load_sample_data.html">load_sample_data()</a></code>, we can use the
 <code>sample_data_cols</code> feature of load_maf():</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">tgs_maf</span><span class="op">$</span><span class="va">pM</span> <span class="op">&lt;-</span> <span class="st">"M1"</span>
 <span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/load_maf.html">load_maf</a></span><span class="op">(</span><span class="va">cesa</span>,
   maf <span class="op">=</span> <span class="va">tgs_maf</span>, sample_data_cols <span class="op">=</span> <span class="st">"pM"</span>,
@@ -498,7 +439,7 @@ calling <code><a href="../reference/load_sample_data.html">load_sample_data()</a
 example: Let’s look at variant prevalence by metastatic disease status.
 By default, the <code><a href="../reference/variant_counts.html">variant_counts()</a></code> function considers all
 mutations, but we’ll subset to recurrent mutations.</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">counts_by_M</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/variant_counts.html">variant_counts</a></span><span class="op">(</span>
   cesa <span class="op">=</span> <span class="va">cesa</span>, variant_ids <span class="op">=</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="va">maf_prevalence</span> <span class="op">&gt;</span> <span class="fl">1</span>, <span class="va">variant_id</span><span class="op">]</span>,
   by <span class="op">=</span> <span class="st">"pM"</span>
@@ -522,14 +463,13 @@ processes of the exome data. (This isn’t optimal, since the metastatic
 samples may be affected by mutational processes, such as chemotherapy,
 that are lacking in the primary tumor exome data, but it might be the
 best we can do without finding another data source.)</p>
-<p>We will use signature definitions from the refset. (It’s also
-possible to create your own; see <code><a href="../reference/trinuc_mutation_rates.html">?trinuc_mutation_rates</a></code> and
-<code><a href="../reference/validate_signature_set.html">?validate_signature_set</a></code>.) To improve the accuracy of
-signature extraction, we will exclude signatures that can safely be
-presumed absent from the samples; a helper function,
+<p>We will use signature definitions from the refset (it’s also possible
+to create your own). To improve the accuracy of signature extraction, we
+will exclude signatures that can safely be presumed absent from the
+samples; a helper function,
 <code><a href="../reference/suggest_cosmic_signature_exclusions.html">suggest_cosmic_signature_exclusions()</a></code>, can provide some
 guidance.</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># We'll use all suggested exclusions (TCGA primary tumors are treatment-naive)</span>
 <span class="va">signature_exclusions</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/suggest_cosmic_signature_exclusions.html">suggest_cosmic_signature_exclusions</a></span><span class="op">(</span>cancer_type <span class="op">=</span> <span class="st">"BRCA"</span>, treatment_naive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>
 
@@ -555,16 +495,16 @@ attributions.</li>
 attributed to each biologically-associated signature within each sample.
 Mutations attributed to signatures associated with sequencing/processing
 artifacts are left out. (Technical detail: Due to the instability of
-signature attributions on samples with few somatic variants, such
-samples have their weights adjusted towards group-average weights, as
-indicated in the <code>group_avg_blended</code> column. If you want to
-make claims about subgroup differences in mutational processes, consider
-leaving these samples out or using the raw attributions. You should also
-leave out the TGS samples, which in this analysis are treated as having
-0 mutations.)</li>
+signature attributions on samples with few mutations, Samples with few
+MAF variants have their weights adjusted towards group-average weights,
+as indicated in the <code>group_avg_blended</code> column. If you want
+to make claims about subgroup differences in mutational processes,
+consider leaving these samples out or using the raw attributions. You
+should also leave out the TGS samples, which in this analysis are
+treated as having 0 mutations.)</li>
 <li>
 <strong>trinuc_rates</strong>: Inferred relative rates of mutation,
-produced by matrix-multiplying biological weights and signature
+produced by matrix-multiplying biological_weights and signature
 definitions. (These rates will not equal the empirical rates seen in the
 data.)</li>
 </ul>
@@ -575,9 +515,9 @@ plot because cancer hotspot mutations are not reflective of overall
 mutational processes, but our TGS samples lack receptor_status
 information, so they will already be left out without having to
 specifically exclude them.)</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">snv_counts</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">mutational_signatures</span><span class="op">$</span><span class="va">snv_counts</span></code></pre></div>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># Counts look like this:</span>
 <span class="va">snv_counts</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TCGA-AC-A3W5"</span>, <span class="st">"TCGA-AC-A3YI"</span>, <span class="st">"TCGA-AC-A3YJ"</span>, <span class="st">"TCGA-AC-A4ZE"</span>, <span class="st">"TCGA-AC-A5EH"</span>, <span class="st">"TCGA-AC-A5EI"</span><span class="op">)</span><span class="op">]</span></code></pre></div>
 <pre><code><span class="co">##           </span>
@@ -594,7 +534,7 @@ specifically exclude them.)</p>
 <span class="co">##    A[C&gt;A]G            0</span>
 <span class="co">##    A[C&gt;A]T            0</span>
 <span class="co">##    C[C&gt;A]A            0</span></code></pre>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># We'll sum up the counts by group</span>
 <span class="va">summed_snv_by_group</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/data.table.html" class="external-link">data.table</a></span><span class="op">(</span><span class="op">)</span>
 <span class="va">receptor_groups</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/duplicated.html" class="external-link">unique</a></span><span class="op">(</span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/na.omit.data.table.html" class="external-link">na.omit</a></span><span class="op">(</span><span class="va">cesa</span><span class="op">$</span><span class="va">samples</span><span class="op">$</span><span class="va">receptor_status</span><span class="op">)</span><span class="op">)</span>
@@ -606,7 +546,7 @@ specifically exclude them.)</p>
 <span class="va">summed_snv_by_group</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/as.matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">summed_snv_by_group</span><span class="op">)</span>
 <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">summed_snv_by_group</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">snv_counts</span><span class="op">)</span>
 <span class="fu">MutationalPatterns</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/MutationalPatterns/man/plot_96_profile.html" class="external-link">plot_96_profile</a></span><span class="op">(</span><span class="va">summed_snv_by_group</span><span class="op">)</span></code></pre></div>
-<p><img src="cancereffectsizeR_files/figure-html/unnamed-chunk-24-1.png" width="700"></p>
+<p><img src="cancereffectsizeR_files/figure-html/unnamed-chunk-23-1.png" width="700"></p>
 </div>
 <div class="section level2">
 <h2 id="gene-mutation-rates">Gene mutation rates<a class="anchor" aria-label="anchor" href="#gene-mutation-rates"></a>
@@ -618,11 +558,11 @@ mutation rate covariates. Our refset has pre-computed covariates for a
 variety of tissue types. As with mutational processes, this analysis
 will not use the TGS samples, but the calculated rates will be assumed
 to hold for them.</p>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gene_mutation_rates.html">gene_mutation_rates</a></span><span class="op">(</span><span class="va">cesa</span>, covariates <span class="op">=</span> <span class="va">ces.refset.hg38</span><span class="op">$</span><span class="va">covariates</span><span class="op">$</span><span class="va">breast</span><span class="op">)</span></code></pre></div>
 <p>Here are the neutral gene mutation rates extracted from dNdScv’s
 regression:</p>
-<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">cesa</span><span class="op">$</span><span class="va">gene_rates</span><span class="op">)</span></code></pre></div>
 <pre><code><span class="co">##                  pid    gene         rate rate_grp_1_95_low rate_grp_1_95_high</span>
 <span class="co">## 1: ENSP00000000233.5    ARF5 7.428081e-07      6.986779e-07       7.896139e-07</span>
@@ -636,7 +576,7 @@ level. We’ll filter results to q &lt; .05. Since ces.refset.hg38 covers
 multiple isoforms for some genes, the dNdScv output is actually per
 protein, not per gene, so we’ll take the extra step of showing just the
 lowest q-value for each significant gene.</p>
-<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">dndscv_results</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">dNdScv_results</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span>
 <span class="va">sig_genes</span> <span class="op">&lt;-</span> <span class="va">dndscv_results</span><span class="op">[</span><span class="va">qallsubs_cv</span> <span class="op">&lt;</span> <span class="fl">.05</span><span class="op">]</span>
 
@@ -1730,9 +1670,9 @@ ENSP00000326381.5
 <p>See dNdScv’s documentation if you’re interested in interpretation of
 the dNdScv output.</p>
 <p>Side note: If we had multiple tissue types in the analysis, we could
-call <code><a href="../reference/gene_mutation_rates.html">gene_mutation_rates()</a></code> multiple times using the
-<code>samples</code> argument to specify sample groups, with appropriate
-covariates for each tissue type. Similar functionality is available in
+call gene_mutation_rates() multiple times using the <code>samples</code>
+argument to specify sample groups, with appropriate covariates for each
+tissue type. Similar functionality is available in
 <code><a href="../reference/trinuc_mutation_rates.html">trinuc_mutation_rates()</a></code>.</p>
 </div>
 <div class="section level2">
@@ -1741,14 +1681,14 @@ covariates for each tissue type. Similar functionality is available in
 <p>The combination of cohort-level gene mutation rates and sample-level
 relative rates of trinucleotide-context-specific substitution allow us
 to estimate the rate at which any somatic substitution occurs in any
-patient’s tumor sample. To be clear, by “rate,” we don’t mean prevalence
-within a sample cohort (which is already known), but rather how often a
-mutation can be expected to occur in individual cells. (More
-specifically, we assume that mutation events in each specific sample and
-site follow a Poisson distribution, and these rates are the Poisson
-rates.) It’s not typically necessary to look at these rates, but just to
-show that we can:</p>
-<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
+patient’s tumor sample. To be clear, by “rates,” we don’t mean the
+frequency of mutations in our somatic variant calls (which we already
+know anyway). These rates represent how often the mutations can be
+expected to occur in individual cells. (More specifically, we assume
+that mutation events in each specific sample and site follow a Poisson
+distribution, and these rates are the Poisson rates.) It’s not typically
+necessary to look at these rates, but just to show that we can:</p>
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># Let's take the top 3 variants by MAF prevalence. These happen to all be in PIK3CA.</span>
 <span class="va">variants_to_check</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/setorder.html" class="external-link">order</a></span><span class="op">(</span><span class="op">-</span><span class="va">maf_prevalence</span><span class="op">)</span>, <span class="va">variant_id</span><span class="op">]</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span>
 
@@ -1764,10 +1704,9 @@ show that we can:</p>
 <span class="co">## 1:                   2.657994e-06                   2.657994e-06</span>
 <span class="co">## 2:                   1.266521e-05                   1.266521e-05</span>
 <span class="co">## 3:                   7.748413e-06                   7.748413e-06</span></code></pre>
-<p>Interestingly, <em>PIK3CA</em> H1047R, the most prevalent variant in
-our MAF data (246/1875 samples), is estimated to have a substantially
-lower rate of occurrence than E545K and E542K in these particular
-samples.</p>
+<p>Interestingly, PIK3CA H1047R, the most prevalent variant in our MAF
+data (246/1875 samples), is estimated to have a substantially lower rate
+of occurrence than E545K and E542K in these particular samples.</p>
 <div class="section level3">
 <h3 id="basic-model">Basic model<a class="anchor" aria-label="anchor" href="#basic-model"></a>
 </h3>
@@ -1776,13 +1715,13 @@ scaled selection coefficients (aka cancer effects, or selection
 intensity) under a model of selection. These cancer effects are directly
 proportional to the proliferative advantage provided by each variant.
 First, let’s calculate selection under the package’s default model of
-selection with ces_variant().</p>
-<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
+selection with ces_variant():</p>
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># Including an optional run_name</span>
 <span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ces_variant.html">ces_variant</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, run_name <span class="op">=</span> <span class="st">"recurrents"</span><span class="op">)</span></code></pre></div>
 <p>Let’s visualize the most selected variants. The following should be
 fairly adaptable for a variety of data sets.</p>
-<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span>
 
 <span class="co"># Extract selection results from CESAnalysis and take top variants for visualization</span>
@@ -1820,16 +1759,15 @@ fairly adaptable for a variety of data sets.</p>
     panel.grid.major.x <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_blank</a></span><span class="op">(</span><span class="op">)</span>,
     panel.grid.minor.x <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_blank</a></span><span class="op">(</span><span class="op">)</span>
   <span class="op">)</span></code></pre></div>
-<p><img src="cancereffectsizeR_files/figure-html/unnamed-chunk-34-1.png" width="700"></p>
+<p><img src="cancereffectsizeR_files/figure-html/unnamed-chunk-33-1.png" width="700"></p>
 <p><em>PIK3CA</em> and <em>ESR1</em> variants take many of the top
 spots. The deconvolution of mutation rate from selection has revealed
 that some relatively low-prevalence variants have high effects.
 Interestingly, according to dNdScv, mutation in <em>ESR1</em> at the
 gene level was not significantly greater than neutral in the TCGA cohort
-of primary tumors. While there is no direct way to incorporate our
-metastatic panel data into a dN/dS analysis, its inclusion in
-cancereffectsizeR’s selection inference confirms <em>ESR1</em>’s
-importance.</p>
+of primary tumors. The incorporation of metastatic TGS data and
+cancereffectsizeR’s assessment of selection at the variant level confirm
+<em>ESR1</em>’s importance.</p>
 </div>
 <div class="section level3">
 <h3 id="sequential-model">Sequential model<a class="anchor" aria-label="anchor" href="#sequential-model"></a>
@@ -1861,13 +1799,13 @@ that appears just once or twice in the cohort.) We can use the
 <code>counts_by_M</code> that we generated earlier to get the eligible
 variant IDs, and then pull their full annotations from the variants
 table:</p>
-<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># counts_by_M produced earlier with a call to variant_counts()</span>
 <span class="va">variants_for_sequential</span> <span class="op">&lt;-</span> <span class="va">counts_by_M</span><span class="op">[</span><span class="va">M0_prevalence</span> <span class="op">+</span> <span class="va">M1_prevalence</span> <span class="op">&gt;</span> <span class="fl">2</span>, <span class="va">variant_id</span><span class="op">]</span>
 <span class="va">variants_for_sequential</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="va">variants_for_sequential</span>, on <span class="op">=</span> <span class="st">"variant_id"</span><span class="op">]</span></code></pre></div>
 <p>Now, we’ll run the sequential model, specifying our variants with the
 <code>variants</code> argument.</p>
-<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ces_variant.html">ces_variant</a></span><span class="op">(</span><span class="va">cesa</span>,
   variants <span class="op">=</span> <span class="va">variants_for_sequential</span>, model <span class="op">=</span> <span class="st">"sequential"</span>, run_name <span class="op">=</span> <span class="st">"sequential"</span>,
   ordering_col <span class="op">=</span> <span class="st">"pM"</span>, ordering <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"M0"</span>, <span class="st">"M1"</span><span class="op">)</span>
@@ -1878,7 +1816,7 @@ single-step cancer effects at these sites, using the
 used in the sequential run. This will let us perform a likelihood ratio
 test to identify variants whose prevalence is significantly better
 explained by the two-step model.</p>
-<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># Assess the same variants in the same samples using the single model</span>
 <span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ces_variant.html">ces_variant</a></span><span class="op">(</span><span class="va">cesa</span>,
   variants <span class="op">=</span> <span class="va">variants_for_sequential</span>, model <span class="op">=</span> <span class="st">"basic"</span>, run_name <span class="op">=</span> <span class="st">"for_sequential_compare"</span>,
@@ -1887,7 +1825,7 @@ explained by the two-step model.</p>
 <p>We merge the two selection output tables, do the likelihood ratio
 test, and print a simplified table of significantly differentially
 selected variants.</p>
-<div class="sourceCode" id="cb37"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">combined_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/merge.html" class="external-link">merge.data.table</a></span><span class="op">(</span><span class="va">cesa</span><span class="op">$</span><span class="va">selection</span><span class="op">$</span><span class="va">sequential</span>,
   <span class="va">cesa</span><span class="op">$</span><span class="va">selection</span><span class="op">$</span><span class="va">for_sequential_compare</span>,
   all.x <span class="op">=</span> <span class="cn">TRUE</span>, all.y <span class="op">=</span> <span class="cn">FALSE</span>,
@@ -2328,12 +2266,11 @@ FOXA1_Y243C
 <p>The increased selection in M1 for <em>ESR1</em> variants is
 immediately apparent, and it’s especially convincing that so many
 distinct variants in the gene show the same relationship. Observe that
-the <em>PIK3CA</em> variants show reduced M1 selection even though the
-variants actually appear at similar or higher frequencies in the M1
-samples. Under the model assumptions, the M1 samples previously
-experienced M0 selection pressures, so we actually expect these samples
-to have prevalent <em>PIK3CA</em> mutations regardless of M1
-selection.</p>
+the PIK3CA variants show reduced M1 selection even though the variants
+actually appear at similar or higher frequencies in the M1 samples.
+Under the model assumptions, the M1 samples previously experienced M0
+selection pressures, so we actually expect these samples to have
+prevalent PIK3CA mutations regardless of M1 selection.</p>
 <p>Relatively few variants are prevalent enough to test under sequential
 models, and confidence intervals are often wide. Several of the
 significant variants are given M0 effects of .001, the lower limit of
@@ -2378,15 +2315,15 @@ sample’s mutational background (from substitutions to structural
 variants), the epigenetic state of the tumor, and various environmental
 factors. The <code><a href="../reference/ces_epistasis.html">ces_epistasis()</a></code> function allows us to assess
 selection for any pair of variants under a model of pairwise epistasis,
-in which the selection intensity for each variant is allowed to vary
+in which the selection intensity for each variant is allowed to very
 depending on the state of the other site.</p>
 <div class="section level3">
 <h3 id="variant-level-epistasis">Variant-level epistasis<a class="anchor" aria-label="anchor" href="#variant-level-epistasis"></a>
 </h3>
-<p>Let’s try two prevalent BRCA mutations, <em>PIK3CA</em> E545K (n=159)
-and <em>AKT1</em> E17K (n=82). Let’s also test E545K with a nearby
-<em>PIK3CA</em> variant, E542K (n=93).</p>
-<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
+<p>Let’s try two prevalent BRCA mutations, PIK3CA E545K (n=159) and AKT1
+E17K (n=82). Let’s also test E545K with a nearby PIK3CA variant, E542K
+(n=93).</p>
+<div class="sourceCode" id="cb37"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># Start by pulling full variant IDs (with protein identifier) from variants table</span>
 <span class="va">group1</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"PIK3CA_E545K"</span>, <span class="st">"AKT1_E17K"</span><span class="op">)</span>, <span class="va">variant_id</span>, on <span class="op">=</span> <span class="st">"variant_name"</span><span class="op">]</span>
 <span class="va">group2</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"PIK3CA_E545K"</span>, <span class="st">"PIK3CA_E542K"</span><span class="op">)</span>, <span class="va">variant_id</span>, on <span class="op">=</span> <span class="st">"variant_name"</span><span class="op">]</span>
@@ -2419,41 +2356,38 @@ and <em>AKT1</em> E17K (n=82). Let’s also test E545K with a nearby
 <span class="co">## 2:                   2779.524</span></code></pre>
 <p>Confidence intervals tend to be wide in epistatic analyses. Even with
 the most prevalent somatic variants, both co-occurrence and mutual
-exclusivity can often be explained by chance. The output for
-<em>PIK3CA</em> E545K and E542K confirms the negative epistatic
-relationship that we would have expected given their mutual exclusivity
-in our data (and our knowledge of their biological effects). For
-<em>PIK3CA</em> E545K and <em>AKT1</em> E17K, we see reduced selection
-for both after the acquisition of the other driver, but the confidence
-intervals leave open the possibility that selection for <em>PIK3CA</em>
-E545K is unaffected by <em>AKT1</em> E17K status. (Additionally, the
-NA’s on some of the lower bounds indicate that they fall below the lower
-limit of the optimization algorithm, which is to say that negligible or
-even negative selection cannot be ruled out.)</p>
+exclusivity can often be explained by chance. The output for PIK3CA
+E545K and E542K confirms the negative epistatic relationship that we
+would have expected given their mutual exclusivity in our data (and our
+knowledge of their biological effects). For E545K and AKT1 E17K, we see
+reduced selection for both after the acquisition of the other driver,
+but the confidence intervals leave open the possibility that selection
+for E545K is unaffected by AKT1 E17K status. (Additionally, the NA’s on
+some of the lower bounds indicate that they fall below the lower limit
+of the optimization algorithm.)</p>
 </div>
 <div class="section level3">
 <h3 id="epistasis-and-compoundvariantsets">Epistasis and CompoundVariantSets<a class="anchor" aria-label="anchor" href="#epistasis-and-compoundvariantsets"></a>
 </h3>
-<p>We can probe this <em>PIK3CA/AKT1</em> relationship further if we
-assume that all prevalent <em>PIK3CA</em> mutations share the same
-epistatic relationship with <em>AKT1</em> E17K. The
-<code><a href="../reference/define_compound_variants.html">define_compound_variants()</a></code> feature lets us combine
-arbitrary variants into “compound variants” that are treated as if they
-were single variants by cancereffectsizeR’s selection inference
-functions. (In brief, the mutation rate of the compound variant is equal
-to the sum of rates of constituent variants, and any sample with one or
-more of the constituent variants “has the compound variant.”) Below, we
-define a CompoundVariantSet with two compound variants: All
-<em>PIK3CA</em> variants with MAF prevalence &gt; 1, and <em>AKT</em>
-E17K. We then pass the CompoundVariantSet to ces_epistasis(), which will
-test all pairs of compound variants (here, just the one pair).</p>
-<div class="sourceCode" id="cb40"><pre class="downlit sourceCode r">
+<p>We can probe this PIK3CA/AKT1 relationship further if we assume that
+all prevalent PIK3CA mutations share the same epistatic relationship
+with AKT1 E17K. The <code><a href="../reference/define_compound_variants.html">define_compound_variants()</a></code> feature lets
+us combine arbitrary variants into “compound variants” that are treated
+as if they were single variants by cancereffectsizeR’s selection
+inference functions. (In brief, the mutation rate of the compound
+variant is equal to the sum of rates of constituent variants, and any
+sample with one or more of the constituent variants “has the compound
+variant.”) Below, we define a CompoundVariantSet with two compound
+variants: All <em>PIK3CA</em> variants with MAF prevalence &gt; 1, and
+AKT E17K. We then pass the CompoundVariantSet to ces_epistasis(), which
+will test all pairs of compound variants (here, just the one pair).</p>
+<div class="sourceCode" id="cb39"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># Collect all the variants that we want in the CompoundVariantSet into a table</span>
 <span class="va">top_PIK3CA</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="va">gene</span> <span class="op">==</span> <span class="st">"PIK3CA"</span> <span class="op">&amp;</span> <span class="va">maf_prevalence</span> <span class="op">&gt;</span> <span class="fl">1</span><span class="op">]</span>
 <span class="va">top_akt1</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="va">variant_name</span> <span class="op">==</span> <span class="st">"AKT1_E17K"</span><span class="op">]</span>
 <span class="va">for_compound</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/rbindlist.html" class="external-link">rbind</a></span><span class="op">(</span><span class="va">top_PIK3CA</span>, <span class="va">top_akt1</span><span class="op">)</span>
 
-<span class="co"># See define_compound_variants() documentation for details on arguments</span>
+<span class="co"># see define_compound_variants() documentation for details on arguments</span>
 <span class="va">comp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/define_compound_variants.html">define_compound_variants</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, variant_table <span class="op">=</span> <span class="va">for_compound</span>, by <span class="op">=</span> <span class="st">"gene"</span>, merge_distance <span class="op">=</span> <span class="cn">Inf</span><span class="op">)</span>
 <span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ces_epistasis.html">ces_epistasis</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, variants <span class="op">=</span> <span class="va">comp</span>, run_name <span class="op">=</span> <span class="st">"AKT1_E17K_vs_PIK3CA"</span><span class="op">)</span>
 <span class="va">cesa</span><span class="op">$</span><span class="va">epistasis</span><span class="op">$</span><span class="va">AKT1_E17K_vs_PIK3CA</span></code></pre></div>
@@ -2469,11 +2403,10 @@ test all pairs of compound variants (here, just the one pair).</p>
 <span class="co">## 1:                        NA                   6020.632</span>
 <span class="co">##    ci_low_95_ces_v2_after_v1 ci_high_95_ces_v2_after_v1</span>
 <span class="co">## 1:                  255.6892                   1942.288</span></code></pre>
-<p>Note that the effect sizes are smaller for <em>PIK3CA</em> here,
-since we mixed in lots of lower-effect <em>PIK3CA</em> variants. While
-four samples have both <em>AKT1</em> E17K and one of the <em>PIK3CA</em>
-variants, this result strengthens the case for <em>AKT1</em> mutation
-reducing selection for <em>PIK3CA</em> mutation.</p>
+<p>Note that the effect sizes are smaller for PIK3CA here, since we
+mixed in lots of lower-effect PIK3CA variants. While four samples have
+both AKT1 E17K and one of the PIK3CA variants, this result strengthens
+the case for AKT1 mutation reducing selection for PIK3CA mutation.</p>
 </div>
 <div class="section level3">
 <h3 id="gene-level-epistasis">Gene-level epistasis<a class="anchor" aria-label="anchor" href="#gene-level-epistasis"></a>
@@ -2485,11 +2418,11 @@ of specifying which variants from each gene to include in the inference:
 “recurrent” uses all recurrent variants, “nonsilent” uses all coding
 variants except non-splice-site synonymous variants, or a custom table
 of variants can be input, as shown here.</p>
-<div class="sourceCode" id="cb42"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb41"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">genes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"AKT1"</span>, <span class="st">"PIK3CA"</span>, <span class="st">"TP53"</span><span class="op">)</span>
 
 <span class="co"># We would use the "nonsilent" method, except a handful of variants are not covered in the TGS data,</span>
-<span class="co"># forcing us to exclude those so that the TGS samples can be included in the inference.</span>
+<span class="co"># forcing us to exclude those so that the TGS samples can be included inthe inference.</span>
 <span class="va">variants</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="va">variant_type</span> <span class="op">==</span> <span class="st">"aac"</span> <span class="op">&amp;</span> <span class="va">gene</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="va">genes</span> <span class="op">&amp;</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">covered_in</span>, <span class="va">length</span><span class="op">)</span> <span class="op">==</span> <span class="fl">2</span><span class="op">]</span>
 <span class="va">variants</span> <span class="op">&lt;-</span> <span class="va">variants</span><span class="op">[</span><span class="va">aa_ref</span> <span class="op">!=</span> <span class="va">aa_alt</span> <span class="op">|</span> <span class="va">essential_splice</span> <span class="op">==</span> <span class="cn">T</span><span class="op">]</span>
 <span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ces_gene_epistasis.html">ces_gene_epistasis</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, genes <span class="op">=</span> <span class="va">genes</span>, variants <span class="op">=</span> <span class="va">variants</span>, run_name <span class="op">=</span> <span class="st">"gene_epistasis_example"</span><span class="op">)</span>
@@ -2519,13 +2452,12 @@ of variants can be input, as shown here.</p>
 <span class="co">## 2:                        NA                   892.2936</span>
 <span class="co">## 3:                        NA                   232.9479</span></code></pre>
 <p>Mutational selection in the two oncogenes appears to be maintained
-after mutation in <em>TP53</em>. In contrast, loss of <em>TP53</em> is
-less selected after mutations in <em>AKT1/PIK3CA</em>; one explanation
-is that cell populations in which these powerful driverhave fixed have
-already subverted tumor suppression mechanisms, making <em>TP53</em>
-mutation superfluous. The two oncogenes also appear to show some mutual
-exclusivity, in that selection for each is reduced after mutation in the
-other.</p>
+after mutation in TP53. In constrast, loss of TP53 is less selected
+after mutations in AKT1/PIK3CA; one explanation is that cell populations
+in which these powerful drivers have fixed must have already subverted
+tumor suppression mechanisms, making TP53 mutations superfluous. The two
+oncogenes also appear to show some mutual exclusivity, in that selection
+for each is reduced after mutation in the other.</p>
 </div>
 </div>
 <div class="section level2">
@@ -2535,7 +2467,7 @@ other.</p>
 want to take a break–you can save a commemorative (and space-efficient)
 copy of your CESAnalysis using <code><a href="../reference/save_cesa.html">save_cesa()</a></code>. You can reload
 the analysis anytime with <code><a href="../reference/load_cesa.html">load_cesa()</a></code>.</p>
-<div class="sourceCode" id="cb44"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb43"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="../reference/save_cesa.html">save_cesa</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, <span class="st">"cancerffectsizeR_tutorial_analysis.rds"</span><span class="op">)</span>
 
 <span class="co"># In some future R session...</span>

@@ -27,7 +27,7 @@
 #' @param cores number of cores for parallel processing of gene pairs
 #' @return CESAnalysis with epistasis analysis results added
 #' @export
-ces_gene_epistasis = function(cesa = NULL, genes = character(), variants = NULL,
+ces_gene_epistasis = function(cesa = NULL, genes = NULL, variants = NULL,
                               samples = character(), run_name = "auto", cores = 1, conf = .95)
 {
   if (! is(cesa, "CESAnalysis")) {
@@ -70,13 +70,29 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), variants = NULL,
     }
   }
 
-  if (length(genes) < 2) {
-    stop("Supply at least two genes to analyze.")
+  # genes can be list of character pairs or a character vector, from which all possible pairs will be taken
+  gene_pairs = NULL
+  if(is(genes, "list") && all(sapply(genes, is.character)) && all(sapply(genes, length) ==2)) {
+    gene_pairs = unique(genes)
+    genes = unique(unlist(genes))
+  } else if (is(genes, "character")) {
+    if (length(genes) < 2) {
+      stop("Supply at least two genes to analyze.")
+    }
+  } else{
+    stop("genes should be character (at least two gene names) or a list of gene pairs.")
   }
+  
+  invalid_genes = setdiff(genes, .ces_ref_data[[cesa@ref_key]]$gene_names)
+  num_invalid = length(invalid_genes)
+  if(num_invalid > 0) {
+    if(num_invalid > 19) {
+      invalid_genes = c(invalid_genes[1:15], paste0("and ", num_invalid - 15, " more"))
+    }
+    stop("Input genes are not present in reference data: ", paste(invalid_genes, collapse = ", "))
+  } 
+  
   maf = cesa@maf[variant_type == "snv"]
-	
-	# subset input genes to those with data
-  genes = unique(genes)
   
   if(is.null(variants)) {
     variants = 'recurrent'
@@ -125,7 +141,7 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), variants = NULL,
   }
 	if(num_passing_genes != length(genes)) {
 	  num_missing = length(genes) - num_passing_genes
-	  pretty_message(paste0(num_missing, " of your input genes had no eligible variants in input, so they will not be included. ",
+	  pretty_message(paste0(num_missing, " of your input genes had no eligible variants in input, so they will not be included in pairwise epistasis inference.",
 	                        "You may want to verify that your \"variants\" input is what you intended."))
 	}
 
@@ -133,6 +149,12 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), variants = NULL,
 	  msg = paste0("Only 1 requested gene (", genes_to_analyze, " has eligible variants  in input, so epistasis can't be tested. ",
 	               "You may want to verify that your \"variants\" input is what you intended.")
 	  stop(pretty_message(msg, emit = F))
+	}
+	
+	if(is.null(gene_pairs)) {
+	  gene_pairs = utils::combn(sort(genes_to_analyze), 2, simplify = F)
+	} else {
+	  gene_pairs = gene_pairs[sapply(gene_pairs, function(x) all(x %in% genes_to_analyze))]
 	}
 	
 	gr_table = as.data.table(.ces_ref_data[[cesa@ref_key]]$gr_genes)
@@ -144,8 +166,7 @@ ces_gene_epistasis = function(cesa = NULL, genes = character(), variants = NULL,
 	setkey(gr_table, "names")
 	passing_gene_ranges = gr_table[genes_to_analyze]
 	setkey(passing_gene_ranges, "seqnames", "start", "end")
-	
-  gene_pairs <- utils::combn(sort(genes_to_analyze), 2, simplify = F)
+  
   bad_pairs = numeric()
   for (i in 1:length(gene_pairs)) {
     if (foverlaps(passing_gene_ranges[names == gene_pairs[[i]][1]], 

@@ -11,3 +11,7 @@ inst/tutorial/TCGA.LUAD.mutect.0458c57f-316c-4a7c-9294-ccd11c97c2f9.DR-10.0.soma
 doc
 Meta
 tmp.rds
+brca.maf.gz
+thca.maf.gz
+ucec.maf.gz
+

@@ -65,7 +65,7 @@
 #'   averages are blended into the signature weights of sub-threshold tumors.
 #' @param assume_identical_mutational_processes use well-mutated tumors (those with number
 #'   of eligible mutations meeting sig_averaging_threshold) to calculate group average
-#'   signature weights, and assign these to all tumors
+#'   signature weights, and assign these (and implied trinucleotide mutation rates) to all tumors
 #' @param sample_group (Deprecated; use samples.) Vector of sample group(s) to calculate rates for.
 #' @return CESAnalysis with sample-specific signature weights and inferred
 #'   trinucleotide-context-specific relative mutation rates. The snv_counts matrix gives
@@ -444,13 +444,13 @@ trinuc_mutation_rates <- function(cesa,
   }
   
   # If any samples have subthreshold number of mutations, determine weightings for those samples using method specified by user
-  mean_ds = NULL
+  aggregate_extraction = NULL
   if(length(tumors_below_threshold) > 0 || length(tumors_needing_group_average_rates) > 0) {
     if(length(tumors_above_threshold) == 0) {
       stop(paste0("No tumors have enough mutations to inform group-average signature extraction\n", 
                   "(or, nearly impossibly, all such tumors have all their mutations attributed to artifacts)."))
     }
-    mean_trinuc_prop = colMeans(trinuc_proportion_matrix[tumors_above_threshold, , drop = F])
+    obs_trinuc_prop = colMeans(trinuc_proportion_matrix[tumors_above_threshold, , drop = F])
 
     
     # Signatures that "expect" more mutations than are present in any of the subthreshold
@@ -469,15 +469,15 @@ trinuc_mutation_rates <- function(cesa,
       # supply sample data in columns and as matrix as required by MutationalPatterns
       # Even with the bootstrap_mutations = TRUE method, not going to bootstrap here since tumor_trinuc_counts
       # were already generated off of bootstrapped samples.
-      mean_trinuc_prop = as.matrix(mean_trinuc_prop)
-      mean_all_weights = run_mutational_patterns(tumor_trinuc_counts = mean_trinuc_prop, signatures_df = signatures, 
+      obs_trinuc_prop = as.matrix(obs_trinuc_prop)
+      mean_all_weights = run_mutational_patterns(tumor_trinuc_counts = obs_trinuc_prop, signatures_df = signatures, 
                                               signatures_to_remove = signatures_to_remove)
     } else {
       # convert to data.frame and supply rowname as required by deconstructSigs
-      mean_trinuc_prop = as.data.frame(t(mean_trinuc_prop))
-      rownames(mean_trinuc_prop) = 'mean'
+      obs_trinuc_prop = as.data.frame(t(obs_trinuc_prop))
+      rownames(obs_trinuc_prop) = 'mean'
       
-      mean_all_weights = run_deconstructSigs(tumor_trinuc_counts = mean_trinuc_prop, signatures_df = signatures, 
+      mean_all_weights = run_deconstructSigs(tumor_trinuc_counts = obs_trinuc_prop, signatures_df = signatures, 
                                               signatures_to_remove = signatures_to_remove, tri.counts.method = "default")
     }
     
@@ -487,16 +487,20 @@ trinuc_mutation_rates <- function(cesa,
                                                      artifact_signatures = artifact_signatures, fail_if_zeroed = FALSE)
     mean_all_weights[, Unique_Patient_Identifier := NULL]
     mean_rel_bio_weights[, Unique_Patient_Identifier := NULL]
+    
+    # calculate rates using just the mean weights for use in assume_identical_mutational_processes (and tumors_needing_group_average_rates)
+    # converting to numeric for insertion into trinuc_proportion_matrix
+    agg_run_trinuc_prop = as.numeric(calculate_trinuc_rates(weights = as.matrix(mean_rel_bio_weights), signatures = as.matrix(signatures), tumor_names = 'mean'))
+    
     mean_all_weights = as.data.frame(mean_all_weights)
     mean_rel_bio_weights = as.data.frame(mean_rel_bio_weights)
     rownames(mean_rel_bio_weights) = rownames(mean_all_weights) = 'mean'
     
-    mean_ds = list(rel_bio_weights = mean_rel_bio_weights, all_weights = mean_all_weights)
-    mean_trinuc_prop = as.numeric(mean_trinuc_prop) # convert back to numeric for insertion into trinuc_proportion_matrix
+    aggregate_extraction = list(rel_bio_weights = mean_rel_bio_weights, all_weights = mean_all_weights)
     
     # TGS tumors, tumors with zeroed-out weights, and tumors with no non-recurrent SNVs get assigned group-average rates
     for (tumor in tumors_needing_group_average_rates) {
-      trinuc_proportion_matrix[tumor, ] = mean_trinuc_prop
+      trinuc_proportion_matrix[tumor, ] = agg_run_trinuc_prop
     }
     
     # this should never happen
@@ -506,13 +510,13 @@ trinuc_mutation_rates <- function(cesa,
     if (assume_identical_mutational_processes) {
       # when assume_identical_mutational_processes is TRUE, this is where trinuc_proportion_matrix gets built
       for(i in 1:nrow(trinuc_proportion_matrix)) {
-        trinuc_proportion_matrix[i,] = mean_trinuc_prop
+        trinuc_proportion_matrix[i,] = agg_run_trinuc_prop
       }
     } else {
       for (tumor in tumors_below_threshold) {
         # handle tumors with 0 non-recurrent SNVs
         if(is.na(substitution_counts[tumor])) {
-          trinuc_proportion_matrix[tumor, ] = mean_trinuc_prop
+          trinuc_proportion_matrix[tumor, ] = agg_run_trinuc_prop
         } else {
           # zeroed-out tumors are sub-threshold even when sig_averaging_threshold is 0; take no weight from these
           if (sig_averaging_threshold == 0 || tumor %in% zeroed_out_tumors) {
@@ -521,7 +525,7 @@ trinuc_mutation_rates <- function(cesa,
             own_weighting = substitution_counts[tumor] / sig_averaging_threshold
           }
           group_weighting = 1 - own_weighting
-          mean_blended_trinuc_prop = trinuc_proportion_matrix[tumor, ] * own_weighting + mean_trinuc_prop * group_weighting
+          mean_blended_trinuc_prop = trinuc_proportion_matrix[tumor, ] * own_weighting + agg_run_trinuc_prop * group_weighting
           rel_bio_weights[tumor, (signature_names) :=  as.numeric(.SD) * own_weighting + mean_rel_bio_weights * group_weighting, .SDcols = signature_names]
           blended_weights[tumor, (signature_names) := as.numeric(.SD) * own_weighting + mean_all_weights * group_weighting, .SDcols = signature_names]
           trinuc_proportion_matrix[tumor, ] = mean_blended_trinuc_prop
@@ -563,9 +567,9 @@ trinuc_mutation_rates <- function(cesa,
     tumors_without_data = setdiff(curr_sample_info$Unique_Patient_Identifier, bio_sig_table$Unique_Patient_Identifier)
     num_to_add = length(tumors_without_data)
     if (num_to_add > 0) {
-      group_avg_weights = as.numeric(mean_ds$rel_bio_weights)
+      group_avg_weights = as.numeric(aggregate_extraction$rel_bio_weights)
       new_rows = matrix(nrow = num_to_add, data = rep.int(group_avg_weights, num_to_add), byrow = T)
-      colnames(new_rows) = colnames(mean_ds$rel_bio_weights)
+      colnames(new_rows) = colnames(aggregate_extraction$rel_bio_weights)
       total_snvs = cesa@maf[variant_type == "snv"][, .N, keyby = "Unique_Patient_Identifier"][tumors_without_data, N]
       total_snvs[is.na(total_snvs)] = 0
       new_table = data.table(Unique_Patient_Identifier = tumors_without_data, total_snvs = total_snvs, 
@@ -573,9 +577,9 @@ trinuc_mutation_rates <- function(cesa,
       bio_sig_table = rbind(bio_sig_table, cbind(new_table, new_rows))
       
       # repeat for table that includes artifacts
-      group_avg_weights_raw = as.numeric(mean_ds$all_weights)
+      group_avg_weights_raw = as.numeric(aggregate_extraction$all_weights)
       new_rows_raw = matrix(nrow = num_to_add, data = rep.int(group_avg_weights_raw, num_to_add), byrow = T)
-      colnames(new_rows_raw) = colnames(mean_ds$all_weights)
+      colnames(new_rows_raw) = colnames(aggregate_extraction$all_weights)
       new_table[, sig_extraction_snvs := as.numeric(substitution_counts[Unique_Patient_Identifier])]
       new_table[is.na(sig_extraction_snvs), sig_extraction_snvs := 0]
       adjusted_sig_table = rbind(adjusted_sig_table, cbind(new_table, new_rows_raw))
@@ -597,11 +601,11 @@ trinuc_mutation_rates <- function(cesa,
     
   }
   
-  if(! is.null(mean_ds)) {
+  if(! is.null(aggregate_extraction)) {
     if (is.null(sample_group)) {
-      cesa@trinucleotide_mutation_weights[["group_average_dS_output"]][["all"]] = mean_ds
+      cesa@trinucleotide_mutation_weights[["group_average_dS_output"]][["all"]] = aggregate_extraction
     } else {
-      cesa@trinucleotide_mutation_weights[["group_average_dS_output"]][[paste(sample_group, collapse = ',')]] = mean_ds
+      cesa@trinucleotide_mutation_weights[["group_average_dS_output"]][[paste(sample_group, collapse = ',')]] = aggregate_extraction
     }
   }
 

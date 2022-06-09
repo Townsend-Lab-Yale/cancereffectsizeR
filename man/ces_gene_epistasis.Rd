@@ -6,7 +6,7 @@
 \usage{
 ces_gene_epistasis(
   cesa = NULL,
-  genes = character(),
+  genes = NULL,
   variants = NULL,
   samples = character(),
   run_name = "auto",

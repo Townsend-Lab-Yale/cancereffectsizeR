@@ -10,7 +10,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">cancereffectsizeR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.6.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -27,6 +27,7 @@
 <li class="nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
+    <a class="dropdown-item" href="../articles/MAF_filtering_tips.html">MAF filtering and sample validation</a>
     <a class="dropdown-item" href="../articles/cosmic_cancer_type_note.html">Cancer type considerations for COSMIC signature extraction</a>
     <a class="dropdown-item" href="../articles/create_custom_covariates.html">Generate tissue covariates data</a>
     <a class="dropdown-item" href="../articles/custom_refset_instructions.html">Running with custom reference data</a>
@@ -86,7 +87,7 @@
         </dt>
         <dd>Set reference data directory</dd>
       </dl></div><div class="section level2">
-      <h2 id="pre-process-maf-data">Pre-process MAF data<a class="anchor" aria-label="anchor" href="#pre-process-maf-data"></a></h2>
+      <h2 id="obtain-and-prep-maf-data">Obtain and prep MAF data<a class="anchor" aria-label="anchor" href="#obtain-and-prep-maf-data"></a></h2>
       
       
 
@@ -106,6 +107,11 @@
           <code><a href="check_sample_overlap.html">check_sample_overlap()</a></code> 
         </dt>
         <dd>Catch duplicate samples</dd>
+      </dl><dl><dt>
+          
+          <code><a href="get_TCGA_project_MAF.html">get_TCGA_project_MAF()</a></code> 
+        </dt>
+        <dd>Get MAF data from TCGA cohort</dd>
       </dl></div><div class="section level2">
       <h2 id="load-and-manage-variants">Load and manage variants<a class="anchor" aria-label="anchor" href="#load-and-manage-variants"></a></h2>
       

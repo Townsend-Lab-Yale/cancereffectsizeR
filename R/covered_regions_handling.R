@@ -206,8 +206,14 @@ update_covered_in = function(cesa) {
     return(cesa)
   }
   
+  if(length(cesa@coverage) == 0) {
+    return(cesa)
+  }
+  
   snv_table = cesa@mutations$snv
   aac_table = cesa@mutations$amino_acid_change
+  
+
   
   # simpler to delete old annotations and re-do rather than updating
   snv_table[, covered_in := NULL]
@@ -243,7 +249,7 @@ update_covered_in = function(cesa) {
     just_exome_plus = TRUE
   } else {
     all_coverage = all_coverage[sort(names(all_coverage))] # sort by covered regions name
-    is_covered = as.data.table(lapply(all_coverage, function(x) IRanges::overlapsAny(snv_gr, x, type = "within")))
+    is_covered = setDT(lapply(all_coverage, function(x) IRanges::overlapsAny(snv_gr, x, type = "within")))
     all_names = names(is_covered)
     # when we support just R > 4.1, can just use simplify = F on apply to avoid playing these games
     covered_in = apply(is_covered, 1, function(x) all_names[x])

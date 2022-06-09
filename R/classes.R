@@ -154,7 +154,7 @@ setMethod("length", "CompoundVariantSet", function(x) {
 setMethod("[", "CompoundVariantSet", function(x, i , j, ..., drop) {
   compounds = `[`(x@compounds, i, j, nomatch = NULL, ...)
   sample_calls = x@sample_calls[compounds$compound_name]
-  snvs = x@snvs[compounds$compound_name]
+  snvs = x@snvs[compounds$compound_name, on = 'compound_name']
   return(new("CompoundVariantSet", compounds = compounds, snvs = snvs, sample_calls = sample_calls,
              cesa_uid = x@cesa_uid, cesa_num_samples = x@cesa_num_samples))
 })
