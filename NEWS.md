@@ -1,4 +1,8 @@
-Patch updates (as in, x.y.1 -> x.y.2) offer minor bug fixes or small improvements that should not affect the numerical output of cancer effect analyses. Minor/major updates may change some outputs due to bug fixes or intentional tweaks, as described in these version notes.
+Patch updates (as in, x.y.1 -> x.y.2) have minor bug fixes or small improvements that should not affect the numerical output of cancer effect analyses. Minor/major updates may change some outputs due to bug fixes or intentional tweaks, as described in these version notes.
+
+# cancereffectsizeR 2.6.1
+* Compatibility fix for Windows systems.
+* Bug fixes for features introduced in 2.6.0.
 
 # cancereffectsizeR 2.6.0
 * get_TCGA_project_MAF(): Conveniently download MAF data from the Genomic Data Commons and create MAF files covering full TCGA projects.

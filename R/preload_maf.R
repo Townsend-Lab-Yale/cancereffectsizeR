@@ -210,72 +210,82 @@ preload_maf = function(maf = NULL, refset = NULL, coverage_intervals_to_check = 
       dbs[, problem := NA_character_]
       maf = rbind(maf, dbs)
       
-      # For non-DBS mnvs, reclassify as "other"
-      mnv = mnv[is_dbs == F]
-      
-      absent_ref = mnv[, .(Start_Position = setdiff(seq(Start_Position[1], Start_Position[.N]), Start_Position)), by = 'mnv_group']
-      absent_ref[mnv, c("Unique_Patient_Identifier", "Chromosome") := .(Unique_Patient_Identifier, Chromosome), on = 'mnv_group']
-      absent_ref[, Reference_Allele := as.character(getSeq(refset_env$genome, names = Chromosome, 
-                                                           start = Start_Position, width = 1))]
-      absent_ref[, Tumor_Allele := Reference_Allele]
-      absent_ref[, variant_type := 'ref']
-      
-      mnv[, in_grp := (1:.N)/.N, by = 'mnv_group']
-      
-      # insertions at the end of a group don't contribute reference bases
-      # insertions before the end contribute their position's reference base
-      mnv[variant_type == 'ins' & in_grp != 1, Reference_Allele := as.character(getSeq(refset_env$genome, names = Chromosome, 
-                                                                                       start = Start_Position, width = 1)),
-          by = 'mnv_group']
-      mnv[variant_type == 'ins' & in_grp == 1, Reference_Allele := '']
-      
-      
-      # For deletions, only need the first deleted base (rest calculated in absent_ref), except a trailing deletion
-      mnv[variant_type == 'del' & in_grp != 1, Reference_Allele := substr(Reference_Allele, 1, 1)]
-      mnv[variant_type == 'del', Tumor_Allele := '']
-      mnv = rbind(mnv, absent_ref, fill = T)[order(mnv_group, Start_Position)]
-      
-      # handle edge case of consecutive insertions (don't want any reference allele for this)
-      mnv[, all_insertions := all(variant_type == 'ins'), by = 'mnv_group']
-      mnv[all_insertions == T, Reference_Allele := ''] 
-      
-      new_records = mnv[, .(Unique_Patient_Identifier = Unique_Patient_Identifier[1], Chromosome = Chromosome[1], 
-                            Start_Position = Start_Position[1], Reference_Allele = paste(Reference_Allele, collapse = ""),
-                            Tumor_Allele = paste(Tumor_Allele, collapse = ""), variant_type = 'other'), by = 'mnv_group']
-      # If all records in group are consecutive deletions, Tumor_Allele will be empty string
-      # These probably shouldn't exist (should have been called as a single larger deletion), but they appear in TCGA data
-      new_records[Tumor_Allele == '', c("Tumor_Allele", "variant_type", "variant_id") := .('-', "del",
-                                                                                           paste0(Chromosome, ':', Start_Position,'_del_', Reference_Allele))]
-      
-      # Same idea for a group of consecutive occurrence (also shouldn't happen, and in TCGA UCEC, doesn't)
-      new_records[Reference_Allele == '', c("Reference_Allele", "variant_type", "variant_id") := .('-', "ins", 
-                                                                                                   paste0(Chromosome, ':', Start_Position,'_ins_', Tumor_Allele))]
-      
-      new_records[is.na(variant_id), variant_id := paste0(Chromosome, ':', Start_Position, '_', Reference_Allele, '>', Tumor_Allele)]
-      
-      mnv[new_records, replacement_variant := i.variant_id, on = 'mnv_group']
-      mnv[, problem := NA_character_]
-      maf[mnv, problem := 'merged_into_other_variant', on = c("Unique_Patient_Identifier", "variant_id", "problem")]
-      
-      if (all(c("prelift_chr", "prelift_start", "liftover_strand_flip") %in% names(maf))) {
-        new_records[, c("prelift_chr", "prelift_start", "liftover_strand_flip") := .(NA_character_, NA_integer_, NA)]
-      }
-      new_records$problem = NA_character_
-      maf = rbind(maf, new_records[, -"mnv_group"])
-      
-      num_new_mnv = new_records[, .N] # the DBS variants have already been removed
       num_dbs = dbs[, .N]
       if(num_dbs > 0) {
-        grammar = ifelse(num_dbs == 1, 'has', 'have')
-        msg = paste0('Note: ', num_dbs, ' adjacent pairs of SNVs ', grammar, ' been reclassified as doublet base substitutions (dbs).')
+        grammar1 = ifelse(num_dbs == 1, 'pair', 'pairs')
+        grammar2 = ifelse(num_dbs == 1, 'has', 'have')
+        msg = paste0('Note: ', num_dbs, ' adjacent ', grammar1, ' of SNVs ', grammar2, ' been reclassified as doublet base substitutions (dbs).')
         pretty_message(msg)
       }
-      if (num_new_mnv > 0) {
-        msg = ifelse(num_dbs > 0, 'Additionally, ', 'Note: ')
-        grammar = ifelse(num_new_mnv > 1, 's', '')
-        msg = paste0(msg, num_new_mnv, ' group', grammar, ' of same-sample variants within 2 bp of each other have been reclassified as ',
-                     'combined variants of type \"other\" (because they probably did not occur independently).')
-        pretty_message(msg)
+      
+      # For non-DBS mnvs, reclassify as "other"
+      mnv = mnv[is_dbs == F]
+      if(mnv[, .N] > 0) {
+        absent_ref = mnv[, .(Start_Position = setdiff(seq(Start_Position[min(1, .N)], Start_Position[.N]), Start_Position)), by = 'mnv_group']
+        
+        # Edge case: Only MNV(s) are contiguous, such as a triplet substitution
+        if(absent_ref[, .N] > 0) {
+          absent_ref[mnv, c("Unique_Patient_Identifier", "Chromosome") := .(Unique_Patient_Identifier, Chromosome), on = 'mnv_group']
+          absent_ref[, Reference_Allele := as.character(getSeq(refset_env$genome, names = Chromosome, 
+                                                               start = Start_Position, width = 1))]
+          absent_ref[, Tumor_Allele := Reference_Allele]
+          absent_ref[, variant_type := 'ref']
+        }
+
+        
+        mnv[, in_grp := (1:.N)/.N, by = 'mnv_group']
+        
+        # insertions at the end of a group don't contribute reference bases
+        # insertions before the end contribute their position's reference base
+        redo_ref_ind = mnv[variant_type == 'ins' & in_grp != 1, which = T]
+        if(length(redo_ref_ind) > 0) {
+          mnv[redo_ref_ind, Reference_Allele := as.character(getSeq(refset_env$genome, names = Chromosome, 
+                                                                    start = Start_Position, width = 1)),
+              by = 'mnv_group']
+        }
+        mnv[variant_type == 'ins' & in_grp == 1, Reference_Allele := '']
+        
+        
+        # For deletions, only need the first deleted base (rest calculated in absent_ref), except a trailing deletion
+        mnv[variant_type == 'del' & in_grp != 1, Reference_Allele := substr(Reference_Allele, 1, 1)]
+        mnv[variant_type == 'del', Tumor_Allele := '']
+        mnv = rbind(mnv, absent_ref, fill = T)[order(mnv_group, Start_Position)]
+        
+        # handle edge case of consecutive insertions (don't want any reference allele for this)
+        mnv[, all_insertions := all(variant_type == 'ins'), by = 'mnv_group']
+        mnv[all_insertions == T, Reference_Allele := ''] 
+        
+        new_records = mnv[, .(Unique_Patient_Identifier = Unique_Patient_Identifier[1], Chromosome = Chromosome[1], 
+                              Start_Position = Start_Position[1], Reference_Allele = paste(Reference_Allele, collapse = ""),
+                              Tumor_Allele = paste(Tumor_Allele, collapse = ""), variant_type = 'other'), by = 'mnv_group']
+        # If all records in group are consecutive deletions, Tumor_Allele will be empty string
+        # These probably shouldn't exist (should have been called as a single larger deletion), but they appear in TCGA data
+        new_records[Tumor_Allele == '', c("Tumor_Allele", "variant_type", "variant_id") := .('-', "del",
+                                                                                             paste0(Chromosome, ':', Start_Position,'_del_', Reference_Allele))]
+        
+        # Same idea for a group of consecutive occurrence (also shouldn't happen, and in TCGA UCEC, doesn't)
+        new_records[Reference_Allele == '', c("Reference_Allele", "variant_type", "variant_id") := .('-', "ins", 
+                                                                                                     paste0(Chromosome, ':', Start_Position,'_ins_', Tumor_Allele))]
+        
+        new_records[is.na(variant_id), variant_id := paste0(Chromosome, ':', Start_Position, '_', Reference_Allele, '>', Tumor_Allele)]
+        
+        mnv[new_records, replacement_variant := i.variant_id, on = 'mnv_group']
+        mnv[, problem := NA_character_]
+        maf[mnv, problem := 'merged_into_other_variant', on = c("Unique_Patient_Identifier", "variant_id", "problem")]
+        
+        if (all(c("prelift_chr", "prelift_start", "liftover_strand_flip") %in% names(maf))) {
+          new_records[, c("prelift_chr", "prelift_start", "liftover_strand_flip") := .(NA_character_, NA_integer_, NA)]
+        }
+        new_records$problem = NA_character_
+        maf = rbind(maf, new_records[, -"mnv_group"])
+        num_new_mnv = new_records[, .N] # the DBS variants have already been removed
+        if (num_new_mnv > 0) {
+          msg = ifelse(num_dbs > 0, 'Additionally, ', 'Note: ')
+          grammar = ifelse(num_new_mnv > 1, 's', '')
+          msg = paste0(msg, num_new_mnv, ' group', grammar, ' of same-sample variants within 2 bp of each other have been reclassified as ',
+                       'combined variants of type \"other\" (because they probably did not occur independently).')
+          pretty_message(msg)
+        }
       }
     }
   }

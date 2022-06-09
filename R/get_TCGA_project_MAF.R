@@ -175,7 +175,7 @@ get_TCGA_project_MAF = function(project = NULL, filename = NULL, test_run = FALS
   files[, path := paste0(tmp_dir, '/', file_name)]
   files[, url := paste0(data_endpt, '/', id)]
   
-  pbapply::pbmapply(download.file, files$url, files$path, MoreArgs = list(quiet = TRUE))
+  pbapply::pbmapply(download.file, files$url, files$path, MoreArgs = list(quiet = TRUE, mode = 'wb'))
   
   message("Verifying files...")
   actual_sums = tools::md5sum(files$path)

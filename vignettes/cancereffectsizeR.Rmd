@@ -70,7 +70,7 @@ library(ggplot2)
 tcga_maf_file = 'TCGA.LUAD.mutect.0458c57f-316c-4a7c-9294-ccd11c97c2f9.DR-10.0.somatic.maf.gz'
 if (! file.exists(tcga_maf_file)) {
   download.file('https://api.gdc.cancer.gov/data/0458c57f-316c-4a7c-9294-ccd11c97c2f9', 
-                destfile = tcga_maf_file)
+                destfile = tcga_maf_file, mode = 'wb')
 }
 
 # Prepare data
@@ -154,7 +154,7 @@ We'll begin by downloading variant data from TCGA. The data comes in a large tex
 ```{r}
 tcga_maf_file = 'TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf.gz'
 if (! file.exists(tcga_maf_file)) {
-  download.file('https://api.gdc.cancer.gov/data/995c0111-d90b-4140-bee7-3845436c3b42', destfile = tcga_maf_file)
+  download.file('https://api.gdc.cancer.gov/data/995c0111-d90b-4140-bee7-3845436c3b42', destfile = tcga_maf_file, mode = 'wb')
 }
 ```
 
@@ -191,10 +191,10 @@ setnames(tcga_clinical, "patient_id", "Unique_Patient_Identifier")
 Our TGS data source (hosted on cBioPortal and [recently published](https://cancerdiscovery.aacrjournals.org/content/candisc/early/2021/09/17/2159-8290.CD-20-1726.full.pdf) in Cancer Discovery), consists of metastatic tumors that were sequenced using various MSK-Impact panels. In the full data set, some patients have multiple samples sequenced; the data provided with the package has been subsetted to one sample per patient, and the genome build has been converted to hg38.
 ```{r}
 tgs_maf_file = system.file('tutorial/metastatic_breast_2021_hg38.maf', package = 'cancereffectsizeR')
-tgs_maf = preload_maf(maf = tgs_maf_file, refset = ces.refset.hg38)
+tgs_maf = preload_maf(maf = tgs_maf_file, refset = 'ces.refset.hg38')
 ```
 
-When combining data from multiple sources, `check_sample_overlap()` can detect unexpected sample duplication. If you feed in `tcga_maf` and `tgs_maf`, you will see that no possible duplications are found.
+When combining data from multiple sources, `check_sample_overlap()` can detect unexpected sample duplication. If you feed in `tcga_maf` and `tgs_maf` and filter the output to `variants_shared > 2` (with panel data, a couple of shared variants doesn't imply sample duplication), you'll see that everything looks fine.
 
 ## Create CESAnalysis and load data
 The CESAnalysis is the primary data structure of cancereffectsizeR. The cancereffectsizeR workflow consists of calling a series of functions that take a CESAnalysis as input and return an altered CESAnalysis. Re-using the same variable name will keep things tidy.
