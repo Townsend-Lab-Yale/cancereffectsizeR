@@ -98,43 +98,63 @@ sequencing. Whole-genome data and targeted sequencing data are also supported wh
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
     <dl><dt>cesa</dt>
 <dd><p>CESAnalysis.</p></dd>
+
+
 <dt>maf</dt>
 <dd><p>Path of tab-delimited text file in MAF format, or an MAF in data.table or
 data.frame format.</p></dd>
+
+
 <dt>coverage</dt>
 <dd><p>exome, genome, or targeted (default exome).</p></dd>
+
+
 <dt>covered_regions</dt>
 <dd><p>optional for exome, required for targeted: a GRanges object or a
 BED file of covered intervals matching the CESAnalysis genome.</p></dd>
+
+
 <dt>covered_regions_name</dt>
 <dd><p>a name describing the covered regions (e.g.,
 "my_custom_targeted_regions"); required when covered_regions are supplied.</p></dd>
+
+
 <dt>covered_regions_padding</dt>
 <dd><p>How many bases (default 0) to expand start and end of
 each covered_regions interval, to include variants called just outside of targeted
 regions. Consider setting from 0-100bp, or up to the sequencing read length. If the
 input data has been trimmed to the targeted regions, leave set to 0.</p></dd>
+
+
 <dt>group_col</dt>
 <dd><p>column in MAF with sample group labels (deprecated; no longer needed).</p></dd>
+
+
 <dt>sample_data_cols</dt>
 <dd><p>MAF columns containing sample-level data (e.g., tumor grade)
 that you would like to have copied into the CESAnalysis samples table.</p></dd>
+
+
 <dt>enforce_default_exome_coverage</dt>
 <dd><p>When loading default exome data, exclude records
 that aren't covered in the default exome capture intervals included with CES genome
 reference data (default FALSE).</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>CESAnalysis with the specified MAF data loaded. The MAF data table includes
+    
+
+<p>CESAnalysis with the specified MAF data loaded. The MAF data table includes
   CES-generated variant IDs, a list of all genes overlapping the site, and top_gene and
   top_consequence columns that give the most significant annotated coding changes for
   each mutation record. Annotation precedence is determined by MAF prevalence (usually
   equal), essential splice status, premature stop codon, nonsilent status, MAF mutation
   prevalence across the transcript (often favors longer transcripts), and finally
   alphabetical order. The columns are recalculated when more data is loaded, so changes
-  in MAF prevalence can change which variants are highlighted. Note that
-<code>[CESAnalysis]$variants</code> contains more information about all top_consequence
+  in MAF prevalence can change which variants are highlighted. Note that</p>
+<p></p>
+<p><code>[CESAnalysis]$variants</code> contains more information about all top_consequence
   variants and all noncoding variants from the MAF.</p>
     </div>
 
@@ -147,7 +167,7 @@ reference data (default FALSE).</p></dd>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.3.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.4.</p>
 </div>
 
     </footer></div>

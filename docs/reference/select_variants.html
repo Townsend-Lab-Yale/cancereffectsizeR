@@ -99,19 +99,29 @@ itself, then only those specified variants will be returned.</p>
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
     <dl><dt>cesa</dt>
 <dd><p>CESAnalysis with MAF data loaded and annotated (e.g., with <code><a href="load_maf.html">load_maf()</a></code>)</p></dd>
+
+
 <dt>genes</dt>
 <dd><p>Filter variants to specified genes.</p></dd>
+
+
 <dt>min_freq</dt>
 <dd><p>Filter out variants with MAF frequency below threshold (default 0).
 Note that variants that are not in the annotation tables will never be returned. Use
 <code><a href="add_variants.html">add_variants()</a></code> to include variants absent from MAF data in your CESAnalysis.</p></dd>
+
+
 <dt>variant_ids</dt>
 <dd><p>Vector of variant IDs to include in output regardless of
 filtering options. You can use CES-style AAC and SNV IDs or variant names like 
 "KRAS G12C". If this argument is used by itself (without any filtering arguments),
 then only these specified variants will be returned.</p></dd>
+
+
 <dt>gr</dt>
 <dd><p>Filter out any variants not within input GRanges +/- <code>padding</code> bases.</p></dd>
+
+
 <dt>variant_position_table</dt>
 <dd><p>Filter out any variants that don't intersect the
 positions given in chr/start/end of this table (1-based closed coordinates).
@@ -120,6 +130,8 @@ with <code>padding</code>. (Gritty detail: Amino acid change SNVs get special ha
 precise positions in start, end, and center_nt_pos are used. This avoids intersecting
 extra variants between start/end, which on splice-site-spanning variants can be many
 thousands.)</p></dd>
+
+
 <dt>include_subvariants</dt>
 <dd><p>Some mutations "contain" other mutations. For example, in
 cancereffectsizeR's ces.refset.hg19, KRAS_Q61H contains two constituent
@@ -132,15 +144,21 @@ set this to TRUE, you can't directly plug the output table into selection functi
 However, you can pick a non-overlapping set of variant IDs from the output table 
 and re-run <code>select_variants()</code> to put those variants into a new table for
 selection functions.</p></dd>
+
+
 <dt>padding</dt>
 <dd><p>add +/- this many bases to every range specified in <code>gr</code> or
 <code>variant_position_table</code> (stopping at chromosome ends, naturally).</p></dd>
+
+
 <dt>collapse_lists</dt>
 <dd><p>Some output columns may have multiple elements per variant row.
 For example, all_genes may include multiple genes. These variable-length vectors
 allow advanced filtering and manipulation, but the syntax can be tricky. Optionally,
 set collapse_lists = T to convert these columns to comma-delimited strings, which are
 sometimes easier to work with.</p></dd>
+
+
 <dt>remove_secondary_aac</dt>
 <dd><p>Default TRUE, except overridden (effectively FALSE) when
 include_subvariants = T. Due to overlapping coding region definitions in reference
@@ -153,10 +171,13 @@ remove_secondary_aac to FALSE, you can't put the output variant table in selecti
 calculation functions. An alternative is to set to FALSE, pick which
 (non-overlapping) variants you want, and then re-run select_variants() with those
 variants specified in <code>variant_ids</code>.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A data table with info on selected variants (see details), or a list of IDs.</p>
+    
+
+<p>A data table with info on selected variants (see details), or a list of IDs.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -201,7 +222,7 @@ not actually in any gene.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.3.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.4.</p>
 </div>
 
     </footer></div>

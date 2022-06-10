@@ -80,26 +80,39 @@ CompoundVariantSets are supported.</p>
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
     <dl><dt>cesa</dt>
 <dd><p>CESAnalysis</p></dd>
+
+
 <dt>variants</dt>
 <dd><p>To test pairs of variants, supply a list where each element is a
 2-length vector of CES-style variant IDs. Alternatively (and often more usefully),
 supply a CompoundVariantSet (see <code>define_compound_variants</code>) to test all pairs
 of compound variants in the set.</p></dd>
+
+
 <dt>samples</dt>
 <dd><p>Which samples to include in inference. Defaults to all samples.
 Can be a vector of Unique_Patient_Identifiers, or a data.table containing rows from
 the CESAnalysis sample table.</p></dd>
+
+
 <dt>run_name</dt>
 <dd><p>Optionally, a name to identify the current run.</p></dd>
+
+
 <dt>cores</dt>
 <dd><p>number of cores for parallel processing of variant pairs</p></dd>
+
+
 <dt>conf</dt>
 <dd><p>confidence interval size from 0 to 1 (.95 -&gt; 95%); NULL skips calculation,
 reducing runtime.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>a data table with pairwise-epistatic selection intensities and variant
+    
+
+<p>a data table with pairwise-epistatic selection intensities and variant
   frequencies for in tumors that have coverage at both variants in each pair</p>
     </div>
 
@@ -112,7 +125,7 @@ reducing runtime.</p></dd>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.3.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.4.</p>
 </div>
 
     </footer></div>

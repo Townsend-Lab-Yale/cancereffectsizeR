@@ -86,18 +86,28 @@ an associated GenomicRanges object also required to run dNdScv.</p>
 <dd><p>Path of a Gencode-style GTF file, or an equivalently formatted data
 table. See details for required columns (features). It's possible to build such a 
 table using data pulled from biomaRt, but it's easier to use a GTF.</p></dd>
+
+
 <dt>genome</dt>
 <dd><p>genome assembly name (e.g., "hg19"); an associated BSgenome object must be
 available to load.</p></dd>
+
+
 <dt>use_all_transcripts</dt>
 <dd><p>T/F (default TRUE): Whether to use all complete transcripts or just the longest
 one for each gene (defaults to the latter).</p></dd>
+
+
 <dt>cds_ranges_lack_stop_codons</dt>
 <dd><p>The CDS records in Gencode GTFs don't include the
 stop codons in their genomic intervals. If your input does include the stop 
 codons within CDS records, set to FALSE.</p></dd>
+
+
 <dt>cores</dt>
 <dd><p>how many cores to use for parallel computations</p></dd>
+
+
 <dt>additional_essential_splice_pos</dt>
 <dd><p>Usually not needed. A list of
 additional essential splice site positions to combine with those calculated
@@ -108,13 +118,18 @@ on TP53 are treated as splice site mutations in cancereffectsizeR's default
 hg19 reference data set. (Variants at this coding position, which are
 always synonymous, have validated effects on splicing, even though the
 position misses automatic "essential splice" annotation by 1 base.)</p></dd>
+
+
 <dt>numcode</dt>
 <dd><p>(don't use) NCBI genetic code number; currently only code 1, the
 standard genetic code, is supported</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A two-item list: RefCDS (which is itself a big list, with each entry containing
+    
+
+<p>A two-item list: RefCDS (which is itself a big list, with each entry containing
   information on one coding sequence (CDS)), and a GRanges object that defines the
   genomic intervals covered by each CDS.</p>
     </div>
@@ -138,7 +153,7 @@ want to first eliminate low-confidence or superfluous transcripts from the input
 </div>
 
 <div class="pkgdown-footer-right">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.3.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.4.</p>
 </div>
 
     </footer></div>

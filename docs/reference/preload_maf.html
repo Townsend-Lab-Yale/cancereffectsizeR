@@ -100,9 +100,13 @@ will be automatically converted with rtracklayer's version of liftOver.</p>
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
     <dl><dt>maf</dt>
 <dd><p>Path of tab-delimited text file in MAF format, or a data.table/data.frame with MAF data</p></dd>
+
+
 <dt>refset</dt>
 <dd><p>name of reference data set (refset) to use; run <code><a href="list_ces_refsets.html">list_ces_refsets()</a></code> for
 available refsets. Alternatively, the path to a custom reference data directory.</p></dd>
+
+
 <dt>coverage_intervals_to_check</dt>
 <dd><p>If available, a BED file or GRanges object
 represented the expected coverage intervals of the sequencing method used to generate
@@ -114,32 +118,51 @@ target regions, and you may want to pad the covered intervals to allow these var
 to remain in your data. Alternatively, if all records are already covered, then the
 calls have probably already be trimmed to the coverage intervals, which means no
 padding should be added.)</p></dd>
+
+
 <dt>chain_file</dt>
 <dd><p>a LiftOver chain file (text format, name ends in .chain) to convert MAF
 records to the genome build used in the CESAnalysis.</p></dd>
+
+
 <dt>sample_col</dt>
 <dd><p>column name with sample ID data (Tumor_Sample_Barcode or Unique_Patient_Identifier)</p></dd>
+
+
 <dt>chr_col</dt>
 <dd><p>column name with chromosome data  (Chromosome)</p></dd>
+
+
 <dt>start_col</dt>
 <dd><p>column name with start position (Start_Position)</p></dd>
+
+
 <dt>ref_col</dt>
 <dd><p>column name with reference allele data (Reference_Allele)</p></dd>
+
+
 <dt>tumor_allele_col</dt>
 <dd><p>column name with alternate allele data; by default,
 values from Tumor_Seq_Allele2 and Tumor_Seq_Allele1 columns are used</p></dd>
+
+
 <dt>keep_extra_columns</dt>
 <dd><p>TRUE/FALSE to load data columns not needed by cancereffectsizeR,
 or a vector of column names to keep.</p></dd>
+
+
 <dt>detect_hidden_mnv</dt>
 <dd><p>Find same-sample adjacent SNVs and replace these records with
 DBS (doublet base substitution) records. Also, find groups of same-sample variants
 within 2 bp of each other and replace these records with MNV (multi-nucleotide
 variant) records.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>a data.table of MAF data, with any problematic records flagged and a few
+    
+
+<p>a data.table of MAF data, with any problematic records flagged and a few
   quality-control annotations (if available with the chosen refset data).</p>
     </div>
     <div class="section level2">
@@ -166,7 +189,7 @@ sites frequently reflect sequencing or calling error.</p></li>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.3.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.4.</p>
 </div>
 
     </footer></div>

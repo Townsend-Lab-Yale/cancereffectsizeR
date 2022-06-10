@@ -104,35 +104,53 @@ call <code><a href="select_variants.html">select_variants()</a></code> with desi
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
     <dl><dt>cesa</dt>
 <dd><p>CESAnalysis object</p></dd>
+
+
 <dt>variants</dt>
 <dd><p>Variant table from <code><a href="select_variants.html">select_variants()</a></code>, or a <code>CompoundVariantSet</code> from
 <code><a href="define_compound_variants.html">define_compound_variants()</a></code>. Defaults to all recurrent noncoding SNVs and
 (SNV-derived) coding mutations, where recurrent means appearing in at least two
 samples in the MAF data set.</p></dd>
+
+
 <dt>samples</dt>
 <dd><p>Which samples to include in inference. Defaults to all samples.
 Can be a vector of Unique_Patient_Identifiers, or a data.table containing rows from
 the CESAnalysis sample table.</p></dd>
+
+
 <dt>model</dt>
 <dd><p>"basic" or "sequential" to use built-in models of selection, or supply a
 custom function factory (see details).</p></dd>
+
+
 <dt>run_name</dt>
 <dd><p>Optionally, a name to identify the current run.</p></dd>
+
+
 <dt>ordering_col</dt>
 <dd><p>For the sequential model (or possibly custom models), the name of
 the sample table column that defines sample chronology.</p></dd>
+
+
 <dt>ordering</dt>
 <dd><p>For the sequential model (or possibly custom models), a character
 vector or list defining the ordering of values in ordering_col. Use a list to assign 
 multiple values in ordering_col the same position (e.g., `list(early = c("I", "II), late = c("III", "IV")))`
 for an early vs. late analysis).</p></dd>
+
+
 <dt>lik_args</dt>
 <dd><p>Extra arguments, given as a list, to pass to custom likelihood
 functions.</p></dd>
+
+
 <dt>hold_out_same_gene_samples</dt>
 <dd><p>When finding likelihood of each variant, hold out
 samples that lack the variant but have any other mutations in the same gene. By default,
 TRUE when running with single variants, FALSE with a CompoundVariantSet.</p></dd>
+
+
 <dt>groups</dt>
 <dd><p>(Deprecated; use samples and for sequential model, see
 ordering/ordering_col.) Which sample groups to include in inference. Data for
@@ -143,15 +161,22 @@ indicate an ordering, so is invalid for ordered-group models. <code>list("Primar
 "Metastatic")</code> indicates two ordered groups, and <code>list("A", c("B", "C"), "D")</code>
 means that group A is first, groups B and C share an intermediate state, and group D
 is last.</p></dd>
+
+
 <dt>cores</dt>
 <dd><p>number of cores to use</p></dd>
+
+
 <dt>conf</dt>
 <dd><p>selection intensity confidence interval width (NULL skips calculation,
 speeds runtime)</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>CESAnalysis object with selection results appended to the selection output list</p>
+    
+
+<p>CESAnalysis object with selection results appended to the selection output list</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -178,7 +203,7 @@ default values. See the source code of <code><a href="sswm_sequential_lik.html">
 </div>
 
 <div class="pkgdown-footer-right">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.3.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.4.</p>
 </div>
 
     </footer></div>

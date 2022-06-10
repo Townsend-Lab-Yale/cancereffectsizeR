@@ -108,31 +108,50 @@ rtracklayer's version of liftOver.</p>
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
     <dl><dt>maf</dt>
 <dd><p>Path of tab-delimited text file in MAF format, or an MAF in data.table or data.frame format</p></dd>
+
+
 <dt>refset_env</dt>
 <dd><p>a refset data environment</p></dd>
+
+
 <dt>chr_col</dt>
 <dd><p>column name with chromosome data  (Chromosome)</p></dd>
+
+
 <dt>start_col</dt>
 <dd><p>column name with start position (Start_Position)</p></dd>
+
+
 <dt>ref_col</dt>
 <dd><p>column name with reference allele data (Reference_Allele)</p></dd>
+
+
 <dt>tumor_allele_col</dt>
 <dd><p>column name with alternate allele data; by default,
 values from Tumor_Seq_Allele2 and Tumor_Seq_Allele1 columns are used.</p></dd>
+
+
 <dt>sample_col</dt>
 <dd><p>column name with sample ID data (Tumor_Sample_Barcode or Unique_Patient_Identifier)</p></dd>
+
+
 <dt>chain_file</dt>
 <dd><p>a LiftOver chain file (text format, name ends in .chain) to convert MAF
 records to the genome build used in the CESAnalysis.</p></dd>
+
+
 <dt>separate_old_problems</dt>
 <dd><p>When TRUE (as used by load_maf), respect old problems that
 look like they came from cancereffectsizeR (typically from preload_maf). These get
 separated as "old_problem", and the records won't be checked. chain_file must be
 NULL.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>data.table with core MAF columns, any other requested columns, and a "problem" column</p>
+    
+
+<p>data.table with core MAF columns, any other requested columns, and a "problem" column</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>
@@ -144,7 +163,7 @@ NULL.</p></dd>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.3.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.4.</p>
 </div>
 
     </footer></div>

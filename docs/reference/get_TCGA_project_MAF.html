@@ -91,19 +91,28 @@ caution.</p>
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
     <dl><dt>project</dt>
 <dd><p>TCGA project name (e.g., "TCGA-BRCA").</p></dd>
+
+
 <dt>filename</dt>
 <dd><p>Output filename where MAF data should be saved. Must end in '.maf'
 (plaintext) or '.maf.gz' (gzip compressed).</p></dd>
+
+
 <dt>test_run</dt>
 <dd><p>Default FALSE. When TRUE, gets MAF data for a few samples instead of the whole cohort.</p></dd>
+
+
 <dt>exclude_TCGA_nonprimary</dt>
 <dd><p>Default TRUE. For TCGA projects, exclude samples not
 associated with a patient's initial primary tumor. (In many TCGA projects, a small
 handful of patients have metastatic, recurrent, or additional primary samples.)</p></dd>
+
+
 <dt>allow_failure</dt>
 <dd><p>Default FALSE. When TRUE, if data download fails for some samples,
 still return data from whatever samples did have complete, successful data download.
 The data returned will be valid, but the cohort may be incomplete.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -127,7 +136,7 @@ default removed by this function).</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.3.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.4.</p>
 </div>
 
     </footer></div>

@@ -47,7 +47,7 @@ get_TCGA_project_MAF = function(project = NULL, filename = NULL, test_run = FALS
     stop("The directory specified in the output file path does not exist.")
   }
   
-  if(! file_test('-w', dir)) {
+  if(file.access(dir, 2) != 0) {
     if (dir == '.') {
       msg = paste0("You don't have write permissions in your working directory.",
                    " Change directories or specify a different path for your output filename.")

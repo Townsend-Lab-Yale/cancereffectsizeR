@@ -88,6 +88,8 @@ SNV/AAC IDs.</p>
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
     <dl><dt>target_cesa</dt>
 <dd><p>CESAnalysis to receive variant annotations</p></dd>
+
+
 <dt>variant_table</dt>
 <dd><p>A data.table with chr/start/end positions (1-based closed
 coordinates, like MAF format). All possible SNVs overlapping the table's genomic
@@ -96,21 +98,34 @@ select_variants() and (CESAnalysis)$variants work, and get special handling of
 amino-acid-change SNVs: only the precise positions in start, end, and center_nt_pos
 are used. (This avoids adding all variants between start/end, which on
 splice-site-spanning variants can be many thousands.)</p></dd>
+
+
 <dt>snv_id</dt>
 <dd><p>Character vector of CES-style SNV IDs to add.</p></dd>
+
+
 <dt>aac_id</dt>
 <dd><p>Character vector of AAC IDs (or short names, like "KRAS_G12C")</p></dd>
+
+
 <dt>bed</dt>
 <dd><p>A path to a BED file. All possible SNVs overlapping BED intervals (within
 <code>padding</code> bases) will be added.</p></dd>
+
+
 <dt>gr</dt>
 <dd><p>A GRanges object. All possible SNVs overlapping the ranges (within <code>padding</code>
 bases) will be added.</p></dd>
+
+
 <dt>source_cesa</dt>
 <dd><p>Another CESAnalysis from which to copy snv_ids. SNVs will be
 re-annotated using the target_cesa's associated reference data.</p></dd>
+
+
 <dt>padding</dt>
 <dd><p>How many bases (default 0) to expand start and end of each gr range</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -131,7 +146,7 @@ CESAnalysis may take up significant memory. Please contact us if you have issues
 </div>
 
 <div class="pkgdown-footer-right">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.3.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.4.</p>
 </div>
 
     </footer></div>

@@ -86,29 +86,44 @@ arguments are required except default_exome/exome_interval_padding, which are re
     <dl><dt>output_dir</dt>
 <dd><p>Name/path of an existing, writeable output directory where all data
 will be saved. The name of this directory will serve as the name of the custom refset.</p></dd>
+
+
 <dt>refcds_output</dt>
 <dd><p>Transcript information in the two-item list (consisting of RefCDS
 and gr_genes) that is output by <code>build_RefCDS</code>.</p></dd>
+
+
 <dt>species_name</dt>
 <dd><p>Name of the species, primarily for display (e.g., "human").</p></dd>
+
+
 <dt>genome_build_name</dt>
 <dd><p>Name of the genome build, primarily for display (e.g., "hg19").</p></dd>
+
+
 <dt>BSgenome_name</dt>
 <dd><p>The name of the BSgenome package to use (e.g., "hg19"); will used by
 cancereffectsizeR to load the reference genome via BSgenome::getBSgenome().</p></dd>
+
+
 <dt>supported_chr</dt>
 <dd><p>Character vector of supported chromosomes. Note that
 cancereffectsizeR uses NCBI-style chromosome names, which means no chr prefixes ("X",
 not "chrX"). Mitochondrial contigs shouldn't be included since they would require
 special handling that hasn't been implemented.</p></dd>
+
+
 <dt>default_exome</dt>
 <dd><p>A BED file or GRanges object that defines coding regions in the genome as might
 be used by an exome capture kit. This file (or GRanges) might be acquired or generated from exome capture kit documentation,
 or alternatively, coding regions defined in a GTF file (or the granges output by build_RefCDS()).</p></dd>
+
+
 <dt>exome_interval_padding</dt>
 <dd><p>Number of bases to pad start/end of each covered
 interval, to allow for some variants to be called just outside of targeted regions,
 where there still may be pretty good sequencing coverage.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -124,7 +139,7 @@ where there still may be pretty good sequencing coverage.</p></dd>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.3.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.4.</p>
 </div>
 
     </footer></div>

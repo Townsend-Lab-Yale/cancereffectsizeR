@@ -80,22 +80,35 @@ trinucleotide-context-specific SNV mutation rates of each sample</p>
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
     <dl><dt>cesa</dt>
 <dd><p>CESAnalysis with gene mutation rates and tumor-specific trinucleotide-context-specific mutation rates already calculated</p></dd>
+
+
 <dt>aac_ids</dt>
 <dd><p>vector of IDs for amino acid change variants</p></dd>
+
+
 <dt>snv_ids</dt>
 <dd><p>vector of IDs for SNVs</p></dd>
+
+
 <dt>variant_ids</dt>
 <dd><p>vector of mixed IDs (faster to use snv_ids and aac_ids for large jobs, if already known)</p></dd>
+
+
 <dt>samples</dt>
 <dd><p>Which samples to calculate rates for. Defaults to all samples. Can be a
 vector of Unique_Patient_Identifiers, or a data.table containing rows from the
 CESAnalysis sample table.</p></dd>
+
+
 <dt>cores</dt>
 <dd><p>number of cores to use for mutation processing (useful for large data sets or mutation lists)</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>a data table of mutation rates with one column per variant, and a Unique_Patient_Identifier column identifying each row</p>
+    
+
+<p>a data table of mutation rates with one column per variant, and a Unique_Patient_Identifier column identifying each row</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>
@@ -107,7 +120,7 @@ CESAnalysis sample table.</p></dd>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.3.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.4.</p>
 </div>
 
     </footer></div>
