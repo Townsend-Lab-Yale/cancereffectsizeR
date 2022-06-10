@@ -208,7 +208,7 @@ preload_maf = function(maf = NULL, refset = NULL, coverage_intervals_to_check = 
       dbs[, c("v1", "v2") := NULL]
       setnames(dbs, "dbs_id", "variant_id")
       dbs[, problem := NA_character_]
-      maf = rbind(maf, dbs)
+      maf = rbind(maf, dbs, fill = T)
       
       num_dbs = dbs[, .N]
       if(num_dbs > 0) {
@@ -277,7 +277,7 @@ preload_maf = function(maf = NULL, refset = NULL, coverage_intervals_to_check = 
           new_records[, c("prelift_chr", "prelift_start", "liftover_strand_flip") := .(NA_character_, NA_integer_, NA)]
         }
         new_records$problem = NA_character_
-        maf = rbind(maf, new_records[, -"mnv_group"])
+        maf = rbind(maf, new_records[, -"mnv_group"], fill = T)
         num_new_mnv = new_records[, .N] # the DBS variants have already been removed
         if (num_new_mnv > 0) {
           msg = ifelse(num_dbs > 0, 'Additionally, ', 'Note: ')
