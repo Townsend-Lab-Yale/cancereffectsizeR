@@ -507,8 +507,8 @@ treated as having 0 mutations.)</li>
 <li>
 <strong>trinuc_rates</strong>: Inferred relative rates of mutation,
 produced by matrix-multiplying biological_weights and signature
-definitions. (These rates will not equal the empirical rates seen in the
-data.)</li>
+definitions. (These rates will not equal empirical rates of observed
+mutations.)</li>
 </ul>
 <p>While we’re here, MutationalPatterns has some nice plot functions
 that we can use. For example, we can plot the mean SNV profile for each
@@ -537,11 +537,12 @@ specifically exclude them.)</p>
 <span class="co">##    A[C&gt;A]T            0</span>
 <span class="co">##    C[C&gt;A]A            0</span></code></pre>
 <div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="co"># We'll sum up the counts by group</span>
+<code class="sourceCode R"><span class="co"># We'll sum up the counts by group, leaving out a sample that has no SNVs.</span>
 <span class="va">summed_snv_by_group</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/data.table.html" class="external-link">data.table</a></span><span class="op">(</span><span class="op">)</span>
 <span class="va">receptor_groups</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/duplicated.html" class="external-link">unique</a></span><span class="op">(</span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/na.omit.data.table.html" class="external-link">na.omit</a></span><span class="op">(</span><span class="va">cesa</span><span class="op">$</span><span class="va">samples</span><span class="op">$</span><span class="va">receptor_status</span><span class="op">)</span><span class="op">)</span>
+<span class="va">samples_with_snvs</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">samples</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">snv_counts</span><span class="op">)</span>, on <span class="op">=</span> <span class="st">"Unique_Patient_Identifier"</span><span class="op">]</span>
 <span class="kw">for</span> <span class="op">(</span><span class="va">grp</span> <span class="kw">in</span> <span class="va">receptor_groups</span><span class="op">)</span> <span class="op">{</span>
-  <span class="va">curr_samples</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">samples</span><span class="op">[</span><span class="va">grp</span>, <span class="va">Unique_Patient_Identifier</span>, on <span class="op">=</span> <span class="st">"receptor_status"</span><span class="op">]</span>
+  <span class="va">curr_samples</span> <span class="op">&lt;-</span> <span class="va">samples_with_snvs</span><span class="op">[</span><span class="va">grp</span>, <span class="va">Unique_Patient_Identifier</span>, on <span class="op">=</span> <span class="st">"receptor_status"</span><span class="op">]</span>
   <span class="va">curr_snv_sum</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">rowSums</a></span><span class="op">(</span><span class="va">snv_counts</span><span class="op">[</span>, <span class="va">curr_samples</span><span class="op">]</span><span class="op">)</span>
   <span class="va">summed_snv_by_group</span><span class="op">[</span>, <span class="op">(</span><span class="va">grp</span><span class="op">)</span> <span class="op">:=</span> <span class="va">curr_snv_sum</span><span class="op">]</span>
 <span class="op">}</span>
