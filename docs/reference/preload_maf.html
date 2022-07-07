@@ -22,7 +22,7 @@ will be automatically converted with rtracklayer's version of liftOver."><!-- ma
     
     <a class="navbar-brand me-2" href="../index.html">cancereffectsizeR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.6.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.6.2</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -86,7 +86,7 @@ will be automatically converted with rtracklayer's version of liftOver.</p>
   refset <span class="op">=</span> <span class="cn">NULL</span>,
   coverage_intervals_to_check <span class="op">=</span> <span class="cn">NULL</span>,
   chain_file <span class="op">=</span> <span class="cn">NULL</span>,
-  sample_col <span class="op">=</span> <span class="st">"Tumor_Sample_Barcode"</span>,
+  sample_col <span class="op">=</span> <span class="st">"Unique_Patient_Identifier"</span>,
   chr_col <span class="op">=</span> <span class="st">"Chromosome"</span>,
   start_col <span class="op">=</span> <span class="st">"Start_Position"</span>,
   ref_col <span class="op">=</span> <span class="st">"Reference_Allele"</span>,
@@ -126,7 +126,8 @@ records to the genome build used in the CESAnalysis.</p></dd>
 
 
 <dt>sample_col</dt>
-<dd><p>column name with sample ID data (Tumor_Sample_Barcode or Unique_Patient_Identifier)</p></dd>
+<dd><p>column name with patient ID; defaults to
+Unique_Patient_Identifier, or, in its absence, Tumor_Sample_Barcode</p></dd>
 
 
 <dt>chr_col</dt>
