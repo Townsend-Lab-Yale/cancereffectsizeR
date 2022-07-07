@@ -65,7 +65,7 @@ sometimes easier to work with.}
 \item{remove_secondary_aac}{Default TRUE, except overridden (effectively FALSE) when
 include_subvariants = T. Due to overlapping coding region definitions in reference
 data (e.g., genes with multiple transcripts), a site can have more than one
-amino-acid-change mutation annotation. To avoid returning the same genome-positional
+amino-acid-change annotation. To avoid returning the same genome-positional
 variants multiple times, the default is to return one AAC in these situations.
 Tiebreakers are MAF prevalence, essential splice site status, premature stop codon,
 non-silent status, gene/protein mutation count, alphabetical. If you set
@@ -117,7 +117,6 @@ Definitions of some less self-explanatory columns:
   \item constituent_snvs: all SNVs that can produce a given variant 
   \item multi_anno_site: T/F whether variant has multiple gene/transcript/AAC annotations
   \item all_genes: all genes overlapping the variant in reference data
-  \item covered_in: the names of all "covered regions" sets in the CESAnalysis that have coverage at the variant site
   \item maf_prevalence: number of occurrences of the variant in MAF data
   \item samples_covering: number of MAF samples with sequencing coverage at the variant site
 }

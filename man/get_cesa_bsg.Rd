@@ -10,6 +10,6 @@ get_cesa_bsg(cesa)
 \item{cesa}{CESAnalysis}
 }
 \description{
-Loads the right BSgenome for a CESAnalysis, formatted NCBI-style
+Loads the right BSgenome for a CESAnalysis
 }
 \keyword{internal}

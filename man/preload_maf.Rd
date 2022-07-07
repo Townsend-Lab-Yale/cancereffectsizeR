@@ -9,7 +9,7 @@ preload_maf(
   refset = NULL,
   coverage_intervals_to_check = NULL,
   chain_file = NULL,
-  sample_col = "Tumor_Sample_Barcode",
+  sample_col = "Unique_Patient_Identifier",
   chr_col = "Chromosome",
   start_col = "Start_Position",
   ref_col = "Reference_Allele",
@@ -38,7 +38,8 @@ padding should be added.)}
 \item{chain_file}{a LiftOver chain file (text format, name ends in .chain) to convert MAF
 records to the genome build used in the CESAnalysis.}
 
-\item{sample_col}{column name with sample ID data (Tumor_Sample_Barcode or Unique_Patient_Identifier)}
+\item{sample_col}{column name with patient ID; defaults to
+Unique_Patient_Identifier, or, in its absence, Tumor_Sample_Barcode}
 
 \item{chr_col}{column name with chromosome data  (Chromosome)}
 

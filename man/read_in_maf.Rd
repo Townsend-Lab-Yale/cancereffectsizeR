@@ -11,7 +11,7 @@ read_in_maf(
   start_col = "Start_Position",
   ref_col = "Reference_Allele",
   tumor_allele_col = "guess",
-  sample_col = "Tumor_Sample_Barcode",
+  sample_col = "Unique_Patient_Identifier",
   more_cols = NULL,
   chain_file = NULL,
   separate_old_problems = FALSE

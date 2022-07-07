@@ -380,6 +380,10 @@ ces_variant <- function(cesa = NULL,
 
   # Will process variants by coverage group (i.e., groups of variants that have the same tumors covering them)
   selection_results = NULL
+  
+  all_coverage = rbind(cesa@mutations$snv[, .(variant_id = snv_id, covered_in)], 
+                           cesa@mutations$amino_acid_change[, .(variant_id = aac_id, covered_in)])
+  variants[all_coverage, covered_in := covered_in, on = 'variant_id']
   coverage_groups = unique(variants$covered_in)
   num_coverage_groups = length(coverage_groups)
   

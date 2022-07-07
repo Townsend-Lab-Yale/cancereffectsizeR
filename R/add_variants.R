@@ -176,7 +176,7 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
                                      aa_pos = aac_dt$aa_pos,
                                      aa_alt = aac_dt$aa_alt,
                                      refcds_entry = refset$RefCDS[aac_dt$entry_name],
-                                     MoreArgs = list(bsg = refset$genome))))
+                                     MoreArgs = list(bsg = refset$genome), SIMPLIFY = F)))
   }
   
   num_variants = length(snvs_to_annotate)

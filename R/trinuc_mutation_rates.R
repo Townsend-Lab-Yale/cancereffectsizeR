@@ -668,14 +668,42 @@ trinuc_snv_counts = function(maf,
   if(maf[, .N] == 0) {
     stop("No MAF data in the CESAnalysis", call. = F)
   }
-  
-  if(! all(c("variant_type", "Unique_Patient_Identifier") %in% names(maf))) {
-    stop("Expected columns Unique_Patient_Identifier and variant_type in maf, as seen in MAF tables validated by preload_maf().")
-  }
+  maf = copy(maf)
   
   bsg = genome
   if (! is(bsg, "BSgenome")) {
     stop("genome should be a BSgenome object.")
+  }
+  
+  if(! all(c("variant_type", "Unique_Patient_Identifier", 'variant_id') %in% names(maf))) {
+    message('Validating input table...')
+    suppressWarnings(maf[, c("variant_type", "variant_id") := NULL])
+    if (! 'Unique_Patient_Identifier' %in% names(maf)) {
+      if(! 'Tumor_Sample_Barcode' %in% names(maf)) {
+        stop("Found neither Unique_Patient_Identifier nor Tumor_Sample_Barcode in MAF table.")
+      }
+      maf = copy(maf)
+      message("Counting SNVs by Tumor_Sample_Barcode...")
+      setnames(maf, 'Tumor_Sample_Barcode', 'Unique_Patient_Identifier')
+    }
+    if (! 'Tumor_Allele' %in% names(maf)) {
+      if (! 'Tumor_Seq_Allele2' %in% names(maf)) {
+        stop("Found neither Tumor_Allele nor Tumor_Seq_Allele2 in MAF table.")
+      }
+      message("Taking tumor alleles from Tumor_Seq_Allele2...")
+      setnames(maf, 'Tumor_Seq_Allele2', 'Tumor_Allele')
+    }
+    
+    missing_chr = setdiff(maf$Chromosome, seqnames(bsg))
+    if(length(missing_chr) > 0) {
+      msg = paste0("Some chromosomes in input MAF are not in the input genome. (If it's a chromosome naming inconsistency, ",
+                   "you may need to strip or add \"chr\" prefixes to your MAF, or use seqlevelsStyle() on your genome.)\n",
+                   "Missing: ", paste0(missing_chr, collapse = ", "), ".")
+      stop(pretty_message(msg, emit = F))
+    }
+    
+    maf = identify_maf_variants(maf)[variant_type == 'snv']
+    validate_snv_ids(maf$variant_id, bsg = bsg)
   }
   
   if(! is.logical(exclude_recurrent) || length(exclude_recurrent) != 1) {

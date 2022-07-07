@@ -30,7 +30,7 @@ test_that("load_maf and variant annotation", {
   
   
   selected = select_variants(tiny, variant_ids  = "12:132824581_C>A", genes = "TTN")
-  expect_equal(selected[variant_id == "12:132824581_C>A", unlist(covered_in)], NA_character_)
+  expect_equal(tiny@mutations$snv["12:132824581_C>A", unlist(covered_in)], character())
   expect_equal(selected[, .N], 3)
   selected = select_variants(tiny, variant_ids = "12:132824581_C>A", genes = "TTN", min_freq = 0, include_subvariants = T)
   expect_equal(selected[, .N], 7)
@@ -106,10 +106,8 @@ test_that("add_variants", {
   cesa = CESAnalysis('ces.refset.hg19')
   cesa = add_variants(cesa, aac_id = 'BRAF_V600E')
   expect_equal(cesa$variants[, .N], 1)
-  expect_equal(cesa$variants$covered_in[[1]], NA_character_)
   cesa = CESAnalysis('ces.refset.hg19')
   cesa = add_variants(cesa, snv_id = "11:18752521_C>A")
-  
 })
 
 test_that("load_maf edge cases", {

@@ -110,9 +110,8 @@ test_that("ces_variant on subsets of samples", {
   cesa = add_covered_regions(cesa, covered_regions = no_egfr_cov, covered_regions_name = "no_egfr",
                              coverage_type = "exome")
   
-  egfr_variants = select_variants(cesa, genes = "EGFR", min_freq = 2)
-  expect_true(egfr_variants[variant_name == "EGFR_L858R", identical(unlist(covered_in), "exome+")])
-  expect_true(egfr_variants[variant_name != "EGFR_L858R", length(unlist(unique(covered_in))) == 2])
+  expect_identical(cesa@mutations$amino_acid_change[aac_id %like% 'EGFR_L858R', unlist(covered_in)], 'exome+')
+  expect_identical(cesa@mutations$amino_acid_change[1, sort(unlist(covered_in))], sort(c('exome+', 'no_egfr')))
   
   # illegally adding new samples/data
   cesa@samples = rbind(cesa@samples, new_samples)

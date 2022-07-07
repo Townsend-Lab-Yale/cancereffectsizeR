@@ -13,7 +13,7 @@ aac_to_snv_ids(refcds_entry, aa_pos, aa_alt, bsg)
 
 \item{aa_alt}{Identity of substitution, either a three-letter code ("Lys") or "STOP"}
 
-\item{bsg}{A BSgenome ob ject for the genome build associated with the RefCDS entry}
+\item{bsg}{A BSgenome object for the genome build associated with the RefCDS entry}
 }
 \description{
 An internal function to figure out the SNVs that can cause a given amino acid substitution in a transcript

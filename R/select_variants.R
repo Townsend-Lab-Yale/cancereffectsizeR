@@ -38,7 +38,6 @@
 #'   \item constituent_snvs: all SNVs that can produce a given variant 
 #'   \item multi_anno_site: T/F whether variant has multiple gene/transcript/AAC annotations
 #'   \item all_genes: all genes overlapping the variant in reference data
-#'   \item covered_in: the names of all "covered regions" sets in the CESAnalysis that have coverage at the variant site
 #'   \item maf_prevalence: number of occurrences of the variant in MAF data
 #'   \item samples_covering: number of MAF samples with sequencing coverage at the variant site
 #' }
@@ -81,7 +80,7 @@
 #' @param remove_secondary_aac Default TRUE, except overridden (effectively FALSE) when
 #'   include_subvariants = T. Due to overlapping coding region definitions in reference
 #'   data (e.g., genes with multiple transcripts), a site can have more than one
-#'   amino-acid-change mutation annotation. To avoid returning the same genome-positional
+#'   amino-acid-change annotation. To avoid returning the same genome-positional
 #'   variants multiple times, the default is to return one AAC in these situations.
 #'   Tiebreakers are MAF prevalence, essential splice site status, premature stop codon,
 #'   non-silent status, gene/protein mutation count, alphabetical. If you set
@@ -255,8 +254,9 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
     selected_snv_ids = setdiff(selected_snv_ids, aac_snv_key$snv_id)
   }
   
-  selected_snv = setDT(cesa@mutations$snv[selected_snv_ids, on = 'snv_id'])
-  selected_aac = setDT(cesa@mutations$amino_acid_change[selected_aac_ids, on = 'aac_id'])
+  # not including covered_in in output
+  selected_snv = setDT(cesa@mutations$snv[selected_snv_ids, -"covered_in", on = 'snv_id'])
+  selected_aac = setDT(cesa@mutations$amino_acid_change[selected_aac_ids, -"covered_in", on = 'aac_id'])
   
   # Get variant counts and coverage
   snv_from_aac = cesa@mutations$aac_snv_key[selected_aac$aac_id, .(aac_id, snv_id), on = 'aac_id']
@@ -336,14 +336,12 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
     message("No variants passed selection criteria!")
     return(NULL)
   }
-  # convert 0-length covered_in to NA (for sites just covered in whole-genome)
-  combined[which(sapply(covered_in, length) == 0), covered_in := list(NA_character_)]
   
   # collapse list columns, if specified
   if (collapse_lists) {
     # Problem: unstrsplit converts NA to "NA"
     # "NA" is not a valid value for any of these except all_genes, and going to assume there is not a gene called "NA"
-    list_cols = c("constituent_snvs", "covered_in", "all_genes")
+    list_cols = c("constituent_snvs", "all_genes")
     combined[, (list_cols) := lapply(.SD, function(x) S4Vectors::unstrsplit(x, sep = ",")), .SDcols = list_cols]
     combined[, (list_cols) := lapply(.SD, function(x) gsub('NA', NA_character_, x)), .SDcols = list_cols]
 
@@ -435,7 +433,7 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   setcolorder(combined, c("variant_name", "variant_type", "chr", "start", "end", "variant_id", "ref", "alt", "gene", 
                           "strand", "aachange", "essential_splice", "intergenic", "nearest_pid", "trinuc_mut", "aa_ref", "aa_pos", "aa_alt", "coding_seq", 
                           "center_nt_pos", "pid", "constituent_snvs", "multi_anno_site", "all_genes",
-                          "covered_in", "maf_prevalence", "samples_covering"))
+                          "maf_prevalence", "samples_covering"))
   
   setattr(combined, "cesa_id", cesa@advanced$uid)
   setattr(combined, "nonoverlapping", nonoverlapping)

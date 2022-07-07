@@ -11,7 +11,8 @@ build_RefCDS(
   cds_ranges_lack_stop_codons = TRUE,
   cores = 1,
   additional_essential_splice_pos = NULL,
-  numcode = 1
+  numcode = 1,
+  chromosome_style = "NCBI"
 )
 }
 \arguments{
@@ -19,11 +20,11 @@ build_RefCDS(
 table. See details for required columns (features). It's possible to build such a 
 table using data pulled from biomaRt, but it's easier to use a GTF.}
 
-\item{genome}{genome assembly name (e.g., "hg19"); an associated BSgenome object must be
-available to load.}
+\item{genome}{Genome assembly name (e.g., "hg19"); an associated BSgenome object must be
+available to load. Alternatively, supply a BSgenome object directly.}
 
 \item{use_all_transcripts}{T/F (default TRUE): Whether to use all complete transcripts or just the longest
-one for each gene (defaults to the latter).}
+one for each gene.}
 
 \item{cds_ranges_lack_stop_codons}{The CDS records in Gencode GTFs don't include the
 stop codons in their genomic intervals. If your input does include the stop 
@@ -43,6 +44,10 @@ position misses automatic "essential splice" annotation by 1 base.)}
 
 \item{numcode}{(don't use) NCBI genetic code number; currently only code 1, the
 standard genetic code, is supported}
+
+\item{chromosome_style}{Chromosome naming style to use. Defaults to "NCBI". For the human
+genome, that means 1, 2,..., as opposed to "UCSC" style (chr1, chr2, ...). Value gets
+passed to genomeInfoDb's seqlevelsStyle().}
 }
 \value{
 A two-item list: RefCDS (which is itself a big list, with each entry containing
