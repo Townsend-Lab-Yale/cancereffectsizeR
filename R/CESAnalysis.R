@@ -590,12 +590,12 @@ clean_granges_for_cesa = function(cesa = NULL, gr = NULL, padding = 0, refset_en
   # For now, suppressing "more than one best sequence renaming map"; tends to appear on single-chr inputs
   withCallingHandlers(
     { 
-      GenomeInfoDb::seqlevelsStyle(gr) = "NCBI" 
+      GenomeInfoDb::seqlevelsStyle(gr) = GenomeInfoDb::seqlevelsStyle(bsg)[1]
     },
     warning = function(w) {
       if (grepl("more than one best sequence renaming map", conditionMessage(w))) {
         invokeRestart("muffleWarning")
-      } else if(grepl("cannot switch some of.*to NCBI style", conditionMessage(w))) {
+      } else if(grepl("cannot switch some of.*to .*style", conditionMessage(w))) {
         invokeRestart("muffleWarning")
       }
     }        

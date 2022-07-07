@@ -180,17 +180,20 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
   maf_cols = c("Unique_Patient_Identifier", "Chromosome", "Start_Position", "Reference_Allele", "Tumor_Allele")
   
   old_problems = data.table()
-  if('problem' %in% names(maf) && separate_old_problems == TRUE) {
-    if(length(setdiff(unique(maf$problem), c(preload_problems, 'NA', NA))) == 0) {
+  if('problem' %in% names(maf)) {
+    if(separate_old_problems == TRUE) {
+      if(length(setdiff(unique(maf$problem), c(preload_problems, 'NA', NA))) == 0) {
         old_problems = maf[! is.na(problem)]
         setnames(old_problems, 'problem', 'old_problem')
         old_problems[, problem := NA_character_]
         maf = maf[is.na(problem)]
-    } else {
-      msg = paste0("Found a \"problem\" column in MAF, but if the table came from cancereffectsizeR, ",
-                   "it's been subsequently altered, so it can't be used.")
+      } else {
+        msg = paste0("Found a \"problem\" column in MAF, but if the table came from cancereffectsizeR, ",
+                     "it's been subsequently altered, so it can't be used and will be overwritten.")
+      }
     }
-  }
+    maf[, problem := NULL]
+  } 
   maf[, problem := NA_character_]
   check = maf[, lapply(.SD, function(x) is.na(x) | grepl("^[.\"\' ]*$", x)), .SDcols = maf_cols]
   looks_empty = apply(check, 1, any)
@@ -226,18 +229,24 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
   if(! is.null(chain_file)) {
     message("Preparing and running liftOver...")
     chain = rtracklayer::import.chain(chain_file)
-    names(chain) = sub("^chr", "", names(chain))
+    
+    # We'll actually use UCSC style for liftOver since we don't know what style the input
+    # MAF is, and it appears more consistent than NCBI.
+    suppressWarnings({seqlevelsStyle(chain) = 'UCSC'})
+    names(chain) = seqnames(seqinfo(chain)) # names should change with seqlevelsStyle, but they don't
     maf[, rn := 1:.N] # using row number as an identifier to know which intervals fail liftover
     for_liftover = maf[is.na(problem), .(Chromosome, Start_Position, rn)]
-    for_liftover[, Chromosome := sub('^chr', '', Chromosome)]
     
     # Assume positive strand (if there are ever serious MAF files with minus strand records, may need to change)
     gr = GenomicRanges::makeGRangesFromDataFrame(df = for_liftover, seqnames.field = "Chromosome", 
                                                  start.field = "Start_Position", end.field = "Start_Position",
                                                  keep.extra.columns = T)
+    
+    GenomeInfoDb::seqlevelsStyle(gr) = 'UCSC'
     GenomicRanges::strand(gr) = "+"
     lifted_over = unlist(rtracklayer::liftOver(gr, chain))
-    suppressWarnings({GenomeInfoDb::seqlevelsStyle(lifted_over) = "NCBI"})
+    genome(lifted_over) = genome(refset_env$genome)[1]
+    suppressWarnings({GenomeInfoDb::seqlevelsStyle(lifted_over) = seqlevelsStyle(refset_env$genome)})
     lifted_over = as.data.table(lifted_over)
     
     merged_maf = merge.data.table(maf, lifted_over, by = "rn")
@@ -277,7 +286,7 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
           as.character(Biostrings::reverseComplement(DNAStringSet(Tumor_Allele))))]
   }
   
-  # strip chr prefixes from chr column, if present ("NCBI-style"), and flag unsupported chromosomes
+  # If MAF has unsupported chromosome names, try stripping chr prefixes
   supported_chr = refset_env$supported_chr
   maf[, supported := FALSE][Chromosome %in% supported_chr, supported := T]
   maf[supported == FALSE, stripped_chr := sub('^chr', '', Chromosome) ]

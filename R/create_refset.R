@@ -90,13 +90,31 @@ create_refset = function(output_dir, refcds_output, species_name, genome_build_n
   genome_info[['BSgenome']] = BSgenome_name
   genome_info[['supported_chr']] = supported_chr
   
-  
+  # use seqlevelsStyle from RefCDS, since it will need to match
+  chromosome_style = seqlevelsStyle(refcds_output[[2]])[1]
+  genome_info[['chromosome_style']] = chromosome_style
   
   # Compute and save genome-wide trinucleotide contexts
   # (For ces.refset.hg19, this exactly reproduces the existing hg19 counts packaged with deconstructSigs.)
   bsg = BSgenome::getBSgenome(genome_info[['BSgenome']])
-  suppressWarnings({seqlevelsStyle(bsg) = "NCBI"})
+  withCallingHandlers(
+    { 
+      GenomeInfoDb::seqlevelsStyle(bsg) = chromosome_style
+    },
+    warning = function(w) {
+      if (grepl("more than one best sequence renaming map", conditionMessage(w))) {
+        invokeRestart("muffleWarning")
+      } else if(grepl("cannot switch some of.*to .*style", conditionMessage(w))) {
+        invokeRestart("muffleWarning")
+      }
+    }        
+  )
   
+  missing_chr = setdiff(supported_chr, seqnames(bsg))
+  if (length(missing_chr) > 0) {
+    stop('Not all supported_chr are present in genome. Check that chromosome naming style is consistent.\n',
+         'Missing: ', paste(missing_chr, collapse = ", "), '.')
+  }
   
   # deconstructSigs_trinuc_string is internal to cancereffectsizeR (find with getAnywhere if necessary).
   # Here, we need unique trinucleotide contexts (without mutations) in deconstructSigs ordering,
@@ -179,7 +197,8 @@ create_refset = function(output_dir, refcds_output, species_name, genome_build_n
       default_exome = rtracklayer::import(default_exome, format = "bed")
     }
     
-    suppressWarnings({seqlevelsStyle(default_exome) = "NCBI"})
+    genome(default_exome) = genome(bsg)[1]
+    suppressWarnings({seqlevelsStyle(default_exome) = seqlevelsStyle(bsg)})
     default_exome = default_exome[as.character(seqnames(default_exome)) %in% supported_chr]
     default_exome = unstrand(default_exome)
     # need to reorder seqlevels (1, 2, ..., X, Y) in cases where the input bed file wasn't sorted

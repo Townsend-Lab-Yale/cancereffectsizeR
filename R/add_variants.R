@@ -236,7 +236,7 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
 #' @param refcds_entry A RefCDS entry for the relevant transcript
 #' @param aa_pos Integer position of substitution on the transcript.
 #' @param aa_alt Identity of substitution, either a three-letter code ("Lys") or "STOP"
-#' @param bsg A BSgenome ob ject for the genome build associated with the RefCDS entry
+#' @param bsg A BSgenome object for the genome build associated with the RefCDS entry
 #' @keywords internal
 aac_to_snv_ids = function(refcds_entry, aa_pos, aa_alt, bsg) {
   entry = refcds_entry

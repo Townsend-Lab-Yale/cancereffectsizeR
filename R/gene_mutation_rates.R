@@ -123,17 +123,17 @@ gene_mutation_rates <- function(cesa, covariates = NULL, samples = character(), 
     genes_in_pca = rownames(cv)
   }
   
-  
-  
+  # When gr_genes is protein-based, need to track which pids go with each gene identifier
+  if(using_cds_rates) {
+    # If rates are by CDS, synch-up gene-based covariates by assuming same covariates across each gene.
+    # In the future, CDS-based (or, maybe better, coordinate-based) covariates may be supported.
+    pid_to_gene = unique(as.data.table(GenomicRanges::mcols(gr_genes)))
+    setnames(pid_to_gene, 'names', 'pid')
+  }
   
   # Validate covariates
   if (! skip_covariate_validation) {
-    if(using_cds_rates) {
-      # If rates are by CDS, synch-up gene-based covariates by assuming same covariates across each gene.
-      # In the future, CDS-based (or, maybe better, coordinate-based) covariates may be supported.
-      pid_to_gene = unique(as.data.table(GenomicRanges::mcols(gr_genes)))
-      setnames(pid_to_gene, 'names', 'pid')
-      
+    if (using_cds_rates) {
       # For compatibility with cancereffectsizeR covariates that split isoforms for CDKN2A 
       # (The isoforms use the same covariates, so we can just copy one.)
       current_cv_genes = rownames(cv)

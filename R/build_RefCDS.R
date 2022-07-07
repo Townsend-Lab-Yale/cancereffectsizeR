@@ -19,10 +19,10 @@
 #' @param gtf Path of a Gencode-style GTF file, or an equivalently formatted data
 #'   table. See details for required columns (features). It's possible to build such a 
 #'   table using data pulled from biomaRt, but it's easier to use a GTF.
-#' @param genome genome assembly name (e.g., "hg19"); an associated BSgenome object must be
-#'   available to load.
+#' @param genome Genome assembly name (e.g., "hg19"); an associated BSgenome object must be
+#'   available to load. Alternatively, supply a BSgenome object directly.
 #' @param use_all_transcripts T/F (default TRUE): Whether to use all complete transcripts or just the longest
-#'   one for each gene (defaults to the latter).
+#'   one for each gene.
 #' @param cds_ranges_lack_stop_codons The CDS records in Gencode GTFs don't include the
 #'   stop codons in their genomic intervals. If your input does include the stop 
 #'   codons within CDS records, set to FALSE.
@@ -38,19 +38,46 @@
 #'   position misses automatic "essential splice" annotation by 1 base.)
 #' @param numcode (don't use) NCBI genetic code number; currently only code 1, the
 #'   standard genetic code, is supported
+#' @param chromosome_style Chromosome naming style to use. Defaults to "NCBI". For the human
+#'   genome, that means 1, 2,..., as opposed to "UCSC" style (chr1, chr2, ...). Value gets
+#'   passed to genomeInfoDb's seqlevelsStyle().
 #' @export
 
 build_RefCDS = function(gtf, genome, use_all_transcripts = TRUE, cds_ranges_lack_stop_codons = TRUE, cores = 1, 
-                        additional_essential_splice_pos = NULL, numcode = 1) {
+                        additional_essential_splice_pos = NULL, numcode = 1, chromosome_style = 'NCBI') {
   message("[Step 1/5] Loading data and identifying complete transcripts...")
   
   # Load genome
-  bsg = BSgenome::getBSgenome(genome)
-  suppressWarnings({GenomeInfoDb::seqlevelsStyle(bsg) = "NCBI"}) # avoid unswitchable seqlevels complaints
+  bsg = genome
+  if (is.character(bsg)) {
+    if(length(bsg) != 1) {
+      stop("genome should be 1-length.")
+    }
+    bsg = BSgenome::getBSgenome(bsg)
+  } else if (! is(bsg, 'BSgenome')) {
+    stop('genome should be genome assembly name (e.g., \"hg38\") or a BSgenome object.')
+  }
   
+  # Set chromosome naming style, suppressing some warnings
+  withCallingHandlers(
+    { 
+      GenomeInfoDb::seqlevelsStyle(bsg) = chromosome_style
+    },
+    warning = function(w) {
+      if (grepl("more than one best sequence renaming map", conditionMessage(w))) {
+        invokeRestart("muffleWarning")
+      } else if(grepl("cannot switch some of.*to .*style", conditionMessage(w))) {
+        invokeRestart("muffleWarning")
+      }
+    }        
+  )
   # Support for alternate genetic codes not yet implemented
-  if(numcode != 1 || length(numcode) != 1) {
+  if(! identical(numcode, 1)) {
     stop("Currently only the standard genetic code is supported.", call. = F)
+  }
+  
+  if(! is.character(chromosome_style) || length(chromosome_style) > 1) {
+    stop('chromosome_style should be 1-length character')
   }
   
   # validated additional_essential_splice_pos list
@@ -507,6 +534,11 @@ build_RefCDS = function(gtf, genome, use_all_transcripts = TRUE, cds_ranges_lack
   # note that gr_cds is what should be supplied to dNdScv as "gr_genes"
   gr_cds = GenomicRanges::GRanges(df_genes$chr, IRanges::IRanges(df_genes$start, df_genes$end))
   GenomicRanges::mcols(gr_cds)$names = df_genes$entry
+  
+  genome(gr_cds) = genome(bsg)[1]
+  seqlevelsStyle(gr_cds) = seqlevelsStyle(bsg)[1]
+  gr_cds = sortSeqlevels(gr_cds)
+  gr_cds = sort(gr_cds)
   
   if (use_all_transcripts) {
     # since df_genes$gene is actually a protein ID, match with the "gene_name" in 

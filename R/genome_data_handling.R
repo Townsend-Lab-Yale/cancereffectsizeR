@@ -68,7 +68,7 @@ preload_ref_data = function(data_dir) {
   
   genome_info = get_ref_data(data_dir, "genome_build_info")
   bsg = BSgenome::getBSgenome(genome_info$BSgenome)
-  suppressWarnings({GenomeInfoDb::seqlevelsStyle(bsg) = "NCBI"}) # new versions complain about not all seqlevels being switchable
+  suppressWarnings({GenomeInfoDb::seqlevelsStyle(bsg) = seqlevelsStyle(ref[["gr_genes"]])}) # new versions complain about not all seqlevels being switchable
   ref[["genome"]] = bsg
   ref[["supported_chr"]] = genome_info$supported_chr
 
@@ -205,7 +205,7 @@ get_ces_signature_set = function(refset, name) {
 
 #' get_cesa_bsg 
 #' 
-#' Loads the right BSgenome for a CESAnalysis, formatted NCBI-style
+#' Loads the right BSgenome for a CESAnalysis
 #' @param cesa CESAnalysis
 #' @keywords internal
 get_cesa_bsg = function(cesa) {
@@ -214,7 +214,14 @@ get_cesa_bsg = function(cesa) {
     return(.ces_ref_data[[ref_key]]$genome)
   }
   bsg = BSgenome::getBSgenome(cesa@advanced$genome_info$BSgenome)
-  suppressWarnings({GenomeInfoDb::seqlevelsStyle(bsg) = "NCBI"}) # avoid unswitchable seqlevels complaints
+  
+  # Chromosome naming style now present in genome_info. On older versions, it's not,
+  # but we can pull the style from gr_genes.
+  chromosome_style = cesa@advanced$genome_info$chromosome_style
+  if (is.null(chromosome_style)) {
+    chromosome_style = seqlevelsStyle(get_ref_data(cesa, 'gr_genes'))[1]
+  }
+  suppressWarnings({GenomeInfoDb::seqlevelsStyle(bsg) = chromosome_style}) # avoid unswitchable seqlevels complaints
   return(bsg)
 }
 
