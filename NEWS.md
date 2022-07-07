@@ -2,6 +2,9 @@
 # <font style = "opacity:0">cancereffectsizeR 3.0.0</font>
 Patch releases (as in, x.y.1 &#8594; x.y.2) have minor bug fixes or small improvements that should not affect the numerical output of cancer effect analyses. Minor/major updates may change some outputs due to bug fixes or intentional tweaks, as described in these version notes.<br><br>
 
+# cancereffectsizeR 2.6.2
+* Miscellaneous minor improvements, including better handling of chromosome naming styles.
+
 # cancereffectsizeR 2.6.1
 * Compatibility fix for Windows systems.
 * Bug fixes for features introduced in 2.6.0.
