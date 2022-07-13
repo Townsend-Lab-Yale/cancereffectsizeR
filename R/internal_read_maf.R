@@ -362,4 +362,63 @@ identify_maf_variants = function(maf) {
   return(maf)
 }
 
+# All possible names for all columns (excluding Tumor_Allele)
+canonical_columns <- c( 'chromosome', 'Chromosome,' 'chr', 'Chr', 'CHR', 'chrom', 'Chrom', 'CHROM', '#chrom', '#Chrom', '#CHROM',  'seqnames', 'Seqnames', 'SEQNAMES', 'reference_allele', 'Reference_Allele', 'ref', 'Start_Position', 'start', 'pos', 'Unique_Patient_Identifier', 'Tumor_Sample_Barcode')
+
+# function for Tumor_Allele
+# columns: names(maf_cols)
+# canonical: 'Tumor_Allele'
+# first_alternates: c('Tumor_Seq_Allele1', 'Tumor_Seq_Allele2')
+# second_alternates: c('tumor_allele', 'TUMOR_ALLELE', 'alt', 'Alt', 'ALT')
+
+find_tumor_allele_column <- function(columns, canonical, first_alternates, second_alternates) {
+  #Filter and keep any leftover names not listed in canonical_columns
+  columns_needing_detect <- setdiff(canonical_columns, names(maf_cols))
+  
+  #Filter and keep any matches between first/second_alternates and leftover names from canonical_columns
+  test_first_alternates <- first_alternates[first_alternates %in% columns_needing_detect]
+  test_second_alternates <- second_alternates[second_alternates %in% columns_needing_detect]
+  
+  #Retrieve length of the two variables above
+  length_first_alt <- length(test_first_alternates)
+  length_second_alt <- length(test_second_alternates)
+  
+  #Test to see if canonical name 'Tumor_Allele' is present
+  if (canonical %in% columns_needing_detect){
+    return(canonical)
+  } 
+  
+  #Test to see if either 'Tumor_Seq_Allele2' or 'Tumor_Seq_Allele1' are present
+  else if (! length_first_alternates == 0){
+    if (length_first_alternates == 1){
+      return(test_first_alternates)
+    } else if (length_first_alternates == 2) {
+      if (maf[['Tumor_Seq_Allele2']] == maf[['Reference_Allele']]){
+        return('Tumor_Seq_Allele1')
+      } else {
+        return('Tumor_Seq_Allele2')
+      }
+    }
+  } 
+  
+  #Test to see if any other name variations are present 
+  else if (! length_second_alternates == 0) {
+    if (length_second_alternates == 1) {
+      return(test_second_alternates)
+    } else if (length_second_alternates > 1) {
+      stop("Too many Tumor_Allele names provided.")
+    }
+  } 
+  
+  #Stop function elsewise
+  else {
+    stop("No acceptable Tumor_Allele names provided.")
+  }	
+}
+
+
+# input type:
+# tumor_allele_col <- find_tumor_allele_column(names(maf_cols), 'Tumor_Allele', c('Tumor_Seq_Allele1', 'Tumor_Seq_Allele2'), c('tumor_allele', 'TUMOR_ALLELE', 'alt', 'Alt', 'ALT'))
+
+
   
