@@ -373,7 +373,7 @@ canonical_columns <- c( 'chromosome', 'Chromosome,' 'chr', 'Chr', 'CHR', 'chrom'
 
 find_tumor_allele_column <- function(columns, canonical, first_alternates, second_alternates) {
   #Filter and keep any leftover names not listed in canonical_columns
-  columns_needing_detect <- setdiff(canonical_columns, names(maf_cols))
+  columns_needing_detect <- setdiff(canonical_columns,columns)
   
   #Filter and keep any matches between first/second_alternates and leftover names from canonical_columns
   test_first_alternates <- first_alternates[first_alternates %in% columns_needing_detect]
