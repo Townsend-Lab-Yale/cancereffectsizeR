@@ -127,13 +127,15 @@ ces_variant <- function(cesa = NULL,
   } else {
     lik_factory = model
   }
-    
+  
   if(! is(lik_args, "list")) {
     stop("lik args should be named list") 
   }
   
-  if(length(lik_args) > 0 && model %in% c('basic', 'sequential')) {
-    stop("lik_args aren't used in the chosen model.")
+  if(length(lik_args) > 0 && is.character(model)){
+    if(model %in% c('basic', 'sequential')) {
+      stop("lik_args aren't used in the chosen model.")
+    }
   }
   if(length(lik_args) != uniqueN(names(lik_args))) {
     stop('lik_args should be a named list without repeated names.')
@@ -218,8 +220,8 @@ ces_variant <- function(cesa = NULL,
       }
     }
     sample_index = samples[, .(Unique_Patient_Identifier = Unique_Patient_Identifier,
-                                       group_index = unlist(index_by_state[ordering_col]), 
-                                       group_name = unlist(name_by_state[ordering_col]))]
+                               group_index = unlist(index_by_state[ordering_col]), 
+                               group_name = unlist(name_by_state[ordering_col]))]
   } else if(! is.null(groups)) {
     if(samples[, .N] != cesa@samples[, .N]) {
       msg = "groups is deprecated and can't be combined with the new samples argument. (Use ordering_col/ordering instead.)"
@@ -275,9 +277,14 @@ ces_variant <- function(cesa = NULL,
       stop('groups should be a list with length at least two (except groups is deprecated; better to use ordering_col/ordering).')
     }
     names(ordering) = 1:length(ordering) # not supporting better group names when using deprecated sample_groups
-  } else if(model == 'sequential') {
-    stop('The sequential model requires use of ordering_col/ordering (see docs)')
+  } else if(is(model, "character")){
+    
+    if(model == 'sequential') {
+      stop('The sequential model requires use of ordering_col/ordering (see docs)')
+    }
+    
   }
+  
   
   cesa = copy_cesa(cesa)
   cesa = update_cesa_history(cesa, match.call())
@@ -347,7 +354,7 @@ ces_variant <- function(cesa = NULL,
   if(length(aac_ids) + length(noncoding_snv_ids) == 0) {
     stop("No variants pass filters, so there are no SIs to calculate.", call. = F)
   }
-
+  
   # identify mutations by nearest gene(s)
   maf = cesa@maf[samples$Unique_Patient_Identifier, on = "Unique_Patient_Identifier"]
   tmp = unique(maf[, .(gene = unlist(genes)), by = "Unique_Patient_Identifier"])[, .(samples = list(Unique_Patient_Identifier)), by = "gene"]
@@ -362,7 +369,7 @@ ces_variant <- function(cesa = NULL,
   tmp[snv_aac_of_interest, aac_id := aac_id, on = c(variant_id = 'snv_id')]
   tmp = tmp[, .(samples = list(unique(Unique_Patient_Identifier))), by = "aac_id"]
   samples_by_aac = setNames(tmp$samples, tmp$aac_id)
-
+  
   setkey(maf, "variant_id")
   # need nomatch because some noncoding SNVs may not be present in the samples
   tmp = maf[noncoding_snv_ids, variant_id, by = "Unique_Patient_Identifier", nomatch = NULL][, .(samples = list(Unique_Patient_Identifier)), by = "variant_id"]
@@ -377,12 +384,12 @@ ces_variant <- function(cesa = NULL,
   # (Trimmed-interval WGS samples will have coverage = "genome" and covered_regions != "genome.")
   genome_wide_cov_samples = samples["genome", Unique_Patient_Identifier, nomatch = NULL]
   
-
+  
   # Will process variants by coverage group (i.e., groups of variants that have the same tumors covering them)
   selection_results = NULL
   
   all_coverage = rbind(cesa@mutations$snv[, .(variant_id = snv_id, covered_in)], 
-                           cesa@mutations$amino_acid_change[, .(variant_id = aac_id, covered_in)])
+                       cesa@mutations$amino_acid_change[, .(variant_id = aac_id, covered_in)])
   variants[all_coverage, covered_in := covered_in, on = 'variant_id']
   coverage_groups = unique(variants$covered_in)
   num_coverage_groups = length(coverage_groups)
@@ -476,7 +483,13 @@ ces_variant <- function(cesa = NULL,
         
         # sample_index supplied if defined and not running our SSWM (it doesn't use it)
         if(! identical(lik_factory, sswm_lik)) {
-          lik_args = c(lik_args, list(sample_index = sample_index))
+          # unless it is already passed in by user in lik_args in the beginning
+          if(!"sample_index" %in% names(lik_args)){
+            
+            lik_args = c(lik_args, list(sample_index = sample_index))
+            
+          }
+          
         }
         fn = do.call(lik_factory, lik_args)
         par_init = formals(fn)[[1]]
@@ -508,33 +521,56 @@ ces_variant <- function(cesa = NULL,
         variant_output = c(list(variant_id = variant_id), 
                            as.list(selection_intensity),
                            list(loglikelihood = loglikelihood))
-        if (model == 'basic') {
-          # Record counts of total samples included in inference and included samples with the variant.
-          # This may vary from the naive output of variant_counts() due to issues of sample coverage and 
-          # (by default) the use of hold_out_same_gene_samples = TRUE.
+        
+        # need a catch here for when user supplies custom model,
+        # otherwise it breaks when checking model against a character string. 
+        # Right now, behavior is that if user supplies sample_index as NULL
+        # the selection inference is treated as not stage-specific 
+        if(is.character(model) | is.null(lik_args$sample_index)){
           
-          
-          num_samples_with = length(tumors_with_variant)
-          num_samples_total = num_samples_with + length(tumors_without)
-          variant_output = c(variant_output, list(included_with_variant = num_samples_with,
-                                                  included_total = num_samples_total))
-        } else {
-          # Build a table of counts, being careful not to drop groups with zero counts
-          counts_total = data.table(group_name = names(ordering), num_with = 0, num_without = 0)
-          counts_with = sample_index[tumors_with_variant, .(num_with = .N), by = 'group_name', on = "Unique_Patient_Identifier"]
-          
-          # if no tumors have variant, counts_with will be null
-          if(counts_with[, .N] > 0) {
-            counts_total[counts_with, num_with := i.num_with, on = 'group_name']
+          if(is.character(model)){
+            if (model == 'basic') {
+              # Record counts of total samples included in inference and included samples with the variant.
+              # This may vary from the naive output of variant_counts() due to issues of sample coverage and 
+              # (by default) the use of hold_out_same_gene_samples = TRUE.
+              
+              
+              num_samples_with = length(tumors_with_variant)
+              num_samples_total = num_samples_with + length(tumors_without)
+              variant_output = c(variant_output, list(included_with_variant = num_samples_with,
+                                                      included_total = num_samples_total))
+            } else {
+              # Build a table of counts, being careful not to drop groups with zero counts
+              counts_total = data.table(group_name = names(ordering), num_with = 0, num_without = 0)
+              counts_with = sample_index[tumors_with_variant, .(num_with = .N), by = 'group_name', on = "Unique_Patient_Identifier"]
+              
+              # if no tumors have variant, counts_with will be null
+              if(counts_with[, .N] > 0) {
+                counts_total[counts_with, num_with := i.num_with, on = 'group_name']
+              }
+              counts_without = sample_index[tumors_without, .(num_without = .N), by = 'group_name', on = "Unique_Patient_Identifier"]
+              counts_total[counts_without, num_without := i.num_without, on = 'group_name']
+              counts_total[, num_total := num_with + num_without]
+              
+              counts_with = setNames(counts_total$num_with, paste0('included_with_variant_', counts_total$group_name))
+              counts_total = setNames(counts_total$num_total, paste0('included_total_', counts_total$group_name))
+              variant_output = c(variant_output, unlist(S4Vectors::zipup(counts_with, counts_total), use.names = F))
+            }
+            
           }
-          counts_without = sample_index[tumors_without, .(num_without = .N), by = 'group_name', on = "Unique_Patient_Identifier"]
-          counts_total[counts_without, num_without := i.num_without, on = 'group_name']
-          counts_total[, num_total := num_with + num_without]
           
-          counts_with = setNames(counts_total$num_with, paste0('included_with_variant_', counts_total$group_name))
-          counts_total = setNames(counts_total$num_total, paste0('included_total_', counts_total$group_name))
-          variant_output = c(variant_output, unlist(S4Vectors::zipup(counts_with, counts_total), use.names = F))
+          if(is(model, "function") & is.null(lik_args$sample_index)){
+            
+            num_samples_with = length(tumors_with_variant)
+            num_samples_total = num_samples_with + length(tumors_without)
+            variant_output = c(variant_output, list(included_with_variant = num_samples_with,
+                                                    included_total = num_samples_total))
+            
+          }
+          
         }
+        
+        
         if(! is.null(conf)) {
           variant_output = c(variant_output, univariate_si_conf_ints(fit, fn, .001, 1e20, conf))
         }
@@ -587,7 +623,7 @@ clear_effect_output = function(cesa, run_names = names(cesa$selection)) {
     stop("cesa should be a CESAnalysis")
   }
   cesa = copy_cesa(cesa)
-
+  
   if(! is.character(run_names) || length(run_names) < 1) {
     stop("run_name should be type character.")
   }
