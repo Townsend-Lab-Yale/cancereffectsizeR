@@ -127,7 +127,7 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
         return(target_cesa)
       }
       snv_table = snv_table[ref %in% nt]
-      message("Note: some variants in input were dropped because of ambiguous reference sequence (N's)")
+      message("Note: Some variants in input were dropped because of ambiguous reference sequence (N's)")
     }
     snv_table = snv_table[rep(1:.N, each = 4)]
     snv_table[, alt := rep.int(c("A", "C", "G", "T"), .N/4)]

@@ -2,7 +2,7 @@
 #' 
 #' Load MAF data from a text file or data table into your CESAnalysis. Column names are
 #' expected to match MAF format specifications (Chromosome, Start_Position, etc.). It's
-#' encouraged to use preload_maf() prep the input (including, optionally, liftOver
+#' recommended to use preload_maf() to prep the input (including, optionally, liftOver
 #' conversion of genomic coordinates), but if you have clean MAF data, you can run this
 #' function directly. By default, data is assumed to be derived from whole-exome
 #' sequencing. Whole-genome data and targeted sequencing data are also supported when the

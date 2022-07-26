@@ -204,7 +204,7 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
   no_variant = maf[Reference_Allele == Tumor_Allele, which = T]
   maf[no_variant, problem := 'not_variant']
   
-  duplicate_records = duplicated(maf[,.(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele)])
+  duplicate_records = duplicated(maf[,.(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele, Tumor_Allele)])
   maf[duplicate_records, problem := 'duplicate_record']
   
   # Change duplicate record annotation for TCGA patients with multiple (essentially replicate) samples

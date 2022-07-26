@@ -111,8 +111,8 @@ get_TCGA_project_MAF = function(project = NULL, filename = NULL, test_run = FALS
   # We'll only remove the non-primary tumors for the user
   is_tcga_project = startsWith(project, 'TCGA')
   
-  if (! exclude_TCGA_nonprimary & is_tcga_project) {
-    stop("Setting exclude_TCGA_nonprimary = FALSE doesn't do anything when the project is not a TCGA project.")
+  if (! exclude_TCGA_nonprimary && ! is_tcga_project) {
+    warning("Setting exclude_TCGA_nonprimary = FALSE doesn't do anything when the project is not a TCGA project.")
   }
   
   exclude_TCGA_nonprimary = exclude_TCGA_nonprimary && is_tcga_project
