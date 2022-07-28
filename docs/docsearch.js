@@ -44,8 +44,8 @@ $(function() {
         }
       }
     };
-
-    mark();
+     // Don't like the highlighting of search terms
+     // mark();
   });
 });
 
