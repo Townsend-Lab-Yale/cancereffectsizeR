@@ -23,7 +23,7 @@ reference:
   - preload_maf
   - check_sample_overlap
   - get_TCGA_project_MAF
-  - vcf_to_maf_table
+  - vcfs_to_maf_table
 - title: Load and manage variants
   contents:
   - load_maf

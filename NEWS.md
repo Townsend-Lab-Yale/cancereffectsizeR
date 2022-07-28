@@ -2,6 +2,11 @@
 # <font style = "opacity:0">cancereffectsizeR 3.0.0</font>
 Patch releases (as in, x.y.1 &#8594; x.y.2) have minor bug fixes or small improvements that should not affect the numerical output of cancer effect analyses. Minor/major updates may change some outputs due to bug fixes or intentional tweaks, as described in these version notes.<br><br>
 
+# cancereffectsizeR 2.6.3
+* vcfs_to_maf_table(): Read in VCF files from somatic variant calling pipelines and convert into a combined MAF-like data.table.
+* Removed sequential model of selection pending improvements to methodology.
+* Improved user guidance for get_TCGA_project_MAF().
+
 # cancereffectsizeR 2.6.2
 * Miscellaneous minor improvements, including better handling of chromosome naming styles.
 
