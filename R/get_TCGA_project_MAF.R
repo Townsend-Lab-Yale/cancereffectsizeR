@@ -26,12 +26,9 @@
 #'   associated with a patient's initial primary tumor. (In many TCGA projects, a small
 #'   handful of patients have metastatic, recurrent, or additional primary samples.)
 #' @param test_run Default FALSE. When TRUE, gets MAF data for a few samples instead of the whole cohort.
-#' @param allow_failure Default FALSE. When TRUE, if data download fails for some samples,
-#'   still return data from whatever samples did have complete, successful data download.
-#'   The data returned will be valid, but the cohort may be incomplete.
 #' @export
 get_TCGA_project_MAF = function(project = NULL, filename = NULL, test_run = FALSE,
-                               exclude_TCGA_nonprimary = TRUE, allow_failure = FALSE) {
+                               exclude_TCGA_nonprimary = TRUE) {
   if (! is.character(project) || length(project) != 1) {
     stop("project should be 1-length character (e.g., TCGA-BRCA).")
   }
@@ -74,11 +71,6 @@ get_TCGA_project_MAF = function(project = NULL, filename = NULL, test_run = FALS
   if(! is.logical(exclude_TCGA_nonprimary) || length(exclude_TCGA_nonprimary) != 1) {
     stop("remove_nonprimary should be T/F.")
   }
-                   
-  
-  if(! is.logical(allow_failure) || length(allow_failure) != 1) {
-    stop("allow_failure should be T/F.")
-  }
   
   if(! is.logical(test_run) || length(test_run) != 1) {
     stop("test_run should be T/F.")
@@ -108,6 +100,13 @@ get_TCGA_project_MAF = function(project = NULL, filename = NULL, test_run = FALS
     }
   }
   
+  if(project == 'TCGA-SKCM' & exclude_TCGA_nonprimary == TRUE) {
+    msg = paste0("Unlike other TCGA projects, SKCM is mostly metastatic samples. If ",
+                 "you want to include metastatic patients in the cohort, re-run with ",
+                 "exclude_TCGA_nonprimary = FALSE.")
+    warning(pretty_message(msg, emit = F), immediate. = TRUE)
+  }
+  
   # We'll only remove the non-primary tumors for the user
   is_tcga_project = startsWith(project, 'TCGA')
   
@@ -118,8 +117,7 @@ get_TCGA_project_MAF = function(project = NULL, filename = NULL, test_run = FALS
   exclude_TCGA_nonprimary = exclude_TCGA_nonprimary && is_tcga_project
   
   user_call = paste0("# Generated with cancereffectsizeR v", packageVersion('cancereffectsizeR'),
-                   ': get_TCGA_project_MAF(project = ', deparse(project), ', test_run = ', deparse(test_run),
-                   ', allow_failure = ', deparse(allow_failure))
+                   ': get_TCGA_project_MAF(project = ', deparse(project), ', test_run = ', deparse(test_run))
   if(is_tcga_project) {
     user_call = paste0(user_call, ", exclude_TCGA_nonprimary = ", deparse(exclude_TCGA_nonprimary))
   }
@@ -170,14 +168,14 @@ get_TCGA_project_MAF = function(project = NULL, filename = NULL, test_run = FALS
     stop("No matching TCGA participants (patients).")
   }
   
-  message("Downloading ", files[, .N] , " temporary MAF files...")
+  message("Downloading ", files[, .N] , " temporary MAF files....")
   tmp_dir = tempdir()
   files[, path := paste0(tmp_dir, '/', file_name)]
   files[, url := paste0(data_endpt, '/', id)]
   
   pbapply::pbmapply(download.file, files$url, files$path, MoreArgs = list(quiet = TRUE, mode = 'wb'))
   
-  message("Verifying files...")
+  message("Verifying files....")
   actual_sums = tools::md5sum(files$path)
   files[names(actual_sums), obs_sum := actual_sums, on = 'path']
   files[, failed := TRUE]
@@ -190,14 +188,8 @@ get_TCGA_project_MAF = function(project = NULL, filename = NULL, test_run = FALS
       failing_urls = c(failing_urls[1:15], paste0("and ", length(failing_urls) - 15, " more."))
     }
     failing_urls = paste(failing_urls, collapse = ",\n")
-    if(allow_failure) {
-      unlink(files[failed == TRUE, path])
-      files = files[failed == FALSE]
-      warning("Some files did not download correctly:\n", failing_urls, immediate. = TRUE)
-    } else {
-      unlink(files$path)
-      stop("Some files did not download correctly:\n", failing_urls)
-    }
+    unlink(files$path)
+    stop("Some files did not download correctly:\n", failing_urls)
   }
   
   to_read = files$path
@@ -218,28 +210,58 @@ get_TCGA_project_MAF = function(project = NULL, filename = NULL, test_run = FALS
     if(num_not_primary > 0) {
       if (exclude_TCGA_nonprimary) {
         pretty_message(paste0("Removing ", num_not_primary, " samples that are not of tissue types 01 (primary solid tumor)",
-                              " or 03 (primary blood-derived cancer). Usually, there are other primary samples from the same patient(s),",
-                              " and these will remain in the MAF data."))
+                              " or 03 (primary blood-derived cancer)."))
         cohort_maf = cohort_maf[primary_sample == TRUE]
       } else {
-        pretty_message("Some samples are not of tissue types 01 (primary solid tumor) or 03 (primary blood-derived cancer).")
+        pretty_message("Note: Some samples are not of tissue types 01 (primary solid tumor) or 03 (primary blood-derived cancer).")
       }
     }
-    cohort_maf[, c("type_vial", "tissue_type", "primary_sample") := NULL]
   } else {
-    msg = paste0("Since this isn't a TCGA project, sample ID parsing is not implemented. Multiple samples (as indicated by Tumor_Sample_Barcode)", 
-                 " may come from the same patient, and no Unique_Patient_Identifier column has been created.")
-    warning(msg)
+    msg = paste0("Tumor_Sample_Barcode parsing is not implemented for non-TCGA projects. Verify that no patient has multiple samples ",
+                 "before assuming that variants associated with different Tumor_Sample_Barcodes are independent.")
+    warning(pretty_message(msg, emit = F))
   }
 
-  message("Deleting temporary files...")
+  message("Deleting temporary files....")
   unlink(files$path)
   
   if(is_tcga_project) {
     num_samples = uniqueN(cohort_maf$Tumor_Sample_Barcode)
     num_participants = uniqueN(cohort_maf$Unique_Patient_Identifier)
-    pretty_message(paste0("Writing MAF file covering ", num_samples , " samples from ",
-                          num_participants, " patients."))
+    message("Writing MAF file covering ", num_samples , " samples from ",
+                          num_participants, " patients....")
+    
+    
+    cohort_maf[, multisample_patient := uniqueN(Tumor_Sample_Barcode) > 1, by = "Unique_Patient_Identifier"]
+    
+    samples_per_tissue_type = unique(cohort_maf[, .(tissue_type, Tumor_Sample_Barcode, Unique_Patient_Identifier)])
+    multiple_samples_same_tissue = samples_per_tissue_type[, .N, by = c("Unique_Patient_Identifier", "tissue_type")][N > 1, Unique_Patient_Identifier]
+    num_multisample_same_tissue = uniqueN(multiple_samples_same_tissue) 
+    if(num_multisample_same_tissue > 0) {
+      msg = paste0(num_multisample_same_tissue, " patients have multiple sequenced samples ",
+                   "that ultimately derive from the same tissue sample. We typically merge somatic calls by patient for these samples. ",
+                   "In cancereffectsizeR, preload_maf() will automatically merge and de-duplicate records by using the Unique_Patient_Identifier field, rather than ",
+                   "Tumor_Sample_Barcode. In non-cancereffectsizeR analyses, make sure that same-patient samples are not inadvertently treated as coming ",
+                   "from different patients. (These samples are marked in the multisample_patient field.)")
+      pretty_message(msg)
+      message()
+      setcolorder(cohort_maf, 'multisample_patient')
+    }
+    
+    cohort_maf[, multitissue_patient := uniqueN(tissue_type) > 1, by = "Unique_Patient_Identifier"]
+    
+    if(any(cohort_maf$multitissue_patient)) {
+      msg = paste0("Some patients, marked in a multitissue_patient column, have samples from multiple tissue sources. (See ",
+          "https://gdc.cancer.gov/resources-tcga-users/tcga-code-tables/sample-type-codes for tissue descriptions.) Since the phylogenetic ",
+          "relationships between these samples are unclear, consider excluding these patients from cancereffectsizeR ",
+          "analyses (or establish criteria for which samples to use from each patient).")
+      pretty_message(msg)
+      setcolorder(cohort_maf, 'multitissue_patient')
+    } else {
+      cohort_maf[, multitissue_patient := NULL]
+    }
+    setcolorder(cohort_maf, c('Unique_Patient_Identifier', 'Tumor_Sample_Barcode'))
+    cohort_maf[, c("type_vial", "tissue_type", "primary_sample") := NULL]
   } else {
     message("Writing MAF file covering ", num_samples, " samples.")
   }
@@ -266,7 +288,7 @@ get_TCGA_project_MAF = function(project = NULL, filename = NULL, test_run = FALS
   writeLines(headers, out)
   close(out)
   fwrite(cohort_maf, filename, append = TRUE, sep = "\t")
-  pretty_message(paste0("MAF file saved to ", filename, "."))
+  message(paste0("MAF file saved to ", filename, "."))
 }
 
 

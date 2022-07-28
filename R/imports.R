@@ -6,6 +6,7 @@
 #' @importFrom stats na.omit
 .datatable.aware = TRUE
 .ces_ref_data = new.env()
+options(datatable.prettyprint.char = 28) # TCGA barcode length
 
 # Data package names and minimum required version
 .official_refsets = list(ces.refset.hg19 = as.package_version("1.1.0"), ces.refset.hg38 = as.package_version("1.2.0"))

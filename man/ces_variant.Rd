@@ -8,7 +8,7 @@ ces_variant(
   cesa = NULL,
   variants = select_variants(cesa, min_freq = 2),
   samples = character(),
-  model = "basic",
+  model = "default",
   run_name = "auto",
   ordering_col = NULL,
   ordering = NULL,

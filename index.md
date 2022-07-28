@@ -10,7 +10,7 @@ Welcome to cancereffectsizeR! This R package contains a variety of tools for ana
 - Annotate somatic variants with built-in reference data, or create a [custom reference data set](articles/custom_refset_instructions.html) for almost any species/genome.
 - Attribute mutations to mutational processes by extracting COSMIC signatures, or any custom set of signature definitions.
 - Use provided tissue-specific covariates to inform calculation of gene mutation rates via [dNdScv](https://github.com/im3sanger/dndscv), or build your own [custom covariates](articles/create_custom_covariates.html).
-- Test single-variant, stage/grade-specific, and epistatic models of selection, or define and test your own models.
+- Quantify the **cancer effect** of variants under the default model of selection, test epistatic models of selection, or define and test your own models.
 - Arbitrarily batch variants by position, gene, or functional annotation, and quantify selection by batch.
 
 We plan to extend cancereffectsizeR's functionality as we continue development, and we welcome your feedback, ideas, and bug reports.

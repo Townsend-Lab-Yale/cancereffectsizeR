@@ -8,8 +8,7 @@ get_TCGA_project_MAF(
   project = NULL,
   filename = NULL,
   test_run = FALSE,
-  exclude_TCGA_nonprimary = TRUE,
-  allow_failure = FALSE
+  exclude_TCGA_nonprimary = TRUE
 )
 }
 \arguments{
@@ -23,10 +22,6 @@ get_TCGA_project_MAF(
 \item{exclude_TCGA_nonprimary}{Default TRUE. For TCGA projects, exclude samples not
 associated with a patient's initial primary tumor. (In many TCGA projects, a small
 handful of patients have metastatic, recurrent, or additional primary samples.)}
-
-\item{allow_failure}{Default FALSE. When TRUE, if data download fails for some samples,
-still return data from whatever samples did have complete, successful data download.
-The data returned will be valid, but the cohort may be incomplete.}
 }
 \description{
 This convenience function queries the Genomic Data Commons API to get MAF data

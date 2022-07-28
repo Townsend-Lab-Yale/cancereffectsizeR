@@ -63,7 +63,7 @@
 ces_variant <- function(cesa = NULL,
                         variants = select_variants(cesa, min_freq = 2),
                         samples = character(),
-                        model = "basic",
+                        model = "default",
                         run_name = "auto",
                         ordering_col = NULL,
                         ordering = NULL,
@@ -109,10 +109,11 @@ ces_variant <- function(cesa = NULL,
   
   if(is(model, "character")) {
     # old names were basic, sswm-sequential (no one could remember if hyphen or underscore)
-    model[model == 'sswm'] = 'basic'
+    model = tolower(model)
+    model[model %in% c('sswm', 'default')] = 'basic'
     model[model %like% 'sswm[-_]sequential'] = 'sequential'
     if(length(model) != 1 || ! model %in% c("basic", "sequential")) {
-      stop("model should specify a built-in selection model (basic, sequential) or a custom function factory.")
+      stop("model should specify a built-in selection model (i.e., \"default\") or a custom function factory.")
     } else {
       if (model == 'basic') {
         lik_factory = sswm_lik
@@ -123,7 +124,7 @@ ces_variant <- function(cesa = NULL,
       }
     }
   } else if (! is(model, "function")) {
-    stop("model should specify a built-in selection model (\"basic\", \"sequential\") or a custom function factory.")
+    stop("model should specify a built-in selection model (\"default\") or a custom function factory.")
   } else {
     lik_factory = model
   }
@@ -155,7 +156,7 @@ ces_variant <- function(cesa = NULL,
   }
   if(! is.null(ordering_col)) {
     if(model == 'basic') {
-      warning("You supplied an ordering_col, but it's not used in the basic model.")
+      warning("You supplied an ordering_col, but it's not used in the default model.")
     }
     if(! is(ordering_col, 'character')) {
       stop("ordering_col should be type character (a column name from CESAnalysis sample table).")

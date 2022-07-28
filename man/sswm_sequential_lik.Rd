@@ -28,3 +28,4 @@ intensity applied.
 All arguments to this likelihood function factory are automatically supplied by
 \code{ces_variant()}.
 }
+\keyword{internal}

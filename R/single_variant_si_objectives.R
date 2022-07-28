@@ -47,7 +47,7 @@ sswm_lik = function(rates_tumors_with, rates_tumors_without) {
 #' @param rates_tumors_without named vector of site-specific mutation rates for all
 #'   eligible tumors without variant
 #' @param sample_index data.table with columns Unique_Patient_Identifier, group_name, group_index
-#' @export
+#' @keywords internal
 sswm_sequential_lik <- function(rates_tumors_with, rates_tumors_without, sample_index) {
   stages_tumors_with = sample_index[names(rates_tumors_with), group_index, on = "Unique_Patient_Identifier"]
   stages_tumors_without = sample_index[names(rates_tumors_without), group_index, on = "Unique_Patient_Identifier"]

@@ -1,5 +1,5 @@
 destination: docs
-url: https://townsend-lab-yale.github.io/cancereffectsizeR/index.html
+url: https://townsend-lab-yale.github.io/cancereffectsizeR/
 template:
   bootstrap: 5
   bootswatch: simplex
@@ -75,7 +75,6 @@ reference:
   desc: Likelihood function generators for various models of selection
   contents:
   - sswm_lik
-  - sswm_sequential_lik
   - pairwise_epistasis_lik
 - title: Explore reference data
   contents:

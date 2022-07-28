@@ -68,7 +68,24 @@ preload_ref_data = function(data_dir) {
   
   genome_info = get_ref_data(data_dir, "genome_build_info")
   bsg = BSgenome::getBSgenome(genome_info$BSgenome)
-  suppressWarnings({GenomeInfoDb::seqlevelsStyle(bsg) = seqlevelsStyle(ref[["gr_genes"]])}) # new versions complain about not all seqlevels being switchable
+  tryCatch(
+    # new versions complain about not all seqlevels being switchable
+    suppressWarnings({GenomeInfoDb::seqlevelsStyle(bsg) = seqlevelsStyle(ref[["gr_genes"]])}),
+    error = function(e) {
+      if(conditionMessage(e) %like% "cannot open URL.*chromInfo" && 
+         check_for_ref_data(data_dir, 'cached_chromInfo')) {
+        cached_chromInfo = get_ref_data(data_dir, "cached_chromInfo")
+        ucsc_info = cached_chromInfo$UCSC
+        ncbi_info = cached_chromInfo$NCBI
+        assign(ucsc_info$name, ucsc_info$value, envir = get(".UCSC_cached_chrom_info", envir = asNamespace('GenomeInfoDb')))
+        assign(ncbi_info$name, ncbi_info$value, envir = get(".NCBI_cached_chrom_info", envir = asNamespace('GenomeInfoDb')))
+        suppressWarnings({GenomeInfoDb::seqlevelsStyle(bsg) = seqlevelsStyle(ref[["gr_genes"]])})
+      } else {
+        stop(e)
+      }
+    }
+  )
+   
   ref[["genome"]] = bsg
   ref[["supported_chr"]] = genome_info$supported_chr
 
