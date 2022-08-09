@@ -155,7 +155,7 @@ ces_variant <- function(cesa = NULL,
     pretty_message(paste0("Note that ", num_excluded, " samples are being excluded from selection inference."))
   }
   if(! is.null(ordering_col)) {
-    if(model == 'basic') {
+    if(is.character(model) && model == 'basic') {
       warning("You supplied an ordering_col, but it's not used in the default model.")
     }
     if(! is(ordering_col, 'character')) {
