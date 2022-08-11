@@ -33,7 +33,7 @@ vcfs_to_maf_table = function(vcfs, sample_ids) {
   }
   
   legal_sample_id_pattern = '^[a-z0-9][0-9a-z\\_\\-\\.:/]*$'
-  illegal_ids = sample_ids[! grepl(legal_sample_id_pattern, tolower(sample_id), perl = T)]
+  illegal_ids = sample_ids[! grepl(legal_sample_id_pattern, tolower(sample_ids), perl = T)]
   num_illegal = length(illegal_ids)
   if (num_illegal > 0) {
     if(num_illegal > 50) {
