@@ -209,7 +209,13 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
       trinuc_mut = trinuc_mut_by_snv[snv, trinuc_mut]
       sample_rates = trinuc_mat[, trinuc_mut, drop = F]
       if(length(region) > 1) {
-        agg_rates = rowMeans(simplify2array(agg_rates_by_region[region]))
+        simplified = simplify2array(agg_rates_by_region[region])
+        # Edge-case: When just one sample, simplify2array returns numeric instead of matrix
+        if(is.matrix(simplified)) {
+          agg_rates = rowMeans(simplified)
+        } else {
+          agg_rates = sum(simplified)
+        }
       } else {
         agg_rates = agg_rates_by_region[[region]]
       }

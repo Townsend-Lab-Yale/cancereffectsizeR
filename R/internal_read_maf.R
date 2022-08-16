@@ -344,7 +344,6 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
 identify_maf_variants = function(maf) {
   nt = c("A", "T", "C", "G")
   maf[, start_char := format(Start_Position, scientific = F, justify = 'none', trim = T)] # to avoid issues like position 100000 getting rendered as "1e5"
-  maf[! Reference_Allele %like% '^[ACTG-]+$']
   maf[Reference_Allele %in% nt & Tumor_Allele %in% nt, 
       c("variant_type", "variant_id") := .("snv", paste0(Chromosome, ':', start_char, '_', Reference_Allele, '>', Tumor_Allele))]
   maf[Reference_Allele %like% '^[ACTG]{2}$' & Tumor_Allele %like% '^[ACTG]{2}$', 
