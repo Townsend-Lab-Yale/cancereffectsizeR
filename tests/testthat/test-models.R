@@ -4,7 +4,7 @@ trinuc_rates = fread(get_test_file("luad_hg19_trinuc_rates.txt"))
 cesa = set_trinuc_rates(cesa, trinuc_rates = trinuc_rates)
 sig_weights = fread(get_test_file("luad_hg19_sig_table_biological.txt"))
 cesa@trinucleotide_mutation_weights$signature_weight_table = sig_weights
-cesa@advanced$snv_signatures[["COSMIC v3.1"]] = get_ces_signature_set("ces.refset.hg19", "COSMIC_v3.1")
+cesa@advanced$snv_signatures[["COSMIC v3.2"]] = get_ces_signature_set("ces.refset.hg19", "COSMIC_v3.2")
 
 precalc_rates = fread(get_test_file("luad_fruit_gene_rates.txt"))
 cesa = set_gene_rates(cesa, precalc_rates[, .(gene, rate_grp_1)], samples = cesa$samples[group == 'marionberry'])
@@ -17,14 +17,14 @@ rate_a = baseline_mutation_rates(cesa, variant_ids = "FAT1_D1508H_ENSP0000040622
 rate_b = baseline_mutation_rates(cesa, aac_ids = "FAT1_D1508H_ENSP00000406229", samples = "sample-5")
 expect_equal(rate_a, rate_b)
 expect_equal(rate_a[[1]], 'sample-5')
-expect_equal(rate_a[[2]], 2.843945e-06)
+expect_equal(rate_a[[2]], 2.819178e-06)
 
 
 # Try taking one SNV rate in one sample
 snv_rate = baseline_mutation_rates(cesa, snv_ids = "3:186276363_T>A", 
                                      samples = 'sample-106')
 expect_equal(snv_rate[[1]], 'sample-106')
-expect_equal(snv_rate[[2]], 1.20681e-06)
+expect_equal(snv_rate[[2]], 1.147603e-06)
 snv_rate_other_way = baseline_mutation_rates(cesa, variant_ids = "3:186276363_T>A", 
                                              samples = 'sample-106')
 expect_identical(snv_rate, snv_rate_other_way)
@@ -43,7 +43,7 @@ test_that("ces_variant with sswm", {
   results = cesa@selection_results[[1]]
   expect_equal(attr(results, "si_cols"), "selection_intensity")
   results_ak = fread(get_test_file("fruit_sswm_out.txt"))
-  expect_equal(results[order(variant_id)], results_ak[order(variant_id)], check.attributes = F, tolerance = 1e-7)
+  expect_equal(results[order(variant_id)], results_ak[order(variant_id)], check.attributes = F, tolerance = 1e-4)
 })
 
 test_that("ces_variant with sswm_sequential", {
@@ -53,7 +53,7 @@ test_that("ces_variant with sswm_sequential", {
   results = cesa@selection_results[[1]] # previous run not saved due to test_that scoping
   expect_equal(attr(results, "si_cols"), c("si_1", "si_2"))
   results_ak = fread(get_test_file("fruit_sswm_sequential_out.txt"))
-  expect_equal(results[order(variant_id)], results_ak[order(variant_id)], check.attributes = F, tolerance = 1e-6)
+  expect_equal(results[order(variant_id)], results_ak[order(variant_id)], check.attributes = F, tolerance = 1e-5)
 })
 
 test_that("ces_variant bad groups inputs", {
@@ -73,7 +73,7 @@ test_that("ces_variant with user-supplied variants", {
   expect_equal(ces_variant(cesa, variants = variants)@selection_results[[1]][, .N], 9)
   
   # Test an SNV that doesn't overlap a gene. Should get same result regardless of hold-out option.
-  expected_si = 5134.611
+  expected_si = 5164.201
   expect_equal(ces_variant(cesa, variants = select_variants(cesa, variant_ids = '1:1903518_G>A'))@selection_results[[1]]$selection_intensity,
                expected_si, tolerance = 1e-4)
   expect_equal(ces_variant(cesa, variants = select_variants(cesa, variant_ids = '1:1903518_G>A'),
@@ -138,11 +138,11 @@ test_that("Variant-level epistasis", {
   results = ces_epistasis(cesa, variants = list(c("KRAS G12V", "GSTP1_L184L")), conf = .9)@epistasis[[1]]
   to_test = results[, as.numeric(.(ces_v1, ces_v2, ces_v1_after_v2, ces_v2_after_v1, joint_cov_samples_just_v1,
                                    joint_cov_samples_just_v2, joint_cov_samples_with_both, joint_cov_samples_with_neither))]
-  expect_equal(to_test[1:4], c(26867.5225688425, 1441.71206944064, 281837.785451727, 13805.1800777728), tolerance = 1e-3)
+  expect_equal(to_test[1:4], c(27121.913683051, 1406.09613468242, 265431.567369942, 14598.7358102606), tolerance = 1e-5)
   expect_equal(to_test[5:8], c(6, 2, 1, 100))
   ci = as.numeric(results[, .SD, .SDcols = patterns("ci")])
-  expect_equal(ci, c(12795.1211307558, 48488.3936128441, 362.207984931453, 3610.84903759668, 
-                     NA, 2180128.54763536, NA, 88952.7367254685), tolerance = 1e-3)
+  expect_equal(ci, c(12942.4315415446, 48869.8358462919, 350.251980525466, 3542.43113944737, 
+                     NA, 2151798.46977672, NA, 89744.2665988549), tolerance = 1e-5)
 })
 
 
@@ -177,14 +177,14 @@ test_that("Compound variant creation", {
   expect_equal(same_results@selection_results, results@selection_results)
   results = results$selection[[1]][c("KRAS.Cys.1", "KRAS.Asp.1", "KRAS.Cys.2", "KRAS.Asp.2", "KRAS.Val.1"), on = "variant_name"]
   prev = fread(get_test_file("fruit_sswm_sequential_out.txt"))[all_kras_12_13$variant_id, on = "variant_id"][, 3:4]
-  expect_equal(results[, 3:4], prev, tolerance = 1e-6)
+  expect_equal(results[, 3:4], prev, tolerance = 1e-5)
   
   # this time, do per position
   pos_comp = define_compound_variants(cesa, all_kras_12_13, merge_distance = 0)
   expect_equal(length(pos_comp), 2)
   expect_equal(pos_comp$snv_info[, .N], 5)
   results = ces_variant(cesa, variants = pos_comp, hold_out_same_gene_samples = T, conf = NULL)$selection[[1]]
-  expect_equal(results$selection_intensity, c(6482.0086263444, 29946.7385123648), tolerance = 1e-3)
+  expect_equal(results$selection_intensity, c(6592.7244722621, 30214.9115538988), tolerance = 1e-5)
   # If above output changes, be sure SIs remain between lowest/highest single-variant SIs at each site (see .rds)
   
   expect_equal(length(define_compound_variants(cesa, recurrents, merge_distance = 1000)), 40)

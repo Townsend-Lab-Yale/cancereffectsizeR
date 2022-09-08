@@ -140,7 +140,7 @@ build_RefCDS = function(gtf, genome, use_all_transcripts = TRUE, cds_ranges_lack
     good_seq = reftable[! bad_seq_ind]
     bad_seq = reftable[bad_seq_ind]
     # Try to help out by stripping chr prefixes and dealing with chrM vs MT on hg19/hg38
-    if (genome %in% c("hg19", "hg38")) {
+    if (is.character(genome) && genome %in% c("hg19", "hg38")) {
       bad_seq[seqnames == "chrM", seqnames := "MT"]
     }
     bad_seq[, seqnames := gsub("^chr", "", seqnames)]

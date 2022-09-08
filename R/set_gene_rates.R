@@ -67,6 +67,7 @@ set_gene_rates = function(cesa = NULL, rates = NULL, samples = character(),
   }
   
   # validate rates
+  rates = copy(rates)
   if(ncol(rates) != 2) {
     stop("rates should be a two-column table giving genes (or protein IDs) and their associated rates.")
   }

@@ -4,21 +4,23 @@ prev_dir = setwd(system.file("tests/test_data/", package = "cancereffectsizeR"))
 
 # To-Do: Add a CDKN2A mutation to MAF, at some point. list("sample-9999", 9, 21971186, 'G', 'A')
 maf = fread("luad.hg19.maf.txt")
+setnames(maf, 'sample_id', 'Unique_Patient_Identifier')
+maf = preload_maf(maf, refset = 'ces.refset.hg19')
 set.seed(879)
 fruits = c("cherry", "marionberry", "mountain_apple")
-maf[, group := sample(fruits, size = 1), by = "sample_id"]
-luad = load_maf(cesa = CESAnalysis(refset = "ces.refset.hg19", sample_groups = fruits), maf = maf, group_col = "group", 
-                sample_col = "sample_id")
+maf[, group := sample(fruits, size = 1), by = "Unique_Patient_Identifier"]
+
+luad = load_maf(cesa = CESAnalysis(refset = "ces.refset.hg19", sample_groups = fruits), maf = maf, group_col = "group")
 saveRDS(luad, "annotated_fruit_cesa.rds")
 
 
 # signatures and trinuc rates
-luad = trinuc_mutation_rates(luad, cores = 2, signature_set = "COSMIC_v3.1",
-                             signatures_to_remove = suggest_cosmic_signatures_to_remove("LUAD", treatment_naive = TRUE, quiet = TRUE))
+luad = trinuc_mutation_rates(luad, signature_set = "COSMIC_v3.2",
+                             signatures_exclusions = suggest_cosmic_signatures_to_remove("LUAD", treatment_naive = TRUE, quiet = TRUE))
 
 fwrite(luad$trinuc_rates, "luad_hg19_trinuc_rates.txt", sep = "\t")
-fwrite(luad$mutational_signatures$all, "luad_hg19_sig_table_with_artifacts.txt", sep = "\t")
-fwrite(luad$mutational_signatures$relative_biological, "luad_hg19_sig_table_biological.txt", sep = "\t")
+fwrite(luad$mutational_signatures$raw_attributions, "luad_hg19_sig_table_with_artifacts.txt", sep = "\t")
+fwrite(luad$mutational_signatures$biological_weights, "luad_hg19_sig_table_biological.txt", sep = "\t")
 
 # To generate test data for dndscv,
 # run gene_mutation_rates(luad, covariates = "lung") with breakpoints before/after run_dndscv

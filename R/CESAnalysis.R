@@ -113,11 +113,21 @@ CESAnalysis = function(refset = NULL, sample_groups = NULL) {
   ## snv_signatures: List CES signature sets used in the analysis
   ## cached_variants (not populated here): output of select_variants() run with default arguments
   ##      (automatically updated as needed by load_cesa/update_covered_in)
+  ## cds_refset: TRUE if gr_genes/RefCDS are protein-based; FALSE if gene-based.
   genome_info = get_ref_data(data_dir, "genome_build_info")
   ces_version = packageVersion("cancereffectsizeR")
+  if(refset_name == 'ces.refset.hg38') {
+    cds_refset = TRUE
+  } else if (refset_name == 'ces.refset.hg19') {
+    cds_refset = FALSE
+  } else {
+    gr_genes = get_ref_data(data_dir, "gr_genes")
+    cds_refset = "gene" %in% names(GenomicRanges::mcols(gr_genes))
+  }
   advanced = list("version" = ces_version, using_exome_plus = F, 
                   recording = T, uid = unclass(Sys.time()), genome_info = genome_info,
-                  snv_signatures = list(), refset_version = refset_version)
+                  snv_signatures = list(), refset_version = refset_version,
+                  cds_refset = cds_refset)
   
   # Mutation table specifications (see template tables declared in imports.R)
   mutation_tables = list(amino_acid_change = copy(aac_annotation_template), 
@@ -228,6 +238,12 @@ load_cesa = function(file) {
   if(cesa@samples[, .N] == 0) {
     cesa@samples = copy(sample_table_template)
   }
+  if(is.null(cesa@samples$maf_source)) {
+    # Usually use character names, or sequentially from 1. 
+    # Use 0 here to suggest that sources aren't known.
+    cesa@samples$maf_source = '0' 
+  }
+  
   if(is.null(cesa@samples$sig_analysis_grp)) {
     cesa@samples[, sig_analysis_grp := NA_integer_]
     if(! is.null(cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix)) {
@@ -370,6 +386,22 @@ load_cesa = function(file) {
     cesa@maf[consequences, c("top_gene", "top_consequence") := list(gene, variant_name), on = c(variant_id = 'snv_id')]
   }
   
+  # Pre-2.6.4, cds_refset status wasn't recorded
+  if(is.null(cesa@advanced$cds_refset)) {
+    cds_refset = NULL
+    if(refset_name == 'ces.refset.hg38') {
+      cds_refset = TRUE
+    } else if (refset_name == 'ces.refset.hg19') {
+      cds_refset = FALSE
+    } else {
+      # A view-only (no reference data) CESAnalysis won't have gr_genes available
+      gr_genes = .ces_ref_data[[cesa@ref_key]]$gr_genes
+      if(! is.null(gr_genes)) {
+        cds_refset = "gene"  %in% names(GenomicRanges::mcols(gr_genes))
+      }
+    }
+    cesa@advanced$cds_refset = cds_refset
+  }
   return(cesa)
 }
 
@@ -431,7 +463,7 @@ excluded_maf_records = function(cesa = NULL) {
   if(! is(cesa, "CESAnalysis")) {
     stop("\nUsage: excluded_maf_records(cesa), where cesa is a CESAnalysis")
   }
-  if(cesa@maf[,.N] == 0) {
+  if(cesa@maf[,.N] == 0 && cesa@excluded[, .N] == 0) {
     stop("No MAF data has been loaded yet, so naturally no records have been excluded.")
   }
   if(cesa@excluded[,.N] == 0) {

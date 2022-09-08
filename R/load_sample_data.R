@@ -37,7 +37,7 @@ load_sample_data = function(cesa, sample_data) {
   
   # Check for non-internal columns already present from previous load_sample_data() calls.
   # internal_columns similar to sample_table_template but with some past/future columns
-  internal_columns = c('coverage', 'covered_regions', 'group', 'gene_rate_grp', 'regional_rate_grp', 'sig_analysis_grp')
+  internal_columns = c('coverage', 'covered_regions', 'group', 'gene_rate_grp', 'regional_rate_grp', 'sig_analysis_grp', 'maf_source')
   already_in_maf = setdiff(names(cesa@samples), c("Unique_Patient_Identifier", internal_columns))
   
   dup_columns = unique(names(sample_data)[duplicated(names(sample_data))])

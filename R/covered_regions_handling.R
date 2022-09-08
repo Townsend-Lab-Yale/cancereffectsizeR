@@ -213,8 +213,6 @@ update_covered_in = function(cesa) {
   snv_table = cesa@mutations$snv
   aac_table = cesa@mutations$amino_acid_change
   
-
-  
   # simpler to delete old annotations and re-do rather than updating
   snv_table[, covered_in := NULL]
 

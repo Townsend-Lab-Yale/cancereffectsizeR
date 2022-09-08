@@ -62,9 +62,9 @@ suggest_cosmic_signature_exclusions = function(cancer_type = NULL, treatment_nai
     if(cancer_type == "COAD" || cancer_type == "READ") {
       cancer_type = "ColoRect-AdenoCA"
     }
-    index = which(dt$PCAWG == cancer_type)
+    index = which(dt$PCAWG %ilike% cancer_type)
     if (length(index) != 1) {
-      index = which(dt$Applicable_TCGA == cancer_type)
+      index = which(dt$Applicable_TCGA %ilike% cancer_type)
     }
     if (length(index) != 1) {
       message(paste0("Input cancer_type not recognized.\n",

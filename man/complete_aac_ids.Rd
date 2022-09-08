@@ -16,7 +16,4 @@ For example, KRAS_G12C -> KRAS_G12C_ENSP00000256078 (ces.refset.hg19). In cases 
 multiple protein IDs per gene, will return more IDs than input. Otherwise,
 input/output will maintain order.
 }
-\details{
-Output IDs are not fully validated. Use validate_aac_ids().
-}
 \keyword{internal}

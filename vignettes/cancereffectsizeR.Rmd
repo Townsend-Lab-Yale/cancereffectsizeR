@@ -22,8 +22,7 @@ Start by installing the latest release:
 # Some dependencies are large, so we increase the download time limit to be safe
 options(timeout = 600) 
 install.packages('remotes')
-remotes::install_github("Townsend-Lab-Yale/cancereffectsizeR@*release", 
-                        dependencies = TRUE)
+remotes::install_github("Townsend-Lab-Yale/cancereffectsizeR", dependencies = TRUE)
 ```
 
 Regrettably, there is a bug in some older versions of the GenomeInfoDb package that may produce cryptic error messages in cancereffectsizeR, along the lines of `!anyNA(m32) is not TRUE`. If you encounter this issue, upgrade your Bioconductor version:
@@ -31,7 +30,7 @@ Regrettably, there is a bug in some older versions of the GenomeInfoDb package t
 ```{R}
 # Only necessary if the current Bioconductor version is <3.14.
 if (BiocManager::version() < as.package_version("3.14")) {
-  BiocManager::install(version = "3.14")
+  BiocManager::install(version = "3.14") # or newer, if desired
 }
 ```
 

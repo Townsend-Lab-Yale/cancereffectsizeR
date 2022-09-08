@@ -625,6 +625,10 @@ clear_effect_output = function(cesa, run_names = names(cesa$selection)) {
   }
   cesa = copy_cesa(cesa)
   
+  if(length(cesa@selection_results) == 0) {
+    warning("No ces_variant() runs to clear, so returning CESAnalysis unaltered.")
+    return(cesa)
+  }
   if(! is.character(run_names) || length(run_names) < 1) {
     stop("run_name should be type character.")
   }

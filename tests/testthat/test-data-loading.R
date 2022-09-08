@@ -9,7 +9,7 @@ test_that("load_maf and variant annotation", {
   expect_equal(tiny@mutations, tiny_ak@mutations)
   expect_equal(tiny@mutations$snv[, .N], 268)
   expect_equal(tiny@mutations$amino_acid_change[, .N], 129)
-  expect_equal(tiny$samples[, .N],84) 
+  expect_equal(tiny$samples[, .N], 84) 
    
   # same ranges should be in each coverage GenomicRange (depending on BSgenome version, little contigs may vary)
   expect_equal(lapply(tiny@coverage$exome, IRanges::ranges), lapply(tiny_ak@coverage$exome, IRanges::ranges))
@@ -169,4 +169,17 @@ test_that("Coverage arguments", {
   expect_error(load_maf(tiny, maf = maf, coverage = "targeted"), 
                "can't load targeted data without covered_regions")
 })
+
+# Position 1:10001 has ambiguous trinuc context (first 10,000 bases of chr1 are N).
+# FYI, the same holds for hg38.
+test_that('Handle all MAF records excluded due to ambiguous trinuc context', {
+  maf = as.data.table(list(Chromosome = 1, Start_Position = 10001, Reference_Allele = 'T', Tumor_Allele = 'C',
+                           Unique_Patient_Identifier = 'hello'))
+  expect_warning(expect_message({cesa = load_maf(cesa = CESAnalysis('ces.refset.hg19'), maf = maf)}, 
+                 'excluded due to ambiguous trinucleotide'), 'Could this be whole-genome')
+  expect_equal(cesa$excluded[, .N], 1)
+  expect_equal(cesa$samples[, .N], 1)
+  expect_equal(cesa@maf[, .N], 0)
+})
+
 

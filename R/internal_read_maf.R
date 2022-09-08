@@ -176,6 +176,7 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
   } else {
     maf[, Tumor_Allele := toupper(Tumor_Allele)]
   }
+  suppressWarnings(maf[, c("Tumor_Seq_Allele1", "Tumor_Seq_Allele2") := NULL])
   
   maf_cols = c("Unique_Patient_Identifier", "Chromosome", "Start_Position", "Reference_Allele", "Tumor_Allele")
   
@@ -184,9 +185,19 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
     if(separate_old_problems == TRUE) {
       if(length(setdiff(unique(maf$problem), c(preload_problems, 'NA', NA))) == 0) {
         old_problems = maf[! is.na(problem)]
+        maf = maf[is.na(problem)]
+        
+        # Some excluded records should retain variant IDs
+        identify_maf_variants(old_problems)
+        old_problems[! problem %in% c('duplicate_record', 'duplicate_from_TCGA_sample_merge',
+                                       'duplicate_record_after_liftOver', 'failed_liftOver',
+                                       'merged_into_dbs_variant', 'merged_with_nearby_variant', 
+                                       'merged_into_other_variant'),
+                  c('variant_id', 'variant_type') := list(NA_character_, NA_character_)]
+        old_problems[problem == 'failed_liftOver', variant_id := paste0(variant_id, '(prelift)')]
         setnames(old_problems, 'problem', 'old_problem')
         old_problems[, problem := NA_character_]
-        maf = maf[is.na(problem)]
+        
       } else {
         msg = paste0("Found a \"problem\" column in MAF, but if the table came from cancereffectsizeR, ",
                      "it's been subsequently altered, so it can't be used and will be overwritten.")
@@ -199,10 +210,6 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
   looks_empty = apply(check, 1, any)
   num_bad = sum(looks_empty)
   maf[looks_empty, problem := 'missing_values']
-  
-  # Problem if tumor allele matches reference allele
-  no_variant = maf[Reference_Allele == Tumor_Allele, which = T]
-  maf[no_variant, problem := 'not_variant']
   
   duplicate_records = duplicated(maf[,.(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele, Tumor_Allele)])
   maf[duplicate_records, problem := 'duplicate_record']
@@ -262,7 +269,7 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
     maf = merged_maf[, -"rn"]
     if (failed_liftover[, .N] > 0) {
       failed_liftover[, problem := 'failed_liftOver']
-      setnames(failed_liftover, c("Chromosome", "Start_Position"), c("prelift_chr", "prelift_start"))
+      failed_liftover[, c("prelift_chr", "prelift_start") := list(Chromosome, Start_Position)]
       maf = rbind(maf, failed_liftover, fill = T)
     }
     
@@ -301,18 +308,19 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
     maf[Start_Position > max_lengths[Chromosome], problem := 'out_of_bounds']
   }
   
+  identify_maf_variants(maf)
+  maf[problem == 'failed_liftOver', variant_id := paste0(variant_id, '(prelift)')]
+  
   # Ensure reference alleles of mutations match reference genome (Note: Insertions won't match if their reference allele is "-")
   # Can safely skip the reference allele check if the table has previously been checked and still has the same ref alleles
   skip_ref_check = FALSE
   prev_md5 = attr(maf, 'ref_md5')
   if(! is.null(prev_md5)) {
-    maf = identify_maf_variants(maf)
     prev_md5_noproblem = attr(maf, 'ref_md5_noproblem')
     current_md5 = digest::digest(maf[, .(variant_id, Reference_Allele)])
     if (current_md5  %in% c(prev_md5, prev_md5_noproblem)) {
       skip_ref_check = TRUE
     }
-    maf[, c("variant_type", "variant_id") := NULL] # inelegant, but they're going to get re-generated later
   }
 
   if(! skip_ref_check) {
@@ -323,13 +331,17 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
     reference_alleles = as.character(BSgenome::getSeq(refset_env$genome, maf[is.na(problem), Chromosome],
                                                       strand="+", start=maf[is.na(problem), Start_Position], end=end_pos))
     
-    # For insertions, can't evaluate if record matches reference since MAF reference will be just "-"
-    # Could conceivably verify that the inserted bases don't match reference....
+    # For insertions, can't evaluate if record matches reference since MAF reference will be just "-".
+    # "Other" variants will also not be evaluated.
     maf[is.na(problem), actual_ref := reference_alleles]
-    maf[is.na(problem) & Reference_Allele != '-' & Reference_Allele != actual_ref, problem := 'reference_mismatch']
+    maf[is.na(problem) & variant_type %in% c('del', 'snv', 'dbs') & Reference_Allele != actual_ref, 
+        c("problem", "variant_type", "variant_id") := list('reference_mismatch', NA_character_, NA_character_)]
     maf[, actual_ref := NULL]
   }
   
+  # Problem if tumor allele matches reference allele
+  no_variant = maf[is.na(problem) & Reference_Allele == Tumor_Allele, which = T]
+  maf[no_variant, c('problem', 'variant_id', 'variant_type') := list('not_variant', NA_character_, NA_character_)]
   
   maf = rbind(maf, old_problems, fill = T)
   setcolorder(maf, maf_cols)
@@ -342,21 +354,83 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
 #' @return input table with variant_type and variant_id columns
 #' @keywords internal
 identify_maf_variants = function(maf) {
-  nt = c("A", "T", "C", "G")
-  maf[, start_char := format(Start_Position, scientific = F, justify = 'none', trim = T)] # to avoid issues like position 100000 getting rendered as "1e5"
-  maf[Reference_Allele %in% nt & Tumor_Allele %in% nt, 
-      c("variant_type", "variant_id") := .("snv", paste0(Chromosome, ':', start_char, '_', Reference_Allele, '>', Tumor_Allele))]
-  maf[Reference_Allele %like% '^[ACTG]{2}$' & Tumor_Allele %like% '^[ACTG]{2}$', 
-      c("variant_type", "variant_id") := .('dbs', paste0(Chromosome, ':', start_char, '_', Reference_Allele, '>', Tumor_Allele))]
-  maf[Reference_Allele == '-' & Tumor_Allele %like% '^[ACTG]+$', 
-      c("variant_type", "variant_id") := .('ins', paste0(Chromosome, ':', start_char, '_ins_', Tumor_Allele))]
-  maf[Tumor_Allele == '-' & Reference_Allele %like% '^[ACTG]+$', 
-      c("variant_type", "variant_id") := .('del', paste0(Chromosome, ':', start_char, '_del_', Reference_Allele))]
-  maf[is.na(variant_id), c("variant_type", "variant_id") := .('other', paste0(Chromosome, ':', start_char, '_', Reference_Allele, '>', Tumor_Allele))]
   
-  # As long as ref/tumor alleles consist of [ACTG], will let them stay as "other"; we don't handle these variants, anyway.
-  maf[variant_type == 'other' & (! Reference_Allele %like% '^[ACTG]+$' | ! Tumor_Allele %like% '^[ACTG]+$'), 
+  suppressWarnings(maf[, c("variant_id", "variant_type") := NULL])
+  
+  # Format Start_Position carefully, to avoid issues like position 100000 getting rendered as "1e5"
+  maf[, start_char := format(Start_Position, scientific = F, justify = 'none', trim = T)]
+  maf[Reference_Allele %ilike% '^[ACTG]$' & Tumor_Allele %ilike% '^[ACTG]$', 
+      c("variant_type", "variant_id") := .("snv", paste0(Chromosome, ':', start_char, '_', toupper(Reference_Allele), '>', toupper(Tumor_Allele)))]
+  maf[Reference_Allele %ilike% '^[ACTG]{2}$' & Tumor_Allele %ilike% '^[ACTG]{2}$', 
+      c("variant_type", "variant_id") := .('dbs', paste0(Chromosome, ':', start_char, '_', toupper(Reference_Allele), '>', toupper(Tumor_Allele)))]
+  maf[Reference_Allele == '-' & Tumor_Allele %ilike% '^[ACTG]+$', 
+      c("variant_type", "variant_id") := .('ins', paste0(Chromosome, ':', start_char, '_ins_', toupper(Tumor_Allele)))]
+  maf[Tumor_Allele == '-' & Reference_Allele %like% '^[ACTG]+$', 
+      c("variant_type", "variant_id") := .('del', paste0(Chromosome, ':', start_char, '_del_', nchar(Reference_Allele)))]
+  maf[is.na(variant_id), c("variant_type", "variant_id") := .('other', paste0(Chromosome, ':', start_char, '_', toupper(Reference_Allele), 
+                                                                              '>', toupper(Tumor_Allele)))]
+  
+  # "complex" variants result from MNV detection and will get validated separately
+  complex_variants_ind = maf[variant_type == 'other' & Reference_Allele %like% ',' & Tumor_Allele %like% ',', which = T]
+  maf[, is_complex := FALSE][complex_variants_ind, is_complex := TRUE]
+  
+  # Don't allow commas at start or end, and require matched number in ref/tumor.
+  maf[is_complex == TRUE & (Reference_Allele %like% '(^,)|(,$)' | Tumor_Allele %like% '(^,)|(,$)' | 
+                              nchar(gsub('[^,]', '', Reference_Allele)) != 
+                              nchar(gsub('[^,]', '', Tumor_Allele))),
+                            c("is_complex", "variant_type", "variant_id") :=
+                              .(FALSE, 'illegal', NA_character_)]
+                            
+  if(length(complex_variants_ind) > 0) {
+    complex_variants = maf[complex_variants_ind]
+    complex_variants[, rn := complex_variants_ind]
+    maf[is_complex == TRUE, rn := complex_variants_ind]
+    
+    tmp = copy(complex_variants)
+    to_identify = complex_variants[, .(Chromosome, Start_Position, Reference_Allele, Tumor_Allele,
+                                       Unique_Patient_Identifier, rn)][0]
+    
+    # iteratively process comma-delimited variant IDs from left to right
+    while(tmp[, .N] > 0) {
+      left_variant = tmp[, .(Chromosome,
+                             Start_Position,
+                             Reference_Allele = gsub(',.*', '', Reference_Allele),
+                             Tumor_Allele = gsub(',.*', '', Tumor_Allele),
+                             Unique_Patient_Identifier, rn)]
+      
+      left_variant[, to_add := 0]
+      left_variant[Reference_Allele %like% '\\(\\+\\d+\\)',  to_add := as.numeric(gsub('.*\\(\\+(\\d+).*', '\\1', Reference_Allele))]
+      left_variant[, Reference_Allele := gsub('.*\\)', '', Reference_Allele)]
+      left_variant[, Start_Position := Start_Position + to_add]
+      left_variant[, to_add := NULL]
+      
+      to_identify = rbind(to_identify, left_variant)
+      
+      tmp = tmp[Reference_Allele %like% ',', 
+                .(Chromosome,
+                  Start_Position,
+                  Reference_Allele = gsub('.*?,', '', Reference_Allele),
+                  Tumor_Allele = gsub('.*?,', '', Tumor_Allele),
+                  Unique_Patient_Identifier, rn)]
+    }
+    
+    to_identify = identify_maf_variants(to_identify)
+    bad_complex_rn = to_identify[variant_type == 'illegal', unique(rn)]
+    maf[bad_complex_rn, c("variant_type", "variant_id") := .('illegal', NA_character_)]
+    good_ids_by_rn = to_identify[! bad_complex_rn, .(variant_id = paste0(variant_id, collapse = ',')), by = 'rn']
+    maf[good_ids_by_rn, variant_id := i.variant_id, on = 'rn']
+    maf[, rn := NULL]
+  }
+  
+  
+  # Variants that don't match SNV, DBS, indel formats are either MNV substitutions,
+  # or length-changing substitutions (e.g., CT->AAG), or
+  # should only contain ACTG, 
+  maf[variant_type == 'other' & ! is_complex & (! Reference_Allele %ilike% '^[ACTG]+$' | 
+                                                 ! Tumor_Allele %ilike% '^[ACTG]+$'),
       c("variant_type", "variant_id") := .('illegal', NA_character_)]
+  
+  maf[, is_complex := NULL]
   maf[, start_char := NULL]
   return(maf)
 }

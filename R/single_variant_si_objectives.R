@@ -23,7 +23,7 @@ sswm_lik = function(rates_tumors_with, rates_tumors_without) {
   }
   
   # Set default values for gamma (SI), which ces_variant will use to set starting value of optimization
-  formals(fn)[["gamma"]] = 1000
+  formals(fn)[["gamma"]] = 1
   bbmle::parnames(fn) = "selection_intensity"
   return(fn)
 }
@@ -87,7 +87,7 @@ sswm_sequential_lik <- function(rates_tumors_with, rates_tumors_without, sample_
   }
 
   # Set default values for all parameters, which ces_variant will use to set starting values of optimization
-  formals(fn)[["gamma"]] = rep.int(1000, num_pars)
+  formals(fn)[["gamma"]] = rep.int(1, num_pars)
   
   # Optimization tool, bbmle::mle, requires that vector of parameters to optimize have named elements
   group_names = unique(sample_index[, .(group_index, group_name)], by = 'group_index')[order(group_index), group_name]

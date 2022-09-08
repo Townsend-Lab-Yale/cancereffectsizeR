@@ -7,6 +7,7 @@
 load_maf(
   cesa = NULL,
   maf = NULL,
+  maf_name = character(),
   coverage = "exome",
   covered_regions = NULL,
   covered_regions_name = NULL,
@@ -21,6 +22,9 @@ load_maf(
 
 \item{maf}{Path of tab-delimited text file in MAF format, or an MAF in data.table or
 data.frame format.}
+
+\item{maf_name}{Optionally, a name to identify samples coming from the current MAF. Used to
+populate the maf_source field of the CESAnalysis samples table.}
 
 \item{coverage}{exome, genome, or targeted (default exome).}
 

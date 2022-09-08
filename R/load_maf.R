@@ -11,6 +11,8 @@
 #' @param cesa CESAnalysis.
 #' @param maf Path of tab-delimited text file in MAF format, or an MAF in data.table or
 #'   data.frame format.
+#' @param maf_name Optionally, a name to identify samples coming from the current MAF. Used to
+#'   populate the maf_source field of the CESAnalysis samples table.
 #' @param sample_data_cols MAF columns containing sample-level data (e.g., tumor grade)
 #'   that you would like to have copied into the CESAnalysis samples table.
 #' @param coverage exome, genome, or targeted (default exome).
@@ -37,7 +39,7 @@
 #'   \code{[CESAnalysis]$variants} contains more information about all top_consequence
 #'   variants and all noncoding variants from the MAF.
 #' @export
-load_maf = function(cesa = NULL, maf = NULL, coverage = "exome", covered_regions = NULL,
+load_maf = function(cesa = NULL, maf = NULL, maf_name = character(), coverage = "exome", covered_regions = NULL,
                     covered_regions_name = NULL, covered_regions_padding = 0, group_col = NULL,
                     sample_data_cols = character(), enforce_default_exome_coverage = FALSE) {
   
@@ -73,7 +75,6 @@ load_maf = function(cesa = NULL, maf = NULL, coverage = "exome", covered_regions
       stop("group_col is deprecated. To load sample-level data from an MAF data source, use sample_data_cols.")
     }
   }
-  
   
   
   # give a warning if interval padding is really high
@@ -191,6 +192,17 @@ load_maf = function(cesa = NULL, maf = NULL, coverage = "exome", covered_regions
     stop("Can't use these column(s) as sample-level data columns: ", paste(illegal_sample_cols, collapse = ", "), '.')
   }
 
+  if(! is.character(maf_name) || length(maf_name) > 1) {
+    stop("maf_name should be 1-length character.")
+  }
+  if(length(maf_name) == 0) {
+    maf_name = as.character(uniqueN(cesa@samples$maf_source) + 1)
+  } else {
+    if(! maf_name %ilike% '^[a-z0-9][0-9a-z\\_\\-\\.,\\+]*$') {
+      stop('Invalid maf_name. You can use alphanumerics and ",", "+", "_", "-", ".".)')
+    }
+  }
+  
   maf = do.call(read_in_maf, args = read_args)
   old_problems = data.table()
   if('old_problem' %in% names(maf)) {
@@ -229,9 +241,8 @@ load_maf = function(cesa = NULL, maf = NULL, coverage = "exome", covered_regions
   # Set aside records with problems and notify user
   initial_num_records = maf[, .N]
   excluded = maf[! is.na(problem), .(Unique_Patient_Identifier, Chromosome, Start_Position, 
-                                     Reference_Allele, Tumor_Allele, problem)]
+                                     Reference_Allele, Tumor_Allele, variant_id, variant_type, problem)]
   maf = maf[is.na(problem), -"problem"]
-  maf = identify_maf_variants(maf) # add variant_type/variant_id columns
 
   num_excluded = excluded[, .N]
   if(num_excluded > 0) {
@@ -350,7 +361,7 @@ load_maf = function(cesa = NULL, maf = NULL, coverage = "exome", covered_regions
                    "%) are outside the CESAnalysis's default exome definitions; expanded exome intervals to include them.")
       pretty_message(msg)
     } else {
-      uncovered = maf[is_uncovered, -c("variant_type", "variant_id")]
+      uncovered = maf[is_uncovered]
       uncovered$reason = paste0("uncovered_in_", covered_regions_name)
       maf = maf[!is_uncovered]
       excluded = rbind(excluded, uncovered[, names(excluded), with = F])
@@ -363,14 +374,14 @@ load_maf = function(cesa = NULL, maf = NULL, coverage = "exome", covered_regions
   if (! is.null(sample_data)) {
     new_samples = merge.data.table(new_samples, sample_data, by = "Unique_Patient_Identifier")
   }
+  new_samples[, maf_source := maf_name]
   
   cesa@samples = rbind(cesa@samples, new_samples, fill = TRUE)
   setcolorder(cesa@samples, c("Unique_Patient_Identifier", "coverage", "covered_regions", "group"))
   setkey(cesa@samples, "Unique_Patient_Identifier")
   
-  if (nrow(excluded) > 0) {
-    colnames(excluded) = c(colnames(maf)[1:5], "reason")
-    cesa@excluded = rbind(cesa@excluded, excluded) 
+  if (excluded[, .N] > 0) {
+    cesa@excluded = rbind(cesa@excluded, excluded, fill = T) 
   }
   
   # Set aside new variants for annotation (notably, before MNV prediction; we'll still annotate those as SNVs)
@@ -386,7 +397,7 @@ load_maf = function(cesa = NULL, maf = NULL, coverage = "exome", covered_regions
   num_bad = length(bad_trinuc_context)
   if (num_bad > 0) {
     bad_ids = snv_table[bad_trinuc_context, snv_id]
-    bad_trinuc_context_maf = maf[bad_ids, .(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele, Tumor_Allele), on = 'variant_id']
+    bad_trinuc_context_maf = maf[bad_ids, .(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele, Tumor_Allele, variant_id, variant_type), on = 'variant_id']
     maf = maf[! bad_ids, on = 'variant_id']
     msg = paste0("Note: ", num_bad, " MAF records excluded due to ambiguous trinucleotide context ",
                   "(likely N's in the reference genome).")
@@ -448,12 +459,12 @@ load_maf = function(cesa = NULL, maf = NULL, coverage = "exome", covered_regions
   
   # Same-sample variants with 2bp of other variants get set aside as likely MNVs
   # MNVs are only possible in sample/chromosome combinations with more than one MAF record
-  mnv = detect_mnv(maf)
-  num_mnv = uniqueN(mnv$mnv_group)
+  hidden_mnv = detect_mnv(maf)
+  num_mnv = uniqueN(hidden_mnv$mnv_group)
   if(num_mnv > 0) {
     msg = paste0("There are ", num_mnv, " groups of same-sample variants within 2 bp of each other. ",
-                 "These likely did not result from independent events. Consider using preload_maf() ",
-                 "to reclassify these variants as doublet substitutions or multinucleotide variants.")
+                 "These may not have resulted from independent events. Consider using preload_maf() ",
+                 "to reclassify these variants as doublet substitutions or other multinucleotide variants.")
     warning(pretty_message(msg, emit = F))
   }
 
@@ -466,9 +477,12 @@ load_maf = function(cesa = NULL, maf = NULL, coverage = "exome", covered_regions
   
   # Cached variants is a table of non-overlapping mutations (in terms of genomic position),
   # with only the "top" (tiebreaker-winning) variant at each site.
-  # For sites that have coding effects, we will add this effect to 
-  consequences = cesa@advanced$cached_variants[variant_type != 'snv', .(snv_id = unlist(constituent_snvs), variant_name, gene), by = 'variant_id']
-  cesa@maf[consequences, c("top_gene", "top_consequence") := list(gene, variant_name), on = c(variant_id = 'snv_id')]
+  # For sites that have coding effects, we will add this effect to the MAF table.
+  # (Edge case: No passing variants in MAF table means nothing to do.)
+  if(cesa@maf[, .N] > 0) {
+    consequences = cesa@advanced$cached_variants[variant_type != 'snv', .(snv_id = unlist(constituent_snvs), variant_name, gene), by = 'variant_id']
+    cesa@maf[consequences, c("top_gene", "top_consequence") := list(gene, variant_name), on = c(variant_id = 'snv_id')]
+  }
 
   msg = paste0("Loaded ", format(maf[, .N], big.mark = ','), " variant records from ", 
                  format(new_samples[, .N], big.mark = ','), " samples into CESAnalysis.")

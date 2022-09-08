@@ -172,11 +172,14 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
     aac_dt[, aa_alt := seqinr::aaa(aa_alt)]
     aac_dt[aa_alt == 'Stp', aa_alt := 'STOP'] # also for compatibility
     
+    fast_refcds = list2env(refset$RefCDS[unique(aac_dt$entry_name)])
+    
+    
     snvs_to_annotate = unique(unlist(mapply(aac_to_snv_ids, 
                                      aa_pos = aac_dt$aa_pos,
                                      aa_alt = aac_dt$aa_alt,
-                                     refcds_entry = refset$RefCDS[aac_dt$entry_name],
-                                     MoreArgs = list(bsg = refset$genome), SIMPLIFY = F)))
+                                     refcds_entry_name = aac_dt$entry_name,
+                                     MoreArgs = list(bsg = refset$genome, refcds = fast_refcds), SIMPLIFY = F)))
   }
   
   num_variants = length(snvs_to_annotate)
@@ -238,8 +241,8 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
 #' @param aa_alt Identity of substitution, either a three-letter code ("Lys") or "STOP"
 #' @param bsg A BSgenome object for the genome build associated with the RefCDS entry
 #' @keywords internal
-aac_to_snv_ids = function(refcds_entry, aa_pos, aa_alt, bsg) {
-  entry = refcds_entry
+aac_to_snv_ids = function(refcds_entry_name, aa_pos, aa_alt, bsg, refcds) {
+  entry = refcds[[refcds_entry_name]]
   chr = entry$chr
   neg_strand = entry$strand == -1
   

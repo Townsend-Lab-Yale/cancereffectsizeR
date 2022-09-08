@@ -100,12 +100,24 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
     num_samples = format(num_samples, big.mark = ",")
     message(sprintf("Preparing to calculate baseline mutation rates in %s samples across %s sites...", num_samples, num_variants))
   }
+  # Get a copy of regional mutation rates, leaving out CI columns
+  mutrates = cesa@mutrates[, .SD, .SDcols = patterns('gene|pid|(rate_grp_\\d+)$')]
+  
   
   # produce a table with all pairwise combinations of Unique_Patient_Identifier and relevant regional rates
   # relevant genes/pids are those associated with one of the AACs/SNVs of interest
-  using_pid = FALSE
-  if ("pid" %in% names(cesa@mutrates)) {
-    using_pid = TRUE
+  using_pid = cesa@advanced$cds_refset
+  if(using_pid) {
+    if (! "pid" %in% names(mutrates)) {
+      # If using a CDS-based refset (i.e., not ces.refset.hg19) and regional rates are gene-based
+      # (this may happen if user inputs custom rates), add protein annotations to mutrates table.
+      # All proteins associated with a given gene will get the same rate.
+      gr_genes = get_ref_data(cesa, "gr_genes")
+      if("gene" %in% names(GenomicRanges::mcols(gr_genes))) {
+        pid_to_gene = unique(as.data.table(gr_genes)[, .(pid = names, gene = gene)])
+      }
+      mutrates = mutrates[pid_to_gene, on = 'gene']
+    }
     # Note that unlist(NULL data.table) returns NULL (which is okay)
     relevant_regions = union(mutations$amino_acid_change$pid, unlist(mutations$snv[snv_ids, nearest_pid, on = "snv_id"]))
   } else {
@@ -113,12 +125,12 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
   }
   sample_region_rates = as.data.table(expand.grid(region = relevant_regions, Unique_Patient_Identifier = samples$Unique_Patient_Identifier, 
                                                   stringsAsFactors = F), key = "Unique_Patient_Identifier")
-
-  # add gene (regional) mutation rates to the table by using @mutrates and the groups of each samples
+  
+  
+  # add gene (regional) mutation rates to the table by using mutrates and the groups of each samples
   sample_region_rates = sample_region_rates[samples[, .(Unique_Patient_Identifier, gene_rate_grp = paste0('rate_grp_', gene_rate_grp))]]
   
-  # drop CI columns
-  mutrates = cesa@mutrates[, .SD, .SDcols = patterns('gene|pid|(rate_grp_\\d+)$')]
+
   if (using_pid) {
     # there's also a gene given in transcript rates tables, but we'll drop it here
     melted_mutrates = melt.data.table(mutrates[relevant_regions, -"gene", on = "pid"], id.vars = c("pid"), variable.factor = F)

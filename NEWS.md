@@ -1,6 +1,12 @@
 
 # <font style = "opacity:0">cancereffectsizeR 3.0.0</font>
-Patch releases (as in, x.y.1 &#8594; x.y.2) have minor bug fixes or small improvements that should not affect the numerical output of cancer effect analyses. Minor/major updates may change some outputs due to bug fixes or intentional tweaks, as described in these version notes.<br><br>
+Patch releases (as in, x.y.1 &#8594; x.y.2) have minor bug fixes or small improvements that should not significantly affect the numerical output of cancer effect analyses. Minor/major updates may change some outputs due to bug fixes or intentional tweaks, as described in these version notes.<br><br>
+
+# cancereffectsizeR 2.6.4
+* load_maf(): Optional maf_name argument makes it easy to see which samples in a CESAnalysis come from which MAF.
+* More flexible support for user-supplied gene mutation rates.
+* Changed par_init for selection inference on ces_variant()'s default model. This change will cause trivially small differences in effect estimates from prior versions.
+* Various other small fixes.
 
 # cancereffectsizeR 2.6.3
 * vcfs_to_maf_table(): Read in VCF files from somatic variant calling pipelines and convert into a combined MAF-like data.table.

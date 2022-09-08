@@ -6,7 +6,7 @@
 #' @importFrom stats na.omit
 .datatable.aware = TRUE
 .ces_ref_data = new.env()
-options(datatable.prettyprint.char = 28) # TCGA barcode length
+options(datatable.prettyprint.char = 40) 
 
 # Data package names and minimum required version
 .official_refsets = list(ces.refset.hg19 = as.package_version("1.1.0"), ces.refset.hg38 = as.package_version("1.2.0"))
@@ -33,13 +33,15 @@ aac_annotation_template = data.table(aac_id = character(), gene = character(), a
 aac_snv_key_template = data.table(aac_id = character(), snv_id = character(), multi_anno_site = logical(), key = 'aac_id')
 
 sample_table_template = data.table(Unique_Patient_Identifier = character(), coverage = character(), 
-                                  covered_regions = character(), sig_analysis_grp = integer(), gene_rate_grp = integer())
+                                  covered_regions = character(), sig_analysis_grp = integer(), gene_rate_grp = integer(),
+                                  maf_source = character())
 
 # for use when identifying a column previously handled by cancereffectsizeR
+# "merged_into_other_variant" replaced with "merged_with_nearby_variant" in 2.6.4
 preload_problems = c('missing_values', 'not_variant', 'duplicate_record', 'failed_liftOver', 
                      'duplicate_record_after_liftOver', 'unsupported_chr', 'out_of_bounds', 
                      'reference_mismatch', "merged_into_dbs_variant", "merged_into_other_variant",
-                     "duplicate_from_TCGA_sample_merge")
+                     "duplicate_from_TCGA_sample_merge", "merged_with_nearby_variant", "invalid_record")
 
 
 # format a string the way R should automatically, then feed it to message()
