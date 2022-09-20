@@ -44,8 +44,7 @@ $(function() {
         }
       }
     };
-     // Don't like the highlighting of search terms
-     // mark();
+     mark();
   });
 });
 
@@ -67,7 +66,9 @@ function matchedWords(hit) {
 
   // return unique words
   var words_uniq = [...new Set(words)];
-  return words_uniq;
+  
+  // Edit: Don't like highlighting of search terms
+  return [];
 }
 
 function updateHitURL(hit) {

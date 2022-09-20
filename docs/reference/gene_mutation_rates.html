@@ -96,9 +96,15 @@ for details).</p></dd>
 
 
 <dt>samples</dt>
-<dd><p>Which samples to include in the current run. Defaults to all samples.
-Can be a vector of Unique_Patient_Identifiers, or a data.table containing rows from
-the CESAnalysis sample table.</p></dd>
+<dd><p>Which samples to include in the current run. Defaults to all samples. Can be a
+vector of Unique_Patient_Identifiers, or a data.table containing rows from the CESAnalysis
+sample table.</p></dd>
+
+
+<dt>dndscv_args</dt>
+<dd><p>Custom arguments to pass to dNdScv. (The arguments <code>mutations</code>,
+<code>gene_list</code>, <code>cv</code>, and <code>refdb</code> are supplied by cancereffectsizeR and can't be
+substituted.)</p></dd>
 
 
 <dt>save_all_dndscv_output</dt>

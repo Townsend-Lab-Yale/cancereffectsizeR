@@ -288,7 +288,7 @@ snv_counts = cesa$mutational_signatures$snv_counts
 ```
 ```{r eval = T}
 # Counts look like this:
-snv_counts[1:5, c("TCGA-AC-A3W5", "TCGA-AC-A3YI", "TCGA-AC-A3YJ", "TCGA-AC-A4ZE", "TCGA-AC-A5EH", "TCGA-AC-A5EI")]
+snv_counts[1:5, c("TCGA-A2-A1FW", "TCGA-C8-A1HL", "TCGA-EW-A1P5", "TCGA-C8-A1HM", "TCGA-AN-A0FN")]
 
 # We'll sum up the counts by group, leaving out a sample that has no SNVs.
 summed_snv_by_group = data.table()

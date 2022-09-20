@@ -169,15 +169,10 @@ walkthrough.</p>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-datatable.com" class="external-link">data.table</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Download lung adenocarcinoma (LUAD) somatic variant data.</span></span>
-<span><span class="co"># Note that the rest of the tutorial uses BRCA, not LUAD.</span></span>
-<span><span class="co"># This is an old TCGA file: Outside the tutorial, use get_TCGA_project_MAF() for the</span></span>
-<span><span class="co"># latest, most accurate data.</span></span>
-<span><span class="va">tcga_maf_file</span> <span class="op">&lt;-</span> <span class="st">"TCGA.LUAD.mutect.0458c57f-316c-4a7c-9294-ccd11c97c2f9.DR-10.0.somatic.maf.gz"</span></span>
+<span><span class="co"># Download TCGA lung adenocarcinoma (LUAD) somatic variant data.</span></span>
+<span><span class="va">tcga_maf_file</span> <span class="op">&lt;-</span> <span class="st">"TCGA-LUAD.maf.gz"</span></span>
 <span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="va">tcga_maf_file</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/utils/download.file.html" class="external-link">download.file</a></span><span class="op">(</span><span class="st">"https://api.gdc.cancer.gov/data/0458c57f-316c-4a7c-9294-ccd11c97c2f9"</span>,</span>
-<span>    destfile <span class="op">=</span> <span class="va">tcga_maf_file</span>, mode <span class="op">=</span> <span class="st">"wb"</span></span>
-<span>  <span class="op">)</span></span>
+<span>  <span class="fu"><a href="../reference/get_TCGA_project_MAF.html">get_TCGA_project_MAF</a></span><span class="op">(</span>project <span class="op">=</span> <span class="st">"LUAD"</span>, filename <span class="op">=</span> <span class="st">"TCGA-LUAD.maf.gz"</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
 <span><span class="co"># Prepare data</span></span>
@@ -217,7 +212,7 @@ walkthrough.</p>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_linerange.html" class="external-link">geom_errorbar</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>ymin <span class="op">=</span> <span class="va">ci_low_95</span>, ymax <span class="op">=</span> <span class="va">ci_high_95</span><span class="op">)</span>, width <span class="op">=</span> <span class="fl">.2</span>, color <span class="op">=</span> <span class="st">"darkgrey"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>color <span class="op">=</span> <span class="va">included_with_variant</span><span class="op">)</span>, size <span class="op">=</span> <span class="fl">3</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_discrete.html" class="external-link">scale_x_discrete</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_y_log10</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_y_log10</a></span><span class="op">(</span>labels <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/format.html" class="external-link">format</a></span><span class="op">(</span><span class="va">x</span>, big.mark <span class="op">=</span> <span class="st">","</span>, scientific <span class="op">=</span> <span class="cn">F</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_color_viridis_c</a></span><span class="op">(</span></span>
 <span>    name <span class="op">=</span> <span class="st">"variant prevalence"</span>, guide <span class="op">=</span> <span class="st">"colorbar"</span>, trans <span class="op">=</span> <span class="st">"log10"</span>,</span>
 <span>    option <span class="op">=</span> <span class="st">"plasma"</span>, breaks <span class="op">=</span> <span class="va">breaks</span></span>
@@ -238,7 +233,7 @@ walkthrough.</p>
 <span>  <span class="op">)</span></span>
 <span></span>
 <span><span class="co"># There's lots more that can be done with cancereffectsizeR! See the full tutorial for some</span></span>
-<span><span class="co"># important details and a broader view of functionality.</span></span></code></pre></div>
+<span><span class="co"># useful details and a broader view of functionality.</span></span></code></pre></div>
 <p><img src="cancereffectsizeR_files/figure-html/unnamed-chunk-6-1.png" width="700"></p>
 </details>
 </div>
@@ -268,16 +263,13 @@ assumed to be similar to those calculated in WXS/WGS samples.</p>
 <div class="section level3">
 <h3 id="tcga-data-whole-exome">TCGA data (whole-exome)<a class="anchor" aria-label="anchor" href="#tcga-data-whole-exome"></a>
 </h3>
-<p>We’ll begin by downloading variant data from TCGA. The data comes in
-a large text file listing somatic mutations for a collection of tumors,
-in accordance with <a href="https://docs.gdc.cancer.gov/Data/File_Formats/MAF_Format" class="external-link">MAF
-format</a>. <strong>This data is from an old release.</strong> For
-future analyses, get the most recent, accurate TCGA somatic variant data
-with <code><a href="../reference/get_TCGA_project_MAF.html">get_TCGA_project_MAF()</a></code>.</p>
+<p>We’ll begin by downloading variant data from TCGA. The function
+downloads patient MAF data from the latest TCGA data release and
+assembles a project-level MAF.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">tcga_maf_file</span> <span class="op">&lt;-</span> <span class="st">"TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf.gz"</span></span>
+<code class="sourceCode R"><span><span class="va">tcga_maf_file</span> <span class="op">&lt;-</span> <span class="st">"TCGA-BRCA.maf.gz"</span></span>
 <span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="va">tcga_maf_file</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/utils/download.file.html" class="external-link">download.file</a></span><span class="op">(</span><span class="st">"https://api.gdc.cancer.gov/data/995c0111-d90b-4140-bee7-3845436c3b42"</span>, destfile <span class="op">=</span> <span class="va">tcga_maf_file</span>, mode <span class="op">=</span> <span class="st">"wb"</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="../reference/get_TCGA_project_MAF.html">get_TCGA_project_MAF</a></span><span class="op">(</span>project <span class="op">=</span> <span class="st">"BRCA"</span>, filename <span class="op">=</span> <span class="va">tcga_maf_file</span><span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
 <p>Let’s also load and examine a table of patient information. Although
 the TCGA samples in the data set are all taken from primary tumors,
@@ -287,44 +279,31 @@ positive) and HER2 amplification status are also recorded in a combined
 column.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tcga_clinical</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/fread.html" class="external-link">fread</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"tutorial/TCGA_BRCA_clinical.txt"</span>, package <span class="op">=</span> <span class="st">"cancereffectsizeR"</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Change patient identifier column name in clinical table to match the MAF.</span></span>
+<span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/setattr.html" class="external-link">setnames</a></span><span class="op">(</span><span class="va">tcga_clinical</span>, <span class="st">"patient_id"</span>, <span class="st">"Unique_Patient_Identifier"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Peek at data</span></span>
 <span><span class="va">tcga_clinical</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span></span></code></pre></div>
-<pre><code><span><span class="co">##      patient_id   pM receptor_status</span></span>
-<span><span class="co">## 1: TCGA-3C-AAAU &lt;NA&gt;       HR+/HER2-</span></span>
-<span><span class="co">## 2: TCGA-3C-AALI   M0       HR+/HER2+</span></span>
-<span><span class="co">## 3: TCGA-3C-AALJ   M0            &lt;NA&gt;</span></span>
-<span><span class="co">## 4: TCGA-3C-AALK   M0       HR+/HER2+</span></span>
-<span><span class="co">## 5: TCGA-4H-AAAK   M0            &lt;NA&gt;</span></span></code></pre>
+<pre><code><span><span class="co">##    Unique_Patient_Identifier   pM receptor_status</span></span>
+<span><span class="co">## 1:              TCGA-3C-AAAU &lt;NA&gt;       HR+/HER2-</span></span>
+<span><span class="co">## 2:              TCGA-3C-AALI   M0       HR+/HER2+</span></span>
+<span><span class="co">## 3:              TCGA-3C-AALJ   M0            &lt;NA&gt;</span></span>
+<span><span class="co">## 4:              TCGA-3C-AALK   M0       HR+/HER2+</span></span>
+<span><span class="co">## 5:              TCGA-4H-AAAK   M0            &lt;NA&gt;</span></span></code></pre>
 <p>The <code><a href="../reference/preload_maf.html">preload_maf()</a></code> function takes in MAF data, extracts
 the columns needed by cancereffectsizeR, adds a couple of genomic
-annotations, and checks for common problems. Since TCGA data sets are
-well-curated, this particular run will not reveal any problems. (For
-your own analyses, see our <a href="MAF_filtering_tips.html">MAF data
-tips</a>.) This MAF file already uses the hg38 genome build, but if it
-didn’t, we could use the <code>chain_file</code> argument to convert
-records via liftOver.</p>
+annotations, and checks for common problems. (For your own analyses, see
+our <a href="MAF_filtering_tips.html">MAF data tips</a>.) This MAF file
+already uses the hg38 genome build, but if it didn’t, we could use the
+<code>chain_file</code> argument to convert records via liftOver.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tcga_maf</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/preload_maf.html">preload_maf</a></span><span class="op">(</span>maf <span class="op">=</span> <span class="va">tcga_maf_file</span>, refset <span class="op">=</span> <span class="st">"ces.refset.hg38"</span><span class="op">)</span></span></code></pre></div>
-<p>If you compare the TCGA MAF and clinical file, you’ll see we have a
-small problem: the clinical file uses patient IDs, while the MAF uses
-tissue sample IDs. (This column was originally called
-Tumor_Sample_Barcode, but <code><a href="../reference/preload_maf.html">preload_maf()</a></code> changed it to
-Unique_Patient_Identifier. cancereffectsizeR uses this column name to
-emphasize that distinct MAF samples must derive from distinct
-patients.)</p>
-<p>Luckily, TCGA IDs are easy to convert. After verifying that each TCGA
-patient has just one sample in the MAF data, we’ll change tissue IDs to
-patient IDs.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># TCGA sample IDs start with the patient ID, luckily. Here, we verify a 1-1 sample-patient</span></span>
-<span><span class="co"># relationship. If this check failed, we would need to figure out a sample exclusion</span></span>
-<span><span class="co"># strategy before proceeding with analysis.</span></span>
-<span><span class="va">tcga_maf</span><span class="op">[</span>, <span class="va">patient_id</span> <span class="op">:=</span> <span class="fu"><a href="https://rdrr.io/r/base/substr.html" class="external-link">substr</a></span><span class="op">(</span><span class="va">Unique_Patient_Identifier</span>, <span class="fl">1</span>, <span class="fl">12</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/duplicated.html" class="external-link">uniqueN</a></span><span class="op">(</span><span class="va">tcga_maf</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span><span class="va">patient_id</span>, <span class="va">Unique_Patient_Identifier</span><span class="op">)</span><span class="op">]</span><span class="op">)</span> <span class="op">==</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/duplicated.html" class="external-link">uniqueN</a></span><span class="op">(</span><span class="va">tcga_maf</span><span class="op">$</span><span class="va">Unique_Patient_Identifier</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># We can now use patient_id as the unique identifier.</span></span>
-<span><span class="va">tcga_maf</span><span class="op">[</span>, <span class="va">Unique_Patient_Identifier</span> <span class="op">:=</span> <span class="va">patient_id</span><span class="op">]</span></span>
-<span><span class="va">tcga_maf</span><span class="op">[</span>, <span class="va">patient_id</span> <span class="op">:=</span> <span class="cn">NULL</span><span class="op">]</span> <span class="co"># remove redundant column</span></span>
-<span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/setattr.html" class="external-link">setnames</a></span><span class="op">(</span><span class="va">tcga_clinical</span>, <span class="st">"patient_id"</span>, <span class="st">"Unique_Patient_Identifier"</span><span class="op">)</span></span></code></pre></div>
+<p>When MAFs created by are fed into , TCGA sample replicates are
+effectively merged, since the Unique_Patient_Identifier column
+supersedes Tumor_Sample_Barcode (the original sample identifiers). You
+will see a note that preload_maf() caught and handled the ensuing
+duplicate mutation records.</p>
 </div>
 <div class="section level3">
 <h3 id="metastatic-data-tgs">Metastatic data (TGS)<a class="anchor" aria-label="anchor" href="#metastatic-data-tgs"></a>
@@ -335,7 +314,7 @@ were sequenced using various MSK-Impact panels. In the full data set,
 some patients have multiple samples sequenced; the data provided with
 the package has been subsetted to one sample per patient, and the genome
 build has been converted to hg38.</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tgs_maf_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"tutorial/metastatic_breast_2021_hg38.maf"</span>, package <span class="op">=</span> <span class="st">"cancereffectsizeR"</span><span class="op">)</span></span>
 <span><span class="va">tgs_maf</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/preload_maf.html">preload_maf</a></span><span class="op">(</span>maf <span class="op">=</span> <span class="va">tgs_maf_file</span>, refset <span class="op">=</span> <span class="st">"ces.refset.hg38"</span><span class="op">)</span></span></code></pre></div>
 <p>When combining data from multiple sources,
@@ -352,16 +331,16 @@ looks fine.</p>
 </h2>
 <p>The CESAnalysis is the primary data structure of cancereffectsizeR.
 The cancereffectsizeR workflow consists of calling a series of functions
-that take a CESAnalysis as input and return an altered CESAnalysis.
-Re-using the same variable name will keep things tidy.</p>
+that take a CESAnalysis as input and return an altered CESAnalysis.</p>
 <div class="section level3">
 <h3 id="load-whole-exome-sequencing-data">Load whole-exome sequencing data<a class="anchor" aria-label="anchor" href="#load-whole-exome-sequencing-data"></a>
 </h3>
 <p>Let’s create a CESAnalysis and call <code><a href="../reference/load_maf.html">load_maf()</a></code> to load
-the TCGA data.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+the TCGA data. Since we’re going to load more than one MAF, we’ll
+provide an optional <code>maf_name</code>.</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/CESAnalysis.html">CESAnalysis</a></span><span class="op">(</span>refset <span class="op">=</span> <span class="st">"ces.refset.hg38"</span><span class="op">)</span></span>
-<span><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/load_maf.html">load_maf</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, maf <span class="op">=</span> <span class="va">tcga_maf</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/load_maf.html">load_maf</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, maf <span class="op">=</span> <span class="va">tcga_maf</span>, maf_name <span class="op">=</span> <span class="st">"BRCA"</span><span class="op">)</span></span></code></pre></div>
 <p>You will see a message that some variants fall outside of the
 refset’s exome definitions. Since we don’t know exactly what exome
 capture techniques were used for the BRCA project (probably different
@@ -374,7 +353,7 @@ data, simply set <code>coverage = "genome"</code>.)</p>
 accessors to look at the MAF data as well more detailed variant
 annotations, and if we want we can perform various filtering operations,
 such as identifying the most prevalent variants in the loaded data.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cesa</span><span class="op">$</span><span class="va">maf</span></span>
 <span><span class="va">cesa</span><span class="op">$</span><span class="va">variants</span></span>
 <span><span class="va">cesa</span><span class="op">$</span><span class="va">samples</span></span>
@@ -382,12 +361,12 @@ such as identifying the most prevalent variants in the loaded data.</p>
 <span><span class="co"># Let's see the top variants</span></span>
 <span><span class="op">(</span><span class="va">top_variants</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="op">-</span><span class="va">maf_prevalence</span><span class="op">)</span><span class="op">]</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span>, <span class="fu">.</span><span class="op">(</span><span class="va">variant_name</span>, <span class="va">chr</span>, <span class="va">start</span>, <span class="va">end</span>, <span class="va">maf_prevalence</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
 <p>Let’s load the clinical data into the analysis, too.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/load_sample_data.html">load_sample_data</a></span><span class="op">(</span><span class="va">cesa</span>, <span class="va">tcga_clinical</span><span class="op">)</span></span></code></pre></div>
 <p>Now that we’ve loaded the sample data, we can, for example, see how
 variant counts break down across different sample groups. Let’s see a
 breakdown PIK3CA mutation status by BRCA receptor phenotype.</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Get samples with 1 or more PIK3CA mutation</span></span>
 <span><span class="va">samples_with_pik3ca</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">maf</span><span class="op">[</span><span class="va">top_gene</span> <span class="op">==</span> <span class="st">"PIK3CA"</span>, <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">Unique_Patient_Identifier</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="va">pik3ca_sample_counts</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">samples</span><span class="op">[</span><span class="va">samples_with_pik3ca</span>, <span class="fu">.</span><span class="op">(</span>with_PIK3CA <span class="op">=</span> <span class="va">.N</span><span class="op">)</span>,</span>
@@ -418,7 +397,7 @@ will use just the TCGA data. (As mentioned earlier, we shouldn’t filter
 WXS/WGS data this way, since it would interfere with mutation rate
 calculation, but TGS samples are not involved in mutation rate
 calculation.)</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Define coverage using the coding regions of these genes, as defined by the refset</span></span>
 <span><span class="va">top_tgs_genes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
 <span>  <span class="st">"TP53"</span>, <span class="st">"PIK3CA"</span>, <span class="st">"ESR1"</span>, <span class="st">"CDH1"</span>, <span class="st">"GATA3"</span>, <span class="st">"KMT2C"</span>,</span>
@@ -428,18 +407,21 @@ calculation.)</p>
 <p>We don’t have a clinical file for the TGS data, but we do know that
 they’re all metastatic samples. Instead of creating another table and
 calling <code><a href="../reference/load_sample_data.html">load_sample_data()</a></code>, we can use the
-<code>sample_data_cols</code> feature of load_maf():</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<code>sample_data_cols</code> argument in load_maf(). We will also add a
+little bit of padding (10 bp) to our coverage definitions to allow
+variants just outside coding regions to be considered covered.</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tgs_maf</span><span class="op">$</span><span class="va">pM</span> <span class="op">&lt;-</span> <span class="st">"M1"</span></span>
 <span><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/load_maf.html">load_maf</a></span><span class="op">(</span><span class="va">cesa</span>,</span>
-<span>  maf <span class="op">=</span> <span class="va">tgs_maf</span>, sample_data_cols <span class="op">=</span> <span class="st">"pM"</span>,</span>
-<span>  coverage <span class="op">=</span> <span class="st">"targeted"</span>, covered_regions <span class="op">=</span> <span class="va">tgs_coverage</span>, covered_regions_name <span class="op">=</span> <span class="st">"top_genes"</span></span>
+<span>  maf <span class="op">=</span> <span class="va">tgs_maf</span>, sample_data_cols <span class="op">=</span> <span class="st">"pM"</span>, maf_name <span class="op">=</span> <span class="st">"MBC"</span>,</span>
+<span>  coverage <span class="op">=</span> <span class="st">"targeted"</span>, covered_regions <span class="op">=</span> <span class="va">tgs_coverage</span>,</span>
+<span>  covered_regions_name <span class="op">=</span> <span class="st">"top_genes"</span>, covered_regions_padding <span class="op">=</span> <span class="fl">10</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>Now that all the data is loaded, we’ll show one data-wrangling
 example: Let’s look at variant prevalence by metastatic disease status.
 By default, the <code><a href="../reference/variant_counts.html">variant_counts()</a></code> function considers all
 mutations, but we’ll subset to recurrent mutations.</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">counts_by_M</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/variant_counts.html">variant_counts</a></span><span class="op">(</span></span>
 <span>  cesa <span class="op">=</span> <span class="va">cesa</span>, variant_ids <span class="op">=</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="va">maf_prevalence</span> <span class="op">&gt;</span> <span class="fl">1</span>, <span class="va">variant_id</span><span class="op">]</span>,</span>
 <span>  by <span class="op">=</span> <span class="st">"pM"</span></span>
@@ -469,7 +451,7 @@ will exclude signatures that can safely be presumed absent from the
 samples; a helper function,
 <code><a href="../reference/suggest_cosmic_signature_exclusions.html">suggest_cosmic_signature_exclusions()</a></code>, can provide some
 guidance.</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># We'll use all suggested exclusions (TCGA primary tumors are treatment-naive)</span></span>
 <span><span class="va">signature_exclusions</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/suggest_cosmic_signature_exclusions.html">suggest_cosmic_signature_exclusions</a></span><span class="op">(</span>cancer_type <span class="op">=</span> <span class="st">"BRCA"</span>, treatment_naive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
@@ -515,26 +497,19 @@ plot because cancer hotspot mutations are not reflective of overall
 mutational processes, but our TGS samples lack receptor_status
 information, so they will already be left out without having to
 specifically exclude them.)</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">snv_counts</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">mutational_signatures</span><span class="op">$</span><span class="va">snv_counts</span></span></code></pre></div>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Counts look like this:</span></span>
-<span><span class="va">snv_counts</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TCGA-AC-A3W5"</span>, <span class="st">"TCGA-AC-A3YI"</span>, <span class="st">"TCGA-AC-A3YJ"</span>, <span class="st">"TCGA-AC-A4ZE"</span>, <span class="st">"TCGA-AC-A5EH"</span>, <span class="st">"TCGA-AC-A5EI"</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<span><span class="va">snv_counts</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TCGA-A2-A1FW"</span>, <span class="st">"TCGA-C8-A1HL"</span>, <span class="st">"TCGA-EW-A1P5"</span>, <span class="st">"TCGA-C8-A1HM"</span>, <span class="st">"TCGA-AN-A0FN"</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
 <pre><code><span><span class="co">##           </span></span>
-<span><span class="co">## trinuc_snv TCGA-AC-A3W5 TCGA-AC-A3YI TCGA-AC-A3YJ TCGA-AC-A4ZE TCGA-AC-A5EH</span></span>
-<span><span class="co">##    A[C&gt;A]A            1            2            0            0            3</span></span>
-<span><span class="co">##    A[C&gt;A]C            3            1            0            2           11</span></span>
-<span><span class="co">##    A[C&gt;A]G            1            1            0            2            0</span></span>
-<span><span class="co">##    A[C&gt;A]T            1            0            0            1            1</span></span>
-<span><span class="co">##    C[C&gt;A]A            2            1            0            1            4</span></span>
-<span><span class="co">##           </span></span>
-<span><span class="co">## trinuc_snv TCGA-AC-A5EI</span></span>
-<span><span class="co">##    A[C&gt;A]A            0</span></span>
-<span><span class="co">##    A[C&gt;A]C            0</span></span>
-<span><span class="co">##    A[C&gt;A]G            0</span></span>
-<span><span class="co">##    A[C&gt;A]T            0</span></span>
-<span><span class="co">##    C[C&gt;A]A            0</span></span></code></pre>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<span><span class="co">## trinuc_snv TCGA-A2-A1FW TCGA-C8-A1HL TCGA-EW-A1P5 TCGA-C8-A1HM TCGA-AN-A0FN</span></span>
+<span><span class="co">##    A[C&gt;A]A            0            0            0            2            0</span></span>
+<span><span class="co">##    A[C&gt;A]C            0            1            0            2            1</span></span>
+<span><span class="co">##    A[C&gt;A]G            1            0            0            1            1</span></span>
+<span><span class="co">##    A[C&gt;A]T            1            0            0            0            0</span></span>
+<span><span class="co">##    C[C&gt;A]A            0            0            0            0            1</span></span></code></pre>
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># We'll sum up the counts by group, leaving out a sample that has no SNVs.</span></span>
 <span><span class="va">summed_snv_by_group</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/data.table.html" class="external-link">data.table</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">receptor_groups</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/na.fail.html" class="external-link">na.omit</a></span><span class="op">(</span><span class="va">cesa</span><span class="op">$</span><span class="va">samples</span><span class="op">$</span><span class="va">receptor_status</span><span class="op">)</span><span class="op">)</span></span>
@@ -547,7 +522,7 @@ specifically exclude them.)</p>
 <span><span class="va">summed_snv_by_group</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">summed_snv_by_group</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">summed_snv_by_group</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">snv_counts</span><span class="op">)</span></span>
 <span><span class="fu">MutationalPatterns</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/MutationalPatterns/man/plot_96_profile.html" class="external-link">plot_96_profile</a></span><span class="op">(</span><span class="va">summed_snv_by_group</span><span class="op">)</span></span></code></pre></div>
-<p><img src="cancereffectsizeR_files/figure-html/unnamed-chunk-23-1.png" width="700"></p>
+<p><img src="cancereffectsizeR_files/figure-html/unnamed-chunk-22-1.png" width="700"></p>
 </div>
 <div class="section level2">
 <h2 id="gene-mutation-rates">Gene mutation rates<a class="anchor" aria-label="anchor" href="#gene-mutation-rates"></a>
@@ -559,25 +534,25 @@ mutation rate covariates. Our refset has pre-computed covariates for a
 variety of tissue types. As with mutational processes, this analysis
 will not use the TGS samples, but the calculated rates will be assumed
 to hold for them.</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gene_mutation_rates.html">gene_mutation_rates</a></span><span class="op">(</span><span class="va">cesa</span>, covariates <span class="op">=</span> <span class="va">ces.refset.hg38</span><span class="op">$</span><span class="va">covariates</span><span class="op">$</span><span class="va">breast</span><span class="op">)</span></span></code></pre></div>
 <p>Here are the neutral gene mutation rates extracted from dNdScv’s
 regression:</p>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">cesa</span><span class="op">$</span><span class="va">gene_rates</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">##                  pid    gene         rate rate_grp_1_95_low rate_grp_1_95_high</span></span>
-<span><span class="co">## 1: ENSP00000000233.5    ARF5 7.428081e-07      6.986779e-07       7.896139e-07</span></span>
-<span><span class="co">## 2: ENSP00000000412.3    M6PR 7.482958e-07      7.103321e-07       7.881811e-07</span></span>
-<span><span class="co">## 3: ENSP00000000442.6   ESRRA 6.075465e-07      5.687890e-07       6.487364e-07</span></span>
-<span><span class="co">## 4: ENSP00000001008.4   FKBP4 8.873064e-07      8.299359e-07       9.482702e-07</span></span>
-<span><span class="co">## 5: ENSP00000001146.2 CYP26B1 1.040051e-06      9.980426e-07       1.083548e-06</span></span>
-<span><span class="co">## 6: ENSP00000002125.4 NDUFAF7 6.767263e-07      6.496666e-07       7.048251e-07</span></span></code></pre>
+<span><span class="co">## 1: ENSP00000000233.5    ARF5 6.350206e-07      5.947954e-07       6.778247e-07</span></span>
+<span><span class="co">## 2: ENSP00000000412.3    M6PR 5.756903e-07      5.446158e-07       6.084135e-07</span></span>
+<span><span class="co">## 3: ENSP00000000442.6   ESRRA 5.382191e-07      5.018193e-07       5.769928e-07</span></span>
+<span><span class="co">## 4: ENSP00000001008.4   FKBP4 8.303021e-07      7.736213e-07       8.906310e-07</span></span>
+<span><span class="co">## 5: ENSP00000001146.2 CYP26B1 9.182355e-07      8.796483e-07       9.581680e-07</span></span>
+<span><span class="co">## 6: ENSP00000002125.4 NDUFAF7 5.969951e-07      5.716527e-07       6.233497e-07</span></span></code></pre>
 <p>We can also look at dNdScv’s identification of selection at the gene
 level. We’ll filter results to q &lt; .05. Since ces.refset.hg38 covers
 multiple isoforms for some genes, the dNdScv output is actually per
 protein, not per gene, so we’ll take the extra step of showing just the
 lowest q-value for each significant gene.</p>
-<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">dndscv_results</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">dNdScv_results</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
 <span><span class="va">sig_genes</span> <span class="op">&lt;-</span> <span class="va">dndscv_results</span><span class="op">[</span><span class="va">qallsubs_cv</span> <span class="op">&lt;</span> <span class="fl">.05</span><span class="op">]</span></span>
 <span></span>
@@ -640,25 +615,25 @@ TP53
 ENSP00000484409.1
 </td>
 <td style="text-align:right;">
-1
+0
 </td>
 <td style="text-align:right;">
-185
+181
 </td>
 <td style="text-align:right;">
-32
+33
 </td>
 <td style="text-align:right;">
 15
 </td>
 <td style="text-align:right;">
-211.4981730
+284.9773016
 </td>
 <td style="text-align:right;">
-460.41218
+646.271538
 </td>
 <td style="text-align:right;">
-460.41218
+646.271538
 </td>
 <td style="text-align:right;">
 0.000000e+00
@@ -690,7 +665,7 @@ ENSP00000263967.3
 5
 </td>
 <td style="text-align:right;">
-334
+336
 </td>
 <td style="text-align:right;">
 0
@@ -699,28 +674,28 @@ ENSP00000263967.3
 0
 </td>
 <td style="text-align:right;">
-51.0250992
+51.7950168
 </td>
 <td style="text-align:right;">
-0.00000
+0.000000
 </td>
 <td style="text-align:right;">
-0.00000
-</td>
-<td style="text-align:right;">
-0.000000e+00
-</td>
-<td style="text-align:right;">
-1.751743e-01
+0.000000
 </td>
 <td style="text-align:right;">
 0.000000e+00
 </td>
 <td style="text-align:right;">
+1.802329e-01
+</td>
+<td style="text-align:right;">
 0.000000e+00
 </td>
 <td style="text-align:right;">
-8.240347e-01
+0.000000e+00
+</td>
+<td style="text-align:right;">
+8.421570e-01
 </td>
 <td style="text-align:right;">
 0.000000e+00
@@ -737,37 +712,37 @@ ENSP00000361021.3
 0
 </td>
 <td style="text-align:right;">
-16
+15
 </td>
 <td style="text-align:right;">
-10
+11
 </td>
 <td style="text-align:right;">
-2
+3
 </td>
 <td style="text-align:right;">
-10.5657898
+11.6145134
 </td>
 <td style="text-align:right;">
-67.21015
+92.491633
 </td>
 <td style="text-align:right;">
-67.21015
+92.491633
 </td>
 <td style="text-align:right;">
-3.173414e-08
-</td>
-<td style="text-align:right;">
-7.771561e-16
+1.740561e-07
 </td>
 <td style="text-align:right;">
 0.000000e+00
 </td>
 <td style="text-align:right;">
-6.006139e-05
+0.000000e+00
 </td>
 <td style="text-align:right;">
-1.716025e-12
+2.712921e-04
+</td>
+<td style="text-align:right;">
+0.000000e+00
 </td>
 <td style="text-align:right;">
 0.000000e+00
@@ -781,10 +756,10 @@ CDH1
 ENSP00000261769.4
 </td>
 <td style="text-align:right;">
-2
+3
 </td>
 <td style="text-align:right;">
-15
+16
 </td>
 <td style="text-align:right;">
 30
@@ -793,63 +768,16 @@ ENSP00000261769.4
 13
 </td>
 <td style="text-align:right;">
-4.2671757
+4.4888974
 </td>
 <td style="text-align:right;">
-145.35536
+142.197772
 </td>
 <td style="text-align:right;">
-145.35536
+142.197772
 </td>
 <td style="text-align:right;">
-3.844028e-04
-</td>
-<td style="text-align:right;">
-0.000000e+00
-</td>
-<td style="text-align:right;">
-0.000000e+00
-</td>
-<td style="text-align:right;">
-2.910149e-01
-</td>
-<td style="text-align:right;">
-0.000000e+00
-</td>
-<td style="text-align:right;">
-0.000000e+00
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-KMT2C
-</td>
-<td style="text-align:right;">
-ENSP00000262189.6
-</td>
-<td style="text-align:right;">
-4
-</td>
-<td style="text-align:right;">
-24
-</td>
-<td style="text-align:right;">
-30
-</td>
-<td style="text-align:right;">
-2
-</td>
-<td style="text-align:right;">
-1.4018308
-</td>
-<td style="text-align:right;">
-15.45114
-</td>
-<td style="text-align:right;">
-15.45114
-</td>
-<td style="text-align:right;">
-3.357513e-01
+3.108585e-04
 </td>
 <td style="text-align:right;">
 0.000000e+00
@@ -858,60 +786,13 @@ ENSP00000262189.6
 0.000000e+00
 </td>
 <td style="text-align:right;">
-8.280065e-01
+2.657038e-01
 </td>
 <td style="text-align:right;">
 0.000000e+00
 </td>
 <td style="text-align:right;">
 0.000000e+00
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-MAP3K1
-</td>
-<td style="text-align:right;">
-ENSP00000382423.3
-</td>
-<td style="text-align:right;">
-5
-</td>
-<td style="text-align:right;">
-24
-</td>
-<td style="text-align:right;">
-18
-</td>
-<td style="text-align:right;">
-2
-</td>
-<td style="text-align:right;">
-3.1075931
-</td>
-<td style="text-align:right;">
-24.80155
-</td>
-<td style="text-align:right;">
-24.80155
-</td>
-<td style="text-align:right;">
-7.416462e-04
-</td>
-<td style="text-align:right;">
-0.000000e+00
-</td>
-<td style="text-align:right;">
-3.330669e-16
-</td>
-<td style="text-align:right;">
-4.793024e-01
-</td>
-<td style="text-align:right;">
-0.000000e+00
-</td>
-<td style="text-align:right;">
-6.788672e-13
 </td>
 </tr>
 <tr>
@@ -928,37 +809,131 @@ ENSP00000262445.5
 13
 </td>
 <td style="text-align:right;">
-8
+9
 </td>
 <td style="text-align:right;">
 3
 </td>
 <td style="text-align:right;">
-8.6992331
+10.4813306
 </td>
 <td style="text-align:right;">
-59.30867
+77.490771
 </td>
 <td style="text-align:right;">
-59.30867
+77.490771
 </td>
 <td style="text-align:right;">
-1.994699e-06
+1.663177e-06
 </td>
 <td style="text-align:right;">
-3.430589e-14
+1.332268e-15
+</td>
+<td style="text-align:right;">
+1.110223e-16
+</td>
+<td style="text-align:right;">
+2.319432e-03
+</td>
+<td style="text-align:right;">
+2.941758e-12
+</td>
+<td style="text-align:right;">
+2.451465e-13
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+KMT2C
+</td>
+<td style="text-align:right;">
+ENSP00000262189.6
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+25
+</td>
+<td style="text-align:right;">
+27
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+1.4978583
+</td>
+<td style="text-align:right;">
+14.327120
+</td>
+<td style="text-align:right;">
+14.327120
+</td>
+<td style="text-align:right;">
+2.676400e-01
+</td>
+<td style="text-align:right;">
+2.553513e-15
+</td>
+<td style="text-align:right;">
+2.220446e-16
+</td>
+<td style="text-align:right;">
+7.910200e-01
+</td>
+<td style="text-align:right;">
+5.204649e-12
+</td>
+<td style="text-align:right;">
+4.525781e-13
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+MAP3K1
+</td>
+<td style="text-align:right;">
+ENSP00000382423.3
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+22
+</td>
+<td style="text-align:right;">
+17
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2.9762851
+</td>
+<td style="text-align:right;">
+24.418959
+</td>
+<td style="text-align:right;">
+24.418959
+</td>
+<td style="text-align:right;">
+2.751383e-03
 </td>
 <td style="text-align:right;">
 1.221245e-15
 </td>
 <td style="text-align:right;">
-2.642677e-03
+1.176836e-14
 </td>
 <td style="text-align:right;">
-6.992332e-11
+7.910200e-01
 </td>
 <td style="text-align:right;">
-2.311381e-12
+2.941758e-12
+</td>
+<td style="text-align:right;">
+2.227331e-11
 </td>
 </tr>
 <tr>
@@ -972,7 +947,7 @@ ENSP00000270202.4
 1
 </td>
 <td style="text-align:right;">
-27
+26
 </td>
 <td style="text-align:right;">
 0
@@ -981,31 +956,31 @@ ENSP00000270202.4
 0
 </td>
 <td style="text-align:right;">
-15.3649063
+17.1487122
 </td>
 <td style="text-align:right;">
-0.00000
+0.000000
 </td>
 <td style="text-align:right;">
-0.00000
+0.000000
 </td>
 <td style="text-align:right;">
-1.088019e-14
+1.171285e-13
 </td>
 <td style="text-align:right;">
-5.461340e-01
+5.747608e-01
 </td>
 <td style="text-align:right;">
-5.706546e-14
+5.659917e-13
 </td>
 <td style="text-align:right;">
-2.217633e-11
+2.387350e-10
 </td>
 <td style="text-align:right;">
-8.240347e-01
+8.421570e-01
 </td>
 <td style="text-align:right;">
-7.958229e-11
+7.893201e-10
 </td>
 </tr>
 <tr>
@@ -1028,31 +1003,31 @@ ENSP00000320485.7
 2
 </td>
 <td style="text-align:right;">
-1.6841456
+1.9984363
 </td>
 <td style="text-align:right;">
-23.62058
+27.510255
 </td>
 <td style="text-align:right;">
-23.62058
+27.510255
 </td>
 <td style="text-align:right;">
-2.262572e-01
+1.371621e-01
 </td>
 <td style="text-align:right;">
-6.243894e-13
+4.649614e-13
 </td>
 <td style="text-align:right;">
-3.405609e-12
+2.422507e-12
 </td>
 <td style="text-align:right;">
-7.916708e-01
+7.910200e-01
 </td>
 <td style="text-align:right;">
-1.181746e-09
+8.800059e-10
 </td>
 <td style="text-align:right;">
-4.511921e-09
+3.209458e-09
 </td>
 </tr>
 <tr>
@@ -1063,43 +1038,43 @@ NCOR1
 ENSP00000268712.2
 </td>
 <td style="text-align:right;">
-4
+2
 </td>
 <td style="text-align:right;">
-21
+20
 </td>
 <td style="text-align:right;">
-14
+13
 </td>
 <td style="text-align:right;">
 5
 </td>
 <td style="text-align:right;">
-1.9677422
+2.6313224
 </td>
 <td style="text-align:right;">
-13.94556
+18.506772
 </td>
 <td style="text-align:right;">
-13.94556
+18.506772
 </td>
 <td style="text-align:right;">
-5.786711e-02
+1.900419e-02
 </td>
 <td style="text-align:right;">
-5.182965e-12
+4.472978e-12
 </td>
 <td style="text-align:right;">
-3.730072e-11
+3.332179e-11
 </td>
 <td style="text-align:right;">
-7.896349e-01
+7.910200e-01
 </td>
 <td style="text-align:right;">
-9.155535e-09
+7.901366e-09
 </td>
 <td style="text-align:right;">
-4.706463e-08
+4.204416e-08
 </td>
 </tr>
 <tr>
@@ -1110,43 +1085,90 @@ CBFB
 ENSP00000290858.6
 </td>
 <td style="text-align:right;">
-2
+1
 </td>
 <td style="text-align:right;">
 13
 </td>
 <td style="text-align:right;">
-3
+4
 </td>
 <td style="text-align:right;">
 1
 </td>
 <td style="text-align:right;">
-11.1853870
+13.8506034
 </td>
 <td style="text-align:right;">
-28.13462
+43.563153
 </td>
 <td style="text-align:right;">
-28.13462
+43.563153
 </td>
 <td style="text-align:right;">
-6.264927e-08
+4.201062e-08
 </td>
 <td style="text-align:right;">
-2.686233e-05
+6.284128e-07
 </td>
 <td style="text-align:right;">
-7.259323e-10
+5.370426e-11
 </td>
 <td style="text-align:right;">
-1.037511e-04
+7.421036e-05
 </td>
 <td style="text-align:right;">
-2.372570e-02
+8.763712e-04
 </td>
 <td style="text-align:right;">
-8.363056e-07
+6.468190e-08
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+FOXA1
+</td>
+<td style="text-align:right;">
+ENSP00000250448.3
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+22
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+13.9476112
+</td>
+<td style="text-align:right;">
+0.000000
+</td>
+<td style="text-align:right;">
+0.000000
+</td>
+<td style="text-align:right;">
+6.210821e-11
+</td>
+<td style="text-align:right;">
+7.261135e-01
+</td>
+<td style="text-align:right;">
+4.146918e-10
+</td>
+<td style="text-align:right;">
+1.175487e-07
+</td>
+<td style="text-align:right;">
+8.421570e-01
+</td>
+<td style="text-align:right;">
+4.395236e-07
 </td>
 </tr>
 <tr>
@@ -1163,84 +1185,37 @@ ENSP00000351123.5
 11
 </td>
 <td style="text-align:right;">
-3
+2
 </td>
 <td style="text-align:right;">
 1
 </td>
 <td style="text-align:right;">
-10.3544626
+12.0460282
 </td>
 <td style="text-align:right;">
-42.17844
+36.286848
 </td>
 <td style="text-align:right;">
-42.17844
+36.286848
 </td>
 <td style="text-align:right;">
-1.109659e-06
+8.879471e-07
 </td>
 <td style="text-align:right;">
-5.676439e-06
+1.404351e-04
 </td>
 <td style="text-align:right;">
-2.370524e-09
+3.597951e-08
 </td>
 <td style="text-align:right;">
-1.547507e-03
+1.307107e-03
 </td>
 <td style="text-align:right;">
-6.836755e-03
+1.043868e-01
 </td>
 <td style="text-align:right;">
-2.512471e-06
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-CASP8
-</td>
-<td style="text-align:right;">
-ENSP00000325722.7
-</td>
-<td style="text-align:right;">
-1
-</td>
-<td style="text-align:right;">
-12
-</td>
-<td style="text-align:right;">
-5
-</td>
-<td style="text-align:right;">
-0
-</td>
-<td style="text-align:right;">
-6.6096246
-</td>
-<td style="text-align:right;">
-22.74396
-</td>
-<td style="text-align:right;">
-22.74396
-</td>
-<td style="text-align:right;">
-3.268903e-05
-</td>
-<td style="text-align:right;">
-1.019812e-05
-</td>
-<td style="text-align:right;">
-1.344925e-07
-</td>
-<td style="text-align:right;">
-3.937096e-02
-</td>
-<td style="text-align:right;">
-1.039306e-02
-</td>
-<td style="text-align:right;">
-1.347543e-04
+3.666727e-05
 </td>
 </tr>
 <tr>
@@ -1266,28 +1241,28 @@ ENSP00000228872.4
 0.0000000
 </td>
 <td style="text-align:right;">
-58.65315
+65.665922
 </td>
 <td style="text-align:right;">
-58.65315
+65.665922
 </td>
 <td style="text-align:right;">
-1.646766e-01
+1.969067e-01
 </td>
 <td style="text-align:right;">
-9.226285e-08
+8.077981e-08
 </td>
 <td style="text-align:right;">
-1.410138e-07
+1.240699e-07
 </td>
 <td style="text-align:right;">
-7.896349e-01
+7.910200e-01
 </td>
 <td style="text-align:right;">
-1.286678e-04
+1.227931e-04
 </td>
 <td style="text-align:right;">
-1.347543e-04
+1.217586e-04
 </td>
 </tr>
 <tr>
@@ -1310,31 +1285,31 @@ ENSP00000267163.4
 0
 </td>
 <td style="text-align:right;">
-0.9398741
+0.9879341
 </td>
 <td style="text-align:right;">
-13.17833
+13.983016
 </td>
 <td style="text-align:right;">
-13.17833
+13.983016
 </td>
 <td style="text-align:right;">
-9.086046e-01
+9.830044e-01
 </td>
 <td style="text-align:right;">
-6.277653e-08
+8.341608e-08
 </td>
 <td style="text-align:right;">
-1.423980e-07
+1.435185e-07
 </td>
 <td style="text-align:right;">
-9.885307e-01
+9.971783e-01
 </td>
 <td style="text-align:right;">
-9.784646e-05
+1.227931e-04
 </td>
 <td style="text-align:right;">
-1.347543e-04
+1.347054e-04
 </td>
 </tr>
 <tr>
@@ -1357,45 +1332,186 @@ ENSP00000341619.3
 1
 </td>
 <td style="text-align:right;">
-6.1331789
+6.9860517
 </td>
 <td style="text-align:right;">
-36.07981
+40.720361
 </td>
 <td style="text-align:right;">
-36.07981
+40.720361
 </td>
 <td style="text-align:right;">
-8.156404e-05
+6.110859e-05
 </td>
 <td style="text-align:right;">
-9.901681e-06
+7.678741e-06
 </td>
 <td style="text-align:right;">
-1.653270e-07
+1.474301e-07
 </td>
 <td style="text-align:right;">
-8.072599e-02
+6.282123e-02
 </td>
 <td style="text-align:right;">
-1.039306e-02
+8.138544e-03
 </td>
 <td style="text-align:right;">
-1.510576e-04
+1.347054e-04
 </td>
 </tr>
 <tr>
 <td style="text-align:right;">
-FOXA1
+CASP8
 </td>
 <td style="text-align:right;">
-ENSP00000250448.3
+ENSP00000325722.7
 </td>
 <td style="text-align:right;">
 1
 </td>
 <td style="text-align:right;">
-17
+12
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+7.5730275
+</td>
+<td style="text-align:right;">
+20.864149
+</td>
+<td style="text-align:right;">
+20.864149
+</td>
+<td style="text-align:right;">
+2.911475e-05
+</td>
+<td style="text-align:right;">
+1.249680e-04
+</td>
+<td style="text-align:right;">
+1.283021e-06
+</td>
+<td style="text-align:right;">
+3.492879e-02
+</td>
+<td style="text-align:right;">
+1.034774e-01
+</td>
+<td style="text-align:right;">
+1.096652e-03
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+NF1
+</td>
+<td style="text-align:right;">
+ENSP00000348498.3
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+13
+</td>
+<td style="text-align:right;">
+9
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+1.2208160
+</td>
+<td style="text-align:right;">
+9.250387
+</td>
+<td style="text-align:right;">
+9.250387
+</td>
+<td style="text-align:right;">
+6.437188e-01
+</td>
+<td style="text-align:right;">
+1.275796e-06
+</td>
+<td style="text-align:right;">
+2.708370e-06
+</td>
+<td style="text-align:right;">
+9.188924e-01
+</td>
+<td style="text-align:right;">
+1.609751e-03
+</td>
+<td style="text-align:right;">
+2.110697e-03
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+NLRP2
+</td>
+<td style="text-align:right;">
+ENSP00000409370.2
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+2.3485209
+</td>
+<td style="text-align:right;">
+26.812675
+</td>
+<td style="text-align:right;">
+26.812675
+</td>
+<td style="text-align:right;">
+1.594534e-01
+</td>
+<td style="text-align:right;">
+1.552340e-06
+</td>
+<td style="text-align:right;">
+9.504172e-06
+</td>
+<td style="text-align:right;">
+7.910200e-01
+</td>
+<td style="text-align:right;">
+1.713848e-03
+</td>
+<td style="text-align:right;">
+6.627159e-03
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+ERBB2
+</td>
+<td style="text-align:right;">
+ENSP00000463714.1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+20
 </td>
 <td style="text-align:right;">
 0
@@ -1404,31 +1520,31 @@ ENSP00000250448.3
 0
 </td>
 <td style="text-align:right;">
-9.1415074
+6.7813778
 </td>
 <td style="text-align:right;">
-0.00000
+0.000000
 </td>
 <td style="text-align:right;">
-0.00000
+0.000000
 </td>
 <td style="text-align:right;">
-5.704823e-08
+4.349957e-06
 </td>
 <td style="text-align:right;">
-7.055843e-01
+4.252854e-01
 </td>
 <td style="text-align:right;">
-3.364196e-07
+1.029753e-05
 </td>
 <td style="text-align:right;">
-1.007738e-04
+5.763041e-03
 </td>
 <td style="text-align:right;">
-8.240347e-01
+8.421570e-01
 </td>
 <td style="text-align:right;">
-2.701245e-04
+6.996247e-03
 </td>
 </tr>
 <tr>
@@ -1445,225 +1561,37 @@ ENSP00000384962.3
 1
 </td>
 <td style="text-align:right;">
-3
-</td>
-<td style="text-align:right;">
-0
-</td>
-<td style="text-align:right;">
-3.9047423
-</td>
-<td style="text-align:right;">
-394.62796
-</td>
-<td style="text-align:right;">
-394.62796
-</td>
-<td style="text-align:right;">
-2.796758e-01
-</td>
-<td style="text-align:right;">
-7.855610e-08
-</td>
-<td style="text-align:right;">
-3.771396e-07
-</td>
-<td style="text-align:right;">
-8.087626e-01
-</td>
-<td style="text-align:right;">
-1.156389e-04
-</td>
-<td style="text-align:right;">
-2.939138e-04
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-ERBB2
-</td>
-<td style="text-align:right;">
-ENSP00000463714.1
-</td>
-<td style="text-align:right;">
-4
-</td>
-<td style="text-align:right;">
-25
-</td>
-<td style="text-align:right;">
-0
-</td>
-<td style="text-align:right;">
-0
-</td>
-<td style="text-align:right;">
-5.2976927
-</td>
-<td style="text-align:right;">
-0.00000
-</td>
-<td style="text-align:right;">
-0.00000
-</td>
-<td style="text-align:right;">
-8.329065e-07
-</td>
-<td style="text-align:right;">
-3.140745e-01
-</td>
-<td style="text-align:right;">
-1.705205e-06
-</td>
-<td style="text-align:right;">
-1.226085e-03
-</td>
-<td style="text-align:right;">
-8.240347e-01
-</td>
-<td style="text-align:right;">
-1.255078e-03
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-NF1
-</td>
-<td style="text-align:right;">
-ENSP00000412921.4
-</td>
-<td style="text-align:right;">
-0
-</td>
-<td style="text-align:right;">
-4
-</td>
-<td style="text-align:right;">
-5
-</td>
-<td style="text-align:right;">
-1
-</td>
-<td style="text-align:right;">
-1.8407970
-</td>
-<td style="text-align:right;">
-18.95134
-</td>
-<td style="text-align:right;">
-18.95134
-</td>
-<td style="text-align:right;">
-3.409256e-01
-</td>
-<td style="text-align:right;">
-5.656193e-06
-</td>
-<td style="text-align:right;">
-3.335164e-05
-</td>
-<td style="text-align:right;">
-8.289120e-01
-</td>
-<td style="text-align:right;">
-6.836755e-03
-</td>
-<td style="text-align:right;">
-2.209296e-02
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-NLRP2
-</td>
-<td style="text-align:right;">
-ENSP00000409370.2
-</td>
-<td style="text-align:right;">
 2
 </td>
 <td style="text-align:right;">
-6
-</td>
-<td style="text-align:right;">
-3
-</td>
-<td style="text-align:right;">
-3
-</td>
-<td style="text-align:right;">
-1.4565771
-</td>
-<td style="text-align:right;">
-16.68854
-</td>
-<td style="text-align:right;">
-16.68854
-</td>
-<td style="text-align:right;">
-4.770547e-01
-</td>
-<td style="text-align:right;">
-8.656399e-06
-</td>
-<td style="text-align:right;">
-4.994526e-05
-</td>
-<td style="text-align:right;">
-8.762317e-01
-</td>
-<td style="text-align:right;">
-9.557025e-03
-</td>
-<td style="text-align:right;">
-3.150951e-02
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-EIF4A2
-</td>
-<td style="text-align:right;">
-ENSP00000326381.5
-</td>
-<td style="text-align:right;">
 0
 </td>
 <td style="text-align:right;">
-10
+4.7941057
 </td>
 <td style="text-align:right;">
-1
+318.441902
 </td>
 <td style="text-align:right;">
-2
+318.441902
 </td>
 <td style="text-align:right;">
-6.0418115
+2.305730e-01
 </td>
 <td style="text-align:right;">
-13.76712
+1.828142e-05
 </td>
 <td style="text-align:right;">
-13.76712
+6.311122e-05
 </td>
 <td style="text-align:right;">
-2.550100e-04
+7.910200e-01
 </td>
 <td style="text-align:right;">
-2.310980e-03
+1.730010e-02
 </td>
 <td style="text-align:right;">
-5.170894e-05
-</td>
-<td style="text-align:right;">
-2.252334e-01
-</td>
-<td style="text-align:right;">
-8.240347e-01
-</td>
-<td style="text-align:right;">
-3.186353e-02
+3.888972e-02
 </td>
 </tr>
 </tbody>
@@ -1689,7 +1617,7 @@ expected to occur in individual cells. (More specifically, we assume
 that mutation events in each specific sample and site follow a Poisson
 distribution, and these rates are the Poisson rates.) It’s not typically
 necessary to look at these rates, but just to show that we can:</p>
-<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Let's take the top 3 variants by MAF prevalence. These happen to all be in PIK3CA.</span></span>
 <span><span class="va">variants_to_check</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="op">-</span><span class="va">maf_prevalence</span><span class="op">)</span>, <span class="va">variant_id</span><span class="op">]</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span></span>
 <span></span>
@@ -1698,13 +1626,13 @@ necessary to look at these rates, but just to show that we can:</p>
 <span></span>
 <span><span class="fu"><a href="../reference/baseline_mutation_rates.html">baseline_mutation_rates</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, variant_ids <span class="op">=</span> <span class="va">variants_to_check</span>, samples <span class="op">=</span> <span class="va">samples_to_check</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">##    Unique_Patient_Identifier PIK3CA_H1047R_ENSP00000263967.3</span></span>
-<span><span class="co">## 1:              TCGA-A2-A3Y0                    8.976958e-07</span></span>
-<span><span class="co">## 2:              TCGA-XX-A89A                    2.130162e-08</span></span>
-<span><span class="co">## 3:                 P-0000224                    7.706396e-07</span></span>
+<span><span class="co">## 1:              TCGA-A2-A3Y0                    8.421009e-07</span></span>
+<span><span class="co">## 2:              TCGA-XX-A89A                    8.045869e-08</span></span>
+<span><span class="co">## 3:                 P-0000224                    7.888865e-07</span></span>
 <span><span class="co">##    PIK3CA_E545K_ENSP00000263967.3 PIK3CA_E542K_ENSP00000263967.3</span></span>
-<span><span class="co">## 1:                   2.657994e-06                   2.657994e-06</span></span>
-<span><span class="co">## 2:                   1.266521e-05                   1.266521e-05</span></span>
-<span><span class="co">## 3:                   7.748413e-06                   7.748413e-06</span></span></code></pre>
+<span><span class="co">## 1:                   1.773358e-06                   1.773358e-06</span></span>
+<span><span class="co">## 2:                   1.211613e-05                   1.211613e-05</span></span>
+<span><span class="co">## 3:                   8.932666e-06                   8.932666e-06</span></span></code></pre>
 <p>Interestingly, PIK3CA H1047R, the most prevalent variant in our MAF
 data (246/1875 samples), is estimated to have a substantially lower rate
 of occurrence than E545K and E542K in these particular samples.</p>
@@ -1717,12 +1645,12 @@ intensity) under a model of selection. These cancer effects are directly
 proportional to the proliferative advantage provided by each variant.
 First, let’s calculate selection under the package’s default model of
 selection with ces_variant():</p>
-<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Including an optional run_name</span></span>
 <span><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ces_variant.html">ces_variant</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, run_name <span class="op">=</span> <span class="st">"recurrents"</span><span class="op">)</span></span></code></pre></div>
 <p>Let’s visualize the most selected variants. The following should be
 fairly adaptable for a variety of data sets.</p>
-<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Extract selection results from CESAnalysis and take top variants for visualization</span></span>
@@ -1735,8 +1663,11 @@ fairly adaptable for a variety of data sets.</p>
 <span><span class="va">top</span><span class="op">[</span>, <span class="va">display_levels</span> <span class="op">:=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">display_name</span>, levels <span class="op">=</span> <span class="va">display_name</span>, ordered <span class="op">=</span> <span class="cn">T</span><span class="op">)</span><span class="op">]</span></span>
 <span></span>
 <span><span class="va">plot_title</span> <span class="op">&lt;-</span> <span class="st">"Top cancer effects in breast carcinoma (CES tutorial data)"</span></span>
-<span><span class="va">breaks</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/quantile.html" class="external-link">quantile</a></span><span class="op">(</span><span class="va">top</span><span class="op">$</span><span class="va">included_with_variant</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">n.dodge</span> <span class="op">&lt;-</span> <span class="fl">2</span> <span class="co"># can reduce to 1 if labels still fit (e.g., if plotting fewer variants)</span></span>
+<span><span class="va">n.dodge</span> <span class="op">&lt;-</span> <span class="fl">2</span> <span class="co"># can reduce to 1 if labels happen to still fit (e.g., if plotting fewer variants)</span></span>
+<span></span>
+<span><span class="co"># May need to play with breaks for colorbar legibility</span></span>
+<span><span class="va">breaks</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/quantile.html" class="external-link">quantile</a></span><span class="op">(</span><span class="va">top</span><span class="op">$</span><span class="va">included_with_variant</span>, probs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">.5</span>, <span class="fl">.75</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">top</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">display_levels</span>, y <span class="op">=</span> <span class="va">selection_intensity</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_linerange.html" class="external-link">geom_errorbar</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>ymin <span class="op">=</span> <span class="va">ci_low_95</span>, ymax <span class="op">=</span> <span class="va">ci_high_95</span><span class="op">)</span>, width <span class="op">=</span> <span class="fl">.2</span>, color <span class="op">=</span> <span class="st">"darkgrey"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>color <span class="op">=</span> <span class="va">included_with_variant</span><span class="op">)</span>, size <span class="op">=</span> <span class="fl">3</span><span class="op">)</span> <span class="op">+</span></span>
@@ -1760,15 +1691,15 @@ fairly adaptable for a variety of data sets.</p>
 <span>    panel.grid.major.x <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_blank</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>    panel.grid.minor.x <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_blank</a></span><span class="op">(</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span></code></pre></div>
-<p><img src="cancereffectsizeR_files/figure-html/unnamed-chunk-33-1.png" width="700"></p>
+<p><img src="cancereffectsizeR_files/figure-html/unnamed-chunk-32-1.png" width="700"></p>
 <p><em>PIK3CA</em> and <em>ESR1</em> variants take many of the top
 spots. The deconvolution of mutation rate from selection has revealed
 that some relatively low-prevalence variants have high effects.
 Interestingly, according to dNdScv, mutation in <em>ESR1</em> at the
 gene level was not significantly greater than neutral in the TCGA cohort
 of primary tumors. The incorporation of metastatic TGS data and
-cancereffectsizeR’s assessment of selection at the variant level confirm
-<em>ESR1</em>’s importance.</p>
+cancereffectsizeR’s assessment of selection at variant-level resolution
+confirm <em>ESR1</em>’s importance.</p>
 </div>
 <div class="section level3">
 <h3 id="more-options">More options<a class="anchor" aria-label="anchor" href="#more-options"></a>
@@ -1814,7 +1745,7 @@ depending on the state of the other site.</p>
 <p>Let’s try two prevalent BRCA mutations, PIK3CA E545K (n=159) and AKT1
 E17K (n=82). Let’s also test E545K with a nearby PIK3CA variant, E542K
 (n=93).</p>
-<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Start by pulling full variant IDs (with protein identifier) from variants table</span></span>
 <span><span class="va">group1</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"PIK3CA_E545K"</span>, <span class="st">"AKT1_E17K"</span><span class="op">)</span>, <span class="va">variant_id</span>, on <span class="op">=</span> <span class="st">"variant_name"</span><span class="op">]</span></span>
 <span><span class="va">group2</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"PIK3CA_E545K"</span>, <span class="st">"PIK3CA_E542K"</span><span class="op">)</span>, <span class="va">variant_id</span>, on <span class="op">=</span> <span class="st">"variant_name"</span><span class="op">]</span></span>
@@ -1825,26 +1756,26 @@ E17K (n=82). Let’s also test E545K with a nearby PIK3CA variant, E542K
 <span><span class="op">)</span></span>
 <span><span class="va">cesa</span><span class="op">$</span><span class="va">epistasis</span><span class="op">$</span><span class="va">variant_epistasis_example</span></span></code></pre></div>
 <pre><code><span><span class="co">##                          variant1                       variant2   ces_v1</span></span>
-<span><span class="co">## 1: PIK3CA_E545K_ENSP00000263967.3    AKT1_E17K_ENSP00000270202.4 12565.02</span></span>
-<span><span class="co">## 2: PIK3CA_E545K_ENSP00000263967.3 PIK3CA_E542K_ENSP00000263967.3 12726.12</span></span>
+<span><span class="co">## 1: PIK3CA_E545K_ENSP00000263967.3    AKT1_E17K_ENSP00000270202.4 11130.70</span></span>
+<span><span class="co">## 2: PIK3CA_E545K_ENSP00000263967.3 PIK3CA_E542K_ENSP00000263967.3 11189.57</span></span>
 <span><span class="co">##       ces_v2 ces_v1_after_v2 ces_v2_after_v1 joint_cov_samples_just_v1</span></span>
-<span><span class="co">## 1: 20342.598        3096.344           0.001                       158</span></span>
-<span><span class="co">## 2:  7444.027           0.001           0.001                       159</span></span>
+<span><span class="co">## 1: 20326.260           0.001        4951.200                       159</span></span>
+<span><span class="co">## 2:  6503.937           0.001           0.001                       160</span></span>
 <span><span class="co">##    joint_cov_samples_just_v2 joint_cov_samples_with_both</span></span>
-<span><span class="co">## 1:                        81                           1</span></span>
+<span><span class="co">## 1:                        80                           1</span></span>
 <span><span class="co">## 2:                        93                           0</span></span>
 <span><span class="co">##    joint_cov_samples_with_neither ci_low_95_ces_v1 ci_high_95_ces_v1</span></span>
-<span><span class="co">## 1:                           1635         10705.24          14629.55</span></span>
-<span><span class="co">## 2:                           1623         10847.68          14810.12</span></span>
+<span><span class="co">## 1:                           1614         9492.836          12947.23</span></span>
+<span><span class="co">## 2:                           1601         9542.933          13015.87</span></span>
 <span><span class="co">##    ci_low_95_ces_v2 ci_high_95_ces_v2 ci_low_95_ces_v1_after_v2</span></span>
-<span><span class="co">## 1:        16251.242         25072.075                  176.3456</span></span>
-<span><span class="co">## 2:         6030.833          9061.582                        NA</span></span>
+<span><span class="co">## 1:        16190.360         25113.390                        NA</span></span>
+<span><span class="co">## 2:         5269.582          7917.667                        NA</span></span>
 <span><span class="co">##    ci_high_95_ces_v1_after_v2 ci_low_95_ces_v2_after_v1</span></span>
-<span><span class="co">## 1:                  13738.349                        NA</span></span>
-<span><span class="co">## 2:                   4827.508                        NA</span></span>
+<span><span class="co">## 1:                   8977.837                  282.2305</span></span>
+<span><span class="co">## 2:                   4279.271                        NA</span></span>
 <span><span class="co">##    ci_high_95_ces_v2_after_v1</span></span>
-<span><span class="co">## 1:                  16668.991</span></span>
-<span><span class="co">## 2:                   2779.524</span></span></code></pre>
+<span><span class="co">## 1:                  21877.772</span></span>
+<span><span class="co">## 2:                   2431.834</span></span></code></pre>
 <p>Confidence intervals tend to be wide in epistatic analyses. Even with
 the most prevalent somatic variants, both co-occurrence and mutual
 exclusivity can often be explained by chance. The output for PIK3CA
@@ -1872,7 +1803,7 @@ variant.”) Below, we define a CompoundVariantSet with two compound
 variants: All <em>PIK3CA</em> variants with MAF prevalence &gt; 1, and
 AKT E17K. We then pass the CompoundVariantSet to ces_epistasis(), which
 will test all pairs of compound variants (here, just the one pair).</p>
-<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Collect all the variants that we want in the CompoundVariantSet into a table</span></span>
 <span><span class="va">top_PIK3CA</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="va">gene</span> <span class="op">==</span> <span class="st">"PIK3CA"</span> <span class="op">&amp;</span> <span class="va">maf_prevalence</span> <span class="op">&gt;</span> <span class="fl">1</span><span class="op">]</span></span>
 <span><span class="va">top_akt1</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="va">variant_name</span> <span class="op">==</span> <span class="st">"AKT1_E17K"</span><span class="op">]</span></span>
@@ -1883,17 +1814,17 @@ will test all pairs of compound variants (here, just the one pair).</p>
 <span><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ces_epistasis.html">ces_epistasis</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, variants <span class="op">=</span> <span class="va">comp</span>, run_name <span class="op">=</span> <span class="st">"AKT1_E17K_vs_PIK3CA"</span><span class="op">)</span></span>
 <span><span class="va">cesa</span><span class="op">$</span><span class="va">epistasis</span><span class="op">$</span><span class="va">AKT1_E17K_vs_PIK3CA</span></span></code></pre></div>
 <pre><code><span><span class="co">##    variant1 variant2   ces_v1   ces_v2 ces_v1_after_v2 ces_v2_after_v1</span></span>
-<span><span class="co">## 1:   AKT1.1 PIK3CA.1 24294.68 4008.873           0.001        827.7987</span></span>
+<span><span class="co">## 1: PIK3CA.1   AKT1.1 3810.191 24607.97        773.9648           0.001</span></span>
 <span><span class="co">##    joint_cov_samples_just_v1 joint_cov_samples_just_v2</span></span>
-<span><span class="co">## 1:                        78                       642</span></span>
+<span><span class="co">## 1:                       642                        77</span></span>
 <span><span class="co">##    joint_cov_samples_with_both joint_cov_samples_with_neither ci_low_95_ces_v1</span></span>
-<span><span class="co">## 1:                           4                           1151         19403.36</span></span>
+<span><span class="co">## 1:                           4                           1131         3520.196</span></span>
 <span><span class="co">##    ci_high_95_ces_v1 ci_low_95_ces_v2 ci_high_95_ces_v2</span></span>
-<span><span class="co">## 1:          29948.41         3703.841           4330.55</span></span>
+<span><span class="co">## 1:          4116.012         19625.39          30372.21</span></span>
 <span><span class="co">##    ci_low_95_ces_v1_after_v2 ci_high_95_ces_v1_after_v2</span></span>
-<span><span class="co">## 1:                        NA                   6020.632</span></span>
+<span><span class="co">## 1:                  239.0299                   1815.866</span></span>
 <span><span class="co">##    ci_low_95_ces_v2_after_v1 ci_high_95_ces_v2_after_v1</span></span>
-<span><span class="co">## 1:                  255.6892                   1942.288</span></span></code></pre>
+<span><span class="co">## 1:                        NA                   6207.221</span></span></code></pre>
 <p>Note that the effect sizes are smaller for PIK3CA here, since we
 mixed in lots of lower-effect PIK3CA variants. While four samples have
 both AKT1 E17K and one of the PIK3CA variants, this result strengthens
@@ -1904,48 +1835,43 @@ the case for AKT1 mutation reducing selection for PIK3CA mutation.</p>
 </h3>
 <p>The convenience function <code><a href="../reference/ces_gene_epistasis.html">ces_gene_epistasis()</a></code> provides a
 simpler way to apply the model of <code><a href="../reference/ces_epistasis.html">ces_epistasis()</a></code> at the
-gene level. The <code>variants</code> argument offers multiple methods
-of specifying which variants from each gene to include in the inference:
-“recurrent” uses all recurrent variants, “nonsilent” uses all coding
-variants except non-splice-site synonymous variants, or a custom table
-of variants can be input, as shown here.</p>
-<div class="sourceCode" id="cb37"><pre class="downlit sourceCode r">
+gene level. The <code>variants</code> argument provides three options
+for which variants from each gene to include in the inference:
+“recurrent” uses all recurrent variants; “nonsilent” uses all coding
+variants that are non-synonymous or splice-site-disrupting;
+alternatively, you can supply your own table of variants.</p>
+<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">genes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"AKT1"</span>, <span class="st">"PIK3CA"</span>, <span class="st">"TP53"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># We would use the "nonsilent" method, except a handful of variants are not covered in the TGS data,</span></span>
-<span><span class="co"># forcing us to exclude those so that the TGS samples can be included inthe inference.</span></span>
-<span><span class="va">variants</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="va">variant_type</span> <span class="op">==</span> <span class="st">"aac"</span> <span class="op">&amp;</span> <span class="va">gene</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="va">genes</span> <span class="op">&amp;</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">covered_in</span>, <span class="va">length</span><span class="op">)</span> <span class="op">==</span> <span class="fl">2</span><span class="op">]</span></span>
-<span><span class="va">variants</span> <span class="op">&lt;-</span> <span class="va">variants</span><span class="op">[</span><span class="va">aa_ref</span> <span class="op">!=</span> <span class="va">aa_alt</span> <span class="op">|</span> <span class="va">essential_splice</span> <span class="op">==</span> <span class="cn">T</span><span class="op">]</span></span>
-<span><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ces_gene_epistasis.html">ces_gene_epistasis</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, genes <span class="op">=</span> <span class="va">genes</span>, variants <span class="op">=</span> <span class="va">variants</span>, run_name <span class="op">=</span> <span class="st">"gene_epistasis_example"</span><span class="op">)</span></span>
+<span><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ces_gene_epistasis.html">ces_gene_epistasis</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, genes <span class="op">=</span> <span class="va">genes</span>, variants <span class="op">=</span> <span class="st">"nonsilent"</span>, run_name <span class="op">=</span> <span class="st">"gene_epistasis_example"</span><span class="op">)</span></span>
 <span><span class="va">cesa</span><span class="op">$</span><span class="va">epistasis</span><span class="op">$</span><span class="va">gene_epistasis_example</span></span></code></pre></div>
 <pre><code><span><span class="co">##    gene_1 gene_2   ces_g1   ces_g2 ces_g1_after_g2 ces_g2_after_g1</span></span>
-<span><span class="co">## 1:   AKT1 PIK3CA 3613.839 2365.715           0.001        661.0439</span></span>
-<span><span class="co">## 2:   AKT1   TP53 2669.203 1112.561        4124.418          0.0010</span></span>
-<span><span class="co">## 3: PIK3CA   TP53 2198.974 1362.477        3004.433          0.0010</span></span>
+<span><span class="co">## 1:   AKT1 PIK3CA 3581.699 2299.752           0.001        634.1875</span></span>
+<span><span class="co">## 2:   AKT1   TP53 2624.452 1487.174        4190.559          0.0010</span></span>
+<span><span class="co">## 3: PIK3CA   TP53 2126.708 1826.338        2988.684          0.0010</span></span>
 <span><span class="co">##    joint_cov_samples_just_g1_mut joint_cov_samples_just_g2_mut</span></span>
-<span><span class="co">## 1:                            83                           664</span></span>
-<span><span class="co">## 2:                            74                           404</span></span>
-<span><span class="co">## 3:                           560                           309</span></span>
+<span><span class="co">## 1:                            82                           665</span></span>
+<span><span class="co">## 2:                            73                           399</span></span>
+<span><span class="co">## 3:                           559                           302</span></span>
 <span><span class="co">##    joint_cov_samples_both_mut joint_cov_samples_no_mut ci_low_95_ces_g1</span></span>
-<span><span class="co">## 1:                          6                     1122         2913.177</span></span>
-<span><span class="co">## 2:                         15                     1382         2106.059</span></span>
-<span><span class="co">## 3:                        110                      896         2019.706</span></span>
+<span><span class="co">## 1:                          6                     1101         2883.614</span></span>
+<span><span class="co">## 2:                         15                     1367         2067.282</span></span>
+<span><span class="co">## 3:                        112                      881         1953.153</span></span>
 <span><span class="co">##    ci_high_95_ces_g1 ci_low_95_ces_g2 ci_high_95_ces_g2</span></span>
-<span><span class="co">## 1:          4419.161         2188.589          2552.352</span></span>
-<span><span class="co">## 2:          3324.930         1009.102          1222.907</span></span>
-<span><span class="co">## 3:          2388.832         1235.060          1498.541</span></span>
+<span><span class="co">## 1:          4384.660         2127.634          2481.117</span></span>
+<span><span class="co">## 2:          3273.888         1348.069          1635.585</span></span>
+<span><span class="co">## 3:          2310.532         1654.519          2009.857</span></span>
 <span><span class="co">##    ci_low_95_ces_g1_after_g2 ci_high_95_ces_g1_after_g2</span></span>
-<span><span class="co">## 1:                        NA                   865.6142</span></span>
-<span><span class="co">## 2:                  2366.955                  6602.7819</span></span>
-<span><span class="co">## 3:                  2455.330                  3639.1477</span></span>
+<span><span class="co">## 1:                        NA                   860.7655</span></span>
+<span><span class="co">## 2:                  2404.988                  6708.6073</span></span>
+<span><span class="co">## 3:                  2446.141                  3615.5202</span></span>
 <span><span class="co">##    ci_low_95_ces_g2_after_g1 ci_high_95_ces_g2_after_g1</span></span>
-<span><span class="co">## 1:                  261.1294                  1354.0741</span></span>
-<span><span class="co">## 2:                        NA                   892.2936</span></span>
-<span><span class="co">## 3:                        NA                   232.9479</span></span></code></pre>
+<span><span class="co">## 1:                  250.5081                  1299.1061</span></span>
+<span><span class="co">## 2:                        NA                  1161.4586</span></span>
+<span><span class="co">## 3:                        NA                   309.2049</span></span></code></pre>
 <p>Mutational selection in the two oncogenes appears to be maintained
-after mutation in TP53. In constrast, loss of TP53 is less selected
-after mutations in AKT1/PIK3CA; one explanation is that cell populations
-in which these powerful drivers have fixed must have already subverted
+after mutation in TP53. In contrast, loss of TP53 is less selected after
+mutations in AKT1/PIK3CA; one explanation is that cell populations in
+which these powerful drivers have fixed must have already subverted
 tumor suppression mechanisms, making TP53 mutations superfluous. The two
 oncogenes also appear to show some mutual exclusivity, in that selection
 for each is reduced after mutation in the other.</p>
@@ -1958,7 +1884,7 @@ for each is reduced after mutation in the other.</p>
 want to take a break–you can save a commemorative (and space-efficient)
 copy of your CESAnalysis using <code><a href="../reference/save_cesa.html">save_cesa()</a></code>. You can reload
 the analysis anytime with <code><a href="../reference/load_cesa.html">load_cesa()</a></code>.</p>
-<div class="sourceCode" id="cb39"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/save_cesa.html">save_cesa</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, <span class="st">"cancerffectsizeR_tutorial_analysis.rds"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># In some future R session...</span></span>
