@@ -1,9 +1,10 @@
 #' @import data.table
 #' @import GenomeInfoDb
 #' @import BSgenome
-#' @importFrom utils .DollarNames data packageVersion
+#' @importFrom utils .DollarNames data packageVersion download.file tail
 #' @importFrom methods is new
-#' @importFrom stats na.omit
+#' @importFrom stats na.omit predict setNames dist window
+
 .datatable.aware = TRUE
 .ces_ref_data = new.env()
 options(datatable.prettyprint.char = 40) 

@@ -24,9 +24,13 @@ covariates data are available, set to NULL to run without. Finally, you can also
 supply custom covariates data in the form of a matrix or prcomp object (see website
 for details).}
 
-\item{samples}{Which samples to include in the current run. Defaults to all samples.
-Can be a vector of Unique_Patient_Identifiers, or a data.table containing rows from
-the CESAnalysis sample table.}
+\item{samples}{Which samples to include in the current run. Defaults to all samples. Can be a
+vector of Unique_Patient_Identifiers, or a data.table containing rows from the CESAnalysis
+sample table.}
+
+\item{dndscv_args}{Custom arguments to pass to dNdScv. (The arguments \code{mutations},
+\code{gene_list}, \code{cv}, and \code{refdb} are supplied by cancereffectsizeR and can't be
+substituted.)}
 
 \item{save_all_dndscv_output}{Default FALSE; when TRUE, saves all dndscv output, not
 just what's needed by cancereffectsizeR. (Full output can be very large, in the gigabytes.)}

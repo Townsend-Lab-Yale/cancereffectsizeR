@@ -58,6 +58,8 @@ signature weights, and assign these (and implied trinucleotide mutation rates) t
 determines which tumors inform the calculation of group-average signature weights.
 When assume_identical_mutational_processes == FALSE (the default), these group
 averages are blended into the signature weights of sub-threshold tumors.}
+
+\item{signatures_to_remove}{Deprecated; use the renamed argument signature_exclusions.}
 }
 \value{
 CESAnalysis with sample-specific signature weights and inferred

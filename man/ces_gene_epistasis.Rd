@@ -17,7 +17,8 @@ ces_gene_epistasis(
 \arguments{
 \item{cesa}{CESAnalysis object}
 
-\item{genes}{Vector of gene names; SIs will be calculated for all gene pairs.}
+\item{genes}{Vector of gene names; SIs will be calculated for all gene pairs. Alternatively,
+a list of gene pairs (2-length character vectors) to run just the given pairings.}
 
 \item{variants}{Which variants to include in inference for each gene. Either
 "recurrent" for all variants present in two or more samples (across all MAF data),

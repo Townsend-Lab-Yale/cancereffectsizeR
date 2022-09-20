@@ -4,16 +4,15 @@ setwd("~/cancereffectsizeR/")
 load_all()
 
 tutorial_dir = system.file("tutorial", package = 'cancereffectsizeR') # verify that it's dev directory, not installed package
-
+setwd(tutorial_dir)
 # quickstart run (uses LUAD instead of BRCA)
-tcga_maf_file = 'inst/tutorial/TCGA.LUAD.mutect.0458c57f-316c-4a7c-9294-ccd11c97c2f9.DR-10.0.somatic.maf.gz'
+tcga_maf_file = 'TCGA-LUAD.maf.gz'
 if (! file.exists(tcga_maf_file)) {
-  download.file('https://api.gdc.cancer.gov/data/0458c57f-316c-4a7c-9294-ccd11c97c2f9', 
-                destfile = tcga_maf_file)
+  get_TCGA_project_MAF(project = 'LUAD', filename = tcga_maf_file)
 }
 
+# Prepare data
 maf = preload_maf(maf = tcga_maf_file, refset = "ces.refset.hg38")
-maf = maf[germline_variant_site == F][repetitive_region == F | cosmic_site_tier %in% 1:3]
 
 # Create cancereffectsizeR analysis and load data
 cesa = CESAnalysis(refset = "ces.refset.hg38")
@@ -37,7 +36,7 @@ selection = cesa$selection[[1]]
 top = selection[order(-selection_intensity)][1:15]
 top = top[order(selection_intensity)]
 
-# Plot top effects 
+# Plot top effects
 top[, display_name := gsub('_', "\n", variant_name)]
 top[, display_levels := factor(display_name, levels = display_name, ordered = T)]
 plot_title = 'Top cancer effects in TCGA LUAD'
@@ -46,7 +45,7 @@ breaks = unique(as.numeric(round(quantile(top$included_with_variant))))
 p = ggplot(top, aes(x = display_levels, y = selection_intensity)) + 
   geom_errorbar(aes(ymin = ci_low_95, ymax = ci_high_95), width = .2, color = 'darkgrey') +
   geom_point(aes(color = included_with_variant), size = 3) + 
-  scale_x_discrete() + scale_y_log10() + 
+  scale_x_discrete() + scale_y_log10(labels = function(x) format(x, big.mark = ",", scientific = F)) + 
   scale_color_viridis_c(name = 'variant prevalence', guide = 'colorbar', trans = 'log10', 
                         option = 'plasma', breaks = breaks) +
   xlab(element_blank()) +
@@ -62,45 +61,42 @@ p = ggplot(top, aes(x = display_levels, y = selection_intensity)) +
         panel.grid.major.x = element_blank(),
         panel.grid.minor.x = element_blank())
 
+# Above, p = ... instead of just ggplot(...)
 luad_plot_file = paste0(tutorial_dir, '/top_LUAD_effects.rds')
 saveRDS(p, luad_plot_file)
+save_cesa(cesa, 'luad_quickstart.rds') # Note: Listed in .gitignore
 
 
 # rest of tutorial uses BRCA
-tcga_maf_file = 'inst/tutorial/TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf.gz'
+tcga_maf_file = 'TCGA-BRCA.maf.gz'
 if (! file.exists(tcga_maf_file)) {
-  download.file('https://api.gdc.cancer.gov/data/995c0111-d90b-4140-bee7-3845436c3b42', 
-                destfile = tcga_maf_file)
+  get_TCGA_project_MAF(project = 'BRCA', filename = tcga_maf_file)
 }
 
-tcga_maf = preload_maf(maf = tcga_maf_file, refset = "ces.refset.hg38")
-tcga_maf = tcga_maf[germline_variant_site == F][repetitive_region == F | cosmic_site_tier %in% 1:3]
 
 tcga_clinical = fread(system.file("tutorial/TCGA_BRCA_clinical.txt", package = "cancereffectsizeR"))
-tcga_maf[, patient_id := substr(Unique_Patient_Identifier, 1, 12)]
-
-uniqueN(tcga_maf[, .(patient_id, Unique_Patient_Identifier)]) == uniqueN(tcga_maf$Unique_Patient_Identifier)
-
-# We can now use patient_id as the unique identifier.
-tcga_maf[, Unique_Patient_Identifier := patient_id]
-tcga_maf[, patient_id := NULL] # remove redundant column
 setnames(tcga_clinical, "patient_id", "Unique_Patient_Identifier") # change column name
+
+tcga_maf = preload_maf(maf = tcga_maf_file, refset = "ces.refset.hg38")
+
+# Prepare TGS data
+tgs_maf_file = system.file('tutorial/metastatic_breast_2021_hg38.maf', package = 'cancereffectsizeR')
+tgs_maf = preload_maf(maf = tgs_maf_file, refset = 'ces.refset.hg38')
 
 # Create cancereffectsizeR analysis and load data
 cesa = CESAnalysis(refset = "ces.refset.hg38")
-cesa = load_maf(cesa = cesa, maf = tcga_maf)
+cesa = load_maf(cesa = cesa, maf = tcga_maf, maf_name = 'BRCA')
 cesa = load_sample_data(cesa, tcga_clinical)
 
-# Load in TGS data
-metastatic_tgs_maf_file = system.file("tutorial/metastatic_breast_2021_hg38.maf", package = "cancereffectsizeR")
-metastatic_tgs_maf = fread(metastatic_tgs_maf_file)
-metastatic_tgs_maf$pM = 'M1'
 
 top_tgs_genes = c("TP53", "PIK3CA", "ESR1","CDH1","GATA3","KMT2C",
                       "MAP3K1","AKT1","ARID1A","FOXA1","TBX3","PTEN")
 tgs_coverage = ces.refset.hg38$gr_genes[ces.refset.hg38$gr_genes$gene %in% top_tgs_genes]
-cesa = load_maf(cesa, maf = metastatic_tgs_maf, sample_data_cols = 'pM', coverage = 'targeted',
-                covered_regions = tgs_coverage, covered_regions_name = 'top_genes')
+
+tgs_maf$pM = 'M1' # all samples metastatic
+cesa = load_maf(cesa, maf = tgs_maf, sample_data_cols = 'pM', maf_name = 'MBC', coverage = 'targeted',
+                covered_regions = tgs_coverage, covered_regions_name = 'top_genes', covered_regions_padding = 10)
+
 
 # Infer trinculeotide-context-specific relative rates of SNV mutation from
 # a mutational signature analysis (leaving out signatures not found in BRCA)
@@ -142,8 +138,11 @@ top[, display_name := gsub('_', "\n", variant_name)]
 top[, display_levels := factor(display_name, levels = display_name, ordered = T)]
 
 plot_title = 'Top cancer effects in breast carcinoma (CES tutorial data)'
-breaks = unique(as.numeric(round(quantile(top$included_with_variant))))
 n.dodge = 2 # can reduce to 1 if labels happen to still fit (e.g., if plotting fewer variants)
+
+# May need to play with breaks for colorbar legibility
+breaks = unique(as.numeric(round(quantile(top$included_with_variant, probs = c(0, .5, .75, 1)))))
+
 p = ggplot(top, aes(x = display_levels, y = selection_intensity)) + 
   geom_errorbar(aes(ymin = ci_low_95, ymax = ci_high_95), width = .2, color = 'darkgrey') +
   geom_point(aes(color = included_with_variant), size = 3) + 
@@ -171,46 +170,46 @@ saveRDS(p, brca_plot_file)
 # We get IDs from the previously generated counts, and then take the corresponding entries
 # from the CESAnalysis variants table.
 
-# (counts_by_M produced earlier in tutorial)
-counts_by_M = variant_counts(cesa = cesa, variant_ids = cesa$variants[maf_prevalence > 1, variant_id],
-                             by = 'pM')
-variants_for_sequential = counts_by_M[M0_prevalence + M1_prevalence > 2, variant_id]
-variants_for_sequential = cesa$variants[variants_for_sequential, on = 'variant_id']
-
-
-cesa = ces_variant(cesa, variants = variants_for_sequential, model = 'sequential', run_name = 'sequential', 
-                   ordering_col = 'pM', ordering = c('M0', 'M1'))
-
-# Assess the same variants in the same samples using the single model
-cesa = ces_variant(cesa, variants = variants_for_sequential, model = 'basic', run_name = 'for_sequential_compare',
-                   samples = cesa$samples[!is.na(pM)])
-
-combined_results = merge.data.table(cesa$selection$sequential, 
-                                    cesa$selection$for_sequential_compare, 
-                                    all.x = TRUE, all.y = FALSE, 
-                                    by = c('variant_id', 'variant_name', 'variant_type'), suffixes = c('.sequential', '.single'))
-
-# Likelihood ratio test
-combined_results[, chisquared := -2 * (loglikelihood.single - loglikelihood.sequential)]
-combined_results[, p := pchisq(chisquared, df = 1, lower.tail = F)]
-
-# Prep summary output for printing. Not shown here, but all of these variants are covered
-# in both of our data sources.
-for_print = combined_results[, .(variant_name, si_single = selection_intensity, si_M0, si_M1, p,
-                                 M0_count = included_with_variant_M0, M1_count = included_with_variant_M1)]
-sequential_signif_output = for_print[p < .05][order(p)]
-
-web_table = copy(sequential_signif_output)
-web_table[, c("si_single", "si_M0", "si_M1", "p") := lapply(.SD, signif, 1), 
-          .SDcols = c("si_single", "si_M0", "si_M1", "p")]
-web_table[p>=.001, char_p := format(round(p, 3))]
-web_table[p < .001, char_p := format(signif(p, 1))]
-col_order = setdiff(names(web_table), "char_p")
-web_table[, p := NULL]
-setnames(web_table, "char_p", "p")
-setcolorder(web_table, col_order)
-sequential_output_file = paste0(tutorial_dir, '/sequential_signif_output.rds')
-saveRDS(web_table, sequential_output_file)
+# # (counts_by_M produced earlier in tutorial)
+# counts_by_M = variant_counts(cesa = cesa, variant_ids = cesa$variants[maf_prevalence > 1, variant_id],
+#                              by = 'pM')
+# variants_for_sequential = counts_by_M[M0_prevalence + M1_prevalence > 2, variant_id]
+# variants_for_sequential = cesa$variants[variants_for_sequential, on = 'variant_id']
+# 
+# 
+# cesa = ces_variant(cesa, variants = variants_for_sequential, model = 'sequential', run_name = 'sequential', 
+#                    ordering_col = 'pM', ordering = c('M0', 'M1'))
+# 
+# # Assess the same variants in the same samples using the single model
+# cesa = ces_variant(cesa, variants = variants_for_sequential, model = 'basic', run_name = 'for_sequential_compare',
+#                    samples = cesa$samples[!is.na(pM)])
+# 
+# combined_results = merge.data.table(cesa$selection$sequential, 
+#                                     cesa$selection$for_sequential_compare, 
+#                                     all.x = TRUE, all.y = FALSE, 
+#                                     by = c('variant_id', 'variant_name', 'variant_type'), suffixes = c('.sequential', '.single'))
+# 
+# # Likelihood ratio test
+# combined_results[, chisquared := -2 * (loglikelihood.single - loglikelihood.sequential)]
+# combined_results[, p := pchisq(chisquared, df = 1, lower.tail = F)]
+# 
+# # Prep summary output for printing. Not shown here, but all of these variants are covered
+# # in both of our data sources.
+# for_print = combined_results[, .(variant_name, si_single = selection_intensity, si_M0, si_M1, p,
+#                                  M0_count = included_with_variant_M0, M1_count = included_with_variant_M1)]
+# sequential_signif_output = for_print[p < .05][order(p)]
+# 
+# web_table = copy(sequential_signif_output)
+# web_table[, c("si_single", "si_M0", "si_M1", "p") := lapply(.SD, signif, 1), 
+#           .SDcols = c("si_single", "si_M0", "si_M1", "p")]
+# web_table[p>=.001, char_p := format(round(p, 3))]
+# web_table[p < .001, char_p := format(signif(p, 1))]
+# col_order = setdiff(names(web_table), "char_p")
+# web_table[, p := NULL]
+# setnames(web_table, "char_p", "p")
+# setcolorder(web_table, col_order)
+# sequential_output_file = paste0(tutorial_dir, '/sequential_signif_output.rds')
+# saveRDS(web_table, sequential_output_file)
 
 # Epistasis
 
@@ -236,13 +235,11 @@ saveRDS(cesa$epistasis$AKT1_E17K_vs_PIK3CA, comp_ep_output)
 
 ## Gene epistasis
 genes = c("AKT1", "PIK3CA", "TP53")
-variants = cesa$variants[variant_type == 'aac' & gene %in% genes & sapply(covered_in, length) == 2]
-variants = variants[aa_ref != aa_alt | essential_splice == T]
-cesa = ces_gene_epistasis(cesa = cesa, genes = genes, variants = variants, run_name = "gene_epistasis_example")
+cesa = ces_gene_epistasis(cesa = cesa, genes = genes, variants = 'nonsilent', run_name = "gene_epistasis_example")
 gene_ep_output = paste0(tutorial_dir, '/gene_ep_example.rds')
 saveRDS(cesa$epistasis$gene_epistasis_example, gene_ep_output)
 
 
 ## Save CESAnalysis for reference/revisions
-#save_cesa(cesa, 'brca_cesa.rds')
+#save_cesa(cesa, 'brca_tutorial_cesa.rds')
 

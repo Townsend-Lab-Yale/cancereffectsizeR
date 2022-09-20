@@ -10,7 +10,8 @@
 #' uncovered sites.
 #' 
 #' @param cesa CESAnalysis object
-#' @param genes Vector of gene names; SIs will be calculated for all gene pairs.
+#' @param genes Vector of gene names; SIs will be calculated for all gene pairs. Alternatively,
+#' a list of gene pairs (2-length character vectors) to run just the given pairings.
 #' @param variants Which variants to include in inference for each gene. Either
 #'   "recurrent" for all variants present in two or more samples (across all MAF data),
 #'   "nonsilent" for all coding variants except non-splice-site synonymous variants, or a
@@ -104,10 +105,9 @@ ces_gene_epistasis = function(cesa = NULL, genes = NULL, variants = NULL,
     if(variants == 'recurrent') {
       variants_to_use = select_variants(cesa = cesa, genes = genes, min_freq = 2)
     } else if (variants == 'nonsilent') {
+      # Not using noncoding variants or non-splice synonymous coding variants
       variants_to_use = select_variants(cesa  = cesa, genes = genes, min_freq = 1)
-      snv_to_use = variants_to_use[variant_type == 'snv']
       variants_to_use = variants_to_use[variant_type == 'aac'][aa_ref != aa_alt | essential_splice == TRUE]
-      variants_to_use = rbind(variants_to_use, snv_to_use)
     } else {
       stop("variants should be \"recurrent\", \"nonsilent\", or a data.table.")
     }

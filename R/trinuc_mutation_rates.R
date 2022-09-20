@@ -67,6 +67,7 @@
 #'   of eligible mutations meeting sig_averaging_threshold) to calculate group average
 #'   signature weights, and assign these (and implied trinucleotide mutation rates) to all tumors
 #' @param sample_group (Deprecated; use samples.) Vector of sample group(s) to calculate rates for.
+#' @param signatures_to_remove Deprecated; use the renamed argument signature_exclusions.
 #' @return CESAnalysis with sample-specific signature weights and inferred
 #'   trinucleotide-context-specific relative mutation rates. The snv_counts matrix gives
 #'   the counts of SNVs in each trinucleotide context for all samples in the CESAnalysis.

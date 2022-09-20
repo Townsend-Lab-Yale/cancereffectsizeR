@@ -62,14 +62,10 @@ library(cancereffectsizeR)
 library(data.table)
 library(ggplot2)
 
-# Download lung adenocarcinoma (LUAD) somatic variant data.
-# Note that the rest of the tutorial uses BRCA, not LUAD.
-# This is an old TCGA file: Outside the tutorial, use get_TCGA_project_MAF() for the
-# latest, most accurate data.
-tcga_maf_file = 'TCGA.LUAD.mutect.0458c57f-316c-4a7c-9294-ccd11c97c2f9.DR-10.0.somatic.maf.gz'
+# Download TCGA lung adenocarcinoma (LUAD) somatic variant data.
+tcga_maf_file = 'TCGA-LUAD.maf.gz'
 if (! file.exists(tcga_maf_file)) {
-  download.file('https://api.gdc.cancer.gov/data/0458c57f-316c-4a7c-9294-ccd11c97c2f9', 
-                destfile = tcga_maf_file, mode = 'wb')
+  get_TCGA_project_MAF(project = 'LUAD', filename = 'TCGA-LUAD.maf.gz')
 }
 
 # Prepare data
@@ -106,7 +102,7 @@ breaks = unique(as.numeric(round(quantile(top$included_with_variant))))
 ggplot(top, aes(x = display_levels, y = selection_intensity)) + 
   geom_errorbar(aes(ymin = ci_low_95, ymax = ci_high_95), width = .2, color = 'darkgrey') +
   geom_point(aes(color = included_with_variant), size = 3) + 
-  scale_x_discrete() + scale_y_log10() + 
+  scale_x_discrete() + scale_y_log10(labels = function(x) format(x, big.mark = ",", scientific = F)) + 
   scale_color_viridis_c(name = 'variant prevalence', guide = 'colorbar', trans = 'log10', 
                         option = 'plasma', breaks = breaks) +
   xlab(element_blank()) +
@@ -123,7 +119,7 @@ ggplot(top, aes(x = display_levels, y = selection_intensity)) +
         panel.grid.minor.x = element_blank())
 
 # There's lots more that can be done with cancereffectsizeR! See the full tutorial for some
-# important details and a broader view of functionality.
+# useful details and a broader view of functionality.
 ```
 
 ```{r echo = F, eval = T}
@@ -148,43 +144,37 @@ In cancereffectsizeR, data can be combined from multiple whole-exome, whole-geno
 
 ### TCGA data (whole-exome)
 
-We'll begin by downloading variant data from TCGA. The data comes in a large text file listing somatic mutations for a collection of tumors, in accordance with [MAF format](https://docs.gdc.cancer.gov/Data/File_Formats/MAF_Format). **This data is from an old release.** For future analyses, get the most recent, accurate TCGA somatic variant data with `get_TCGA_project_MAF()`.
+We'll begin by downloading variant data from TCGA. The \code{get_TCGA_project_MAF()} function downloads
+patient MAF data from the latest TCGA data release and assembles a project-level MAF.
 
 ```{r}
-tcga_maf_file = 'TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf.gz'
+tcga_maf_file = 'TCGA-BRCA.maf.gz'
 if (! file.exists(tcga_maf_file)) {
-  download.file('https://api.gdc.cancer.gov/data/995c0111-d90b-4140-bee7-3845436c3b42', destfile = tcga_maf_file, mode = 'wb')
+  get_TCGA_project_MAF(project = 'BRCA', filename = tcga_maf_file)
 }
 ```
 
 Let's also load and examine a table of patient information. Although the TCGA samples in the data set are all taken from primary tumors, you'll see that some patients presented with metastatic disease (pM = M1). Hormone receptor status (progesterone or estrogen receptor positive) and HER2 amplification status are also recorded in a combined column.
 ```{r eval = T}
 tcga_clinical = fread(system.file("tutorial/TCGA_BRCA_clinical.txt", package = "cancereffectsizeR"))
+
+# Change patient identifier column name in clinical table to match the MAF.
+setnames(tcga_clinical, "patient_id", "Unique_Patient_Identifier")
+
+# Peek at data
 tcga_clinical[1:5]
 ```
 
-The `preload_maf()` function takes in MAF data, extracts the columns needed by cancereffectsizeR, adds a couple of genomic annotations, and checks for common problems. Since TCGA data sets are well-curated, this particular run will not reveal any problems. (For your own analyses, see our [MAF data tips](MAF_filtering_tips.html).) This MAF file already uses the hg38 genome build, but if it didn't, we could use the `chain_file` argument to convert records via liftOver.
+The `preload_maf()` function takes in MAF data, extracts the columns needed by cancereffectsizeR, adds a couple of genomic annotations, and checks for common problems. (For your own analyses, see our [MAF data tips](MAF_filtering_tips.html).) This MAF file already uses the hg38 genome build, but if it didn't, we could use the `chain_file` argument to convert records via liftOver.
 
 ```{r}
 tcga_maf = preload_maf(maf = tcga_maf_file, refset = "ces.refset.hg38")
 ```
 
-If you compare the TCGA MAF and clinical file, you'll see we have a small problem: the clinical file uses patient IDs, while the MAF uses tissue sample IDs. (This column was originally called Tumor_Sample_Barcode, but `preload_maf()` changed it to Unique_Patient_Identifier. cancereffectsizeR uses this column name to emphasize that distinct MAF samples must derive from distinct patients.)
-
-Luckily, TCGA IDs are easy to convert. After verifying that each TCGA patient has just one sample in the MAF data, we'll change tissue IDs to patient IDs.
-
-```{r}
-# TCGA sample IDs start with the patient ID, luckily. Here, we verify a 1-1 sample-patient
-# relationship. If this check failed, we would need to figure out a sample exclusion
-# strategy before proceeding with analysis.
-tcga_maf[, patient_id := substr(Unique_Patient_Identifier, 1, 12)]
-uniqueN(tcga_maf[, .(patient_id, Unique_Patient_Identifier)]) == uniqueN(tcga_maf$Unique_Patient_Identifier)
-
-# We can now use patient_id as the unique identifier.
-tcga_maf[, Unique_Patient_Identifier := patient_id]
-tcga_maf[, patient_id := NULL] # remove redundant column
-setnames(tcga_clinical, "patient_id", "Unique_Patient_Identifier")
-```
+When MAFs created by \code{get_TCGA_project_MAF()} are fed into \code{preload_maf()}, TCGA sample
+replicates are effectively merged, since the Unique_Patient_Identifier column supersedes
+Tumor_Sample_Barcode (the original sample identifiers). You will see a note that preload_maf()
+caught and handled the ensuing duplicate mutation records.
 
 ### Metastatic data (TGS)
 Our TGS data source (hosted on cBioPortal and [recently published](https://cancerdiscovery.aacrjournals.org/content/candisc/early/2021/09/17/2159-8290.CD-20-1726.full.pdf) in Cancer Discovery), consists of metastatic tumors that were sequenced using various MSK-Impact panels. In the full data set, some patients have multiple samples sequenced; the data provided with the package has been subsetted to one sample per patient, and the genome build has been converted to hg38.
@@ -196,13 +186,14 @@ tgs_maf = preload_maf(maf = tgs_maf_file, refset = 'ces.refset.hg38')
 When combining data from multiple sources, `check_sample_overlap()` can detect unexpected sample duplication. If you feed in `tcga_maf` and `tgs_maf` and filter the output to `variants_shared > 2` (with panel data, a couple of shared variants doesn't imply sample duplication), you'll see that everything looks fine.
 
 ## Create CESAnalysis and load data
-The CESAnalysis is the primary data structure of cancereffectsizeR. The cancereffectsizeR workflow consists of calling a series of functions that take a CESAnalysis as input and return an altered CESAnalysis. Re-using the same variable name will keep things tidy.
+The CESAnalysis is the primary data structure of cancereffectsizeR. The cancereffectsizeR workflow consists of calling a series of functions that take a CESAnalysis as input and return an altered CESAnalysis.
 
 ### Load whole-exome sequencing data
-Let's create a CESAnalysis and call `load_maf()` to load the TCGA data.
+Let's create a CESAnalysis and call `load_maf()` to load the TCGA data. Since we're going to load more
+than one MAF, we'll provide an optional `maf_name`.
 ```{r}
 cesa = CESAnalysis(refset = "ces.refset.hg38")
-cesa = load_maf(cesa = cesa, maf = tcga_maf)
+cesa = load_maf(cesa = cesa, maf = tcga_maf, maf_name = 'BRCA')
 ```
 
 You will see a message that some variants fall outside of the refset's exome definitions. Since we don't know exactly what exome capture techniques were used for the BRCA project (probably different methods at different study sites), this isn't unexpected. (On the off chance that you do know the exact exome capture intervals of whatever data you're using, you should supply those intervals with `load_maf()`'s `covered_regions` argument. For WGS data, simply set `coverage = "genome"`.)
@@ -246,11 +237,15 @@ top_tgs_genes = c("TP53", "PIK3CA", "ESR1","CDH1","GATA3","KMT2C",
 tgs_coverage = ces.refset.hg38$gr_genes[ces.refset.hg38$gr_genes$gene %in% top_tgs_genes]
 ```
 
-We don't have a clinical file for the TGS data, but we do know that they're all metastatic samples. Instead of creating another table and calling `load_sample_data()`, we can use the `sample_data_cols` feature of load_maf():
+We don't have a clinical file for the TGS data, but we do know that they're all metastatic samples. Instead of creating another table and calling `load_sample_data()`, we can use the `sample_data_cols` argument in load_maf().
+We will also add a little bit of padding (10 bp) to our coverage definitions to allow variants just outside
+coding regions to be considered covered.
+
 ```{r}
 tgs_maf$pM = 'M1'
-cesa = load_maf(cesa, maf = tgs_maf, sample_data_cols = 'pM', 
-                coverage = 'targeted', covered_regions = tgs_coverage, covered_regions_name = 'top_genes')
+cesa = load_maf(cesa, maf = tgs_maf, sample_data_cols = 'pM', maf_name = 'MBC',
+                coverage = 'targeted', covered_regions = tgs_coverage, 
+                covered_regions_name = 'top_genes', covered_regions_padding = 10)
 ```
 
 Now that all the data is loaded, we'll show one data-wrangling example: Let's look at variant prevalence by metastatic disease status. By default, the `variant_counts()` function considers all mutations, but we'll subset to recurrent mutations.
@@ -384,8 +379,11 @@ top[, display_name := gsub('_', "\n", variant_name)]
 top[, display_levels := factor(display_name, levels = display_name, ordered = T)]
 
 plot_title = 'Top cancer effects in breast carcinoma (CES tutorial data)'
-breaks = unique(as.numeric(round(quantile(top$included_with_variant))))
-n.dodge = 2 # can reduce to 1 if labels still fit (e.g., if plotting fewer variants)
+n.dodge = 2 # can reduce to 1 if labels happen to still fit (e.g., if plotting fewer variants)
+
+# May need to play with breaks for colorbar legibility
+breaks = unique(as.numeric(round(quantile(top$included_with_variant, probs = c(0, .5, .75, 1)))))
+
 ggplot(top, aes(x = display_levels, y = selection_intensity)) + 
   geom_errorbar(aes(ymin = ci_low_95, ymax = ci_high_95), width = .2, color = 'darkgrey') +
   geom_point(aes(color = included_with_variant), size = 3) + 
@@ -410,7 +408,7 @@ ggplot(top, aes(x = display_levels, y = selection_intensity)) +
 readRDS(paste0(tutorial_dir, '/top_BRCA_effects.rds'))
 ```
 
-_PIK3CA_ and _ESR1_ variants take many of the top spots. The deconvolution of mutation rate from selection has revealed that some relatively low-prevalence variants have high effects. Interestingly, according to dNdScv, mutation in _ESR1_ at the gene level was not significantly greater than neutral in the TCGA cohort of primary tumors. The incorporation of metastatic TGS data and cancereffectsizeR's assessment of selection at the variant level confirm _ESR1_'s importance.
+_PIK3CA_ and _ESR1_ variants take many of the top spots. The deconvolution of mutation rate from selection has revealed that some relatively low-prevalence variants have high effects. Interestingly, according to dNdScv, mutation in _ESR1_ at the gene level was not significantly greater than neutral in the TCGA cohort of primary tumors. The incorporation of metastatic TGS data and cancereffectsizeR's assessment of selection at variant-level resolution confirm _ESR1_'s importance.
 
 ### More options
 By default, all recurrent variants (variants that appear at least twice in MAF data) are included in a `ces_variant()` run. As demonstrated, the `variants` argument can be used to specify which variants to test. Variants with prevalences of 1 or even 0 (perhaps helpful to establish an effect ceiling) can be included: `variants = cesa$variants` will include all annotated mutations in the analysis. Note that most single-hit variants will have over-estimated effects because most are probably neutral passengers, and the occurrence of any non-selected variant is inherently improbable.
@@ -465,16 +463,11 @@ readRDS(paste0(tutorial_dir, '/comp_variant_ep.rds'))
 Note that the effect sizes are smaller for PIK3CA here, since we mixed in lots of lower-effect PIK3CA variants. While four samples have both AKT1 E17K and one of the PIK3CA variants, this result strengthens the case for AKT1 mutation reducing selection for PIK3CA mutation.
 
 ### Gene-level epistasis
-The convenience function `ces_gene_epistasis()` provides a simpler way to apply the model of `ces_epistasis()` at the gene level. The `variants` argument offers multiple methods of specifying which variants from each gene to include in the inference: "recurrent" uses all recurrent variants, "nonsilent" uses all coding variants except non-splice-site synonymous variants, or a custom table of variants can be input, as shown here.
+The convenience function `ces_gene_epistasis()` provides a simpler way to apply the model of `ces_epistasis()` at the gene level. The `variants` argument provides three options for which variants from each gene to include in the inference: "recurrent" uses all recurrent variants; "nonsilent" uses all coding variants that are non-synonymous or splice-site-disrupting; alternatively, you can supply your own table of variants.
+
 ```{r}
-
 genes = c("AKT1", "PIK3CA", "TP53")
-
-# We would use the "nonsilent" method, except a handful of variants are not covered in the TGS data,
-# forcing us to exclude those so that the TGS samples can be included inthe inference.
-variants = cesa$variants[variant_type == 'aac' & gene %in% genes & sapply(covered_in, length) == 2]
-variants = variants[aa_ref != aa_alt | essential_splice == T]
-cesa = ces_gene_epistasis(cesa = cesa, genes = genes, variants = variants, run_name = "gene_epistasis_example")
+cesa = ces_gene_epistasis(cesa = cesa, genes = genes, variants = 'nonsilent', run_name = "gene_epistasis_example")
 cesa$epistasis$gene_epistasis_example
 ```
 
@@ -482,7 +475,7 @@ cesa$epistasis$gene_epistasis_example
 readRDS(paste0(tutorial_dir, '/gene_ep_example.rds'))
 ```
 
-Mutational selection in the two oncogenes appears to be maintained after mutation in TP53. In constrast, loss of TP53 is less selected after mutations in AKT1/PIK3CA; one explanation is that cell populations in which these powerful drivers have fixed must have already subverted tumor suppression mechanisms, making TP53 mutations superfluous. The two oncogenes also appear to show some mutual exclusivity, in that selection for each is reduced after mutation in the other.
+Mutational selection in the two oncogenes appears to be maintained after mutation in TP53. In contrast, loss of TP53 is less selected after mutations in AKT1/PIK3CA; one explanation is that cell populations in which these powerful drivers have fixed must have already subverted tumor suppression mechanisms, making TP53 mutations superfluous. The two oncogenes also appear to show some mutual exclusivity, in that selection for each is reduced after mutation in the other.
 
 
 ## Save your work
