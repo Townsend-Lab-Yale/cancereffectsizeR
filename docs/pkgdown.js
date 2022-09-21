@@ -71,14 +71,6 @@
     var url = new URL(window.location.href);
     var toMark = url.searchParams.get("q");
     var mark = new Mark("main#main");
-    if (toMark) {
-      mark.mark(toMark, {
-        accuracy: {
-          value: "complementary",
-          limiters: [",", ".", ":", "/"],
-        }
-      });
-    }
 
   /* Search --------------------------*/
   /* Adapted from https://github.com/rstudio/bookdown/blob/2d692ba4b61f1e466c92e78fd712b0ab08c11d31/inst/resources/bs4_book/bs4_book.js#L25 */
