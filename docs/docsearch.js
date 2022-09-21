@@ -44,7 +44,8 @@ $(function() {
         }
       }
     };
-     mark();
+    // Edit: Don't mark
+     //mark();
   });
 });
 
