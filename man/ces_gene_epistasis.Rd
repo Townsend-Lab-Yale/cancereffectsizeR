@@ -20,13 +20,13 @@ ces_gene_epistasis(
 \item{genes}{Vector of gene names; SIs will be calculated for all gene pairs. Alternatively,
 a list of gene pairs (2-length character vectors) to run just the given pairings.}
 
-\item{variants}{Which variants to include in inference for each gene. Either
-"recurrent" for all variants present in two or more samples (across all MAF data),
-"nonsilent" for all coding variants except non-splice-site synonymous variants, or a
-data.table containing all variants to include (as returned by
-\code{select_variants()} or by subsetting\code{[CESAnalysis\]$variants}). For
-noncoding variants with multiple gene annotations, the one listed in the "gene"
-column is used. In the recurrent method, nearby noncoding variants may be included.}
+\item{variants}{Which variants to include in inference for each gene. Either "recurrent" for all
+variants present in two or more samples (across all MAF data), "nonsilent" for nonsynonymous
+coding variants and variants in essential splice sites, or a data.table containing all variants
+to include (as returned by \code{select_variants()} or by
+subsetting\code{[CESAnalysis\]$variants}). For noncoding variants with multiple gene
+annotations, the one listed in the "gene" column is used. In the recurrent method, nearby
+noncoding variants may be included.}
 
 \item{samples}{Which samples to include in inference. Defaults to all samples. Can be a
 vector of Unique_Patient_Identifiers, or a data.table containing rows from the

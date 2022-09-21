@@ -141,8 +141,8 @@ in one place.</p>
 <div class="section level3">
 <h3 id="theoretical-overview">Theoretical overview<a class="anchor" aria-label="anchor" href="#theoretical-overview"></a>
 </h3>
-<p>Very briefly, we extract mutational signatures from each samples’s
-SNV mutation profile using <a href="https://bioconductor.org/packages/release/bioc/html/MutationalPatterns.html" class="external-link">MutationalPatterns</a>.
+<p>Very briefly, we extract mutational signatures from each sample’s SNV
+mutation profile using <a href="https://bioconductor.org/packages/release/bioc/html/MutationalPatterns.html" class="external-link">MutationalPatterns</a>.
 The relative weights of biologically associated signatures are used to
 infer trinucleotide-context-specific relative rates of SNV mutations for
 each sample. Cohort-wide neutral gene mutation rates are calculated with
@@ -1837,9 +1837,9 @@ the case for AKT1 mutation reducing selection for PIK3CA mutation.</p>
 simpler way to apply the model of <code><a href="../reference/ces_epistasis.html">ces_epistasis()</a></code> at the
 gene level. The <code>variants</code> argument provides three options
 for which variants from each gene to include in the inference:
-“recurrent” uses all recurrent variants; “nonsilent” uses all coding
-variants that are non-synonymous or splice-site-disrupting;
-alternatively, you can supply your own table of variants.</p>
+“recurrent” uses all recurrent variants; “nonsilent” uses nonsynonymous
+coding variants and any variants in essential splice sites; or,
+alternatively, supply a custom table of variants.</p>
 <div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">genes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"AKT1"</span>, <span class="st">"PIK3CA"</span>, <span class="st">"TP53"</span><span class="op">)</span></span>
 <span><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ces_gene_epistasis.html">ces_gene_epistasis</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, genes <span class="op">=</span> <span class="va">genes</span>, variants <span class="op">=</span> <span class="st">"nonsilent"</span>, run_name <span class="op">=</span> <span class="st">"gene_epistasis_example"</span><span class="op">)</span></span>

@@ -51,7 +51,7 @@ setwd('CES_tutorial')
 ## Quickstart
 
 ### Theoretical overview
-Very briefly, we extract mutational signatures from each samples's SNV mutation profile using  [MutationalPatterns](https://bioconductor.org/packages/release/bioc/html/MutationalPatterns.html). The relative weights of biologically associated signatures are used to infer trinucleotide-context-specific relative rates of SNV mutations for each sample. Cohort-wide neutral gene mutation rates are calculated with [dNdScv](https://github.com/im3sanger/dndscv), with tissue-specific covariates provided by `ces.refset.hg38`. Combining this information, the rate of neutral mutation at a particular variant site is calculated by partitioning the gene mutation rate across all sites in the gene in accordance with the signature-informed relative rates. Comparing rates of observed and expected mutation under a model of somatic selection allows an inference of selection intensity, which we call cancer effect size.
+Very briefly, we extract mutational signatures from each sample's SNV mutation profile using  [MutationalPatterns](https://bioconductor.org/packages/release/bioc/html/MutationalPatterns.html). The relative weights of biologically associated signatures are used to infer trinucleotide-context-specific relative rates of SNV mutations for each sample. Cohort-wide neutral gene mutation rates are calculated with [dNdScv](https://github.com/im3sanger/dndscv), with tissue-specific covariates provided by `ces.refset.hg38`. Combining this information, the rate of neutral mutation at a particular variant site is calculated by partitioning the gene mutation rate across all sites in the gene in accordance with the signature-informed relative rates. Comparing rates of observed and expected mutation under a model of somatic selection allows an inference of selection intensity, which we call cancer effect size.
 
 ### Example: Lung adenocarcinoma data from TCGA
 If you want to skip all the details and run through a no-frills cancereffectsizeR analysis now, see below. Otherwise, take a peek to get a sense of what's to come, or keep reading for a more thorough walkthrough.
@@ -463,7 +463,7 @@ readRDS(paste0(tutorial_dir, '/comp_variant_ep.rds'))
 Note that the effect sizes are smaller for PIK3CA here, since we mixed in lots of lower-effect PIK3CA variants. While four samples have both AKT1 E17K and one of the PIK3CA variants, this result strengthens the case for AKT1 mutation reducing selection for PIK3CA mutation.
 
 ### Gene-level epistasis
-The convenience function `ces_gene_epistasis()` provides a simpler way to apply the model of `ces_epistasis()` at the gene level. The `variants` argument provides three options for which variants from each gene to include in the inference: "recurrent" uses all recurrent variants; "nonsilent" uses all coding variants that are non-synonymous or splice-site-disrupting; alternatively, you can supply your own table of variants.
+The convenience function `ces_gene_epistasis()` provides a simpler way to apply the model of `ces_epistasis()` at the gene level. The `variants` argument provides three options for which variants from each gene to include in the inference: "recurrent" uses all recurrent variants; "nonsilent" uses nonsynonymous coding variants and any variants in essential splice sites; or, alternatively, supply a custom table of variants.
 
 ```{r}
 genes = c("AKT1", "PIK3CA", "TP53")

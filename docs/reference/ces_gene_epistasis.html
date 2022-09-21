@@ -95,13 +95,13 @@ a list of gene pairs (2-length character vectors) to run just the given pairings
 
 
 <dt>variants</dt>
-<dd><p>Which variants to include in inference for each gene. Either
-"recurrent" for all variants present in two or more samples (across all MAF data),
-"nonsilent" for all coding variants except non-splice-site synonymous variants, or a
-data.table containing all variants to include (as returned by
-<code><a href="select_variants.html">select_variants()</a></code> or by subsetting<code>[CESAnalysis\]$variants</code>). For
-noncoding variants with multiple gene annotations, the one listed in the "gene"
-column is used. In the recurrent method, nearby noncoding variants may be included.</p></dd>
+<dd><p>Which variants to include in inference for each gene. Either "recurrent" for all
+variants present in two or more samples (across all MAF data), "nonsilent" for nonsynonymous
+coding variants and variants in essential splice sites, or a data.table containing all variants
+to include (as returned by <code><a href="select_variants.html">select_variants()</a></code> or by
+subsetting<code>[CESAnalysis\]$variants</code>). For noncoding variants with multiple gene
+annotations, the one listed in the "gene" column is used. In the recurrent method, nearby
+noncoding variants may be included.</p></dd>
 
 
 <dt>samples</dt>
