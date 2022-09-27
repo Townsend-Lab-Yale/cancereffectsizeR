@@ -12,7 +12,7 @@ CompoundVariantSets are supported."><!-- mathjax --><script src="https://cdnjs.c
     
     <a class="navbar-brand me-2" href="../index.html">cancereffectsizeR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.6.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.6.5</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -72,7 +72,8 @@ CompoundVariantSets are supported.</p>
 <span>  samples <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  run_name <span class="op">=</span> <span class="st">"auto"</span>,</span>
 <span>  cores <span class="op">=</span> <span class="fl">1</span>,</span>
-<span>  conf <span class="op">=</span> <span class="fl">0.95</span></span>
+<span>  conf <span class="op">=</span> <span class="fl">0.95</span>,</span>
+<span>  return_fit <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -107,13 +108,20 @@ the CESAnalysis sample table.</p></dd>
 <dd><p>confidence interval size from 0 to 1 (.95 -&gt; 95%); NULL skips calculation,
 reducing runtime.</p></dd>
 
+
+<dt>return_fit</dt>
+<dd><p>Temporary option for whether to embed fitted models in a "fit" attribute associated
+with the epistasis results table. This argument will be replaced soon with friendlier support 
+for accessing fitted models.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     
 
-<p>a data table with pairwise-epistatic selection intensities and variant
-  frequencies for in tumors that have coverage at both variants in each pair</p>
+<p>CESAnalysis with epistasis output in the form of a data.tabel of pairwise-epistatic
+  selection intensities and variant frequencies for in tumors that have coverage at both variants
+  in each pair</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>

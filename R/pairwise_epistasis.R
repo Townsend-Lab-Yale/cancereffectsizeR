@@ -26,10 +26,14 @@
 #' @param conf Confidence interval size from 0 to 1 (.95 -> 95\%). NULL skips calculation,
 #'   which may be helpful to reduce runtime when analyzing many gene pairs.
 #' @param cores number of cores for parallel processing of gene pairs
+#' @param return_fit Temporary option for whether to embed fitted models in a "fit" attribute associated
+#' with the epistasis results table. This argument will be replaced soon with friendlier support 
+#' for accessing fitted models.
 #' @return CESAnalysis with epistasis analysis results added
 #' @export
 ces_gene_epistasis = function(cesa = NULL, genes = NULL, variants = NULL,
-                              samples = character(), run_name = "auto", cores = 1, conf = .95)
+                              samples = character(), run_name = "auto", cores = 1, conf = .95,
+                              return_fit = FALSE)
 {
   if (! is(cesa, "CESAnalysis")) {
     stop("cesa should be a CESAnalysis.")
@@ -188,14 +192,20 @@ ces_gene_epistasis = function(cesa = NULL, genes = NULL, variants = NULL,
   
   # use separate CompoundVariantSets for each pair to avoid possible gene-overlap issues
   setkey(variants_to_use, 'gene')
-  results = rbindlist(pbapply::pblapply(X = gene_pairs, FUN = 
+  results = pbapply::pblapply(X = gene_pairs, FUN = 
     function(x) {
       variant_ids = setNames(list(variants_to_use[x[1], variant_id], variants_to_use[x[2], variant_id]), x)
       comp = CompoundVariantSet(cesa, variant_ids)
-      results = pairwise_variant_epistasis(cesa = cesa, variant_pair = c(1, 2), samples = samples, compound_variants = comp,
+      tmp = pairwise_variant_epistasis(cesa = cesa, variant_pair = c(1, 2), samples = samples, compound_variants = comp,
                                            conf = conf)
     }, cl = cores
-  ))
+  )
+  fits = lapply(results, '[[', 'fit')
+  results = rbindlist(lapply(results, '[[', 'summary'))
+  
+  if(return_fit) {
+    setattr(results, 'fit', fits)
+  }
   
   # pairwise epistasis function uses v1/v2 in parameter names (as in, variants); sub in g1/g2 for gene
   colnames(results) = gsub("_v1", "_g1", colnames(results))
@@ -236,10 +246,15 @@ ces_gene_epistasis = function(cesa = NULL, genes = NULL, variants = NULL,
 #' @param conf confidence interval size from 0 to 1 (.95 -> 95\%); NULL skips calculation,
 #'   reducing runtime.
 #' @param cores number of cores for parallel processing of variant pairs
-#' @return a data table with pairwise-epistatic selection intensities and variant
-#'   frequencies for in tumors that have coverage at both variants in each pair
+#' @param return_fit Temporary option for whether to embed fitted models in a "fit" attribute associated
+#' with the epistasis results table. This argument will be replaced soon with friendlier support 
+#' for accessing fitted models.
+#' @return CESAnalysis with epistasis output in the form of a data.tabel of pairwise-epistatic
+#'   selection intensities and variant frequencies for in tumors that have coverage at both variants
+#'   in each pair
 #' @export
-ces_epistasis = function(cesa = NULL, variants = NULL, samples = character(), run_name = "auto", cores = 1, conf = .95) {
+ces_epistasis = function(cesa = NULL, variants = NULL, samples = character(), run_name = "auto", cores = 1, 
+                         conf = .95, return_fit = FALSE) {
   
   if (! is(run_name, "character") || length(run_name) != 1) {
     stop("run_name should be 1-length character")
@@ -266,7 +281,7 @@ ces_epistasis = function(cesa = NULL, variants = NULL, samples = character(), ru
   samples = select_samples(cesa, samples)
   num_excluded_samples = cesa@samples[, .N] - samples[, .N]
   if(num_excluded_samples > 0) {
-    message("Note that ", num_excluded_samples, " are being excluded from selection inference.")
+    message("Note that ", num_excluded_samples, " samples are being excluded from selection inference.")
   }
   
   if(run_name %in% names(cesa@epistasis)) {
@@ -284,7 +299,7 @@ ces_epistasis = function(cesa = NULL, variants = NULL, samples = character(), ru
   
   if(is(variants, "CompoundVariantSet")) {
     index_pairs = utils::combn(1:length(variants), 2, simplify = F)
-    results = rbindlist(pbapply::pblapply(X = index_pairs, FUN = pairwise_variant_epistasis, samples = samples, compound_variants = variants, cesa=cesa, conf = conf, cl = cores))
+    results = pbapply::pblapply(X = index_pairs, FUN = pairwise_variant_epistasis, samples = samples, compound_variants = variants, cesa=cesa, conf = conf, cl = cores)
   } else if (is(variants, "list")) {
     setkey(cesa@mutations$amino_acid_change, "aac_id")
     setkey(cesa@mutations$snv, "snv_id")
@@ -318,16 +333,21 @@ ces_epistasis = function(cesa = NULL, variants = NULL, samples = character(), ru
     if (notify_name_conversion) {
       pretty_message("Shorthand variant names were recognized and uniquely paired with cancereffectsizeR's aac_ids.")
     }
-    results = rbindlist(pbapply::pblapply(X = variants, FUN = pairwise_variant_epistasis, cesa=cesa, samples = samples, conf = conf, cl = cores))
+    results = pbapply::pblapply(X = variants, FUN = pairwise_variant_epistasis, cesa=cesa, samples = samples, conf = conf, cl = cores)
   } else {
     stop("variants should be of type list or CompoundVariantSet")
   }
-  
+  fits = lapply(results, '[[', 'fit')
+  results = rbindlist(lapply(results, '[[', 'summary'))
   if(results[(joint_cov_samples_just_v1 == 0 | joint_cov_samples_just_v2 == 0) & 
              joint_cov_samples_with_both == 0, .N] > 0) {
     pretty_message(paste0("Some variant pairs had prevalence of 0 in one or both variants across jointly-covering input samples. ",
                           "Epistatic selection intensities are all NAs for these pairs."))
   }
+  if(return_fit) {
+    setattr(results, 'fit', fits)
+  }
+  
   results = list(results)
   names(results) = run_name
   cesa@epistasis = c(cesa@epistasis, results)
@@ -471,6 +491,6 @@ pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compoun
   if(! is.null(conf)) {
     variant_ep_results = c(variant_ep_results, univariate_si_conf_ints(fit, fn, .001, 1e9, conf))
   }
-  return(variant_ep_results)
+  return(list(summary = variant_ep_results, fit = fit))
 }
 

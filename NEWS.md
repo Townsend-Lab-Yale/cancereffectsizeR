@@ -2,6 +2,10 @@
 # <font style = "opacity:0">cancereffectsizeR 3.0.0</font>
 Patch releases (as in, x.y.1 &#8594; x.y.2) have minor bug fixes or small improvements that should not significantly affect the numerical output of cancer effect analyses. Minor/major updates may change some outputs due to bug fixes or intentional tweaks, as described in these version notes.<br><br>
 
+# cancereffectsizeR 2.6.5
+* The "nonsilent" method in ces_gene_epistasis() now uses nonsynonymous coding variants and essential splice-site variants (coding or not). Previously, noncoding splice-site variants weren't included.
+* Updated tutorial.
+
 # cancereffectsizeR 2.6.4
 * load_maf(): Optional maf_name argument makes it easy to see which samples in a CESAnalysis come from which MAF.
 * More flexible support for user-supplied gene mutation rates.

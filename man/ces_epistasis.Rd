@@ -10,7 +10,8 @@ ces_epistasis(
   samples = character(),
   run_name = "auto",
   cores = 1,
-  conf = 0.95
+  conf = 0.95,
+  return_fit = FALSE
 )
 }
 \arguments{
@@ -31,10 +32,15 @@ the CESAnalysis sample table.}
 
 \item{conf}{confidence interval size from 0 to 1 (.95 -> 95\%); NULL skips calculation,
 reducing runtime.}
+
+\item{return_fit}{Temporary option for whether to embed fitted models in a "fit" attribute associated
+with the epistasis results table. This argument will be replaced soon with friendlier support 
+for accessing fitted models.}
 }
 \value{
-a data table with pairwise-epistatic selection intensities and variant
-  frequencies for in tumors that have coverage at both variants in each pair
+CESAnalysis with epistasis output in the form of a data.tabel of pairwise-epistatic
+  selection intensities and variant frequencies for in tumors that have coverage at both variants
+  in each pair
 }
 \description{
 Calculate selection intensity under an assumption of pairwise epistasis between pairs of variants.

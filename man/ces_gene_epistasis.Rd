@@ -11,7 +11,8 @@ ces_gene_epistasis(
   samples = character(),
   run_name = "auto",
   cores = 1,
-  conf = 0.95
+  conf = 0.95,
+  return_fit = FALSE
 )
 }
 \arguments{
@@ -38,6 +39,10 @@ CESAnalysis sample table.}
 
 \item{conf}{Confidence interval size from 0 to 1 (.95 -> 95\%). NULL skips calculation,
 which may be helpful to reduce runtime when analyzing many gene pairs.}
+
+\item{return_fit}{Temporary option for whether to embed fitted models in a "fit" attribute associated
+with the epistasis results table. This argument will be replaced soon with friendlier support 
+for accessing fitted models.}
 }
 \value{
 CESAnalysis with epistasis analysis results added
