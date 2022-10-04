@@ -4,6 +4,8 @@ Patch releases (as in, x.y.1 &#8594; x.y.2) have minor bug fixes or small improv
 
 # cancereffectsizeR 2.6.5
 * The "nonsilent" method in ces_gene_epistasis() now uses nonsynonymous coding variants and essential splice-site variants (coding or not). Previously, noncoding splice-site variants weren't included.
+* In epistasis output, the fitted models for each inference are now available for exploration. See the `return_fit`
+option in ces_epistasis() and ces_gene_epistasis().
 * Updated tutorial.
 
 # cancereffectsizeR 2.6.4
