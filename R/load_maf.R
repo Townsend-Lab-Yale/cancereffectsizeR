@@ -198,7 +198,7 @@ load_maf = function(cesa = NULL, maf = NULL, maf_name = character(), coverage = 
   if(length(maf_name) == 0) {
     maf_name = as.character(uniqueN(cesa@samples$maf_source) + 1)
   } else {
-    if(! maf_name %ilike% '^[a-z0-9][0-9a-z\\_\\-\\.,\\+]*$') {
+    if(! maf_name %ilike% '^[a-z0-9][-0-9a-z\\_\\.,\\+]*$') {
       stop('Invalid maf_name. You can use alphanumerics and ",", "+", "_", "-", ".".)')
     }
   }

@@ -480,6 +480,9 @@ pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compoun
       }
     }
   )
+  # Also remove the whole copy of CESAnalysis in there.
+  # To-do: probably shouldn't be there in the first place.
+  rm('cesa', envir = environment(fit))
   params = bbmle::coef(fit)
   
   variant_ep_results = list(variant1 = v1, variant2 = v2, ces_v1 = params[1], ces_v2 = params[2],

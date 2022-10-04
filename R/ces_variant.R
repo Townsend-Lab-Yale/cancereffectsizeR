@@ -451,8 +451,8 @@ ces_variant <- function(cesa = NULL,
           all_genes = current_snvs[, unique(unlist(genes))]
           variant_id = current_snvs$snv_id
           rates = baseline_rates[, ..variant_id]
-          # binomial probability of having 1 or more of the mutations (assuming independence)
-          rates = apply(rates, 1, function(x) 1 - prod(1 - x))
+          # Sum Poisson rates across variants
+          rates = rowSums(rates)
         } else {
           tumors_with_variant = samples_by_variant[[variant_id]]
           all_genes = gene_lookup[[variant_id]]
