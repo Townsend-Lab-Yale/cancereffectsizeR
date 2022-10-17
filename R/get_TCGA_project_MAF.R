@@ -263,6 +263,8 @@ get_TCGA_project_MAF = function(project = NULL, filename = NULL, test_run = FALS
     setcolorder(cohort_maf, c('Unique_Patient_Identifier', 'Tumor_Sample_Barcode'))
     cohort_maf[, c("type_vial", "tissue_type", "primary_sample") := NULL]
   } else {
+    num_samples = uniqueN(cohort_maf$Tumor_Sample_Barcode)
+    
     message("Writing MAF file covering ", num_samples, " samples.")
   }
   
