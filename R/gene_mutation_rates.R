@@ -198,7 +198,7 @@ gene_mutation_rates <- function(cesa, covariates = NULL, samples = character(), 
   # Will want to get CIs on gene mutation rates. (Encapsulating use of predict for testing purposes.)
   fit = get_dndscv_model_fit(dndscv_output)
   
-  theta = dndscv_output$nbreg$theta # parameter controlling variablity in rates across genes
+  theta = dndscv_output$nbreg$theta # parameter controlling variability in rates across genes
   lower = exp(fit$fit - 1.96 * fit$se.fit)
   upper = exp(fit$fit + 1.96 * fit$se.fit)
   
@@ -226,14 +226,10 @@ gene_mutation_rates <- function(cesa, covariates = NULL, samples = character(), 
 
   } else{
     # theta should definitely be >1, so none of this should really happen
-    mutrates_vec <- rep(NA,length(actual_syn_counts))
-    for(i in 1:length(mutrates_vec)){
-      mutrates_vec[i] <-  max(mle_rate,  
-                              ((actual_syn_counts[i] + theta - 1) /
-                                        (1 +(theta / mle_rate)))) /
-        nsyn_sites[i] /
-        dndscv_sample_num
-    }
+    mutrates_vec = pmax(mle_rate,
+                        (actual_syn_counts + theta - 1) / (1 +(theta / mle_rate))) /
+      nsyn_sites / dndscv_sample_num
+    
     # No CIs when theta<1
     upper_rates = rep(NA, length(mutrates_vec))
     lower_rates = upper_rates
