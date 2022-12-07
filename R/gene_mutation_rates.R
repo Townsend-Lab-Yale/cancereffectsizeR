@@ -48,7 +48,7 @@ gene_mutation_rates <- function(cesa, covariates = NULL, samples = character(), 
     if (! all(sample_group %in% cesa@groups)) {
       possible_groups = setdiff(cesa@groups, "stageless") # historical
       if (length(possible_groups) == 0) {
-        paste0("The CESAnalysis has no user-defined sample groups, so you can't use the sample_group parameter. (Besides, ",
+        msg = paste0("The CESAnalysis has no user-defined sample groups, so you can't use the sample_group parameter. (Besides, ",
                "sample_group is deprecated. Use \"samples\" instead.)")
         stop(pretty_message(msg, emit = F))
       }

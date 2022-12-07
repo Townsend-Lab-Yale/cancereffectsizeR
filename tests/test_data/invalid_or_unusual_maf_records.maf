@@ -1,0 +1,11 @@
+Unique_Patient_Identifier	Chromosome	Start_Position	Reference_Allele	Tumor_Seq_Allele2
+sample-A	X	2e+06	C	G
+sample-A	chr2	50000003	T	A
+Sample-B	chr2	50000003	TC	-
+sample-C	chr2	50000003	TT	-
+sample-D	17	41107177	T	A
+sample-D	17	41107179	A G
+sample-E	17	41107179	A	G
+sample-E	17	41107176	C	A
+sample-F	chrMT	100	G	A
+sample-F	M	2	A	C

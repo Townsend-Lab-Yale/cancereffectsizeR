@@ -1,5 +1,10 @@
+# To generate test data for dndscv,
+# run gene_mutation_rates(luad, covariates = "lung") with breakpoints before/after run_dndscv
+# and save the input list and raw output to the .rds files. Also save the fit object, because
+# a necessary component for generating it won't be saved with the raw output .rds.
+
 test_that("gene mutation rates", {
-  dndscv_cesa = load_cesa(get_test_file("annotated_fruit_cesa.rds"))
+  dndscv_cesa = load_cesa(get_test_file("luad_hg19_for_gene_rate_test.rds"))
   dndscv_input = get_test_data("dndscv_input_single.rds")
   dndscv_raw_output = get_test_data("dndscv_raw_output_single.rds")
   

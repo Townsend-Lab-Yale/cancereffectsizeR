@@ -22,74 +22,59 @@ ces_variant(
 \arguments{
 \item{cesa}{CESAnalysis object}
 
-\item{variants}{Variant table from \code{select_variants()}, or a \code{CompoundVariantSet} from
-\code{define_compound_variants()}. Defaults to all recurrent noncoding SNVs and
-(SNV-derived) coding mutations, where recurrent means appearing in at least two
-samples in the MAF data set.}
+\item{variants}{Which variants to estimate effects for, specified with a variant table such as
+from \code{[CESAnalysis]$variants} or \code{select_variants()}, or a \code{CompoundVariantSet}
+from \code{define_compound_variants()}. Defaults to all recurrent mutations; that is,
+\code{[CESAnalysis]$variants[maf_prevalence > 1]}. To include all variants, set to
+\code{[CESAnalysis]$variants}.}
 
-\item{samples}{Which samples to include in inference. Defaults to all samples.
-Can be a vector of Unique_Patient_Identifiers, or a data.table containing rows from
-the CESAnalysis sample table.}
+\item{samples}{Which samples to include in inference. Defaults to all samples. Can be a vector of
+Unique_Patient_Identifiers, or a data.table containing rows from the CESAnalysis sample table.}
 
-\item{model}{"basic" or "sequential" to use built-in models of selection, or supply a
-custom function factory (see details).}
+\item{model}{Set to "basic" (default) or "sequential" (not yet available) to use built-in
+models of selection, or supply a custom function factory (see details).}
 
 \item{run_name}{Optionally, a name to identify the current run.}
 
-\item{ordering_col}{For the sequential model (or possibly custom models), the name of
-the sample table column that defines sample chronology.}
+\item{ordering_col}{For the (not yet available) sequential model (or possibly custom models),
+the name of the sample table column that defines sample chronology.}
 
-\item{ordering}{For the sequential model (or possibly custom models), a character
-vector or list defining the ordering of values in ordering_col. Use a list to assign 
-multiple values in ordering_col the same position (e.g., `list(early = c("I", "II), late = c("III", "IV")))`
-for an early vs. late analysis).}
+\item{ordering}{For the (not yet available) sequential model (or possibly custom models), a
+character vector or list defining the ordering of values in ordering_col. Use a list to assign
+multiple values in ordering_col the same position (e.g., `list(early = c("I", "II), late =
+c("III", "IV")))` for an early vs. late analysis).}
 
-\item{lik_args}{Extra arguments, given as a list, to pass to custom likelihood
-functions.}
+\item{lik_args}{Extra arguments, given as a list, to pass to custom likelihood functions.}
 
-\item{hold_out_same_gene_samples}{When finding likelihood of each variant, hold out
-samples that lack the variant but have any other mutations in the same gene. By default,
-TRUE when running with single variants, FALSE with a CompoundVariantSet.}
+\item{hold_out_same_gene_samples}{When finding likelihood of each variant, hold out samples that
+lack the variant but have any other mutations in the same gene. By default, TRUE when running
+with single variants, FALSE with a CompoundVariantSet.}
 
-\item{groups}{(Deprecated; use samples and for sequential model, see
-ordering/ordering_col.) Which sample groups to include in inference. Data for
-outgroup samples will not inform selection calculation. For models (like
-sequential) that assume ordered groups of samples, use a list to indicate group
-ordering. Examples: \code{c("group1", "group2")} includes groups 1 and 2, but doesn't
-indicate an ordering, so is invalid for ordered-group models. \code{list("Primary",
-"Metastatic")} indicates two ordered groups, and \code{list("A", c("B", "C"), "D")}
-means that group A is first, groups B and C share an intermediate state, and group D
-is last.}
+\item{groups}{Deprecated; use samples.}
 
-\item{cores}{number of cores to use}
+\item{cores}{Number of cores to use for processing variants in parallel (not useful for Windows
+systems).}
 
-\item{conf}{selection intensity confidence interval width (NULL skips calculation,
-speeds runtime)}
+\item{conf}{Cancer effect confidence interval width (NULL skips calculation, speeds runtime).}
 }
 \value{
 CESAnalysis object with selection results appended to the selection output list
 }
 \description{
-This function calculates variant effect sizes under the chosen model of selection. By
-default, a variant is assumed to have a consistent selection intensity across all
-samples. Set \code{model = "sequential"} to allow selection intensity to vary among
-sequential sample groups (e.g., stages 1-4; local/distant metastases). Use \code{groups} to
-define group ordering or to restrict which groups are considered under either built-in
-model. By default, only variants with MAF frequency > 1 (i.e., recurrent variants) are
-tested. To include all variants, or to otherwise customize which variants to include,
-call \code{select_variants()} with desired parameters.
+This function calculates variant effect sizes under the chosen model of selection. Under the
+default model, a variant is assumed to have a consistent scaled selection coefficient (cancer
+effect) across all included samples.
 }
 \details{
-It's possible to pass in your own selection model. You'll need to create a "function
-factory" that, for any variant, produces a likelihood function that can be evaluated on
-the data. The first two arguments must be rates_tumors_with and rates_tumors_without,
-which take the baseline site mutation rates in samples with and without the variant.
-The third argument must be \code{sample_index}, a data.table that associates
-Unique_Patient_Identifiers with group names and indices. (This is used by the
-sequential model; if your model doesn't incorporate any sample grouping, you can ignore
-it.) Values for all three of these arguments will be calculated by ces_variant and
-passed to your function factory automatically. Your function can take whatever
-additional arguments you like, and you can pass in values using \code{lik_args}. The
-likelihood function parameters that ces_variant will optimize should be named and have
-default values. See the source code of \code{sswm_sequential_lik()} for an example.
+It's possible to pass in your own selection model. You'll need to create a "function factory"
+that, for any variant, produces a likelihood function that can be evaluated on the data. The
+first two arguments must be \code{rates_tumors_with} and \code{rates_tumors_without}, which give the baseline
+site mutation rates in samples with and without the variant. The third argument must be
+\code{sample_index}, a data.table that associates \code{Unique_Patient_Identifier} with group names and
+indices. (Your function factory must accept this argument, but it doesn't have to use its value.)
+Values for all three of these arguments will be calculated by ces_variant and passed to your
+function factory automatically. Your function can take whatever additional arguments you like,
+and you can pass in values using \code{lik_args}. The likelihood function parameters that
+ces_variant will optimize should be named and have default values. See the source code of
+\code{sswm_lik()} for an example.
 }

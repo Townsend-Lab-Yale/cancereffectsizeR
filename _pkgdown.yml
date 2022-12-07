@@ -59,12 +59,13 @@ reference:
   - gene_mutation_rates
   - set_gene_rates
   - clear_gene_rates
-- title: Cancer variant effect sizes
-  desc: Quantify selection for variants under models of single-variant or epistatic selection
+- title: Cancer effect sizes
+  desc: Quantify selection for somatic variants
   contents:
   - ces_variant
   - ces_epistasis
   - ces_gene_epistasis
+  - mutational_signature_effects
   - clear_effect_output
   - clear_epistasis_output
 - title: Visualization
