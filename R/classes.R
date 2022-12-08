@@ -1,5 +1,5 @@
 setClass("CESAnalysis", representation(maf = "data.table", trinucleotide_mutation_weights = "list",
-          groups = "character", mutrates = "data.table", dndscv_out_list = "list",
+          mutrates = "data.table", dndscv_out_list = "list",
           excluded = "data.table", selection_results = "list", coverage = "list", epistasis = "list",
           ref_key = "character", advanced = "list", ref_data_dir = "character", run_history = "character", samples = "data.table", 
           mutations = "list"))
@@ -113,9 +113,6 @@ setMethod("show", "CESAnalysis",
       refset_version_msg = paste0(' (v', refset_version, ')')
     }
     cat("Reference data set: ", object@ref_key, refset_version_msg, "\n", sep = "")
-    if (length(object@groups) > 1) {
-      cat("Sample groups: ", paste(object@groups, collapse = ", "), "\n", sep = "")
-    }
     if(object@maf[, .N] > 0) {
       cat("Samples:\n")
       print(object@samples[, .(num_samples = .N), by = "coverage"], row.names = F)

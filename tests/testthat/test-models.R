@@ -31,12 +31,13 @@ test_genes = c("EGFR", "ASXL3", "KRAS", "RYR2", "USH2A", "CSMD3", "TP53",
                "RYR3", "PIK3CA", "ESR1", 
                "MAP3K1", "AKT1", "ARID1A", "FOXA1", 
                "TBX3", "PTEN")
+main_effects_ak = fread(get_test_file("default_model_effects_brca_hg38.txt"))
+
 test_that("ces_variant default effects", {
   cesa = ces_variant(cesa, variants = select_variants(cesa, genes = test_genes), run_name = 'main_test', cores = 1)
-  results = cesa@selection_results[[1]]
-  expect_equal(attr(results, "si_cols"), "selection_intensity")
-  results_ak = fread(get_test_file("default_model_effects_brca_hg38.txt"))
-  expect_equal(results[order(variant_id)], results_ak[order(variant_id)], check.attributes = F, tolerance = 1e-4)
+  main_effects = copy(cesa@selection_results[[1]])
+  expect_equal(attr(main_effects, "si_cols"), "selection_intensity")
+  expect_equal(main_effects[order(variant_id)], main_effects_ak[order(variant_id)], check.attributes = F, tolerance = 1e-4)
 })
 
 
@@ -166,7 +167,12 @@ test_that("Compound variant creation", {
   expect_equal(length(define_compound_variants(cesa, recurrents, by = c("gene","aa_ref"), merge_distance = 1000)), 97)
 })
 
-
+test_that("Attribution to mutational sources", {
+  mut_effects = mutational_signature_effects(cesa = cesa, effects = main_effects_ak, 
+                                             samples = cesa$samples[coverage == 'exome'])
+  mut_ak = get_test_data('mut_effect_attribution.rds')
+  expect_equal(mut_effects, mut_ak)
+})
 
 
 

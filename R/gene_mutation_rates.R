@@ -20,14 +20,11 @@
 #'   substituted.)
 #' @param save_all_dndscv_output Default FALSE; when TRUE, saves all dndscv output, not
 #'   just what's needed by cancereffectsizeR. (Full output can be very large, in the gigabytes.)
-#' @param sample_group Which sample groups to include in the gene rate calculation;
-#'   defaults to all groups. (To calculate different rates for different groups, you'll 
-#'   run this function multiple times, changing this argument each time.)
 #' @return CESAnalysis object with gene-level mutation rates calculated
 #' @export
 # don't change this function at all without being sure you're not messing up tests
 gene_mutation_rates <- function(cesa, covariates = NULL, samples = character(), dndscv_args = list(), 
-                                save_all_dndscv_output = FALSE, sample_group = NULL) {
+                                save_all_dndscv_output = FALSE) {
   
   if (! is(cesa, "CESAnalysis")) {
     stop("cesa expected to be a CESAnalysis object", call. = F)
@@ -36,26 +33,6 @@ gene_mutation_rates <- function(cesa, covariates = NULL, samples = character(), 
   cesa = update_cesa_history(cesa, match.call())
   
   sample_info = select_samples(cesa, samples)
-  if(! is.null(sample_group)) {
-    if(! identical(samples, character())) {
-      stop("Use just one of samples and sample_group (use samples, as sample_group is deprecated).")
-    }
-    
-    if(! is(sample_group, "character")) {
-      stop("sample_group should be character")
-    }
-    sample_group = unique(sample_group)
-    if (! all(sample_group %in% cesa@groups)) {
-      possible_groups = setdiff(cesa@groups, "stageless") # historical
-      if (length(possible_groups) == 0) {
-        msg = paste0("The CESAnalysis has no user-defined sample groups, so you can't use the sample_group parameter. (Besides, ",
-               "sample_group is deprecated. Use \"samples\" instead.)")
-        stop(pretty_message(msg, emit = F))
-      }
-      stop("Unrecognized sample groups. Those defined in the CESAnalysis are ", paste(possible_groups, sep = ", "), ".")
-    }
-    sample_info = cesa@samples[group %in% sample_group]
-  }
   
   # select MAF records to use for gene mutation rate calculation (via dNdScv)
   # for now, records from TGS samples are kept out; in the future, we could check out dNdScv's panel sequencing features

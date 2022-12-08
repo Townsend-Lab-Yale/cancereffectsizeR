@@ -1,6 +1,6 @@
 #'   Attribute cancer effects to mutational signatures
 #'
-#'   Within patients and across the cohort, calculates mutational source probabilities and the share
+#'   Within patients and across the cohort, calculate mutational source probabilities and the share
 #'   of cancer effects attributable to each source, where sources are biologically-associated
 #'   mutational signatures. See \href{https://doi.org/10.1093/molbev/msac084}{Attribution of Cancer Origins to Endogenous, Exogenous, and Preventable Mutational Processes}
 #'   for background and applications.
@@ -10,10 +10,25 @@
 #'   \code{ces_variant()}. Different sets of variants (or parameter choices in the
 #'   \code{ces_variant} run) will affect output.
 #' @param samples Samples for which to calculate mutational sources and effect shares; defaults to all
-#'   samples. Only included samples will inform the cohort-level output.
-#' @return A nested list containing mutational source probabilities for each variant (per patient
-#'   and averaged over patients with the variant) and cancer effect shares attributable to each
-#'   signature (per patient and across the cohort).
+#'   samples. Reported averages apply to the samples included.
+#' @export
+#' @return A nested list containing...
+#' \itemize{
+#' \item \strong{mutational_sources} (list):
+#' \itemize{
+#' \item \strong{source_probabilities} (data.table): For each variant in each sample, the probability that each signature was the source of the variant.
+#' \item \strong{average_by_variant} (data.table): For each distinct variant, the source probabilities averaged over all samples with the variant.
+#' \item \strong{average_source_shares} (numeric): For each signature, the average proportion of each sample's mutations that are attributable to the signature. 
+#' Calculated by averaging \code{[CESAnalysis]$mutational_signatures$biological_weights} of included samples. Compare 
+#' with average_effect_shares (described below) to identify signatures with disproportionate contributions to oncogenesis.
+#' }
+#' \item \strong{effect_shares} (list):
+#' \itemize{
+#' \item \strong{by_sample} (data.table): The share of each sample's cancer effect (summed across the sample's variants) attributable to each signature.
+#' \item \strong{average_effect_shares} (numeric): Across the cohort, the average share of cancer effect attributable to each signature. Compare with
+#' average_source_shares, above, to identify signatures with disproportionate contributions to oncogenesis.
+#' }
+#' }
 mutational_signature_effects <- function(cesa = cesa, effects = NULL, samples = NULL) {
   if(! is(cesa, "CESAnalysis")) {
     stop("cesa should be a CESAnalysis object")
@@ -31,6 +46,13 @@ mutational_signature_effects <- function(cesa = cesa, effects = NULL, samples = 
   signature_defs = cesa$reference_data$snv_signatures[[1]]$signatures
   signature_names = rownames(signature_defs)
   
+  # Subset to desired samples
+  if(is.null(samples)) {
+    samples = cesa$samples$Unique_Patient_Identifier
+  } else {
+    samples = select_samples(cesa = cesa, samples = samples)$Unique_Patient_Identifier
+  }
+  
   # Get data.table with signature weights (one row per tumor)
   signature_weights = get_signature_weights(cesa)
   if (is.null(signature_weights)) {
@@ -46,8 +68,14 @@ mutational_signature_effects <- function(cesa = cesa, effects = NULL, samples = 
   not_zero = names(which(not_zero == T))
   signature_weights = signature_weights[, c("Unique_Patient_Identifier", ..not_zero)]
   setkey(signature_weights, "Unique_Patient_Identifier")
+  signature_weights = signature_weights[samples, on = 'Unique_Patient_Identifier']
   signature_names = signature_names[signature_names %in% not_zero]
   signature_defs = signature_defs[not_zero, ]
+  
+  # Calculate trinuc rates for the signatures in use. (Can't use cesa$trinuc_rates due to obscure edge case.)
+  trinuc_rates = as.data.table(as.matrix(signature_weights[, -"Unique_Patient_Identifier"]) %*% as.matrix(signature_defs))
+  trinuc_rates[, Unique_Patient_Identifier := signature_weights$Unique_Patient_Identifier]
+  trinuc_rates = melt(trinuc_rates, id.vars = 'Unique_Patient_Identifier', variable.name = 'trinuc_context')
   
   if(! is.data.table(effects) || effects[, .N] == 0) {
     stop("Expected effects to be data.table.")
@@ -92,8 +120,6 @@ mutational_signature_effects <- function(cesa = cesa, effects = NULL, samples = 
       stop(pretty_message(msg, emit = F))
     }
   }
-  trinuc_rates = melt(cesa$trinuc_rates, id.vars = 'Unique_Patient_Identifier', variable.name = 'trinuc_context')
-
   
   # Collect SNV IDs: just the variant ID for SNVs; for AACs, pull information from mutation annotations
   effects[variant_type == "snv", snv_ids := list(list(variant_id)), by = "variant_id"]
@@ -110,12 +136,6 @@ mutational_signature_effects <- function(cesa = cesa, effects = NULL, samples = 
       warning(sprintf("Variant %s has incomplete SNV annotations, so it was skipped.", variant))
     }
     variant_sources = variant_sources[! variant %in% missing]
-  }
-  # Subset to desired samples
-  if(is.null(samples)) {
-    samples = cesa$samples$Unique_Patient_Identifier
-  } else {
-    samples = select_samples(cesa = cesa, samples = samples)$Unique_Patient_Identifier
   }
   
   # Subset to included samples and get a table of variants, SIs, UPIs
@@ -141,10 +161,8 @@ mutational_signature_effects <- function(cesa = cesa, effects = NULL, samples = 
   variant_sources[, (signature_names) := sig_prob_by_snv]
   
   # For each variant, get the average source contributions across all patients with the variant.
-  cohort_sources = variant_sources[, lapply(.SD, mean), 
+  variant_sources_averaged = variant_sources[, lapply(.SD, mean), 
                                           by = 'variant_id', .SDcols = signature_names]
-  cohort_sources[variant_sources, selection_intensity := selection_intensity, on = 'variant_id']
-  setcolorder(cohort_sources, c('variant_id', 'selection_intensity'))
   
   
   # Effect share for a given variant and signature is P(signature is source) * selection_intensity.
@@ -161,6 +179,11 @@ mutational_signature_effects <- function(cesa = cesa, effects = NULL, samples = 
   cohort_effect_shares = setNames(as.numeric(cohort_effect_shares), names(cohort_effect_shares))
   effect_shares = list(patient = patient_effect_shares, cohort = cohort_effect_shares)
   
-  return(list(variant_sources = list(patient = variant_sources, cohort = cohort_sources),
-              effect_shares = list(patient = patient_effect_shares, cohort = cohort_effect_shares)))
+  # For signature weight
+  mean_signature_weights = signature_weights[, sapply(.SD, mean), .SDcols = signature_names]
+  
+  variant_sources$selection_intensity = NULL # won't report effects in the mutational source side
+  return(list(mutational_sources = list(source_probabilities = variant_sources, average_by_variant = variant_sources_averaged,
+                                        average_source_shares = mean_signature_weights),
+              effect_shares = list(by_sample = patient_effect_shares, average_effect_shares = cohort_effect_shares)))
 }

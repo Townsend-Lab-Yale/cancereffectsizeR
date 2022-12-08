@@ -14,15 +14,29 @@ mutational_signature_effects(cesa = cesa, effects = NULL, samples = NULL)
 \code{ces_variant} run) will affect output.}
 
 \item{samples}{Samples for which to calculate mutational sources and effect shares; defaults to all
-samples. Only included samples will inform the cohort-level output.}
+samples. Reported averages apply to the samples included.}
 }
 \value{
-A nested list containing mutational source probabilities for each variant (per patient
-  and averaged over patients with the variant) and cancer effect shares attributable to each
-  signature (per patient and across the cohort).
+A nested list containing...
+\itemize{
+\item \strong{mutational_sources} (list):
+\itemize{
+\item \strong{source_probabilities} (data.table): For each variant in each sample, the probability that each signature was the source of the variant.
+\item \strong{average_by_variant} (data.table): For each distinct variant, the source probabilities averaged over all samples with the variant.
+\item \strong{average_source_shares} (numeric): For each signature, the average proportion of each sample's mutations that are attributable to the signature. 
+Calculated by averaging \code{[CESAnalysis]$mutational_signatures$biological_weights} of included samples. Compare 
+with average_effect_shares (described below) to identify signatures with disproportionate contributions to oncogenesis.
+}
+\item \strong{effect_shares} (list):
+\itemize{
+\item \strong{by_sample} (data.table): The share of each sample's cancer effect (summed across the sample's variants) attributable to each signature.
+\item \strong{average_effect_shares} (numeric): Across the cohort, the average share of cancer effect attributable to each signature. Compare with
+average_source_shares, above, to identify signatures with disproportionate contributions to oncogenesis.
+}
+}
 }
 \description{
-Within patients and across the cohort, calculates mutational source probabilities and the share
+Within patients and across the cohort, calculate mutational source probabilities and the share
   of cancer effects attributable to each source, where sources are biologically-associated
   mutational signatures. See \href{https://doi.org/10.1093/molbev/msac084}{Attribution of Cancer Origins to Endogenous, Exogenous, and Preventable Mutational Processes}
   for background and applications.

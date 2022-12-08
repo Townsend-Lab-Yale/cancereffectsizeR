@@ -6,7 +6,7 @@
 #' 
 #' It's possible to pass in your own selection model. You'll need to create a "function factory"
 #' that, for any variant, produces a likelihood function that can be evaluated on the data. The
-#' first two arguments must be \code{rates_turmors_with} and \code{rates_tumors_without}, which give the baseline
+#' first two arguments must be \code{rates_tumors_with} and \code{rates_tumors_without}, which give the baseline
 #' site mutation rates in samples with and without the variant. The third argument must be
 #' \code{sample_index}, a data.table that associates \code{Unique_Patient_Identifier} with group names and
 #' indices. (Your function factory must accept this argument, but it doesn't have to use its value.)
@@ -207,69 +207,11 @@ ces_variant <- function(cesa = NULL,
     sample_index = samples[, .(Unique_Patient_Identifier = Unique_Patient_Identifier,
                                group_index = unlist(index_by_state[ordering_col]), 
                                group_name = unlist(name_by_state[ordering_col]))]
-  } else if(! is.null(groups)) {
-    if(samples[, .N] != cesa@samples[, .N]) {
-      msg = "groups is deprecated and can't be combined with the new samples argument. (Use ordering_col/ordering instead.)"
-      stop(pretty_message(msg, emit = F))
-    }
-    msg = paste0("groups is deprecated. To limit inference to specific samples, use \"samples\". For the sequential model, use ",
-                 "ordering_col/ordering (see docs for more info).")
-    warning(pretty_message(msg, emit = F))
-    if(is(groups, "character")) {
-      groups = as.list(groups)
-    }
-    if(! is(groups, "list")) {
-      stop("groups should be character vector or list")
-    }
-    ordering = groups
-    used_groups = character()
-    sample_index = data.table()
-    for (i in 1:length(ordering)) {
-      curr_state = ordering[[i]]
-      if (! is(curr_state, "character")) {
-        stop("Each element of groups should be type character")
-      }
-      if (length(curr_state) != length(unique(curr_state))) {
-        stop("Double-check your groups")
-      }
-      if (! all(curr_state %in% cesa@groups)) {
-        invalid_groups = setdiff(curr_state, cesa@groups)
-        stop("Group not declared in CESAnalysis: ", paste0(invalid_groups, collapse = ", "), ".")
-      }
-      curr_samples = cesa@samples[group %in% curr_state, Unique_Patient_Identifier]
-      if (length(curr_samples) == 0) {
-        stop("Some groupings given by groups have no associated samples.")
-      }
-      if (any(curr_state %in% used_groups)) {
-        stop("CESAnalysis groups are re-used in groups")
-      }
-      sample_index = rbind(sample_index,
-                           data.table(Unique_Patient_Identifier = curr_samples, 
-                                      group_index = i,
-                                      group_name = i))
-      used_groups = c(curr_state, used_groups)
-    }
-    sample_index[, group_name := as.character(group_name)] # for compatible merges when counting samples later
-    unused_groups = setdiff(cesa@groups, used_groups)
-    if (length(unused_groups) > 0) {
-      pretty_message(paste0("The following CESAnalysis groups were not included in \"groups\", so they are not informing effect size:\n",
-                            paste(unused_groups, collapse = ", "), "."), black = F)
-      samples = cesa@samples[used_groups, on = "group"]
-    } else {
-      samples = cesa@samples
-    }
-    if(uniqueN(sample_index$group_index) < 2) {
-      stop('groups should be a list with length at least two (except groups is deprecated; better to use ordering_col/ordering).')
-    }
-    names(ordering) = 1:length(ordering) # not supporting better group names when using deprecated sample_groups
   } else if(is(model, "character")){
-    
     if(model == 'sequential') {
       stop('The sequential model requires use of ordering_col/ordering (see docs)')
     }
-    
   }
-  
   
   cesa = copy_cesa(cesa)
   cesa = update_cesa_history(cesa, match.call())

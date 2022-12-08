@@ -12,7 +12,6 @@ load_maf(
   covered_regions = NULL,
   covered_regions_name = NULL,
   covered_regions_padding = 0,
-  group_col = NULL,
   sample_data_cols = character(),
   enforce_default_exome_coverage = FALSE
 )
@@ -38,8 +37,6 @@ BED file of covered intervals matching the CESAnalysis genome.}
 each covered_regions interval, to include variants called just outside of targeted
 regions. Consider setting from 0-100bp, or up to the sequencing read length. If the
 input data has been trimmed to the targeted regions, leave set to 0.}
-
-\item{group_col}{column in MAF with sample group labels (deprecated; no longer needed).}
 
 \item{sample_data_cols}{MAF columns containing sample-level data (e.g., tumor grade)
 that you would like to have copied into the CESAnalysis samples table.}

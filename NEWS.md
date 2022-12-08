@@ -2,6 +2,10 @@
 # <font style = "opacity:0">cancereffectsizeR 3.0.0</font>
 Patch releases (as in, x.y.1 &#8594; x.y.2) have minor bug fixes or small improvements that should not significantly affect the numerical output of cancer effect analyses. Minor/major updates may change some outputs due to bug fixes or intentional tweaks, as described in these version notes.<br><br>
 
+# cancereffectsizeR 2.7.0
+* mutational_signature_effects() measures how mutational signatures differentially contribute to mutation burden and cancer effect, within samples and across cohorts.
+* Removed deprecated "sample_groups" argument from CESAnalysis(). Package functions already allow flexible sample groupings where sensible.
+
 # cancereffectsizeR 2.6.5
 * The "nonsilent" method in ces_gene_epistasis() now uses nonsynonymous coding variants and essential splice-site variants (coding or not). Previously, noncoding splice-site variants weren't included.
 * In epistasis output, the fitted models for each inference are now available for exploration. See the `return_fit`

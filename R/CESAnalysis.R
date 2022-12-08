@@ -4,14 +4,9 @@
 #' 
 #' @param refset Name of reference data set (refset) to use; run \code{list_ces_refsets()} for
 #'   available refsets. Alternatively, the path to a custom reference data directory.
-#' @param sample_groups (Deprecated; no longer necessary.) Optionally, supply labels
-#'   identifying different groups of samples. Each designated group of samples can be run
-#'   independently through functions like \code{trinuc_mutation_rates()} and
-#'   \code{gene_mutation_rates()}, and some selection models (such as sswm_sequential)
-#'   require multiple sample groups.
 #' @return CESAnalysis object
 #' @export
-CESAnalysis = function(refset = NULL, sample_groups = NULL) {
+CESAnalysis = function(refset = NULL) {
   if(is.null(refset)) {
     msg = paste0("Required argument refset: Supply a reference data package (e.g., ces.refset.hg38 or ces.refset.hg19), or ",
                  "custom reference data (see docs).")
@@ -80,29 +75,6 @@ CESAnalysis = function(refset = NULL, sample_groups = NULL) {
     }
     .ces_ref_data[[refset_name]][["data_dir"]] = data_dir
   }
-  
-  # Validate sample_groups
-  if (is.null(sample_groups)) {
-    sample_groups = c("stageless")
-  } else {
-    warning("sample_groups is deprecated and will be removed in a future update. No downstream functions require declaration of sample_groups.")
-  }
-  
-  if (is.numeric(sample_groups)) {
-    sample_groups = as.character(sample_groups)
-  }
-
-  if (! is(sample_groups, "character")) {
-    stop("sample_groups should be a character vector of chronological tumor states (e.g., Primary, Metastatic)")
-  }
-  
-  # Enforce format for sample group names
-  # Among other things, disallowing commas/whitespace will allow comma-delimiting groups within data table columns
-  # Unliked covered_regions_name, can start with letter or number (not just letter)
-  legal_name = '^[a-z0-9][0-9a-z\\_\\-\\.]*$'
-  if (! all(grepl(legal_name, tolower(sample_groups), perl = T))) {
-    stop("Invalid sample group names. Start with a letter/number and use only letters, numbers, '-', '_', '.'.")
-  }
     
   # advanced is a grab bag of additional stuff to keep track of
   ## using_exome_plus: whether previously loaded and any future generic exome data uses the "exome+" coverage option 
@@ -134,7 +106,7 @@ CESAnalysis = function(refset = NULL, sample_groups = NULL) {
                          snv = copy(snv_annotation_template), aac_snv_key = copy(aac_snv_key_template))
   
   cesa = new("CESAnalysis", run_history = character(),  ref_key = refset_name, maf = data.table(), excluded = data.table(),
-             groups = sample_groups, mutrates = data.table(),
+             mutrates = data.table(),
              selection_results = list(), ref_data_dir = data_dir, epistasis = list(),
              advanced = advanced, samples = copy(sample_table_template), mutations = mutation_tables,
              coverage = list())
@@ -180,7 +152,7 @@ copy_cesa = function(cesa) {
   }
 
   
-  cesa = new("CESAnalysis", run_history = cesa@run_history,  groups = cesa@groups,
+  cesa = new("CESAnalysis", run_history = cesa@run_history,
              ref_key = cesa@ref_key, ref_data_dir = cesa@ref_data_dir, dndscv_out_list = copy(cesa@dndscv_out_list),
              maf = copy(cesa@maf), excluded = copy(cesa@excluded),
              mutrates = copy(cesa@mutrates), selection_results = copy(cesa@selection_results),
@@ -487,9 +459,6 @@ get_sample_info = function(cesa = NULL) {
     if(all(is.na(cesa@samples[[col]]))) {
       to_include = setdiff(to_include, col)
     }
-  }
-  if(length(cesa@groups) == 1) {
-    to_include = setdiff(to_include, "group")
   }
   return(copy(cesa@samples[, .SD, .SDcols = to_include]))
   

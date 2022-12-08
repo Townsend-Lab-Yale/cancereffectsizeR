@@ -2,7 +2,7 @@
 #'
 #' This function allows you to specify regional rates of mutation--calculated
 #' however you like--to samples in your CESAnalysis. Rates can be assigned to all samples
-#' or to samples with the specified sample_group labels (see \code{?CESAnalysis}).
+#' or to specified samples.
 #' 
 #' Provide rates in a data.table with two columns: gene name or protein ID (character) and
 #' rate (numeric, non-negative). Gene names or protein IDs must match those in CESAnalysis
@@ -20,11 +20,9 @@
 #'   CESAnalysis sample table.
 #' @param missing_genes_take_nearest Set to TRUE to have each gene/protein_id missing from
 #'   rates take the rate of the nearest non-missing gene/protein.
-#' @param sample_group (Deprecated; use samples.) Character vector giving sample group(s)
-#'   that the rates apply to.
 #' @export
 set_gene_rates = function(cesa = NULL, rates = NULL, samples = character(), 
-                          missing_genes_take_nearest = FALSE, sample_group = NULL) {
+                          missing_genes_take_nearest = FALSE) {
   stopifnot(is(cesa, "CESAnalysis"),
             is(rates, "data.table"),
             is(missing_genes_take_nearest, "logical"),
@@ -36,27 +34,6 @@ set_gene_rates = function(cesa = NULL, rates = NULL, samples = character(),
   } 
   
   curr_sample_info = select_samples(cesa, samples)
-  if(! is.null(sample_group)) {
-    if(! identical(samples, character())) {
-      stop("Use just one of samples and sample_group (use samples, as sample_group is deprecated).")
-    }
-    warning("sample_group is deprecated and will be removed; \"samples\" is more flexible")
-    if(! is(sample_group, "character")) {
-      stop("sample_group should be character")
-    }
-    sample_group = unique(sample_group)
-    if (! all(sample_group %in% cesa@groups)) {
-      possible_groups = setdiff(cesa@groups, "stageless") # historical
-      if (length(possible_groups) == 0) {
-        stop("The CESAnalysis has no user-defined sample groups, so you can't use the sample_group parameter.")
-      }
-      stop("Unrecognized sample groups. Those defined in the CESAnalysis are ", paste(possible_groups, sep = ", "), ".")
-    }
-    curr_sample_info = cesa@samples[group %in% sample_group]
-    if (curr_sample_info[, .N] == 0) {
-      stop("No selected samples to run (no samples in the chosen group?).")
-    }
-  }
 
   
   # Don't allow rates to be overwritten (too confusing for now to risk overlapping sample group specification in sequential calls)

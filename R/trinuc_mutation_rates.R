@@ -66,7 +66,6 @@
 #' @param assume_identical_mutational_processes use well-mutated tumors (those with number
 #'   of eligible mutations meeting sig_averaging_threshold) to calculate group average
 #'   signature weights, and assign these (and implied trinucleotide mutation rates) to all tumors
-#' @param sample_group (Deprecated; use samples.) Vector of sample group(s) to calculate rates for.
 #' @param signatures_to_remove Deprecated; use the renamed argument signature_exclusions.
 #' @return CESAnalysis with sample-specific signature weights and inferred
 #'   trinucleotide-context-specific relative mutation rates. The snv_counts matrix gives
@@ -191,29 +190,6 @@ trinuc_mutation_rates <- function(cesa,
   
   # get validated subset of cesa@samples for the input samples
   curr_sample_info = select_samples(cesa, samples)
-  
-  # handle (deprecated) sample_group method of sample selection
-  if(! is.null(sample_group)) {
-    if(! identical(samples, character())) {
-      stop("Use just one of samples and sample_group (use samples, as sample_group is deprecated).")
-    }
-    warning("sample_group is deprecated and will be removed; \"samples\" is more flexible")
-    if(! is(sample_group, "character")) {
-      stop("sample_group should be character")
-    }
-    sample_group = unique(sample_group)
-    if (! all(sample_group %in% cesa@groups)) {
-      possible_groups = setdiff(cesa@groups, "stageless") # historical
-      if (length(possible_groups) == 0) {
-        stop("The CESAnalysis has no user-defined sample groups, so you can't use the sample_group parameter.")
-      }
-      stop("Unrecognized sample groups. Those defined in the CESAnalysis are ", paste(possible_groups, sep = ", "), ".")
-    }
-    curr_sample_info = cesa@samples[group %in% sample_group]
-    if (curr_sample_info[, .N] == 0) {
-      stop("No selected samples to run (no samples in the chosen group?).")
-    }
-  }
 
 
   if(! all(is.na(curr_sample_info$sig_analysis_grp))) {
@@ -601,13 +577,8 @@ trinuc_mutation_rates <- function(cesa,
     
     
   }
-  
   if(! is.null(aggregate_extraction)) {
-    if (is.null(sample_group)) {
-      cesa@trinucleotide_mutation_weights[["group_average_dS_output"]][["all"]] = aggregate_extraction
-    } else {
-      cesa@trinucleotide_mutation_weights[["group_average_dS_output"]][[paste(sample_group, collapse = ',')]] = aggregate_extraction
-    }
+    cesa@trinucleotide_mutation_weights[["group_average_dS_output"]][["all"]] = aggregate_extraction
   }
 
   

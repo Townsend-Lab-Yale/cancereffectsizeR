@@ -27,7 +27,6 @@
 #' @param enforce_default_exome_coverage When loading default exome data, exclude records
 #'   that aren't covered in the default exome capture intervals included with CES genome
 #'   reference data (default FALSE).
-#' @param group_col column in MAF with sample group labels (deprecated; no longer needed).
 #' @return CESAnalysis with the specified MAF data loaded. The MAF data table includes
 #'   CES-generated variant IDs, a list of all genes overlapping the site, and top_gene and
 #'   top_consequence columns that give the most significant annotated coding changes for
@@ -40,7 +39,7 @@
 #'   variants and all noncoding variants from the MAF.
 #' @export
 load_maf = function(cesa = NULL, maf = NULL, maf_name = character(), coverage = "exome", covered_regions = NULL,
-                    covered_regions_name = NULL, covered_regions_padding = 0, group_col = NULL,
+                    covered_regions_name = NULL, covered_regions_padding = 0,
                     sample_data_cols = character(), enforce_default_exome_coverage = FALSE) {
   
   if (! is(cesa, "CESAnalysis")) {
@@ -59,22 +58,10 @@ load_maf = function(cesa = NULL, maf = NULL, maf_name = character(), coverage = 
     stop("sample_data_cols should be character if used (a vector of column names)")
   }
   
-  # Validate sample_data_cols/group_col (group_col less powerful, deprecated)
+  # Validate sample_data_cols
   if (length(sample_data_cols) > 0) {
     sample_data_cols = unique(na.omit(sample_data_cols))
-    if (! is.null(group_col)) {
-      stop("Both sample_data_cols and group_col were used. Use just sample_data_cols (group_col is deprecated).")
-    }
-  } else {
-    if (is.null(group_col) & length(cesa@groups) != 1) {
-      stop("You must specify group_col in the MAF since this CESAnalysis specifies sample groups.\n",
-           "(To use sample_data_cols instead, start a new CESAnalysis without the deprecated sample_groups argument.")
-    }
-    
-    if (! is.null(group_col) & length(cesa@groups) == 1) {
-      stop("group_col is deprecated. To load sample-level data from an MAF data source, use sample_data_cols.")
-    }
-  }
+  } 
   
   
   # give a warning if interval padding is really high
@@ -178,10 +165,8 @@ load_maf = function(cesa = NULL, maf = NULL, maf_name = character(), coverage = 
   read_args = list(maf = maf, refset_env = refset,
                    sample_col = 'Unique_Patient_Identifier', chr_col = 'Chromosome', start_col = 'Start_Position',
                    ref_col = 'Reference_Allele', tumor_allele_col = 'guess', separate_old_problems = TRUE)
-  # Since group_col is deprecated, it can't be used in combination with sample_data_cols
-  if (! is.null(group_col)) {
-    read_args = c(read_args, list(more_cols = group_col))
-  } else if(length(sample_data_cols) > 0) {
+
+  if(length(sample_data_cols) > 0) {
     read_args = c(read_args, list(more_cols = sample_data_cols))
   }
   
@@ -273,33 +258,10 @@ load_maf = function(cesa = NULL, maf = NULL, maf_name = character(), coverage = 
     excluded = rbind(excluded, old_problems[, ..excluded_cols])
   }
   
-  
-  # collect sample group information
-  if (! is.null(group_col)) {
-    if (is.factor(maf[[group_col]])) {
-      warning("You supplied a sample group column as a factor, but it was converted to character.")
-    }
-    sample_groups = as.character(maf[[group_col]])
-    if(any(is.na(sample_groups))) {
-      stop("Error: There are NA values in your sample groups column.")
-    }
-    maf[, (group_col) := NULL]
-  } else {
-    sample_groups = cesa@groups[1] # indicates a stageless analysis
-  }
-  
-  new_samples = data.table(Unique_Patient_Identifier = maf$Unique_Patient_Identifier, group = sample_groups)
-  new_samples = new_samples[, .(group = unique(group)), by = "Unique_Patient_Identifier"]
-
+  new_samples = data.table(Unique_Patient_Identifier = unique(maf$Unique_Patient_Identifier))
   new_samples[, coverage := coverage]
   new_samples[, covered_regions := covered_regions_name]
   
-  # ensure no sample has an illegal group
-  bad_groups = setdiff(new_samples[, unique(group)], cesa@groups)
-  if(length(bad_groups) > 0) {
-    stop(paste0("The following groups were not declared in your CESAnalysis, but they were found in your MAF groups column:\n",
-                paste(bad_groups, collapse = ", ")))
-  }
   # see if any sample appears more than once in sample table (happens when one sample has multiple listed groups)
   repeated_samples = new_samples[duplicated(Unique_Patient_Identifier), unique(Unique_Patient_Identifier)]
   if(length(repeated_samples) > 0) {
@@ -314,16 +276,6 @@ load_maf = function(cesa = NULL, maf = NULL, maf_name = character(), coverage = 
                   "Either merge these data sets manually or remove duplicated samples: ",
                   paste(repeat_samples, collapse = ", ")))
     }
-  }
-  
-  # notify the user if some of the declared groups don't appear in the data at all
-  if(length(cesa@groups) > 1) {
-    missing_groups = cesa@groups[! cesa@groups %in% new_samples[,unique(group)]]
-    if (length(missing_groups) > 0) {
-      msg = paste0("The following groups were declared in your CESAnalysis, but they weren't present in the MAF data: \n",
-                     paste(missing_groups, collapse = ", "))
-      pretty_message(msg)
-    }    
   }
 
   # remove any MAF records that are not in the coverage, unless default exome with enforce_default_exome_coverage = FALSE
@@ -377,7 +329,7 @@ load_maf = function(cesa = NULL, maf = NULL, maf_name = character(), coverage = 
   new_samples[, maf_source := maf_name]
   
   cesa@samples = rbind(cesa@samples, new_samples, fill = TRUE)
-  setcolorder(cesa@samples, c("Unique_Patient_Identifier", "coverage", "covered_regions", "group"))
+  setcolorder(cesa@samples, c("Unique_Patient_Identifier", "coverage", "covered_regions"))
   setkey(cesa@samples, "Unique_Patient_Identifier")
   
   if (excluded[, .N] > 0) {

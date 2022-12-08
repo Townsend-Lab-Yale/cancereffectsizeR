@@ -55,10 +55,14 @@ fwrite(cesa@selection_results[[1]], "default_model_effects_brca_hg38.txt", sep =
 
 
 
-
 variants_to_use = cesa$variants[gene %in% c('EGFR', 'KRAS', 'TP53') & samples_covering == cesa$samples[, .N]]
 cesa = ces_gene_epistasis(cesa, genes = c("EGFR", "KRAS", "TP53"), variants = variants_to_use, conf = .95)
 saveRDS(cesa$epistasis[[1]], "epistatic_effects.rds")
+
+
+mut_effects = mutational_signature_effects(cesa = cesa, effects = cesa$selection$main_test, 
+                                           samples = cesa$samples[coverage == 'exome'])
+saveRDS(mut_effects, 'mut_effect_attribution.rds')
 
 setwd(prev_dir)
 

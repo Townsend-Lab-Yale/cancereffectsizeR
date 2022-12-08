@@ -8,8 +8,7 @@ set_gene_rates(
   cesa = NULL,
   rates = NULL,
   samples = character(),
-  missing_genes_take_nearest = FALSE,
-  sample_group = NULL
+  missing_genes_take_nearest = FALSE
 )
 }
 \arguments{
@@ -24,14 +23,11 @@ CESAnalysis sample table.}
 
 \item{missing_genes_take_nearest}{Set to TRUE to have each gene/protein_id missing from
 rates take the rate of the nearest non-missing gene/protein.}
-
-\item{sample_group}{(Deprecated; use samples.) Character vector giving sample group(s)
-that the rates apply to.}
 }
 \description{
 This function allows you to specify regional rates of mutation--calculated
 however you like--to samples in your CESAnalysis. Rates can be assigned to all samples
-or to samples with the specified sample_group labels (see \code{?CESAnalysis}).
+or to specified samples.
 }
 \details{
 Provide rates in a data.table with two columns: gene name or protein ID (character) and

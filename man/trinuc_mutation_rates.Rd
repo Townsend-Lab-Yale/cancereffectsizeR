@@ -52,8 +52,6 @@ option may be replaced with more thorough support for bootstrapping in the futur
 of eligible mutations meeting sig_averaging_threshold) to calculate group average
 signature weights, and assign these (and implied trinucleotide mutation rates) to all tumors}
 
-\item{sample_group}{(Deprecated; use samples.) Vector of sample group(s) to calculate rates for.}
-
 \item{sig_averaging_threshold}{Mutation prevalence threshold (default 50) that
 determines which tumors inform the calculation of group-average signature weights.
 When assume_identical_mutational_processes == FALSE (the default), these group
