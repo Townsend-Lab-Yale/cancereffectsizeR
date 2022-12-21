@@ -111,8 +111,8 @@ test_that("ces_variant on subsets of samples", {
 
 test_that("Variant-level epistasis", {
   results = ces_epistasis(cesa, variants = list(c("KRAS_G12V_ENSP00000256078.5", "GATA3 M293K")), conf = .9)@epistasis[[1]]
-  to_test = results[, as.numeric(.(ces_v1, ces_v2, ces_v1_after_v2, ces_v2_after_v1, joint_cov_samples_just_v1,
-                                   joint_cov_samples_just_v2, joint_cov_samples_with_both, joint_cov_samples_with_neither))]
+  to_test = results[, as.numeric(.(ces_A0, ces_B0, ces_A_on_B, ces_B_on_A, nA0,
+                                   nB0, nAB, n00))]
   expect_equal(to_test[1:4], c(13057.7094428118, 11974.1862697053, 0.001, 0.001), tolerance = 1e-5)
   expect_equal(to_test[5:8], c(7, 6, 0, 1077))
   ci = as.numeric(results[, .SD, .SDcols = patterns("ci")])
@@ -133,6 +133,31 @@ test_that("Gene-level SNV epistasis analysis", {
                                   by = "gene", merge_distance = Inf)
   cesa = ces_epistasis(cesa, comp, conf = .95)
   all.equal(cesa@epistasis[[1]][, -c(1, 2)], cesa@epistasis[[2]][, -c(1, 2)], check.attributes = F, tolerance = 1e-4)
+  
+  # variant counts should always add up
+  expect_equal(cesa$epistasis[[1]][, unique(nA0 + nB0 + nAB + n00 - n_total)], 0)
+  
+  # For the purposes of this test, we need a gene with variable coverage and one just covered in WXS.
+  # These first two tests are to make sure these condiditons aren't accidentally violated if test data changes in the future.
+  expect_gt(cesa$variants[gene == 'ARID1A', uniqueN(samples_covering)], 1)
+  expect_equal(cesa$variants[gene == 'TTN', unique(samples_covering)], cesa$samples[covered_regions == 'exome+', .N])
+  cesa = expect_message(expect_warning(ces_gene_epistasis(cesa = cesa, genes = c('ARID1A', 'TTN'), variants = cesa$variants[gene %in% c('ARID1A', 'TTN')], 
+                            run_name = 'early_output'), 'this variant pair had to be skipped'), 'all NAs')
+  early_output = cesa$epistasis$early_output
+  expect_equal(early_output[, unique(c(nA0, nB0, nAB, n00, n_total))], 0)
+  
+  # 4 parameters and 8 low/high CIs should all be NA
+  expect_equal(early_output[, as.numeric(.SD), .SDcols = patterns('ces')], rep(NA_real_, 12))
+  
+  covered_variants = select_variants(cesa = cesa, genes = c('ARID1A', 'TTN'), gr = cesa$coverage_ranges$exome$`exome+`)
+  cesa = ces_gene_epistasis(cesa, genes = c('ARID1A', 'TTN'), variants = covered_variants, run_name = 'should_work')
+  expect_true(cesa$epistasis$should_work[, ! anyNA(.(ces_A0, ces_B0, ces_A_on_B, ces_B_on_A))])
+  
+  # Should get a note that no eligible variants have joint coverage. Unlike the above check of ARID1A/TTN,
+  # there won't be a warning about skipping the variant.
+  expect_message(ces_gene_epistasis(cesa = cesa, genes = c('KRAS', 'ARID1A'), samples = cesa$samples[1:100]),
+                 'are all NAs')
+  
 })
 
 test_that("Compound variant creation", {

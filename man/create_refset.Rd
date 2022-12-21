@@ -16,7 +16,7 @@ create_refset(
 )
 }
 \arguments{
-\item{output_dir}{Name/path of an existing, writeable output directory where all data
+\item{output_dir}{Name/path of an existing, writable output directory where all data
 will be saved. The name of this directory will serve as the name of the custom refset.}
 
 \item{refcds_output}{Transcript information in the two-item list (consisting of RefCDS

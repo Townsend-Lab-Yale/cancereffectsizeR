@@ -6,7 +6,7 @@
 #' 
 #' To run this function, you'll need to have output from \code{build_RefCDS()}.
 #' 
-#' @param output_dir Name/path of an existing, writeable output directory where all data
+#' @param output_dir Name/path of an existing, writable output directory where all data
 #'   will be saved. The name of this directory will serve as the name of the custom refset.
 #' @param refcds_output Transcript information in the two-item list (consisting of RefCDS
 #'   and gr_genes) that is output by \code{build_RefCDS}.

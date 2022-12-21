@@ -19,17 +19,41 @@
 #'   subsetting\code{[CESAnalysis\]$variants}). For noncoding variants with multiple gene
 #'   annotations, the one listed in the "gene" column is used. In the recurrent method, nearby
 #'   noncoding variants may be included.
-#' @param samples Which samples to include in inference. Defaults to all samples. Can be a
-#'   vector of Unique_Patient_Identifiers, or a data.table containing rows from the
-#'   CESAnalysis sample table.
+#' @param samples Which samples to include in inference. Can be a vector of
+#'   Unique_Patient_Identifiers, or a data.table containing rows from the CESAnalysis sample table.
+#'   Samples that do not have coverage at all variant sites in a given inference will be set aside.
 #' @param run_name Optionally, a name to identify the current run.
 #' @param conf Confidence interval size from 0 to 1 (.95 -> 95\%). NULL skips calculation,
 #'   which may be helpful to reduce runtime when analyzing many gene pairs.
-#' @param cores number of cores for parallel processing of gene pairs
-#' @param return_fit Temporary option for whether to embed fitted models in a "fit" attribute associated
-#' with the epistasis results table. This argument will be replaced soon with friendlier support 
-#' for accessing fitted models.
-#' @return CESAnalysis with epistasis analysis results added
+#' @param cores Number of cores for parallel processing of gene pairs.
+#' @param return_fit TRUE/FALSE (default FALSE): Embed epistatic model fits for each gene pair in a "fit" attribute
+#' of the epistasis results table. Use \code{attr(my_results, 'fit')} to access the list of fitted models.
+#' @return CESAnalysis with a table of epistatic inferences appended to list
+#'   \code{[CESAnalysis]$epistasis}. Some column definitions:
+#'   \itemize{
+#'    \item variant_A, variant_B: Gene names. Specifically, A and B refer to the merged sets of included variants from each gene.
+#'    \item ces_A0: Cancer effect (scaled selection coefficient) of variant A that acts in the absence of variant B.
+#'    \item ces_B0: Cancer effect of variant B that acts in the absence of variant A.
+#'    \item ces_A_on_B: Cancer effect of variant A that acts when a sample already has variant B.
+#'    \item ces_B_on_A: Cancer effect of variant B that acts when a sample already has variant A.
+#'    \item p_A_change: P-value of likelihood ratio test that informs whether selection for variant A significantly
+#'    changes after acquiring variant B. Equivalent to the probability under the epistatic model that \code{abs(ces_A0 - ces_A_on_B) > 0}.
+#'    \item p_B_change: P-value of likelihood ratio test that informs whether selection for variant B significantly changes
+#'    after acquiring variant A. Equivalent to the probability under the epistatic model that \code{abs(ces_B0 - ces_B_on_A) > 0}.
+#'   \item p_epistasis: P-value of likelihood ratio test that informs whether the epistatic model
+#'   better explains the mutation data than a non-epistatic model in which selection for mutations
+#'   in each gene are independent of the mutation status in the other gene. Quite often, p_epistasis
+#'   will suggest a significant epistatic effect even though p_A_change and p_B_change do not suggest
+#'   significant changes in selection for either gene individually. This is because the degree of
+#'   co-occurrence can often be explained equally well by a strong change in selection for either gene.
+#'   \item expected_nAB_epistasis: The expected number of samples with both A and B mutated under the fitted epistatic model.
+#'   Typically, this will be very close to the actual number of AB samples (nAB).
+#'   \item expected_nAB_null: The expected number of samples with both A and B mutated under a no-epistasis model.
+#'   \item AB_epistatic_ratio: The ratio \code{expected_nAB_epistasis/expected_nAB_null}. Useful to gauge the overall
+#'   impact of epistatic interactions on the co-occurrence of AB. Since the expectations take mutation rates into account,
+#'   this ratio is a better indicator than the relative frequencies of A0, B0, AB, 00 in the data set.
+#'   \item nA0, nB0, nAB, n00: Number of (included) samples with mutations in just A, just B, both A and B, and neither.
+#'  }
 #' @export
 ces_gene_epistasis = function(cesa = NULL, genes = NULL, variants = NULL,
                               samples = character(), run_name = "auto", cores = 1, conf = .95,
@@ -147,12 +171,12 @@ ces_gene_epistasis = function(cesa = NULL, genes = NULL, variants = NULL,
   }
 	if(num_passing_genes != length(genes)) {
 	  num_missing = length(genes) - num_passing_genes
-	  pretty_message(paste0(num_missing, " of your input genes had no eligible variants in input, so they will not be included in pairwise epistasis inference.",
+	  pretty_message(paste0(num_missing, " of your input genes had no eligible variants in input, so will not be tested. ",
 	                        "You may want to verify that your \"variants\" input is what you intended."))
 	}
 
 	if (num_passing_genes == 1) {
-	  msg = paste0("Only 1 requested gene (", genes_to_analyze, " has eligible variants  in input, so epistasis can't be tested. ",
+	  msg = paste0("Only 1 requested gene (", genes_to_analyze, ") has eligible variants  in input, so epistasis can't be tested. ",
 	               "You may want to verify that your \"variants\" input is what you intended.")
 	  stop(pretty_message(msg, emit = F))
 	}
@@ -207,21 +231,11 @@ ces_gene_epistasis = function(cesa = NULL, genes = NULL, variants = NULL,
     setattr(results, 'fit', fits)
   }
   
-  # pairwise epistasis function uses v1/v2 in parameter names (as in, variants); sub in g1/g2 for gene
-  colnames(results) = gsub("_v1", "_g1", colnames(results))
-  colnames(results) = gsub("_v2", "_g2", colnames(results))
-  
-  if (results[(joint_cov_samples_just_g1 == 0 | joint_cov_samples_just_g2 == 0) & 
-              joint_cov_samples_with_both == 0, .N] > 0) {
+  if (results[(nA0 == 0 | nB0 == 0) & 
+              nAB == 0, .N] > 0) {
     pretty_message(paste0("Some gene pairs had no eligible variants in one or both genes of jointly-covering samples. ",
                    "Epistatic selection intensities are all NAs for these pairs."))
   }
-  # Make column names match historical gene-based output.
-  setnames(results, c("variant1", "variant2", "joint_cov_samples_just_g1", "joint_cov_samples_just_g2", 
-                      "joint_cov_samples_with_both", "joint_cov_samples_with_neither"),
-           c("gene_1", "gene_2", "joint_cov_samples_just_g1_mut", "joint_cov_samples_just_g2_mut", 
-             "joint_cov_samples_both_mut", "joint_cov_samples_no_mut"))
-           
   
   results = list(results)
   names(results) = run_name
@@ -246,12 +260,37 @@ ces_gene_epistasis = function(cesa = NULL, genes = NULL, variants = NULL,
 #' @param conf confidence interval size from 0 to 1 (.95 -> 95\%); NULL skips calculation,
 #'   reducing runtime.
 #' @param cores number of cores for parallel processing of variant pairs
-#' @param return_fit Temporary option for whether to embed fitted models in a "fit" attribute associated
-#' with the epistasis results table. This argument will be replaced soon with friendlier support 
-#' for accessing fitted models.
-#' @return CESAnalysis with epistasis output in the form of a data.tabel of pairwise-epistatic
-#'   selection intensities and variant frequencies for in tumors that have coverage at both variants
-#'   in each pair
+#' @param return_fit TRUE/FALSE (default FALSE): Embed epistatic model fits for each variant pair in
+#'   a "fit" attribute of the epistasis results table. Use \code{attr(my_results, 'fit')} to access
+#'   the list of fitted models.
+#' @return CESAnalysis with a table of epistatic inferences appended to list
+#'   \code{[CESAnalysis]$epistasis}. Some column definitions:
+#'   \itemize{
+#'    \item variant_A, variant_B: Names for the two variants or merged sets of variants in each
+#'    epistatic inference. For brevity in the case of merged variant sets, we say that a sample with
+#'    any variant in variant set A "has variant A."
+#'    \item ces_A0: Cancer effect (scaled selection coefficient) of variant A that acts in the absence of variant B.
+#'    \item ces_B0: Cancer effect of variant B that acts in the absence of variant A.
+#'    \item ces_A_on_B: Cancer effect of variant A that acts when a sample already has variant B.
+#'    \item ces_B_on_A: Cancer effect of variant B that acts when a sample already has variant A.
+#'    \item p_A_change: P-value of likelihood ratio test that informs whether selection for variant A significantly
+#'    changes after acquiring variant B. Equivalent to the probability under the epistatic model that \code{abs(ces_A0 - ces_A_on_B) > 0}.
+#'    \item p_B_change: P-value of likelihood ratio test that informs whether selection for variant B significantly changes
+#'    after acquiring variant A. Equivalent to the probability under the epistatic model that \code{abs(ces_B0 - ces_B_on_A) > 0}.
+#'   \item p_epistasis: P-value of likelihood ratio test that informs whether the epistatic model
+#'   better explains the mutation data than a non-epistatic model in which selection for mutations
+#'   in each variant are independent of the mutation status of the other variant. Quite often, p_epistasis
+#'   will suggest a significant epistatic effect even though p_A_change and p_B_change do not suggest
+#'   significant changes in selection for either variant individually. This is because the degree of
+#'   co-occurrence can often be explained equally well by a strong change in selection for either variant.
+#'   \item expected_nAB_epistasis: The expected number of samples with both A and B mutated under the fitted epistatic model.
+#'   Typically, this will be very close to the actual number of AB samples (nAB).
+#'   \item expected_nAB_null: The expected number of samples with both A and B mutated under a no-epistasis model.
+#'   \item AB_epistatic_ratio: The ratio \code{expected_nAB_epistasis/expected_nAB_null}. Useful to gauge the overall
+#'   impact of epistatic interactions on the co-occurrence of AB. Since the expectations take mutation rates into account,
+#'   this ratio is a better indicator than the relative frequencies of A0, B0, AB, 00 in the data set.
+#'   \item nA0, nB0, nAB, n00: Number of (included) samples with mutations in just A, just B, both A and B, and neither.
+#'  }
 #' @export
 ces_epistasis = function(cesa = NULL, variants = NULL, samples = character(), run_name = "auto", cores = 1, 
                          conf = .95, return_fit = FALSE) {
@@ -339,8 +378,8 @@ ces_epistasis = function(cesa = NULL, variants = NULL, samples = character(), ru
   }
   fits = lapply(results, '[[', 'fit')
   results = rbindlist(lapply(results, '[[', 'summary'))
-  if(results[(joint_cov_samples_just_v1 == 0 | joint_cov_samples_just_v2 == 0) & 
-             joint_cov_samples_with_both == 0, .N] > 0) {
+  if(results[(nA0 == 0 | nB0 == 0) & 
+             nAB == 0, .N] > 0) {
     pretty_message(paste0("Some variant pairs had prevalence of 0 in one or both variants across jointly-covering input samples. ",
                           "Epistatic selection intensities are all NAs for these pairs."))
   }
@@ -442,20 +481,25 @@ pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compoun
   }
 
   # call factory function to get variant-specific likelihood function
-  fn = pairwise_epistasis_lik(with_just_1, with_just_2, with_both, with_neither)
-  par_init = formals(fn)[[1]]
-  names(par_init) = bbmle::parnames(fn)
+  epistasis_lik_fn = pairwise_epistasis_lik(with_just_1, with_just_2, with_both, with_neither)
+  par_init = formals(epistasis_lik_fn)[[1]]
+  names(par_init) = bbmle::parnames(epistasis_lik_fn)
   
   # No point of testing epistasis if either variant doesn't appear
   if (length(tumors_with_v1) == 0 || length(tumors_with_v2) == 0) {
-    early_output = list(variant1 = v1, variant2 = v2, ces_v1 = NA_real_, ces_v2 = NA_real_,
-                        ces_v1_after_v2 = NA_real_, ces_v2_after_v1 = NA_real_, 
-                        joint_cov_samples_just_v1 = length(tumors_just_v1),
-                        joint_cov_samples_just_v2 = length(tumors_just_v2),
-                        joint_cov_samples_with_both = length(tumors_with_both),
-                        joint_cov_samples_with_neither = length(tumors_with_neither))
+    n_total = length(tumors_just_v1) + length(tumors_just_v2) + length(tumors_with_neither) # none have both
+    early_output = list(variant_A = v1, variant_B = v2, ces_A0 = NA_real_, ces_B0 = NA_real_,
+                        ces_A_on_B = NA_real_, ces_B_on_A = NA_real_, 
+                        p_A_change = NA_real_, p_B_change = NA_real_, p_epistasis = NA_real_, 
+                        expected_nAB_epistasis = NA_real_, expected_nAB_null = NA_real_,
+                        AB_epistatic_ratio = NA_real_,
+                        nA0 = length(tumors_just_v1),
+                        nB0 = length(tumors_just_v2),
+                        nAB = length(tumors_with_both),
+                        n00 = length(tumors_with_neither),
+                        n_total = n_total)
     if (! is.null(conf)) {
-     si_names = names(par_init)
+     si_names = c('ces_A0', 'ces_B0', 'ces_A_on_B', 'ces_B_on_A')
      ci_high_colname = paste0("ci_high_", conf * 100)
      ci_low_colname = paste0("ci_low_", conf * 100)
      low_colnames = paste(ci_low_colname, si_names, sep = "_")
@@ -465,14 +509,14 @@ pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compoun
      names(ci_output) = ci_colnames
      early_output = c(early_output, ci_output) # low/high for 4 parameters
     }
-    return(early_output)
+    return(list(summary = early_output, fit = NULL)) # fit list will have a NULL entry
   }
   
   # find optimized selection intensities
   # the selection intensity when some group has 0 variants will be on the lower boundary; will muffle the associated warning
   withCallingHandlers(
     {
-      fit = bbmle::mle2(fn, method="L-BFGS-B", start = par_init, vecpar = T, lower=1e-3, upper=1e9)
+      fit = bbmle::mle2(epistasis_lik_fn, method="L-BFGS-B", start = par_init, vecpar = T, lower=1e-3, upper=1e9)
     },
     warning = function(w) {
       if (startsWith(conditionMessage(w), "some parameters are on the boundary")) {
@@ -480,19 +524,149 @@ pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compoun
       }
     }
   )
+  
   # Also remove the whole copy of CESAnalysis in there.
   # To-do: probably shouldn't be there in the first place.
   rm('cesa', envir = environment(fit))
   params = bbmle::coef(fit)
   
-  variant_ep_results = list(variant1 = v1, variant2 = v2, ces_v1 = params[1], ces_v2 = params[2],
-                     ces_v1_after_v2 = params[3], ces_v2_after_v1 = params[4], 
-                     joint_cov_samples_just_v1 = length(tumors_just_v1),
-                     joint_cov_samples_just_v2 = length(tumors_just_v2),
-                     joint_cov_samples_with_both = length(tumors_with_both),
-                     joint_cov_samples_with_neither = length(tumors_with_neither))
+  
+  # Get non-epistatic effects for both v1 and v2
+  v1_rates_samples_with = c(with_just_1[[1]], with_both[[1]])
+  v1_rates_samples_without = c(with_just_2[[1]], with_neither[[1]])
+  fn = sswm_lik(v1_rates_samples_with, v1_rates_samples_without)
+  par_init = formals(fn)[[1]]
+  names(par_init) = bbmle::parnames(fn)
+  withCallingHandlers(
+    {
+      v1_fit = bbmle::mle2(fn, method="L-BFGS-B", start = par_init, vecpar = T, lower=1e-3, upper=1e9)
+    },
+    warning = function(w) {
+      if (startsWith(conditionMessage(w), "some parameters are on the boundary")) {
+        invokeRestart("muffleWarning")
+      }
+      if (grepl(x = conditionMessage(w), pattern = "convergence failure")) {
+        # a little dangerous to muffle, but so far these warnings are
+        # quite rare and have been harmless
+        invokeRestart("muffleWarning") 
+      }
+    }
+  )
+  
+  v2_rates_samples_with = c(with_just_2[[2]], with_both[[2]])
+  v2_rates_samples_without = c(with_just_1[[2]], with_neither[[2]])
+  fn = sswm_lik(v2_rates_samples_with, v2_rates_samples_without)
+  par_init = formals(fn)[[1]]
+  names(par_init) = bbmle::parnames(fn)
+  withCallingHandlers(
+    {
+      v2_fit = bbmle::mle2(fn, method="L-BFGS-B", start = par_init, vecpar = T, lower=1e-3, upper=1e9)
+    },
+    warning = function(w) {
+      if (startsWith(conditionMessage(w), "some parameters are on the boundary")) {
+        invokeRestart("muffleWarning")
+      }
+      if (grepl(x = conditionMessage(w), pattern = "convergence failure")) {
+        # a little dangerous to muffle, but so far these warnings are
+        # quite rare and have been harmless
+        invokeRestart("muffleWarning") 
+      }
+    }
+  )
+  
+  v1_simple_estimate = bbmle::coef(v1_fit) 
+  v2_simple_estimate = bbmle::coef(v2_fit)
+  ll_check = as.numeric(bbmle::logLik(bbmle::mle2(epistasis_lik_fn, start = list(ces_v1 = v1_simple_estimate, ces_v1_after_v2 = v1_simple_estimate,
+                                                 ces_v2 = v2_simple_estimate, ces_v2_after_v1 = v2_simple_estimate),
+                                vecpar = TRUE, eval.only = T)))
+  if(! isTRUE(all.equal(ll_check, as.numeric(bbmle::logLik(v1_fit)) + as.numeric(bbmle::logLik(v2_fit)), tolerance = 1e-6))) {
+    msg = paste0('An internal check failed during significance testing on ', v1, '/', v2, '. P-values cannot be reported ', 
+                 'for this pair. Please consider reporting the issue on GitHub.')
+    warning(pretty_message(msg, emit = F))
+    p_v1 = NA
+    p_v2 = NA
+    p_epistasis = NA
+  } else {
+    param_init_v1 = list(ces_v1 = v1_simple_estimate, ces_v2 = 1e3, 
+                         ces_v1_after_v2 = v1_simple_estimate, ces_v2_after_v1 = 1e3)
+    
+    withCallingHandlers(
+      {
+        refit_v1 = bbmle::mle2(epistasis_lik_fn, method="L-BFGS-B", start = param_init_v1, vecpar = T, lower = 1e-3, upper= 1e9,
+                               fixed = list(ces_v1 = v1_simple_estimate, ces_v1_after_v2 = v1_simple_estimate))
+      },
+      warning = function(w) {
+        if (conditionMessage(w) %ilike% "some parameters are on the boundary") {
+          invokeRestart("muffleWarning")
+        }
+      }
+    )
+    v1_chisquared = as.numeric(-2 * (bbmle::logLik(refit_v1) - bbmle::logLik(fit)))
+    p_v1 =  pchisq(v1_chisquared, df = 2, lower.tail = F)
+    
+    
+    param_init_v2 = list(ces_v1 = 1e3, ces_v2 = v2_simple_estimate,
+                         ces_v1_after_v2 = 1e3, ces_v2_after_v1 = v2_simple_estimate)
+    
+    withCallingHandlers(
+      {
+        refit_v2 = bbmle::mle2(epistasis_lik_fn, method="L-BFGS-B", start = param_init_v2, vecpar = T, lower = 1e-3, upper = 1e9, 
+                               fixed = list(ces_v2 = v2_simple_estimate, ces_v2_after_v1 = v2_simple_estimate))
+      },
+      warning = function(w) {
+        if (conditionMessage(w) %ilike% "some parameters are on the boundary") {
+          invokeRestart("muffleWarning")
+        }
+      }
+    )
+    v2_chisquared = as.numeric(-2 * (bbmle::logLik(refit_v2) - bbmle::logLik(fit)))
+    p_v2 = pchisq(v2_chisquared, df = 2, lower.tail = F)
+    
+    chisquared = as.numeric(-2 * (bbmle::logLik(v1_fit) + bbmle::logLik(v2_fit) - bbmle::logLik(fit)))
+    p_epistasis = pchisq(chisquared, df = 2, lower.tail = F)
+  }
+  
+  # Collect v1, v2 rates in the same sample order
+  v1_rates = c(v1_rates_samples_with, v1_rates_samples_without)[eligible_tumors]
+  v2_rates = c(v2_rates_samples_with, v2_rates_samples_without)[eligible_tumors]
+  
+  # parameter estimates from epistatic model
+  ces_v1 = params[1]
+  ces_v2 = params[2]
+  ces_v1_after_v2 = params[3]
+  ces_v2_after_v1 = params[4]
+  
+  # Variables named for parallelism with pairwise_epistasis_lik().
+  A = params[1] * v1_rates
+  B = params[2] * v2_rates
+  A_on_B = params[3] * v1_rates
+  B_on_A = params[4] * v2_rates
+  
+  # See pairwise_epistasis_lik()
+  p_wt = exp(-1 * (A+B))
+  p_A = (A / (A + B - B_on_A)) * (exp(-1 * B_on_A) - exp(-1 * (A + B)))
+  p_B = (B / (A + B - A_on_B)) * (exp(-1 * A_on_B) - exp(-1 * (A + B)))
+  p_AB = 1 - p_wt - p_A - p_B
+  expected_nAB = sum(p_AB)
+  
+  # Under no-epistasis model, p(AB) = p(A) * p(B)
+  A = v1_simple_estimate * v1_rates
+  B = v2_simple_estimate * v2_rates
+  expected_nAB_null = sum((1 - exp(-1 * A)) * (1 - exp(-1 * B)))
+  
+  variant_ep_results = list(variant_A = v1, variant_B = v2, ces_A0 = params[1], ces_B0 = params[2],
+                            ces_A_on_B = params[3], ces_B_on_A = params[4], 
+                            p_A_change = p_v1, p_B_change = p_v2, p_epistasis = p_epistasis, 
+                            expected_nAB_epistasis = expected_nAB, expected_nAB_null = expected_nAB_null,
+                            AB_epistatic_ratio = expected_nAB / expected_nAB_null,
+                            nA0 = length(tumors_just_v1),
+                            nB0 = length(tumors_just_v2),
+                            nAB = length(tumors_with_both),
+                            n00 = length(tumors_with_neither),
+                            n_total = length(v1_rates))
   if(! is.null(conf)) {
-    variant_ep_results = c(variant_ep_results, univariate_si_conf_ints(fit, fn, .001, 1e9, conf))
+    bbmle::parnames(epistasis_lik_fn) = c('ces_A0', 'ces_B0', 'ces_A_on_B', 'ces_B_on_A')
+    variant_ep_results = c(variant_ep_results, univariate_si_conf_ints(fit, epistasis_lik_fn, .001, 1e9, conf))
   }
   return(list(summary = variant_ep_results, fit = fit))
 }

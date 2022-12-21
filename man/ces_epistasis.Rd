@@ -33,14 +33,39 @@ the CESAnalysis sample table.}
 \item{conf}{confidence interval size from 0 to 1 (.95 -> 95\%); NULL skips calculation,
 reducing runtime.}
 
-\item{return_fit}{Temporary option for whether to embed fitted models in a "fit" attribute associated
-with the epistasis results table. This argument will be replaced soon with friendlier support 
-for accessing fitted models.}
+\item{return_fit}{TRUE/FALSE (default FALSE): Embed epistatic model fits for each variant pair in
+a "fit" attribute of the epistasis results table. Use \code{attr(my_results, 'fit')} to access
+the list of fitted models.}
 }
 \value{
-CESAnalysis with epistasis output in the form of a data.tabel of pairwise-epistatic
-  selection intensities and variant frequencies for in tumors that have coverage at both variants
-  in each pair
+CESAnalysis with a table of epistatic inferences appended to list
+  \code{[CESAnalysis]$epistasis}. Some column definitions:
+  \itemize{
+   \item variant_A, variant_B: Names for the two variants or merged sets of variants in each
+   epistatic inference. For brevity in the case of merged variant sets, we say that a sample with
+   any variant in variant set A "has variant A."
+   \item ces_A0: Cancer effect (scaled selection coefficient) of variant A that acts in the absence of variant B.
+   \item ces_B0: Cancer effect of variant B that acts in the absence of variant A.
+   \item ces_A_on_B: Cancer effect of variant A that acts when a sample already has variant B.
+   \item ces_B_on_A: Cancer effect of variant B that acts when a sample already has variant A.
+   \item p_A_change: P-value of likelihood ratio test that informs whether selection for variant A significantly
+   changes after acquiring variant B. Equivalent to the probability under the epistatic model that \code{abs(ces_A0 - ces_A_on_B) > 0}.
+   \item p_B_change: P-value of likelihood ratio test that informs whether selection for variant B significantly changes
+   after acquiring variant A. Equivalent to the probability under the epistatic model that \code{abs(ces_B0 - ces_B_on_A) > 0}.
+  \item p_epistasis: P-value of likelihood ratio test that informs whether the epistatic model
+  better explains the mutation data than a non-epistatic model in which selection for mutations
+  in each variant are independent of the mutation status of the other variant. Quite often, p_epistasis
+  will suggest a significant epistatic effect even though p_A_change and p_B_change do not suggest
+  significant changes in selection for either variant individually. This is because the degree of
+  co-occurrence can often be explained equally well by a strong change in selection for either variant.
+  \item expected_nAB_epistasis: The expected number of samples with both A and B mutated under the fitted epistatic model.
+  Typically, this will be very close to the actual number of AB samples (nAB).
+  \item expected_nAB_null: The expected number of samples with both A and B mutated under a no-epistasis model.
+  \item AB_epistatic_ratio: The ratio \code{expected_nAB_epistasis/expected_nAB_null}. Useful to gauge the overall
+  impact of epistatic interactions on the co-occurrence of AB. Since the expectations take mutation rates into account,
+  this ratio is a better indicator than the relative frequencies of A0, B0, AB, 00 in the data set.
+  \item nA0, nB0, nAB, n00: Number of (included) samples with mutations in just A, just B, both A and B, and neither.
+ }
 }
 \description{
 Calculate selection intensity under an assumption of pairwise epistasis between pairs of variants.

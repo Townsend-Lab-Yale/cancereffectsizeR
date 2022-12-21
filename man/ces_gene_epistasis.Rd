@@ -29,23 +29,47 @@ subsetting\code{[CESAnalysis\]$variants}). For noncoding variants with multiple 
 annotations, the one listed in the "gene" column is used. In the recurrent method, nearby
 noncoding variants may be included.}
 
-\item{samples}{Which samples to include in inference. Defaults to all samples. Can be a
-vector of Unique_Patient_Identifiers, or a data.table containing rows from the
-CESAnalysis sample table.}
+\item{samples}{Which samples to include in inference. Can be a vector of
+Unique_Patient_Identifiers, or a data.table containing rows from the CESAnalysis sample table.
+Samples that do not have coverage at all variant sites in a given inference will be set aside.}
 
 \item{run_name}{Optionally, a name to identify the current run.}
 
-\item{cores}{number of cores for parallel processing of gene pairs}
+\item{cores}{Number of cores for parallel processing of gene pairs.}
 
 \item{conf}{Confidence interval size from 0 to 1 (.95 -> 95\%). NULL skips calculation,
 which may be helpful to reduce runtime when analyzing many gene pairs.}
 
-\item{return_fit}{Temporary option for whether to embed fitted models in a "fit" attribute associated
-with the epistasis results table. This argument will be replaced soon with friendlier support 
-for accessing fitted models.}
+\item{return_fit}{TRUE/FALSE (default FALSE): Embed epistatic model fits for each gene pair in a "fit" attribute
+of the epistasis results table. Use \code{attr(my_results, 'fit')} to access the list of fitted models.}
 }
 \value{
-CESAnalysis with epistasis analysis results added
+CESAnalysis with a table of epistatic inferences appended to list
+  \code{[CESAnalysis]$epistasis}. Some column definitions:
+  \itemize{
+   \item variant_A, variant_B: Gene names. Specifically, A and B refer to the merged sets of included variants from each gene.
+   \item ces_A0: Cancer effect (scaled selection coefficient) of variant A that acts in the absence of variant B.
+   \item ces_B0: Cancer effect of variant B that acts in the absence of variant A.
+   \item ces_A_on_B: Cancer effect of variant A that acts when a sample already has variant B.
+   \item ces_B_on_A: Cancer effect of variant B that acts when a sample already has variant A.
+   \item p_A_change: P-value of likelihood ratio test that informs whether selection for variant A significantly
+   changes after acquiring variant B. Equivalent to the probability under the epistatic model that \code{abs(ces_A0 - ces_A_on_B) > 0}.
+   \item p_B_change: P-value of likelihood ratio test that informs whether selection for variant B significantly changes
+   after acquiring variant A. Equivalent to the probability under the epistatic model that \code{abs(ces_B0 - ces_B_on_A) > 0}.
+  \item p_epistasis: P-value of likelihood ratio test that informs whether the epistatic model
+  better explains the mutation data than a non-epistatic model in which selection for mutations
+  in each gene are independent of the mutation status in the other gene. Quite often, p_epistasis
+  will suggest a significant epistatic effect even though p_A_change and p_B_change do not suggest
+  significant changes in selection for either gene individually. This is because the degree of
+  co-occurrence can often be explained equally well by a strong change in selection for either gene.
+  \item expected_nAB_epistasis: The expected number of samples with both A and B mutated under the fitted epistatic model.
+  Typically, this will be very close to the actual number of AB samples (nAB).
+  \item expected_nAB_null: The expected number of samples with both A and B mutated under a no-epistasis model.
+  \item AB_epistatic_ratio: The ratio \code{expected_nAB_epistasis/expected_nAB_null}. Useful to gauge the overall
+  impact of epistatic interactions on the co-occurrence of AB. Since the expectations take mutation rates into account,
+  this ratio is a better indicator than the relative frequencies of A0, B0, AB, 00 in the data set.
+  \item nA0, nB0, nAB, n00: Number of (included) samples with mutations in just A, just B, both A and B, and neither.
+ }
 }
 \description{
 Calculate selection intensity under an assumption of pairwise gene-level epistasis.
