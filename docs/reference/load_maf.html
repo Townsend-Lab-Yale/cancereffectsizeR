@@ -22,7 +22,7 @@ coverage option is specified."><!-- mathjax --><script src="https://cdnjs.cloudf
     
     <a class="navbar-brand me-2" href="../index.html">cancereffectsizeR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.6.5</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.7.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -89,7 +89,6 @@ sequencing. Whole-genome data and targeted sequencing data are also supported wh
 <span>  covered_regions <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  covered_regions_name <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  covered_regions_padding <span class="op">=</span> <span class="fl">0</span>,</span>
-<span>  group_col <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  sample_data_cols <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  enforce_default_exome_coverage <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -130,10 +129,6 @@ BED file of covered intervals matching the CESAnalysis genome.</p></dd>
 each covered_regions interval, to include variants called just outside of targeted
 regions. Consider setting from 0-100bp, or up to the sequencing read length. If the
 input data has been trimmed to the targeted regions, leave set to 0.</p></dd>
-
-
-<dt>group_col</dt>
-<dd><p>column in MAF with sample group labels (deprecated; no longer needed).</p></dd>
 
 
 <dt>sample_data_cols</dt>

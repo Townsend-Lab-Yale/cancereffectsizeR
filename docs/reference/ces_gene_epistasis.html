@@ -16,7 +16,7 @@ to vary based on the mutational status of the other gene's variants."><!-- mathj
     
     <a class="navbar-brand me-2" href="../index.html">cancereffectsizeR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.6.5</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.7.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -106,9 +106,9 @@ noncoding variants may be included.</p></dd>
 
 
 <dt>samples</dt>
-<dd><p>Which samples to include in inference. Defaults to all samples. Can be a
-vector of Unique_Patient_Identifiers, or a data.table containing rows from the
-CESAnalysis sample table.</p></dd>
+<dd><p>Which samples to include in inference. Can be a vector of
+Unique_Patient_Identifiers, or a data.table containing rows from the CESAnalysis sample table.
+Samples that do not have coverage at all variant sites in a given inference will be set aside.</p></dd>
 
 
 <dt>run_name</dt>
@@ -116,7 +116,7 @@ CESAnalysis sample table.</p></dd>
 
 
 <dt>cores</dt>
-<dd><p>number of cores for parallel processing of gene pairs</p></dd>
+<dd><p>Number of cores for parallel processing of gene pairs.</p></dd>
 
 
 <dt>conf</dt>
@@ -125,17 +125,39 @@ which may be helpful to reduce runtime when analyzing many gene pairs.</p></dd>
 
 
 <dt>return_fit</dt>
-<dd><p>Temporary option for whether to embed fitted models in a "fit" attribute associated
-with the epistasis results table. This argument will be replaced soon with friendlier support 
-for accessing fitted models.</p></dd>
+<dd><p>TRUE/FALSE (default FALSE): Embed epistatic model fits for each gene pair in a "fit" attribute
+of the epistasis results table. Use <code>attr(my_results, 'fit')</code> to access the list of fitted models.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     
 
-<p>CESAnalysis with epistasis analysis results added</p>
-    </div>
+<p>CESAnalysis with a table of epistatic inferences appended to list <code>[CESAnalysis]$epistasis</code>. Some column definitions:</p>
+<p></p>
+<ul><li><p>variant_A, variant_B: Gene names. Specifically, A and B refer to the merged sets of included variants from each gene.</p></li>
+<li><p>ces_A0: Cancer effect (scaled selection coefficient) of variant A that acts in the absence of variant B.</p></li>
+<li><p>ces_B0: Cancer effect of variant B that acts in the absence of variant A.</p></li>
+<li><p>ces_A_on_B: Cancer effect of variant A that acts when a sample already has variant B.</p></li>
+<li><p>ces_B_on_A: Cancer effect of variant B that acts when a sample already has variant A.</p></li>
+<li><p>p_A_change: P-value of likelihood ratio test that informs whether selection for variant A significantly
+   changes after acquiring variant B. Equivalent to the probability under the epistatic model that <code>abs(ces_A0 - ces_A_on_B) &gt; 0</code>.</p></li>
+<li><p>p_B_change: P-value of likelihood ratio test that informs whether selection for variant B significantly changes
+   after acquiring variant A. Equivalent to the probability under the epistatic model that <code>abs(ces_B0 - ces_B_on_A) &gt; 0</code>.</p></li>
+<li><p>p_epistasis: P-value of likelihood ratio test that informs whether the epistatic model
+  better explains the mutation data than a non-epistatic model in which selection for mutations
+  in each gene are independent of the mutation status in the other gene. Quite often, p_epistasis
+  will suggest a significant epistatic effect even though p_A_change and p_B_change do not suggest
+  significant changes in selection for either gene individually. This is because the degree of
+  co-occurrence can often be explained equally well by a strong change in selection for either gene.</p></li>
+<li><p>expected_nAB_epistasis: The expected number of samples with both A and B mutated under the fitted epistatic model.
+  Typically, this will be very close to the actual number of AB samples (nAB).</p></li>
+<li><p>expected_nAB_null: The expected number of samples with both A and B mutated under a no-epistasis model.</p></li>
+<li><p>AB_epistatic_ratio: The ratio <code>expected_nAB_epistasis/expected_nAB_null</code>. Useful to gauge the overall
+  impact of epistatic interactions on the co-occurrence of variants A and B. Since the expectations take mutation rates into account,
+  this ratio is a better indicator than the relative frequencies of A0, B0, AB, 00 in the data set.</p></li>
+<li><p>nA0, nB0, nAB, n00: Number of (included) samples with mutations in just A, just B, both A and B, and neither.</p></li>
+</ul></div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>Only samples that have coverage at all included sites in both genes can be included in the

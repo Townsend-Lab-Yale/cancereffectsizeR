@@ -19,7 +19,7 @@ ces_epistasis(
 
 \item{variants}{To test pairs of variants, supply a list where each element is a
 2-length vector of CES-style variant IDs. Alternatively (and often more usefully),
-supply a CompoundVariantSet (see \code{define_compound_variants}) to test all pairs
+supply a CompoundVariantSet (see \code{define_compound_variants()}) to test all pairs
 of compound variants in the set.}
 
 \item{samples}{Which samples to include in inference. Defaults to all samples.
@@ -38,8 +38,7 @@ a "fit" attribute of the epistasis results table. Use \code{attr(my_results, 'fi
 the list of fitted models.}
 }
 \value{
-CESAnalysis with a table of epistatic inferences appended to list
-  \code{[CESAnalysis]$epistasis}. Some column definitions:
+CESAnalysis with a table of epistatic inferences appended to list \code{[CESAnalysis]$epistasis}. Some column definitions:
   \itemize{
    \item variant_A, variant_B: Names for the two variants or merged sets of variants in each
    epistatic inference. For brevity in the case of merged variant sets, we say that a sample with
@@ -62,7 +61,7 @@ CESAnalysis with a table of epistatic inferences appended to list
   Typically, this will be very close to the actual number of AB samples (nAB).
   \item expected_nAB_null: The expected number of samples with both A and B mutated under a no-epistasis model.
   \item AB_epistatic_ratio: The ratio \code{expected_nAB_epistasis/expected_nAB_null}. Useful to gauge the overall
-  impact of epistatic interactions on the co-occurrence of AB. Since the expectations take mutation rates into account,
+  impact of epistatic interactions on the co-occurrence of variants A and B. Since the expectations take mutation rates into account,
   this ratio is a better indicator than the relative frequencies of A0, B0, AB, 00 in the data set.
   \item nA0, nB0, nAB, n00: Number of (included) samples with mutations in just A, just B, both A and B, and neither.
  }

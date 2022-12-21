@@ -14,7 +14,7 @@ as described in Martincorena et al."><!-- mathjax --><script src="https://cdnjs.
     
     <a class="navbar-brand me-2" href="../index.html">cancereffectsizeR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.6.5</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.7.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -74,8 +74,7 @@ as described in <a href="https://doi.org/10.1016/j.cell.2017.09.042" class="exte
 <span>  covariates <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  samples <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  dndscv_args <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>  save_all_dndscv_output <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  sample_group <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  save_all_dndscv_output <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -110,12 +109,6 @@ substituted.)</p></dd>
 <dt>save_all_dndscv_output</dt>
 <dd><p>Default FALSE; when TRUE, saves all dndscv output, not
 just what's needed by cancereffectsizeR. (Full output can be very large, in the gigabytes.)</p></dd>
-
-
-<dt>sample_group</dt>
-<dd><p>Which sample groups to include in the gene rate calculation;
-defaults to all groups. (To calculate different rates for different groups, you'll 
-run this function multiple times, changing this argument each time.)</p></dd>
 
 </dl></div>
     <div class="section level2">

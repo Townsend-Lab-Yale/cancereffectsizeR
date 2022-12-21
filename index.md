@@ -19,7 +19,7 @@ We plan to extend cancereffectsizeR's functionality as we continue development, 
 For installation instructions and an overview of package features, see the [tutorial](articles/cancereffectsizeR.html). The quickstart section offers a condensed introduction to get you running a basic analysis in minutes.
 
 ## Selected publications
-* **[Attribution of Cancer Origins to Endogenous, Exogenous, and Preventable Mutational Processes](https://academic.oup.com/mbe/article/39/5/msac084/6570859)**, *Molecular Biology and Evolution * (2022).<br>Variant effect estimates from cancereffectsizeR are employed in a novel method to determine the relative contributions of various mutational processes to oncogenesis.
+* **[Attribution of Cancer Origins to Endogenous, Exogenous, and Preventable Mutational Processes](https://academic.oup.com/mbe/article/39/5/msac084/6570859)**, *Molecular Biology and Evolution * (2022).<br>Variant effect estimates from cancereffectsizeR are employed in a novel method to determine the relative contributions of various mutational processes to oncogenesis. Apply the method in your own analysis with `mutational_signature_effects()`.
 
 * **[Effect Sizes of Somatic Mutations in Cancer](https://doi.org/10.1093/jnci/djy168)**, *Journal of the National Cancer Institute *(2018).<br>A pan-cancer analysis of cancer effects employs [Version 0.1.0](https://github.com/Townsend-Lab-Yale/cancereffectsizeR/releases/tag/0.1.0) of this package. This original version was developed by Vincent Cannataro, Stephen Gaffney, and Jeffrey Townsend.
 

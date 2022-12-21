@@ -44,8 +44,7 @@ which may be helpful to reduce runtime when analyzing many gene pairs.}
 of the epistasis results table. Use \code{attr(my_results, 'fit')} to access the list of fitted models.}
 }
 \value{
-CESAnalysis with a table of epistatic inferences appended to list
-  \code{[CESAnalysis]$epistasis}. Some column definitions:
+CESAnalysis with a table of epistatic inferences appended to list \code{[CESAnalysis]$epistasis}. Some column definitions:
   \itemize{
    \item variant_A, variant_B: Gene names. Specifically, A and B refer to the merged sets of included variants from each gene.
    \item ces_A0: Cancer effect (scaled selection coefficient) of variant A that acts in the absence of variant B.
@@ -66,7 +65,7 @@ CESAnalysis with a table of epistatic inferences appended to list
   Typically, this will be very close to the actual number of AB samples (nAB).
   \item expected_nAB_null: The expected number of samples with both A and B mutated under a no-epistasis model.
   \item AB_epistatic_ratio: The ratio \code{expected_nAB_epistasis/expected_nAB_null}. Useful to gauge the overall
-  impact of epistatic interactions on the co-occurrence of AB. Since the expectations take mutation rates into account,
+  impact of epistatic interactions on the co-occurrence of variants A and B. Since the expectations take mutation rates into account,
   this ratio is a better indicator than the relative frequencies of A0, B0, AB, 00 in the data set.
   \item nA0, nB0, nAB, n00: Number of (included) samples with mutations in just A, just B, both A and B, and neither.
  }

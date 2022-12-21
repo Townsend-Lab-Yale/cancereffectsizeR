@@ -28,8 +28,7 @@
 #' @param cores Number of cores for parallel processing of gene pairs.
 #' @param return_fit TRUE/FALSE (default FALSE): Embed epistatic model fits for each gene pair in a "fit" attribute
 #' of the epistasis results table. Use \code{attr(my_results, 'fit')} to access the list of fitted models.
-#' @return CESAnalysis with a table of epistatic inferences appended to list
-#'   \code{[CESAnalysis]$epistasis}. Some column definitions:
+#' @return CESAnalysis with a table of epistatic inferences appended to list \code{[CESAnalysis]$epistasis}. Some column definitions:
 #'   \itemize{
 #'    \item variant_A, variant_B: Gene names. Specifically, A and B refer to the merged sets of included variants from each gene.
 #'    \item ces_A0: Cancer effect (scaled selection coefficient) of variant A that acts in the absence of variant B.
@@ -50,7 +49,7 @@
 #'   Typically, this will be very close to the actual number of AB samples (nAB).
 #'   \item expected_nAB_null: The expected number of samples with both A and B mutated under a no-epistasis model.
 #'   \item AB_epistatic_ratio: The ratio \code{expected_nAB_epistasis/expected_nAB_null}. Useful to gauge the overall
-#'   impact of epistatic interactions on the co-occurrence of AB. Since the expectations take mutation rates into account,
+#'   impact of epistatic interactions on the co-occurrence of variants A and B. Since the expectations take mutation rates into account,
 #'   this ratio is a better indicator than the relative frequencies of A0, B0, AB, 00 in the data set.
 #'   \item nA0, nB0, nAB, n00: Number of (included) samples with mutations in just A, just B, both A and B, and neither.
 #'  }
@@ -251,7 +250,7 @@ ces_gene_epistasis = function(cesa = NULL, genes = NULL, variants = NULL,
 #' @param cesa CESAnalysis
 #' @param variants To test pairs of variants, supply a list where each element is a
 #'   2-length vector of CES-style variant IDs. Alternatively (and often more usefully),
-#'   supply a CompoundVariantSet (see \code{define_compound_variants}) to test all pairs
+#'   supply a CompoundVariantSet (see \code{define_compound_variants()}) to test all pairs
 #'   of compound variants in the set.
 #' @param samples Which samples to include in inference. Defaults to all samples.
 #'   Can be a vector of Unique_Patient_Identifiers, or a data.table containing rows from
@@ -263,8 +262,7 @@ ces_gene_epistasis = function(cesa = NULL, genes = NULL, variants = NULL,
 #' @param return_fit TRUE/FALSE (default FALSE): Embed epistatic model fits for each variant pair in
 #'   a "fit" attribute of the epistasis results table. Use \code{attr(my_results, 'fit')} to access
 #'   the list of fitted models.
-#' @return CESAnalysis with a table of epistatic inferences appended to list
-#'   \code{[CESAnalysis]$epistasis}. Some column definitions:
+#' @return CESAnalysis with a table of epistatic inferences appended to list \code{[CESAnalysis]$epistasis}. Some column definitions:
 #'   \itemize{
 #'    \item variant_A, variant_B: Names for the two variants or merged sets of variants in each
 #'    epistatic inference. For brevity in the case of merged variant sets, we say that a sample with
@@ -287,7 +285,7 @@ ces_gene_epistasis = function(cesa = NULL, genes = NULL, variants = NULL,
 #'   Typically, this will be very close to the actual number of AB samples (nAB).
 #'   \item expected_nAB_null: The expected number of samples with both A and B mutated under a no-epistasis model.
 #'   \item AB_epistatic_ratio: The ratio \code{expected_nAB_epistasis/expected_nAB_null}. Useful to gauge the overall
-#'   impact of epistatic interactions on the co-occurrence of AB. Since the expectations take mutation rates into account,
+#'   impact of epistatic interactions on the co-occurrence of variants A and B. Since the expectations take mutation rates into account,
 #'   this ratio is a better indicator than the relative frequencies of A0, B0, AB, 00 in the data set.
 #'   \item nA0, nB0, nAB, n00: Number of (included) samples with mutations in just A, just B, both A and B, and neither.
 #'  }

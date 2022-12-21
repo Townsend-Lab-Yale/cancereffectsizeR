@@ -10,7 +10,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">cancereffectsizeR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.6.5</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.7.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -58,8 +58,14 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="3.0.0" id="cancereffectsizer-300"><font style="opacity:0">cancereffectsizeR 3.0.0</font><a class="anchor" aria-label="anchor" href="#cancereffectsizer-300"></a></h2>
-<p>Patch releases (as in, x.y.1 → x.y.2) have minor bug fixes or small improvements that should not significantly affect the numerical output of cancer effect analyses. Minor/major updates may change some outputs due to bug fixes or intentional tweaks, as described in these version notes.<br><br></p>
+<p>Patch releases (as in, x.y.1 → x.y.2) have minor bug fixes or small improvements that do not significantly affect the numerical output of cancer effect analyses. Minor/major updates may change some outputs due to bug fixes or methodological tweaks, as described in these version notes.<br><br></p>
 </div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2.7.0" id="cancereffectsizer-270">cancereffectsizeR 2.7.0<a class="anchor" aria-label="anchor" href="#cancereffectsizer-270"></a></h2>
+<ul><li>mutational_signature_effects() identifies the relative contributions of mutational signatures to mutation burden and cancer effect, within samples and across cohorts.</li>
+<li>Epistatic effect inferences now report p-values for overall significance of epistatic effects (over a null model of no epistasis) and significance of epistatic effects for each variant/gene in tested pairs. Additionally, output has been beautified with clearer column names and additional documentation.</li>
+<li>Removed deprecated “sample_groups” argument from CESAnalysis(). Package functions allow flexible sample grouping via other means.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2.6.5" id="cancereffectsizer-265">cancereffectsizeR 2.6.5<a class="anchor" aria-label="anchor" href="#cancereffectsizer-265"></a></h2>
 <ul><li>The “nonsilent” method in ces_gene_epistasis() now uses nonsynonymous coding variants and essential splice-site variants (coding or not). Previously, noncoding splice-site variants weren’t included.</li>
