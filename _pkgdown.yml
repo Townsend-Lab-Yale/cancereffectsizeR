@@ -107,11 +107,14 @@ home:
       cancereffectsizeR, an R package from the Townsend Lab at Yale School of Public Health
       for quantifying the effect size of somatic mutations in cancer
   sidebar:
-    structure: [townsend, authors, links, license]
+    structure: [townsend, custom_citation, authors, links, license]
     components:
       townsend:
         title: Provided by
         text: the [Townsend Lab](https://medicine.yale.edu/lab/townsend/) at the<br> [Yale School of Public Health](https://ysph.yale.edu).
+      custom_citation:
+        title: Citation
+        text: "[How to cite cancereffectsizeR](#citation)"
 navbar:
   structure:
     left:  [intro, reference, articles, tutorials, news]

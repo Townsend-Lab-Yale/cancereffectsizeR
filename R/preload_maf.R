@@ -260,7 +260,7 @@ preload_maf = function(maf = NULL, refset = NULL, coverage_intervals_to_check = 
 
   # Make MAF-based gr if needed
   # Will annotate all good records, and also bad ones that have valid chr/start
-  valid_loci = maf[! is.na(Chromosome) & ! is.na(Start_Position) & ! problem %in% c("out_of_bounds", "unsupported_chr"), which = T]
+  valid_loci = maf[! is.na(Chromosome) & ! is.na(Start_Position) & ! problem %in% c("out_of_bounds", "unsupported_chr", "missing_values"), which = T]
   if (! is.null(coverage_gr) || length(anno_grs) > 0) {
     maf_gr = makeGRangesFromDataFrame(maf[valid_loci], start.field = "Start_Position", end.field = "Start_Position",
                                       seqnames.field = "Chromosome", ignore.strand = TRUE) # don't want possible user strand field parsed

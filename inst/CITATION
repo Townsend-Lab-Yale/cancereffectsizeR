@@ -1,0 +1,18 @@
+citHeader("If you use cancereffectsizeR in your work, please cite the package's Resource Report published in Cancer Research:")
+
+citEntry(entry="Article",
+    title = "Estimation of Neutral Mutation Rates and Quantification of Somatic Variant Selection Using cancereffectsizeR",
+    author = personList(
+      as.person("Jeffrey D. Mandell"),
+      as.person("Vincent L. Cannataro"),
+      as.person("Jeffrey P. Townsend")
+    ),
+    doi = "10.1158/0008-5472.CAN-22-1508",
+    journal = "Cancer Research",
+    year = "2023",
+    volume = "83",
+    number = "4",
+    page = "500–505",
+    textVersion = "Mandell JD, Cannataro VL, Townsend JP. Estimation of 
+neutral mutation rates and quantification of somatic variant selection 
+using cancereffectsizeR. Cancer Research. 2023 Feb 15; 83(4):500-505. doi:10.1158/0008-5472.CAN-22-1508.")

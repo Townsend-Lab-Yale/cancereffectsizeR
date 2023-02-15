@@ -25,13 +25,10 @@ install.packages('remotes')
 remotes::install_github("Townsend-Lab-Yale/cancereffectsizeR", dependencies = TRUE)
 ```
 
-Regrettably, there is a bug in some older versions of the GenomeInfoDb package that may produce cryptic error messages in cancereffectsizeR, along the lines of `!anyNA(m32) is not TRUE`. If you encounter this issue, upgrade your Bioconductor version:
-
+Regrettably, there is a bug in some versions of the GenomeInfoDb package that produces cryptic error messages in cancereffectsizeR, along the lines of `!anyNA(m32) is not TRUE`. If you encounter this issue, the simplest solution is to upgrade your Bioconductor version:
 ```{R}
-# Only necessary if the current Bioconductor version is <3.14.
-if (BiocManager::version() < as.package_version("3.14")) {
-  BiocManager::install(version = "3.14") # or newer, if desired
-}
+# Only necessary if GenomeInfoDb errors are causing problems.
+BiocManager::install(version = "3.16") # or newer, when available
 ```
 
 In addition to installing cancereffectsizeR, you need to install a reference data set, or _refset_. These refsets include genomic and gene annotations, mutational signature definitions, and more. Currently, refsets supporting the hg38 and hg19 builds of the human genome are available as separate data packages. (If you want to build your own refset to use a custom genome build or gene set for almost any species, [you can](custom_refset_instructions.html).) For this tutorial, we'll use the hg38 refset package.
