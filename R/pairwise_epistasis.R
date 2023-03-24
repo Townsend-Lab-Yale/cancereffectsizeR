@@ -35,16 +35,23 @@
 #'    \item ces_B0: Cancer effect of variant B that acts in the absence of variant A.
 #'    \item ces_A_on_B: Cancer effect of variant A that acts when a sample already has variant B.
 #'    \item ces_B_on_A: Cancer effect of variant B that acts when a sample already has variant A.
-#'    \item p_A_change: P-value of likelihood ratio test that informs whether selection for variant A significantly
-#'    changes after acquiring variant B. Equivalent to the probability under the epistatic model that \code{abs(ces_A0 - ces_A_on_B) > 0}.
-#'    \item p_B_change: P-value of likelihood ratio test that informs whether selection for variant B significantly changes
-#'    after acquiring variant A. Equivalent to the probability under the epistatic model that \code{abs(ces_B0 - ces_B_on_A) > 0}.
+#'    \item p_A_change: P-value of likelihood ratio test (LRT) that informs whether selection for
+#'    variant A significantly changes after acquiring variant B. The LRT compares the likelihood of
+#'    the full epistatic model to that of a reduced model in which ces_A0 and ces_A_on_B are set
+#'    equal. The p-value is the probability, under the reduced model, of the likelihood ratio being
+#'    greater than or equal to the ratio observed.
+#'    \item p_B_change:  P-value of likelihood ratio test (LRT) that informs whether selection for
+#'    variant B significantly changes after acquiring variant A. The LRT compares the likelihood of
+#'    the full epistatic model to that of a reduced model in which ces_B0 and ces_B_on_A are set
+#'    equal. The p-value is the probability, under the reduced model, of the likelihood ratio being
+#'    greater than or equal to the ratio observed.
 #'   \item p_epistasis: P-value of likelihood ratio test that informs whether the epistatic model
 #'   better explains the mutation data than a non-epistatic model in which selection for mutations
 #'   in each gene are independent of the mutation status in the other gene. Quite often, p_epistasis
-#'   will suggest a significant epistatic effect even though p_A_change and p_B_change do not suggest
-#'   significant changes in selection for either gene individually. This is because the degree of
-#'   co-occurrence can often be explained equally well by a strong change in selection for either gene.
+#'   will suggest a significant epistatic effect even though p_A_change and p_B_change do not
+#'   suggest significant changes in selection for either gene individually. This is because the
+#'   degree of co-occurrence can often be explained equally well by a strong change in selection for
+#'   either gene.
 #'   \item expected_nAB_epistasis: The expected number of samples with both A and B mutated under the fitted epistatic model.
 #'   Typically, this will be very close to the actual number of AB samples (nAB).
 #'   \item expected_nAB_null: The expected number of samples with both A and B mutated under a no-epistasis model.
@@ -271,10 +278,16 @@ ces_gene_epistasis = function(cesa = NULL, genes = NULL, variants = NULL,
 #'    \item ces_B0: Cancer effect of variant B that acts in the absence of variant A.
 #'    \item ces_A_on_B: Cancer effect of variant A that acts when a sample already has variant B.
 #'    \item ces_B_on_A: Cancer effect of variant B that acts when a sample already has variant A.
-#'    \item p_A_change: P-value of likelihood ratio test that informs whether selection for variant A significantly
-#'    changes after acquiring variant B. Equivalent to the probability under the epistatic model that \code{abs(ces_A0 - ces_A_on_B) > 0}.
-#'    \item p_B_change: P-value of likelihood ratio test that informs whether selection for variant B significantly changes
-#'    after acquiring variant A. Equivalent to the probability under the epistatic model that \code{abs(ces_B0 - ces_B_on_A) > 0}.
+#'    \item p_A_change: P-value of likelihood ratio test (LRT) that informs whether selection for
+#'    variant A significantly changes after acquiring variant B. The LRT compares the likelihood of
+#'    the full epistatic model to that of a reduced model in which ces_A0 and ces_A_on_B are set
+#'    equal. The p-value is the probability, under the reduced model, of the likelihood ratio being
+#'    greater than or equal to the ratio observed.
+#'    \item p_B_change:  P-value of likelihood ratio test (LRT) that informs whether selection for
+#'    variant B significantly changes after acquiring variant A. The LRT compares the likelihood of
+#'    the full epistatic model to that of a reduced model in which ces_B0 and ces_B_on_A are set
+#'    equal. The p-value is the probability, under the reduced model, of the likelihood ratio being
+#'    greater than or equal to the ratio observed.
 #'   \item p_epistasis: P-value of likelihood ratio test that informs whether the epistatic model
 #'   better explains the mutation data than a non-epistatic model in which selection for mutations
 #'   in each variant are independent of the mutation status of the other variant. Quite often, p_epistasis

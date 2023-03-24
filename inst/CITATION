@@ -1,4 +1,4 @@
-citHeader("If you use cancereffectsizeR in your work, please cite the package's Resource Report published in Cancer Research:")
+citHeader("If you use cancereffectsizeR in your work, please cite the resource report published in Cancer Research:")
 
 citEntry(entry="Article",
     title = "Estimation of Neutral Mutation Rates and Quantification of Somatic Variant Selection Using cancereffectsizeR",
