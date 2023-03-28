@@ -267,8 +267,7 @@ preload_maf = function(maf = NULL, refset = NULL, coverage_intervals_to_check = 
   }
   
   if(! is.null(coverage_gr)) {
-    maf_gr_covered = maf_gr %within% coverage_gr
-    maf[valid_loci, is_covered := maf_gr %within% coverage_gr]
+    maf[valid_loci, is_covered := IRanges::overlapsAny(maf_gr, coverage_gr, type = "within")]
     maf[valid_loci, dist_to_coverage_intervals := 0]
     chr_not_in_coverage = setdiff(refset_env$supported_chr, seqnames(coverage_gr))
     maf[valid_loci] = maf[valid_loci][Chromosome %in% chr_not_in_coverage, dist_to_coverage_intervals := NA]
@@ -284,7 +283,7 @@ preload_maf = function(maf = NULL, refset = NULL, coverage_intervals_to_check = 
     # can either be a GRanges or a list of them
     if (is(gr, "GRanges")) {
       anno_colname = attr(gr, "anno_col_name", exact = T)
-      maf[valid_loci, (anno_colname) := maf_gr %within% gr]
+      maf[valid_loci, (anno_colname) := IRanges::overlapsAny(maf_gr, gr, type = "within")]
     } else if (is(gr, "list") && unique(sapply(gr, function(x) is(x, "GRanges"))) == T) {
       # will go in reverse order since ranges are listed in order of precedence (first gr's overlaps should always appear)
       anno_colname = attr(gr, "anno_col_name", exact = T)
@@ -292,7 +291,7 @@ preload_maf = function(maf = NULL, refset = NULL, coverage_intervals_to_check = 
       labels = names(gr)
       for (i in 1:length(labels)) {
         curr_label = labels[i]
-        has_overlap = maf_gr %within% gr[[i]]
+        has_overlap = IRanges::overlapsAny(maf_gr, gr[[i]], type = "within")
         maf[valid_loci[has_overlap], (anno_colname) := curr_label]
       }
     } else {
