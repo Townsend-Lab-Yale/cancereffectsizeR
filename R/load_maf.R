@@ -371,6 +371,10 @@ load_maf = function(cesa = NULL, maf = NULL, maf_name = character(), coverage = 
   cesa@mutations[["aac_snv_key"]] = unique(rbind(cesa@mutations$aac_snv_key, annotations$aac_snv_key))
   setkey(cesa@mutations$aac_snv_key, 'aac_id')
   
+  cesa@mutations[["dbs_codon_change"]] = annotations$dbs_codon_change
+  cesa@mutations[["dbs"]] = annotations$dbs
+  cesa@mutations[["aac_dbs_key"]] = annotations$aac_dbs_key
+  
   # add genes list to MAF records (may stop including in near future)
   # use of _tmp names required as of data.table 1.13.2 to keep join from failing
   column_order = copy(names(maf))
@@ -430,8 +434,9 @@ load_maf = function(cesa = NULL, maf = NULL, maf_name = character(), coverage = 
   # Cached variants is a table of non-overlapping mutations (in terms of genomic position),
   # with only the "top" (tiebreaker-winning) variant at each site.
   # For sites that have coding effects, we will add this effect to the MAF table.
-  # (Edge case: No passing variants in MAF table means nothing to do.)
-  if(cesa@maf[, .N] > 0) {
+  # Edge case: No passing variants in MAF table means nothing to do. Also possible
+  # to have no cached variants if all variants are of non-annotated type (e.g., "other").
+  if(cesa@maf[, .N] > 0 && ! is.null(cesa@advanced$cached_variants)) {
     consequences = cesa@advanced$cached_variants[variant_type != 'snv', .(snv_id = unlist(constituent_snvs), variant_name, gene), by = 'variant_id']
     cesa@maf[consequences, c("top_gene", "top_consequence") := list(gene, variant_name), on = c(variant_id = 'snv_id')]
   }

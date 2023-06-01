@@ -67,18 +67,34 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
           warning(pretty_message(msg, emit = F))
         }
       }
-      if(length(target_cesa@mutations) == 0) {
-        target_cesa@mutations$snv = copy(source_cesa@mutations$snv)
-        target_cesa@mutations$amino_acid_change = copy(source_cesa@mutations$amino_acid_change)
+      if(sum(sapply(target_cesa@mutations, nrow)) == 0) {
+        target_cesa@mutations = copy(source_cesa@mutations)
       } else {
         new_snvs = source_cesa@mutations$snv[! target_cesa@mutations$snv$snv_id, on = "snv_id"]
-        if (new_snvs[, .N] == 0) {
-          stop("There are no new variants to copy over.")
+        new_dbs = source_cesa@mutations$dbs[! target_cesa@mutations$dbs$dbs_id, on = "dbs_id"]
+        if (new_snvs[, .N] + new_dbs[, .N] == 0) {
+          warning("There were no new variants to copy over.")
         }
         # covered_in may vary, but doesn't matter because it will be regenerated from scratch
         target_cesa@mutations$snv = rbind(target_cesa@mutations$snv, new_snvs)
-        new_aacs = source_cesa@mutations$amino_acid_change[! target_cesa@mutations$amino_acid_change$aac_id, on = "aac_id"]
-        target_cesa@mutations$amino_acid_change = rbind(target_cesa@mutations$amino_acid_change, new_aacs)
+        target_cesa@mutations$dbs = rbind(target_cesa@mutations$dbs, new_dbs)
+        
+        if(source_cesa@mutations$amino_acid_change[, .N] > 0) {
+          new_aacs = source_cesa@mutations$amino_acid_change[! target_cesa@mutations$amino_acid_change$aac_id, on = "aac_id"]
+          target_cesa@mutations$amino_acid_change = rbind(target_cesa@mutations$amino_acid_change, new_aacs)
+          target_cesa@mutations$aac_snv_key = unique(rbind(target_cesa@mutations$aac_snv_key,
+                                                           source_cesa@mutations$aac_snv_key))
+        }
+        if (new_dbs[, .N] > 0) {
+          target_cesa@mutations$dbs = unique(rbind(target_cesa@mutations$dbs,
+                                                           source_cesa@mutations$dbs), by = 'dbs_id')
+        }
+        if(source_cesa@mutations$dbs_codon_change[, .N] > 0) {
+          target_cesa@mutations$dbs_codon_change = unique(rbind(target_cesa@mutations$dbs_codon_change,
+                                                           source_cesa@mutations$dbs_codon_change), by = 'dbs_aac_id')
+        }
+        target_cesa@mutations$aac_dbs_key = unique(rbind(target_cesa@mutations$aac_dbs_key,
+                                                         source_cesa@mutations$aac_dbs_key))
       }
       return(update_covered_in(target_cesa))
     }
@@ -223,6 +239,8 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
   }
   cesa@mutations[["snv"]] = unique(rbind(cesa@mutations$snv, snv_table, fill = T), by = "snv_id")
   cesa@mutations[["aac_snv_key"]] = unique(rbind(cesa@mutations$aac_snv_key, annotations$aac_snv_key))
+  cesa@mutations[["dbs"]] = unique(rbind(cesa@mutations$dbs, annotations$dbs))
+  cesa@mutations[["dbs_codon_change"]] = unique(rbind(cesa@mutations$dbs_codon_change, annotations$dbs_codon_change))
   setkey(cesa@mutations$aac_snv_key, 'aac_id')
   setkey(cesa@mutations$snv, "snv_id")
   

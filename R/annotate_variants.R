@@ -12,11 +12,6 @@ annotate_variants <- function(refset = NULL, variants = NULL) {
   if (! is(variants, "data.table")) {
     stop("variants should be a data.table.")
   }
-  RefCDS = refset$RefCDS
-  gr_cds = refset$gr_genes
-  bsg = refset$genome
-  
-  aac_snv_key = copy(aac_snv_key_template)
   
   # For now, return empty data.table if no variants to annotate
   if (variants[, .N] == 0) {
@@ -32,11 +27,243 @@ annotate_variants <- function(refset = NULL, variants = NULL) {
     variants = identify_maf_variants(variants)
   }
   
-  #variants[variant_type == "snv", variant_id := paste0(Chromosome, ':', Start_Position, '_', Reference_Allele, '>', Tumor_Allele)]
+  # Could just take rows with non-duplicated variant ID, except illegal variants have NA IDs.
   variants = unique(variants[, .(Chromosome, Start_Position, Reference_Allele, Tumor_Allele, variant_type, variant_id)])
-  variant_grs = GenomicRanges::makeGRangesFromDataFrame(variants, seqnames.field = "Chromosome", 
-                                                        start.field = "Start_Position", end.field = "Start_Position")
+  
+  snvs = variants[variant_type == "snv"]
+  annotated_snvs = annotate_snvs(snvs = snvs, refset = refset)
+  
+  dbs = variants[variant_type == 'dbs']
+  annotated_dbs = annotate_dbs(dbs = dbs, refset = refset)
+  return(c(annotated_snvs, annotated_dbs))
+}
 
+
+annotate_dbs = function(dbs, refset) {
+  # TO-DO: switch in templates
+  results = list(dbs_codon_change = data.table(), dbs = data.table(), aac_dbs_key = data.table())
+  if(dbs[, .N] == 0) {
+    return(results)
+  }
+  
+  
+  final_codon_change = data.table(dbs_id = character(), chr = character(), pid = character(), 
+                                  essential_splice = character(), strand = character(), gene = character(), 
+                                  aa_ref = character(), aa_pos = character(), nt1_pos = character(), 
+                                  nt2_pos = character(), nt3_pos = character(), coding_seq = character(), 
+                                  aa_alt = character(), aachange = character(), dbs_aac_id = character())
+  final_dbs = data.table(dbs_id = character(), chr = character(), pos = numeric(), 
+                         ref = character(), alt = character(), intergenic = character(), essential_splice = character())
+  
+  while(dbs[, .N] > 0) {
+    dbs[, snv1 := paste0(Chromosome, ':', Start_Position, '_', substr(Reference_Allele, 1, 1),
+                         '>', substr(Tumor_Allele, 1, 1))]
+    
+    dbs[, snv2 := paste0(Chromosome, ':', Start_Position + 1, '_', substr(Reference_Allele, 2, 2),
+                         '>', substr(Tumor_Allele, 2, 2))]
+    
+    anno_out = list()
+    for (col in c('snv1', 'snv2')) {
+      dt = as.data.table(tstrsplit(dbs[[col]], split = '[:_>]'))
+      setnames(dt, c("Chromosome", "Start_Position", "Reference_Allele", "Tumor_Allele"))
+      dt[, Start_Position := as.numeric(Start_Position)]
+      dt[, c("variant_type", "variant_id") := .('snv', dbs[[col]])]
+      anno_out[[col]] = annotate_snvs(dt[!duplicated(variant_id)], refset)
+    }
+    setnames(dbs, 'variant_id', 'dbs_id')
+    
+    # Each nucleotide in DBS may be associated with one or more SNV AACs.
+    # Get all pairings for each nucleotide, which we'll call SNV1 and SNV2.
+    # Nucleotides with no AAC matches will also be included with NA annotations.
+    snv1_aac_hits = anno_out$snv1$aac_snv_key[dbs[, .(snv1, dbs_id)], on = c(snv_id = 'snv1')]
+    snv2_aac_hits = anno_out$snv2$aac_snv_key[dbs[, .(snv2, dbs_id)], on = c(snv_id = 'snv2')]
+    
+    # Merge in annotations for each AAC, keeping SNV1 and SNV2 annotations separate.
+    snv1_aac_anno = anno_out$snv1$amino_acid_change[, .(aac_id, gene, aa_ref, aa_pos, aa_alt, coding_seq, strand, pid, nt1_pos, nt2_pos, nt3_pos)]
+    snv2_aac_anno = anno_out$snv2$amino_acid_change[, .(aac_id, gene, aa_ref, aa_pos, aa_alt, coding_seq, strand, pid, nt1_pos, nt2_pos, nt3_pos)]
+    
+    snv1_aac_hits = merge.data.table(snv1_aac_hits, snv1_aac_anno, by = 'aac_id', all.x = TRUE)
+    snv2_aac_hits = merge.data.table(snv2_aac_hits, snv2_aac_anno, by = 'aac_id', all.x = TRUE)
+    
+    # Create combined records for each DBS. Every possible combination of SNV1/SNV2 AACs for each DBS gets a row.
+    # Note: We're not getting records for the case of two codon changes on separate PIDs.
+    no_aac = merge.data.table(snv1_aac_hits[is.na(pid)], snv2_aac_hits[is.na(pid)], by = 'dbs_id', 
+                              suffixes = c('.snv1', '.snv2'))
+    snv1_aac = merge.data.table(snv1_aac_hits[! is.na(pid)], snv2_aac_hits[is.na(pid)], by = 'dbs_id', 
+                                suffixes = c('.snv1', '.snv2'))
+    snv2_aac = merge.data.table(snv1_aac_hits[is.na(pid)], snv2_aac_hits[! is.na(pid)], by = 'dbs_id',
+                                suffixes = c('.snv1', '.snv2'))
+    both_aac = merge.data.table(snv1_aac_hits[! is.na(pid)], snv2_aac_hits[! is.na(pid)], 
+                                by = c('dbs_id', 'pid'), all = FALSE, 
+                                suffixes = c('.snv1', '.snv2'))
+    dbs_anno = rbindlist(list(no_aac, snv1_aac, snv2_aac, both_aac) , fill = T)
+    
+    # Merge in SNV-level annotations.
+    snv1_snv_anno = anno_out$snv1$snv[, .(snv_id, chr, pos, ref, alt, intergenic, essential_splice)]
+    snv2_snv_anno = anno_out$snv2$snv[, .(snv_id, chr, pos, ref, alt, intergenic, essential_splice)]
+    setnames(snv1_snv_anno, paste0(names(snv1_snv_anno), '.snv1'))
+    setnames(snv2_snv_anno, paste0(names(snv2_snv_anno), '.snv2'))
+    dbs_anno = merge.data.table(dbs_anno, snv1_snv_anno, by = 'snv_id.snv1', all.x = T)
+    dbs_anno = merge.data.table(dbs_anno, snv2_snv_anno, by = 'snv_id.snv2', all.x = T)
+    
+    
+    # Produce DBS table
+    dbs_anno[dbs, c("chr", "pos", "ref", "alt") := 
+               .(Chromosome, Start_Position, Reference_Allele, Tumor_Allele), on = 'dbs_id']
+    
+    dbs_anno[, intergenic := intergenic.snv1 == TRUE & intergenic.snv2 == TRUE]
+    dbs_anno[, essential_splice := essential_splice.snv1 == TRUE | essential_splice.snv2 == TRUE]
+    
+    # DBS table is for non-AAC information (analogous to the SNV annotation table)
+    final_dbs = unique(rbind(final_dbs, dbs_anno[, .(dbs_id, chr, pos, ref, alt, intergenic, essential_splice)]))
+    
+    
+    # Partition dbs_anno into 5 cases
+    left_coding = dbs_anno[! is.na(aac_id.snv1) & is.na(aac_id.snv2)]
+    right_coding = dbs_anno[is.na(aac_id.snv1) & ! is.na(aac_id.snv2)]
+    neither_coding = dbs_anno[is.na(aac_id.snv1) & is.na(aac_id.snv2)]
+    codon_change = dbs_anno[aa_pos.snv1 == aa_pos.snv2]
+    two_codon = dbs_anno[abs(aa_pos.snv1 - aa_pos.snv2) == 1]
+    
+    
+    ## 
+    # left-coding, right essential splice: X. > spl
+    # right-coding, left essential splice: X.>spl
+    # neither-coding: essential splice
+    # codon change: essential splice possible
+    # 
+    
+    # Sanity check (remove later)
+    if(sum(sapply(list(left_coding, right_coding, neither_coding, codon_change, two_codon), nrow)) -
+       dbs_anno[, .N] != 0) {
+      stop('Failed to classify some doublet mutations into distinct cases.')
+    }
+    
+    
+
+    if(codon_change[, .N] > 0) {
+      # Reduce codon_change to what's needed.
+      codon_change = codon_change[, .(dbs_id, chr, pos, ref, alt, pid, essential_splice, intergenic, 
+                                      strand = strand.snv1, gene = gene.snv1, aa_ref = aa_ref.snv1,
+                                      aa_pos = aa_pos.snv1, nt1_pos = nt1_pos.snv1, nt2_pos = nt2_pos.snv1,
+                                      nt3_pos = nt3_pos.snv1, coding_seq = coding_seq.snv1)]
+      
+      # Codon sequence is reverse complement of genomic sequence for negative strand genes.
+      # Get doublet alt sequence.
+      codon_change[, snv1_codon_pos := mapply(function(pos, nt1_pos, nt2_pos, nt3_pos)
+      { which(c(nt1_pos, nt2_pos, nt3_pos) == pos) }, pos, nt1_pos, nt2_pos, nt3_pos)]
+      codon_change[, snv2_codon_pos := snv1_codon_pos + 1 * strand]
+      
+      codon_change[, insert_pos := pmin(snv1_codon_pos, snv2_codon_pos)]
+      codon_change[strand == 1, new_bases := alt]
+      codon_change[strand == -1, new_bases := as.character(reverseComplement(DNAStringSet(alt)))]
+      codon_change[, alt_seq := coding_seq]
+      substr(codon_change$alt_seq, codon_change$insert_pos, codon_change$insert_pos + 1) = codon_change$new_bases
+      codon_change[, aa_alt := as.character(Biostrings::translate(DNAStringSet(alt_seq), no.init.codon = TRUE))]
+      codon_change[, c('snv1_codon_pos', 'snv2_codon_pos', 'insert_pos', 'new_bases', 'alt_seq') := NULL]
+      codon_change[aa_ref == 'STOP', short_ref := '*']
+      codon_change[aa_ref != 'STOP', short_ref := seqinr::a(aa_ref)]
+      codon_change[, aachange := paste0(short_ref, aa_pos, aa_alt)]
+      codon_change[, short_ref := NULL]
+      codon_change[, aa_alt := seqinr::aaa(aa_alt)]
+      codon_change[aa_alt == 'Stp', aa_alt := 'STOP']
+      codon_change[, dbs_aac_id := paste0(gene, '_', aachange, '_', pid)]
+      
+      # left_coding[, c(aac_cols_to_fill) := .SD, .SDcols =  aac_source_cols]
+      # 
+      # 
+      # left_coding[strand == 1, aachange := paste0(seqinr::a(aa_ref), '.')]
+      # left_coding[strand == -1, aachange := paste0('.', seqinr::a(aa_ref))]
+      # 
+      # 
+      # left_coding[, aa_ref := paste0(aa_ref, '.')]
+      # left_coding[, aa_alt := paste0(aa_alt, '.')]
+      # left_coding[, aachange := paste0(seqinr::a(aa_ref), aa_pos, seqinr::a(aa_alt))]
+      
+      
+      # build other DBS IDs for each DBS and annotate these
+      # leading coding chars get same posit
+      codon_to_solve = unique(codon_change[, .(coding_seq, aa_alt)])     
+      all_dbs = mapply('[[', codon_dbs_to_aa[codon_to_solve$coding_seq], codon_to_solve$aa_alt, SIMPLIFY = FALSE)                                   
+      
+      # Get DBS covering positions 1,2 and 2,3 in coding sequence.
+      get_dbs = function(codon_start_pos) {
+        nt_records = copy(codon_to_solve)
+        nt_records[, nt_dbs := lapply(all_dbs, '[[', codon_start_pos)]
+        nt_records = nt_records[sapply(nt_dbs, length) > 0]
+        
+        # On small data sets, there may be no possible AAC DBS for a given coding position
+        if(nt_records[, .N] == 0) {
+          return(data.table())
+        }
+        nt_records[, tmp := 1:.N]
+        nt_records = nt_records[, .(coding_seq, aa_alt, nt_alt = unlist(nt_dbs)), by = 'tmp']
+        
+        # nomatch to leave out codon changes that can't be caused at the current codon positions (1,2 or 2,3)
+        # allow.cartesian because each original codon change may have multiple equivalent DBS in nt_records
+        nt_records = nt_records[codon_change, on = c('coding_seq', 'aa_alt'), nomatch = NULL, allow.cartesian = T]
+        
+        nt_records[strand == 1, alt := nt_alt]
+        nt_records[strand == -1, alt := as.character(reverseComplement(DNAStringSet(nt_alt)))]
+        nt_records = unique(nt_records)
+        
+        if(codon_start_pos == 1) {
+          nt_records[, pos := pmin(nt1_pos, nt2_pos)]
+        } else if (codon_start_pos == 2) {
+          nt_records[, pos := pmin(nt2_pos, nt3_pos)]
+        }
+        nt_records[, dbs_id := paste0(chr, ':', pos, '_', ref, '>', alt)]
+        nt_records[, dbs_aac_id := paste0(gene, '_', aachange, '_', pid)]
+        return(nt_records)
+      }
+      
+      nt_records = rbind(get_dbs(codon_start_pos = 1),
+                         get_dbs(codon_start_pos = 2))
+      
+      # New DBS could have additional associated DBS AAC that should also be annotated
+      new_dbs = unique(nt_records[, .SD, .SDcols = names(final_dbs)][! dbs_id %in% final_dbs$dbs_id])
+      
+      codon_change[, c("intergenic", "ref", "alt", "pos") := NULL]
+      final_codon_change = unique(rbind(final_codon_change, codon_change))
+      
+      # Case 2: Different codons (or one on-codon, one off), wither SNV splice-disrupting.
+      dbs_anno[, essential_splice := essential_splice.snv1 == T | essential_splice.snv2 == T]
+      which_noncoding = dbs_anno[is.na(aac_id.snv1) & is.na(aac_id.snv2), which = T]
+      noncoding_dbs = dbs_anno[which_noncoding]
+      dbs_anno = dbs_anno[! which_noncoding]
+      
+      dbs = new_dbs[, .(Chromosome = chr, Start_Position = pos, Reference_Allele = ref, 
+                        Tumor_Allele = alt, variant_id = dbs_id)]
+    } else {
+      dbs = data.table() # In other words, there is nothing left to annotate if there are no new codon-changing DBS
+    }
+  }
+  
+  # cosmic_dbs_classes (in sysdata) contains the correct 78 COSMIC DBS classes.
+  # Any initially assigned classes that are invalid need to be reverse complemented.
+  final_dbs[, cosmic_dbs_class := paste0(ref, '>', alt)]
+  final_dbs[! cosmic_dbs_class %in% cosmic_dbs_classes, 
+            cosmic_dbs_class := paste0(as.character(reverseComplement(DNAStringSet(ref))),
+                                       '>',
+                                       as.character(reverseComplement(DNAStringSet(alt))))]
+  aac_dbs_key = final_codon_change[, .(dbs_aac_id = unique(dbs_aac_id), 
+                                       multi_anno_site = uniqueN(dbs_aac_id) > 1), by = 'dbs_id']
+  
+  final_codon_change$dbs_id = NULL
+  return(list(dbs_codon_change = final_codon_change, dbs = final_dbs, aac_dbs_key = aac_dbs_key))
+}
+
+
+#' Annotates MAF-like table with nearest gene and CDS entries
+#' 
+#' @param variants MAF-like data.table
+#' @param refset CES reference data environment
+#' @keywords internal
+get_nearest_refset_entries = function(variants, refset) {
+  variant_grs = GenomicRanges::makeGRangesFromDataFrame(variants[, .(seqnames = Chromosome, start = Start_Position,
+                                                                     end = Start_Position, variant_id, variant_type)], 
+                                                        keep.extra.columns = TRUE)
+  gr_cds = refset$gr_genes
   
   # Get gene annotations
   ## Note: If RefCDS/gr_cds are transcript-level, the ranges and annotations will refer to transcripts, not genes
@@ -45,318 +272,27 @@ annotate_variants <- function(refset = NULL, variants = NULL) {
   # convert the "subjectHits" index returned by the distanceToNearest function to the corresponding gene name
   refcds_entry_names = GenomicRanges::mcols(gr_cds)["names"][,1]
   nearest[, refcds_entry := refcds_entry_names[subjectHits]]
-
-  # Sometimes an SNV appears to overlap the same CDS region twice due to redundant GRanges
-  # Uniquify to get one row per variant/protein match
+  
+  if("gene" %in% names(GenomicRanges::mcols(gr_cds))) {
+    nearest[, gene := gr_cds[subjectHits]$gene]
+    nearest[, pid := refcds_entry]
+  } else {
+    nearest[, gene := refcds_entry]
+    genes_to_lookup = unique(nearest$gene)
+    pid_lookup = sapply(refset$RefCDS[genes_to_lookup], '[[', 'protein_id')
+    nearest[, pid := pid_lookup[gene]]
+  }
+  
+  # Sometimes an SNV overlaps the same CDS region twice due to redundant GRanges.
+  # Uniquify to get one row per variant/protein match.
   nearest = unique(nearest, by = c("queryHits", "refcds_entry"))
   
-  # queryHits column gives snv table row.
-  # Some records have multiple matching entries; combine them into variable-length vector within each snv table row.
-  # Also grab the distance to the first matching refcds entry (distances are always equal on multiple hits, since we asked for the nearest)
-  refcds_entries_by_variant_row = setDT(nearest[, .(cds = list(refcds_entry), dist = distance[1]), by = "queryHits"])
-  variants[, c("cds", "dist") := list(refcds_entries_by_variant_row$cds, refcds_entries_by_variant_row$dist)]
-  variants[, intergenic := dist > 0] # Not really intergenic, just not coding (need to fix this)
-  snvs = variants[variant_type == "snv", -"variant_type"]
-  setnames(snvs, 'variant_id', 'snv_id')
-
-  # Intergenic records definitely aren't coding, so leave them out
-  # some of these will still be non-coding and get filtered out later
-  aac = data.table()
-  if (snvs[dist == 0, .N] > 0) {
-    aac = snvs[dist == 0, .(Chromosome, Start_Position, Reference_Allele, Tumor_Allele, refcds_entry = unlist(cds)), by = "snv_id"]
-    entries_with_aac = unique(unlist(aac$refcds_entry))
-  }
-
-  # If RefCDS object has been created using this package's build_RefCDS function,
-  # the presence of real_gene_name indicates that the object has one record per passing transcript rather that gene.
-  # We'll handle this situation by making note of the true gene and transcript names.
-  cds_hits = data.table()
-  if (aac[, .N] > 0) {
-    # for efficiency, pull out all the necessary RefCDS data together, then split it up
-    if(is.null(RefCDS[[1]]$real_gene_name)) {
-      # real_gene_name is used for pid-based RefCDS objects. When null, gene name is already correct
-      ref_subset = lapply(RefCDS[entries_with_aac], function(x) list(meta = list(strand = x$strand, cds = x$protein_id, entry_name = x$gene_name,
-                                                                                 gene_name = x$gene_name), 
-                                                                     intervals_cds = x$intervals_cds))
-    } else {
-      ref_subset = lapply(RefCDS[entries_with_aac], function(x) list(meta = list(strand = x$strand, cds = x$protein_id, entry_name = x$gene_name,
-                                                                                 gene_name = x$real_gene_name), 
-                                                                     intervals_cds = x$intervals_cds))
-    }
-    meta = rbindlist(lapply(ref_subset, function(x) x$meta))
-    coding_ints = rbindlist(lapply(lapply(ref_subset, function(x) x$intervals_cds), as.data.table), idcol = "entry_name")
-    setnames(coding_ints, old = c("V1", "V2"), new = c("start", "end"))
-    coding_ints = meta[coding_ints, on = "entry_name"]
-    
-    # CDS intervals should be in genomic order within each cds
-    coding_ints[strand == 1, cds_order := seq_len(.N), by = "cds"]
-    coding_ints[strand == -1, cds_order := rev(seq_len(.N)), by = "cds"]
-    coding_ints = coding_ints[order(cds, cds_order)]
-    coding_ints[, cum_cds_width := cumsum(end - start + 1), by = "cds"]
-    
-    aac[, tmp_end_pos := Start_Position] # need two columns for foverlaps (as of now)
-    setkey(aac, "refcds_entry", "Start_Position", "tmp_end_pos") # yeah, it's called gene for transcript_id currently, too
-    
-    cds_hits = foverlaps(coding_ints, aac, by.x = c("entry_name", "start", "end"), type = "any", nomatch = NULL)
-  }
-
-  if (cds_hits[, .N] > 0) {
-    cds_hits[strand == -1, nt_pos := cum_cds_width - (Start_Position - start)]
-    cds_hits[strand == 1, nt_pos := cum_cds_width - (end - Start_Position)]
-    cds_hits[, aa_pos := ceiling(nt_pos / 3)]
-    cds_hits[, codon_pos := nt_pos %% 3 ] # note this gives 0-based codon index 
-    cds_hits[codon_pos == 0, codon_pos := 3]
-    
-    cds_names = unique(cds_hits$entry_name)
-    seqs = DNAStringSet(lapply(RefCDS[cds_names], '[[', 'seq_cds'))
-    ref_seqs = Biostrings::subseq(seqs[cds_hits$entry_name], start = cds_hits$nt_pos - cds_hits$codon_pos + 1, width = 3)
-    
-    # Records that don't overlap a CDS are not coding mutations
-    aac = cds_hits
-    
-    # For efficiency, convert to character, and then substitute in the tumor allele and get aa_alt
-    aa_ref = as.character(Biostrings::translate(ref_seqs, no.init.codon = T), use.names = F)
-    aac_alt_allele = Biostrings::DNAStringSet(cds_hits$Tumor_Allele)
-    aac_alt_allele[cds_hits$strand == -1] = Biostrings::complement(aac_alt_allele[cds_hits$strand == -1])
-    alt_seqs = as.character(ref_seqs)
-    substr(alt_seqs, cds_hits$codon_pos, cds_hits$codon_pos) = as.character(aac_alt_allele)
-    aa_alt = as.character(Biostrings::translate(DNAStringSet(alt_seqs), no.init.codon = T))
-    
-    aac[, aachange := paste0(aa_ref, aa_pos, aa_alt)]
-    aac[, aa_ref := seqinr::aaa(aa_ref)]
-    aac[aa_ref == "Stp", aa_ref := "STOP"]
-    aac[, aa_alt := seqinr::aaa(aa_alt)]
-    aac[aa_alt == "Stp", aa_alt := "STOP"]
-    
-    setnames(aac, old = c("cds", "Chromosome", "Start_Position"), new = c("pid", "chr", "pos"))
-    aac[, aac_id := paste0(gene_name, "_", aachange, "_", pid)]
-    aac[, c("start", "end", "cds_order", "cum_cds_width") := NULL]
-    
-    # Some AACs will come from >1 distinct SNV in the MAF data; only need one of each for annotation purposes
-    aac = unique(aac, by = "aac_id")
-    
-    # To make things easier later, determine which AAC records are possibly spanning splice sites
-    # Genomically, all bases must be within 2bp of a splice position (or codon finishes before crossing site)
-    # Later, we'll do a more careful annotation of splice site distance
-    # For now, get CDS intervals for relevant genes; potential splice sites will be included in the start/end positions of these
-    approx_splice_sites = unique(rbindlist(lapply(RefCDS[entries_with_aac], function(x) return(list(chr = x$chr, splice_pos = x$intervals_cds)))))
-    approx_splice_sites[, start := splice_pos - 2]
-    approx_splice_sites[, end := splice_pos + 2]
-    setkey(aac, "chr", "pos", "tmp_end_pos")
-    possible_splice_aac_id = foverlaps(approx_splice_sites, aac, by.x = c("chr", "start", "end"), type = "any", nomatch = NULL)[, aac_id]
-    setkey(aac, "aac_id")
-    aac[, possible_splice := F][possible_splice_aac_id, possible_splice := T]
-    
-    # figure out nt positions for codons that might span splice sites
-    poss_splice_ints = coding_ints[aac[possible_splice == TRUE, unique(entry_name)], on = 'entry_name']
-    single_exon_entries = poss_splice_ints[, .N, by = "entry_name"][N == 1, entry_name]
-    poss_splice_ints = poss_splice_ints[! single_exon_entries, on = 'entry_name']
-    aac[single_exon_entries, possible_splice := FALSE, on = 'entry_name']
-    
-    # away from splice sites, all codon nt positions are adjacent
-    aac[possible_splice == F, nt1_pos := pos - strand * (codon_pos - 1)]
-    aac[possible_splice == F, nt2_pos := pos - strand * (codon_pos - 2)]
-    aac[possible_splice == F, nt3_pos := pos - strand * (codon_pos - 3)]
-    
-    
-    if (poss_splice_ints[, .N] > 0) {
-      poss_splice_ints[, exon_length := abs(end - start) + 1]
-      poss_splice_ints[, previous_bases := c(0, cumsum(exon_length[1:(.N-1)])), by = 'entry_name']
-      poss_splice_ints[strand == 1, ref_offset := start - previous_bases - 1]
-      poss_splice_ints[strand == -1, ref_offset := end + previous_bases + 1]
-      
-      # some SNVs may have multiple entries; splice status may vary
-      poss_splice_table = setDT(aac[possible_splice == T, .(tmp_nt_pos = nt_pos - codon_pos + 1:3, tmp_codon_pos = 1:3, strand), by = c('snv_id', 'entry_name')])
-      ref_offsets = poss_splice_ints[poss_splice_table, ref_offset, on = .(entry_name, cum_cds_width >= tmp_nt_pos), by = .EACHI, mult = "first"]
-      poss_splice_table[, nt_ref_pos := ref_offsets$ref_offset + tmp_nt_pos * strand]
-      aac[poss_splice_table[tmp_codon_pos == 1], nt1_pos := nt_ref_pos, on = c('snv_id', 'entry_name')]
-      aac[poss_splice_table[tmp_codon_pos == 2], nt2_pos := nt_ref_pos, on = c('snv_id', 'entry_name')]
-      aac[poss_splice_table[tmp_codon_pos == 3], nt3_pos := nt_ref_pos, on = c('snv_id', 'entry_name')]
-    }
-
   
-    # get 5'->3' (i.e., standard genomic order) trinucleotide contexts
-    first_triseq = BSgenome::getSeq(bsg, names = aac$chr, start =  aac$nt1_pos - 1, end =  aac$nt1_pos + 1)
-    second_triseq = BSgenome::getSeq(bsg, names = aac$chr, start =  aac$nt2_pos - 1, end =  aac$nt2_pos + 1)
-    third_triseq = BSgenome::getSeq(bsg, names = aac$chr, start =  aac$nt3_pos - 1, end =  aac$nt3_pos + 1)
-    
-    # put together the three reference nucleotides of each codon (in coding order, not genomic order)
-    coding_sequences = Biostrings::xscat(Biostrings::subseq(first_triseq, start = 2, width = 1),
-                                         Biostrings::subseq(second_triseq, start = 2, width = 1),
-                                         Biostrings::subseq(third_triseq, start = 2, width = 1))
-    
-    aac[, nt1_ref := as.character(Biostrings::subseq(coding_sequences, start = 1, width = 1))]
-    aac[, nt2_ref := as.character(Biostrings::subseq(coding_sequences, start = 2, width = 1))]
-    aac[, nt3_ref := as.character(Biostrings::subseq(coding_sequences, start = 3, width = 1))]
-    
-    
-    # take complement of negative-strand coding sequences (but no need to reverse)
-    coding_sequences[aac$strand == -1] = Biostrings::complement(coding_sequences[aac$strand == -1])
-    aac[, coding_seq := as.character(coding_sequences)]
-    
-    # for each aa_mut, get a three-item list representing SNVs in first, second, third positions of the reference codon
-    # that cause the same amino acid change as aa_alt (which will always include the ntchange that came from the MAF)
-    possible_snvs = mapply(function(x, y) codon_snvs_to_aa[[x]][[y]], as.character(coding_sequences), aac$aa_alt, SIMPLIFY = F)
-    
-    
-    nt1_snvs = lapply(possible_snvs, function(x) x[[1]])
-    aac$nt1_snvs = nt1_snvs
-    
-    nt2_snvs = lapply(possible_snvs, function(x) x[[2]])
-    aac$nt2_snvs = nt2_snvs
-    
-    nt3_snvs = lapply(possible_snvs, function(x) x[[3]])
-    aac$nt3_snvs = nt3_snvs
-    
-    # create table of all snv_ids, then fix strand of alt alleles
-    nt1_dt = aac[, .(chr, strand, pos = nt1_pos, ref = nt1_ref, alt = unlist(nt1_snvs)), by = "aac_id"]
-    nt2_dt = aac[, .(chr, strand, pos = nt2_pos, ref = nt2_ref, alt = unlist(nt2_snvs)), by = "aac_id"]
-    nt3_dt = aac[, .(chr, strand, pos = nt3_pos, ref = nt3_ref, alt = unlist(nt3_snvs)), by = "aac_id"]
-    snv_table = rbind(nt1_dt, nt2_dt, nt3_dt)
-    snv_table = snv_table[! is.na(alt)] # drop positions where there is no possible SNV that causes the amino acid change of interest
-    snv_table[strand == -1, alt := seqinr::comp(alt, forceToLower = F)]
-    snv_table[, strand := NULL] # SNVs don't have strandedness
-    snv_table[, snv_id := paste0(chr, ':', pos, "_", ref, '>', alt)]
-    # Merge in the gene annotations from the original snvs table
-    # There will be no gene annotations for the SNVs that are part of AACs but
-    # not present in the MAF data, so we'll have to do annotation again on those
-
-    snv_table[snvs, c("cds", "intergenic") := .(cds, intergenic), on = "snv_id"]
-    
-    # annotate amino acid mutations with all associated SNVs
-    snvs_by_aa_mut = snv_table[, .(constituent_snvs = list(snv_id)), by = "aac_id"]
-    aac[snvs_by_aa_mut, constituent_snvs := constituent_snvs, on = "aac_id"]
-    
-    aac_snv_key = snv_table[, .(aac_id, snv_id)]
-    aac_snv_key[, multi_anno_site := uniqueN(aac_id) > 1, by = 'snv_id']
-    snv_table = snv_table[, .(snv_id, chr, pos, ref, alt, cds, intergenic)] # gets uniquified shortly
-    
-    # add noncoding SNVs to SNV table
-    noncoding = snvs[! unlist(aac$constituent_snvs), on = 'snv_id']
-    noncoding = setDT(noncoding[, .(chr = Chromosome, pos = Start_Position, ref = Reference_Allele, alt = Tumor_Allele,
-                              cds, intergenic)])
-    noncoding[, snv_id := paste0(chr, ':', pos, "_", ref, '>', alt)]
-    setcolorder(noncoding, "snv_id")
-    # dt can't handle list columns in unique call, but if it could result would be the same
-    noncoding = unique(noncoding, by = c("chr", "pos", "ref", "alt")) 
-    snv_table = rbind(snv_table, noncoding)
-    
-  } else {
-    # When there are no CDS hits, all the SNVs are noncoding
-    snv_table = snvs[, .(chr = Chromosome, pos = Start_Position, ref = Reference_Allele, alt = Tumor_Allele,
-                         cds, intergenic), by = "snv_id"]
-    aac = aac[0] # empty the table
-    aac[, aac_id := character()]
-  }
-  
-	# uniquify
-  snv_table = unique(snv_table, by = "snv_id")
-  
-  # Get gene annotations for those that don't have it yet (identified by intergenic == NA)
-  # See comments from round 1
-  snvs_needing_anno = snv_table[is.na(intergenic)]
-  snvs_needing_anno[, cds := NULL] # CDS empty on these; remove field for re-annotation
-
-  
-  if (snvs_needing_anno[, .N] > 0) {
-    snv_gr_round2 = GenomicRanges::makeGRangesFromDataFrame(snvs_needing_anno,  seqnames.field = "chr", 
-                                                            start.field = "pos", end.field = "pos")
-    
-    nearest = as.data.table(GenomicRanges::distanceToNearest(snv_gr_round2, gr_cds, select = "all"))
-    
-    refcds_entry_names = GenomicRanges::mcols(gr_cds)["names"][,1]
-    nearest[, refcds_entry := refcds_entry_names[subjectHits]]
-    nearest = nearest[! duplicated(nearest[, .(queryHits, refcds_entry)])]
-    
-    refcds_entries_by_variant_row = setDT(nearest[, .(cds = list(refcds_entry), dist = distance[1]), by = "queryHits"] )
-    snvs_needing_anno[, c("cds", "dist") := list(refcds_entries_by_variant_row$cds, refcds_entries_by_variant_row$dist)]
-    snvs_needing_anno[, intergenic := dist > 0] # To-do: Intergenic should always be false on these. Confirm and remove.
-    
-    setkey(snv_table, "snv_id")
-    ## To-do: Add CDS entry column back to SNV table,
-    snv_table[snvs_needing_anno$snv_id, intergenic := snvs_needing_anno$intergenic]
-    snv_table[snvs_needing_anno$snv_id, cds := list(snvs_needing_anno$cds)]
-  }
-  
-
-  #  get deconstructSigs-style trinuc context of each SNV ID
-  if (snv_table[, .N] > 0) {
-    genomic_context = BSgenome::getSeq(bsg, snv_table$chr,start=snv_table$pos - 1,
-                                       end=snv_table$pos + 1,
-                                       as.character = TRUE)
-    trinuc_mut_ids = paste0(genomic_context,":", snv_table$alt)
-    
-    # deconstructSigs_notations is a keyed table in CES sysdata
-    snv_table[, trinuc_mut := deconstructSigs_notations[.(genomic_context, snv_table$alt), deconstructSigs_ID]] 
-  } else {
-    snv_table[, trinuc_mut := character(0)]
-  }
-  
-	# Annotate SNVs that are at essential splice sites according to RefCDS, and then apply to any associated AACs
-	# Note that we're not keeping track of which genes these splice site positions apply to
-	cds_in_data = unique(unlist(snv_table$cds))
-	ind_no_splice = sapply(RefCDS[cds_in_data], function(x) length(x$intervals_splice) == 0)
-	cds_with_splice_sites = cds_in_data[! ind_no_splice]
-	snv_table[, essential_splice := F]
-	aac[, essential_splice := F]
-	if (length(cds_with_splice_sites) > 0) {
-	  essential_splice_sites = unique(rbindlist(lapply(RefCDS[cds_with_splice_sites], function(x) return(list(chr = x$chr, start = x$intervals_splice)))))
-	  essential_splice_sites[, end := start]
-	  snv_table[, tmp_end_pos := pos]
-	  setkey(snv_table, "chr", "pos", "tmp_end_pos")
-	  essential_splice_snv_id = foverlaps(essential_splice_sites, snv_table, by.x = c("chr", "start", "end"), type = "any", nomatch = NULL)[, snv_id]
-	  snv_table[, tmp_end_pos := NULL]
-	  setkey(snv_table, "snv_id")
-	  snv_table[essential_splice_snv_id, essential_splice := T]
-	  
-	  # Most essential splice sites are noncoding, but a few overlap coding regions
-	  essential_splice_aac_id = aac_snv_key[essential_splice_snv_id, unique(aac_id), on = 'snv_id', nomatch = NULL]
-	  aac[essential_splice_aac_id, essential_splice := T, on = 'aac_id']
-	}
-	
-	# clean up aac table, except when it's empty
-	if (aac[, .N] > 0) {
-	  # to do: eventually, probably want to keep the entry_name field (call it refcds_entry?)
-	  aac_table = aac[, .(aac_id, chr, gene = gene_name, strand, pid, aachange, aa_ref, aa_pos, aa_alt, nt1_pos, nt2_pos, nt3_pos, 
-	                            coding_seq, constituent_snvs, essential_splice)]
-	  setkey(aac_table, 'aac_id')
-	  setcolorder(aac_table, c("aac_id", "gene", "aachange", "strand"))
-	} else {
-	  aac_table = data.table()
-	}
-	
-	
-	
-	# Workaround to add gene name until this function is properly cleaned up
-	# Also handle the edge case of no SNVs (occurs if input is all indels)
-	if ("gene" %in% names(GenomicRanges::mcols(gr_cds)) && snv_table[, .N] > 0) {
-	  nearest_gene = as.data.table(GenomicRanges::distanceToNearest(makeGRangesFromDataFrame(snv_table, start.field = 'pos', end.field = 'pos'), 
-	                                                 gr_cds, select = "all"))
-	  gene_names = GenomicRanges::mcols(gr_cds)["gene"][,1]
-	  pid = GenomicRanges::mcols(gr_cds)["names"][,1]
-	  nearest_gene[, gene_name := gene_names[subjectHits]]
-	  nearest_gene[, pid := pid[subjectHits]]
-	  nearest_pid = nearest_gene[! duplicated(nearest_gene[, .(queryHits, pid)])]
-	  nearest_gene = nearest_gene[! duplicated(nearest_gene[, .(queryHits, gene_name)])]
-	  gene_name_by_snv_row = nearest_gene[, .(genes = list(unique(gene_name))), by = "queryHits"]
-	  pid_by_snv_row = nearest_pid[, .(pid = list(unique(pid))), by = "queryHits"]
-	  snv_table[, genes := list(gene_name_by_snv_row$genes)]
-	  snv_table = snv_table[, nearest_pid := list(pid_by_snv_row$pid)]
-	  snv_table[, cds := NULL]
-	} else if (snv_table[, .N] > 0) {
-	  setnames(snv_table, 'cds', 'genes')
-	  snv_and_gene = snv_table[, .(gene = unlist(genes)), by = "snv_id"]
-	  to_lookup = snv_and_gene[, .(gene = unique(gene))]
-	  to_lookup[, pid := sapply(RefCDS[gene], '[[', 'protein_id')]
-	  snv_and_gene[to_lookup, pid := pid, on = 'gene']
-	  snv_and_pid = snv_and_gene[, .(nearest_pid = list(pid)), by = "snv_id"]
-	  snv_table[snv_and_pid, nearest_pid := nearest_pid, on = "snv_id"]
-	} else {
-	  setnames(snv_table, 'cds', 'genes')
-	  snv_table[, nearest_pid := list(list())]
-	}
-	setkey(snv_table, "snv_id")
-	
-	return(list(amino_acid_change = aac_table, snv = snv_table, aac_snv_key = aac_snv_key))
+  # queryHits column gives snv table row. Some records have multiple matching entries; combine them into variable-length
+  # vector within each snv table row. Also grab the distance to the first matching refcds entry (distances are always
+  # equal on multiple hits, since we asked for the nearest).
+  refcds_entries_by_variant_row = setDT(nearest[, .(cds = list(refcds_entry), dist = distance[1], 
+                                                    genes = list(unique(gene)), nearest_pid = list(pid)), by = "queryHits"])
+  variants[, c("cds", "dist", "genes", "nearest_pid") := refcds_entries_by_variant_row[, .(cds, dist, genes, nearest_pid)]]
+  return(variants)
 }
-
