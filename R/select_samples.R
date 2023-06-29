@@ -57,7 +57,7 @@ samples_with = function(cesa, any_of = NULL) {
   snv_ids = variants_by_type[['snv_id']]
   aac_ids = variants_by_type[['aac_id']]
   
-  snv_from_aac = unique(cesa@mutations$amino_acid_change[aac_ids, unlist(constituent_snvs), on = 'aac_id'])
+  snv_from_aac = cesa@mutations$aac_snv_key[aac_ids, unique(snv_id), on = 'aac_id']
   all_snv_ids = union(snv_from_aac, snv_ids)
   
   return(cesa@maf[all_snv_ids, unique(Unique_Patient_Identifier), on = 'variant_id', nomatch = NULL])

@@ -68,14 +68,15 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
         }
       }
       if(sum(sapply(target_cesa@mutations, nrow)) == 0) {
-        target_cesa@mutations = copy(source_cesa@mutations)
+        target_cesa@mutations = copy(source_cesa@mutations[c("amino_acid_change", "snv", "aac_snv_key", "dbs", "dbs_codon_change", 
+                                                             "aac_dbs_key")])
       } else {
         new_snvs = source_cesa@mutations$snv[! target_cesa@mutations$snv$snv_id, on = "snv_id"]
         new_dbs = source_cesa@mutations$dbs[! target_cesa@mutations$dbs$dbs_id, on = "dbs_id"]
         if (new_snvs[, .N] + new_dbs[, .N] == 0) {
           warning("There were no new variants to copy over.")
         }
-        # covered_in may vary, but doesn't matter because it will be regenerated from scratch
+
         target_cesa@mutations$snv = rbind(target_cesa@mutations$snv, new_snvs)
         target_cesa@mutations$dbs = rbind(target_cesa@mutations$dbs, new_dbs)
         
@@ -85,10 +86,7 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
           target_cesa@mutations$aac_snv_key = unique(rbind(target_cesa@mutations$aac_snv_key,
                                                            source_cesa@mutations$aac_snv_key))
         }
-        if (new_dbs[, .N] > 0) {
-          target_cesa@mutations$dbs = unique(rbind(target_cesa@mutations$dbs,
-                                                           source_cesa@mutations$dbs), by = 'dbs_id')
-        }
+
         if(source_cesa@mutations$dbs_codon_change[, .N] > 0) {
           target_cesa@mutations$dbs_codon_change = unique(rbind(target_cesa@mutations$dbs_codon_change,
                                                            source_cesa@mutations$dbs_codon_change), by = 'dbs_aac_id')
@@ -245,7 +243,6 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
   setkey(cesa@mutations$snv, "snv_id")
   
   # Record which coverage ranges each new variant is covered in
-  cesa@advanced$add_variants_used = TRUE # if add_variants has run, can't take shortcuts in update_covered_in 
   cesa = update_covered_in(cesa)
   return(cesa)
 }

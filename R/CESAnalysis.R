@@ -84,7 +84,6 @@ CESAnalysis = function(refset = NULL) {
   ## genome_info: environment with stuff like genome build name, species, name of associated BSgenome
   ## snv_signatures: List CES signature sets used in the analysis
   ## cached_variants (not populated here): output of select_variants() run with default arguments
-  ##      (automatically updated as needed by load_cesa/update_covered_in)
   ## cds_refset: TRUE if gr_genes/RefCDS are protein-based; FALSE if gene-based.
   genome_info = get_ref_data(data_dir, "genome_build_info")
   ces_version = packageVersion("cancereffectsizeR")
@@ -103,7 +102,9 @@ CESAnalysis = function(refset = NULL) {
   
   # Mutation table specifications (see template tables declared in imports.R)
   mutation_tables = list(amino_acid_change = copy(aac_annotation_template), 
-                         snv = copy(snv_annotation_template), aac_snv_key = copy(aac_snv_key_template))
+                         snv = copy(snv_annotation_template), aac_snv_key = copy(aac_snv_key_template),
+                         dbs = copy(dbs_annotation_template), dbs_codon_change = copy(dbs_codon_change_template),
+                         aac_dbs_key = copy(aac_dbs_key_template))
   
   cesa = new("CESAnalysis", run_history = character(),  ref_key = refset_name, maf = data.table(), excluded = data.table(),
              mutrates = data.table(),
@@ -232,7 +233,8 @@ load_cesa = function(file) {
   
   # Older versions lack annotation table templates
   if (is.null(cesa@mutations$snv)) {
-    cesa@mutations = list(amino_acid_change = aac_annotation_template, snv = snv_annotation_template)
+    cesa@mutations = list(amino_acid_change = aac_annotation_template, snv = snv_annotation_template,
+                          dbs = copy(dbs_annotation_template), dbs_codon_change = copy(dbs_codon_change_template))
   } else {
     cesa@mutations$amino_acid_change = setDT(cesa@mutations$amino_acid_change, key = "aac_id")
     cesa@mutations$snv = setDT(cesa@mutations$snv, key = "snv_id")
@@ -240,6 +242,14 @@ load_cesa = function(file) {
       # if it is NULL, gets handled later
       cesa@mutations$aac_snv_key = setDT(cesa@mutations$aac_snv_key, key = "aac_id")
     }
+    if (! is.null(cesa@mutations$aac_dbs_key)) {
+      # if it is NULL, gets handled later
+      cesa@mutations$aac_dbs_key = setDT(cesa@mutations$aac_dbs_key, key = "dbs_id")
+    }
+    
+    # Prior to 2.8, covered_in was in annotation tables: remove if present.
+    suppressWarnings({cesa@mutations$snv$covered_in = NULL})
+    suppressWarnings({cesa@mutations$amino_acid_change$covered_in = NULL})
   }
   
 
@@ -348,11 +358,35 @@ load_cesa = function(file) {
       cesa@maf[, assoc_aac := NULL]
     }
   }
-
-  # cache variant table for easy user access
-  if(length(cesa@mutations$snv[, .N]) > 0) {
-    cesa@advanced$cached_variants = select_variants(cesa)
-    
+  
+  # If no DBS key, then we'll annotate DBS now if possible.
+  # Lack of DBS key indicates that CESAnalysis was created in a version before DBS annotation.
+  if (is.null(cesa@mutations$aac_dbs_key)) {
+     dbs = cesa@maf[variant_type == 'dbs']
+     if(dbs[, .N] > 0 && ! is.na(cesa@ref_data_dir)) {
+       dbs_anno = annotate_dbs(dbs, preload_ref_data(cesa@ref_data_dir))
+       cesa@mutations[c('dbs', 'dbs_codon_change', 'aac_dbs_key')] = dbs_anno[c('dbs', 'dbs_codon_change', 'aac_dbs_key')]
+     } else {
+       cesa@mutations$dbs = copy(dbs_annotation_template)
+       cesa@mutations$dbs_codon_change = copy(dbs_codon_change_template)
+       cesa@mutations$aac_dbs_key = copy(aac_dbs_key_template)
+     }
+  }
+  
+  genome_version = GenomeInfoDb::genome(get_cesa_bsg(cesa))[1]
+  genome_updater = function(x) {
+    GenomeInfoDb::genome(x) = genome_version
+    return(x)
+  }
+  cesa@coverage$exome = lapply(cesa@coverage$exome, genome_updater)
+  cesa@coverage$targeted = lapply(cesa@coverage$targeted, genome_updater)
+  cesa@coverage$genome = lapply(cesa@coverage$genome, genome_updater)
+  
+  # Cache variant table for easy user access
+  # update_covered_in also populates cesa@advanced$cached_variants 
+  cesa = update_covered_in(cesa)
+  
+  if(length(cesa@mutations$snv[, .N] + cesa@mutations$dbs[, .N]) > 0) {
     # Annotate top coding implications of each variant, based on select_variants() tiebreakers
     consequences = cesa@advanced$cached_variants[variant_type != 'snv', .(snv_id = unlist(constituent_snvs), variant_name, gene), by = 'variant_id']
     cesa@maf[consequences, c("top_gene", "top_consequence") := list(gene, variant_name), on = c(variant_id = 'snv_id')]

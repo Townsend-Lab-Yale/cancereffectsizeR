@@ -22,16 +22,29 @@ for(refset in names(.official_refsets)) {
 snv_annotation_template = data.table(snv_id = character(), chr = character(), pos = numeric(), 
                                      ref = character(), alt = character(), genes = list(), intergenic = logical(), 
                                      trinuc_mut = character(), essential_splice = logical(), 
-                                     nearest_pid = list(), covered_in = list())
+                                     nearest_pid = list())
 
 aac_annotation_template = data.table(aac_id = character(), gene = character(), aachange = character(), 
                        strand = integer(), chr = character(), pid = character(), aa_ref = character(), 
                        aa_pos = numeric(), aa_alt = character(), 
                        nt1_pos = numeric(), nt2_pos = numeric(), nt3_pos = numeric(), 
-                       coding_seq = character(), constituent_snvs = list(), essential_splice = logical(), 
-                       covered_in = list())
+                       coding_seq = character(), constituent_snvs = list(), essential_splice = logical())
+
 
 aac_snv_key_template = data.table(aac_id = character(), snv_id = character(), multi_anno_site = logical(), key = 'aac_id')
+
+
+dbs_annotation_template = data.table(dbs_id = character(), chr = character(), pos = numeric(), ref = character(), 
+                                     alt = character(), intergenic = character(), essential_splice = character(),
+                                     cosmic_dbs_class = character())
+
+dbs_codon_change_template = data.table(dbs_aac_id = character(), chr = character(), pid = character(), 
+                                       essential_splice = character(), strand = character(), gene = character(), 
+                                       aa_ref = character(), aa_pos = character(), nt1_pos = character(), 
+                                       nt2_pos = character(), nt3_pos = character(), coding_seq = character(), 
+                                       aa_alt = character(), aachange = character())
+
+aac_dbs_key_template = data.table(dbs_id = character(), dbs_aac_id = character(), multi_anno_site = logical())
 
 sample_table_template = data.table(Unique_Patient_Identifier = character(), coverage = character(), 
                                   covered_regions = character(), sig_analysis_grp = integer(), gene_rate_grp = integer(),

@@ -87,7 +87,7 @@ CompoundVariantSet = function(cesa, variant_id) {
     current_ids = variant_id[[i]]
     current_snvs = selected_snvs[current_ids, nomatch = NULL]
     current_snv_ids = current_snvs$variant_id
-    current_coverage = cesa@mutations$snv[current_snv_ids, covered_in, on = 'snv_id']
+    current_coverage = mget(current_snv_ids, envir = cesa@mutations$variants_to_cov)
     if (current_snvs[, .N] < length(current_ids)) {
       remaining_ids = setdiff(current_ids, current_snvs$variant_id)
       current_aacs = selected_aacs[remaining_ids, nomatch = NULL]
@@ -109,8 +109,8 @@ CompoundVariantSet = function(cesa, variant_id) {
       if (any(duplicated(current_snv_ids))) {
         stop("Item ", i, " of input has overlapping SNV/AAC IDs.")
       }
-      current_coverage = c(current_coverage, cesa@mutations$amino_acid_change[current_aacs$variant_id, 
-                                                                              covered_in, on = 'aac_id'])
+      current_coverage = c(current_coverage, mget(current_aacs$variant_id, 
+                                                  envir = cesa@mutations$variants_to_cov))
     }
     minimal_coverage = Reduce(intersect, current_coverage)
     maximal_coverage_size = length(Reduce(union, current_coverage))

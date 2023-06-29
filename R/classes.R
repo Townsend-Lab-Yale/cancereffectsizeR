@@ -13,7 +13,7 @@ setClass("CESAnalysis", representation(maf = "data.table", trinucleotide_mutatio
   if(x@samples[, .N] > 0) {
     features = c(features, "samples")
   }
-  if(sum(sapply(x@mutations, function(y) y[, .N])) > 0) {
+  if(sum(sapply(x@mutations[c('snv', 'dbs')], function(y) y[, .N])) > 0) {
     features = c(features, "variants")
   }
   if(length(x@selection_results) > 0) {
@@ -84,7 +84,7 @@ setMethod("$", "CESAnalysis",
               }
               return(invisible(ref_data))
             } else if (name == "coverage_ranges") {
-              return(x@coverage) 
+              return(x@coverage[sapply(x@coverage, length) > 0]) 
             } else if(name == "dNdScv_results") {
               return(lapply(x@dndscv_out_list, 
                             function(y) {

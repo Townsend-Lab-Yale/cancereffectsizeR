@@ -201,91 +201,81 @@ assign_gr_to_coverage = function(cesa, gr, covered_regions_name, coverage_type) 
 #' @return CESAnalysis with regenerated covered-in annotations
 #' @keywords internal
 update_covered_in = function(cesa) {
-  # if no SNVs, nothing to update (may change once indels are supported)
-  if(cesa@mutations$snv[, .N] == 0) {
+  # Nothing to update if no annotated mutations.
+  if(cesa@mutations$snv[, .N] + cesa@mutations$dbs[, .N] == 0) {
     return(cesa)
   }
   
+  # If no coverage information is loaded, nothing to do.
   if(length(cesa@coverage) == 0) {
     return(cesa)
   }
   
-  snv_table = cesa@mutations$snv
-  aac_table = cesa@mutations$amino_acid_change
-  
-  # simpler to delete old annotations and re-do rather than updating
-  snv_table[, covered_in := NULL]
-
-  
-  snv_gr = GenomicRanges::makeGRangesFromDataFrame(snv_table, seqnames.field = "chr", start.field = "pos", end.field = "pos")
-  
-  # test each MAF locus against all coverage grs
-  # this returns a data frame where rows match MAF rows, columns are T/F for each coverage gr
-  all_coverage = c(cesa@coverage[["exome"]], cesa@coverage[["targeted"]], cesa@coverage[["genome"]]) # names shouldn't overlap due to add_covered_regions validation
-  
-  # When exome+ is being used, not much point of including the original "exome" ranges
-  if ('exome+' %in% names(all_coverage)) {
-    all_coverage = all_coverage[names(all_coverage) != 'exome']
+  # Collect all coverage GRanges and make GRanges for annotated variants
+  # When running under exome+, the plain exome gr does not apply to any samples.
+  cov_grl = GRangesList(c(cesa@coverage$exome, cesa@coverage$targeted, cesa@coverage$genome))
+  if(cesa@advanced$using_exome_plus) {
+    cov_grl = cov_grl[names(cov_grl) != 'exome']
   }
   
-  # all_coverage will be NULL if there's only full-coverage WGS data
-  just_exome_plus = FALSE
-  if(is.null(all_coverage)) {
-    snv_table[, covered_in := list()]
-  } else if (length(all_coverage) == 1 && names(all_coverage) == 'exome+' && 
-             sum(cesa@samples$covered_regions == 'genome') == 0 && is.null(cesa@advanced$add_variants_used)) {
-    # If only exome+ data and add_variants() hasn't been used to import (potentially uncovered) variants,
-    # no need to do any calculations.
-    #
-    # Oddity: Consider out-of-exome AACs with multiple constituent SNVs but not all
-    # present in MAF data. Those SNVs get discovered in annotate_variants(), after exome+
-    # coverage has been defined. However, this shortcut will update them to be covered.
-    # But if a user has used add_variants() previously, those SNVs will stay uncovered.
-    # However, this isn't much of an issue because the AACs are still considered covered,
-    # and the issue only occurs on fringe AACs that aren't part of default exome coverage.
-    snv_table[, covered_in := list(list('exome+'))]
-    just_exome_plus = TRUE
+  # Do coverage calculation unless all data is generic WGS
+  if(length(cov_grl) != 0) {
+    # Collect all simple variants (Plain SNV and DBS; in the future, indels)
+    variant_gr = makeGRangesFromDataFrame(rbind(cesa@mutations$snv[, .(seqnames = chr, start = pos, end = pos, 
+                                                                       variant_id = snv_id)],
+                                                cesa@mutations$dbs[, .(seqnames = chr, start = pos, end = pos + 1,
+                                                                       variant_id = dbs_id)]),
+                                          keep.extra.columns = TRUE)
+    
+    # Get a table with one row per variant/overlapping coverage region
+    cov_table = as.data.table(GenomicRanges::findOverlaps(query = variant_gr, subject = cov_grl, type = 'within'))
+    cov_table[, cov_name := names(cov_grl)[subjectHits]]
+    cov_table[, variant_id := variant_gr$variant_id[queryHits]]
+    
+    
+    # Build environments (hashes) giving variant_id > cov and cov > variants
+    # For AACs, we will say that there is coverage if any constituent SNV/DBS is covered.
+    variants_to_cov = cov_table[, .(cov = list((cov_name))), by = 'variant_id']
+    aac_key = cesa@mutations$aac_snv_key
+    aac_coverage = merge.data.table(cesa@mutations$aac_snv_key, cov_table, by.x = 'snv_id',
+                                    by.y = 'variant_id', all = FALSE, allow.cartesian = TRUE)
+    cov_by_aac = aac_coverage[, .(cov = list(unique(cov_name))), by = 'aac_id'] # need unique
+    setnames(cov_by_aac, 'aac_id', 'variant_id')
+    variants_to_cov = rbind(variants_to_cov, cov_by_aac)
+    
+    dbs_aac_coverage = merge.data.table(cesa@mutations$aac_dbs_key, cov_table, by.x = 'dbs_id',
+                                        by.y = 'variant_id', all = FALSE, allow.cartesian = TRUE)
+    cov_by_dbs_aac = dbs_aac_coverage[, .(cov = list(unique(cov_name))), by = 'dbs_aac_id']
+    setnames(cov_by_dbs_aac, 'dbs_aac_id', 'variant_id')
+    variants_to_cov = rbind(variants_to_cov, cov_by_dbs_aac)
+    
+    
+    # Record variants that aren't covered anywhere (from generic whole-genome data)
+    uncovered_variants = data.table(variant_id = setdiff(c(variant_gr$variant_id, aac_key$aac_id), variants_to_cov$variant_id))
+    uncovered_variants[, cov := .(list(character()))]
+    variants_to_cov = rbind(variants_to_cov, uncovered_variants) # entries till be NULL
+    variants_to_cov = list2env(setNames(variants_to_cov$cov, variants_to_cov$variant_id),
+                               parent = emptyenv())
+    
+    cov_to_variants = cov_table[, .(variants = list(variant_id)), by = 'cov_name']
+    aac_by_cov = aac_coverage[, .(variants = list(unique(aac_id))), by = 'cov_name'] # need unique
+    cov_to_variants = rbind(cov_to_variants, aac_by_cov)
+    
+    cov_to_variants = list2env(setNames(cov_to_variants$variants, cov_to_variants$cov_name),
+                               parent = emptyenv())
   } else {
-    all_coverage = all_coverage[sort(names(all_coverage))] # sort by covered regions name
-    is_covered = setDT(lapply(all_coverage, function(x) IRanges::overlapsAny(snv_gr, x, type = "within")))
-    all_names = names(is_covered)
-    # when we support just R > 4.1, can just use simplify = F on apply to avoid playing these games
-    covered_in = apply(is_covered, 1, function(x) all_names[x])
-    if(is(covered_in, "character")) {
-      covered_in = as.list(covered_in)
-    } else if(is(covered_in, "matrix")) {
-      covered_in = lapply(1:ncol(covered_in), function(x) covered_in[, x])
-    }
-    snv_table[, covered_in := list(covered_in)]
-  }
-  cesa@mutations$snv = snv_table
-  setkey(cesa@mutations$snv, 'snv_id')
-  
-  # We're going to cheat and say samples have coverage at aac sites if they have coverage on any of the three codon positions
-  # in practice, there probably is coverage even if the coverage intervals disagree
-  if (! is.null(aac_table)) {
-    if (just_exome_plus) {
-      aac_table[, covered_in := list(list('exome+'))]
-    } else {
-      if ("covered_in" %in% colnames(aac_table)) {
-        aac_table[, covered_in := NULL]
-      }
-      aac_coverage = cesa@mutations$aac_snv_key[cesa@mutations$amino_acid_change$aac_id, on = 'aac_id']
-      aac_coverage[snv_table, covered_in := covered_in, on = 'snv_id']
-      aac_coverage = aac_coverage[, .(covered_in = list(unique(unlist(covered_in)))), by = 'aac_id']
-      
-      # edge case of adding single variant to empty CESAnalysis
-      if(aac_coverage[, .N] == 1 && is.null(aac_coverage$covered_in[[1]])) {
-        aac_table[, covered_in := list(NA_character_)]
-      } else if(aac_coverage[, .N] > 0) {
-        aac_table[aac_coverage, covered_in := covered_in, on = "aac_id"]
-      }
-    }
-    cesa@mutations$amino_acid_change = aac_table
-    setkey(cesa@mutations$amino_acid_change, 'aac_id')
+    # Handle case of all generic WGS data
+    all_variants = c(cesa@mutations$amino_acid_change$aac_id, cesa@mutations$snv$snv_id,
+                     cesa@mutations$dbs_codon_change$dbs_aac_id, cesa@mutations$dbs$dbs_id)
+    variants_to_cov = list2env(setNames(rep.int(list(character()), length(all_variants)), all_variants),
+                               parent = emptyenv())
+    cov_to_variants = new.env(parent = emptyenv())
   }
   
-  # Finally, update internal cached variants
+  cesa@mutations$cov_to_variants = cov_to_variants
+  cesa@mutations$variants_to_cov = variants_to_cov
+
+  # Update cached variants to reflect updated coverage info.
   cesa@advanced$cached_variants = suppressMessages(select_variants(cesa))
   return(cesa)
 }

@@ -67,7 +67,6 @@ test_that("ces_variant on subsets of samples", {
   expect_lt(also_marionberry, just_cherry)
   expect_lt(also_marionberry, with_all)
   
-  
   # Add some synthetic variants with no coverage; shouldn't affect selection
   new_maf = copy(cesa@maf)
   new_samples = copy(cesa@samples)
@@ -81,7 +80,8 @@ test_that("ces_variant on subsets of samples", {
   old_cesa = copy_cesa(cesa)
   cesa = add_covered_regions(cesa, covered_regions = without_cov, covered_regions_name = "no_cov",
                              coverage_type = "exome")
-  expect_identical(cesa@mutations$amino_acid_change[aac_id %like% 'FOXA1_F266L', unlist(covered_in)], c('exome+', 'top_genes'))
+  aac_id = cesa@mutations$amino_acid_change[aac_id %like% 'FOXA1_F266L', aac_id]
+  expect_identical(cesa@mutations$variants_to_cov[[aac_id]], c('exome+', 'top_genes'))
   
   # illegally adding new samples/data
   cesa@samples = rbind(cesa@samples, new_samples)
@@ -199,6 +199,19 @@ test_that("Attribution to mutational sources", {
   expect_equal(mut_effects, mut_ak)
 })
 
+
+test_that("Just genome data", {
+  # Various edge cases being hit: Just WGS data, load_maf() on only previously annotated variants,
+  # running ces_variant() on just 2 samples, running with SNVs and indels but no DBS.
+  c2 = CESAnalysis(ces.refset.hg38)
+  c2 = add_variants(target_cesa = c2, source_cesa = cesa)
+  c2 = load_maf(c2, maf = cesa$maf[1:100], coverage = 'genome')
+  c2 = assign_group_average_trinuc_rates(c2)
+  c2 = set_gene_rates(c2, rates = cesa$gene_rates[, .(pid, rate = rate_grp_1)])
+  c2 = ces_variant(c2, variants = c2$variants[c2$maf$variant_id[1:5], on = 'variant_id'])
+  expect_equivalent(unique(c2$selection$selection.1$included_with_variant), 1)
+  expect_equivalent(unique(c2$selection$selection.1$included_total), 2)
+})
 
 
 

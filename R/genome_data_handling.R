@@ -90,7 +90,11 @@ preload_ref_data = function(data_dir) {
   ref[["supported_chr"]] = genome_info$supported_chr
 
   if(check_for_ref_data(data_dir, "default_exome_gr")) {
-    ref[["default_exome"]] = get_ref_data(data_dir, "default_exome_gr")
+     default_exome = get_ref_data(data_dir, "default_exome_gr")
+     
+     # Spruce up default exome to tolerate reference assembly increment (e.g., GRCh38p.13->GRCh37p.14)
+     GenomeInfoDb::genome(default_exome) = GenomeInfoDb::genome(bsg)[1]
+     ref[["default_exome"]] = default_exome
   }
   
   # Load trinuc composition of each gene (composition is a 96-length numeric, deconstructSigs order)

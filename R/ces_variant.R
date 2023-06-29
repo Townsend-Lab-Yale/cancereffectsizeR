@@ -302,6 +302,7 @@ ces_variant <- function(cesa = NULL,
   
   
   setkey(samples, "covered_regions")
+  
   # These are WGS samples with purportedly whole-genome coverage.
   # That is, for better or worse, assuming that any variant can be found in these samples.
   # (Trimmed-interval WGS samples will have coverage = "genome" and covered_regions != "genome.")
@@ -310,10 +311,8 @@ ces_variant <- function(cesa = NULL,
   
   # Will process variants by coverage group (i.e., groups of variants that have the same tumors covering them)
   selection_results = NULL
-  
-  all_coverage = rbind(cesa@mutations$snv[, .(variant_id = snv_id, covered_in)], 
-                       cesa@mutations$amino_acid_change[, .(variant_id = aac_id, covered_in)])
-  variants[all_coverage, covered_in := covered_in, on = 'variant_id']
+
+  variants[, covered_in := mget(variants$variant_id, cesa@mutations$variants_to_cov)]
   coverage_groups = unique(variants$covered_in)
   num_coverage_groups = length(coverage_groups)
   

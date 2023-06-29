@@ -15,7 +15,9 @@ annotate_variants <- function(refset = NULL, variants = NULL) {
   
   # For now, return empty data.table if no variants to annotate
   if (variants[, .N] == 0) {
-    return(list(amino_acid_change = data.table(), snv = data.table()))
+    return(list(amino_acid_change = aac_annotation_template, snv = snv_annotation_template,
+                dbs_codon_change = dbs_codon_change_template, dbs = dbs_annotation_template,
+                aac_snv_key = aac_snv_key_template, aac_dbs_key = aac_dbs_key_template))
   }
   
   if (! all(c("Chromosome", "Start_Position", "Reference_Allele", "Tumor_Allele") %in% names(variants))) {
@@ -40,21 +42,14 @@ annotate_variants <- function(refset = NULL, variants = NULL) {
 
 
 annotate_dbs = function(dbs, refset) {
-  # TO-DO: switch in templates
-  results = list(dbs_codon_change = data.table(), dbs = data.table(), aac_dbs_key = data.table())
+  results = list(dbs = dbs_annotation_template, dbs_codon_change = dbs_codon_change_template, 
+                 aac_dbs_key = aac_dbs_key_template)
   if(dbs[, .N] == 0) {
     return(results)
   }
   
-  
-  final_codon_change = data.table(dbs_id = character(), chr = character(), pid = character(), 
-                                  essential_splice = character(), strand = character(), gene = character(), 
-                                  aa_ref = character(), aa_pos = character(), nt1_pos = character(), 
-                                  nt2_pos = character(), nt3_pos = character(), coding_seq = character(), 
-                                  aa_alt = character(), aachange = character(), dbs_aac_id = character())
-  final_dbs = data.table(dbs_id = character(), chr = character(), pos = numeric(), 
-                         ref = character(), alt = character(), intergenic = character(), essential_splice = character())
-  
+  final_codon_change = copy(dbs_codon_change_template)
+  final_dbs = copy(dbs_annotation_template)[, -"cosmic_dbs_class"] # will add this field back later
   while(dbs[, .N] > 0) {
     dbs[, snv1 := paste0(Chromosome, ':', Start_Position, '_', substr(Reference_Allele, 1, 1),
                          '>', substr(Tumor_Allele, 1, 1))]
@@ -115,6 +110,7 @@ annotate_dbs = function(dbs, refset) {
     dbs_anno[, essential_splice := essential_splice.snv1 == TRUE | essential_splice.snv2 == TRUE]
     
     # DBS table is for non-AAC information (analogous to the SNV annotation table)
+    # cosmic_dbs_class will get filled it later
     final_dbs = unique(rbind(final_dbs, dbs_anno[, .(dbs_id, chr, pos, ref, alt, intergenic, essential_splice)]))
     
     
@@ -224,7 +220,10 @@ annotate_dbs = function(dbs, refset) {
       new_dbs = unique(nt_records[, .SD, .SDcols = names(final_dbs)][! dbs_id %in% final_dbs$dbs_id])
       
       codon_change[, c("intergenic", "ref", "alt", "pos") := NULL]
-      final_codon_change = unique(rbind(final_codon_change, codon_change))
+      
+      # Redundancy (more than one dbs_id listing per dbs_aac_id) maintained until end of annotation to ensure
+      # that dbs_id discovered during coding annotation get annotated, too.
+      final_codon_change = unique(rbind(final_codon_change, codon_change, fill = T)) 
       
       # Case 2: Different codons (or one on-codon, one off), wither SNV splice-disrupting.
       dbs_anno[, essential_splice := essential_splice.snv1 == T | essential_splice.snv2 == T]
@@ -250,7 +249,8 @@ annotate_dbs = function(dbs, refset) {
                                        multi_anno_site = uniqueN(dbs_aac_id) > 1), by = 'dbs_id']
   
   final_codon_change$dbs_id = NULL
-  return(list(dbs_codon_change = final_codon_change, dbs = final_dbs, aac_dbs_key = aac_dbs_key))
+  final_codon_change = unique(final_codon_change, by = 'dbs_aac_id')
+  return(list(dbs = final_dbs, dbs_codon_change = final_codon_change, aac_dbs_key = aac_dbs_key))
 }
 
 

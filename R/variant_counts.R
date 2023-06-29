@@ -31,31 +31,14 @@ variant_counts = function(cesa, variant_ids = character(), by = character()) {
     stop("It doesn't really make sense to have Unique_Patient_Identifier in by.")
   }
   
-  # get sample table with just by_cols, UPI, covered_regions
-  # handle case of covered_regions being in by_cols by renaming
-  # And yes, convert by_cols to factor to more easily complete output table
+  # Get sample table with just by_cols, UPI, covered_regions.
+  # Handle case of covered_regions being in by_cols by renaming.
   samples = copy(cesa@samples)
   if("covered_regions" %in% by_cols) {
     by_cols[by_cols == "covered_regions"] = "cr_copy_for_by"
     samples[, cr_copy_for_by := covered_regions]
   }
   samples_with_by_cols = samples[, .SD, .SDcols = c(by_cols, "Unique_Patient_Identifier", "covered_regions")]
-  if(length(by_cols) > 0) {
-    samples_with_by_cols[, (by_cols) := lapply(.SD, as.factor), .SDcols = by_cols]
-  }
-  
-  # deal with data.table dcast bug (besides, "NA" and <NA> would conflict anyway in output headers)
-  for (col in by_cols) {
-    if (anyNA(samples_with_by_cols[[col]])) {
-      if ("NA" %in% levels(samples_with_by_cols[[col]])) {
-        stop("In column ", col, ", there are both missing values (NAs) and entries matching \"NA\".")
-      }
-      else {
-        levels(samples_with_by_cols[[col]]) = c(levels(samples_with_by_cols[[col]]), "NA")
-        samples_with_by_cols[is.na(samples_with_by_cols[[col]]), (col) := "NA"]
-      }
-    }
-  }
   
   if(! is(variant_ids, "character")) {
     stop("variant_ids should be character")
@@ -104,150 +87,77 @@ variant_counts = function(cesa, variant_ids = character(), by = character()) {
     maf = data.table(Unique_Patient_Identifier = character(), variant_id = character())
   }
   
-  # Get prevalences of AACs
-  aac_counts = data.table()
-  aac_count_output = data.table()
   
+  # Get counts by by_cols, with 0-count combinations also listed
+  get_complete_counts = function(dt) {
+    final_counts = setDT(samples[, expand.grid(c(list(variant_id = unique(dt$variant_id)), 
+                                             lapply(.SD, unique)), stringsAsFactors = FALSE), 
+                             .SDcols = by_cols])
+    final_counts[, N := 0]
+    dt = merge.data.table(dt, samples[, .SD, .SDcols = c(by_cols, 'Unique_Patient_Identifier')], all.x = TRUE, by = 'Unique_Patient_Identifier')
+    nonzero_counts = dt[! is.na(Unique_Patient_Identifier), .(count = .N), by = c('variant_id', by_cols)]
+    final_counts[nonzero_counts, N := count, on = c(by_cols, 'variant_id')]
+    return(final_counts)
+  }
+  
+  
+  combined_counts = data.table()
   if(snv_from_aac[, .N] > 0) {
-    snv_from_aac_counts = setDT(maf[snv_from_aac, .(Unique_Patient_Identifier, aac_id), on = c(variant_id = "snv_id"), 
-                                    allow.cartesian = T, nomatch = NULL])
-    snv_from_aac_counts = merge.data.table(snv_from_aac_counts, samples, by = "Unique_Patient_Identifier", all.x = TRUE)
-    aac_counts = snv_from_aac_counts[, .N, by = c(by_cols, 'aac_id')]
-    setnames(aac_counts, 'aac_id', 'variant_id')
-    zero_prev_aac = setdiff(snv_from_aac$aac_id, aac_counts$variant_id)
-    if (length(zero_prev_aac) > 0) {
-      aac_counts = rbind(aac_counts, data.table(variant_id = zero_prev_aac, N = 0), fill = T)
-    }
-    if(length(by_cols) > 0) {
-      aac_count_output = dcast.data.table(aac_counts, variant_id ~ ..., value.var = "N", fill = 0, drop = F)
-    } else {
-      aac_count_output = copy(aac_counts)
-    }
+    snv_from_aac_counts = setDT(maf[snv_from_aac, .(Unique_Patient_Identifier, variant_id = aac_id), 
+                                    on = c(variant_id = "snv_id"), 
+                                    allow.cartesian = T])
+    aac_count_output = get_complete_counts(dt = snv_from_aac_counts)
+    combined_counts = rbind(combined_counts, aac_count_output)
   }
   
   
   # Get prevalences of SNVs
-  combined_count_output = aac_count_output
-  snv_counts = data.table()
-  snv_count_output = data.table()
   if(length(noncoding_snv_id) > 0) {
-    snv_counts = maf[noncoding_snv_id, .(Unique_Patient_Identifier, variant_id), on = 'variant_id', nomatch = NULL]
-    snv_counts = merge.data.table(snv_counts, samples, by = "Unique_Patient_Identifier", all.x = TRUE, sort = F)
-    snv_counts = snv_counts[, .N, by = c(by_cols, 'variant_id')]
-    zero_prev_snvs = setdiff(noncoding_snv_id, snv_counts$variant_id)
-    if (length(zero_prev_snvs) > 0) {
-      snv_counts = rbind(snv_counts, data.table(variant_id = zero_prev_snvs, N = 0), fill = T)
-    }
-    if(length(by_cols) == 0) {
-      snv_count_output = copy(snv_counts)
-    } else {
-      snv_count_output = dcast.data.table(snv_counts, variant_id ~ ..., value.var = "N", fill = 0, drop = F)
-    }
-    combined_count_output = rbind(aac_count_output, snv_count_output)
+    snv_counts = maf[noncoding_snv_id, .(Unique_Patient_Identifier, variant_id), on = 'variant_id']
+    final_snv_counts = get_complete_counts(snv_counts)
+    combined_counts = rbind(combined_counts, final_snv_counts)
   }
   
-  if(combined_count_output[, .N] == 0) {
+  
+  if(combined_counts[, .N] == 0) {
     stop("No variants to count.")
   }
-  prevalence_cols = setdiff(names(combined_count_output), 'variant_id')
-  new_prevalence_cols = 'total_prevalence'
-  if(length(by_cols) > 0) {
-    new_prevalence_cols = paste0(prevalence_cols, '_prevalence')
-  }
-  setnames(combined_count_output, prevalence_cols, new_prevalence_cols)
   
-  
-  calc_cov = function(count_output, annotations) {
+  calc_cov = function(variant_id) {
     # Count samples with coverage in each group
-    # Start by cross-joining all by_col factor combinations with all variant IDs (as given in count output)
-    full_cov = do.call(CJ, c(as.list(samples[, .SD, .SDcols = by_cols]), 
-                             list(variant_id = count_output$variant_id), unique = T))
+    covering_by_variant = mget(variant_id, cesa@mutations$variants_to_cov)
     
-    # stringi::stri_join_list can't handle character(0), so change to '',
-    # include in 1-length annotations edge case
-    if(annotations[, .N] == 1) {
-      if(length(annotations$covered_in[[1]]) == 0) {
-        annotations$covered_in[[1]] = list('')
-      }
-    } else {
-      annotations[sapply(covered_in, length) == 0, covered_in := ''] 
-    }
-    
-    annotations[, flat_cov := stringi::stri_join_list(covered_in)]
-    full_cov[annotations, flat_cov := flat_cov, on = 'variant_id']
-    
-    # We only need to find set of coverage counts once per unique covered_in combination,
-    # and then can copy the counts into full_cov
-    small_cov = full_cov[ , .SD[1], by = c(by_cols, "flat_cov")]
-    small_cov[annotations, covered_in := covered_in, on = 'variant_id'] # much smaller join
-    cov_counts_by_group = samples[, .N, by = c(by_cols, "covered_regions")]
-    setkeyv(cov_counts_by_group, c(by_cols, "covered_regions"))
-    small_cov[, rn := 1:.N]
-    
-    # break open covered_in lists, making one row per variant/covering-region pair
-    by_cov_region = small_cov[, .(covered_regions = c(unlist(covered_in), "genome")), by = 'rn']
-    by_cov_region = merge.data.table(by_cov_region, small_cov[, -"covered_in"], by = 'rn', sort = F)
-    setkeyv(by_cov_region, c(by_cols, "covered_regions"))
-    by_cov_region[, num_cov := cov_counts_by_group[by_cov_region, N]]
-    cov_counts = by_cov_region[, .(num_cov = sum(num_cov, na.rm = T)), by = "rn"]
-    small_cov[cov_counts, num_cov := num_cov, on = 'rn']
-    full_cov[small_cov, num_cov := num_cov, on = c(by_cols, 'flat_cov')]
-    
+    dts = list(copy(samples))
     if(length(by_cols) > 0) {
-      by_site = full_cov[, .(total_covering = sum(num_cov)), by = 'variant_id']
-      cov_output = dcast.data.table(full_cov[, -c("flat_cov")], 
-                                    variant_id ~ ..., value.var = "num_cov", fill = 0, drop = F)
-      cov_output[by_site, total_covering := total_covering, on = 'variant_id']
-    } else {
-      cov_output = full_cov[, .(variant_id, num_cov)]
+      dts = split(samples, by = by_cols)
     }
-    return(cov_output)
+    
+    cov_by_group = rbindlist(lapply(dts, function(dt) {
+      # Hash sample counts for each panel for the specific by-group
+      sample_count_by_cr = dt[, .N, by = 'covered_regions']
+      num_generic_wg = sample_count_by_cr[covered_regions == 'genome', N] # to add in at the end
+
+      if(length(num_generic_wg) == 0) {
+        num_generic_wg = 0
+      }
+      sample_count_by_cr = list2env(as.list(setNames(sample_count_by_cr$N, 
+                                                     nm = sample_count_by_cr$covered_regions)),
+                                    parent = emptyenv())
+      cov_by_group = lapply(covering_by_variant, 
+                            function(x) sum(unlist(mget(x, sample_count_by_cr, ifnotfound = 0))))
+      cov_by_group = data.table(variant_id = names(cov_by_group), num_cov = unlist(cov_by_group))
+      sapply(by_cols, function(x) cov_by_group[, (x) := dt[[x]][1]])
+      
+      # Add in the generic whole-genome samples
+      cov_by_group[, num_cov := num_cov + num_generic_wg]
+      return(cov_by_group)
+    }))
+    return(cov_by_group)
   }
+  combined_cov_output = calc_cov(unique(combined_counts$variant_id))
   
-  # Copy needed part of annotations
-  
-  aac_anno = cesa@mutations$amino_acid_change[snv_from_aac[, unique(aac_id)]]
-  snv_anno = cesa@mutations$snv[noncoding_snv_id, ]
-  setnames(aac_anno, 'aac_id', 'variant_id')
-  setnames(snv_anno, 'snv_id', 'variant_id')
-  
-  combined_cov_output = data.table()
-  if(aac_count_output[, .N] > 0) {
-    aac_cov_output = calc_cov(aac_count_output, aac_anno)
-    aac_cov_output[, variant_type := 'aac']
-    combined_cov_output = aac_cov_output
-  }
-  if(snv_count_output[, .N] > 0) {
-    snv_cov_output = calc_cov(snv_count_output, snv_anno)
-    snv_cov_output[, variant_type := 'snv']
-    combined_cov_output = rbind(combined_cov_output, snv_cov_output)
-  }
-  
-  cov_cols = setdiff(names(combined_cov_output), c('variant_id', 'variant_type', 'total_covering'))
-  new_cov_cols = paste0(cov_cols, '_covering')
-  if(length(by_cols) == 0) {
-    new_cov_cols = 'total_covering'
-  }
-  setnames(combined_cov_output, cov_cols, new_cov_cols)
-  
-  # Add total counts for both, if using by_col (already happened for coverage in helper function)
-  first_cols = c('variant_id', 'variant_type')
-  if (length(by_cols) > 0) {
-    site_snv_counts = data.table()
-    if(snv_counts[, .N] > 0) {
-      site_snv_counts = snv_counts[, .(total_prevalence = sum(N)), by = 'variant_id']
-    }
-    site_aac_counts = data.table()
-    if(aac_counts[, .N] > 0) {
-      site_aac_counts = aac_counts[, .(total_prevalence = sum(N)), by = 'variant_id'] 
-    }
-    combined_count_output[rbind(site_snv_counts, site_aac_counts), total_prevalence := total_prevalence, on = 'variant_id']
-    first_cols = c(first_cols, 'total_prevalence', 'total_covering')
-  }
-  
-  full_output = merge.data.table(combined_count_output, combined_cov_output, by = 'variant_id', sort = F)
-  setcolorder(full_output, c(first_cols, unlist(S4Vectors::zipup(new_prevalence_cols, new_cov_cols))))
-  return(full_output)
+  full_output = merge.data.table(combined_counts, combined_cov_output, by = c('variant_id', by_cols), sort = F)
+  return(full_output[order(variant_id)])
 }
 
 #' Sort and validate input variant IDs
@@ -277,6 +187,12 @@ sort_and_validate_variant_ids = function(cesa, input_ids, drop_unannotated = FAL
   input_ids = setdiff(input_ids, aac_ids)
   
   ## To-do: insert DBS/indel logic here (and below)
+  dbs_ids = intersect(input_ids, cesa@mutations$dbs$dbs_id)
+  input_ids = setdiff(input_ids, dbs_ids)
+  
+  dbs_aac_ids = intersect(input_ids, cesa@mutations$dbs_codon_change$dbs_aac_id)
+  input_ids = setdiff(input_ids, dbs_aac_ids)
+  
   
   if(length(input_ids) > 0) {
     input_ids = sub(' ', '_', input_ids)

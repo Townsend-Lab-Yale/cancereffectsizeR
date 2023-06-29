@@ -125,6 +125,9 @@ load_maf = function(cesa = NULL, maf = NULL, maf_name = character(), coverage = 
     if (! "exome" %in% names(cesa@coverage[["exome"]])) {
       cesa@advanced$using_exome_plus = ! enforce_default_exome_coverage
       covered_regions = get_ref_data(cesa, "default_exome_gr")
+      
+      # Tolerate reference assembly increment (e.g., GRCh38p.13->GRCh37p.14)
+      GenomeInfoDb::genome(covered_regions) = GenomeInfoDb::genome(bsg)[1] 
       cesa@coverage$exome[["exome"]] = covered_regions
       
     } else if (enforce_default_exome_coverage == TRUE & cesa@advanced$using_exome_plus) {
@@ -314,7 +317,7 @@ load_maf = function(cesa = NULL, maf = NULL, maf_name = character(), coverage = 
       pretty_message(msg)
     } else {
       uncovered = maf[is_uncovered]
-      uncovered$reason = paste0("uncovered_in_", covered_regions_name)
+      uncovered$reason = 'uncovered'
       maf = maf[!is_uncovered]
       excluded = rbind(excluded, uncovered[, names(excluded), with = F])
       pretty_message(paste0("Note: ", num_uncovered, " MAF records out of ", total, " (", percent, 
@@ -338,7 +341,7 @@ load_maf = function(cesa = NULL, maf = NULL, maf_name = character(), coverage = 
   
   # Set aside new variants for annotation (notably, before MNV prediction; we'll still annotate those as SNVs)
   # To-do: also leave out indels that have previously been annotated (okay to re-annotate for now)
-  to_annotate = maf[! cesa@mutations$snv$snv_id, on = 'variant_id']
+  to_annotate = maf[! c(cesa@mutations$snv$snv_id, cesa@mutations$dbs$dbs_id), on = 'variant_id']
   pretty_message("Annotating variants...")
   annotations = annotate_variants(refset = refset, variants = to_annotate)
   
@@ -371,9 +374,9 @@ load_maf = function(cesa = NULL, maf = NULL, maf_name = character(), coverage = 
   cesa@mutations[["aac_snv_key"]] = unique(rbind(cesa@mutations$aac_snv_key, annotations$aac_snv_key))
   setkey(cesa@mutations$aac_snv_key, 'aac_id')
   
-  cesa@mutations[["dbs_codon_change"]] = annotations$dbs_codon_change
-  cesa@mutations[["dbs"]] = annotations$dbs
-  cesa@mutations[["aac_dbs_key"]] = annotations$aac_dbs_key
+  cesa@mutations[["dbs_codon_change"]] = unique(rbind(cesa@mutations$dbs_codon_change, annotations$dbs_codon_change), by = 'dbs_aac_id')
+  cesa@mutations[["dbs"]] = unique(rbind(cesa@mutations$dbs, annotations$dbs), by = 'dbs_id')
+  cesa@mutations[["aac_dbs_key"]] = unique(rbind(cesa@mutations$aac_dbs_key, annotations$aac_dbs_key))
   
   # add genes list to MAF records (may stop including in near future)
   # use of _tmp names required as of data.table 1.13.2 to keep join from failing
@@ -386,9 +389,9 @@ load_maf = function(cesa = NULL, maf = NULL, maf_name = character(), coverage = 
   maf[intergenic_snv, genes_tmp := list(NA_character_), on = "variant_id"]
   
   
-  # temporary way of annotating non-SNVs
-  non_snv = maf[variant_type != 'snv']
-  if (non_snv[, .N] > 0) {
+  # temporary way of annotating non-SNVs/DBS
+  non_snv_dbs = maf[variant_type != 'snv']
+  if (non_snv_dbs[, .N] > 0) {
     grt = as.data.table(refset$gr_genes) # Name will change to gr_cds later
     if ("gene" %in% names(grt)) {
       grt[, names := gene] # use gene field instead of names field (applies when CDS gr has multiple CDS per gene)
@@ -397,14 +400,14 @@ load_maf = function(cesa = NULL, maf = NULL, maf_name = character(), coverage = 
     setnames(grt, c("seqnames", "start", "end", "names"), 
              c("Chromosome", "Start_Position", "End_Position", "gene"))
     setkey(grt, Chromosome, Start_Position, End_Position)
-    non_snv[, End_Position := Start_Position] # okay for now
-    non_snv_genes = foverlaps(non_snv, grt)
+    non_snv_dbs[, End_Position := Start_Position] # okay for now
+    non_snv_dbs_genes = foverlaps(non_snv_dbs, grt)
     # use Start_Position from MAF, not gr
-    non_snv_genes[, Start_Position := i.Start_Position]
-    non_snv_genes = non_snv_genes[, .(genes = list(unique(gene))), by = c("Chromosome", "Start_Position")]
-    non_snv_genes[, is_snv := F]
+    non_snv_dbs_genes[, Start_Position := i.Start_Position]
+    non_snv_dbs_genes = non_snv_dbs_genes[, .(genes = list(unique(gene))), by = c("Chromosome", "Start_Position")]
+    non_snv_dbs_genes[, is_snv := F]
     maf[, is_snv := variant_type == 'snv']
-    maf[non_snv_genes, genes_tmp := genes,
+    maf[non_snv_dbs_genes, genes_tmp := genes,
         on = c("is_snv", "Chromosome", "Start_Position")]
     maf[, is_snv := NULL]
   }
@@ -427,8 +430,8 @@ load_maf = function(cesa = NULL, maf = NULL, maf_name = character(), coverage = 
   cesa@maf = rbind(cesa@maf, maf, fill = T)
   
   # Update coverage fields of annotation tables
-  # Internal note: Confusingly, update_covered_in also has a side effect of updating
-  # cached output of select_variants; this should change in the future.
+  # Note that update_covered_in also updates cached variants table,
+  # since the table includes some coverage info for convenience.
   cesa = update_covered_in(cesa)
   
   # Cached variants is a table of non-overlapping mutations (in terms of genomic position),

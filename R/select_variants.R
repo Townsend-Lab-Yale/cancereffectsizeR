@@ -99,7 +99,7 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   bsg = get_cesa_bsg(cesa)
   
   # Soon we'll check indels, too
-  if(cesa@mutations$snv[, .N] == 0) {
+  if(cesa@mutations$snv[, .N] + cesa@mutations$dbs[, .N] == 0) {
     stop("There are no variants in the CESAnalysis.")
   }
   
@@ -254,9 +254,8 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
     selected_snv_ids = setdiff(selected_snv_ids, aac_snv_key$snv_id)
   }
   
-  # not including covered_in in output
-  selected_snv = setDT(cesa@mutations$snv[selected_snv_ids, -"covered_in", on = 'snv_id'])
-  selected_aac = setDT(cesa@mutations$amino_acid_change[selected_aac_ids, -"covered_in", on = 'aac_id'])
+  selected_snv = setDT(cesa@mutations$snv[selected_snv_ids, on = 'snv_id'])
+  selected_aac = setDT(cesa@mutations$amino_acid_change[selected_aac_ids, on = 'aac_id'])
   
   # Get variant counts and coverage
   snv_from_aac = cesa@mutations$aac_snv_key[selected_aac$aac_id, .(aac_id, snv_id), on = 'aac_id']
@@ -265,18 +264,17 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
     message("No variants passed selection criteria!")
     return(NULL)
   }
-  
+
   if (cesa@maf[, .N] > 0) {
     counts_and_cov = .variant_counts(cesa, samples = cesa@samples[, .(Unique_Patient_Identifier, covered_regions)],
                                      snv_from_aac = aac_snv_key[, .(aac_id, snv_id)],
                                      noncoding_snv_id = selected_snv_ids)
-    setnames(counts_and_cov, c("total_prevalence", "total_covering"), c("maf_prevalence", "samples_covering"))
+    setnames(counts_and_cov, c("N", "num_cov"), c("maf_prevalence", "samples_covering"))
     
   } else {
     counts_and_cov = data.table(variant_id = c(selected_aac$aac_id, selected_snv_ids),
                                 variant_type = c(rep('aac', selected_aac[, .N]), rep('snv', length(selected_snv_ids))),
                                 maf_prevalence = 0, samples_covering = 0)
-   
   }
 
   selected_snv[counts_and_cov, c("maf_prevalence", "samples_covering") := list(maf_prevalence, samples_covering), on = c(snv_id = 'variant_id')]

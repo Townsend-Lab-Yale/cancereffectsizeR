@@ -1,7 +1,7 @@
 # get_test_file and get_test_data are loaded automatically from helpers.R by testthat
 tiny_maf = fread(get_test_file("tiny.hg38.maf.txt"))
 test_that("load_maf and variant annotation", {
-  preloaded = preload_maf(tiny_maf, 'ces.refset.hg38')
+  preloaded = preload_maf(maf = tiny_maf, refset = 'ces.refset.hg38')
   expect_equivalent(preloaded, fread(get_test_file('tiny_preloaded.txt')))
   tiny = load_maf(cesa = CESAnalysis(refset = "ces.refset.hg38"), maf = preloaded)
   tiny_ak = load_cesa(get_test_file("tiny_hg38_maf_loaded.rds"))
@@ -21,12 +21,12 @@ test_that("load_maf and variant annotation", {
   variants_to_check = copy(tiny@maf)
   variants_to_check[, variant_type := NULL] # cause variants to be re-identified
   re_anno = annotate_variants(ces.refset.hg38, variants_to_check)
-  expect_equal(tiny@mutations$amino_acid_change[, -"covered_in"], re_anno$amino_acid_change)
+  expect_equal(tiny@mutations$amino_acid_change, re_anno$amino_acid_change)
   
   # column order is different when running annotate_variants() directly.
   setcolorder(re_anno$snv, c("snv_id", "chr", "pos", "ref", "alt", "genes", "intergenic", 
                              "trinuc_mut", "essential_splice", "nearest_pid"))
-  expect_equal(tiny@mutations$snv[, -"covered_in"], re_anno$snv)
+  expect_equivalent(tiny@mutations$snv, re_anno$snv)
   
   # expect error when adding a variant already present
   expect_error(add_variants(target_cesa = tiny, snv_id = "10:87933130_G>C"), "all of them are already annotated")
@@ -36,16 +36,16 @@ test_that("load_maf and variant annotation", {
   
   
   selected = select_variants(tiny, variant_ids  = "12:132824581_A>C", genes = "TAF1C")
-  expect_equal(tiny@mutations$snv["12:132824581_A>C", unlist(covered_in)], character())
+  expect_equal(tiny@mutations$variants_to_cov$`12:132824581_A>C`, character())
   expect_equal(selected[, .N], 2)
   selected = select_variants(tiny, variant_ids = "12:132824581_A>C", genes = "TAF1C", min_freq = 0, include_subvariants = T)
   expect_equal(selected[, .N], 3)
   selected = select_variants(tiny, min_freq = 1)
   expect_equal(sum(selected$maf_prevalence), 265) 
-  expect_equal(variant_counts(tiny, "12:132824581_A>C")$total_prevalence, 0)
-  expect_equal(sum(variant_counts(tiny, selected$variant_id)$total_prevalence), 265)
+  expect_equal(variant_counts(tiny, "12:132824581_A>C")$N, 0)
+  expect_equal(sum(variant_counts(tiny, selected$variant_id)$N), 265)
   
-  # Check a the essential splice site manually added to ces.refset.hg38
+  # Check an essential splice site manually added to ces.refset.hg38
   tiny = add_variants(target_cesa = tiny, aac_id = 'TP53_T125T_ENSP00000269305.4')
   expect_equal(tiny$variants[variant_id == "TP53_T125T_ENSP00000269305.4", essential_splice], T)
   
@@ -61,7 +61,7 @@ test_that("load_maf and variant annotation", {
   # test adding covered regions and covered_regions_padding
   tiny = add_covered_regions(target_cesa = tiny, covered_regions = GRanges("chr12:132824580"), 
                       covered_regions_name = "precise_target_1", coverage_type = "targeted")
-  expect_equal(tiny@mutations$snv["12:132824581_A>C", unlist(covered_in)], character())
+  expect_equal(tiny@mutations$variants_to_cov$`12:132824581_A>C`, character())
   
   # load again, with different ranges
   expect_error(add_covered_regions(target_cesa = tiny, covered_regions = GRanges("chr12:100"), 
@@ -79,7 +79,7 @@ test_that("load_maf and variant annotation", {
   # load again with padding
   tiny = add_covered_regions(target_cesa = tiny, covered_regions = GRanges("chr12:132824580"), 
                       covered_regions_name = "precise_target_2", coverage_type = "targeted", covered_regions_padding = 10)
-  expect_equal(tiny@mutations$snv["12:132824581_A>C", unlist(covered_in)], "precise_target_2")
+  expect_equal(tiny@mutations$variants_to_cov$`12:132824581_A>C`, "precise_target_2")
   
   
   # check load_sample_data and clear_sample_data

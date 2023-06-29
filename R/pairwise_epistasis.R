@@ -427,10 +427,8 @@ pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compoun
     v1 = variant_pair[1]
     v2 = variant_pair[2]
     
-    v1_coverage = c(cesa@mutations$amino_acid_change[v1, unlist(covered_in), nomatch = NULL], 
-                    cesa@mutations$snv[v1, unlist(covered_in), nomatch = NULL])
-    v2_coverage = c(cesa@mutations$amino_acid_change[v2, unlist(covered_in), nomatch = NULL], 
-                    cesa@mutations$snv[v2, unlist(covered_in), nomatch = NULL])
+    v1_coverage = get(v1, cesa@mutations$variants_to_cov)
+    v2_coverage = get(v2, cesa@mutations$variants_to_cov)
     
     # Samples have to have v1 and v2 coverage (and samples with covered_regions == "genome" always have coverage)
     joint_coverage = c("genome", intersect(v1_coverage, v2_coverage))
