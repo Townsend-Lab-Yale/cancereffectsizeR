@@ -173,7 +173,36 @@ get_TCGA_project_MAF = function(project = NULL, filename = NULL, test_run = FALS
   files[, path := paste0(tmp_dir, '/', file_name)]
   files[, url := paste0(data_endpt, '/', id)]
   
-  pbapply::pbmapply(download.file, files$url, files$path, MoreArgs = list(quiet = TRUE, mode = 'wb'))
+  pbapply::pbmapply(
+    function(url, path, filename) {
+      # Try up to 5 times to download a file
+      num_tries = 5
+
+      for(i in 1:(num_tries - 1)) {
+        unlink(path) # in case file exists from previous attempt
+        tryCatch(
+          { code = utils::download.file(url = url, destfile = path, quiet = TRUE, mode = 'wb')},
+          error = function(e) NULL, warning = function(w) NULL
+        )
+        if(is.integer(code) && code == 0) return()
+        Sys.sleep(1) # wait a second
+      }
+      
+      # On last try, we'll let warnings/errors go through.
+      message("\nHaving some trouble with a download. Waiting 10 seconds and giving it one last try....\n")
+      Sys.sleep(10)
+      unlink(path)
+      withCallingHandlers(
+        {
+          code = utils::download.file(url = url, destfile = path, quiet = TRUE, mode = 'wb')
+        }, error = function(e) {
+          msg = pretty_message(paste0("File ", filename, " failed to download from ",
+                                      url, " (tried ", num_tries, " times)."), emit = F)
+          warning("\n", msg, "\nLast errors/warnings:\n", call. = FALSE, immediate. = TRUE)
+          e
+        }, warning = function(w) w
+      )
+    }, files$url, files$path, files$file_name)
   
   message("Verifying files....")
   actual_sums = tools::md5sum(files$path)
