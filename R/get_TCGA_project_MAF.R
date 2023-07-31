@@ -180,6 +180,7 @@ get_TCGA_project_MAF = function(project = NULL, filename = NULL, test_run = FALS
 
       for(i in 1:(num_tries - 1)) {
         unlink(path) # in case file exists from previous attempt
+        code = 1L
         tryCatch(
           { code = utils::download.file(url = url, destfile = path, quiet = TRUE, mode = 'wb')},
           error = function(e) NULL, warning = function(w) NULL
