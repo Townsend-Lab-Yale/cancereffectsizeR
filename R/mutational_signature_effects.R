@@ -122,10 +122,11 @@ mutational_signature_effects <- function(cesa = cesa, effects = NULL, samples = 
   }
   
   # Collect SNV IDs: just the variant ID for SNVs; for AACs, pull information from mutation annotations
-  effects[variant_type == "snv", snv_ids := list(list(variant_id)), by = "variant_id"]
-  effects[variant_type == "aac", snv_ids := cesa@mutations$amino_acid_change[variant_id, constituent_snvs, on = 'aac_id']]
-  
-  variant_sources = effects[, .(snv = unlist(snv_ids), selection_intensity), by = "variant_id"]
+  snv_effects = effects[variant_type == 'snv']
+  snv_effects[, snv := variant_id]
+  aac_effects = effects[variant_type == 'aac']
+  aac_effects = merge.data.table(aac_effects, cesa@mutations$aac_snv_key[, .(snv = snv_id, aac_id)], by.x = 'variant_id', by.y = 'aac_id')
+  variant_sources = rbind(snv_effects, aac_effects)
   variant_sources[, trinuc_context := cesa@mutations$snv[snv, trinuc_mut, on = 'snv_id']]
   
   # Ensure that all SNVs have trinuc context annotation

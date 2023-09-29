@@ -158,7 +158,8 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
   setkey(sample_region_rates, "region")
   
   if(length(aac_ids > 0)) {
-    trinuc_mut_by_aac = mutations$amino_acid_change[, .(trinuc_mut = list(mutations$snv[unlist(constituent_snvs), trinuc_mut])), by = "aac_id"]
+    trinuc_mut_by_aac = mutations$aac_snv_key[mutations$amino_acid_change$aac_id, .(aac_id, snv_id), on = 'aac_id']
+    trinuc_mut_by_aac[mutations$snv, trinuc_mut := trinuc_mut, on = 'snv_id']
     
     if (using_pid) {
       mutations$amino_acid_change[, region := pid]

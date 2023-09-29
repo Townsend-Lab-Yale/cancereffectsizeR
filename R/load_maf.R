@@ -440,7 +440,7 @@ load_maf = function(cesa = NULL, maf = NULL, maf_name = character(), coverage = 
   # Edge case: No passing variants in MAF table means nothing to do. Also possible
   # to have no cached variants if all variants are of non-annotated type (e.g., "other").
   if(cesa@maf[, .N] > 0 && ! is.null(cesa@advanced$cached_variants)) {
-    consequences = cesa@advanced$cached_variants[variant_type != 'snv', .(snv_id = unlist(constituent_snvs), variant_name, gene), by = 'variant_id']
+    consequences = cesa@mutations$aac_snv_key[cesa@advanced$cached_variants[variant_type == 'aac'], .(variant_name, snv_id, gene), on = c(aac_id = 'variant_id')]
     cesa@maf[consequences, c("top_gene", "top_consequence") := list(gene, variant_name), on = c(variant_id = 'snv_id')]
   }
 

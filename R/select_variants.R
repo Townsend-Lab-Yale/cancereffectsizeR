@@ -35,7 +35,6 @@
 #'   \item coding_seq: coding strand nucleotides in order of transcription
 #'   \item center_nt_pos: regardless of strand, start/end give positions of two out of three AAC nucleotides; this
 #'                       gives the position of the center nucleotide (maybe useful if the AAC spans a splice site)
-#'   \item constituent_snvs: all SNVs that can produce a given variant 
 #'   \item multi_anno_site: T/F whether variant has multiple gene/transcript/AAC annotations
 #'   \item all_genes: all genes overlapping the variant in reference data
 #'   \item maf_prevalence: number of occurrences of the variant in MAF data
@@ -55,43 +54,24 @@
 #' @param variant_position_table Filter out any variants that don't intersect the
 #'   positions given in chr/start/end of this table (1-based closed coordinates).
 #'   Typically, the table comes from a previous \code{select_variants} call and can be expanded
-#'   with \code{padding}. (Gritty detail: Amino acid change SNVs get special handling. Only the
-#'   precise positions in start, end, and center_nt_pos are used. This avoids intersecting
-#'   extra variants between start/end, which on splice-site-spanning variants can be many
-#'   thousands.)
+#'   with \code{padding}. (Gritty detail: Amino acid substitutions get special handling. Only the
+#'   precise positions in start, end, and center_nt_pos are used. (Otherwise, coding changes that
+#'   span splice sites would cause up to thousands of extra variants to get captured.)
 #' @param padding add +/- this many bases to every range specified in \code{gr} or
 #'   \code{variant_position_table} (stopping at chromosome ends, naturally).
-#' @param collapse_lists Some output columns may have multiple elements per variant row.
-#'   For example, all_genes may include multiple genes. These variable-length vectors
-#'   allow advanced filtering and manipulation, but the syntax can be tricky. Optionally,
-#'   set collapse_lists = T to convert these columns to comma-delimited strings, which are
-#'   sometimes easier to work with.
 #' @param include_subvariants Some mutations "contain" other mutations. For example, in
-#'   cancereffectsizeR's ces.refset.hg19, KRAS_Q61H contains two constituent
-#'   SNVs that both cause the same amino acid change: 12:25380275_T>G and 12:25380275_T>A.
-#'   When include_subvariants = F (the default), and genes = "KRAS", output will be
-#'   returned for KRAS_Q61H but not for the two SNVs (although their IDs will appear in
-#'   the Q61H output). Set to true, and all three variants will be included in output, 
-#'   assuming they don't get filtered out by other other options, like min_freq. If you
-#'   set this to TRUE, you can't directly plug the output table into selection functions.
-#'   However, you can pick a non-overlapping set of variant IDs from the output table 
-#'   and re-run \code{select_variants()} to put those variants into a new table for
-#'   selection functions.
-#' @param remove_secondary_aac Default TRUE, except overridden (effectively FALSE) when
-#'   include_subvariants = T. Due to overlapping coding region definitions in reference
-#'   data (e.g., genes with multiple transcripts), a site can have more than one
-#'   amino-acid-change annotation. To avoid returning the same genome-positional
-#'   variants multiple times, the default is to return one AAC in these situations.
-#'   Tiebreakers are MAF prevalence, essential splice site status, premature stop codon,
-#'   non-silent status, gene/protein mutation count, alphabetical. If you set
-#'   remove_secondary_aac to FALSE, you can't put the output variant table in selection
-#'   calculation functions. An alternative is to set to FALSE, pick which
-#'   (non-overlapping) variants you want, and then re-run select_variants() with those
-#'   variants specified in \code{variant_ids}.
+#'   cancereffectsizeR's ces.refset.hg19, the amino acid substitution KRAS_Q61H can be induced by
+#'   two distinct SNVs: 12:25380275_T>G and 12:25380275_T>A. When include_subvariants = F (the
+#'   default), and genes = "KRAS", output will be returned for KRAS_Q61H but not for the two SNVs.
+#'   Set to true, and all three variants will be included in output, assuming they don't get
+#'   filtered out by other other options, like min_freq. If you set this to TRUE, you can't directly
+#'   plug the output table into selection functions. However, you can pick a non-overlapping set of
+#'   variant IDs from the output table and re-run \code{select_variants()} to put those variants
+#'   into a new table for selection functions.
 #' @return A data table with info on selected variants (see details), or a list of IDs.
 #' @export
 select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL, gr = NULL, variant_position_table = NULL, 
-                            include_subvariants = F, padding = 0, collapse_lists = F, remove_secondary_aac = TRUE) {
+                            include_subvariants = F, padding = 0) {
   
   if(! is(cesa, "CESAnalysis")) {
     stop("cesa should be a CESAnalysis object")
@@ -118,16 +98,10 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
     stop("include_subvariants should be T/F")
   }
   
-  if (! is.logical(collapse_lists) || length(collapse_lists) != 1) {
-    stop("collapse_lists should be T/F")
-  }
   
-  if (! is.logical(remove_secondary_aac) || length(remove_secondary_aac) != 1) {
-    stop("collapse_lists should be T/F")
-  }
-  if (include_subvariants) {
-    remove_secondary_aac = FALSE
-  }
+  # We will do variant prioritization unless we're including all variant records in output
+  remove_secondary_aac = ! include_subvariants
+
 
   # collect all variants, unless just variant_ids specified
   if (is.null(gr) && is.null(variant_position_table) && is.null(genes) && min_freq == 0 && length(variant_ids) > 0) {
@@ -221,8 +195,8 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
                      "with cancereffectsizeR-style aac_ids. However, some of your variant names matched more than ",
                      "one aac_id (i.e., the same amino acid change is possible on multiple protein isoforms, and both are present ",
                      "in this analysis's variant annotations.) When the underlying SNVs are the same, only one AAC will be returned ",
-                     "(unless you run with remove_secondary_aac = FALSE). Otherwise, all matching variants ",
-                     "will be returned. (There may be additional matching variants with MAF frequency = 0 that are not ",
+                     "Otherwise, all matching variants will be returned. ",
+                     "(There may be additional matching variants with MAF frequency = 0 that are not ",
                      "annotated in this analysis; these will not be returned.)")
         pretty_message(msg, black = F)
       } else {
@@ -233,7 +207,7 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
     }
     # under include_subvariants, all SNVs of passlisted AACs get included
     if (include_subvariants) {
-      matching_snv_ids = union(matching_snv_ids, cesa@mutations$amino_acid_change[matching_aac_ids, unique(unlist(constituent_snvs))])
+      matching_snv_ids = union(matching_snv_ids, cesa@mutations$aac_snv_key[matching_aac_ids, snv_id, on = 'aac_id'])
     }
     
     selected_snv_ids = union(selected_snv_ids, matching_snv_ids)
@@ -289,7 +263,6 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   # Annotate SNV table and prepare to merge with AACs
   selected_snv[, variant_type := "snv"]
   selected_snv[, variant_name := snv_id] # SNV IDs are already short and uniquely identifying
-  selected_snv[, constituent_snvs := list(NA_character_)]
   selected_snv[, strand := NA_integer_] # because AAC table is +1/-1
   selected_snv[, c("start", "end") := .(pos, pos)]
   selected_snv[, pos := NULL]
@@ -335,16 +308,6 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
     return(NULL)
   }
   
-  # collapse list columns, if specified
-  if (collapse_lists) {
-    # Problem: unstrsplit converts NA to "NA"
-    # "NA" is not a valid value for any of these except all_genes, and going to assume there is not a gene called "NA"
-    list_cols = c("constituent_snvs", "all_genes")
-    combined[, (list_cols) := lapply(.SD, function(x) S4Vectors::unstrsplit(x, sep = ",")), .SDcols = list_cols]
-    combined[, (list_cols) := lapply(.SD, function(x) gsub('NA', NA_character_, x)), .SDcols = list_cols]
-
-  }
-  
   # handle overlapping  mutations using tiebreakers explained below
   if (remove_secondary_aac) {
     multi_hits = combined[variant_type == "aac" & multi_anno_site == TRUE]
@@ -365,6 +328,7 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
       aac_snv_key[is.na(snv_count), snv_count := 0]
       maf_pid_counts = aac_snv_key[, .(pid_freq = sum(snv_count)), keyby = "pid"]
       multi_hits[maf_pid_counts, pid_freq := pid_freq, on = 'pid']
+      multi_hits = merge.data.table(multi_hits, cesa@mutations$aac_snv_key, by.x = 'variant_id', by.y = 'aac_id')
       
       # Any set of overlapping AACs has a single AAC chosen based on the following criteria:
       # MAF frequency (usually equal among all), essential splice status, premature stop codon, nonsilent status,
@@ -373,38 +337,21 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
       multi_hits[, is_premature := aa_alt == "STOP" & aa_ref != "STOP"]
       multi_hits = multi_hits[order(-maf_prevalence, -essential_splice, -is_premature, aa_ref == aa_alt, -pid_freq, variant_id)]
       multi_hits[, is_premature := NULL]
+      multi_hits[, snv_id_dup := duplicated(snv_id)]
       
-      # When chr/nt/aachange all match, the higher-up entry in the table will always be
-      # chosen to the exclusion of other matches
-      original_multi_hit_ids = multi_hits$variant_id
-      original_const_snv = multi_hits$constituent_snvs
-      multi_hits = unique(multi_hits, by = c("chr", "start", "end", "center_nt_pos", "aa_alt"))
-      setkey(multi_hits, 'variant_id', physical = F) # important not to re-sort since we just sorted
-      chosen_aac = new.env(parent = emptyenv(), size = 30 * multi_hits[, .N])
-      covered_snv = new.env(parent = emptyenv(), size = 60 * multi_hits[, .N])
-      mapply(
-        function(curr_candidate, curr_covered_snv) {
-          # We will use the current AAC only if none of the constituent SNVs have been used yet
-          for (i in curr_covered_snv) {
-            if(exists(i, covered_snv)) {
-              return()
-            }
-          }
-          for (i in curr_covered_snv) {
-            covered_snv[[i]] = TRUE
-          }
-          chosen_aac[[curr_candidate]] = TRUE
-        }, multi_hits$variant_id, multi_hits$constituent_snvs)
+      chosen_aac = multi_hits[, .(to_use = ! any(snv_id_dup)), by = 'variant_id'][to_use == T, variant_id]
       
       # remove secondary (non-chosen) AACs, but save all SNV IDs and re-select those passing filters
-      chosen_aac = ls(chosen_aac, sorted = FALSE)
-      not_chosen_aac = setdiff(original_multi_hit_ids, chosen_aac)
-      remaining_const_snv = multi_hits[chosen_aac, unlist(constituent_snvs), on = 'variant_id']
-      combined = setDT(combined[! not_chosen_aac, on = 'variant_id'])
+      not_chosen_aac = setdiff(multi_hits$variant_id, chosen_aac)
       
-      # Edge case: Will need to get annotations for SNVs that are in AAC, that passed user's filters,
-      # but that are now no longer constituent SNVs after de-overlapping
-      snv_to_reselect = intersect(snvs_to_recover, setdiff(original_const_snv, remaining_const_snv))
+      combined = combined[! not_chosen_aac, on = 'variant_id']
+      
+      snv_in_chosen_aac = multi_hits[chosen_aac, snv_id, on = 'variant_id'] # logically, no need for calling unique(snv_id)
+      snv_in_not_chosen_aac = setdiff(multi_hits$snv_id, snv_in_chosen_aac)
+      
+      # We need to recover SNVs that were in AACs and that passed user's filters,
+      # but that are now no longer constituent SNVs after de-overlapping.
+      snv_to_reselect = intersect(snvs_to_recover, snv_in_not_chosen_aac)
       if (length(snv_to_reselect) > 0) {
         reselected = select_variants(cesa, variant_ids = snv_to_reselect)[maf_prevalence >= min_freq]
         combined = rbind(combined, reselected)
@@ -413,16 +360,15 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   }
   
   
-  # confirm that output table will be eligible for functions that require non-overlapping variants (e.g., ces_variant)
+  # Output table will be eligible for functions that require non-overlapping variants (e.g., ces_variant)
   # presume overlapping when remove_secondary_aac == FALSE
-  nonoverlapping = FALSE 
+  nonoverlapping = remove_secondary_aac
   if (remove_secondary_aac) {
-    if (length(intersect(combined[variant_type == "snv", variant_id], unlist(combined[variant_type == "aac", constituent_snvs]))) == 0) {
-      nonoverlapping = TRUE
-    } else {
-      pretty_message(paste0("FYI, your output has overlapping variants (as in, it lists both an amino-acid-change variant and a constituent SNV as separate records). ",
+    # if (length(intersect(combined[variant_type == "snv", variant_id], 
+    #                      cesacombined[variant_type == "aac", constituent_snvs]))) == 0) {
+  } else {
+    pretty_message(paste0("FYI, your output has overlapping variants (as in, it lists both an amino-acid-change variant and a constituent SNV as separate records). ",
                      "That means the output can't be fed into functions like ces_variant() that assume non-overlapping variants."))
-    }
   }
 
   # order output in chr/pos order
@@ -430,7 +376,7 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   combined = setDT(combined[order(start)][BSgenome::seqnames(bsg), nomatch = NULL, on = "chr"])
   setcolorder(combined, c("variant_name", "variant_type", "chr", "start", "end", "variant_id", "ref", "alt", "gene", 
                           "strand", "aachange", "essential_splice", "intergenic", "nearest_pid", "trinuc_mut", "aa_ref", "aa_pos", "aa_alt", "coding_seq", 
-                          "center_nt_pos", "pid", "constituent_snvs", "multi_anno_site", "all_genes",
+                          "center_nt_pos", "pid", "multi_anno_site", "all_genes",
                           "maf_prevalence", "samples_covering"))
   
   setattr(combined, "cesa_id", cesa@advanced$uid)

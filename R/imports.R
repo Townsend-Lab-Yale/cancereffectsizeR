@@ -28,7 +28,7 @@ aac_annotation_template = data.table(aac_id = character(), gene = character(), a
                        strand = integer(), chr = character(), pid = character(), aa_ref = character(), 
                        aa_pos = numeric(), aa_alt = character(), 
                        nt1_pos = numeric(), nt2_pos = numeric(), nt3_pos = numeric(), 
-                       coding_seq = character(), constituent_snvs = list(), essential_splice = logical())
+                       coding_seq = character(), essential_splice = logical())
 
 
 aac_snv_key_template = data.table(aac_id = character(), snv_id = character(), multi_anno_site = logical(), key = 'aac_id')

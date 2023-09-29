@@ -7,6 +7,7 @@ test_that("load_maf and variant annotation", {
   tiny_ak = load_cesa(get_test_file("tiny_hg38_maf_loaded.rds"))
   expect_equal(tiny$maf[order(variant_id)], tiny_ak$maf[order(variant_id)])
   expect_equal(tiny@excluded, tiny_ak@excluded, ignore.row.order = T)
+  suppressWarnings({tiny_ak@mutations$amino_acid_change$constituent_snvs = NULL})
   expect_equal(tiny@mutations[c("amino_acid_change", "snv", "aac_snv_key")], 
                tiny_ak@mutations[c("amino_acid_change", "snv", "aac_snv_key")])
   expect_equal(tiny@mutations$snv[, .N], 388)
@@ -38,8 +39,6 @@ test_that("load_maf and variant annotation", {
   selected = select_variants(tiny, variant_ids  = "12:132824581_A>C", genes = "TAF1C")
   expect_equal(tiny@mutations$variants_to_cov$`12:132824581_A>C`, character())
   expect_equal(selected[, .N], 2)
-  selected = select_variants(tiny, variant_ids = "12:132824581_A>C", genes = "TAF1C", min_freq = 0, include_subvariants = T)
-  expect_equal(selected[, .N], 3)
   selected = select_variants(tiny, min_freq = 1)
   expect_equal(sum(selected$maf_prevalence), 265) 
   expect_equal(variant_counts(tiny, "12:132824581_A>C")$N, 0)

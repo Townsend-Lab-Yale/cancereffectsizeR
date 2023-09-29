@@ -67,11 +67,16 @@ annotate_dbs = function(dbs, refset) {
     }
     setnames(dbs, 'variant_id', 'dbs_id')
     
-    # Each nucleotide in DBS may be associated with one or more SNV AACs.
-    # Get all pairings for each nucleotide, which we'll call SNV1 and SNV2.
-    # Nucleotides with no AAC matches will also be included with NA annotations.
-    snv1_aac_hits = anno_out$snv1$aac_snv_key[dbs[, .(snv1, dbs_id)], on = c(snv_id = 'snv1')]
-    snv2_aac_hits = anno_out$snv2$aac_snv_key[dbs[, .(snv2, dbs_id)], on = c(snv_id = 'snv2')]
+    # We use snv1/snv2 to refer to the first and second substituted bases in a DBS.
+    # Each of these may associated with one or more SBS AACs.
+    # We'll merge in all such associations from aac_snv_key.
+    # snv1/snv2 that have no AAC will be included with NA values in the columns taken from aac_snv_key.
+    snv1_aac_hits = merge.data.table(dbs[, .(snv_id = snv1, dbs_id)],
+                                     anno_out$snv1$aac_snv_key, 
+                                     by = 'snv_id', all.x = T)
+    snv2_aac_hits = merge.data.table(dbs[, .(snv_id = snv2, dbs_id)],
+                                     anno_out$snv2$aac_snv_key, 
+                                     by = 'snv_id', all.x = T)
     
     # Merge in annotations for each AAC, keeping SNV1 and SNV2 annotations separate.
     snv1_aac_anno = anno_out$snv1$amino_acid_change[, .(aac_id, gene, aa_ref, aa_pos, aa_alt, coding_seq, strand, pid, nt1_pos, nt2_pos, nt3_pos)]
@@ -128,15 +133,12 @@ annotate_dbs = function(dbs, refset) {
     # neither-coding: essential splice
     # codon change: essential splice possible
     # 
-    
     # Sanity check (remove later)
     if(sum(sapply(list(left_coding, right_coding, neither_coding, codon_change, two_codon), nrow)) -
        dbs_anno[, .N] != 0) {
       stop('Failed to classify some doublet mutations into distinct cases.')
     }
     
-    
-
     if(codon_change[, .N] > 0) {
       # Reduce codon_change to what's needed.
       codon_change = codon_change[, .(dbs_id, chr, pos, ref, alt, pid, essential_splice, intergenic, 

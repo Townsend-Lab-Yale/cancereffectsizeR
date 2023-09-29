@@ -206,29 +206,7 @@ load_cesa = function(file) {
   
   # Data tables must be reset to get them working properly
   cesa@samples = setDT(cesa@samples)
-  
-  # Convert old versions of sample table
-  if(cesa@samples[, .N] == 0) {
-    cesa@samples = copy(sample_table_template)
-  }
-  if(is.null(cesa@samples$maf_source)) {
-    # Usually use character names, or sequentially from 1. 
-    # Use 0 here to suggest that sources aren't known.
-    cesa@samples$maf_source = '0' 
-  }
-  
-  if(is.null(cesa@samples$sig_analysis_grp)) {
-    cesa@samples[, sig_analysis_grp := NA_integer_]
-    if(! is.null(cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix)) {
-      cesa@samples[rownames(cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix), sig_analysis_grp := 0]
-    }
-  }
-  if(is.null(cesa@samples$gene_rate_grp)) {
-    cesa@samples[, gene_rate_grp := NA_integer_]
-  } else if(is.character(cesa@samples$gene_rate_grp)) {
-    # previously there was rate_grp_1, etc. here (now just 1, 2, ...)
-    cesa@samples[, gene_rate_grp := as.integer(sub('.*_', '', gene_rate_grp))]
-  }
+
   cesa@maf = setDT(cesa@maf)
   
   # Older versions lack annotation table templates
@@ -388,7 +366,8 @@ load_cesa = function(file) {
   
   if(length(cesa@mutations$snv[, .N] + cesa@mutations$dbs[, .N]) > 0) {
     # Annotate top coding implications of each variant, based on select_variants() tiebreakers
-    consequences = cesa@advanced$cached_variants[variant_type != 'snv', .(snv_id = unlist(constituent_snvs), variant_name, gene), by = 'variant_id']
+    consequences = cesa@advanced$cached_variants[variant_type != 'snv', .(variant_id, variant_name, gene)]
+    consequences[cesa@mutations$aac_snv_key, snv_id := snv_id, on = c(variant_id = 'aac_id')]
     cesa@maf[consequences, c("top_gene", "top_consequence") := list(gene, variant_name), on = c(variant_id = 'snv_id')]
   }
   

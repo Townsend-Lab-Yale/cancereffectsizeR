@@ -101,7 +101,7 @@ CompoundVariantSet = function(cesa, variant_id) {
       if (current_aacs[, .N] + current_snvs[, .N] != length(current_ids)) {
         stop("Problem finding unique and complete annotations for variant ", i, " in set.")
       }
-      snv_ids_from_aac = current_aacs[, unlist(constituent_snvs)]
+      snv_ids_from_aac = cesa@mutations$aac_snv_key[current_aacs$variant_id, snv_id, on = 'aac_id']
       if (any(duplicated(snv_ids_from_aac))) {
         stop("Item ", i, " of input contains AAC variants with overlapping constituent SNVs.")
       }

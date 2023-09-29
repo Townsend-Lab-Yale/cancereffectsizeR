@@ -194,16 +194,12 @@ annotate_snvs = function(snvs, refset) {
     }
     snv_table[snvs, c("genes", "nearest_pid", "cds", "dist") := .(genes, nearest_pid, cds, dist), on = 'snv_id']
     
-    # annotate amino acid mutations with all associated SNVs
-    snvs_by_aa_mut = snv_table[, .(constituent_snvs = list(snv_id)), by = "aac_id"]
-    aac[snvs_by_aa_mut, constituent_snvs := constituent_snvs, on = "aac_id"]
-    
     aac_snv_key = snv_table[, .(aac_id, snv_id)]
     aac_snv_key[, multi_anno_site := uniqueN(aac_id) > 1, by = 'snv_id']
     snv_table = snv_table[, .(snv_id, chr, pos, ref, alt, genes, nearest_pid, cds, dist)] # gets uniquified shortly
     
     # add noncoding SNVs to SNV table
-    noncoding = snvs[! unlist(aac$constituent_snvs), on = 'snv_id']
+    noncoding = snvs[! aac_snv_key$snv_id, on = 'snv_id']
     noncoding = setDT(noncoding[, .(chr = Chromosome, pos = Start_Position, ref = Reference_Allele, alt = Tumor_Allele,
                                     genes, nearest_pid, dist, cds)])
     noncoding[, snv_id := paste0(chr, ':', pos, "_", ref, '>', alt)]
@@ -258,7 +254,7 @@ annotate_snvs = function(snvs, refset) {
   if (aac[, .N] > 0) {
     # to do: eventually, probably want to keep the entry_name field (call it refcds_entry?)
     aac_table = aac[, .(aac_id, chr, gene = gene_name, strand, pid, aachange, aa_ref, aa_pos, aa_alt, nt1_pos, nt2_pos, nt3_pos, 
-                        coding_seq, constituent_snvs, essential_splice)]
+                        coding_seq, essential_splice)]
     setkey(aac_table, 'aac_id')
     setcolorder(aac_table, c("aac_id", "gene", "aachange", "strand"))
   } else {
