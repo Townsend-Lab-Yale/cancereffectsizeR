@@ -279,5 +279,11 @@
 "sample-A"	"2"	50000003	"T"	"A"	"snv"	"2:50000003_T>A"	NA	NA	FALSE	FALSE
 "Sample-B"	"2"	50000003	"TC"	"-"	"del"	"2:50000003_del_2"	NA	NA	FALSE	FALSE
 "sample-C"	"2"	50000003	"TT"	"-"	NA	NA	"reference_mismatch"	NA	FALSE	FALSE
-"sample-D"	"17"	41107177	"T"	"A"	"snv"	"17:41107177_T>A"	NA	NA	FALSE	FALSE
+"sample-D"	"17"	41107177	"T"	"A"	"snv"	"17:41107177_T>A"	"merged_with_nearby_variant"	NA	FALSE	FALSE
+"sample-D"	"17"	41107179	"A"	"G"	"snv"	"17:41107179_A>G"	"merged_with_nearby_variant"	NA	FALSE	FALSE
+"sample-E"	"17"	41107179	"A"	"G"	"snv"	"17:41107179_A>G"	NA	NA	FALSE	FALSE
+"sample-E"	"17"	41107176	"C"	"A"	"snv"	"17:41107176_C>A"	NA	NA	FALSE	FALSE
+"sample-F"	"chrMT"	100	"G"	"A"	NA	NA	"unsupported_chr"	NA	NA	NA
+"sample-F"	"M"	2	"A"	"C"	NA	NA	"unsupported_chr"	NA	NA	NA
 "TCGA-E2-A9RU"	"19"	30445335	"G,(+2)G"	"A,A"	"other"	"19:30445335_G>A,19:30445337_G>A"	NA	"Other"	FALSE	FALSE
+"sample-D"	"17"	41107177	"T,(+2)A"	"A,G"	"other"	"17:41107177_T>A,17:41107179_A>G"	NA	NA	FALSE	FALSE

@@ -1,6 +1,6 @@
 prev_dir = setwd(system.file("tests/test_data/", package = "cancereffectsizeR"))
 
-# 2 SNVs will trigger a warning for being reference mismatches
+# 2 SNVs will trigger a warning for being reference mismatches, and 2 for being chrMT
 maf = preload_maf('tiny.hg38.maf.txt', refset = 'ces.refset.hg38')
 fwrite(maf, 'tiny_preloaded.txt', sep = "\t", na = 'NA')
 

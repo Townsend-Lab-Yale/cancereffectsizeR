@@ -10,9 +10,9 @@ test_that("load_maf and variant annotation", {
   suppressWarnings({tiny_ak@mutations$amino_acid_change$constituent_snvs = NULL})
   expect_equal(tiny@mutations[c("amino_acid_change", "snv", "aac_snv_key")], 
                tiny_ak@mutations[c("amino_acid_change", "snv", "aac_snv_key")])
-  expect_equal(tiny@mutations$snv[, .N], 388)
+  expect_equal(tiny@mutations$snv[, .N], 389)
   expect_equal(tiny@mutations$amino_acid_change[, .N], 381)
-  expect_equal(tiny$samples[, .N], 8) 
+  expect_equal(tiny$samples[, .N], 9) 
    
   # same ranges should be in each coverage GenomicRange (depending on BSgenome version, little contigs may vary)
   expect_equal(lapply(tiny@coverage$exome, IRanges::ranges), lapply(tiny_ak@coverage$exome, IRanges::ranges))
@@ -40,9 +40,9 @@ test_that("load_maf and variant annotation", {
   expect_equal(tiny@mutations$variants_to_cov$`12:132824581_A>C`, character())
   expect_equal(selected[, .N], 2)
   selected = select_variants(tiny, min_freq = 1)
-  expect_equal(sum(selected$maf_prevalence), 265) 
+  expect_equal(sum(selected$maf_prevalence), 266) 
   expect_equal(variant_counts(tiny, "12:132824581_A>C")$N, 0)
-  expect_equal(sum(variant_counts(tiny, selected$variant_id)$N), 265)
+  expect_equal(sum(variant_counts(tiny, selected$variant_id)$N), 266)
   
   # Check an essential splice site manually added to ces.refset.hg38
   tiny = add_variants(target_cesa = tiny, aac_id = 'TP53_T125T_ENSP00000269305.4')

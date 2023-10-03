@@ -25,7 +25,8 @@ prev_dir = setwd(system.file("tests/test_data/", package = "cancereffectsizeR"))
 
 ## Generate a mini RefCDS object for test purposes
 cds_small = fread(get_test_file("cds_small_stop_codons_included.txt"))
-refcds_and_gr_genes = build_RefCDS(cds_small, genome = "hg19", cds_ranges_lack_stop_codons = F)
+refcds_and_gr_genes = build_RefCDS(cds_small, genome = "hg19", cds_ranges_lack_stop_codons = F,
+                                   use_all_transcripts = FALSE)
 
 saveRDS(refcds_and_gr_genes, "refcds_hg19_small.rds")
 setwd(prev_dir)
