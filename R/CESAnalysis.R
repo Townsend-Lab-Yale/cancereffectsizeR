@@ -202,35 +202,31 @@ load_cesa = function(file) {
   if (! endsWith(tolower(file), '.rds')) {
     stop("Expected filename to end in .rds.", call. = F)
   }
+  
   cesa = readRDS(file)
+  if(! is(cesa, 'CESAnalysis')) {
+    msg = paste0("The .rds file was not recognized as a cancereffectsizeR analysis. ",
+    "The object that loaded did not have class CESAnalysis. (Perhaps load it with readRDS() to see ",
+    "what the file really is.)")
+    stop(pretty_message(msg, emit = FALSE))
+  }
+  
+  ces_version = packageVersion('cancereffectsizeR')
+  
+  cesa_version = cesa@advanced$version
+  if(cesa_version < as.package_version('2.0.0')) {
+    msg = paste0('This analysis was created with a very old development version of cancereffectsizeR (prior to v2.0). ',
+                 'You could try reading some of its contents by loading with readRDS(). Any ongoing analysis should use ',
+                 ' the most recent release.')
+    stop(pretty_message(msg, emit = F))
+  }
   
   # Data tables must be reset to get them working properly
   cesa@samples = setDT(cesa@samples)
-
   cesa@maf = setDT(cesa@maf)
-  
-  # Older versions lack annotation table templates
-  if (is.null(cesa@mutations$snv)) {
-    cesa@mutations = list(amino_acid_change = aac_annotation_template, snv = snv_annotation_template,
-                          dbs = copy(dbs_annotation_template), dbs_codon_change = copy(dbs_codon_change_template))
-  } else {
-    cesa@mutations$amino_acid_change = setDT(cesa@mutations$amino_acid_change, key = "aac_id")
-    cesa@mutations$snv = setDT(cesa@mutations$snv, key = "snv_id")
-    if (! is.null(cesa@mutations$aac_snv_key)) {
-      # if it is NULL, gets handled later
-      cesa@mutations$aac_snv_key = setDT(cesa@mutations$aac_snv_key, key = "aac_id")
-    }
-    if (! is.null(cesa@mutations$aac_dbs_key)) {
-      # if it is NULL, gets handled later
-      cesa@mutations$aac_dbs_key = setDT(cesa@mutations$aac_dbs_key, key = "dbs_id")
-    }
-    
-    # Prior to 2.8, covered_in was in annotation tables: remove if present.
-    suppressWarnings({cesa@mutations$snv$covered_in = NULL})
-    suppressWarnings({cesa@mutations$amino_acid_change$covered_in = NULL})
-  }
-  
-
+  cesa@mutrates = setDT(cesa@mutrates)
+  cesa@selection_results = lapply(cesa@selection_results, setDT)
+  cesa@epistasis = lapply(cesa@epistasis, setDT)
   if (! is.null(cesa@trinucleotide_mutation_weights[["signature_weight_table"]])) {
     cesa@trinucleotide_mutation_weights[["signature_weight_table"]] = setDT(cesa@trinucleotide_mutation_weights[["signature_weight_table"]])
   }
@@ -242,18 +238,28 @@ load_cesa = function(file) {
     cesa@trinucleotide_mutation_weights[["raw_signature_weights"]] = setDT(cesa@trinucleotide_mutation_weights[["raw_signature_weights"]])
   }
   
-  cesa@mutrates = setDT(cesa@mutrates)
-  cesa@selection_results = lapply(cesa@selection_results, setDT)
-  cesa@epistasis = lapply(cesa@epistasis, setDT)
   
-  # Now a list of signature sets. Formerly just 1 set, so put in enclosing list if necessary.
+  if (cesa_version < as.package_version('2.7.9000')) {
+    msg = paste0('This analysis was created using an old version of cancereffectsizeR (prior to version 3.0). ',
+                 "You're running v", ces_version, ". Loading a summary of the analysis in list format for your reference. ",
+                 "Re-run your analysis scripts with the latest release if you want to continue the project.")
+    warning(pretty_message(msg, emit = F))
+    
+    ces_summary = list(maf = cesa@maf, samples = cesa@samples,
+                       annotations = list(snv = cesa@mutations$snv, codon_change = cesa@mutations$amino_acid_change,
+                                          snv_codon_key = cesa@mutations$aac_snv_key),
+                       trinuc_rates = as.data.table(cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix, keep.rownames = "Unique_Patient_Identifier"),
+                       sbs_signatures = cesa@trinucleotide_mutation_weights$raw_signature_weights,
+                       gene_rates = cesa@mutrates,
+                       variant_effects = cesa@selection_results, epistatic_effects = cesa@epistasis,
+                       run_history = CES_Run_History(cesa@run_history))
+    return(ces_summary)
+  }
+
+  
+  # Restore used_sig_sets
   used_sig_sets = cesa@advanced$snv_signatures
   if (! is.null(used_sig_sets) && length(used_sig_sets) > 0) {
-    if (! is.list(used_sig_sets[[1]])) {
-      cesa@advanced$snv_signatures = list(cesa@advanced$snv_signatures)
-      names(cesa@advanced$snv_signatures) = cesa@advanced$snv_signatures[[1]]$name
-    }
-    
     # Get each signature set's meta data.table and call setDT
     lapply(lapply(cesa@advanced$snv_signatures, '[[', 'meta'), setDT)
   } else {
@@ -273,18 +279,11 @@ load_cesa = function(file) {
            "version ", req_version, ".\nRun this to update:\n",
            "remotes::install_github(\"Townsend-Lab-Yale/", refset_name, "\")")
     }
-    previous_version = cesa@advanced$refset_version
-    if (is.null(previous_version) && refset_name == 'ces.refset.hg38') {
-      msg = paste0("This CESAnalysis was likely created with an older version of ces.refset.hg38 with known issues. ",
-              "You should create a new CESAnalysis and start over if you want to continue analysis.")
+    previous_version = as.package_version(cesa@advanced$refset_version)
+    if (previous_version$major != actual_version$major | previous_version$minor != actual_version$minor) {
+      msg = paste0("This CESAnalysis was annotated with data from ", refset_name, ' ', previous_version, " and you currently have ",
+                   "version ", actual_version, ". You should create a new CESAnalysis and start over if you want to continue analysis.")
       warning(pretty_message(msg, emit = F))
-    } else if(! is.null(previous_version)) {
-      previous_version = as.package_version(previous_version)
-      if (previous_version$major != actual_version$major | previous_version$minor != actual_version$minor) {
-        msg = paste0("This CESAnalysis was annotated with data from ", refset_name, ' ', previous_version, " and you currently have ",
-                     "version ", actual_version, ". You should create a new CESAnalysis and start over if you want to continue analysis.")
-        warning(pretty_message(msg, emit = F))
-      }
     }
     cesa@ref_data_dir = system.file("refset", package = refset_name)
   } else {
@@ -310,47 +309,6 @@ load_cesa = function(file) {
   }
   cesa = update_cesa_history(cesa, match.call())
   
-  # Before v2.2, nearest_pid not annotated; add it if needed
-  # This would crash on custom refsets with missing data directories, but unlikely
-  # situation will ever arise with a pre-2.2 refset
-  if (! "nearest_pid" %in% names(cesa@mutations$snv)) {
-    snv_and_gene = cesa@mutations$snv[, .(gene = unlist(genes)), by = "snv_id"]
-    to_lookup = snv_and_gene[, .(gene = unique(gene))]
-    RefCDS = get_ref_data(cesa, "RefCDS")
-    to_lookup[, pid := sapply(RefCDS[gene], '[[', 'protein_id')]
-    snv_and_gene[to_lookup, pid := pid, on = 'gene']
-    snv_and_pid = snv_and_gene[, .(nearest_pid = list(pid)), by = "snv_id"]
-    cesa@mutations$snv[snv_and_pid, nearest_pid := nearest_pid, on = "snv_id"]
-  }
-  
-  if (is.null(cesa@mutations$aac_snv_key)) {
-    if (cesa@mutations$amino_acid_change[, .N] == 0) {
-      cesa@mutations$aac_snv_key = copy(aac_snv_key_template)
-    } else {
-      aac_snv_key = cesa@mutations$snv[, .(aac_id = unlist(assoc_aac)), by = 'snv_id'][! is.na(aac_id)]
-      setcolorder(aac_snv_key, c('aac_id', 'snv_id'))
-      aac_snv_key[, multi_anno_site := uniqueN(aac_id) > 1, by = 'snv_id']
-      setkey(aac_snv_key, 'aac_id')
-      cesa@mutations$aac_snv_key = aac_snv_key
-      cesa@mutations$snv[, assoc_aac := NULL]
-      cesa@maf[, assoc_aac := NULL]
-    }
-  }
-  
-  # If no DBS key, then we'll annotate DBS now if possible.
-  # Lack of DBS key indicates that CESAnalysis was created in a version before DBS annotation.
-  if (is.null(cesa@mutations$aac_dbs_key)) {
-     dbs = cesa@maf[variant_type == 'dbs']
-     if(dbs[, .N] > 0 && ! is.na(cesa@ref_data_dir)) {
-       dbs_anno = annotate_dbs(dbs, preload_ref_data(cesa@ref_data_dir))
-       cesa@mutations[c('dbs', 'dbs_codon_change', 'aac_dbs_key')] = dbs_anno[c('dbs', 'dbs_codon_change', 'aac_dbs_key')]
-     } else {
-       cesa@mutations$dbs = copy(dbs_annotation_template)
-       cesa@mutations$dbs_codon_change = copy(dbs_codon_change_template)
-       cesa@mutations$aac_dbs_key = copy(aac_dbs_key_template)
-     }
-  }
-  
   genome_version = GenomeInfoDb::genome(get_cesa_bsg(cesa))[1]
   genome_updater = function(x) {
     GenomeInfoDb::genome(x) = genome_version
@@ -361,32 +319,7 @@ load_cesa = function(file) {
   cesa@coverage$genome = lapply(cesa@coverage$genome, genome_updater)
   
   # Cache variant table for easy user access
-  # update_covered_in also populates cesa@advanced$cached_variants 
-  cesa = update_covered_in(cesa)
-  
-  if(length(cesa@mutations$snv[, .N] + cesa@mutations$dbs[, .N]) > 0) {
-    # Annotate top coding implications of each variant, based on select_variants() tiebreakers
-    consequences = cesa@advanced$cached_variants[variant_type != 'snv', .(variant_id, variant_name, gene)]
-    consequences[cesa@mutations$aac_snv_key, snv_id := snv_id, on = c(variant_id = 'aac_id')]
-    cesa@maf[consequences, c("top_gene", "top_consequence") := list(gene, variant_name), on = c(variant_id = 'snv_id')]
-  }
-  
-  # Pre-2.6.4, cds_refset status wasn't recorded
-  if(is.null(cesa@advanced$cds_refset)) {
-    cds_refset = NULL
-    if(refset_name == 'ces.refset.hg38') {
-      cds_refset = TRUE
-    } else if (refset_name == 'ces.refset.hg19') {
-      cds_refset = FALSE
-    } else {
-      # A view-only (no reference data) CESAnalysis won't have gr_genes available
-      gr_genes = .ces_ref_data[[cesa@ref_key]]$gr_genes
-      if(! is.null(gr_genes)) {
-        cds_refset = "gene"  %in% names(GenomicRanges::mcols(gr_genes))
-      }
-    }
-    cesa@advanced$cds_refset = cds_refset
-  }
+  cesa@advanced$cached_variants = suppressMessages(select_variants(cesa))
   return(cesa)
 }
 
