@@ -316,6 +316,18 @@ ces_variant <- function(cesa = NULL,
   coverage_groups = unique(variants$covered_in)
   num_coverage_groups = length(coverage_groups)
   
+  # put gene(s) by variant into env for quick access
+  snv_with_genes = variants[variant_type == 'snv' & intergenic == F, variant_id]
+  snv_to_genes = cesa@mutations$snv[snv_with_genes, .(variant_id = snv_id, genes)]
+  
+  
+  aac_to_snv_key = cesa@mutations$aac_snv_key[variants[variant_type == 'aac', variant_id], on = 'aac_id']
+  aac_to_snv_key[cesa@mutations$snv, genes := genes, on = 'snv_id']
+  aac_to_genes = aac_to_snv_key[, .(genes = unique(genes)), by = 'aac_id']
+
+  variants_to_genes = rbind(snv_to_genes, aac_to_genes[, .(variant_id = aac_id, genes)])
+  gene_lookup = list2env(setNames(variants_to_genes$genes, nm = variants_to_genes$variant_id))
+  
   i = 0
   setkey(maf, "variant_id")
   setkey(variants, "variant_id")
@@ -357,10 +369,7 @@ ces_variant <- function(cesa = NULL,
       snv_ids = curr_subgroup[variant_type == "snv", variant_id]
       
       baseline_rates = baseline_mutation_rates(cesa, aac_ids = aac_ids, snv_ids = snv_ids, samples = covered_samples, cores = cores)
-      # put gene(s) by variant into env for quick access
-      gene_lookup = curr_subgroup[, all_genes]
-      names(gene_lookup) = curr_subgroup[, variant_id]
-      gene_lookup = list2env(gene_lookup)
+
       
       # function to run MLE on given variant_id (vector of IDs for compound variants)
       process_variant = function(variant_id) {
@@ -376,7 +385,7 @@ ces_variant <- function(cesa = NULL,
           rates = rowSums(rates)
         } else {
           tumors_with_variant = samples_by_variant[[variant_id]]
-          all_genes = gene_lookup[[variant_id]]
+          all_genes = get0(variant_id, envir = gene_lookup, ifnotfound = NA_character_)
           rates = baseline_rates[, ..variant_id][[1]]
         }
         names(rates) = baseline_rates[, Unique_Patient_Identifier]

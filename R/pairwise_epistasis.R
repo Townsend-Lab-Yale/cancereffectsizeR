@@ -166,8 +166,6 @@ ces_gene_epistasis = function(cesa = NULL, genes = NULL, variants = NULL,
     stop("variants should be \"recurrent\", \"nonsilent\", or a data.table.")
   }
 	
-	
-	# use "all_genes" column because SNVs might have multiple genes, and only one appears in the "gene" column
 	genes_present = unique(variants_to_use$gene)
 	genes_to_analyze = intersect(genes_present, genes)
 	num_passing_genes = length(genes_to_analyze)

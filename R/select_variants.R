@@ -36,7 +36,6 @@
 #'   \item center_nt_pos: regardless of strand, start/end give positions of two out of three AAC nucleotides; this
 #'                       gives the position of the center nucleotide (maybe useful if the AAC spans a splice site)
 #'   \item multi_anno_site: T/F whether variant has multiple gene/transcript/AAC annotations
-#'   \item all_genes: all genes overlapping the variant in reference data
 #'   \item maf_prevalence: number of occurrences of the variant in MAF data
 #'   \item samples_covering: number of MAF samples with sequencing coverage at the variant site
 #' }
@@ -55,8 +54,8 @@
 #'   positions given in chr/start/end of this table (1-based closed coordinates).
 #'   Typically, the table comes from a previous \code{select_variants} call and can be expanded
 #'   with \code{padding}. (Gritty detail: Amino acid substitutions get special handling. Only the
-#'   precise positions in start, end, and center_nt_pos are used. (Otherwise, coding changes that
-#'   span splice sites would cause up to thousands of extra variants to get captured.)
+#'   precise positions in start, end, and center_nt_pos are used. Otherwise, coding changes that
+#'   span splice sites would capture all the intronic sites.)
 #' @param padding add +/- this many bases to every range specified in \code{gr} or
 #'   \code{variant_position_table} (stopping at chromosome ends, naturally).
 #' @param include_subvariants Some mutations "contain" other mutations. For example, in
@@ -68,7 +67,7 @@
 #'   plug the output table into selection functions. However, you can pick a non-overlapping set of
 #'   variant IDs from the output table and re-run \code{select_variants()} to put those variants
 #'   into a new table for selection functions.
-#' @return A data table with info on selected variants (see details), or a list of IDs.
+#' @return A data.table with info on selected variants (see details)
 #' @export
 select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL, gr = NULL, variant_position_table = NULL, 
                             include_subvariants = F, padding = 0) {
@@ -266,16 +265,16 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   selected_snv[, strand := NA_integer_] # because AAC table is +1/-1
   selected_snv[, c("start", "end") := .(pos, pos)]
   selected_snv[, pos := NULL]
-  # for convenience, take 1 gene per SNV for the output gene column (all will appear in all_genes column)
+  # for convenience, take 1 gene per SNV for the output gene column
   if (selected_snv[, .N] > 0) {
     selected_snv[, gene := sapply(genes, function(x) x[1])] 
   } else {
     selected_snv[, gene := character()]
   }
-  selected_snv[intergenic == T, genes := list(NA_character_)]
   selected_snv[cesa@mutations$aac_snv_key, multi_anno_site := multi_anno_site, on = 'snv_id']
   selected_snv[is.na(multi_anno_site), multi_anno_site := FALSE]
-  setnames(selected_snv, c("genes", "snv_id"), c("all_genes", "variant_id"))
+  selected_snv[, c('genes', 'nearest_pid')] = NULL # not keeping these list-type annotations
+  setnames(selected_snv, "snv_id", "variant_id")
   
   # AACs get a short variant name that might not be uniquely identifying if a gene has more than one CDS
   selected_aac[, variant_name := paste(gene, aachange, sep = "_")]
@@ -286,21 +285,16 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   selected_aac[, center_nt_pos := nt2_pos]
   selected_aac[, c("nt1_pos", "nt2_pos", "nt3_pos") := NULL]
   
-  if (selected_aac[, .N] > 0) {
-    aac_to_snv = setDT(cesa@mutations$aac_snv_key[selected_aac$aac_id, on = 'aac_id'])
-    # this form of assignment avoids data.table semantics and is faster on large list assignments
-    aac_to_snv$genes = cesa@mutations$snv[aac_to_snv$snv_id, genes] 
-    all_genes_by_aac_id = aac_to_snv[, .(genes = .(unique(unlist(genes)))), by = "aac_id"]
-    selected_aac[all_genes_by_aac_id, all_genes := genes, on = "aac_id"]
-    selected_aac[, nearest_pid := list(NA_character_)]
-  } else {
-    selected_aac[, all_genes := list(NA_character_)]
-  }
-  
   # We call an AAC a multi-anno site if any of its SNVs has multiple annotations.
   selected_aac[cesa@mutations$aac_snv_key, multi_anno_site := any(multi_anno_site), on = 'aac_id']
   setnames(selected_aac, "aac_id", "variant_id")
-
+  
+  # Get rid of unneeded list column when present
+  if ('constituent_snvs' %in% names(selected_aac)) {
+    selected_aac$constituent_snvs = NULL
+  }
+   
+  
   # Combine SNV and AAC tables
   combined = rbindlist(list(selected_aac, selected_snv), use.names = T, fill = T)
   if(combined[, .N] == 0) {
@@ -359,14 +353,10 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
     }
   }
   
-  
   # Output table will be eligible for functions that require non-overlapping variants (e.g., ces_variant)
   # presume overlapping when remove_secondary_aac == FALSE
   nonoverlapping = remove_secondary_aac
-  if (remove_secondary_aac) {
-    # if (length(intersect(combined[variant_type == "snv", variant_id], 
-    #                      cesacombined[variant_type == "aac", constituent_snvs]))) == 0) {
-  } else {
+  if (! nonoverlapping) {
     pretty_message(paste0("FYI, your output has overlapping variants (as in, it lists both an amino-acid-change variant and a constituent SNV as separate records). ",
                      "That means the output can't be fed into functions like ces_variant() that assume non-overlapping variants."))
   }
@@ -375,8 +365,8 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   setkey(combined, "chr")
   combined = setDT(combined[order(start)][BSgenome::seqnames(bsg), nomatch = NULL, on = "chr"])
   setcolorder(combined, c("variant_name", "variant_type", "chr", "start", "end", "variant_id", "ref", "alt", "gene", 
-                          "strand", "aachange", "essential_splice", "intergenic", "nearest_pid", "trinuc_mut", "aa_ref", "aa_pos", "aa_alt", "coding_seq", 
-                          "center_nt_pos", "pid", "multi_anno_site", "all_genes",
+                          "strand", "aachange", "essential_splice", "intergenic", "trinuc_mut", "aa_ref", "aa_pos", "aa_alt", "coding_seq", 
+                          "center_nt_pos", "pid", "multi_anno_site", 
                           "maf_prevalence", "samples_covering"))
   
   setattr(combined, "cesa_id", cesa@advanced$uid)
