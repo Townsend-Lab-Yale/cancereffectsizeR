@@ -190,7 +190,14 @@ save_cesa = function(cesa, file) {
   # user's active analysis and in the saved file.
   cesa_to_save = update_cesa_history(cesa, match.call())
   cesa_to_save = copy_cesa(cesa)
-  cesa_to_save@advanced$cached_variants = NULL # reduce file size (data recalculated on reload)
+  
+  # Reduce file size by eliminating cached variants table (data recalculated on reload)
+  cesa_to_save@advanced$cached_variants = NULL 
+  
+  # Problem: It seems (as of 10/2023) that hashed envs with many keys don't get handled well by
+  # saveRDS() and take forever to serialize. Therefore, converting potentially large envs to list,
+  # and load_cesa() calls list2env().
+  cesa_to_save@mutations$variants_to_cov = as.list(cesa_to_save@mutations$variants_to_cov)
   saveRDS(cesa_to_save, file)
 }
 
@@ -227,6 +234,9 @@ load_cesa = function(file) {
   cesa@mutrates = setDT(cesa@mutrates)
   cesa@selection_results = lapply(cesa@selection_results, setDT)
   cesa@epistasis = lapply(cesa@epistasis, setDT)
+  cesa@mutations$amino_acid_change = setDT(cesa@mutations$amino_acid_change, key = "aac_id")
+  cesa@mutations$snv = setDT(cesa@mutations$snv, key = "snv_id")
+  
   if (! is.null(cesa@trinucleotide_mutation_weights[["signature_weight_table"]])) {
     cesa@trinucleotide_mutation_weights[["signature_weight_table"]] = setDT(cesa@trinucleotide_mutation_weights[["signature_weight_table"]])
   }
@@ -255,7 +265,15 @@ load_cesa = function(file) {
                        run_history = CES_Run_History(cesa@run_history))
     return(ces_summary)
   }
+  cesa@mutations$aac_snv_key = setDT(cesa@mutations$aac_snv_key, key = "aac_id")
+  cesa@mutations$aac_dbs_key = setDT(cesa@mutations$aac_dbs_key, key = "dbs_id")
 
+  
+  # variant_to_cov could be large, and saveRDS() doesn't handle large envs well,
+  # so save_cesa() converted it to list.
+  if(is.list(cesa@mutations$variants_to_cov)) {
+    cesa@mutations$variants_to_cov = list2env(cesa@mutations$variants_to_cov, parent = emptyenv())
+  }
   
   # Restore used_sig_sets
   used_sig_sets = cesa@advanced$snv_signatures
