@@ -35,10 +35,6 @@ cesa <- load_maf(cesa,
 cesa = trinuc_mutation_rates(cesa = cesa, signature_set = "COSMIC_v3.2",
                              signature_exclusions = suggest_cosmic_signature_exclusions("LUAD", treatment_naive = TRUE, quiet = TRUE))
 
-# fwrite(luad$trinuc_rates, "luad_hg19_trinuc_rates.txt", sep = "\t")
-# fwrite(luad$mutational_signatures$raw_attributions, "luad_hg19_sig_table_with_artifacts.txt", sep = "\t")
-# fwrite(luad$mutational_signatures$biological_weights, "luad_hg19_sig_table_biological.txt", sep = "\t")
-
 cesa = gene_mutation_rates(cesa, covariates = "lung", samples = cesa$samples[fruit == "marionberry"])
 cesa = gene_mutation_rates(cesa, covariates = "lung", samples = cesa$samples[fruit %in% c("cherry", "mountain_apple")])
 

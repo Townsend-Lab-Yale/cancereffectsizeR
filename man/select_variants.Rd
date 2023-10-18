@@ -12,9 +12,7 @@ select_variants(
   gr = NULL,
   variant_position_table = NULL,
   include_subvariants = F,
-  padding = 0,
-  collapse_lists = F,
-  remove_secondary_aac = TRUE
+  padding = 0
 )
 }
 \arguments{
@@ -27,7 +25,7 @@ Note that variants that are not in the annotation tables will never be returned.
 \code{add_variants()} to include variants absent from MAF data in your CESAnalysis.}
 
 \item{variant_ids}{Vector of variant IDs to include in output regardless of
-filtering options. You can use CES-style AAC and SNV IDs or variant names like 
+filtering options. You can use CES-style AAC and SBS IDs or variant names like 
 "KRAS G12C". If this argument is used by itself (without any filtering arguments),
 then only these specified variants will be returned.}
 
@@ -36,51 +34,30 @@ then only these specified variants will be returned.}
 \item{variant_position_table}{Filter out any variants that don't intersect the
 positions given in chr/start/end of this table (1-based closed coordinates).
 Typically, the table comes from a previous \code{select_variants} call and can be expanded
-with \code{padding}. (Gritty detail: Amino acid change SNVs get special handling. Only the
-precise positions in start, end, and center_nt_pos are used. This avoids intersecting
-extra variants between start/end, which on splice-site-spanning variants can be many
-thousands.)}
+with \code{padding}. (Gritty detail: Amino acid substitutions get special handling. Only the
+precise positions in start, end, and center_nt_pos are used. Otherwise, coding changes that
+span splice sites would capture all the intronic sites.)}
 
 \item{include_subvariants}{Some mutations "contain" other mutations. For example, in
-cancereffectsizeR's ces.refset.hg19, KRAS_Q61H contains two constituent
-SNVs that both cause the same amino acid change: 12:25380275_T>G and 12:25380275_T>A.
-When include_subvariants = F (the default), and genes = "KRAS", output will be
-returned for KRAS_Q61H but not for the two SNVs (although their IDs will appear in
-the Q61H output). Set to true, and all three variants will be included in output, 
-assuming they don't get filtered out by other other options, like min_freq. If you
-set this to TRUE, you can't directly plug the output table into selection functions.
-However, you can pick a non-overlapping set of variant IDs from the output table 
-and re-run \code{select_variants()} to put those variants into a new table for
-selection functions.}
+cancereffectsizeR's ces.refset.hg19, the amino acid substitution KRAS_Q61H can be induced by
+two distinct SBS: 12:25227341_T>G and 12:25227341_T>A. When include_subvariants = F (the
+default), and genes = "KRAS", output will be returned for KRAS_Q61H but not for the two SBS.
+Set to true, and all three variants will be included in output, assuming they don't get
+filtered out by other other options, like min_freq. If you set this to TRUE, you can't directly
+plug the output table into selection functions. However, you can pick a non-overlapping set of
+variant IDs from the output table and re-run \code{select_variants()} to put those variants
+into a new table for selection functions.}
 
 \item{padding}{add +/- this many bases to every range specified in \code{gr} or
 \code{variant_position_table} (stopping at chromosome ends, naturally).}
-
-\item{collapse_lists}{Some output columns may have multiple elements per variant row.
-For example, all_genes may include multiple genes. These variable-length vectors
-allow advanced filtering and manipulation, but the syntax can be tricky. Optionally,
-set collapse_lists = T to convert these columns to comma-delimited strings, which are
-sometimes easier to work with.}
-
-\item{remove_secondary_aac}{Default TRUE, except overridden (effectively FALSE) when
-include_subvariants = T. Due to overlapping coding region definitions in reference
-data (e.g., genes with multiple transcripts), a site can have more than one
-amino-acid-change annotation. To avoid returning the same genome-positional
-variants multiple times, the default is to return one AAC in these situations.
-Tiebreakers are MAF prevalence, essential splice site status, premature stop codon,
-non-silent status, gene/protein mutation count, alphabetical. If you set
-remove_secondary_aac to FALSE, you can't put the output variant table in selection
-calculation functions. An alternative is to set to FALSE, pick which
-(non-overlapping) variants you want, and then re-run select_variants() with those
-variants specified in \code{variant_ids}.}
 }
 \value{
-A data table with info on selected variants (see details), or a list of IDs.
+A data.table with info on selected variants (see details)
 }
 \description{
 This function helps you find and view variant data from your CESAnalysis's MAF data and
 mutation annotation tables. By default, almost all amino-acid-change mutations and
-noncoding SNVs are returned. You can apply a series of filters to restrict output to
+noncoding SBS are returned. You can apply a series of filters to restrict output to
 certain genes or genomic regions or require a minimum variant frequency in MAF data.
 You can also specify some variants to include in output regardless of filters with
 \code{variant_ids}. Special behavior: If \code{variant_ids} is used by
@@ -90,7 +67,7 @@ itself, then only those specified variants will be returned.
 Only variants that are present in the CESAnalysis's annotation tables can be returned,
 which by default are those present in the MAF data. To select variants absent from MAF
 data, you must first call add_variants() to add them to the CESAnalysis. Note that
-while intergenic SNVs have their nearest genes annotated in the SNV tables, these
+while intergenic SBS have their nearest genes annotated in the SBS tables, these
 variants will not be captured by gene-based selection with this function, since they're
 not actually in any gene.
 
@@ -102,21 +79,19 @@ Definitions of some less self-explanatory columns:
   \item variant_id: unique IDs for variants given the associated genome assembly version and the transcript data
   \item ref/alt: genomic reference and alternate alleles (for genomic
   variants; NA for AACs) 
-  \item gene: the affected gene in AACs; for SNVs, the
+  \item gene: the affected gene in AACs; for SBS, the
   overlapping gene (or an arbitrary gene if more than one overlaps), or the nearest gene
-  for intergenic SNVs
+  for intergenic SBS
   \item strand: for AACs, 1 if the reference sequence strand is the coding strand; -1 otherwise
   \item essential_splice: Variant is 1,2 bp upstream or
-  1,2,5 bp downstream of an annotated splice position (edge case: if an SNV has
+  1,2,5 bp downstream of an annotated splice position (edge case: if an SBS has
   multiple gene/transcript annotations, this doesn't say which one it's essential for)
   \item intergenic: variant does not overlap any coding regions in the reference data
-  \item trinuc_mut: for SNVs, the reference trinucleotide context, in deconstructSigs notation
+  \item trinuc_mut: for SBS, the reference trinucleotide context, in deconstructSigs notation
   \item coding_seq: coding strand nucleotides in order of transcription
   \item center_nt_pos: regardless of strand, start/end give positions of two out of three AAC nucleotides; this
                       gives the position of the center nucleotide (maybe useful if the AAC spans a splice site)
-  \item constituent_snvs: all SNVs that can produce a given variant 
   \item multi_anno_site: T/F whether variant has multiple gene/transcript/AAC annotations
-  \item all_genes: all genes overlapping the variant in reference data
   \item maf_prevalence: number of occurrences of the variant in MAF data
   \item samples_covering: number of MAF samples with sequencing coverage at the variant site
 }

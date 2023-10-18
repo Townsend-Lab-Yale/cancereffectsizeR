@@ -45,27 +45,27 @@ variant_counts = function(cesa, variant_ids = character(), by = character()) {
   }
   if(length(variant_ids) == 0) {
     variants = cesa$variants
-    noncoding_snv_id = variants[variant_type == 'snv', variant_id]
+    noncoding_sbs_id = variants[variant_type == 'sbs', variant_id]
     aac_ids = variants[variant_type == 'aac', variant_id]
-    snv_from_aac = cesa@mutations$aac_snv_key[aac_ids, .(aac_id, snv_id), on = 'aac_id']
+    sbs_from_aac = cesa@mutations$aac_sbs_key[aac_ids, .(aac_id, sbs_id), on = 'aac_id']
   } else {
     variants = sort_and_validate_variant_ids(cesa, variant_ids)
-    noncoding_snv_id = variants[['snv_id']]
+    noncoding_sbs_id = variants[['sbs_id']]
     aac_ids = variants[['aac_id']]
     unannotated = c(setdiff(aac_ids, cesa@mutations$amino_acid_change$aac_id),
-                    setdiff(noncoding_snv_id, cesa@mutations$snv$snv_id))
+                    setdiff(noncoding_sbs_id, cesa@mutations$sbs$sbs_id))
     if (length(unannotated) > 0) {
       pretty_message(paste0(length(unannotated), " input variants are being left out of output ",
                             "because they're not annotated in the analysis. (Their MAF prevalence ",
                             "is zero, but samples covering hasn't been calculated.)"))
       aac_ids = setdiff(aac_ids, unannotated)
-      noncoding_snv_id = setdiff(noncoding_snv_id, unannotated)
+      noncoding_sbs_id = setdiff(noncoding_sbs_id, unannotated)
     }
-    snv_from_aac = cesa@mutations$aac_snv_key[aac_ids, .(aac_id, snv_id), on = 'aac_id']
+    sbs_from_aac = cesa@mutations$aac_sbs_key[aac_ids, .(aac_id, sbs_id), on = 'aac_id']
   }
   
   # call internal function
-  return(.variant_counts(cesa, samples_with_by_cols, snv_from_aac, noncoding_snv_id, by_cols))
+  return(.variant_counts(cesa, samples_with_by_cols, sbs_from_aac, noncoding_sbs_id, by_cols))
 }
 
 #' Internal variant prevalence and coverage calculation
@@ -74,11 +74,11 @@ variant_counts = function(cesa, variant_ids = character(), by = character()) {
 #' 
 #' @param cesa CESAnalysis
 #' @param samples validated samples table
-#' @param snv_from_aac data.table with columns aac_id, snv_id (validated and with annotations in CESAnalysis)
-#' @param noncoding_snv_id vector of snv_ids to treat as noncoding variants
+#' @param sbs_from_aac data.table with columns aac_id, sbs_id (validated and with annotations in CESAnalysis)
+#' @param noncoding_sbs_id vector of sbs_ids to treat as noncoding variants
 #' @param by_cols validated column names from sample table that are suitable to use for counting by.
 #' @keywords internal
-.variant_counts = function(cesa, samples, snv_from_aac, noncoding_snv_id, 
+.variant_counts = function(cesa, samples, sbs_from_aac, noncoding_sbs_id, 
                            by_cols = character()) {
   
   maf = copy(cesa@maf)
@@ -102,20 +102,20 @@ variant_counts = function(cesa, variant_ids = character(), by = character()) {
   
   
   combined_counts = data.table()
-  if(snv_from_aac[, .N] > 0) {
-    snv_from_aac_counts = setDT(maf[snv_from_aac, .(Unique_Patient_Identifier, variant_id = aac_id), 
-                                    on = c(variant_id = "snv_id"), 
+  if(sbs_from_aac[, .N] > 0) {
+    sbs_from_aac_counts = setDT(maf[sbs_from_aac, .(Unique_Patient_Identifier, variant_id = aac_id), 
+                                    on = c(variant_id = "sbs_id"), 
                                     allow.cartesian = T])
-    aac_count_output = get_complete_counts(dt = snv_from_aac_counts)
+    aac_count_output = get_complete_counts(dt = sbs_from_aac_counts)
     combined_counts = rbind(combined_counts, aac_count_output)
   }
   
   
-  # Get prevalences of SNVs
-  if(length(noncoding_snv_id) > 0) {
-    snv_counts = maf[noncoding_snv_id, .(Unique_Patient_Identifier, variant_id), on = 'variant_id']
-    final_snv_counts = get_complete_counts(snv_counts)
-    combined_counts = rbind(combined_counts, final_snv_counts)
+  # Get prevalences of sbs
+  if(length(noncoding_sbs_id) > 0) {
+    sbs_counts = maf[noncoding_sbs_id, .(Unique_Patient_Identifier, variant_id), on = 'variant_id']
+    final_sbs_counts = get_complete_counts(sbs_counts)
+    combined_counts = rbind(combined_counts, final_sbs_counts)
   }
   
   
@@ -125,7 +125,7 @@ variant_counts = function(cesa, variant_ids = character(), by = character()) {
   
   calc_cov = function(variant_id) {
     # Count samples with coverage in each group
-    covering_by_variant = mget(variant_id, cesa@mutations$variants_to_cov)
+    covering_by_variant = cesa@mutations$variants_to_cov[variant_id]
     
     dts = list(copy(samples))
     if(length(by_cols) > 0) {
@@ -140,11 +140,16 @@ variant_counts = function(cesa, variant_ids = character(), by = character()) {
       if(length(num_generic_wg) == 0) {
         num_generic_wg = 0
       }
-      sample_count_by_cr = list2env(as.list(setNames(sample_count_by_cr$N, 
-                                                     nm = sample_count_by_cr$covered_regions)),
-                                    parent = emptyenv())
+      sample_count_by_cr = setNames(sample_count_by_cr$N, nm = sample_count_by_cr$covered_regions)
+      
+      # Some covered_regions could have no samples in the current grouping
+      missing_cr = setdiff(cesa$samples$covered_regions, names(sample_count_by_cr))
+      zeroes = rep.int(0, length(missing_cr))
+      names(zeroes) = missing_cr
+      sample_count_by_cr = c(sample_count_by_cr, zeroes)
+      
       cov_by_group = lapply(covering_by_variant, 
-                            function(x) sum(unlist(mget(x, sample_count_by_cr, ifnotfound = 0))))
+                            function(x) sum(sample_count_by_cr[x]))
       cov_by_group = data.table(variant_id = names(cov_by_group), num_cov = unlist(cov_by_group))
       sapply(by_cols, function(x) cov_by_group[, (x) := dt[[x]][1]])
       
@@ -164,7 +169,7 @@ variant_counts = function(cesa, variant_ids = character(), by = character()) {
 #'
 #' Sorts input variant IDs by type, completes IDs by adding protein ID to plain variant
 #' names (e.g. "KRAS G12C"), and ensures that IDs are valid even if not present in
-#' annotations. This includes verifying that reference alleles are correct in SNV IDs and
+#' annotations. This includes verifying that reference alleles are correct in SBS IDs and
 #' that amino-acid-changes are possible given the coding sequence.
 #' 
 #' @return List of variant_ids, with each element corresponding to one variant_type.
@@ -180,8 +185,8 @@ sort_and_validate_variant_ids = function(cesa, input_ids, drop_unannotated = FAL
   if(length(input_ids) == 0) {
     stop("input_ids doesn't list any variants.")
   }
-  snv_ids = intersect(input_ids, cesa@mutations$snv$snv_id)
-  input_ids = setdiff(input_ids, snv_ids)
+  sbs_ids = intersect(input_ids, cesa@mutations$sbs$sbs_id)
+  input_ids = setdiff(input_ids, sbs_ids)
   
   aac_ids = intersect(input_ids, cesa@mutations$amino_acid_change$aac_id)
   input_ids = setdiff(input_ids, aac_ids)
@@ -205,15 +210,15 @@ sort_and_validate_variant_ids = function(cesa, input_ids, drop_unannotated = FAL
   
   # Keep going if all unmatched IDs look valid. (Presumably, these are absent from annotations.)
   if(length(input_ids) > 0) {
-    apparent_snvs = input_ids[grepl(':\\d+_[ACTG]>[ACGT]$', input_ids)]
-    if(length(apparent_snvs) > 0) {
-      validate_snv_ids(apparent_snvs, get_cesa_bsg(cesa))
+    apparent_sbs = input_ids[grepl(':\\d+_[ACTG]>[ACGT]$', input_ids)]
+    if(length(apparent_sbs) > 0) {
+      validate_sbs_ids(apparent_sbs, get_cesa_bsg(cesa))
     }
     if(! drop_unannotated) {
-      snv_ids = union(snv_ids, apparent_snvs)
+      sbs_ids = union(sbs_ids, apparent_sbs)
     }
     # insert more indel/dbs logic
-    apparent_aac = setdiff(input_ids, apparent_snvs)
+    apparent_aac = setdiff(input_ids, apparent_sbs)
     apparent_aac = complete_aac_ids(apparent_aac, .ces_ref_data[[cesa@ref_key]])
     aac_problems = validate_aac_ids(apparent_aac, .ces_ref_data[[cesa@ref_key]])
     if(! is.null(aac_problems)) {
@@ -225,6 +230,6 @@ sort_and_validate_variant_ids = function(cesa, input_ids, drop_unannotated = FAL
     }
   }
   
-  return(list(snv_id = snv_ids, aac_id = aac_ids))
+  return(list(sbs_id = sbs_ids, aac_id = aac_ids))
 }
 

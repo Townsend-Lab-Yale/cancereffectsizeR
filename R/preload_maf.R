@@ -47,16 +47,16 @@
 #'   to remain in your data. Alternatively, if all records are already covered, then the
 #'   calls have probably already be trimmed to the coverage intervals, which means no
 #'   padding should be added.)
-#' @param detect_hidden_mnv Find same-sample adjacent SNVs and replace these records with
-#'   DBS (doublet base substitution) records. Also, find groups of same-sample variants
-#'   within 2 bp of each other and replace these records with MNV (multi-nucleotide
-#'   variant) records.
+#' @param detect_hidden_mnv TRUE/FALSE/"auto": Find same-sample adjacent SBS and replace these
+#'   records with DBS (doublet base substitution) records. Also, find groups of same-sample variants
+#'   within 2 bp of each other and replace these records with MNV (multi-nucleotide variant)
+#'   records. The default, "auto", looks for DBS/MNV if there are 0 DBS called in the data set.
 #' @return a data.table of MAF data, with any problematic records flagged and a few
 #'   quality-control annotations (if available with the chosen refset data).
 #' @export
 preload_maf = function(maf = NULL, refset = NULL, coverage_intervals_to_check = NULL,
                     chain_file = NULL, sample_col = "Unique_Patient_Identifier", chr_col = "Chromosome", start_col = "Start_Position",
-                    ref_col = "Reference_Allele", tumor_allele_col = "guess", keep_extra_columns = FALSE, detect_hidden_mnv = TRUE) {
+                    ref_col = "Reference_Allele", tumor_allele_col = "guess", keep_extra_columns = TRUE, detect_hidden_mnv = "auto") {
   if(is.null(refset)) {
     msg = paste0("Required argument refset: Supply a reference data package (e.g., ces.refset.hg38 or ces.refset.hg19).")
     stop(paste0(strwrap(msg, exdent = 2), collapse = "\n"))
@@ -136,8 +136,12 @@ preload_maf = function(maf = NULL, refset = NULL, coverage_intervals_to_check = 
   }
 
   maf = read_in_maf(maf = maf, refset_env = refset_env, chr_col = chr_col, start_col = start_col, ref_col = ref_col,
-                    tumor_allele_col = tumor_allele_col, sample_col = sample_col, more_cols = more_cols, chain_file = chain_file)
-  
+                    tumor_allele_col = tumor_allele_col, sample_col = sample_col, more_cols = more_cols, chain_file = chain_file,
+                    separate_old_problems = TRUE)
+  if('old_problem' %in% names(maf)) {
+    maf[! is.na(old_problem), problem := old_problem]
+    maf$old_problem = NULL
+  }
   coverage_gr = NULL
   if(! is.null(coverage_intervals_to_check)) {
     if (is.character(coverage_intervals_to_check)) {
@@ -168,10 +172,6 @@ preload_maf = function(maf = NULL, refset = NULL, coverage_intervals_to_check = 
     }
   }
   
-  if(! is.logical(detect_hidden_mnv) || length(detect_hidden_mnv) != 1) {
-    stop("detect_hidden_mnv should be TRUE/FALSE.")
-  }
-  
   maf[! is.na(problem) & ! problem %in% c('duplicate_record', 'duplicate_from_TCGA_sample_merge',
                                 'duplicate_record_after_liftOver', 'failed_liftOver',
                                 'merged_into_dbs_variant', 'merged_with_nearby_variant', 
@@ -179,13 +179,24 @@ preload_maf = function(maf = NULL, refset = NULL, coverage_intervals_to_check = 
                c('variant_id', 'variant_type') := list(NA_character_, NA_character_)]
   maf[variant_type == 'illegal', problem := 'invalid_record']
   
-  if (detect_hidden_mnv) {
+  if(! identical(detect_hidden_mnv, 'auto') && (! is.logical(detect_hidden_mnv) || length(detect_hidden_mnv) != 1)) {
+    stop("detect_hidden_mnv should be TRUE/FALSE, or \"auto\".")
+  }
+  
+  # If there are any DBS in the MAF, the "auto" option assumes DBS/MNV were called correctly by variant caller.
+  if(identical(detect_hidden_mnv, 'auto')) {
+    detect_hidden_mnv = TRUE
+    if(maf[is.na(problem), sum(variant_type == 'dbs')] > 0) {
+      detect_hidden_mnv = FALSE
+    }
+  }
+  
+  if(detect_hidden_mnv) {
     mnv = detect_mnv(maf[is.na(problem)])
-    
     if(mnv[, .N] > 0) {
-      # Groups of 2 consecutive SNVs are double-base substitutions
+      # Groups of 2 consecutive SBS are double-base substitutions
       # Create DBS entries suitable for MAF table
-      mnv[, is_dbs := .N == 2 && diff(Start_Position) == 1 && variant_type[1] == 'snv' && variant_type[2] == 'snv', by = mnv_group]
+      mnv[, is_dbs := .N == 2 && diff(Start_Position) == 1 && variant_type[1] == 'sbs' && variant_type[2] == 'sbs', by = mnv_group]
       dbs = mnv[is_dbs == T, 
                 .(Unique_Patient_Identifier = Unique_Patient_Identifier[1], 
                   Chromosome = Chromosome[1], Start_Position = Start_Position[1],
@@ -194,15 +205,13 @@ preload_maf = function(maf = NULL, refset = NULL, coverage_intervals_to_check = 
                   v1 = variant_id[1], v2 = variant_id[2]), by = mnv_group][, -"mnv_group"]
       dbs[, dbs_id := paste0(Chromosome, ':', Start_Position, '_', Reference_Allele, '>', Tumor_Allele)]
       
-      # Remove the SNV entries that form the new DBS variants
+      # Remove the SBS entries that form the new DBS variants
       maf[dbs, dbs_id := i.dbs_id, on = c("Unique_Patient_Identifier", variant_id = "v1")]
       maf[dbs, dbs_id := i.dbs_id, on = c("Unique_Patient_Identifier", variant_id = "v2")]
-      maf_dbs_ind = maf[! is.na(dbs_id), which = T]
-      maf_dbs = maf[maf_dbs_ind, .(Unique_Patient_Identifier, Chromosome, Start_Position, 
-                                   Reference_Allele, Tumor_Allele)]
       
-      if (all(c("prelift_chr", "prelift_start", "liftover_strand_flip") %in% names(maf))) {
-        dbs[maf, c("prelift_chr", "prelift_start", "liftover_strand_flip") := list(prelift_chr, prelift_start, liftover_strand_flip), on = c(v1 = 'variant_id')]
+      if (all(c("prelift_chr", "prelift_start", "liftover_strand_flip", "prelift_variant_id") %in% names(maf))) {
+        dbs[maf, c("prelift_chr", "prelift_start", "liftover_strand_flip", "prelift_variant_id") := list(prelift_chr, 
+          prelift_start, liftover_strand_flip, prelift_variant_id), on = c(v1 = 'variant_id')]
       }
       maf[is.na(problem) & ! is.na(dbs_id), problem := "merged_into_dbs_variant"]
       maf[, dbs_id := NULL]
@@ -217,7 +226,7 @@ preload_maf = function(maf = NULL, refset = NULL, coverage_intervals_to_check = 
       if(num_dbs > 0) {
         grammar1 = ifelse(num_dbs == 1, 'pair', 'pairs')
         grammar2 = ifelse(num_dbs == 1, 'has', 'have')
-        msg = paste0('Note: ', num_dbs, ' adjacent ', grammar1, ' of SNVs ', grammar2, ' been reclassified as doublet base substitutions (dbs).')
+        msg = paste0('Note: ', num_dbs, ' adjacent ', grammar1, ' of SBS', grammar2, ' been reclassified as doublet base substitutions (DBS).')
         pretty_message(msg)
       }
       
@@ -242,8 +251,10 @@ preload_maf = function(maf = NULL, refset = NULL, coverage_intervals_to_check = 
                   by = 'mnv_group'][, .SD[1], by = 'mnv_group']
         mnv[, variant_type := 'other']
         
-        if (all(c("prelift_chr", "prelift_start", "liftover_strand_flip") %in% names(maf))) {
-          mnv[maf, c("prelift_chr", "prelift_start", "liftover_strand_flip") := .(prelift_chr, prelift_start, liftover_strand_flip), on = 'mnv_group']
+        if (all(c("prelift_chr", "prelift_start", "liftover_strand_flip", "prelift_variant_id") %in% names(maf))) {
+          mnv[maf, c("prelift_chr", "prelift_start", 
+                     "liftover_strand_flip", "prelift_variant_id") := .(prelift_chr, prelift_start, 
+                                                                        liftover_strand_flip, prelift_variant_id), on = 'mnv_group']
         }
         maf = rbind(maf, mnv, fill = TRUE)
         maf[, mnv_group := NULL]
@@ -355,26 +366,26 @@ preload_maf = function(maf = NULL, refset = NULL, coverage_intervals_to_check = 
 #' Catch duplicate samples
 #' 
 #' Takes in a data.table of MAF data (produced, typically, with \code{preload_maf()}) and
-#' identifies samples with relatively high proportions of shared SNV mutations. Some
+#' identifies samples with relatively high proportions of shared SBS mutations. Some
 #' flagged sample pairs may reflect shared driver mutations or chance overlap of variants
-#' in SNV or sequencing error hotspots. Very high overlap may indicate sample duplication,
+#' in SBS or sequencing error hotspots. Very high overlap may indicate sample duplication,
 #' re-use of samples across data sources, or within-experiment sample contamination. To limit
 #' the influence of shared calling error, it's recommended to run this function after
 #' any quality filtering of MAF records, as a final step.
 #' 
 #' Sample pairs are flagged when...
 #' \itemize{
-#' \item Both samples have <6 total SNVs and any shared SNVs.
-#' \item Both samples have <21 total SNVs and >1 shared mutation.
-#' \item One sample has just 1 or 2 total SNVs and has any overlaps with the other sample.
-#' \item The samples have >2 shared SNVs and at least one percent of SNVs are shared (in the sample with fewer SNVs).
+#' \item Both samples have <6 total SBS and any shared SBS.
+#' \item Both samples have <21 total SBS and >1 shared mutation.
+#' \item One sample has just 1 or 2 total SBS and has any overlaps with the other sample.
+#' \item The samples have >2 shared SBS and at least one percent of SBS are shared (in the sample with fewer SBS).
 #' }
 #' These thresholds err on the side of reporting too many possible duplicates. In general,
 #' and especially when dealing with targeted sequencing data, the presence of 1 or 2
 #' shared mutations between a pair of samples is not strong evidence of sample
 #' duplication. It's up to the user to filter and interpret the output.
 #' 
-#' In addition to reporting SNV counts, this function divides the genome into 1000-bp
+#' In addition to reporting SBS counts, this function divides the genome into 1000-bp
 #' windows and reports the following:
 #' \itemize{
 #' \item variant_windows_A: Number of windows in which sample A has a variant.
@@ -383,7 +394,7 @@ preload_maf = function(maf = NULL, refset = NULL, coverage_intervals_to_check = 
 #' }
 #' Sometimes, samples have little overlap except for a few hotspots that may derive from
 #' shared calling error or highly mutable regions. These window counts can help
-#' distinguish such samples from those with more pervasive SNV overlap.
+#' distinguish such samples from those with more pervasive SBS overlap.
 #' 
 #' @param maf_list A list of data.tables (or a single data.table) with MAF data and cancereffectsizeR-style column names,
 #'   as generated by \code{preload_maf()}.

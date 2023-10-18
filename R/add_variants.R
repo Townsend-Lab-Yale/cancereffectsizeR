@@ -3,34 +3,34 @@
 #' Use this function to add variant annotations to your CESAnalysis by specifying variants
 #' to add in one of five ways: a data.table containing genomic coordinates (output from
 #' select_variants(), typically), a GRanges object, a BED file, another CESAnalysis, or
-#' SNV/AAC IDs.
+#' sbs/AAC IDs.
 #' 
-#' All methods of adding variants work by identifying which SNVs to add and then using the
+#' All methods of adding variants work by identifying which SBS to add and then using the
 #' target_cesa's associated reference data to identify overlapping amino-acid-change
-#' mutations, which are then added as well. (You can't add just SNVs or just AACs.) Note
+#' mutations, which are then added as well. (You can't add just SBS or just AACs.) Note
 #' that if you try to add far more distinct variants than appear in a typical cohort (as
 #' in, millions), annotation will take a while and the annotation tables in the
 #' CESAnalysis may take up significant memory. Please contact us if you have issues.
 #' 
 #' @param target_cesa CESAnalysis to receive variant annotations
 #' @param variant_table A data.table with chr/start/end positions (1-based closed
-#'   coordinates, like MAF format). All possible SNVs overlapping the table's genomic
+#'   coordinates, like MAF format). All possible SBS overlapping the table's genomic
 #'   coordinates (within \code{padding} bases) will be added. The tables returned by
-#'   select_variants() and (CESAnalysis)$variants work, and get special handling of
-#'   amino-acid-change SNVs: only the precise positions in start, end, and center_nt_pos
+#'   select_variants() and (CESAnalysis)$variants work, and get special handling for
+#'   amino-acid-changing SBS: only the precise positions in start, end, and center_nt_pos
 #'   are used. (This avoids adding all variants between start/end, which on
 #'   splice-site-spanning variants can be many thousands.)
-#' @param bed A path to a BED file. All possible SNVs overlapping BED intervals (within
+#' @param bed A path to a BED file. All possible SBS overlapping BED intervals (within
 #'   \code{padding} bases) will be added.
-#' @param gr A GRanges object. All possible SNVs overlapping the ranges (within \code{padding}
+#' @param gr A GRanges object. All possible SBS overlapping the ranges (within \code{padding}
 #'   bases) will be added.
-#' @param snv_id Character vector of CES-style SNV IDs to add.
+#' @param sbs_id Character vector of CES-style SBS IDs to add.
 #' @param aac_id Character vector of AAC IDs (or short names, like "KRAS_G12C")
-#' @param source_cesa Another CESAnalysis from which to copy snv_ids. SNVs will be
+#' @param source_cesa Another CESAnalysis from which to copy sbs_ids. SBS will be
 #'   re-annotated using the target_cesa's associated reference data.
 #' @param padding How many bases (default 0) to expand start and end of each gr range
 #' @export
-add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL, aac_id = NULL, bed = NULL, 
+add_variants = function(target_cesa = NULL, variant_table = NULL, sbs_id = NULL, aac_id = NULL, bed = NULL, 
                         gr = NULL, source_cesa = NULL, padding = 0) {
   if(! is(target_cesa, "CESAnalysis")) {
     stop("target_cesa should be a CESAnalysis", call. = F)
@@ -43,8 +43,8 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
   }
   
   # just one possible method should be chosen
-  if (sum(sapply(list(variant_table, gr, bed, snv_id, aac_id, source_cesa), is.null)) != 5){
-    stop("Use exactly one option out of variant_table, gr, bed, snv_id, aac_id, source_cesa.")
+  if (sum(sapply(list(variant_table, gr, bed, sbs_id, aac_id, source_cesa), is.null)) != 5){
+    stop("Use exactly one option out of variant_table, gr, bed, sbs_id, aac_id, source_cesa.")
   }
   
   
@@ -52,9 +52,9 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
     if(! is(source_cesa, "CESAnalysis")) {
       stop("source_cesa should be a CESAnalysis", call. = F)
     }
-    source_snv_table = source_cesa@mutations$snv
-    if (is.null(source_snv_table)) {
-      stop("source_cesa has no SNV annotations", call. = F)
+    source_sbs_table = source_cesa@mutations$sbs
+    if (is.null(source_sbs_table)) {
+      stop("source_cesa has no sbs annotations", call. = F)
     }
     
     if (! identical(target_cesa@ref_key, source_cesa@ref_key)) {
@@ -68,23 +68,23 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
         }
       }
       if(sum(sapply(target_cesa@mutations, nrow)) == 0) {
-        target_cesa@mutations = copy(source_cesa@mutations[c("amino_acid_change", "snv", "aac_snv_key", "dbs", "dbs_codon_change", 
+        target_cesa@mutations = copy(source_cesa@mutations[c("amino_acid_change", "sbs", "aac_sbs_key", "dbs", "dbs_codon_change", 
                                                              "aac_dbs_key")])
       } else {
-        new_snvs = source_cesa@mutations$snv[! target_cesa@mutations$snv$snv_id, on = "snv_id"]
+        new_sbs = source_cesa@mutations$sbs[! target_cesa@mutations$sbs$sbs_id, on = "sbs_id"]
         new_dbs = source_cesa@mutations$dbs[! target_cesa@mutations$dbs$dbs_id, on = "dbs_id"]
-        if (new_snvs[, .N] + new_dbs[, .N] == 0) {
+        if (new_sbs[, .N] + new_dbs[, .N] == 0) {
           warning("There were no new variants to copy over.")
         }
 
-        target_cesa@mutations$snv = rbind(target_cesa@mutations$snv, new_snvs)
+        target_cesa@mutations$sbs = rbind(target_cesa@mutations$sbs, new_sbs)
         target_cesa@mutations$dbs = rbind(target_cesa@mutations$dbs, new_dbs)
         
         if(source_cesa@mutations$amino_acid_change[, .N] > 0) {
           new_aacs = source_cesa@mutations$amino_acid_change[! target_cesa@mutations$amino_acid_change$aac_id, on = "aac_id"]
           target_cesa@mutations$amino_acid_change = rbind(target_cesa@mutations$amino_acid_change, new_aacs)
-          target_cesa@mutations$aac_snv_key = unique(rbind(target_cesa@mutations$aac_snv_key,
-                                                           source_cesa@mutations$aac_snv_key))
+          target_cesa@mutations$aac_sbs_key = unique(rbind(target_cesa@mutations$aac_sbs_key,
+                                                           source_cesa@mutations$aac_sbs_key))
         }
 
         if(source_cesa@mutations$dbs_codon_change[, .N] > 0) {
@@ -98,7 +98,7 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
     }
   }
   
-  # Handle gr, bed, variant_table: all get converted to a validated gr before creation of SNV IDs
+  # Handle gr, bed, variant_table: all get converted to a validated gr before creation of sbs IDs
   # We've already ensured that only one of these can be non-null
   if (! all(sapply(list(variant_table, gr, bed), is.null))) {
     bsg = get_cesa_bsg(target_cesa)
@@ -132,7 +132,7 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
     # convert to GPos and put in MAF-like table
     gpos = GenomicRanges::GPos(gr)
     ref = as.character(BSgenome::getSeq(bsg, gpos))
-    snv_table = data.table(chr = as.character(GenomicRanges::seqnames(gpos)), pos = GenomicRanges::pos(gpos),
+    sbs_table = data.table(chr = as.character(GenomicRanges::seqnames(gpos)), pos = GenomicRanges::pos(gpos),
                            ref = ref)
     nt = c("A", "C", "G", "T")
     if (any(! ref %in% nt)) {
@@ -140,26 +140,26 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
         pretty_message("All new variants are at sites with ambiguous reference sequence, so no annotations can be added.")
         return(target_cesa)
       }
-      snv_table = snv_table[ref %in% nt]
+      sbs_table = sbs_table[ref %in% nt]
       message("Note: Some variants in input were dropped because of ambiguous reference sequence (N's)")
     }
-    snv_table = snv_table[rep(1:.N, each = 4)]
-    snv_table[, alt := rep.int(c("A", "C", "G", "T"), .N/4)]
-    snv_table = snv_table[ref != alt]
-    snvs_to_annotate = snv_table[, paste0(chr, ':', pos, '_', ref, '>', alt)]
+    sbs_table = sbs_table[rep(1:.N, each = 4)]
+    sbs_table[, alt := rep.int(c("A", "C", "G", "T"), .N/4)]
+    sbs_table = sbs_table[ref != alt]
+    sbs_to_annotate = sbs_table[, paste0(chr, ':', pos, '_', ref, '>', alt)]
   }
   
-  # If supplied SNV IDs (rather than source_cesa, gr, bed, variant_table), validate them
-  if(! is.null(snv_id)) {
-    if(! is(snv_id, "character") || length(snv_id) == 0) {
-      stop("Expected snv_id to be character vector of snv_ids (e.g., 1:100_A>G", call. = F)
+  # If supplied sbs IDs (rather than source_cesa, gr, bed, variant_table), validate them
+  if(! is.null(sbs_id)) {
+    if(! is(sbs_id, "character") || length(sbs_id) == 0) {
+      stop("Expected sbs_id to be character vector of sbs_ids (e.g., 1:100_A>G", call. = F)
     }
     # will stop with errror if any IDs fail validation
-    validate_snv_ids(snv_id, get_cesa_bsg(target_cesa))
-    snvs_to_annotate = snv_id
+    validate_sbs_ids(sbs_id, get_cesa_bsg(target_cesa))
+    sbs_to_annotate = sbs_id
   }
   
-  # If supplied aac_id, get constituent SNVs
+  # If supplied aac_id, get constituent sbs
   refset = .ces_ref_data[[target_cesa@ref_key]]
   if (! is.null(aac_id)) {
     if(! is.character(aac_id) || length(aac_id) == 0) {
@@ -189,19 +189,19 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
     fast_refcds = list2env(refset$RefCDS[unique(aac_dt$entry_name)])
     
     
-    snvs_to_annotate = unique(unlist(mapply(aac_to_snv_ids, 
+    sbs_to_annotate = unique(unlist(mapply(aac_to_sbs_ids, 
                                      aa_pos = aac_dt$aa_pos,
                                      aa_alt = aac_dt$aa_alt,
                                      refcds_entry_name = aac_dt$entry_name,
                                      MoreArgs = list(bsg = refset$genome, refcds = fast_refcds), SIMPLIFY = F)))
   }
   
-  num_variants = length(snvs_to_annotate)
+  num_variants = length(sbs_to_annotate)
   if(num_variants == 0) {
     stop("No variants to add (check your input).")
   }
-  snvs_to_annotate = setdiff(snvs_to_annotate, target_cesa@mutations$snv$snv_id)
-  num_to_add = length(snvs_to_annotate)
+  sbs_to_annotate = setdiff(sbs_to_annotate, target_cesa@mutations$sbs$sbs_id)
+  num_to_add = length(sbs_to_annotate)
   
   if(num_to_add == 0) {
     stop("Tried to add ", num_variants , " variants, but all of them are already annotated in the CESAnalysis.")
@@ -221,42 +221,42 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, snv_id = NULL,
     warning("You're adding a lot of variants! Let us know if you have any issues.", immediate. = T, call. = F)
   }
   
-  # split snv_ids into MAF-like table for annotation
+  # split sbs_ids into MAF-like table for annotation
   cesa = target_cesa
-  snv_id = snvs_to_annotate
-  maf = as.data.table(tstrsplit(snv_id, split = '[:_>]'))
+  sbs_id = sbs_to_annotate
+  maf = as.data.table(tstrsplit(sbs_id, split = '[:_>]'))
   colnames(maf) = c("Chromosome", "Start_Position", "Reference_Allele", "Tumor_Allele")
   maf[, Start_Position := as.numeric(Start_Position)]
   
   annotations = annotate_variants(refset = .ces_ref_data[[target_cesa@ref_key]], variants = maf)
   aac_table = annotations$amino_acid_change
-  snv_table = annotations$snv
+  sbs_table = annotations$sbs
   if (aac_table[, .N] > 0) {
     cesa@mutations[["amino_acid_change"]] = unique(rbind(cesa@mutations$amino_acid_change, aac_table, fill = T), by = "aac_id")
     setkey(cesa@mutations$amino_acid_change, "aac_id")
   }
-  cesa@mutations[["snv"]] = unique(rbind(cesa@mutations$snv, snv_table, fill = T), by = "snv_id")
-  cesa@mutations[["aac_snv_key"]] = unique(rbind(cesa@mutations$aac_snv_key, annotations$aac_snv_key))
+  cesa@mutations[["sbs"]] = unique(rbind(cesa@mutations$sbs, sbs_table, fill = T), by = "sbs_id")
+  cesa@mutations[["aac_sbs_key"]] = unique(rbind(cesa@mutations$aac_sbs_key, annotations$aac_sbs_key))
   cesa@mutations[["dbs"]] = unique(rbind(cesa@mutations$dbs, annotations$dbs))
   cesa@mutations[["dbs_codon_change"]] = unique(rbind(cesa@mutations$dbs_codon_change, annotations$dbs_codon_change))
-  setkey(cesa@mutations$aac_snv_key, 'aac_id')
-  setkey(cesa@mutations$snv, "snv_id")
+  setkey(cesa@mutations$aac_sbs_key, 'aac_id')
+  setkey(cesa@mutations$sbs, "sbs_id")
   
   # Record which coverage ranges each new variant is covered in
   cesa = update_covered_in(cesa)
   return(cesa)
 }
 
-#' Get SNVs that cause an amino acid change
+#' Get sbs that cause an amino acid change
 #' 
-#' An internal function to figure out the SNVs that can cause a given amino acid substitution in a transcript
+#' An internal function to figure out the sbs that can cause a given amino acid substitution in a transcript
 #' 
 #' @param refcds_entry A RefCDS entry for the relevant transcript
 #' @param aa_pos Integer position of substitution on the transcript.
 #' @param aa_alt Identity of substitution, either a three-letter code ("Lys") or "STOP"
 #' @param bsg A BSgenome object for the genome build associated with the RefCDS entry
 #' @keywords internal
-aac_to_snv_ids = function(refcds_entry_name, aa_pos, aa_alt, bsg, refcds) {
+aac_to_sbs_ids = function(refcds_entry_name, aa_pos, aa_alt, bsg, refcds) {
   entry = refcds[[refcds_entry_name]]
   chr = entry$chr
   neg_strand = entry$strand == -1
@@ -280,16 +280,16 @@ aac_to_snv_ids = function(refcds_entry_name, aa_pos, aa_alt, bsg, refcds) {
     ref_seq = Biostrings::complement(codon)
   }
   
-  to_annotate = codon_snvs_to_aa[[as.character(codon)]][[aa_alt]]
-  snv_id = character()
+  to_annotate = codon_sbs_to_aa[[as.character(codon)]][[aa_alt]]
+  sbs_id = character()
   for (i in 1:3) {
     if(length(to_annotate[[i]]) > 0) {
       dna_alt =to_annotate[[i]]
       if(neg_strand) {
         dna_alt = seqinr::comp(dna_alt, forceToLower = F)
       }
-      snv_id = c(snv_id, paste0(chr, ':', genome_pos[i], '_', as.character(ref_seq[i]), '>', dna_alt))
+      sbs_id = c(sbs_id, paste0(chr, ':', genome_pos[i], '_', as.character(ref_seq[i]), '>', dna_alt))
     }
   }
-  return(snv_id)
+  return(sbs_id)
 }

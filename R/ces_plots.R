@@ -37,7 +37,7 @@ lollipops = function(si_list, title = "My SIs", ylab = "selection intensity",
   # help out user if they called the function on cesa instead of [cesa]$seleciton
   if (is(si_list, "CESAnalysis")) {
     if(length(si_list@selection_results) > 0) {
-      si_list = snv_results(si_list)
+      si_list = sbs_results(si_list)
     } else {
       stop("This CESAnalysis has nothing in [cesa]$selection.")
     }
@@ -157,7 +157,7 @@ lollipops = function(si_list, title = "My SIs", ylab = "selection intensity",
       stop("Missing required column variant_id in input table ", i, " (see help).")
     }
     curr[variant_type == 'aac', variant_name := gsub('_[^_]*$', '', variant_id)]
-    curr[variant_type == 'snv', variant_name := variant_id]
+    curr[variant_type == 'sbs', variant_name := variant_id]
     curr[variant_type == 'aac', gene := gsub('_.*', '', variant_name)]
 
     
@@ -219,7 +219,7 @@ lollipops = function(si_list, title = "My SIs", ylab = "selection intensity",
     curr_merge_dist = merge_dist[i]
     
     # leave out gene names if all AACs have same gene
-    # otherwise, keep gene names and add them to SNVs as well
+    # otherwise, keep gene names and add them to sbs as well
     # since intergenic variants have no gene, specify display color
     top_hits[, display_color := NA_character_]
     if (genes_available) {
@@ -229,7 +229,7 @@ lollipops = function(si_list, title = "My SIs", ylab = "selection intensity",
         new_names = mapply(function(r, n) gsub(r, '', n), regex, old_names)
         top_hits[variant_type == "aac", variant_name_print := new_names]
       } 
-      top_hits[variant_type == "snv" & ! is.na(gene), variant_name_print := paste0('(', gene, ') ', variant_name_print)] 
+      top_hits[variant_type == "sbs" & ! is.na(gene), variant_name_print := paste0('(', gene, ') ', variant_name_print)] 
       top_hits[gene %in% multi_variant_genes, display_color := factor(gene)]
     } else {
       top_hits[, variant_name_print := variant_name]

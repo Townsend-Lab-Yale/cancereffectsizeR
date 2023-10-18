@@ -82,7 +82,7 @@ CESAnalysis = function(refset = NULL) {
   ## recording: whether "run_history" is currently being recorded (gets set to false during some internal steps for clarity)
   ## uid: a unique-enough identifier for the CESAnalysis (just uses epoch time)
   ## genome_info: environment with stuff like genome build name, species, name of associated BSgenome
-  ## snv_signatures: List CES signature sets used in the analysis
+  ## sbs_signatures: List CES signature sets used in the analysis
   ## cached_variants (not populated here): output of select_variants() run with default arguments
   ## cds_refset: TRUE if gr_genes/RefCDS are protein-based; FALSE if gene-based.
   genome_info = get_ref_data(data_dir, "genome_build_info")
@@ -97,12 +97,12 @@ CESAnalysis = function(refset = NULL) {
   }
   advanced = list("version" = ces_version, using_exome_plus = F, 
                   recording = T, uid = unclass(Sys.time()), genome_info = genome_info,
-                  snv_signatures = list(), refset_version = refset_version,
+                  sbs_signatures = list(), refset_version = refset_version,
                   cds_refset = cds_refset)
   
   # Mutation table specifications (see template tables declared in imports.R)
   mutation_tables = list(amino_acid_change = copy(aac_annotation_template), 
-                         snv = copy(snv_annotation_template), aac_snv_key = copy(aac_snv_key_template),
+                         sbs = copy(sbs_annotation_template), aac_sbs_key = copy(aac_sbs_key_template),
                          dbs = copy(dbs_annotation_template), dbs_codon_change = copy(dbs_codon_change_template),
                          aac_dbs_key = copy(aac_dbs_key_template))
   
@@ -144,7 +144,7 @@ copy_cesa = function(cesa) {
   trinuc_orig = cesa@trinucleotide_mutation_weights
   trinuc_copy = list()
   if(length(trinuc_orig) > 0) {
-    for (i in c("trinuc_snv_counts", "trinuc_proportion_matrix", "group_average_dS_output")) {
+    for (i in c("trinuc_sbs_counts", "trinuc_proportion_matrix", "group_average_dS_output")) {
       trinuc_copy[[i]] = trinuc_orig[[i]]
     }
     trinuc_copy[c("signature_weight_table", "signature_weight_table_with_artifacts",
@@ -235,7 +235,7 @@ load_cesa = function(file) {
   cesa@selection_results = lapply(cesa@selection_results, setDT)
   cesa@epistasis = lapply(cesa@epistasis, setDT)
   cesa@mutations$amino_acid_change = setDT(cesa@mutations$amino_acid_change, key = "aac_id")
-  cesa@mutations$snv = setDT(cesa@mutations$snv, key = "snv_id")
+  cesa@mutations$sbs = setDT(cesa@mutations$sbs, key = "sbs_id")
   
   if (! is.null(cesa@trinucleotide_mutation_weights[["signature_weight_table"]])) {
     cesa@trinucleotide_mutation_weights[["signature_weight_table"]] = setDT(cesa@trinucleotide_mutation_weights[["signature_weight_table"]])
@@ -256,8 +256,8 @@ load_cesa = function(file) {
     warning(pretty_message(msg, emit = F))
     
     ces_summary = list(maf = cesa@maf, samples = cesa@samples,
-                       annotations = list(snv = cesa@mutations$snv, codon_change = cesa@mutations$amino_acid_change,
-                                          snv_codon_key = cesa@mutations$aac_snv_key),
+                       annotations = list(sbs = cesa@mutations$sbs, codon_change = cesa@mutations$amino_acid_change,
+                                          sbs_codon_key = cesa@mutations$aac_sbs_key),
                        trinuc_rates = as.data.table(cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix, keep.rownames = "Unique_Patient_Identifier"),
                        sbs_signatures = cesa@trinucleotide_mutation_weights$raw_signature_weights,
                        gene_rates = cesa@mutrates,
@@ -265,23 +265,16 @@ load_cesa = function(file) {
                        run_history = CES_Run_History(cesa@run_history))
     return(ces_summary)
   }
-  cesa@mutations$aac_snv_key = setDT(cesa@mutations$aac_snv_key, key = "aac_id")
+  cesa@mutations$aac_sbs_key = setDT(cesa@mutations$aac_sbs_key, key = "aac_id")
   cesa@mutations$aac_dbs_key = setDT(cesa@mutations$aac_dbs_key, key = "dbs_id")
 
-  
-  # variant_to_cov could be large, and saveRDS() doesn't handle large envs well,
-  # so save_cesa() converted it to list.
-  if(is.list(cesa@mutations$variants_to_cov)) {
-    cesa@mutations$variants_to_cov = list2env(cesa@mutations$variants_to_cov, parent = emptyenv())
-  }
-  
   # Restore used_sig_sets
-  used_sig_sets = cesa@advanced$snv_signatures
+  used_sig_sets = cesa@advanced$sbs_signatures
   if (! is.null(used_sig_sets) && length(used_sig_sets) > 0) {
     # Get each signature set's meta data.table and call setDT
-    lapply(lapply(cesa@advanced$snv_signatures, '[[', 'meta'), setDT)
+    lapply(lapply(cesa@advanced$sbs_signatures, '[[', 'meta'), setDT)
   } else {
-    cesa@advanced$snv_signatures = list()
+    cesa@advanced$sbs_signatures = list()
   }
   
   refset_name = cesa@ref_key
@@ -336,8 +329,16 @@ load_cesa = function(file) {
   cesa@coverage$targeted = lapply(cesa@coverage$targeted, genome_updater)
   cesa@coverage$genome = lapply(cesa@coverage$genome, genome_updater)
   
+  # TEMPORARY
+  if(is.environment(cesa@mutations$cov_to_variants)) {
+    cesa@mutations$cov_to_variants = as.list(cesa@mutations$cov_to_variants)
+    cesa@mutations$variants_to_cov = as.list(cesa@mutations$variants_to_cov)
+  }
+  
+  
   # Cache variant table for easy user access
   cesa@advanced$cached_variants = suppressMessages(select_variants(cesa))
+  
   return(cesa)
 }
 
@@ -428,7 +429,7 @@ get_sample_info = function(cesa = NULL) {
   
 }
 
-#' Get estimated relative rates of trinucleotide-specific SNV mutation
+#' Get estimated relative rates of trinucleotide-specific SBS mutation
 #' 
 #' @param cesa CESAnalysis object
 #' @export
@@ -441,7 +442,7 @@ get_trinuc_rates = function(cesa = NULL) {
 
 #' Get table of signature attributions
 #' 
-#' View SNV signature attributions associated with CESAnalysis samples.
+#' View SBS signature attributions associated with CESAnalysis samples.
 #' 
 #' 
 #' Use raw = TRUE to get signature attributions as produced by the signature extraction
@@ -502,9 +503,9 @@ get_gene_rates = function(cesa = NULL) {
 #' 
 #' @param cesa CESAnalysis object
 #' @export
-snv_results = function(cesa = NULL) {
+sbs_results = function(cesa = NULL) {
   if(! is(cesa, "CESAnalysis")) {
-    stop("\nUsage: snv_results(cesa), where cesa is a CESAnalysis")
+    stop("\nUsage: sbs_results(cesa), where cesa is a CESAnalysis")
   }
 
   return(copy(cesa@selection_results))

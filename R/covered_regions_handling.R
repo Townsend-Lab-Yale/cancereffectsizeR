@@ -202,7 +202,7 @@ assign_gr_to_coverage = function(cesa, gr, covered_regions_name, coverage_type) 
 #' @keywords internal
 update_covered_in = function(cesa) {
   # Nothing to update if no annotated mutations.
-  if(cesa@mutations$snv[, .N] + cesa@mutations$dbs[, .N] == 0) {
+  if(cesa@mutations$sbs[, .N] + cesa@mutations$dbs[, .N] == 0) {
     return(cesa)
   }
   
@@ -220,9 +220,9 @@ update_covered_in = function(cesa) {
   
   # Do coverage calculation unless all data is generic WGS
   if(length(cov_grl) != 0) {
-    # Collect all simple variants (Plain SNV and DBS; in the future, indels)
-    variant_gr = makeGRangesFromDataFrame(rbind(cesa@mutations$snv[, .(seqnames = chr, start = pos, end = pos, 
-                                                                       variant_id = snv_id)],
+    # Collect all simple variants (Plain sbs and DBS; in the future, indels)
+    variant_gr = makeGRangesFromDataFrame(rbind(cesa@mutations$sbs[, .(seqnames = chr, start = pos, end = pos, 
+                                                                       variant_id = sbs_id)],
                                                 cesa@mutations$dbs[, .(seqnames = chr, start = pos, end = pos + 1,
                                                                        variant_id = dbs_id)]),
                                           keep.extra.columns = TRUE)
@@ -234,10 +234,10 @@ update_covered_in = function(cesa) {
     
     
     # Build environments (hashes) giving variant_id > cov and cov > variants
-    # For AACs, we will say that there is coverage if any constituent SNV/DBS is covered.
+    # For AACs, we will say that there is coverage if any constituent sbs/DBS is covered.
     variants_to_cov = cov_table[, .(cov = list((cov_name))), by = 'variant_id']
-    aac_key = cesa@mutations$aac_snv_key
-    aac_coverage = merge.data.table(cesa@mutations$aac_snv_key, cov_table, by.x = 'snv_id',
+    aac_key = cesa@mutations$aac_sbs_key
+    aac_coverage = merge.data.table(cesa@mutations$aac_sbs_key, cov_table, by.x = 'sbs_id',
                                     by.y = 'variant_id', all = FALSE, allow.cartesian = TRUE)
     cov_by_aac = aac_coverage[, .(cov = list(unique(cov_name))), by = 'aac_id'] # need unique
     setnames(cov_by_aac, 'aac_id', 'variant_id')
@@ -254,22 +254,19 @@ update_covered_in = function(cesa) {
     uncovered_variants = data.table(variant_id = setdiff(c(variant_gr$variant_id, aac_key$aac_id), variants_to_cov$variant_id))
     uncovered_variants[, cov := .(list(character()))]
     variants_to_cov = rbind(variants_to_cov, uncovered_variants) # entries till be NULL
-    variants_to_cov = list2env(setNames(variants_to_cov$cov, variants_to_cov$variant_id),
-                               parent = emptyenv())
+    variants_to_cov = setNames(variants_to_cov$cov, variants_to_cov$variant_id)
     
     cov_to_variants = cov_table[, .(variants = list(variant_id)), by = 'cov_name']
     aac_by_cov = aac_coverage[, .(variants = list(unique(aac_id))), by = 'cov_name'] # need unique
     cov_to_variants = rbind(cov_to_variants, aac_by_cov)
     
-    cov_to_variants = list2env(setNames(cov_to_variants$variants, cov_to_variants$cov_name),
-                               parent = emptyenv())
+    cov_to_variants = setNames(cov_to_variants$variants, cov_to_variants$cov_name)
   } else {
     # Handle case of all generic WGS data
-    all_variants = c(cesa@mutations$amino_acid_change$aac_id, cesa@mutations$snv$snv_id,
+    all_variants = c(cesa@mutations$amino_acid_change$aac_id, cesa@mutations$sbs$sbs_id,
                      cesa@mutations$dbs_codon_change$dbs_aac_id, cesa@mutations$dbs$dbs_id)
-    variants_to_cov = list2env(setNames(rep.int(list(character()), length(all_variants)), all_variants),
-                               parent = emptyenv())
-    cov_to_variants = new.env(parent = emptyenv())
+    variants_to_cov = setNames(rep.int(list(character()), length(all_variants)), all_variants)
+    cov_to_variants = list()
   }
   
   cesa@mutations$cov_to_variants = cov_to_variants

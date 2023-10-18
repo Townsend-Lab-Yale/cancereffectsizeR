@@ -15,9 +15,9 @@ a data.table with overlap statistics
 }
 \description{
 Takes in a data.table of MAF data (produced, typically, with \code{preload_maf()}) and
-identifies samples with relatively high proportions of shared SNV mutations. Some
+identifies samples with relatively high proportions of shared SBS mutations. Some
 flagged sample pairs may reflect shared driver mutations or chance overlap of variants
-in SNV or sequencing error hotspots. Very high overlap may indicate sample duplication,
+in SBS or sequencing error hotspots. Very high overlap may indicate sample duplication,
 re-use of samples across data sources, or within-experiment sample contamination. To limit
 the influence of shared calling error, it's recommended to run this function after
 any quality filtering of MAF records, as a final step.
@@ -25,17 +25,17 @@ any quality filtering of MAF records, as a final step.
 \details{
 Sample pairs are flagged when...
 \itemize{
-\item Both samples have <6 total SNVs and any shared SNVs.
-\item Both samples have <21 total SNVs and >1 shared mutation.
-\item One sample has just 1 or 2 total SNVs and has any overlaps with the other sample.
-\item The samples have >2 shared SNVs and at least one percent of SNVs are shared (in the sample with fewer SNVs).
+\item Both samples have <6 total SBS and any shared SBS.
+\item Both samples have <21 total SBS and >1 shared mutation.
+\item One sample has just 1 or 2 total SBS and has any overlaps with the other sample.
+\item The samples have >2 shared SBS and at least one percent of SBS are shared (in the sample with fewer SBS).
 }
 These thresholds err on the side of reporting too many possible duplicates. In general,
 and especially when dealing with targeted sequencing data, the presence of 1 or 2
 shared mutations between a pair of samples is not strong evidence of sample
 duplication. It's up to the user to filter and interpret the output.
 
-In addition to reporting SNV counts, this function divides the genome into 1000-bp
+In addition to reporting SBS counts, this function divides the genome into 1000-bp
 windows and reports the following:
 \itemize{
 \item variant_windows_A: Number of windows in which sample A has a variant.
@@ -44,5 +44,5 @@ windows and reports the following:
 }
 Sometimes, samples have little overlap except for a few hotspots that may derive from
 shared calling error or highly mutable regions. These window counts can help
-distinguish such samples from those with more pervasive SNV overlap.
+distinguish such samples from those with more pervasive SBS overlap.
 }

@@ -1,6 +1,6 @@
 #' Assign pre-calculated relative trinucleotide mutation rates
 #'
-#' This function assigns trinucleotide-context-specific relative SNV mutation rates to
+#' This function assigns trinucleotide-context-specific relative SBS mutation rates to
 #' tumors in a CESAnalysis. (These could be rates previously generated with
 #' \code{trinuc_mutation_rates()}, or they could calculated using your own methods.) The
 #' input rates must be a data.table or matrix. If supplying a data table, there must be a

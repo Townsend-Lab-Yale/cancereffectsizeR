@@ -11,10 +11,10 @@ assign_group_average_trinuc_rates(cesa)
 }
 \description{
 This function calculates the relative rates of trinucleotide-context-specific mutations across
-all SNV records from whole-exome and whole-genome MAF data and naively assigns these rates to all samples. 
-This can be helpful if you do not have SNV mutational signatures available for your species, or if 
-you want to assume that all samples share the same SNV mutational processes without relying on signatures.
-Normally, if mutational signatures are available, it is better to use trinuc_snv_mutation_rates().
+all SBS records from whole-exome and whole-genome MAF data and naively assigns these rates to all samples. 
+This can be helpful if you do not have SBS mutational signatures available for your species, or if 
+you want to assume that all samples share the same SBS mutational processes without relying on signatures.
+Normally, if mutational signatures are available, it is better to use trinuc_mutation_rates().
 }
 \details{
 To reduce the influence of selection, only non-recurrent mutations (i.e., mutations that occur

@@ -5,7 +5,7 @@ deconstructSigs_trinuc_string = build_deconstructSigs_trinuc_string()
 deconstructSigs_notations = build_dS_notation_table()
 
 source("build_codon_snvs_to_aa.R")
-codon_snvs_to_aa = build_codon_snvs_to_aa()
+codon_sbs_to_aa = build_codon_snvs_to_aa()
 
 source("build_codon_dbs_to_aa.R")
 codon_dbs_to_aa = build_codon_dbs_to_aa()
@@ -95,7 +95,7 @@ cosmic_dbs_classes = c(
 
 
 usethis::use_data(deconstructSigs_trinuc_string, 
-                  deconstructSigs_notations, codon_snvs_to_aa, codon_dbs_to_aa,
+                  deconstructSigs_notations, codon_sbs_to_aa, codon_dbs_to_aa,
                   cosmic_dbs_classes,
                   internal = TRUE, overwrite = TRUE)
 setwd(prev_dir)

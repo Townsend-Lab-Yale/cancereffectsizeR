@@ -2,7 +2,7 @@
 % Please edit documentation in R/CESAnalysis.R
 \name{get_trinuc_rates}
 \alias{get_trinuc_rates}
-\title{Get estimated relative rates of trinucleotide-specific SNV mutation}
+\title{Get estimated relative rates of trinucleotide-specific SBS mutation}
 \usage{
 get_trinuc_rates(cesa = NULL)
 }
@@ -10,5 +10,5 @@ get_trinuc_rates(cesa = NULL)
 \item{cesa}{CESAnalysis object}
 }
 \description{
-Get estimated relative rates of trinucleotide-specific SNV mutation
+Get estimated relative rates of trinucleotide-specific SBS mutation
 }

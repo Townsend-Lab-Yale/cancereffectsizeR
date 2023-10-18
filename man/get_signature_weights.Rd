@@ -20,7 +20,7 @@ A data.table of signature attributions for each sample. By default, these are
   signatures) that sum to 1.
 }
 \description{
-View SNV signature attributions associated with CESAnalysis samples.
+View SBS signature attributions associated with CESAnalysis samples.
 }
 \details{
 Use raw = TRUE to get signature attributions as produced by the signature extraction

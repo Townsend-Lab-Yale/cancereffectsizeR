@@ -7,7 +7,7 @@
 baseline_mutation_rates(
   cesa,
   aac_ids = NULL,
-  snv_ids = NULL,
+  sbs_ids = NULL,
   variant_ids = NULL,
   samples = character(),
   cores = 1
@@ -18,9 +18,9 @@ baseline_mutation_rates(
 
 \item{aac_ids}{vector of IDs for amino acid change variants}
 
-\item{snv_ids}{vector of IDs for SNVs}
+\item{sbs_ids}{vector of IDs for SBS}
 
-\item{variant_ids}{vector of mixed IDs (faster to use snv_ids and aac_ids for large jobs, if already known)}
+\item{variant_ids}{vector of mixed IDs (faster to use sbs_ids and aac_ids for large jobs, if already known)}
 
 \item{samples}{Which samples to calculate rates for. Defaults to all samples. Can be a
 vector of Unique_Patient_Identifiers, or a data.table containing rows from the
@@ -33,5 +33,5 @@ a data table of mutation rates with one column per variant, and a Unique_Patient
 }
 \description{
 Calculates neutral mutation rates at specific sites based on gene mutation rates and the relative
-trinucleotide-context-specific SNV mutation rates of each sample
+trinucleotide-context-specific SBS mutation rates of each sample
 }

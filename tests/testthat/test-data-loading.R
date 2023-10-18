@@ -7,10 +7,10 @@ test_that("load_maf and variant annotation", {
   tiny_ak = load_cesa(get_test_file("tiny_hg38_maf_loaded.rds"))
   expect_equal(tiny$maf[order(variant_id)], tiny_ak$maf[order(variant_id)])
   expect_equal(tiny@excluded, tiny_ak@excluded, ignore.row.order = T)
-  suppressWarnings({tiny_ak@mutations$amino_acid_change$constituent_snvs = NULL})
-  expect_equal(tiny@mutations[c("amino_acid_change", "snv", "aac_snv_key")], 
-               tiny_ak@mutations[c("amino_acid_change", "snv", "aac_snv_key")])
-  expect_equal(tiny@mutations$snv[, .N], 389)
+  suppressWarnings({tiny_ak@mutations$amino_acid_change$constituent_sbss = NULL})
+  expect_equal(tiny@mutations[c("amino_acid_change", "sbs", "aac_sbs_key")], 
+               tiny_ak@mutations[c("amino_acid_change", "sbs", "aac_sbs_key")])
+  expect_equal(tiny@mutations$sbs[, .N], 389)
   expect_equal(tiny@mutations$amino_acid_change[, .N], 381)
   expect_equal(tiny$samples[, .N], 9) 
    
@@ -18,22 +18,22 @@ test_that("load_maf and variant annotation", {
   expect_equal(lapply(tiny@coverage$exome, IRanges::ranges), lapply(tiny_ak@coverage$exome, IRanges::ranges))
   
   # Verify that calling internal function annotate_variants works the same called directly
-  # Note that DBS/MNV correction occurs in load_maf, but the SNVs/AACs annotated will stay the same
+  # Note that DBS/MNV correction occurs in load_maf, but the SBS/AACs annotated will stay the same
   variants_to_check = copy(tiny@maf)
   variants_to_check[, variant_type := NULL] # cause variants to be re-identified
   re_anno = annotate_variants(ces.refset.hg38, variants_to_check)
   expect_equal(tiny@mutations$amino_acid_change, re_anno$amino_acid_change)
   
   # column order is different when running annotate_variants() directly.
-  setcolorder(re_anno$snv, c("snv_id", "chr", "pos", "ref", "alt", "genes", "intergenic", 
+  setcolorder(re_anno$sbs, c("sbs_id", "chr", "pos", "ref", "alt", "genes", "intergenic", 
                              "trinuc_mut", "essential_splice", "nearest_pid"))
-  expect_equivalent(tiny@mutations$snv, re_anno$snv)
+  expect_equivalent(tiny@mutations$sbs, re_anno$sbs)
   
   # expect error when adding a variant already present
-  expect_error(add_variants(target_cesa = tiny, snv_id = "10:87933130_G>C"), "all of them are already annotated")
+  expect_error(add_variants(target_cesa = tiny, sbs_id = "10:87933130_G>C"), "all of them are already annotated")
   
   # add a variant that isn't covered by any covered regions
-  tiny = add_variants(target_cesa = tiny, snv_id = "12:132824581_A>C")
+  tiny = add_variants(target_cesa = tiny, sbs_id = "12:132824581_A>C")
   
   
   selected = select_variants(tiny, variant_ids  = "12:132824581_A>C", genes = "TAF1C")
@@ -115,7 +115,7 @@ test_that("add_variants", {
   cesa = add_variants(cesa, aac_id = 'BRAF_V600E')
   expect_equal(cesa$variants[, .N], 1)
   cesa = CESAnalysis('ces.refset.hg38')
-  cesa = add_variants(cesa, snv_id = "11:18752521_G>C")
+  cesa = add_variants(cesa, sbs_id = "11:18752521_G>C")
   expect_equal(cesa$variants[, .N], 1)
 })
 

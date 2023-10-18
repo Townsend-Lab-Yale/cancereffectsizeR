@@ -34,16 +34,16 @@ mutational_signature_effects <- function(cesa = cesa, effects = NULL, samples = 
     stop("cesa should be a CESAnalysis object")
   }
   
-  num_signature_sets = length(cesa$reference_data$snv_signatures)
+  num_signature_sets = length(cesa$reference_data$sbs_signatures)
   if(num_signature_sets == 0) {
     stop("Input CESAnalysis contains no associated signature definitions.")
   } 
   if(num_signature_sets > 1) {
-    msg = paste0("Unusual situation: Input CESAnalysis has more than one set of associated SNV mutational signature definitions. ",
+    msg = paste0("Unusual situation: Input CESAnalysis has more than one set of associated sbs mutational signature definitions. ",
                  "It should be possible to re-do the analysis using just one signature set.")
     stop(pretty_message(msg, emit = F))
   }
-  signature_defs = cesa$reference_data$snv_signatures[[1]]$signatures
+  signature_defs = cesa$reference_data$sbs_signatures[[1]]$signatures
   signature_names = rownames(signature_defs)
   
   # Subset to desired samples
@@ -100,11 +100,11 @@ mutational_signature_effects <- function(cesa = cesa, effects = NULL, samples = 
       stop("Some variant_id appear more than once in the input effects table.")
     }
     
-    # Ensure that we're only handling AACs and SNVs
-    other_variant_type_index = effects[! variant_type %in% c("snv", "aac"), which = T]
+    # Ensure that we're only handling AACs and sbs
+    other_variant_type_index = effects[! variant_type %in% c("sbs", "aac"), which = T]
     if (length(other_variant_type_index) > 0) {
       effects = effects[! other_variant_type_index, ]
-      warning("Some variants in effects input are neither coding mutations nor noncoding SNVs; these are being skipped.")
+      warning("Some variants in effects input are neither coding mutations nor noncoding SBS; these are being skipped.")
       
       # Make sure filtering didn't remove all variants
       if(effects[, .N] == 0) {
@@ -113,7 +113,7 @@ mutational_signature_effects <- function(cesa = cesa, effects = NULL, samples = 
     }
     
     missing = setdiff(effects$variant_id,
-                      c(cesa@mutations$amino_acid_change$aac_id, cesa@mutations$snv$snv_id))
+                      c(cesa@mutations$amino_acid_change$aac_id, cesa@mutations$sbs$sbs_id))
     if(length(missing) > 0) {
       msg = paste0("Some variants in effects input are not present in the CESAnalysis variant annotations. ",
                    "(This shouldn't happen. Make sure the effects table wasn't accidentally altered.)")
@@ -121,45 +121,45 @@ mutational_signature_effects <- function(cesa = cesa, effects = NULL, samples = 
     }
   }
   
-  # Collect SNV IDs: just the variant ID for SNVs; for AACs, pull information from mutation annotations
-  snv_effects = effects[variant_type == 'snv']
-  snv_effects[, snv := variant_id]
+  # Collect sbs IDs: just the variant ID for sbs; for AACs, pull information from mutation annotations
+  sbs_effects = effects[variant_type == 'sbs']
+  sbs_effects[, sbs := variant_id]
   aac_effects = effects[variant_type == 'aac']
-  aac_effects = merge.data.table(aac_effects, cesa@mutations$aac_snv_key[, .(snv = snv_id, aac_id)], by.x = 'variant_id', by.y = 'aac_id')
-  variant_sources = rbind(snv_effects, aac_effects)
-  variant_sources[, trinuc_context := cesa@mutations$snv[snv, trinuc_mut, on = 'snv_id']]
+  aac_effects = merge.data.table(aac_effects, cesa@mutations$aac_sbs_key[, .(sbs = sbs_id, aac_id)], by.x = 'variant_id', by.y = 'aac_id')
+  variant_sources = rbind(sbs_effects, aac_effects)
+  variant_sources[, trinuc_context := cesa@mutations$sbs[sbs, trinuc_mut, on = 'sbs_id']]
   
-  # Ensure that all SNVs have trinuc context annotation
-  bad_snv_index = variant_sources[is.na(trinuc_context), which = T]
-  if (length(bad_snv_index) > 0) {
-    missing = variant_sources[bad_snv_index, variant]
+  # Ensure that all sbs have trinuc context annotation
+  bad_sbs_index = variant_sources[is.na(trinuc_context), which = T]
+  if (length(bad_sbs_index) > 0) {
+    missing = variant_sources[bad_sbs_index, variant]
     for (variant in missing) {
-      warning(sprintf("Variant %s has incomplete SNV annotations, so it was skipped.", variant))
+      warning(sprintf("Variant %s has incomplete sbs annotations, so it was skipped.", variant))
     }
     variant_sources = variant_sources[! variant %in% missing]
   }
   
   # Subset to included samples and get a table of variants, SIs, UPIs
   maf = cesa$maf[samples, on = 'Unique_Patient_Identifier', nomatch = NULL]
-  variant_sources = merge.data.table(variant_sources, maf[, .(snv = variant_id, Unique_Patient_Identifier)], 
-                                          by = 'snv', all = FALSE)
+  variant_sources = merge.data.table(variant_sources, maf[, .(sbs = variant_id, Unique_Patient_Identifier)], 
+                                          by = 'sbs', all = FALSE)
   variant_sources[trinuc_rates, trinuc_rate := value, on = c('Unique_Patient_Identifier', 'trinuc_context')]
   
   
-  # For each row (tumor-variant combination) in variant_snv_pairing, calculate
+  # For each row (tumor-variant combination) in variant_sbs_pairing, calculate
   # P(signature produced variant) = (sig_weight * sig_trinuc_rate) / tumor_trinuc_rate.
-  sig_weights_by_snv = signature_weights[variant_sources$Unique_Patient_Identifier, .SD, 
+  sig_weights_by_sbs = signature_weights[variant_sources$Unique_Patient_Identifier, .SD, 
                                      .SDcols = signature_names, on = 'Unique_Patient_Identifier']
   sig_trinuc_rates = t(signature_defs)[variant_sources$trinuc_context, signature_names]
-  sig_prob_by_snv = (sig_weights_by_snv * sig_trinuc_rates) / variant_sources$trinuc_rate
+  sig_prob_by_sbs = (sig_weights_by_sbs * sig_trinuc_rates) / variant_sources$trinuc_rate
   
-  # Results reported for each UPI by variant_id, which includes a mix of SNV/AAC. For a given AAC
-  # that has multiple associated SNV, a patient shouldn't have more than one SNV within the AAC
+  # Results reported for each UPI by variant_id, which includes a mix of sbs/AAC. For a given AAC
+  # that has multiple associated sbs, a patient shouldn't have more than one sbs within the AAC
   # because it should typically have been called called as a multinucleotide variant in
   # preload_maf(). But if it does occur, the variant/UPI pairings will be repeated.
   # In the future, upstream improvements will prevent AACs from being called in such patients. 
   variant_sources = variant_sources[, .(variant_id, Unique_Patient_Identifier, selection_intensity)]
-  variant_sources[, (signature_names) := sig_prob_by_snv]
+  variant_sources[, (signature_names) := sig_prob_by_sbs]
   
   # For each variant, get the average source contributions across all patients with the variant.
   variant_sources_averaged = variant_sources[, lapply(.SD, mean), 

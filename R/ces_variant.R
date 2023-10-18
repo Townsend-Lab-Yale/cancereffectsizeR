@@ -254,11 +254,11 @@ ces_variant <- function(cesa = NULL,
            "Please re-generate it.")
     }
     compound_variants = variants
-    variants = select_variants(cesa, variant_ids = compound_variants@snvs$snv_id, include_subvariants = TRUE)
+    variants = select_variants(cesa, variant_ids = compound_variants@sbs$sbs_id, include_subvariants = TRUE)
     
     # copy in compound variant names and overwrite covered_in with value of shared_cov
-    variants = variants[compound_variants@snvs, compound_name := compound_name, on = c(variant_id = "snv_id")]
-    if(variants[, .N] != compound_variants@snvs[, .N]) {
+    variants = variants[compound_variants@sbs, compound_name := compound_name, on = c(variant_id = "sbs_id")]
+    if(variants[, .N] != compound_variants@sbs[, .N]) {
       stop("Internal error: select_variants() didn't return variant info 1-to-1 with compound input.")
     }
     variants[compound_variants@compounds, covered_in := shared_cov, on = "compound_name"]
@@ -270,11 +270,11 @@ ces_variant <- function(cesa = NULL,
   }
   aac_ids = variants[variant_type == "aac", variant_id]
   
-  # By noncoding, we just mean that SIs are calculated at the SNV site rather than at the AAC level,
+  # By noncoding, we just mean that SIs are calculated at the sbs site rather than at the AAC level,
   # regardless of whether there's a CDS annotation.
-  noncoding_snv_ids = variants[variant_type == "snv", variant_id]
+  noncoding_sbs_ids = variants[variant_type == "sbs", variant_id]
   
-  if(length(aac_ids) + length(noncoding_snv_ids) == 0) {
+  if(length(aac_ids) + length(noncoding_sbs_ids) == 0) {
     stop("No variants pass filters, so there are no SIs to calculate.", call. = F)
   }
   
@@ -286,19 +286,19 @@ ces_variant <- function(cesa = NULL,
   tumors_with_variants_by_gene = list2env(tumors_with_variants_by_gene)
   
   # identify mutations by sample
-  snv_aac_of_interest = cesa@mutations$aac_snv_key[aac_ids, on = 'aac_id']
-  tmp = maf[snv_aac_of_interest, .(variant_id), on = c(variant_id = 'snv_id'), 
+  sbs_aac_of_interest = cesa@mutations$aac_sbs_key[aac_ids, on = 'aac_id']
+  tmp = maf[sbs_aac_of_interest, .(variant_id), on = c(variant_id = 'sbs_id'), 
             by = "Unique_Patient_Identifier", nomatch = NULL]
-  tmp[snv_aac_of_interest, aac_id := aac_id, on = c(variant_id = 'snv_id')]
+  tmp[sbs_aac_of_interest, aac_id := aac_id, on = c(variant_id = 'sbs_id')]
   tmp = tmp[, .(samples = list(unique(Unique_Patient_Identifier))), by = "aac_id"]
   samples_by_aac = setNames(tmp$samples, tmp$aac_id)
   
   setkey(maf, "variant_id")
-  # need nomatch because some noncoding SNVs may not be present in the samples
-  tmp = maf[noncoding_snv_ids, variant_id, by = "Unique_Patient_Identifier", nomatch = NULL][, .(samples = list(Unique_Patient_Identifier)), by = "variant_id"]
-  samples_by_snv = tmp$samples
-  names(samples_by_snv) = tmp$variant_id
-  samples_by_variant = list2env(c(samples_by_aac, samples_by_snv))
+  # need nomatch because some noncoding sbs may not be present in the samples
+  tmp = maf[noncoding_sbs_ids, variant_id, by = "Unique_Patient_Identifier", nomatch = NULL][, .(samples = list(Unique_Patient_Identifier)), by = "variant_id"]
+  samples_by_sbs = tmp$samples
+  names(samples_by_sbs) = tmp$variant_id
+  samples_by_variant = list2env(c(samples_by_aac, samples_by_sbs))
   
   
   setkey(samples, "covered_regions")
@@ -312,20 +312,20 @@ ces_variant <- function(cesa = NULL,
   # Will process variants by coverage group (i.e., groups of variants that have the same tumors covering them)
   selection_results = NULL
 
-  variants[, covered_in := mget(variants$variant_id, cesa@mutations$variants_to_cov)]
+  variants[, covered_in := cesa@mutations$variants_to_cov[variants$variant_id]]
   coverage_groups = unique(variants$covered_in)
   num_coverage_groups = length(coverage_groups)
   
   # put gene(s) by variant into env for quick access
-  snv_with_genes = variants[variant_type == 'snv' & intergenic == F, variant_id]
-  snv_to_genes = cesa@mutations$snv[snv_with_genes, .(variant_id = snv_id, genes)]
+  sbs_with_genes = variants[variant_type == 'sbs' & intergenic == F, variant_id]
+  sbs_to_genes = cesa@mutations$sbs[sbs_with_genes, .(variant_id = sbs_id, genes)]
   
   
-  aac_to_snv_key = cesa@mutations$aac_snv_key[variants[variant_type == 'aac', variant_id], on = 'aac_id']
-  aac_to_snv_key[cesa@mutations$snv, genes := genes, on = 'snv_id']
-  aac_to_genes = aac_to_snv_key[, .(genes = unique(genes)), by = 'aac_id']
+  aac_to_sbs_key = cesa@mutations$aac_sbs_key[variants[variant_type == 'aac', variant_id], on = 'aac_id']
+  aac_to_sbs_key[cesa@mutations$sbs, genes := genes, on = 'sbs_id']
+  aac_to_genes = aac_to_sbs_key[, .(genes = unique(genes)), by = 'aac_id']
 
-  variants_to_genes = rbind(snv_to_genes, aac_to_genes[, .(variant_id = aac_id, genes)])
+  variants_to_genes = rbind(sbs_to_genes, aac_to_genes[, .(variant_id = aac_id, genes)])
   gene_lookup = list2env(setNames(variants_to_genes$genes, nm = variants_to_genes$variant_id))
   
   i = 0
@@ -366,9 +366,9 @@ ces_variant <- function(cesa = NULL,
       }
       curr_subgroup = curr_variants[subgroup == j]
       aac_ids = curr_subgroup[variant_type == "aac", variant_id]
-      snv_ids = curr_subgroup[variant_type == "snv", variant_id]
+      sbs_ids = curr_subgroup[variant_type == "sbs", variant_id]
       
-      baseline_rates = baseline_mutation_rates(cesa, aac_ids = aac_ids, snv_ids = snv_ids, samples = covered_samples, cores = cores)
+      baseline_rates = baseline_mutation_rates(cesa, aac_ids = aac_ids, sbs_ids = sbs_ids, samples = covered_samples, cores = cores)
 
       
       # function to run MLE on given variant_id (vector of IDs for compound variants)
@@ -377,9 +377,9 @@ ces_variant <- function(cesa = NULL,
           compound_id = variant_id
           # Important: sample_calls includes samples that are not in shared coverage
           tumors_with_variant = intersect(compound_variants@sample_calls[[compound_id]], covered_samples)
-          current_snvs = compound_variants@snvs[compound_name == compound_id]
-          all_genes = current_snvs[, unique(unlist(genes))]
-          variant_id = current_snvs$snv_id
+          current_sbs = compound_variants@sbs[compound_name == compound_id]
+          all_genes = current_sbs[, unique(unlist(genes))]
+          variant_id = current_sbs$sbs_id
           rates = baseline_rates[, ..variant_id]
           # Sum Poisson rates across variants
           rates = rowSums(rates)

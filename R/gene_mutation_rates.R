@@ -160,10 +160,10 @@ gene_mutation_rates <- function(cesa, covariates = NULL, samples = character(), 
  
   
   
-  mutations = cesa@maf[Unique_Patient_Identifier %in% dndscv_samples & variant_type == "snv", 
+  mutations = cesa@maf[Unique_Patient_Identifier %in% dndscv_samples & variant_type == "sbs", 
                        .(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele, Tumor_Allele)]
   if(mutations[, .N] == 0) {
-    stop("Can't run dNdScv because there are no usable SNV mutations in the input samples.")
+    stop("Can't run dNdScv because there are no usable sbs mutations in the input samples.")
   }
   
   # Run in separate function for quick unit tests of gene_mutation_rates

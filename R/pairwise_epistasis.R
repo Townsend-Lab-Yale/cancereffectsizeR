@@ -97,7 +97,7 @@ ces_gene_epistasis = function(cesa = NULL, genes = NULL, variants = NULL,
   }
   
   setkey(cesa@mutations$amino_acid_change, "aac_id")
-  setkey(cesa@mutations$snv, "snv_id")
+  setkey(cesa@mutations$sbs, "sbs_id")
   
   if(! is.null(conf)) {
     if(! is(conf, "numeric") || length(conf) > 1 || conf <= 0 || conf >= 1) {
@@ -127,7 +127,7 @@ ces_gene_epistasis = function(cesa = NULL, genes = NULL, variants = NULL,
     stop("Input genes are not present in reference data: ", paste(invalid_genes, collapse = ", "))
   } 
   
-  maf = cesa@maf[variant_type == "snv"]
+  maf = cesa@maf[variant_type == "sbs"]
   
   if(is.null(variants)) {
     variants = 'recurrent'
@@ -155,7 +155,7 @@ ces_gene_epistasis = function(cesa = NULL, genes = NULL, variants = NULL,
     variants_to_use = select_variants(cesa = cesa, variant_ids = variants$variant_id)
     if(attr(variants_to_use, 'nonoverlapping') == FALSE) {
       msg = paste0("Input variants table contains overlapping variant records (e.g., amino acid substitutions that ",
-           "contain the same constituent SNVs). To avoid confusion, ",
+           "contain the same constituent sbs). To avoid confusion, ",
            "all variants in the inference should be nonoverlapping.")
       stop(pretty_message(msg, emit = F))
     }
@@ -350,7 +350,7 @@ ces_epistasis = function(cesa = NULL, variants = NULL, samples = character(), ru
     results = pbapply::pblapply(X = index_pairs, FUN = pairwise_variant_epistasis, samples = samples, compound_variants = variants, cesa=cesa, conf = conf, cl = cores)
   } else if (is(variants, "list")) {
     setkey(cesa@mutations$amino_acid_change, "aac_id")
-    setkey(cesa@mutations$snv, "snv_id")
+    setkey(cesa@mutations$sbs, "sbs_id")
     
     # validate that all variant IDs appear in mutation annotations
     aac_names = cesa@mutations$amino_acid_change[, .(aac_id, variant_name = paste(gene, aachange, sep = "_"))]
@@ -363,7 +363,7 @@ ces_epistasis = function(cesa = NULL, variants = NULL, samples = character(), ru
       
       for (j in 1:2) {
         variant = pair[j]
-        if (cesa@mutations$snv[variant, .N, nomatch = NULL] == 0 && aac_names[variant == aac_id, .N, nomatch = NULL] == 0) {
+        if (cesa@mutations$sbs[variant, .N, nomatch = NULL] == 0 && aac_names[variant == aac_id, .N, nomatch = NULL] == 0) {
           variant = gsub(' ', '_', variant)
           record_by_name = aac_names[variant, on = "variant_name", nomatch = NULL]
           num_records = record_by_name[, .N]
@@ -418,8 +418,8 @@ pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compoun
     joint_coverage = c("genome", intersect(compound_variants@compounds$shared_cov[[1]], compound_variants@compounds$shared_cov[[2]]))
     v1 = compound_variants@compounds$compound_name[[1]]
     v2 = compound_variants@compounds$compound_name[[2]]
-    v1_ids = compound_variants@snvs[compound_name == v1, snv_id]
-    v2_ids = compound_variants@snvs[compound_name == v2, snv_id]
+    v1_ids = compound_variants@sbs[compound_name == v1, sbs_id]
+    v2_ids = compound_variants@sbs[compound_name == v2, sbs_id]
     variant_ids = c(v1_ids, v2_ids)
   } else {
     v1 = variant_pair[1]

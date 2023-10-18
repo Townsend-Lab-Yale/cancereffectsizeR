@@ -7,7 +7,7 @@
 add_variants(
   target_cesa = NULL,
   variant_table = NULL,
-  snv_id = NULL,
+  sbs_id = NULL,
   aac_id = NULL,
   bed = NULL,
   gr = NULL,
@@ -19,24 +19,24 @@ add_variants(
 \item{target_cesa}{CESAnalysis to receive variant annotations}
 
 \item{variant_table}{A data.table with chr/start/end positions (1-based closed
-coordinates, like MAF format). All possible SNVs overlapping the table's genomic
+coordinates, like MAF format). All possible SBS overlapping the table's genomic
 coordinates (within \code{padding} bases) will be added. The tables returned by
-select_variants() and (CESAnalysis)$variants work, and get special handling of
-amino-acid-change SNVs: only the precise positions in start, end, and center_nt_pos
+select_variants() and (CESAnalysis)$variants work, and get special handling for
+amino-acid-changing SBS: only the precise positions in start, end, and center_nt_pos
 are used. (This avoids adding all variants between start/end, which on
 splice-site-spanning variants can be many thousands.)}
 
-\item{snv_id}{Character vector of CES-style SNV IDs to add.}
+\item{sbs_id}{Character vector of CES-style SBS IDs to add.}
 
 \item{aac_id}{Character vector of AAC IDs (or short names, like "KRAS_G12C")}
 
-\item{bed}{A path to a BED file. All possible SNVs overlapping BED intervals (within
+\item{bed}{A path to a BED file. All possible SBS overlapping BED intervals (within
 \code{padding} bases) will be added.}
 
-\item{gr}{A GRanges object. All possible SNVs overlapping the ranges (within \code{padding}
+\item{gr}{A GRanges object. All possible SBS overlapping the ranges (within \code{padding}
 bases) will be added.}
 
-\item{source_cesa}{Another CESAnalysis from which to copy snv_ids. SNVs will be
+\item{source_cesa}{Another CESAnalysis from which to copy sbs_ids. SBS will be
 re-annotated using the target_cesa's associated reference data.}
 
 \item{padding}{How many bases (default 0) to expand start and end of each gr range}
@@ -45,12 +45,12 @@ re-annotated using the target_cesa's associated reference data.}
 Use this function to add variant annotations to your CESAnalysis by specifying variants
 to add in one of five ways: a data.table containing genomic coordinates (output from
 select_variants(), typically), a GRanges object, a BED file, another CESAnalysis, or
-SNV/AAC IDs.
+sbs/AAC IDs.
 }
 \details{
-All methods of adding variants work by identifying which SNVs to add and then using the
+All methods of adding variants work by identifying which SBS to add and then using the
 target_cesa's associated reference data to identify overlapping amino-acid-change
-mutations, which are then added as well. (You can't add just SNVs or just AACs.) Note
+mutations, which are then added as well. (You can't add just SBS or just AACs.) Note
 that if you try to add far more distinct variants than appear in a typical cohort (as
 in, millions), annotation will take a while and the annotation tables in the
 CESAnalysis may take up significant memory. Please contact us if you have issues.

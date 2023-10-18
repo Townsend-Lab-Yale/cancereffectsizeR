@@ -17,18 +17,18 @@ test_that("Trinucleotide signature weight calculation", {
   expect_equal(cesa@trinucleotide_mutation_weights, trinuc_ak, tolerance = 1e-4)
   
   
-  # Ensure SNV counts (total and used by dS) look right
-  expect_identical(cesa@trinucleotide_mutation_weights$signature_weight_table[, unlist(.(total_snvs, sig_extraction_snvs))],
+  # Ensure SBS counts (total and used by dS) look right
+  expect_identical(cesa@trinucleotide_mutation_weights$signature_weight_table[, unlist(.(total_sbs, sig_extraction_sbs))],
                    c(67, 181, 38, 18, 0, 66, 180, 38, 0, 0))
   
   
   full_weight_table = get_signature_weights(cesa)
   expect_equal(full_weight_table[, .N], 5)
-  expect_equal(full_weight_table[Unique_Patient_Identifier == "one_indel", unlist(.(total_snvs, sig_extraction_snvs))], c(0, 0))
-  expect_equal(full_weight_table[Unique_Patient_Identifier == "zeroed-out", unlist(.(total_snvs, sig_extraction_snvs))], c(18, 0))
+  expect_equal(full_weight_table[Unique_Patient_Identifier == "one_indel", unlist(.(total_sbs, sig_extraction_sbs))], c(0, 0))
+  expect_equal(full_weight_table[Unique_Patient_Identifier == "zeroed-out", unlist(.(total_sbs, sig_extraction_sbs))], c(18, 0))
   
-  # All tumors should have an above-threshold number of usable SNVs, or they should be group-average-blended (but never both)
-  expect_true(all(full_weight_table[, xor(sig_extraction_snvs > 49, group_avg_blended == T)]))
+  # All tumors should have an above-threshold number of usable SBS, or they should be group-average-blended (but never both)
+  expect_true(all(full_weight_table[, xor(sig_extraction_sbs > 49, group_avg_blended == T)]))
   
   # test set_trinuc_rates and set_signature_weights
   trinuc_rates = cesa$trinuc_rates
@@ -49,8 +49,8 @@ test_that("Trinucleotide signature weight calculation", {
   
   
   which_pure = prev_relative_bio_sig[group_avg_blended == F, which = T]
-  all.equal(cesa3@trinucleotide_mutation_weights$signature_weight_table[which_pure, -c("sig_extraction_snvs", "group_avg_blended")],
-            prev_relative_bio_sig[which_pure, -c("sig_extraction_snvs", "group_avg_blended")])
+  all.equal(cesa3@trinucleotide_mutation_weights$signature_weight_table[which_pure, -c("sig_extraction_sbs", "group_avg_blended")],
+            prev_relative_bio_sig[which_pure, -c("sig_extraction_sbs", "group_avg_blended")])
   all.equal(cesa3@trinucleotide_mutation_weights$raw_signature_weights[,  .SD, .SDcols = patterns("(SBS)|(Uni)")],
             raw_weight_input)
   all.equal(cesa3@trinucleotide_mutation_weights$trinuc_proportion_matrix[which_pure,],
@@ -58,8 +58,8 @@ test_that("Trinucleotide signature weight calculation", {
   
   # setting with the previous biological weights will yield identical weights/rates to the previous run
   cesa4 = set_signature_weights(cesa, signature_set = "COSMIC_v3.1", weights = prev_relative_bio_sig)
-  expect_equal(cesa4@trinucleotide_mutation_weights$signature_weight_table[, -c("sig_extraction_snvs", "group_avg_blended")],
-            prev_relative_bio_sig[, -c("sig_extraction_snvs", "group_avg_blended")])
+  expect_equal(cesa4@trinucleotide_mutation_weights$signature_weight_table[, -c("sig_extraction_sbs", "group_avg_blended")],
+            prev_relative_bio_sig[, -c("sig_extraction_sbs", "group_avg_blended")])
   
   current = cesa4@trinucleotide_mutation_weights$trinuc_proportion_matrix
   expect_equal(current[sort(rownames(current)),], 
@@ -85,26 +85,26 @@ test_that("Trinucleotide signature weight calculation", {
   expect_gt(min(diag(sim)[1:4]) - .9, 0)
   expect_lt(sim[5,5], .7)
   
-  # Ensure SNV counts (total and used by dS) look right
-  # Difference from dS test above is that zeroed-out sample is not zeroed out in MP, so 18 usable SNVs
-  expect_identical(cesa5@trinucleotide_mutation_weights$signature_weight_table[, unlist(.(total_snvs, sig_extraction_snvs))],
+  # Ensure SBS counts (total and used by dS) look right
+  # Difference from dS test above is that zeroed-out sample is not zeroed out in MP, so 18 usable SBS
+  expect_identical(cesa5@trinucleotide_mutation_weights$signature_weight_table[, unlist(.(total_sbs, sig_extraction_sbs))],
                    c(67, 181, 38, 18, 0, 66, 180, 38, 18, 0))
   
   full_weight_table = get_signature_weights(cesa5)
   expect_equal(full_weight_table[, .N], 5)
-  expect_equal(full_weight_table[Unique_Patient_Identifier == "one_indel", unlist(.(total_snvs, sig_extraction_snvs))], c(0, 0))
+  expect_equal(full_weight_table[Unique_Patient_Identifier == "one_indel", unlist(.(total_sbs, sig_extraction_sbs))], c(0, 0))
   # Note that it is c(18, 18) with use of MutationalPatters because of different calculation method
-  expect_equal(full_weight_table[Unique_Patient_Identifier == "zeroed-out", unlist(.(total_snvs, sig_extraction_snvs))], c(18, 18))
+  expect_equal(full_weight_table[Unique_Patient_Identifier == "zeroed-out", unlist(.(total_sbs, sig_extraction_sbs))], c(18, 18))
   
-  # All tumors should have an above-threshold number of usable SNVs, or they should be group-average-blended (but never both)
-  expect_true(all(full_weight_table[, xor(sig_extraction_snvs > 49, group_avg_blended == T)]))
+  # All tumors should have an above-threshold number of usable SBS, or they should be group-average-blended (but never both)
+  expect_true(all(full_weight_table[, xor(sig_extraction_sbs > 49, group_avg_blended == T)]))
 })
 
-test_that('trinuc_snv_counts output is usable by extractors', {
-  ds_counts = trinuc_snv_counts(cesa$maf, genome = cesa$reference_data$genome, style = 'deconstructSigs')
+test_that('trinuc_sbs_counts output is usable by extractors', {
+  ds_counts = trinuc_sbs_counts(cesa$maf, genome = cesa$reference_data$genome, style = 'deconstructSigs')
   expect_silent(deconstructSigs::whichSignatures(tumor.ref = ds_counts, sample.id = 'good_A', contexts.needed = T, 
                                    signatures.ref = ces.refset.hg19$signatures$COSMIC_v3$signatures))
-  mp_counts = trinuc_snv_counts(cesa$maf, genome = cesa$reference_data$genome, style = 'MutationalPatterns')
+  mp_counts = trinuc_sbs_counts(cesa$maf, genome = cesa$reference_data$genome, style = 'MutationalPatterns')
   expect_silent(MutationalPatterns::fit_to_signatures(mut_matrix = mp_counts, signatures = t(ces.refset.hg19$signatures$COSMIC_v3$signatures)))
 })
 

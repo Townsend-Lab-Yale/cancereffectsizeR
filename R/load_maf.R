@@ -247,9 +247,9 @@ load_maf = function(cesa = NULL, maf = NULL, maf_name = character(), coverage = 
       warning("More than 5% of input records had problems.")
     }
     nt = c("A", "C", "G", "T")
-    snv_mismatch = excluded[problem == "reference_mismatch" & Reference_Allele %in% nt & Tumor_Allele %in% nt, .N]
-    if(snv_mismatch / initial_num_records > .01) {
-      msg = paste0(snv_mismatch, " SNV variants were excluded for having reference alleles that do not match the reference genome. You should probably figure out why",
+    sbs_mismatch = excluded[problem == "reference_mismatch" & Reference_Allele %in% nt & Tumor_Allele %in% nt, .N]
+    if(sbs_mismatch / initial_num_records > .01) {
+      msg = paste0(sbs_mismatch, " sbs variants were excluded for having reference alleles that do not match the reference genome. You should probably figure out why",
                           " and make sure that the rest of your data set is okay to use before continuing.")
       warning(pretty_message(msg, emit = F))
     }
@@ -339,19 +339,19 @@ load_maf = function(cesa = NULL, maf = NULL, maf_name = character(), coverage = 
     cesa@excluded = rbind(cesa@excluded, excluded, fill = T) 
   }
   
-  # Set aside new variants for annotation (notably, before MNV prediction; we'll still annotate those as SNVs)
+  # Set aside new variants for annotation (notably, before MNV prediction; we'll still annotate those as sbs)
   # To-do: also leave out indels that have previously been annotated (okay to re-annotate for now)
-  to_annotate = maf[! c(cesa@mutations$snv$snv_id, cesa@mutations$dbs$dbs_id), on = 'variant_id']
+  to_annotate = maf[! c(cesa@mutations$sbs$sbs_id, cesa@mutations$dbs$dbs_id), on = 'variant_id']
   pretty_message("Annotating variants...")
   annotations = annotate_variants(refset = refset, variants = to_annotate)
   
-  # Check annotations for any SNVs with ambiguous trinuc context; these must be set aside
-  snv_table = annotations$snv
+  # Check annotations for any sbs with ambiguous trinuc context; these must be set aside
+  sbs_table = annotations$sbs
   aac_table = annotations$amino_acid_change
-  bad_trinuc_context = which(is.na(snv_table$trinuc_mut))
+  bad_trinuc_context = which(is.na(sbs_table$trinuc_mut))
   num_bad = length(bad_trinuc_context)
   if (num_bad > 0) {
-    bad_ids = snv_table[bad_trinuc_context, snv_id]
+    bad_ids = sbs_table[bad_trinuc_context, sbs_id]
     bad_trinuc_context_maf = maf[bad_ids, .(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele, Tumor_Allele, variant_id, variant_type), on = 'variant_id']
     maf = maf[! bad_ids, on = 'variant_id']
     msg = paste0("Note: ", num_bad, " MAF records excluded due to ambiguous trinucleotide context ",
@@ -360,19 +360,19 @@ load_maf = function(cesa = NULL, maf = NULL, maf_name = character(), coverage = 
     bad_trinuc_context_maf$reason = "ambiguous_trinuc_context"
     cesa@excluded = rbind(cesa@excluded, bad_trinuc_context_maf)
     
-    # For simplicity, remove the bad record from SNV and AAC tables
-    bad_aa = annotations$aac_snv_key[bad_ids, aac_id, on = 'snv_id', nomatch = NULL]
-    snv_table = snv_table[! bad_trinuc_context]
+    # For simplicity, remove the bad record from sbs and AAC tables
+    bad_aa = annotations$aac_sbs_key[bad_ids, aac_id, on = 'sbs_id', nomatch = NULL]
+    sbs_table = sbs_table[! bad_trinuc_context]
     if(aac_table[, .N] > 0 & length(bad_aa) > 0) {
       aac_table = aac_table[! bad_aa]
     }
   }
   cesa@mutations[["amino_acid_change"]] = unique(rbind(cesa@mutations$amino_acid_change, aac_table, fill = T), by = "aac_id")
   setkey(cesa@mutations$amino_acid_change, "aac_id")
-  cesa@mutations[["snv"]] = unique(rbind(cesa@mutations$snv, snv_table, fill = T), by = "snv_id")
-  setkey(cesa@mutations$snv, "snv_id")
-  cesa@mutations[["aac_snv_key"]] = unique(rbind(cesa@mutations$aac_snv_key, annotations$aac_snv_key))
-  setkey(cesa@mutations$aac_snv_key, 'aac_id')
+  cesa@mutations[["sbs"]] = unique(rbind(cesa@mutations$sbs, sbs_table, fill = T), by = "sbs_id")
+  setkey(cesa@mutations$sbs, "sbs_id")
+  cesa@mutations[["aac_sbs_key"]] = unique(rbind(cesa@mutations$aac_sbs_key, annotations$aac_sbs_key))
+  setkey(cesa@mutations$aac_sbs_key, 'aac_id')
   
   cesa@mutations[["dbs_codon_change"]] = unique(rbind(cesa@mutations$dbs_codon_change, annotations$dbs_codon_change), by = 'dbs_aac_id')
   cesa@mutations[["dbs"]] = unique(rbind(cesa@mutations$dbs, annotations$dbs), by = 'dbs_id')
@@ -382,16 +382,16 @@ load_maf = function(cesa = NULL, maf = NULL, maf_name = character(), coverage = 
   # use of _tmp names required as of data.table 1.13.2 to keep join from failing
   column_order = copy(names(maf))
   maf[, genes_tmp := list(list(NA_character_))]
-  maf[cesa@mutations$snv,  genes_tmp := list(genes), on = c(variant_id = "snv_id")]
+  maf[cesa@mutations$sbs,  genes_tmp := list(genes), on = c(variant_id = "sbs_id")]
   
-  # No gene for intergenic SNVs (SNV annotation table gives nearest gene, but we won't show that in MAF table)
-  intergenic_snv = cesa@mutations$snv[intergenic == T, snv_id]
-  maf[intergenic_snv, genes_tmp := list(NA_character_), on = "variant_id"]
+  # No gene for intergenic sbs (sbs annotation table gives nearest gene, but we won't show that in MAF table)
+  intergenic_sbs = cesa@mutations$sbs[intergenic == T, sbs_id]
+  maf[intergenic_sbs, genes_tmp := list(NA_character_), on = "variant_id"]
   
   
-  # temporary way of annotating non-SNVs/DBS
-  non_snv_dbs = maf[variant_type != 'snv']
-  if (non_snv_dbs[, .N] > 0) {
+  # temporary way of annotating non-sbs/DBS
+  non_sbs_dbs = maf[variant_type != 'sbs']
+  if (non_sbs_dbs[, .N] > 0) {
     grt = as.data.table(refset$gr_genes) # Name will change to gr_cds later
     if ("gene" %in% names(grt)) {
       grt[, names := gene] # use gene field instead of names field (applies when CDS gr has multiple CDS per gene)
@@ -400,16 +400,16 @@ load_maf = function(cesa = NULL, maf = NULL, maf_name = character(), coverage = 
     setnames(grt, c("seqnames", "start", "end", "names"), 
              c("Chromosome", "Start_Position", "End_Position", "gene"))
     setkey(grt, Chromosome, Start_Position, End_Position)
-    non_snv_dbs[, End_Position := Start_Position] # okay for now
-    non_snv_dbs_genes = foverlaps(non_snv_dbs, grt)
+    non_sbs_dbs[, End_Position := Start_Position] # okay for now
+    non_sbs_dbs_genes = foverlaps(non_sbs_dbs, grt)
     # use Start_Position from MAF, not gr
-    non_snv_dbs_genes[, Start_Position := i.Start_Position]
-    non_snv_dbs_genes = non_snv_dbs_genes[, .(genes = list(unique(gene))), by = c("Chromosome", "Start_Position")]
-    non_snv_dbs_genes[, is_snv := F]
-    maf[, is_snv := variant_type == 'snv']
-    maf[non_snv_dbs_genes, genes_tmp := genes,
-        on = c("is_snv", "Chromosome", "Start_Position")]
-    maf[, is_snv := NULL]
+    non_sbs_dbs_genes[, Start_Position := i.Start_Position]
+    non_sbs_dbs_genes = non_sbs_dbs_genes[, .(genes = list(unique(gene))), by = c("Chromosome", "Start_Position")]
+    non_sbs_dbs_genes[, is_sbs := F]
+    maf[, is_sbs := variant_type == 'sbs']
+    maf[non_sbs_dbs_genes, genes_tmp := genes,
+        on = c("is_sbs", "Chromosome", "Start_Position")]
+    maf[, is_sbs := NULL]
   }
   
   setnames(maf, "genes_tmp", "genes")
@@ -418,15 +418,16 @@ load_maf = function(cesa = NULL, maf = NULL, maf_name = character(), coverage = 
   
   # Same-sample variants with 2bp of other variants get set aside as likely MNVs
   # MNVs are only possible in sample/chromosome combinations with more than one MAF record
-  hidden_mnv = detect_mnv(maf)
-  num_mnv = uniqueN(hidden_mnv$mnv_group)
-  if(num_mnv > 0) {
-    msg = paste0("There are ", num_mnv, " groups of same-sample variants within 2 bp of each other. ",
-                 "These may not have resulted from independent events. Consider using preload_maf() ",
-                 "to reclassify these variants as doublet substitutions or other multinucleotide variants.")
-    warning(pretty_message(msg, emit = F))
+  if(maf[, sum(variant_type == 'dbs')] == 0) {
+    hidden_mnv = detect_mnv(maf)
+    num_mnv = uniqueN(hidden_mnv$mnv_group)
+    if(num_mnv > 0) {
+      msg = paste0("There are ", num_mnv, " groups of same-sample variants within 2 bp of each other. ",
+                   "These may not have resulted from independent events. Consider using preload_maf() ",
+                   "to reclassify these variants as doublet substitutions or other multinucleotide variants.")
+      warning(pretty_message(msg, emit = F))
+    }
   }
-
   cesa@maf = rbind(cesa@maf, maf, fill = T)
   
   # Update coverage fields of annotation tables
@@ -440,8 +441,8 @@ load_maf = function(cesa = NULL, maf = NULL, maf_name = character(), coverage = 
   # Edge case: No passing variants in MAF table means nothing to do. Also possible
   # to have no cached variants if all variants are of non-annotated type (e.g., "other").
   if(cesa@maf[, .N] > 0 && ! is.null(cesa@advanced$cached_variants)) {
-    consequences = cesa@mutations$aac_snv_key[cesa@advanced$cached_variants[variant_type == 'aac'], .(variant_name, snv_id, gene), on = c(aac_id = 'variant_id')]
-    cesa@maf[consequences, c("top_gene", "top_consequence") := list(gene, variant_name), on = c(variant_id = 'snv_id')]
+    consequences = cesa@mutations$aac_sbs_key[cesa@advanced$cached_variants[variant_type == 'aac'], .(variant_name, sbs_id, gene), on = c(aac_id = 'variant_id')]
+    cesa@maf[consequences, c("top_gene", "top_consequence") := list(gene, variant_name), on = c(variant_id = 'sbs_id')]
   }
 
   msg = paste0("Loaded ", format(maf[, .N], big.mark = ','), " variant records from ", 

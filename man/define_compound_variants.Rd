@@ -19,11 +19,11 @@ variant in compound variant for the variant to variant to be merged into the com
 variant (as opposed to being assigned to its own compound variant).}
 }
 \description{
-A compound variant is an arbitrary group of SNVs that can be tested for selection as if
-it were a single variant. (Any sample with one or more of the constituent SNVs "has the
+A compound variant is an arbitrary group of SBS that can be tested for selection as if
+it were a single variant. (Any sample with one or more of the constituent SBS "has the
 compound variant", and the baseline rate of the variant is the rate of having at least
-one of the SNVs.) A CompoundVariantSet is a collection of disjoint compound variants;
-that is, no SNV can appear in more than one compound variant. After collecting variants
+one of the SBS.) A CompoundVariantSet is a collection of disjoint compound variants;
+that is, no SBS can appear in more than one compound variant. After collecting variants
 of interest into a table using select_variants()--and further subsetting or annotating
 the table as desired--use this function to produce a CompoundVariantSet that combines
 variants into distinct compound variants based on your criteria.

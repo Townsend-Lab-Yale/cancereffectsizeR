@@ -2,7 +2,7 @@
 % Please edit documentation in R/compound_variants.R
 \name{CompoundVariantSet}
 \alias{CompoundVariantSet}
-\title{Create CompoundVariantSet directly from SNV IDs}
+\title{Create CompoundVariantSet directly from SBS IDs}
 \usage{
 CompoundVariantSet(cesa, variant_id)
 }
@@ -14,11 +14,11 @@ vectors, each of which defines a separate compound variant. If the vector or lis
 named, names will be kept. Otherwise, compound variants will be named sequentially.}
 }
 \description{
-A compound variant is an arbitrary group of SNVs that can be tested for selection as if
-it were a single variant. (Any sample with one or more of the constituent SNVs "has the
+A compound variant is an arbitrary group of SBS that can be tested for selection as if
+it were a single variant. (Any sample with one or more of the constituent SBS "has the
 compound variant", and the baseline rate of the variant is the rate of having at least
-one of the SNVs.) A CompoundVariantSet is a collection of disjoint compound variants;
-that is, no SNV can appear in more than one compound variant.\cr
+one of the SBS.) A CompoundVariantSet is a collection of disjoint compound variants;
+that is, no SBS can appear in more than one compound variant.\cr
 Example: \code{CompoundVariantSet(cesa, variant_id = list(kras12 = c("KRAS G12C", "KRAS G12D",
 "KRAS G12V")))} creates a CompoundVariantSet containing one compound variant. To create
 a large set, it's usually easier to use define_compound_variants(), which calls this

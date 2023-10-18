@@ -1,19 +1,19 @@
 #' Baseline mutation rate calculation
 #' 
 #' Calculates neutral mutation rates at specific sites based on gene mutation rates and the relative
-#' trinucleotide-context-specific SNV mutation rates of each sample
+#' trinucleotide-context-specific SBS mutation rates of each sample
 #' 
 #' @param cesa CESAnalysis with gene mutation rates and tumor-specific trinucleotide-context-specific mutation rates already calculated
 #' @param aac_ids vector of IDs for amino acid change variants
-#' @param snv_ids vector of IDs for SNVs
-#' @param variant_ids vector of mixed IDs (faster to use snv_ids and aac_ids for large jobs, if already known)
+#' @param sbs_ids vector of IDs for SBS
+#' @param variant_ids vector of mixed IDs (faster to use sbs_ids and aac_ids for large jobs, if already known)
 #' @param samples Which samples to calculate rates for. Defaults to all samples. Can be a
 #'   vector of Unique_Patient_Identifiers, or a data.table containing rows from the
 #'   CESAnalysis sample table.
 #' @param cores number of cores to use for mutation processing (useful for large data sets or mutation lists)
 #' @return a data table of mutation rates with one column per variant, and a Unique_Patient_Identifier column identifying each row
 #' @export
-baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant_ids = NULL, samples = character(), cores = 1) {
+baseline_mutation_rates = function(cesa, aac_ids = NULL, sbs_ids = NULL, variant_ids = NULL, samples = character(), cores = 1) {
   
   if(! is(cesa, "CESAnalysis")) {
     stop("cesa should be CESAnalysis.")
@@ -27,8 +27,8 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
     stop("Some input samples lack gene mutation rates, so site-level mutation rates can't be calculated yet.")
   }
   
-  if (! is.null(variant_ids) && (! is.null(snv_ids) || ! is.null(aac_ids))) {
-    stop("You can use snv_ids/aac_ids or variant_ids, but not a combination.")
+  if (! is.null(variant_ids) && (! is.null(sbs_ids) || ! is.null(aac_ids))) {
+    stop("You can use sbs_ids/aac_ids or variant_ids, but not a combination.")
   }
   
   if (! is.null(aac_ids)) {
@@ -37,9 +37,9 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
     }
   }
   
-  if (! is.null(snv_ids)) {
-    if(! is.character(snv_ids)) {
-      stop("snv_ids should be type character")
+  if (! is.null(sbs_ids)) {
+    if(! is.character(sbs_ids)) {
+      stop("sbs_ids should be type character")
     }
   }
   
@@ -51,23 +51,23 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
   
   # Helping the user out
   aac_ids = unique(na.omit(aac_ids))
-  snv_ids = unique(na.omit(snv_ids))
+  sbs_ids = unique(na.omit(sbs_ids))
   variant_ids = unique(na.omit(variant_ids))
   
-  # If variant IDs is used, snv/aac IDs were not
+  # If variant IDs is used, sbs/aac IDs were not
   if (! is.null(variant_ids)) {
     aac_ids = cesa@mutations$amino_acid_change[variant_ids, aac_id, nomatch = NULL]
-    snv_ids = cesa@mutations$snv[variant_ids, snv_id, nomatch = NULL]
+    sbs_ids = cesa@mutations$sbs[variant_ids, sbs_id, nomatch = NULL]
     
-    if (length(snv_ids) + length(aac_ids) != length(variant_ids)) {
-      unknown_ids = setdiff(variant_ids, union(aac_ids, snv_ids))
+    if (length(sbs_ids) + length(aac_ids) != length(variant_ids)) {
+      unknown_ids = setdiff(variant_ids, union(aac_ids, sbs_ids))
       stop(length(unknown_ids), " variant IDs are either invalid or not present in annotation tables: ", 
            paste(unknown_ids, collapse = ", "), ".")
     }
   } else {
     missing_aac = setdiff(aac_ids, cesa@mutations$amino_acid_change[aac_ids, aac_id, nomatch = NULL])
-    missing_snv = setdiff(snv_ids, cesa@mutations$snv[snv_ids, snv_id, nomatch = NULL])
-    all_missing = c(missing_snv, missing_aac)
+    missing_sbs = setdiff(sbs_ids, cesa@mutations$sbs[sbs_ids, sbs_id, nomatch = NULL])
+    all_missing = c(missing_sbs, missing_aac)
     num_missing = length(all_missing)
     if(num_missing > 0) {
       stop(num_missing, " variant IDs are either invalid or not present in annotation tables: ", 
@@ -88,7 +88,7 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
   
   
   # Give a progress message if this is going to take more than a few seconds
-  num_variants = length(aac_ids) + length(snv_ids)
+  num_variants = length(aac_ids) + length(sbs_ids)
   
   if(num_variants == 0) {
     stop("Can't calculate mutation rates because no variants were input.")
@@ -105,7 +105,7 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
   
   
   # produce a table with all pairwise combinations of Unique_Patient_Identifier and relevant regional rates
-  # relevant genes/pids are those associated with one of the AACs/SNVs of interest
+  # relevant genes/pids are those associated with one of the AACs/sbs of interest
   using_pid = cesa@advanced$cds_refset
   if(using_pid) {
     if (! "pid" %in% names(mutrates)) {
@@ -119,9 +119,9 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
       mutrates = mutrates[pid_to_gene, on = 'gene']
     }
     # Note that unlist(NULL data.table) returns NULL (which is okay)
-    relevant_regions = union(mutations$amino_acid_change$pid, unlist(mutations$snv[snv_ids, nearest_pid, on = "snv_id"]))
+    relevant_regions = union(mutations$amino_acid_change$pid, unlist(mutations$sbs[sbs_ids, nearest_pid, on = "sbs_id"]))
   } else {
-    relevant_regions = union(mutations$amino_acid_change$gene, unlist(mutations$snv[snv_ids, genes, on = "snv_id"]))
+    relevant_regions = union(mutations$amino_acid_change$gene, unlist(mutations$sbs[sbs_ids, genes, on = "sbs_id"]))
   }
   sample_region_rates = as.data.table(expand.grid(region = relevant_regions, Unique_Patient_Identifier = samples$Unique_Patient_Identifier, 
                                                   stringsAsFactors = F), key = "Unique_Patient_Identifier")
@@ -158,8 +158,8 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
   setkey(sample_region_rates, "region")
   
   if(length(aac_ids > 0)) {
-    trinuc_mut_by_aac = mutations$aac_snv_key[mutations$amino_acid_change$aac_id, .(aac_id, snv_id), on = 'aac_id']
-    trinuc_mut_by_aac[mutations$snv, trinuc_mut := trinuc_mut, on = 'snv_id']
+    trinuc_mut_by_aac = mutations$aac_sbs_key[mutations$amino_acid_change$aac_id, .(aac_id, sbs_id), on = 'aac_id']
+    trinuc_mut_by_aac[mutations$sbs, trinuc_mut := trinuc_mut, on = 'sbs_id']
     
     if (using_pid) {
       mutations$amino_acid_change[, region := pid]
@@ -205,21 +205,21 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
   }
   
 
-  # repeat with SNVs (slightly different handling since SNVs can have more than one gene/pid associated)
-  if (length(snv_ids) > 0) {
-    trinuc_mut_by_snv = mutations$snv[snv_ids, trinuc_mut, keyby = "snv_id"]
+  # repeat with sbs (slightly different handling since sbs can have more than one gene/pid associated)
+  if (length(sbs_ids) > 0) {
+    trinuc_mut_by_sbs = mutations$sbs[sbs_ids, trinuc_mut, keyby = "sbs_id"]
     if (using_pid) {
-      region_by_snv = mutations$snv[snv_ids, .(region = nearest_pid), by = "snv_id"]
+      region_by_sbs = mutations$sbs[sbs_ids, .(region = nearest_pid), by = "sbs_id"]
     } else {
-      region_by_snv = mutations$snv[snv_ids, .(region = genes), by = "snv_id"]
+      region_by_sbs = mutations$sbs[sbs_ids, .(region = genes), by = "sbs_id"]
     }
-    snv_regions = unique(unlist(region_by_snv$region))
-    tmp = sample_region_rates[snv_regions, .(list(aggregate_rate)), by = "region"]
+    sbs_regions = unique(unlist(region_by_sbs$region))
+    tmp = sample_region_rates[sbs_regions, .(list(aggregate_rate)), by = "region"]
     agg_rates_by_region = tmp$V1
     names(agg_rates_by_region) = tmp$region
     
-    get_baseline_snv = function(snv, region) {
-      trinuc_mut = trinuc_mut_by_snv[snv, trinuc_mut]
+    get_baseline_sbs = function(sbs, region) {
+      trinuc_mut = trinuc_mut_by_sbs[sbs, trinuc_mut]
       sample_rates = trinuc_mat[, trinuc_mut, drop = F]
       if(length(region) > 1) {
         simplified = simplify2array(agg_rates_by_region[region])
@@ -234,8 +234,8 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
       }
       return(as.numeric(agg_rates * sample_rates))
     }
-    if(length(snv_ids) > 1000) {
-      message("Calculating baseline rates for noncoding SNVs...")
+    if(length(sbs_ids) > 1000) {
+      message("Calculating baseline rates for noncoding sbs...")
       pbopts = pbapply::pboptions()
     } else {
       # turn of progress bar when few variants
@@ -245,19 +245,19 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
     if (cores > 1) {
       original_dt_threads = setDTthreads(1)
     }
-    snv_rate_list = pbapply::pblapply(1:length(snv_ids), function(x) get_baseline_snv(snv_ids[x], region_by_snv$region[[x]]), cl = cores)
+    sbs_rate_list = pbapply::pblapply(1:length(sbs_ids), function(x) get_baseline_sbs(sbs_ids[x], region_by_sbs$region[[x]]), cl = cores)
     if (cores > 1) {
       setDTthreads(original_dt_threads)
     }
     pbapply::pboptions(pbopts)
-    names(snv_rate_list) = snv_ids
+    names(sbs_rate_list) = sbs_ids
   } else {
-    snv_rate_list = NULL
+    sbs_rate_list = NULL
   }
   
   
   # Combine all rates and create table
-  baseline_rates = as.data.table(c(aac_rate_list, snv_rate_list))
+  baseline_rates = as.data.table(c(aac_rate_list, sbs_rate_list))
   baseline_rates$Unique_Patient_Identifier = samples$Unique_Patient_Identifier
   setcolorder(baseline_rates, "Unique_Patient_Identifier")
   return(baseline_rates)

@@ -38,9 +38,6 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
     select_cols = c(select_cols, tumor_allele_col)
   }
   
-  if(separate_old_problems == TRUE & ! is.null(chain_file)) {
-    stop("Can't separate old problems and also run liftOver.")
-  }
   # when sample_col has default value, will also check for Tumor_Sample_Barcode if the default isn't found
   if (sample_col == "Unique_Patient_Identifier") {
     select_cols = c(select_cols, "Tumor_Sample_Barcode")
@@ -71,7 +68,7 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
   # on this data, we'll keep the columns that it generated.
   if (is.null(chain_file) && ! is.null(select_cols)) {
     if (! is.null(select_cols))
-    select_cols = unique(c(select_cols, "prelift_chr", "prelift_start", "liftover_strand_flip"))
+    select_cols = unique(c(select_cols, "prelift_chr", "prelift_start", "liftover_strand_flip", "prelift_variant_id"))
   }
 
   bad_maf_msg = "Input MAF is expected to be a data frame or the filename of an MAF-formatted tab-delimited text file."
@@ -189,15 +186,19 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
         
         # Some excluded records should retain variant IDs
         identify_maf_variants(old_problems)
-        old_problems[! problem %in% c('duplicate_record', 'duplicate_from_TCGA_sample_merge',
-                                       'duplicate_record_after_liftOver', 'failed_liftOver',
-                                       'merged_into_dbs_variant', 'merged_with_nearby_variant', 
-                                       'merged_into_other_variant'),
-                  c('variant_id', 'variant_type') := list(NA_character_, NA_character_)]
-        old_problems[problem == 'failed_liftOver', variant_id := paste0(variant_id, '(prelift)')]
+        problems_that_retain_id = c('duplicate_record', 'duplicate_from_TCGA_sample_merge',
+                                    'duplicate_record_after_liftOver',
+                                    'merged_into_dbs_variant', 'merged_with_nearby_variant', 
+                                    'merged_into_other_variant')
+        old_problems[! problem %in% problems_that_retain_id, 
+                     c('variant_id', 'variant_type') := list(NA_character_, NA_character_)]
+        if(! is.null(chain_file)) {
+          pretty_message("Note: Records with problems identified in previous runs of preload_maf() won't be run through liftOver.")
+          old_problems[problem %in% problems_that_retain_id, prelift_variant_id := variant_id]
+          old_problems
+        }
         setnames(old_problems, 'problem', 'old_problem')
         old_problems[, problem := NA_character_]
-        
       } else {
         msg = paste0("Found a \"problem\" column in MAF, but if the table came from cancereffectsizeR, ",
                      "it's been subsequently altered, so it can't be used and will be overwritten.")
@@ -227,10 +228,17 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
     maf[, Tumor_Sample_Barcode := NULL]
   }
   
-  
-  
-  
-  
+  # If MAF has unsupported chromosome names, try stripping chr prefixes. We'll run this again after liftOver.
+  supported_chr = refset_env$supported_chr
+  deal_with_chr_prefix = function(maf) {
+    maf[, supported := Chromosome %in% supported_chr]
+    maf[supported == FALSE, stripped_chr := sub('^chr', '', Chromosome) ]
+    maf[supported == FALSE & stripped_chr %in% supported_chr, c("Chromosome", "supported") := list(stripped_chr, TRUE)]
+    maf[supported == FALSE & is.na(problem), problem := 'unsupported_chr']
+    maf[, c("stripped_chr", "supported") := NULL]
+  }
+  deal_with_chr_prefix(maf)
+  identify_maf_variants(maf)
   
   # run liftOver if chain file supplied
   if(! is.null(chain_file)) {
@@ -258,26 +266,11 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
     
     merged_maf = merge.data.table(maf, lifted_over, by = "rn")
     merged_maf[, liftover_strand_flip := FALSE][strand == "-", liftover_strand_flip := TRUE]
+    merged_maf[, prelift_variant_id := variant_id]
     setnames(merged_maf, c("Chromosome", "Start_Position"), c("prelift_chr", "prelift_start"))
     merged_maf[, Chromosome := as.character(seqnames)] # seqnames comes back as factor!
     merged_maf[, Start_Position := start]
     merged_maf[, c("start", "seqnames", "width", "strand", "end") := NULL] 
-
-    failed_liftover = maf[is.na(problem) & ! rn %in% merged_maf$rn, -"rn"]
-    maf[, rn := NULL]
-    setcolorder(merged_maf, names(maf))
-    maf = merged_maf[, -"rn"]
-    if (failed_liftover[, .N] > 0) {
-      failed_liftover[, problem := 'failed_liftOver']
-      failed_liftover[, c("prelift_chr", "prelift_start") := list(Chromosome, Start_Position)]
-      maf = rbind(maf, failed_liftover, fill = T)
-    }
-    
-    # Different loci in one genome build can get lifted to the same position in the
-    # another, due to fixes. Therefore, liftOver sometimes reveals duplicate records
-    # when two mutations in same sample get lifted to the same locus in a newer build.
-    lifted_to_same = duplicated(maf[,.(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele)])
-    maf[lifted_to_same, problem := 'duplicate_record_after_liftOver']
     
     # A few records (e.g., ~0.3% when lifting TCGA UCEC from hg38 to hg19) will need
     # positions/alleles corrected because of the orientation of the local contig being
@@ -286,30 +279,37 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
     # reverse complement the reference and alternate alleles. Indels have a '-' in either
     # ref or alt columns, which don't get changed. Since reverseComplement returns
     # identity on '-', we don't actually have to worry about this.
-    maf[liftover_strand_flip == TRUE, 
-        c("Start_Position", "Reference_Allele", "Tumor_Allele") := 
-        .(Start_Position - nchar(Reference_Allele) + 1,
-          as.character(Biostrings::reverseComplement(DNAStringSet(Reference_Allele))),
-          as.character(Biostrings::reverseComplement(DNAStringSet(Tumor_Allele))))]
-  }
-  
-  # If MAF has unsupported chromosome names, try stripping chr prefixes
-  supported_chr = refset_env$supported_chr
-  maf[, supported := FALSE][Chromosome %in% supported_chr, supported := T]
-  maf[supported == FALSE, stripped_chr := sub('^chr', '', Chromosome) ]
-  maf[supported == FALSE & stripped_chr %in% supported_chr, c("Chromosome", "supported") := list(stripped_chr, TRUE)]
-  
-  maf[supported == FALSE & is.na(problem), problem := 'unsupported_chr']
-  maf[, c("stripped_chr", "supported") := NULL]
-  
-  # If liftOver is not being used (which would catch problems earlier), make sure all records are in-bounds.
-  if (is.null(chain_file)) {
+    merged_maf[liftover_strand_flip == TRUE, 
+               c("Start_Position", "Reference_Allele", "Tumor_Allele") := 
+                 .(Start_Position - nchar(Reference_Allele) + 1,
+                   as.character(Biostrings::reverseComplement(DNAStringSet(Reference_Allele))),
+                   as.character(Biostrings::reverseComplement(DNAStringSet(Tumor_Allele))))]
+    deal_with_chr_prefix(merged_maf) # in case liftOver brought seqlevelsstyle out of alignment with refset
+    identify_maf_variants(merged_maf) # update variant_id
+
+    failed_liftover = maf[is.na(problem) & ! rn %in% merged_maf$rn, -"rn"]
+    maf[, rn := NULL]
+    setcolorder(merged_maf, names(maf))
+    maf = merged_maf[, -"rn"]
+    if (failed_liftover[, .N] > 0) {
+      failed_liftover[, problem := 'failed_liftOver']
+      failed_liftover[, c("Chromosome", "Start_Position", "Reference_Allele", "Tumor_Allele") := .(NA_character_, NA_real_, NA_character_, NA_character_)]
+      failed_liftover[, c("prelift_chr", "prelift_start") := list(Chromosome, Start_Position)]
+      failed_liftover[, prelift_variant_id := variant_id]
+      failed_liftover[, variant_id := NA_character_]
+      maf = rbind(maf, failed_liftover, fill = T)
+    }
+    
+    # Different loci in one genome build can get lifted to the same position in the
+    # another, due to fixes. Therefore, liftOver sometimes reveals duplicate records
+    # when two mutations in same sample get lifted to the same locus in a newer build.
+    lifted_to_same = duplicated(maf[,.(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele)])
+    maf[lifted_to_same, problem := 'duplicate_record_after_liftOver']
+  } else {
+    # If liftOver is not being used (which would catch problems earlier), make sure all records are in-bounds.
     max_lengths = GenomeInfoDb::seqlengths(refset_env$genome)
     maf[Start_Position > max_lengths[Chromosome], problem := 'out_of_bounds']
   }
-  
-  identify_maf_variants(maf)
-  maf[problem == 'failed_liftOver', variant_id := paste0(variant_id, '(prelift)')]
   
   # Ensure reference alleles of mutations match reference genome (Note: Insertions won't match if their reference allele is "-")
   # Can safely skip the reference allele check if the table has previously been checked and still has the same ref alleles
@@ -334,7 +334,7 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
     # For insertions, can't evaluate if record matches reference since MAF reference will be just "-".
     # "Other" variants will also not be evaluated.
     maf[is.na(problem), actual_ref := reference_alleles]
-    maf[is.na(problem) & variant_type %in% c('del', 'snv', 'dbs') & Reference_Allele != actual_ref, 
+    maf[is.na(problem) & variant_type %in% c('del', 'sbs', 'dbs') & Reference_Allele != actual_ref, 
         c("problem", "variant_type", "variant_id") := list('reference_mismatch', NA_character_, NA_character_)]
     maf[, actual_ref := NULL]
   }
@@ -354,13 +354,11 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
 #' @return input table with variant_type and variant_id columns
 #' @keywords internal
 identify_maf_variants = function(maf) {
-  
   suppressWarnings(maf[, c("variant_id", "variant_type") := NULL])
-  
   # Format Start_Position carefully, to avoid issues like position 100000 getting rendered as "1e5"
   maf[, start_char := format(Start_Position, scientific = F, justify = 'none', trim = T)]
   maf[Reference_Allele %ilike% '^[ACTG]$' & Tumor_Allele %ilike% '^[ACTG]$', 
-      c("variant_type", "variant_id") := .("snv", paste0(Chromosome, ':', start_char, '_', toupper(Reference_Allele), '>', toupper(Tumor_Allele)))]
+      c("variant_type", "variant_id") := .("sbs", paste0(Chromosome, ':', start_char, '_', toupper(Reference_Allele), '>', toupper(Tumor_Allele)))]
   maf[Reference_Allele %ilike% '^[ACTG]{2}$' & Tumor_Allele %ilike% '^[ACTG]{2}$', 
       c("variant_type", "variant_id") := .('dbs', paste0(Chromosome, ':', start_char, '_', toupper(Reference_Allele), '>', toupper(Tumor_Allele)))]
   maf[Reference_Allele == '-' & Tumor_Allele %ilike% '^[ACTG]+$', 
@@ -423,9 +421,8 @@ identify_maf_variants = function(maf) {
   }
   
   
-  # Variants that don't match SNV, DBS, indel formats are either MNV substitutions,
-  # or length-changing substitutions (e.g., CT->AAG), or
-  # should only contain ACTG, 
+  # Variants that don't match sbs, DBS, indel formats are either MNV substitutions,
+  # or length-changing substitutions (e.g., CT->AAG), or should only contain ACTG.
   maf[variant_type == 'other' & ! is_complex & (! Reference_Allele %ilike% '^[ACTG]+$' | 
                                                  ! Tumor_Allele %ilike% '^[ACTG]+$'),
       c("variant_type", "variant_id") := .('illegal', NA_character_)]

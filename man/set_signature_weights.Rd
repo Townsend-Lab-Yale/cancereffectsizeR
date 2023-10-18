@@ -2,7 +2,7 @@
 % Please edit documentation in R/set_signature_weights.R
 \name{set_signature_weights}
 \alias{set_signature_weights}
-\title{Set SNV signature weights}
+\title{Set SBS signature weights}
 \usage{
 set_signature_weights(
   cesa,
@@ -23,7 +23,7 @@ custom signature set (see documentation in \code{trinuc_mutation_rates()})}
 CESAnalysis (when false, will stop with an error)}
 }
 \description{
-If you wish to use your own method to calculate sample-specific SNV signature weights
+If you wish to use your own method to calculate sample-specific SBS signature weights
 (as opposed the signature extraction built into trinuc_mutation_rates()), you can use
 this function to load them into the CESAnalysis. Your input signatures will be used to
 infer relative trinucleotide-context-specific mutation rates for all tumors. (This
@@ -37,7 +37,7 @@ The input data table must have a Unique_Patient_Identifier column and one column
 signature in the signature set. All samples in the CESAnalysis must be included in the
 input table, and each sample's weights should have a sum on (0, 1]. Since these weights
 are used by cancereffectsizeR to infer trinucleotide-context-specific relative rates
-of SNV mutations, each sample must have at least one non-artifact signature with
+of SBS variants, each sample must have at least one non-artifact signature with
 nonzero weight. (In the unlikely event that this is a problem, consider assigning
 group-average signature weights to the artifact-only samples.)
 }

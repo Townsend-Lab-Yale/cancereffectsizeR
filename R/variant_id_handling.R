@@ -1,20 +1,20 @@
-#' validate_snv_ids
+#' validate_sbs_ids
 #' 
-#' Ensures SNV IDs are valid for the given genome
+#' Ensures SBS IDs are valid for the given genome
 #' 
-#' @param snv_ids character vector of snv_ids
+#' @param sbs_ids character vector of sbs_ids
 #' @param bsg BSgenome for getting reference sequence
 #' @keywords internal
-validate_snv_ids = function(snv_ids, bsg) {
-  dt = as.data.table(tstrsplit(snv_ids, split = '[:_>]'))
+validate_sbs_ids = function(sbs_ids, bsg) {
+  dt = as.data.table(tstrsplit(sbs_ids, split = '[:_>]'))
   nt = c("A", "C", "G", "T")
   if(length(dt) != 4 | anyNA(dt)) {
-    stop("One of the input IDs does not match snv_id format (e.g., 1:100_A>G)")
+    stop("One of the input IDs does not match sbs_id format (e.g., 1:100_A>G)")
   }
   names(dt) = c("chr", "start", "ref", "alt")
   
   if (! all(grepl('^[1-9][0-9]*$', dt$start))) {
-    stop("Some SNV IDs have illegal positions (watch out for mistakes like \"2:1e+06_A>C\").")
+    stop("Some sbs IDs have illegal positions (watch out for mistakes like \"2:1e+06_A>C\").")
   }
   
   
@@ -32,14 +32,14 @@ validate_snv_ids = function(snv_ids, bsg) {
   )
   
   if(! all(seqs == dt$ref)) {
-    stop("Incorrect reference allele in one or more SNV IDs.")
+    stop("Incorrect reference allele in one or more sbs IDs.")
   }
   
   if(! all(dt$alt %in% nt)) {
-    stop("SNV alt alleles are not all single DNA bases")
+    stop("sbs alt alleles are not all single DNA bases")
   }
   if (! all(dt$alt != dt$ref)) {
-    stop("Some SNV alt alleles match the ref alleles.")
+    stop("Some sbs alt alleles match the ref alleles.")
   }
 }
 
@@ -119,7 +119,7 @@ complete_aac_ids = function(partial_ids, refset) {
 #' NULL if all are valid, or a list of problems, or an error if input isn't parseable.
 #' 
 #' An ID is invalid if the gene and/or protein_id are not in the reference data, or if the
-#' reference amino acid ("G" in KRAS_G12C) is incorrect, or if there is no possible SNV
+#' reference amino acid ("G" in KRAS_G12C) is incorrect, or if there is no possible SBS
 #' that can create the proposed change. For example, KRAS G12C is possible when the codon
 #' (GGT) acquires a G>T substitution in the first position, while G12K is not possible
 #' because no single substitution can transform GGT into a lysine codon.
@@ -233,7 +233,7 @@ validate_aac_ids = function(aac_ids, refset) {
     codons = codons[-invalid_alt]
   }
   
-  dt[, alt_possible := mapply(function(codon, alt) length(unlist(codon_snvs_to_aa[[codon]][[alt]])) > 0, 
+  dt[, alt_possible := mapply(function(codon, alt) length(unlist(codon_sbs_to_aa[[codon]][[alt]])) > 0, 
                                                  as.character(codons), aa_alt)]
   impossible_alt = dt[alt_possible == FALSE, which = T]
   if(length(impossible_alt) > 0) {

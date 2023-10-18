@@ -11,21 +11,21 @@ expect_equal(rate_a[[1]], 'TCGA-BH-A18H')
 expect_equal(rate_a[[2]], 1.536797e-06)
 
 
-# Try taking one SNV rate in one sample
-snv_rate = baseline_mutation_rates(cesa, snv_ids = "1:151292923_C>T", 
+# Try taking one SBS rate in one sample
+sbs_rate = baseline_mutation_rates(cesa, sbs_ids = "1:151292923_C>T", 
                                      samples = 'P-0000015')
-expect_equal(snv_rate[[1]], 'P-0000015')
-expect_equal(snv_rate[[2]], 1.824055e-06)
-snv_rate_other_way = baseline_mutation_rates(cesa, variant_ids = "1:151292923_C>T", 
+expect_equal(sbs_rate[[1]], 'P-0000015')
+expect_equal(sbs_rate[[2]], 1.824055e-06)
+sbs_rate_other_way = baseline_mutation_rates(cesa, variant_ids = "1:151292923_C>T", 
                                              samples = 'P-0000015')
-expect_identical(snv_rate, snv_rate_other_way)
+expect_identical(sbs_rate, sbs_rate_other_way)
 
 # Invalid inputs
 expect_error(baseline_mutation_rates(cesa), "no variants were input")
 expect_error(baseline_mutation_rates(cesa, variant_ids = c("1:151292923_C>T", 'hi')), 
              "1 variant IDs are either invalid or not present")
 
-# genes to plug into ces_variant; some with high-effect-size SNVs, others random
+# genes to plug into ces_variant; some with high-effect-size SBS, others random
 test_genes = c("EGFR", "ASXL3", "KRAS", "RYR2", "USH2A", "CSMD3", "TP53", 
                "CSMD1", "LRP1B", "ZFHX4", "FAT3", "CNTNAP5", "PCDH15", "NEB", 
                "RYR3", "PIK3CA", "ESR1", 
@@ -42,12 +42,12 @@ test_that("ces_variant default effects", {
 
 
 test_that("ces_variant with user-supplied variants", {
-  # Test an SNV only covered in targeted panel.
+  # Test an SBS only covered in targeted panel.
   expected_si = ces_variant(cesa, variants = select_variants(cesa, variant_ids = '16:68823629_A>C'))@selection_results[[1]]$selection_intensity
   expect_equal(expected_si, 4187.333, tolerance = 1e-5)
   
   
-  # Test an intergenic SNV. Should get same result regardless of hold-out option.
+  # Test an intergenic SBS. Should get same result regardless of hold-out option.
   expected_si = 7751.457
   expect_equal(ces_variant(cesa, variants = select_variants(cesa, variant_ids = "1:1468632_C>A"))@selection_results[[1]]$selection_intensity,
                expected_si, tolerance = 1e-4)
@@ -121,7 +121,7 @@ test_that("Variant-level epistasis", {
 })
 
 
-test_that("Gene-level SNV epistasis analysis", {
+test_that("Gene-level SBS epistasis analysis", {
   variants_to_use = cesa$variants[gene %in% c('EGFR', 'KRAS', 'TP53') & samples_covering == cesa$samples[, .N]]
   cesa = ces_gene_epistasis(cesa, genes = c("EGFR", "KRAS", "TP53"), variants = variants_to_use, conf = .95)
   results_ak = get_test_data("epistatic_effects.rds")
@@ -167,19 +167,19 @@ test_that("Compound variant creation", {
   all_kras_12_13 = select_variants(cesa, variant_position_table = kras_12_13)
   expect_equal(all_kras_12_13[, .N], 6)
   
-  # Should recapitulate single variant results with 1-SNV-size compound variants
-  # Note, though, that compound variant mutation rates get calculated via the SNV method, which 
-  # averages any overlapping gene rates, so sometimes rates will vary between a one-SNV AAC and the equivalent compound variant.
-  single_snv_comp = define_compound_variants(cesa, all_kras_12_13, by = c("gene", "aa_alt"), merge_distance = 0)
-  expect_equal(length(single_snv_comp), 6)
-  results = ces_variant(cesa, variants = single_snv_comp, hold_out_same_gene_samples = T)
-  same_results = ces_variant(cesa, variants = single_snv_comp, hold_out_same_gene_samples = T)
+  # Should recapitulate single variant results with 1-SBS-size compound variants
+  # Note, though, that compound variant mutation rates get calculated via the SBS method, which 
+  # averages any overlapping gene rates, so sometimes rates will vary between a one-SBS AAC and the equivalent compound variant.
+  single_sbs_comp = define_compound_variants(cesa, all_kras_12_13, by = c("gene", "aa_alt"), merge_distance = 0)
+  expect_equal(length(single_sbs_comp), 6)
+  results = ces_variant(cesa, variants = single_sbs_comp, hold_out_same_gene_samples = T)
+  same_results = ces_variant(cesa, variants = single_sbs_comp, hold_out_same_gene_samples = T)
   expect_equal(same_results@selection_results, results@selection_results)
 
   # this time, do per position
   pos_comp = define_compound_variants(cesa, all_kras_12_13, merge_distance = 0)
   expect_equal(length(pos_comp), 2)
-  expect_equal(pos_comp$snv_info[, .N], 6)
+  expect_equal(pos_comp$sbs_info[, .N], 6)
   results = ces_variant(cesa, variants = pos_comp, hold_out_same_gene_samples = T, conf = NULL)$selection[[1]]
   expect_equal(results$selection_intensity, c(3545.80843024223, 5950.80593547194), tolerance = 1e-5)
   
@@ -202,7 +202,7 @@ test_that("Attribution to mutational sources", {
 
 test_that("Just genome data", {
   # Various edge cases being hit: Just WGS data, load_maf() on only previously annotated variants,
-  # running ces_variant() on just 2 samples, running with SNVs and indels but no DBS.
+  # running ces_variant() on just 2 samples, running with SBS and indels but no DBS.
   c2 = CESAnalysis(ces.refset.hg38)
   c2 = add_variants(target_cesa = c2, source_cesa = cesa)
   c2 = load_maf(c2, maf = cesa$maf[1:100], coverage = 'genome')

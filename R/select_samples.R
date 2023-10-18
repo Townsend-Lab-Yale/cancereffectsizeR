@@ -54,11 +54,11 @@ samples_with = function(cesa, any_of = NULL) {
   }
   variants_by_type = sort_and_validate_variant_ids(cesa = cesa, input_ids = any_of, drop_unannotated = TRUE)
   
-  snv_ids = variants_by_type[['snv_id']]
+  sbs_ids = variants_by_type[['sbs_id']]
   aac_ids = variants_by_type[['aac_id']]
   
-  snv_from_aac = cesa@mutations$aac_snv_key[aac_ids, unique(snv_id), on = 'aac_id']
-  all_snv_ids = union(snv_from_aac, snv_ids)
+  sbs_from_aac = cesa@mutations$aac_sbs_key[aac_ids, unique(sbs_id), on = 'aac_id']
+  all_sbs_ids = union(sbs_from_aac, sbs_ids)
   
-  return(cesa@maf[all_snv_ids, unique(Unique_Patient_Identifier), on = 'variant_id', nomatch = NULL])
+  return(cesa@maf[all_sbs_ids, unique(Unique_Patient_Identifier), on = 'variant_id', nomatch = NULL])
 }

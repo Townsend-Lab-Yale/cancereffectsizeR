@@ -145,7 +145,7 @@ create_refset = function(output_dir, refcds_output, species_name, genome_build_n
   RefCDS = refcds_output[[1]]
   message("Counting trinculeotide contexts in ", format(length(RefCDS), big.mark = ','), " RefCDS entries...")
   process_cds = function(entry) {
-    total_counts = integer(96) # number of distinct deconstructSigs SNVs
+    total_counts = integer(96) # number of distinct deconstructSigs sbs
     # for each transcripts, need to consider each exon and 1 base up/downstream for trinucleotide context
     intervals = entry$intervals_cds # two-column matrix with start/stop coordinates of each cds
     cds_lengths = intervals[,2] - intervals[,1] 

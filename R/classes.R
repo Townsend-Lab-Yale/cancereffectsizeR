@@ -13,7 +13,7 @@ setClass("CESAnalysis", representation(maf = "data.table", trinucleotide_mutatio
   if(x@samples[, .N] > 0) {
     features = c(features, "samples")
   }
-  if(sum(sapply(x@mutations[c('snv', 'dbs')], function(y) y[, .N])) > 0) {
+  if(sum(sapply(x@mutations[c('sbs', 'dbs')], function(y) y[, .N])) > 0) {
     features = c(features, "variants")
   }
   if(length(x@selection_results) > 0) {
@@ -59,7 +59,7 @@ setMethod("$", "CESAnalysis",
             } else if (name == "trinuc_rates") {
               return(get_trinuc_rates(x))
             } else if (name == "mutational_signatures") {
-              return(list(snv_counts = x@trinucleotide_mutation_weights$trinuc_snv_counts,
+              return(list(sbs_counts = x@trinucleotide_mutation_weights$trinuc_sbs_counts,
                           raw_attributions = get_signature_weights(x, raw = T),
                           biological_weights = get_signature_weights(x, raw = F),
                           help = function() cat("See Value in ?trinuc_mutation_rates for methods and tips.\n")))
@@ -73,14 +73,14 @@ setMethod("$", "CESAnalysis",
               }
               return(cached_variants)
             } else if (name == "selection") {
-              return(snv_results(x))
+              return(sbs_results(x))
             } else if (name == "epistasis") {
               return(epistasis_results(x))
             } else if (name == "reference_data") {
               ref_data = list(genome = get_cesa_bsg(x))
-              snv_signatures = copy(x@advanced$snv_signatures)
-              if (length(snv_signatures) > 0) {
-                ref_data = c(ref_data, list(snv_signatures = snv_signatures))
+              sbs_signatures = copy(x@advanced$sbs_signatures)
+              if (length(sbs_signatures) > 0) {
+                ref_data = c(ref_data, list(sbs_signatures = sbs_signatures))
               }
               return(invisible(ref_data))
             } else if (name == "coverage_ranges") {
@@ -116,28 +116,28 @@ setMethod("show", "CESAnalysis",
     if(object@maf[, .N] > 0) {
       cat("Samples:\n")
       print(object@samples[, .(num_samples = .N), by = "coverage"], row.names = F)
-      num_snvs = object@maf[variant_type == "snv", .N]
-      cat("\nMAF data: ", num_snvs, " SNVs loaded.\n", sep = "")
+      num_sbs = object@maf[variant_type == "sbs", .N]
+      cat("\nMAF data: ", num_sbs, " SBS loaded.\n", sep = "")
     }
-    signature_sets = object@advanced$snv_signatures
+    signature_sets = object@advanced$sbs_signatures
     if (length(signature_sets) > 0) {
       signature_set_names = paste(names(signature_sets), collapse = ', ')
-      cat("Mutational processes: Sample-level extraction of ", signature_set_names, " SNV signatures.\n", sep = "")
+      cat("Mutational processes: Sample-level extraction of ", signature_set_names, " SBS signatures.\n", sep = "")
     }
     cat("Run history: See [CESAnalysis]$run_history.\n")
     cat(paste0("\n[Created in cancereffectsizeR, version ", object@advanced$version, ".]"))
   }
 )
 
-setClass("CompoundVariantSet", representation(snvs = "data.table", compounds = "data.table", sample_calls = "list",
+setClass("CompoundVariantSet", representation(sbs = "data.table", compounds = "data.table", sample_calls = "list",
                                               cesa_uid = "numeric", cesa_num_samples = "integer"))
 setMethod("show", "CompoundVariantSet", function(object) {
   num_compound = object@compounds[, .N]
-  num_snv = object@snvs[, .N]
+  num_sbs = object@sbs[, .N]
   plural = ifelse(num_compound == 1, '', 's')
-  plural2 = ifelse(num_snv == 1, '', 's')
+  plural2 = ifelse(num_sbs == 1, '', 's')
   msg = paste0("CompoundVariantSet with ", num_compound, " compound variant", plural, " consisting of ", 
-                num_snv, " SNV", plural2, ":\n")
+                num_sbs, " sbs", plural2, ":\n")
   cat(msg)
   print(object@compounds, topn = 3)
 })
@@ -151,8 +151,8 @@ setMethod("length", "CompoundVariantSet", function(x) {
 setMethod("[", "CompoundVariantSet", function(x, i , j, ..., drop) {
   compounds = `[`(x@compounds, i, j, nomatch = NULL, ...)
   sample_calls = x@sample_calls[compounds$compound_name]
-  snvs = x@snvs[compounds$compound_name, on = 'compound_name']
-  return(new("CompoundVariantSet", compounds = compounds, snvs = snvs, sample_calls = sample_calls,
+  sbs = x@sbs[compounds$compound_name, on = 'compound_name']
+  return(new("CompoundVariantSet", compounds = compounds, sbs = sbs, sample_calls = sample_calls,
              cesa_uid = x@cesa_uid, cesa_num_samples = x@cesa_num_samples))
 })
 
@@ -165,22 +165,22 @@ setMethod("as.list", "CompoundVariantSet", as.list.CompoundVariantSet)
 
 #' @export
 .DollarNames.CompoundVariantSet <- function(x, pattern = "") {
-  features = c("compounds", "snv_info", "samples_with", "definitions")
+  features = c("compounds", "sbs_info", "samples_with", "definitions")
   grep(pattern, features, value=TRUE)
 }
 
 setMethod("$", "CompoundVariantSet",
   function(x, name)
   {
-    if(name == "snv_info") {
-      return(x@snvs)
+    if(name == "sbs_info") {
+      return(x@sbs)
     } else if (name == "compounds") {
       return(x@compounds)
     } else if (name == "samples_with") {
       return(x@sample_calls)
     }else if (name == "definitions") {
-      tmp = x@snvs[, .(snvs = list(snv_id)), by = "compound_name"]
-      return(stats::setNames(tmp$snvs, tmp$compound_name))
+      tmp = x@sbs[, .(sbs = list(sbs_id)), by = "compound_name"]
+      return(stats::setNames(tmp$sbs, tmp$compound_name))
     }
   }
 )

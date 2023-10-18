@@ -17,7 +17,7 @@ NULL if all are valid, or a list of problems, or an error if input isn't parseab
 }
 \details{
 An ID is invalid if the gene and/or protein_id are not in the reference data, or if the
-reference amino acid ("G" in KRAS_G12C) is incorrect, or if there is no possible SNV
+reference amino acid ("G" in KRAS_G12C) is incorrect, or if there is no possible SBS
 that can create the proposed change. For example, KRAS G12C is possible when the codon
 (GGT) acquires a G>T substitution in the first position, while G12K is not possible
 because no single substitution can transform GGT into a lysine codon.

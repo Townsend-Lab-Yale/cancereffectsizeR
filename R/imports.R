@@ -19,7 +19,7 @@ for(refset in names(.official_refsets)) {
   }
 }
 
-snv_annotation_template = data.table(snv_id = character(), chr = character(), pos = numeric(), 
+sbs_annotation_template = data.table(sbs_id = character(), chr = character(), pos = numeric(), 
                                      ref = character(), alt = character(), genes = list(), intergenic = logical(), 
                                      trinuc_mut = character(), essential_splice = logical(), 
                                      nearest_pid = list())
@@ -31,7 +31,7 @@ aac_annotation_template = data.table(aac_id = character(), gene = character(), a
                        coding_seq = character(), essential_splice = logical())
 
 
-aac_snv_key_template = data.table(aac_id = character(), snv_id = character(), multi_anno_site = logical(), key = 'aac_id')
+aac_sbs_key_template = data.table(aac_id = character(), sbs_id = character(), multi_anno_site = logical(), key = 'aac_id')
 
 
 dbs_annotation_template = data.table(dbs_id = character(), chr = character(), pos = numeric(), ref = character(), 

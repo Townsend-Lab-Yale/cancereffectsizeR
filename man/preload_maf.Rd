@@ -14,8 +14,8 @@ preload_maf(
   start_col = "Start_Position",
   ref_col = "Reference_Allele",
   tumor_allele_col = "guess",
-  keep_extra_columns = FALSE,
-  detect_hidden_mnv = TRUE
+  keep_extra_columns = TRUE,
+  detect_hidden_mnv = "auto"
 )
 }
 \arguments{
@@ -53,10 +53,10 @@ values from Tumor_Seq_Allele2 and Tumor_Seq_Allele1 columns are used}
 \item{keep_extra_columns}{TRUE/FALSE to load data columns not needed by cancereffectsizeR,
 or a vector of column names to keep.}
 
-\item{detect_hidden_mnv}{Find same-sample adjacent SNVs and replace these records with
-DBS (doublet base substitution) records. Also, find groups of same-sample variants
-within 2 bp of each other and replace these records with MNV (multi-nucleotide
-variant) records.}
+\item{detect_hidden_mnv}{TRUE/FALSE/"auto": Find same-sample adjacent SBS and replace these
+records with DBS (doublet base substitution) records. Also, find groups of same-sample variants
+within 2 bp of each other and replace these records with MNV (multi-nucleotide variant)
+records. The default, "auto", looks for DBS/MNV if there are 0 DBS called in the data set.}
 }
 \value{
 a data.table of MAF data, with any problematic records flagged and a few

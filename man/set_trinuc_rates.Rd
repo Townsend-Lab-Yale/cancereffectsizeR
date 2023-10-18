@@ -14,7 +14,7 @@ set_trinuc_rates(cesa, trinuc_rates, ignore_extra_samples = FALSE)
 \item{ignore_extra_samples}{skip samples in the input table that are not in the CESAnalysis (when false, will stop with an error)}
 }
 \description{
-This function assigns trinucleotide-context-specific relative SNV mutation rates to
+This function assigns trinucleotide-context-specific relative SBS mutation rates to
 tumors in a CESAnalysis. (These could be rates previously generated with
 \code{trinuc_mutation_rates()}, or they could calculated using your own methods.) The
 input rates must be a data.table or matrix. If supplying a data table, there must be a

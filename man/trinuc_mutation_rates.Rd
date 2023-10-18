@@ -41,7 +41,7 @@ fit_to_signatures_strict function. Note that mut_matrix and signatures arguments
 generated automatically, and that if you'd rather not use the strict method, you can
 emulate fit_to_signatures() by setting max_delta = 0.}
 
-\item{bootstrap_mutations}{T/F (default FALSE). Instead of using actual SNV counts for
+\item{bootstrap_mutations}{T/F (default FALSE). Instead of using actual sbs counts for
 the samples, do a single bootstrap sampling of each sample (in other words, run
 MutationalPatterns::fit_to_signatures_bootstrapped() with \code{n_boot=1}). This can
 be useful if you intend to run this function multiple times to get a distribution of
@@ -61,11 +61,11 @@ averages are blended into the signature weights of sub-threshold tumors.}
 }
 \value{
 CESAnalysis with sample-specific signature weights and inferred
-  trinucleotide-context-specific relative mutation rates. The snv_counts matrix gives
-  the counts of SNVs in each trinucleotide context for all samples in the CESAnalysis.
+  trinucleotide-context-specific relative mutation rates. The sbs_counts matrix gives
+  the counts of sbs in each trinucleotide context for all samples in the CESAnalysis.
   (While recurrent mutations are excluded from signature analysis in
-  trinuc_mutation_rates(), they are present in snv_counts for completeness.) The
-  snv_counts matrix, produced by `trinuc_snv_counts()`, can be fed directly into
+  trinuc_mutation_rates(), they are present in sbs_counts for completeness.) The
+  sbs_counts matrix, produced by `trinuc_sbs_counts()`, can be fed directly into
   MutationalPatterns if you wish to run your own extended signature analysis.
   
   The raw_attributions table contains signature attributions as produced by
@@ -92,8 +92,8 @@ CESAnalysis with sample-specific signature weights and inferred
   }
 }
 \description{
-This function calculates expected relative rates of trinucleotide-context-specific SNV
-mutations within tumors by attributing SNVs to mutational processes represented in
+This function calculates expected relative rates of trinucleotide-context-specific SBS
+mutations within tumors by attributing SBS to mutational processes represented in
 mutation signature sets (such as "COSMIC v3.2"). Signature extraction can be done with
 MutationalPatterns (default) or deconstructSigs. Tumors with targeted sequencing data
 are assigned the average trinucleotide mutation rates calculated across all
@@ -101,7 +101,7 @@ exome/genome data, which means that you need at least some exome or genome data 
 }
 \details{
 To reduce the influence of selection on the estimation of relative trinucleotide mutation
-rates, only non-recurrent SNVs (those that do not appear in more than one 
+rates, only non-recurrent SBS (those that do not appear in more than one 
 sample in the current run) are used.
 
 A custom signature set should be given as a named three-item list, where "signatures"

@@ -1,10 +1,10 @@
-#' Create CompoundVariantSet directly from SNV IDs
+#' Create CompoundVariantSet directly from SBS IDs
 #'
-#' A compound variant is an arbitrary group of SNVs that can be tested for selection as if
-#' it were a single variant. (Any sample with one or more of the constituent SNVs "has the
+#' A compound variant is an arbitrary group of SBS that can be tested for selection as if
+#' it were a single variant. (Any sample with one or more of the constituent SBS "has the
 #' compound variant", and the baseline rate of the variant is the rate of having at least
-#' one of the SNVs.) A CompoundVariantSet is a collection of disjoint compound variants;
-#' that is, no SNV can appear in more than one compound variant.\cr
+#' one of the SBS.) A CompoundVariantSet is a collection of disjoint compound variants;
+#' that is, no SBS can appear in more than one compound variant.\cr
 #' Example: \code{CompoundVariantSet(cesa, variant_id = list(kras12 = c("KRAS G12C", "KRAS G12D",
 #' "KRAS G12V")))} creates a CompoundVariantSet containing one compound variant. To create
 #' a large set, it's usually easier to use define_compound_variants(), which calls this
@@ -24,11 +24,11 @@ CompoundVariantSet = function(cesa, variant_id) {
     stop("cesa should be a CESAnalysis.")
   }
   
-  if (cesa@mutations$snv[, .N] == 0) {
+  if (cesa@mutations$sbs[, .N] == 0) {
     stop("There are no mutation annotations in the CESAnalysis")
   }
   setkey(cesa@mutations$amino_acid_change, "aac_id")
-  setkey(cesa@mutations$snv, "snv_id")
+  setkey(cesa@mutations$sbs, "sbs_id")
   
   if (is(variant_id, "character")) {
     prev_name = names(variant_id)
@@ -46,7 +46,7 @@ CompoundVariantSet = function(cesa, variant_id) {
     stop("All elements of variant_id must be type character")
   }
   if (! all(sapply(variant_id, length) > 0)) {
-    stop("All elements of snv_id list must have nonzero length")
+    stop("All elements of sbs_id list must have nonzero length")
   }
   
   compound_names = names(variant_id)
@@ -60,7 +60,7 @@ CompoundVariantSet = function(cesa, variant_id) {
   all_ids = unlist(variant_id)
   if (length(unique(all_ids)) != length(all_ids)) {
     dup = which(duplicated(all_ids))[1]
-    stop("Some SNVs appear multiple times in the input set (e.g., ", dup, "). If you want to use overlapping compound variants, ",
+    stop("Some sbs appear multiple times in the input set (e.g., ", dup, "). If you want to use overlapping compound variants, ",
          "call create_compound_variants() multiple times to make separate variant sets.")
   }
   
@@ -69,8 +69,8 @@ CompoundVariantSet = function(cesa, variant_id) {
   variant_id = lapply(variant_id, function(x) gsub(" ", "_", x))
   
   selected = select_variants(cesa, variant_ids = all_ids, include_subvariants = T)
-  selected_snvs = selected[variant_type == "snv"]
-  setkey(selected_snvs, "variant_id")
+  selected_sbs = selected[variant_type == "sbs"]
+  setkey(selected_sbs, "variant_id")
   selected_aacs = selected[variant_type == "aac"]
   setkey(selected_aacs, "variant_id")
   setindex(selected_aacs, "variant_name")
@@ -85,11 +85,11 @@ CompoundVariantSet = function(cesa, variant_id) {
   compound_variants = list()
   for (i in 1:length(variant_id)) {
     current_ids = variant_id[[i]]
-    current_snvs = selected_snvs[current_ids, nomatch = NULL]
-    current_snv_ids = current_snvs$variant_id
-    current_coverage = mget(current_snv_ids, envir = cesa@mutations$variants_to_cov)
-    if (current_snvs[, .N] < length(current_ids)) {
-      remaining_ids = setdiff(current_ids, current_snvs$variant_id)
+    current_sbs = selected_sbs[current_ids, nomatch = NULL]
+    current_sbs_ids = current_sbs$variant_id
+    current_coverage = cesa@mutations$variants_to_cov[current_sbs_ids]
+    if (current_sbs[, .N] < length(current_ids)) {
+      remaining_ids = setdiff(current_ids, current_sbs$variant_id)
       current_aacs = selected_aacs[remaining_ids, nomatch = NULL]
       remaining_ids = setdiff(remaining_ids, current_aacs$variant_id)
       
@@ -98,19 +98,18 @@ CompoundVariantSet = function(cesa, variant_id) {
         current_aacs = rbind(current_aacs, selected_aacs[remaining_ids, nomatch = NULL, on = "variant_name"])
       }
       
-      if (current_aacs[, .N] + current_snvs[, .N] != length(current_ids)) {
+      if (current_aacs[, .N] + current_sbs[, .N] != length(current_ids)) {
         stop("Problem finding unique and complete annotations for variant ", i, " in set.")
       }
-      snv_ids_from_aac = cesa@mutations$aac_snv_key[current_aacs$variant_id, snv_id, on = 'aac_id']
-      if (any(duplicated(snv_ids_from_aac))) {
-        stop("Item ", i, " of input contains AAC variants with overlapping constituent SNVs.")
+      sbs_ids_from_aac = cesa@mutations$aac_sbs_key[current_aacs$variant_id, sbs_id, on = 'aac_id']
+      if (any(duplicated(sbs_ids_from_aac))) {
+        stop("Item ", i, " of input contains AAC variants with overlapping constituent sbs.")
       }
-      current_snv_ids = c(current_snv_ids, snv_ids_from_aac)
-      if (any(duplicated(current_snv_ids))) {
-        stop("Item ", i, " of input has overlapping SNV/AAC IDs.")
+      current_sbs_ids = c(current_sbs_ids, sbs_ids_from_aac)
+      if (any(duplicated(current_sbs_ids))) {
+        stop("Item ", i, " of input has overlapping sbs/AAC IDs.")
       }
-      current_coverage = c(current_coverage, mget(current_aacs$variant_id, 
-                                                  envir = cesa@mutations$variants_to_cov))
+      current_coverage = c(current_coverage, cesa@mutations$variants_to_cov[current_aacs$variant_id])
     }
     minimal_coverage = Reduce(intersect, current_coverage)
     maximal_coverage_size = length(Reduce(union, current_coverage))
@@ -121,13 +120,13 @@ CompoundVariantSet = function(cesa, variant_id) {
     if (min_cov_size < maximal_coverage_size) {
       some_incomplete_coverage = some_incomplete_coverage + 1
     }
-    compound_variants[[i]] = list(snv_id = current_snv_ids, coverage = minimal_coverage)
-    variant_id[[i]] = current_snv_ids
+    compound_variants[[i]] = list(sbs_id = current_sbs_ids, coverage = minimal_coverage)
+    variant_id[[i]] = current_sbs_ids
   }
   
   # first check that no variants overlap (will need to check again after breaking down AACs)
   if (any(duplicated(unlist(variant_id)))) {
-    stop("After breaking down AACs into SNVs, some compound variants share overlapping SNVs. ",
+    stop("After breaking down AACs into sbs, some compound variants share overlapping sbs. ",
          "If this is desired, use create_compound_variants() multiple times to make separate variant sets.")
   }
   
@@ -156,22 +155,22 @@ CompoundVariantSet = function(cesa, variant_id) {
   variants = lapply(compound_variants, "[[", 1)
   coverage = lapply(compound_variants, "[[", 2)
   
-  compound_snvs = data.table(compound_name = names(compound_variants), variants = variants)
-  compound_snvs = compound_snvs[, .(snv_id = unlist(variants)), by = "compound_name"]
-  compound_snvs[, shared_cov := coverage[compound_name]]
+  compound_sbs = data.table(compound_name = names(compound_variants), variants = variants)
+  compound_sbs = compound_sbs[, .(sbs_id = unlist(variants)), by = "compound_name"]
+  compound_sbs[, shared_cov := coverage[compound_name]]
   
   # add in simplified AAC/gene annotations
-  aac_anno = cesa@mutations$aac_snv_key[compound_snvs$snv_id, on = 'snv_id', nomatch = NULL]
+  aac_anno = cesa@mutations$aac_sbs_key[compound_sbs$sbs_id, on = 'sbs_id', nomatch = NULL]
   aac_anno[cesa@mutations$amino_acid_change, c("gene", "aachange") := list(gene, aachange), on = 'aac_id']
   aac_anno[, variant_name := paste0(gene, '_', aachange)]
   aac_anno = aac_anno[, .(variant_names = list(unique(variant_name)), genes = list(unique(gene)), 
-                          aachanges = list(unique(aachange)), num_genes = uniqueN(gene)), by = 'snv_id']
+                          aachanges = list(unique(aachange)), num_genes = uniqueN(gene)), by = 'sbs_id']
   aac_anno[num_genes > 1, aachanges := variant_names]
-  compound_snvs[aac_anno, c('genes', 'aachanges') := list(genes, aachanges), on = 'snv_id']
+  compound_sbs[aac_anno, c('genes', 'aachanges') := list(genes, aachanges), on = 'sbs_id']
 
-  sample_table = cesa@maf[compound_snvs$snv_id, Unique_Patient_Identifier, on = "variant_id", by = "variant_id", nomatch = NULL]
+  sample_table = cesa@maf[compound_sbs$sbs_id, Unique_Patient_Identifier, on = "variant_id", by = "variant_id", nomatch = NULL]
   sample_table[cesa@samples, covered_regions := covered_regions, on = "Unique_Patient_Identifier"]
-  sample_table[compound_snvs, c("compound_name", "shared_cov") := list(compound_name, shared_cov), on = c(variant_id = "snv_id")]
+  sample_table[compound_sbs, c("compound_name", "shared_cov") := list(compound_name, shared_cov), on = c(variant_id = "sbs_id")]
   sample_table[, compound_covered := covered_regions == "genome" | covered_regions %in% unlist(shared_cov), by = "variant_id"]
   total_freq = sample_table[, .(total_maf_freq = .N), by = "variant_id"]
   
@@ -179,16 +178,16 @@ CompoundVariantSet = function(cesa, variant_id) {
   covered_freq = covered_sample_table[, .(shared_cov_maf_freq = .N), by = "variant_id"]
   
   # handle frequencies
-  compound_snvs[covered_freq, shared_cov_maf_freq := shared_cov_maf_freq, on = c(snv_id = "variant_id")]
-  compound_snvs[is.na(shared_cov_maf_freq), shared_cov_maf_freq := 0]
-  compound_snvs[total_freq, total_maf_freq := total_maf_freq, on = c(snv_id = "variant_id")]
-  compound_snvs[is.na(total_maf_freq), total_maf_freq := 0]
+  compound_sbs[covered_freq, shared_cov_maf_freq := shared_cov_maf_freq, on = c(sbs_id = "variant_id")]
+  compound_sbs[is.na(shared_cov_maf_freq), shared_cov_maf_freq := 0]
+  compound_sbs[total_freq, total_maf_freq := total_maf_freq, on = c(sbs_id = "variant_id")]
+  compound_sbs[is.na(total_maf_freq), total_maf_freq := 0]
   
   
-  # also create a table summarizing each compound variant; also drop shared_cov from compound_snvs
-  compound_stats = compound_snvs[, .(num_snv = .N, shared_cov = shared_cov[1], shared_cov_subvariant_freq = sum(shared_cov_maf_freq),
+  # also create a table summarizing each compound variant; also drop shared_cov from compound_sbs
+  compound_stats = compound_sbs[, .(num_sbs = .N, shared_cov = shared_cov[1], shared_cov_subvariant_freq = sum(shared_cov_maf_freq),
                                     total_subvariant_freq = sum(total_maf_freq)), by = "compound_name"]
-  compound_snvs[, shared_cov := NULL]
+  compound_sbs[, shared_cov := NULL]
   
   # shared_cov_freq is the number of samples that have one or more of a compound variant, within samples have coverage
   # at all compound variant sites
@@ -202,17 +201,15 @@ CompoundVariantSet = function(cesa, variant_id) {
   samples_with = stats::setNames(samples_by_variant$samples, samples_by_variant$compound_name)
   compound_counts_total = samples_by_variant[, .(total_freq = length(samples[[1]])), by = "compound_name"]
   compound_stats = compound_stats[compound_counts_total, on = "compound_name"]
-  setcolorder(compound_stats, c("compound_name", "num_snv", "shared_cov", "shared_cov_freq", "total_freq"))
-
-  
+  setcolorder(compound_stats, c("compound_name", "num_sbs", "shared_cov", "shared_cov_freq", "total_freq"))
 
   # For simplicity, we don't want this variant set to be used after adding new samples,
   # even if there aren't new covered_regions
   num_samples = cesa@samples[, .N]
   
   setkey(compound_stats, "compound_name")
-  setkey(compound_snvs, "compound_name", physical = FALSE)
-  comp = new("CompoundVariantSet", snvs = compound_snvs, compounds = compound_stats, sample_calls = samples_with,
+  setkey(compound_sbs, "compound_name", physical = FALSE)
+  comp = new("CompoundVariantSet", sbs = compound_sbs, compounds = compound_stats, sample_calls = samples_with,
              cesa_uid = cesa@advanced$uid, cesa_num_samples = num_samples)
   return(comp[compound_names]) # Make order match input
 }
@@ -220,11 +217,11 @@ CompoundVariantSet = function(cesa, variant_id) {
 
 #' Divide batches of variants into a CompoundVariantSet
 #'
-#' A compound variant is an arbitrary group of SNVs that can be tested for selection as if
-#' it were a single variant. (Any sample with one or more of the constituent SNVs "has the
+#' A compound variant is an arbitrary group of SBS that can be tested for selection as if
+#' it were a single variant. (Any sample with one or more of the constituent SBS "has the
 #' compound variant", and the baseline rate of the variant is the rate of having at least
-#' one of the SNVs.) A CompoundVariantSet is a collection of disjoint compound variants;
-#' that is, no SNV can appear in more than one compound variant. After collecting variants
+#' one of the SBS.) A CompoundVariantSet is a collection of disjoint compound variants;
+#' that is, no SBS can appear in more than one compound variant. After collecting variants
 #' of interest into a table using select_variants()--and further subsetting or annotating
 #' the table as desired--use this function to produce a CompoundVariantSet that combines
 #' variants into distinct compound variants based on your criteria.
