@@ -166,6 +166,20 @@ test_that("Coverage arguments", {
                "can't load targeted data without covered_regions")
 })
 
+test_that('Noncoding DBS MAF annotates', {
+  dbs_maf = data.table(Unique_Patient_Identifier = c("A", "B"), 
+             Chromosome = c("8", "13"), Start_Position = c(85401532, 112091000), 
+             Reference_Allele = c("TT", "TC"), Tumor_Allele = c("CC", "AA"), 
+             variant_type = c("dbs", "dbs"), variant_id = c("8:85401532_TT>CC", "13:112091000_TC>AA"))
+  anno = annotate_variants(ces.refset.hg38, dbs_maf)
+  expected_anno = list(list(c("13:112091000_TC>AA", "8:85401532_TT>CC"),
+                            c("13", "8"), c(112091000, 85401532), c("TC", "TT"), c("AA", "CC"), 
+                            c("TRUE", "TRUE"), c("FALSE", "FALSE"), c("TC>AA", "TT>CC")), 
+                       list(character(0), character(0), character(0), character(0), character(0), character(0), 
+                            character(0), character(0), character(0), character(0), character(0), character(0), character(0), character(0)))
+  expect_equivalent(anno[c('dbs', 'dbs_codon_change')], expected_anno)
+})
+
 # Position 1:10001 has ambiguous trinuc context (first 10,000 bases of chr1 are N).
 # FYI, the same holds for hg38.
 test_that('Handle all MAF records excluded due to ambiguous trinuc context', {

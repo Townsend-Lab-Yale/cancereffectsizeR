@@ -1,6 +1,11 @@
 
-# <font style = "opacity:0">cancereffectsizeR 3.0.0</font>
+# <font style = "opacity:0">cancereffectsizeR 4.0.0</font>
 Patch releases (as in, x.y.1 &#8594; x.y.2) have minor bug fixes or small improvements that do not significantly affect the numerical output of cancer effect analyses. Minor/major updates may change some outputs due to bug fixes or methodological tweaks, as described in these version notes.<br><br>
+
+# cancereffectsizeR 3.0.0
+* Doublet base substitutions (DBS) are included in variant annotation tables.
+* select_variants() and variant_counts() are simpler and more powerful.
+* Breaking changes: Pre-3.0 analyses can only be loaded in a read-only summary format. Some table column names and function arguments have changed throughout the package, so scripts may need to be updated.
 
 # cancereffectsizeR 2.7.0
 * mutational_signature_effects() identifies the relative contributions of mutational signatures to mutation burden and cancer effect, within samples and across cohorts.

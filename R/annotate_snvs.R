@@ -212,8 +212,7 @@ annotate_sbs = function(sbs, refset) {
     # When there are no CDS hits, all the sbs are noncoding
     sbs_table = sbs[, .(chr = Chromosome, pos = Start_Position, ref = Reference_Allele, alt = Tumor_Allele,
                          genes, nearest_pid, cds, dist), by = "sbs_id"]
-    aac = aac[0] # empty the table
-    aac[, aac_id := character()]
+    aac = copy(aac_annotation_template) # empty the table
   }
   
   # Remove redundant rows (can get created when multiple AACs have shared constituent sbs).
@@ -258,7 +257,7 @@ annotate_sbs = function(sbs, refset) {
     setkey(aac_table, 'aac_id')
     setcolorder(aac_table, c("aac_id", "gene", "aachange", "strand"))
   } else {
-    aac_table = data.table()
+    aac_table = copy(aac_annotation_template)
   }
   sbs_table[, c("dist", "cds") := NULL]
   setkey(sbs_table, "sbs_id")

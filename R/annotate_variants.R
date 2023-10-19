@@ -247,10 +247,13 @@ annotate_dbs = function(dbs, refset) {
             cosmic_dbs_class := paste0(as.character(reverseComplement(DNAStringSet(ref))),
                                        '>',
                                        as.character(reverseComplement(DNAStringSet(alt))))]
-  aac_dbs_key = final_codon_change[, .(dbs_aac_id = unique(dbs_aac_id), 
-                                       multi_anno_site = uniqueN(dbs_aac_id) > 1), by = 'dbs_id']
-  
-  final_codon_change$dbs_id = NULL
+  if (final_codon_change[, .N] > 0) {
+    aac_dbs_key = final_codon_change[, .(dbs_aac_id = unique(dbs_aac_id), 
+                                         multi_anno_site = uniqueN(dbs_aac_id) > 1), by = 'dbs_id']
+    final_codon_change$dbs_id = NULL
+  } else {
+    aac_dbs_key = copy(aac_dbs_key_template)
+  }
   final_codon_change = unique(final_codon_change, by = 'dbs_aac_id')
   return(list(dbs = final_dbs, dbs_codon_change = final_codon_change, aac_dbs_key = aac_dbs_key))
 }

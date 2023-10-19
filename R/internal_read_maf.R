@@ -300,10 +300,11 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
       maf = rbind(maf, failed_liftover, fill = T)
     }
     
-    # Different loci in one genome build can get lifted to the same position in the
-    # another, due to fixes. Therefore, liftOver sometimes reveals duplicate records
-    # when two mutations in same sample get lifted to the same locus in a newer build.
-    lifted_to_same = duplicated(maf[,.(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele)])
+    # Different loci in one genome build can get lifted to the same position in the another, due to
+    # fixes. Therefore, liftOver sometimes reveals duplicate records when two mutations in same
+    # sample get lifted to the same locus in a newer build. Find these by searching for duplicates
+    # among records with non-NA fields (those with NAs already have noted problems).
+    lifted_to_same = maf[, duplicated(.SD) & complete.cases(.SD), .SDcols = c('Unique_Patient_Identifier', 'Chromosome', 'Start_Position', 'Reference_Allele')]
     maf[lifted_to_same, problem := 'duplicate_record_after_liftOver']
   } else {
     # If liftOver is not being used (which would catch problems earlier), make sure all records are in-bounds.

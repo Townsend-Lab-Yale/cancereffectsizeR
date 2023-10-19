@@ -14,7 +14,7 @@ setClass("CESAnalysis", representation(maf = "data.table", trinucleotide_mutatio
     features = c(features, "samples")
   }
   if(sum(sapply(x@mutations[c('sbs', 'dbs')], function(y) y[, .N])) > 0) {
-    features = c(features, "variants")
+    features = c(features, c("variants", "annotations"))
   }
   if(length(x@selection_results) > 0) {
     features = c(features, "selection")
@@ -72,6 +72,13 @@ setMethod("$", "CESAnalysis",
                 cached_variants = copy(x@advanced$cached_variants)
               }
               return(cached_variants)
+            } else if (name == "annotations") {
+              return(list(amino_acid_change = copy(x@mutations$amino_acid_change),
+                          sbs = copy(x@mutations$sbs), dbs = copy(x@mutations$dbs),
+                          aac_sbs_key = copy(x@mutations$aac_sbs_key),
+                          aac_dbs_key = copy(x@mutations$aac_dbs_key),
+                          variant_coverage = x@mutations$variants_to_cov
+                     ))
             } else if (name == "selection") {
               return(sbs_results(x))
             } else if (name == "epistasis") {
