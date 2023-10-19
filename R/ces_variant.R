@@ -232,17 +232,9 @@ ces_variant <- function(cesa = NULL,
     if(! "variant_id" %in% names(variants)) {
       stop("variants table is missing a variant_id column. Typically, variants is generated using select_variants().")
     }
-    nonoverlapping = attr(variants, "nonoverlapping")
-    if(is.null(nonoverlapping)) {
-      if ('variant_id' %in% names(variants)) {
-        pretty_message('Taking variants from variant_id column of input table....')
-      }
-    } else if(! identical(nonoverlapping, TRUE)) {
-      stop("Input variants table may contain overlapping variants; re-run select_variants() to get a non-overlapping table.")
-    }
     
     # re-select variants for maximum safety
-    variants = select_variants(cesa, variant_ids = variants[, variant_id])
+    variants = select_variants(cesa, variant_ids = variants$variant_id)
     
   } else if (is(variants, "CompoundVariantSet")) {
     running_compound = TRUE
@@ -254,7 +246,7 @@ ces_variant <- function(cesa = NULL,
            "Please re-generate it.")
     }
     compound_variants = variants
-    variants = select_variants(cesa, variant_ids = compound_variants@sbs$sbs_id, include_subvariants = TRUE)
+    variants = select_variants(cesa, variant_ids = compound_variants@sbs$sbs_id)
     
     # copy in compound variant names and overwrite covered_in with value of shared_cov
     variants = variants[compound_variants@sbs, compound_name := compound_name, on = c(variant_id = "sbs_id")]
@@ -270,12 +262,12 @@ ces_variant <- function(cesa = NULL,
   }
   aac_ids = variants[variant_type == "aac", variant_id]
   
-  # By noncoding, we just mean that SIs are calculated at the sbs site rather than at the AAC level,
-  # regardless of whether there's a CDS annotation.
+  # By noncoding, we mean that effects are calculated at the SBS level rather than at the AAC level,
+  # regardless of whether there exists a coding annotation at the site.
   noncoding_sbs_ids = variants[variant_type == "sbs", variant_id]
   
   if(length(aac_ids) + length(noncoding_sbs_ids) == 0) {
-    stop("No variants pass filters, so there are no SIs to calculate.", call. = F)
+    stop("No variants pass filters, so there are no effects to calculate.", call. = F)
   }
   
   # identify mutations by nearest gene(s)
@@ -531,7 +523,7 @@ ces_variant <- function(cesa = NULL,
     setcolorder(selection_results, c(setdiff(names(selection_results), 'variant_id'), 'variant_id'))
   }
   
-  # isolate SI columns for plotting functions (and maybe more, eventually)
+  # isolate selection columns for plotting functions (and maybe more, eventually)
   ll_col_num = which(colnames(selection_results) == "loglikelihood")
   si_cols = colnames(selection_results)[3:(ll_col_num - 1)]
   setattr(selection_results, "si_cols", si_cols)

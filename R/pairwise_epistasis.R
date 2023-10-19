@@ -153,9 +153,13 @@ ces_gene_epistasis = function(cesa = NULL, genes = NULL, variants = NULL,
     }
     message("Verifying input variant table....", appendLF = F)
     variants_to_use = select_variants(cesa = cesa, variant_ids = variants$variant_id)
-    if(attr(variants_to_use, 'nonoverlapping') == FALSE) {
-      msg = paste0("Input variants table contains overlapping variant records (e.g., amino acid substitutions that ",
-           "contain the same constituent sbs). To avoid confusion, ",
+    
+    # Check if SBS are shared between AAC
+    aac_to_check = variants_to_use[variant_type == 'aac', variant_id]
+    nonoverlapping = cesa@mutations$aac_sbs_key[aac_to_check, .(is_unique = uniqueN(aac_id) == 1), on = 'aac_id', by = 'sbs_id'][, all(is_unique)]
+    if(! nonoverlapping) {
+      msg = paste0("The input variants table contains overlapping variants (typically, amino acid substitutions with different protein IDs that ",
+           "are caused by the same SBS variants). To avoid confusion, ",
            "all variants in the inference should be nonoverlapping.")
       stop(pretty_message(msg, emit = F))
     }

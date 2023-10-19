@@ -46,7 +46,7 @@ CompoundVariantSet = function(cesa, variant_id) {
     stop("All elements of variant_id must be type character")
   }
   if (! all(sapply(variant_id, length) > 0)) {
-    stop("All elements of sbs_id list must have nonzero length")
+    stop("All elements of variant_id list must have nonzero length")
   }
   
   compound_names = names(variant_id)
@@ -68,7 +68,9 @@ CompoundVariantSet = function(cesa, variant_id) {
   # replace spaces with underscores (mainly to allow things like KRAS G12C -> KRAS_G12C)
   variant_id = lapply(variant_id, function(x) gsub(" ", "_", x))
   
-  selected = select_variants(cesa, variant_ids = all_ids, include_subvariants = T)
+  # Want to get all IDs, plus SBS corresponding to selected AACs
+  all_ids = unique(c(all_ids, cesa@mutations$aac_sbs_key[all_ids, sbs_id, on = 'aac_id', nomatch = NULL]))
+  selected = select_variants(cesa, variant_ids = all_ids)
   selected_sbs = selected[variant_type == "sbs"]
   setkey(selected_sbs, "variant_id")
   selected_aacs = selected[variant_type == "aac"]

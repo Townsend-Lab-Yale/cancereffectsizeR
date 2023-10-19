@@ -36,9 +36,26 @@ test_that("load_maf and variant annotation", {
   tiny = add_variants(target_cesa = tiny, sbs_id = "12:132824581_A>C")
   
   
-  selected = select_variants(tiny, variant_ids  = "12:132824581_A>C", genes = "TAF1C")
+  selected = select_variants(tiny, variant_ids  = "12:132824581_A>C")
+  expect_equal(selected[, .N], 1)
+  expect_equal(selected$gene, 'GOLGA3')
+  
+  # Nearest gene is GOLGA3, but it's not in GOLGA3
+  expect_null(select_variants(tiny, genes = 'GOLGA3', variant_ids = "12:132824581_A>C"))
+  
+  # 1:222654794_G>C is an essential splice variant of MIA3, so it should get captured.
+  expect_equal(select_variants(tiny, genes = 'MIA3', variant_ids = '1:222654794_G>C')[, .N], 1)
+  
+  # All variant_ids specified should be returned
+  expect_equal(select_variants(tiny, variant_ids = c('HAUS7_A110A_ENSP00000359230.6', 'X:153462634_C>T', 
+                                        'X:153462634_C>G', 'X:153462634_C>A'))[, .N], 4)
+  
+  # Get just the SBS at the site
+  three_sbs = select_variants(tiny, variant_position_table = select_variants(tiny, gr = GRanges('X:153462634-153462634')),
+                  type = 'sbs')
+  expect_equal(three_sbs$variant_type, c('sbs', 'sbs', 'sbs'))
+  
   expect_equal(tiny@mutations$variants_to_cov$`12:132824581_A>C`, character())
-  expect_equal(selected[, .N], 2)
   selected = select_variants(tiny, min_freq = 1)
   expect_equal(sum(selected$maf_prevalence), 266) 
   expect_equal(variant_counts(tiny, "12:132824581_A>C")$N, 0)

@@ -1,19 +1,17 @@
 #' Select and filter variants
 #'
 #' This function helps you find and view variant data from your CESAnalysis's MAF data and
-#' mutation annotation tables. By default, almost all amino-acid-change mutations and
+#' mutation annotation tables. By default, almost all amino-acid-changing mutations and
 #' noncoding SBS are returned. You can apply a series of filters to restrict output to
-#' certain genes or genomic regions or require a minimum variant frequency in MAF data.
-#' You can also specify some variants to include in output regardless of filters with
-#' \code{variant_ids}. Special behavior: If \code{variant_ids} is used by
-#' itself, then only those specified variants will be returned.
+#' certain genes or genomic regions, require a minimum variant frequency in MAF data, and/or
+#' specify exact \code{variant_ids} to returns.
 #' 
-#' Only variants that are present in the CESAnalysis's annotation tables can be returned,
-#' which by default are those present in the MAF data. To select variants absent from MAF
-#' data, you must first call add_variants() to add them to the CESAnalysis. Note that
-#' while intergenic SBS have their nearest genes annotated in the SBS tables, these
-#' variants will not be captured by gene-based selection with this function, since they're
-#' not actually in any gene.
+#' Only variants that are annotated in the CESAnalysis can be returned. To view more annotations,
+#' such as for variants absent from the MAF data, you must first call add_variants() to add them to
+#' the CESAnalysis.
+#' 
+#' Note that while intergenic SBS have their nearest genes annotated in the SBS
+#' tables, these variants will not be captured by the genes filter of this function.
 #' 
 #' Definitions of some less self-explanatory columns:
 #' \itemize{
@@ -45,10 +43,9 @@
 #' @param min_freq Filter out variants with MAF frequency below threshold (default 0).
 #'   Note that variants that are not in the annotation tables will never be returned. Use
 #'   \code{add_variants()} to include variants absent from MAF data in your CESAnalysis.
-#' @param variant_ids Vector of variant IDs to include in output regardless of
-#'   filtering options. You can use CES-style AAC and SBS IDs or variant names like 
-#'   "KRAS G12C". If this argument is used by itself (without any filtering arguments),
-#'   then only these specified variants will be returned.
+#' @param variant_ids Vector of variant IDs to include in output. Exactly the specified variants
+#'   will be returned. Cannot be combined with other filtering arguments.
+#' @param type Vector of variant types to include, such as "sbs" or "aac".
 #' @param gr Filter out any variants not within input GRanges +/- \code{padding} bases.
 #' @param variant_position_table Filter out any variants that don't intersect the
 #'   positions given in chr/start/end of this table (1-based closed coordinates).
@@ -58,19 +55,10 @@
 #'   span splice sites would capture all the intronic sites.)
 #' @param padding add +/- this many bases to every range specified in \code{gr} or
 #'   \code{variant_position_table} (stopping at chromosome ends, naturally).
-#' @param include_subvariants Some mutations "contain" other mutations. For example, in
-#'   cancereffectsizeR's ces.refset.hg19, the amino acid substitution KRAS_Q61H can be induced by
-#'   two distinct SBS: 12:25227341_T>G and 12:25227341_T>A. When include_subvariants = F (the
-#'   default), and genes = "KRAS", output will be returned for KRAS_Q61H but not for the two SBS.
-#'   Set to true, and all three variants will be included in output, assuming they don't get
-#'   filtered out by other other options, like min_freq. If you set this to TRUE, you can't directly
-#'   plug the output table into selection functions. However, you can pick a non-overlapping set of
-#'   variant IDs from the output table and re-run \code{select_variants()} to put those variants
-#'   into a new table for selection functions.
 #' @return A data.table with info on selected variants (see details)
 #' @export
-select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL, gr = NULL, variant_position_table = NULL, 
-                            include_subvariants = F, padding = 0) {
+select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL, type = NULL, gr = NULL, variant_position_table = NULL, 
+                            padding = 0) {
   if(! is(cesa, "CESAnalysis")) {
     stop("cesa should be a CESAnalysis object")
   }
@@ -84,29 +72,35 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   if(! is.numeric(min_freq) || length(min_freq) > 1 || min_freq - as.integer(min_freq) != 0) {
     stop("min_freq should be 1-length integer at least zero")
   }
-  if(! is.null(genes) & ! is(genes, "character")) {
+  if(! is.null(genes) && ! is(genes, "character")) {
     stop("genes should be character vector of genes to include or NULL (for no gene filtering)")
   }
   
-  if(! is.null(variant_ids) & ! is(variant_ids, "character")) {
+  if(! is.null(variant_ids) && ! is(variant_ids, "character")) {
     stop("variant_ids should be character vector of variant IDs to include, or left NULL.")
   }
   
-  if(! is.logical(include_subvariants) | length(include_subvariants) != 1) {
-    stop("include_subvariants should be T/F")
+  if(! is.null(type)) {
+    if(! is.character(type)) {
+      stop('type must be a character vector of variant types.')
+    }
+    type = unique(tolower(type))
+    if(length(setdiff(type, c('sbs', 'aac'))) > 0) {
+      msg = "Currently, annotations are only available for SBS (single-base substitution) and AAC (amino-acid-change) variant types."
+      stop(pretty_message(msg, emit = F))
+    }
+  } else {
+    type = c('sbs', 'aac')
   }
   
+  # Start with all variants, then apply filters
   
-  # We will do variant prioritization unless we're including all variant records in output
-  remove_secondary_aac = ! include_subvariants
-
-
-  # collect all variants, unless just variant_ids specified
-  if (is.null(gr) && is.null(variant_position_table) && is.null(genes) && min_freq == 0 && length(variant_ids) > 0) {
-    selected_aac_ids = character()
-    selected_sbs_ids = character()
-  } else {
+  selected_aac_ids = character()
+  if('aac' %in% type) {
     selected_aac_ids = cesa@mutations$amino_acid_change$aac_id
+  }
+  selected_sbs_ids = character()
+  if('sbs' %in% type) {
     selected_sbs_ids = cesa@mutations$sbs$sbs_id
   }
   
@@ -135,10 +129,9 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   
   # final_gr may derive from variant_position_table or gr
   if(! is.null(final_gr)) {
-    genome_info = GenomeInfoDb::seqinfo(bsg)
     mutations_gr = GenomicRanges::makeGRangesFromDataFrame(cesa@mutations$sbs, seqnames.field = "chr", start.field = "pos", 
-                                                           end.field = "pos", seqinfo = genome_info)
-    captured = cesa@mutations$sbs[IRanges::overlapsAny(mutations_gr, final_gr, type = "within")]
+                                                           end.field = "pos", seqinfo = GenomeInfoDb::seqinfo(final_gr))
+    captured = cesa@mutations$sbs[IRanges::overlapsAny(query = mutations_gr, subject = final_gr, type = "within")]
     if (captured[, .N] == 0) {
       stop("No mutations captured by input genomic positions (gr/variant_position_table).", call. = F)
     }
@@ -166,8 +159,7 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
     selected_sbs_ids = intersect(selected_sbs_ids, sbs_in_genes)
   }
   
-  # Include variants by ID
-  passlisted_ids = character()
+  # Filter by variant_id (in other words, discard all other variants)
   if (length(variant_ids) > 0) {
     variant_ids = unique(variant_ids)
     matching_sbs_ids = cesa@mutations$sbs[variant_ids, sbs_id, nomatch = NULL]
@@ -192,7 +184,7 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
         msg = paste0("Shorthand amino-acid-change names (styled like \"KRAS_G12C\") were recognized and matched ",
                      "with cancereffectsizeR-style aac_ids. However, some of your variant names matched more than ",
                      "one aac_id (i.e., the same amino acid change is possible on multiple protein isoforms, and both are present ",
-                     "in this analysis's variant annotations.) When the underlying sbs are the same, only one AAC will be returned ",
+                     "in this analysis's variant annotations.) When the underlying SBS are the same, only one AAC will be returned ",
                      "Otherwise, all matching variants will be returned. ",
                      "(There may be additional matching variants with MAF frequency = 0 that are not ",
                      "annotated in this analysis; these will not be returned.)")
@@ -203,26 +195,22 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
         pretty_message(msg)
       }
     }
-    # under include_subvariants, all sbs of passlisted AACs get included
-    if (include_subvariants) {
-      matching_sbs_ids = union(matching_sbs_ids, cesa@mutations$aac_sbs_key[matching_aac_ids, sbs_id, on = 'aac_id'])
-    }
-    
-    selected_sbs_ids = union(selected_sbs_ids, matching_sbs_ids)
-    selected_aac_ids = union(selected_aac_ids, matching_aac_ids)
-    passlisted_ids = c(matching_sbs_ids, matching_aac_ids)
+    selected_sbs_ids = intersect(selected_sbs_ids, matching_sbs_ids)
+    selected_aac_ids = intersect(selected_aac_ids, matching_aac_ids)
   }
   
   
-  # Constituent sbs of AACs that get tossed in de-overlapping need to be
+  
+  # Constituent SBS of AACs that get tossed in de-overlapping need to be
   # saved if they pass filters in their own right and don't overlap the AACs kept. Keep
-  # track here of sbs that need to appear in final output. Note if any of these don't
+  # track here of SBS that need to appear in final output. Note if any of these don't
   # pass frequency filter, they shouldn't be saved, and they get removed below.
   sbs_to_recover = selected_sbs_ids
   
-  # Remove variants contained in other variants
+  # Remove variants contained in other variants, unless variants were explicitly specified by variant_id
   aac_sbs_key = cesa@mutations$aac_sbs_key[selected_aac_ids, on = 'aac_id']
-  if (include_subvariants == FALSE) {
+  
+  if(is.null(variant_ids)) {
     selected_sbs_ids = setdiff(selected_sbs_ids, aac_sbs_key$sbs_id)
   }
   
@@ -248,19 +236,15 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
                                 variant_type = c(rep('aac', selected_aac[, .N]), rep('sbs', length(selected_sbs_ids))),
                                 maf_prevalence = 0, samples_covering = 0)
   }
-
-  selected_sbs[counts_and_cov, c("maf_prevalence", "samples_covering") := list(maf_prevalence, samples_covering), on = c(sbs_id = 'variant_id')]
-  selected_sbs = selected_sbs[maf_prevalence >= min_freq | sbs_id %in% passlisted_ids]
-  selected_aac[counts_and_cov, c("maf_prevalence", "samples_covering") := list(maf_prevalence, samples_covering), on = c(aac_id = 'variant_id')]
-  selected_aac = selected_aac[maf_prevalence >= min_freq | aac_id %in% passlisted_ids]
   
-  if (any(selected_sbs$maf_prevalence < min_freq) || any(selected_aac$maf_prevalence < min_freq)) {
-    pretty_message("Note: Some of your specifically-requested variants have MAF prevalence < min_freq. They will still appear in output.")
-  }
+  selected_sbs[counts_and_cov, c("maf_prevalence", "samples_covering") := list(maf_prevalence, samples_covering), on = c(sbs_id = 'variant_id')]
+  selected_sbs = selected_sbs[maf_prevalence >= min_freq]
+  selected_aac[counts_and_cov, c("maf_prevalence", "samples_covering") := list(maf_prevalence, samples_covering), on = c(aac_id = 'variant_id')]
+  selected_aac = selected_aac[maf_prevalence >= min_freq]
   
   # Annotate sbs table and prepare to merge with AACs
   selected_sbs[, variant_type := "sbs"]
-  selected_sbs[, variant_name := sbs_id] # sbs IDs are already short and uniquely identifying
+  selected_sbs[, variant_name := sbs_id] # SBS IDs are already short and uniquely identifying
   selected_sbs[, strand := NA_integer_] # because AAC table is +1/-1
   selected_sbs[, c("start", "end") := .(pos, pos)]
   selected_sbs[, pos := NULL]
@@ -284,83 +268,67 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   selected_aac[, center_nt_pos := nt2_pos]
   selected_aac[, c("nt1_pos", "nt2_pos", "nt3_pos") := NULL]
   
-  # We call an AAC a multi-anno site if any of its sbs has multiple annotations.
+  # We call an AAC a multi-anno site if any of its SBS has multiple annotations.
   multi_anno_aac = cesa@mutations$aac_sbs_key[, any(multi_anno_site), by = 'aac_id']
   selected_aac[multi_anno_aac, multi_anno_site := V1, on = 'aac_id']
   setnames(selected_aac, "aac_id", "variant_id")
   
-  # Get rid of unneeded list column when present
-  if ('constituent_sbs' %in% names(selected_aac)) {
-    selected_aac$constituent_sbs = NULL
-  }
-   
-  
-  # Combine sbs and AAC tables
+  # Combine SBS and AAC tables
   combined = rbindlist(list(selected_aac, selected_sbs), use.names = T, fill = T)
   if(combined[, .N] == 0) {
     message("No variants passed selection criteria!")
     return(NULL)
   }
   
-  # handle overlapping  mutations using tiebreakers explained below
-  if (remove_secondary_aac) {
-    multi_hits = combined[variant_type == "aac" & multi_anno_site == TRUE]
-    num_to_check = multi_hits[, .N]
-    if (num_to_check > 0) {
-      # for tie-breaking, count how many mutations are in each gene found in these multi_hit records
-      # will need to produce these counts from scratch since some of the variants may not be in this select_variants() run
-      aac_sbs_key = cesa@mutations$aac_sbs_key[multi_anno_site == TRUE] # only multi-anno sites need to be counted
-      aac_sbs_key[cesa@mutations$amino_acid_change, pid := pid, on = 'aac_id']
-      aac_sbs_key = aac_sbs_key[unique(multi_hits$pid), on = 'pid']
-      
-      if (cesa@maf[, .N] > 0) {
-        maf_counts = cesa@maf[variant_type == 'sbs', .N, by = 'variant_id']
-        aac_sbs_key[maf_counts, sbs_count := N, on = c(sbs_id = 'variant_id')]
-      } else {
-        aac_sbs_key[, sbs_count := 0]
-      }
-      aac_sbs_key[is.na(sbs_count), sbs_count := 0]
-      maf_pid_counts = aac_sbs_key[, .(pid_freq = sum(sbs_count)), keyby = "pid"]
-      multi_hits[maf_pid_counts, pid_freq := pid_freq, on = 'pid']
-      multi_hits = merge.data.table(multi_hits, cesa@mutations$aac_sbs_key, by.x = 'variant_id', by.y = 'aac_id')
-      
-      # Any set of overlapping AACs has a single AAC chosen based on the following criteria:
-      # MAF frequency (usually equal among all), essential splice status, premature stop codon, nonsilent status,
-      # which protein has the most overall mutations in MAF data (will usually favor longer transcripts),
-      # and finally just alphabetical on variant ID
-      multi_hits[, is_premature := aa_alt == "STOP" & aa_ref != "STOP"]
-      multi_hits = multi_hits[order(-maf_prevalence, -essential_splice, -is_premature, aa_ref == aa_alt, -pid_freq, variant_id)]
-      multi_hits[, is_premature := NULL]
-      multi_hits[, sbs_id_dup := duplicated(sbs_id)]
-      
-      chosen_aac = multi_hits[, .(to_use = ! any(sbs_id_dup)), by = 'variant_id'][to_use == T, variant_id]
-      
-      # remove secondary (non-chosen) AACs, but save all sbs IDs and re-select those passing filters
-      not_chosen_aac = setdiff(multi_hits$variant_id, chosen_aac)
-      
-      combined = combined[! not_chosen_aac, on = 'variant_id']
-      
-      sbs_in_chosen_aac = multi_hits[chosen_aac, sbs_id, on = 'variant_id'] # logically, no need for calling unique(sbs_id)
-      sbs_in_not_chosen_aac = setdiff(multi_hits$sbs_id, sbs_in_chosen_aac)
-      
-      # We need to recover sbs that were in AACs and that passed user's filters,
-      # but that are now no longer constituent sbs after de-overlapping.
-      sbs_to_reselect = intersect(sbs_to_recover, sbs_in_not_chosen_aac)
-      if (length(sbs_to_reselect) > 0) {
-        reselected = select_variants(cesa, variant_ids = sbs_to_reselect)[maf_prevalence >= min_freq]
-        combined = rbind(combined, reselected)
-      }
+  # Handle overlapping  mutations using tiebreakers explained below.
+  # Exception: Variants specified by variant_id always get included.
+  multi_hits = combined[variant_type == "aac" & multi_anno_site == TRUE]
+  num_to_check = multi_hits[, .N]
+  if (num_to_check > 0 && is.null(variant_ids)) {
+    # for tie-breaking, count how many mutations are in each gene found in these multi_hit records
+    # will need to produce these counts from scratch since some of the variants may not be in this select_variants() run
+    aac_sbs_key = cesa@mutations$aac_sbs_key[multi_anno_site == TRUE] # only multi-anno sites need to be counted
+    aac_sbs_key[cesa@mutations$amino_acid_change, pid := pid, on = 'aac_id']
+    aac_sbs_key = aac_sbs_key[unique(multi_hits$pid), on = 'pid']
+    
+    if (cesa@maf[, .N] > 0) {
+      maf_counts = cesa@maf[variant_type == 'sbs', .N, by = 'variant_id']
+      aac_sbs_key[maf_counts, sbs_count := N, on = c(sbs_id = 'variant_id')]
+    } else {
+      aac_sbs_key[, sbs_count := 0]
+    }
+    aac_sbs_key[is.na(sbs_count), sbs_count := 0]
+    maf_pid_counts = aac_sbs_key[, .(pid_freq = sum(sbs_count)), keyby = "pid"]
+    multi_hits[maf_pid_counts, pid_freq := pid_freq, on = 'pid']
+    multi_hits = merge.data.table(multi_hits, cesa@mutations$aac_sbs_key, by.x = 'variant_id', by.y = 'aac_id')
+    
+    # Any set of overlapping AACs has a single AAC chosen based on the following criteria:
+    # MAF frequency (usually equal among all), essential splice status, premature stop codon, nonsilent status,
+    # which protein has the most overall mutations in MAF data (will usually favor longer transcripts),
+    # and finally just alphabetical on variant ID
+    multi_hits[, is_premature := aa_alt == "STOP" & aa_ref != "STOP"]
+    multi_hits = multi_hits[order(-maf_prevalence, -essential_splice, -is_premature, aa_ref == aa_alt, -pid_freq, variant_id)]
+    multi_hits[, is_premature := NULL]
+    multi_hits[, sbs_id_dup := duplicated(sbs_id)]
+    
+    chosen_aac = multi_hits[, .(to_use = ! any(sbs_id_dup)), by = 'variant_id'][to_use == T, variant_id]
+    
+    # remove secondary (non-chosen) AACs, but save all sbs IDs and re-select those passing filters
+    not_chosen_aac = setdiff(multi_hits$variant_id, chosen_aac)
+    
+    combined = combined[! not_chosen_aac, on = 'variant_id']
+    
+    sbs_in_chosen_aac = multi_hits[chosen_aac, sbs_id, on = 'variant_id'] # logically, no need for calling unique(sbs_id)
+    sbs_in_not_chosen_aac = setdiff(multi_hits$sbs_id, sbs_in_chosen_aac)
+    
+    # We need to recover sbs that were in AACs and that passed user's filters,
+    # but that are now no longer constituent sbs after de-overlapping.
+    sbs_to_reselect = intersect(sbs_to_recover, sbs_in_not_chosen_aac)
+    if (length(sbs_to_reselect) > 0) {
+      reselected = select_variants(cesa, variant_ids = sbs_to_reselect)
+      combined = rbind(combined, reselected)
     }
   }
-  
-  # Output table will be eligible for functions that require non-overlapping variants (e.g., ces_variant)
-  # presume overlapping when remove_secondary_aac == FALSE
-  nonoverlapping = remove_secondary_aac
-  if (! nonoverlapping) {
-    pretty_message(paste0("FYI, your output has overlapping variants (as in, it lists both an amino-acid-changing mutation and a constituent SBS as separate records). ",
-                     "That means the output can't be fed into functions like ces_variant() that assume non-overlapping variants."))
-  }
-
   # order output in chr/pos order
   setkey(combined, "chr")
   combined = setDT(combined[order(start)][BSgenome::seqnames(bsg), nomatch = NULL, on = "chr"])
@@ -370,7 +338,6 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
                           "maf_prevalence", "samples_covering"))
   
   setattr(combined, "cesa_id", cesa@advanced$uid)
-  setattr(combined, "nonoverlapping", nonoverlapping)
   setkey(combined, 'variant_id', physical = F)
   return(combined[]) # brackets force the output to print when unassigned (should automatically, but this is a known data.table issue)
 }

@@ -9,9 +9,9 @@ select_variants(
   genes = NULL,
   min_freq = 0,
   variant_ids = NULL,
+  type = NULL,
   gr = NULL,
   variant_position_table = NULL,
-  include_subvariants = F,
   padding = 0
 )
 }
@@ -24,10 +24,10 @@ select_variants(
 Note that variants that are not in the annotation tables will never be returned. Use
 \code{add_variants()} to include variants absent from MAF data in your CESAnalysis.}
 
-\item{variant_ids}{Vector of variant IDs to include in output regardless of
-filtering options. You can use CES-style AAC and SBS IDs or variant names like 
-"KRAS G12C". If this argument is used by itself (without any filtering arguments),
-then only these specified variants will be returned.}
+\item{variant_ids}{Vector of variant IDs to include in output. Exactly the specified variants
+will be returned. Cannot be combined with other filtering arguments.}
+
+\item{type}{Vector of variant types to include, such as "sbs" or "aac".}
 
 \item{gr}{Filter out any variants not within input GRanges +/- \code{padding} bases.}
 
@@ -38,16 +38,6 @@ with \code{padding}. (Gritty detail: Amino acid substitutions get special handli
 precise positions in start, end, and center_nt_pos are used. Otherwise, coding changes that
 span splice sites would capture all the intronic sites.)}
 
-\item{include_subvariants}{Some mutations "contain" other mutations. For example, in
-cancereffectsizeR's ces.refset.hg19, the amino acid substitution KRAS_Q61H can be induced by
-two distinct SBS: 12:25227341_T>G and 12:25227341_T>A. When include_subvariants = F (the
-default), and genes = "KRAS", output will be returned for KRAS_Q61H but not for the two SBS.
-Set to true, and all three variants will be included in output, assuming they don't get
-filtered out by other other options, like min_freq. If you set this to TRUE, you can't directly
-plug the output table into selection functions. However, you can pick a non-overlapping set of
-variant IDs from the output table and re-run \code{select_variants()} to put those variants
-into a new table for selection functions.}
-
 \item{padding}{add +/- this many bases to every range specified in \code{gr} or
 \code{variant_position_table} (stopping at chromosome ends, naturally).}
 }
@@ -56,20 +46,18 @@ A data.table with info on selected variants (see details)
 }
 \description{
 This function helps you find and view variant data from your CESAnalysis's MAF data and
-mutation annotation tables. By default, almost all amino-acid-change mutations and
+mutation annotation tables. By default, almost all amino-acid-changing mutations and
 noncoding SBS are returned. You can apply a series of filters to restrict output to
-certain genes or genomic regions or require a minimum variant frequency in MAF data.
-You can also specify some variants to include in output regardless of filters with
-\code{variant_ids}. Special behavior: If \code{variant_ids} is used by
-itself, then only those specified variants will be returned.
+certain genes or genomic regions, require a minimum variant frequency in MAF data, and/or
+specify exact \code{variant_ids} to returns.
 }
 \details{
-Only variants that are present in the CESAnalysis's annotation tables can be returned,
-which by default are those present in the MAF data. To select variants absent from MAF
-data, you must first call add_variants() to add them to the CESAnalysis. Note that
-while intergenic SBS have their nearest genes annotated in the SBS tables, these
-variants will not be captured by gene-based selection with this function, since they're
-not actually in any gene.
+Only variants that are annotated in the CESAnalysis can be returned. To view more annotations,
+such as for variants absent from the MAF data, you must first call add_variants() to add them to
+the CESAnalysis.
+
+Note that while intergenic SBS have their nearest genes annotated in the SBS
+tables, these variants will not be captured by the genes filter of this function.
 
 Definitions of some less self-explanatory columns:
 \itemize{
