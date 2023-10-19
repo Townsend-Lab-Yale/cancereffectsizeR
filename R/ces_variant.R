@@ -329,7 +329,11 @@ ces_variant <- function(cesa = NULL,
     }
     i = i+1
     message(sprintf("Preparing to calculate cancer effects (batch %i of %i)...", i, num_coverage_groups))
-    covered_samples = c(samples[coverage_group, Unique_Patient_Identifier, nomatch = NULL], genome_wide_cov_samples)
+    if(is.null(coverage_group)) {
+      covered_samples = genome_wide_cov_samples
+    } else {
+      covered_samples = c(samples[coverage_group, Unique_Patient_Identifier, nomatch = NULL], genome_wide_cov_samples)
+    }
     
     if(length(covered_samples) == 0) {
       warning("Skipped batch ", i, " because no samples had coverage at the variant sites in the batch.")
