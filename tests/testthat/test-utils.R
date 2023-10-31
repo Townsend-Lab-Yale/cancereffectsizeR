@@ -36,6 +36,20 @@ test_that('identify_maf_variants marks illegal on complex variant with unbalance
           expect_equal(preload_maf(bad_complex, refset = 'ces.refset.hg19')[, problem], 'invalid_record')
 })
 
+test_that('identify_maf_variants does not mangle repeated complex identifications,', 
+          {
+            input_maf = data.table(Unique_Patient_Identifier = c("patient", "patient", "patient"), 
+                                   Chromosome = c("chr8", "chr8", "chr8"), Start_Position = 96287061:96287063, 
+                                   Reference_Allele = c("T", "C", "T"), Tumor_Allele = c("C", "A", "C"))
+            complex_maf = preload_maf(maf = input_maf, refset = "ces.refset.hg38")
+            expect_equivalent(complex_maf[is.na(problem), unlist(.(Unique_Patient_Identifier, Chromosome, Start_Position, 
+                                                       Reference_Allele, Tumor_Allele, variant_id))],
+                              c("patient", "8", "96287061", "T,(+1)C,(+2)T", "C,A,C", 
+                                "8:96287061_T>C,8:96287062_C>A,8:96287063_T>C"))
+            reidentified = identify_maf_variants(copy(complex_maf))
+            expect_equivalent(reidentified, complex_maf)
+          })
+
 
 
 

@@ -239,7 +239,7 @@ preload_maf = function(maf = NULL, refset = NULL, coverage_intervals_to_check = 
         
         maf[mnv, mnv_group := mnv_group, on = c("Unique_Patient_Identifier", "Chromosome", "Start_Position")]
         maf[! is.na(mnv_group), problem := 'merged_with_nearby_variant']
-        mnv[, increment := c(0, diff(Start_Position)), by = 'mnv_group']
+        mnv[, increment := Start_Position - Start_Position[1], by = 'mnv_group']
         mnv[increment == 0, to_add := '']
         mnv[increment > 0, to_add := paste0('(+', increment, ')')]
         mnv[, Reference_Allele := paste0(to_add, Reference_Allele)]
