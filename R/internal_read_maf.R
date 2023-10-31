@@ -354,6 +354,12 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
 #' @return input table with variant_type and variant_id columns
 #' @keywords internal
 identify_maf_variants = function(maf) {
+  has_upi = TRUE
+  if(! 'Unique_Patient_Identifier' %in% names(maf)) {
+    # insert placeholder to be deleted at end of function
+    maf$Unique_Patient_Identifier = 'patient'
+    has_upi = FALSE
+  }
   
   suppressWarnings(maf[, c("variant_id", "variant_type") := NULL])
   
@@ -409,8 +415,8 @@ identify_maf_variants = function(maf) {
       tmp = tmp[Reference_Allele %like% ',', 
                 .(Chromosome,
                   Start_Position,
-                  Reference_Allele = gsub('.*?,', '', Reference_Allele),
-                  Tumor_Allele = gsub('.*?,', '', Tumor_Allele),
+                  Reference_Allele = sub('.*?,', '', Reference_Allele),
+                  Tumor_Allele = sub('.*?,', '', Tumor_Allele),
                   Unique_Patient_Identifier, rn)]
     }
     
@@ -432,6 +438,12 @@ identify_maf_variants = function(maf) {
   
   maf[, is_complex := NULL]
   maf[, start_char := NULL]
+  setcolorder(maf, c("Unique_Patient_Identifier", "Chromosome", "Start_Position", 
+              "Reference_Allele", "Tumor_Allele", "variant_type", "variant_id"))
+  if(! has_upi) {
+    # Remove placeholder
+    maf$Unique_Patient_Identifier = NULL
+  }
   return(maf)
 }
 
