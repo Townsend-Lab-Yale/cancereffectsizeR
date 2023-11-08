@@ -36,7 +36,6 @@ main_effects_ak = fread(get_test_file("default_model_effects_brca_hg38.txt"))
 test_that("ces_variant default effects", {
   cesa = ces_variant(cesa, variants = select_variants(cesa, genes = test_genes), run_name = 'main_test', cores = 1)
   main_effects = copy(cesa@selection_results[[1]])
-  expect_equal(attr(main_effects, "si_cols"), "selection_intensity")
   expect_equal(main_effects[order(variant_id)], main_effects_ak[order(variant_id)], check.attributes = F, tolerance = 1e-4)
 })
 

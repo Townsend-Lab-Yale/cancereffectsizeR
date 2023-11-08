@@ -521,16 +521,19 @@ ces_variant <- function(cesa = NULL,
     setattr(selection_results, "is_compound", TRUE)
     setcolorder(selection_results, c("variant_name", "variant_type"))
   } else {
-    selection_results[variants, c("variant_type", "variant_name") := list(variant_type, variant_name), on = "variant_id"]
+    # Fill in top-priority gene for variants that are in coding regions or essential splice (or within 1 bp)
+    # Other variants will get NA gene.
+    selection_results[variants, c("variant_type", "variant_name", "gene", "intergenic") := 
+                        list(variant_type, variant_name, gene, intergenic), on = "variant_id"]
+    selection_results[intergenic == T, gene := NA]
+    selection_results$intergenic = NULL
     setattr(selection_results, "is_compound", FALSE)
-    setcolorder(selection_results, c("variant_name", "variant_type"))
+    setcolorder(selection_results, c("variant_name", "variant_type", "gene"))
     setcolorder(selection_results, c(setdiff(names(selection_results), 'variant_id'), 'variant_id'))
   }
   
   # isolate SI columns for plotting functions (and maybe more, eventually)
   ll_col_num = which(colnames(selection_results) == "loglikelihood")
-  si_cols = colnames(selection_results)[3:(ll_col_num - 1)]
-  setattr(selection_results, "si_cols", si_cols)
   
   curr_results = list(selection_results)
   names(curr_results) = run_name
