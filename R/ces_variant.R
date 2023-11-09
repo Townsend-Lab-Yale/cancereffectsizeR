@@ -4,6 +4,16 @@
 #' default model, a variant is assumed to have a consistent scaled selection coefficient (cancer
 #' effect) across all included samples.
 #' 
+#' Definitions of the sample count columns in the effects output:
+#' \itemize{
+#'   \item included_with_variant: Number of samples that have the variant and were included in the inference.
+#'   \item included_total: Number of samples that have coverage at the site and were included in the inference.
+#'   \item held_out: Samples that have coverage at the site, but were held out of the inference due to \code{hold_out_same_gene_samples = TRUE}.
+#'   \item uncovered: Samples that were not included in the inference because their sequencing did not cover the variant site.
+#'  }
+#' Note that if a table of samples to include in the inference is specified with \code{samples}, any
+#' CESAnalysis samples not present in the table will not be included in any of the above accounts.
+#' 
 #' It's possible to pass in your own selection model. You'll need to create a "function factory"
 #' that, for any variant, produces a likelihood function that can be evaluated on the data. The
 #' first two arguments must be \code{rates_tumors_with} and \code{rates_tumors_without}, which give the baseline
@@ -334,6 +344,7 @@ ces_variant <- function(cesa = NULL,
     } else {
       covered_samples = c(samples[coverage_group, Unique_Patient_Identifier, nomatch = NULL], genome_wide_cov_samples)
     }
+    variants[curr_variants$variant_id, num_covered_and_in_samples := length(covered_samples), on = 'variant_id']
     
     if(length(covered_samples) == 0) {
       warning("Skipped batch ", i, " because no samples had coverage at the variant sites in the batch.")
@@ -449,18 +460,13 @@ ces_variant <- function(cesa = NULL,
                            as.list(selection_intensity),
                            list(loglikelihood = loglikelihood))
         
-        # need a catch here for when user supplies custom model,
-        # otherwise it breaks when checking model against a character string. 
-        # Right now, behavior is that if user supplies sample_index as NULL
-        # the selection inference is treated as not stage-specific 
-        if(is.character(model) | is.null(lik_args$sample_index)){
+        if(is.character(model) || is.null(lik_args$sample_index)){
           
           if(is.character(model)){
             if (model == 'basic') {
               # Record counts of total samples included in inference and included samples with the variant.
               # This may vary from the naive output of variant_counts() due to issues of sample coverage and 
               # (by default) the use of hold_out_same_gene_samples = TRUE.
-              
               
               num_samples_with = length(tumors_with_variant)
               num_samples_total = num_samples_with + length(tumors_without)
@@ -486,7 +492,7 @@ ces_variant <- function(cesa = NULL,
             
           }
           
-          if(is(model, "function") & is.null(lik_args$sample_index)){
+          if(is(model, "function") && is.null(lik_args$sample_index)){
             
             num_samples_with = length(tumors_with_variant)
             num_samples_total = num_samples_with + length(tumors_without)
@@ -496,8 +502,7 @@ ces_variant <- function(cesa = NULL,
           }
           
         }
-        
-        
+
         if(! is.null(conf)) {
           variant_output = c(variant_output, univariate_si_conf_ints(fit, fn, .001, 1e20, conf))
         }
@@ -531,12 +536,20 @@ ces_variant <- function(cesa = NULL,
     setcolorder(selection_results, c("variant_name", "variant_type", "gene"))
     setcolorder(selection_results, c(setdiff(names(selection_results), 'variant_id'), 'variant_id'))
   }
+
   
-  # isolate SI columns for plotting functions (and maybe more, eventually)
-  ll_col_num = which(colnames(selection_results) == "loglikelihood")
+  if(running_compound) {
+    num_eligible_by_comp = sapply(compound_variants$definitions, 
+                     function(x) variants[x, min(num_covered_and_in_samples)], USE.NAMES = TRUE)
+    selection_results[, held_out := num_eligible_by_comp[variant_name] - included_total]
+  } else {
+    selection_results[variants, held_out := num_covered_and_in_samples - included_total, on = 'variant_id']
+  }
+  selection_results[, uncovered := samples[, .N] - included_total - held_out]
   
   curr_results = list(selection_results)
   names(curr_results) = run_name
+  
   cesa@selection_results = c(cesa@selection_results, curr_results)
   
   return(cesa)

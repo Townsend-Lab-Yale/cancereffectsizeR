@@ -16,16 +16,20 @@
 #'   are plotted per variant (for example, when comparing effects between subgroups), or to
 #'   highlight related groups of variants. A viridis color scale will be applied, unless ever single value
 #'   in the color column is interpretable as an R color, in which case the given colors will be used.
+#' @param prevalence_method Show each variant's prevalence as a raw mutation count ("count", the default), or as
+#'   a percentage of samples with sequencing coverage at the site ("percent"). If the effects table
+#'   has the same number of samples covering every inference, you can choose "both".
 #' @param color_label If color_by is supplying color names for scale_color_identity(), optionally include color_label
 #' so that colors can be labeled in the plot legend. 
 #' @param legend.position Passed to ggplot's legend.position (none, left, right, top, bottom, or
-#'   coordinates). Use "none" to eliminate the legend. Default is c(0.95, 0.45); you may need to
-#'   tweak.
+#'   coordinates). Use "none" to eliminate the legend. Defaults to "right".
 #' @param legend_size_name The title for the point size scale (larger points = more prevalent variants).
-#' @param legend_size_breaks Vector of specific mutation counts to depict in the point size legend.
+#' @param legend_size_breaks Vector of specific mutation counts (or percentages) to depict in the point size legend.
 #'   Specify numeric values if you don't like what gets produced by the default ("auto"). Set to
 #'   FALSE or to a single desired point size to turn of size scaling.
 #' @param legend_color_name The title for the point fill color scale.
+#' @param viridis_option If using \code{color_by}, this argument
+#' specifies which viridis color map to use. Ignored if you specify your own colors.
 #' @param label_individual_variants When TRUE (default), individual variants within groups will be
 #'   labeled when group_by is not 'variant'. Set FALSE to not label variants, or specify a column
 #'   name that supplies a label for each row in the effects table. By default, variant names will be
@@ -33,22 +37,33 @@
 #'   changes.
 #' @param order_by_effect When TRUE (default), variants are plotted in order of effect. When FALSE,
 #'   variants are plotted top-down in the order they are supplied.
+#' @param show_ci TRUE/FALSE to depict confidence intervals in plot (default TRUE).
+#' @param title Main title for the plot (by default, no title)
 #' @param x_title Text for the X-axis label.
 #' @param y_title Text for the Y-axis label.
 #' @export
 plot_effects = function(effects, topn = 30, group_by = 'variant',
+                        title = '',
                         x_title = NULL, y_title = NULL,
                         y_label = 'auto',
                         color_by = 'darkseagreen4', color_label = NULL,
-                        legend.position = c(.95, .45),
-                        legend_size_name = 'Variant prevalence',
+                        legend.position = 'right',
+                        legend_size_name = 'auto',
                         legend_color_name = NULL,
+                        viridis_option = 'cividis',
                         legend_size_breaks = 'auto', 
                         label_individual_variants = TRUE,
-                        order_by_effect = TRUE) {
-  # Verify ggplot2/ggrepel are installed, since they are not pacakge dependencies
+                        order_by_effect = TRUE,
+                        prevalence_method = 'auto',
+                        show_ci = TRUE) {
+  # Verify ggplot2/ggrepel are installed, since they are not package dependencies
   if (! require("ggplot2") || ! require("ggrepel")) {
     stop("Packages needed for plotting are not installed. Run install.packages(c('ggplot2', 'ggrepel')).")
+  }
+  
+  # Validate viridis_option
+  if(! is.character(viridis_option) || length(viridis_option) != 1) {
+    stop('viridis_option should be 1-length character.')
   }
   
   # Determine axis titles
@@ -66,6 +81,9 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
   } else {
     stop('y_title should be 1-length character (or NULL for default title).')
   }
+  if(! is.character(title) || length(title) != 1)  {
+    stop('title should be 1-length character')
+  }
   
   # Validate that effects is table with required columns
   if (! is(effects, 'data.table')) {
@@ -78,12 +96,23 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
     effects[, variant_id := variant_name]
   }
   
-  required_cols = c('variant_name', 'variant_type', 'selection_intensity', 'ci_low_95', 'ci_high_95', 'included_with_variant')
+  required_cols = c('variant_name', 'variant_type', 'selection_intensity', 'included_with_variant', 'held_out')
+  
+  if(identical(show_ci, TRUE)) {
+    required_cols = c(required_cols, c('ci_low_95', 'ci_high_95'))
+  } else if (! identical(show_ci, FALSE)) {
+    stop('Argument show_ci should be TRUE/FALSE.')
+  }
+  
   missing_cols = setdiff(required_cols, names(effects))
   if(length(missing_cols) > 0) {
     stop("Missing required columns in effects table: ", paste(missing_cols, collapse = ', '), '.')
   }
   
+  if(effects[, .N] == 0) {
+    stop('effects table has zero rows.')
+  }
+
   # group_by can be variant (default), gene (also gets special behavior), or any other character/factor column name.
   if(! is.character(group_by) || length(group_by) != 1) {
     stop('group_by should be 1-length character.')
@@ -92,7 +121,7 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
   if(group_by == 'variant') {
     # When grouping by variant, there is only 1 variant per variant group
     effects[, variant_group := variant_id]
-    effects[, top_by_group := selection_intensity]
+    effects[, top_by_group := max(selection_intensity, na.rm = T), by = 'variant_group']
   } else {
     if(! group_by %in% names(effects)) {
       stop('Specified group_by column ', group_by, ' is not present in effects table.')
@@ -110,7 +139,7 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
                    'assign them non-NA.')
       warning(pretty_message(msg, emit = F))
     }
-    effects[, top_by_group := max(selection_intensity), by = 'variant_group']
+    effects[, top_by_group := max(selection_intensity, na.rm = T), by = 'variant_group']
   }
   
   # Remove variants (or variant groups) outside of topn.
@@ -124,6 +153,17 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
     }
   }
   
+  # Deal with NA selection/CI
+  lowest_label = NULL
+  lowest_real = effects[included_with_variant > 0, min(ci_low_95, na.rm = TRUE)]
+  even_lower = 10^floor(log10(lowest_real)) # rounding down to next factor of 10 below any lower CI
+  values_to_check = unlist(effects[, .(selection_intensity, ci_low_95)])
+  if(anyNA(values_to_check) || any(values_to_check < lowest_real)) {
+    lowest_label = paste0('   <', format(even_lower, scientific = F, big.mark = ',')) # whitespace for aesthetics
+    effects[is.na(ci_low_95) | ci_low_95 < lowest_real, ci_low_95 := even_lower]
+    effects[is.na(selection_intensity) | selection_intensity < lowest_real, selection_intensity := even_lower]
+  }
+  
   # Sort into desired plot order (top group will be top of plot, with variants ordered by selection within groups).
   if (identical(order_by_effect, TRUE)) {
     effects = effects[order(top_by_group, selection_intensity)]
@@ -133,23 +173,65 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
     stop('Argument order_by_effect should be TRUE/FALSE.')
   }
   
+  # Use the chosen prevalence method to scale variant point sizes
+  effects[, num_samples := included_total + held_out]
+  if(identical(prevalence_method, 'auto')) {
+    # As stated in docs, we'll use count if sample numbers are similar enough (20%).
+    prevalence_method = ifelse(effects[, max(num_samples)/min(num_samples)] > 1.2, 'percent', 'count')
+    if(prevalence_method == 'percent') {
+      pretty_message("Depicting variant prevalence as percent of eligible samples that have mutation. If you prefer counts, set prevalence_method = \"count\".",
+                     black = F)
+    }
+  }
+  if(identical(prevalence_method, 'count') || identical(prevalence_method, 'both')) {
+    effects[, prevalence := included_with_variant]
+    if(prevalence_method == 'both' && uniqueN(effects$num_samples) != 1) {
+      msg = paste0('Not all variants have sequencing coverage in the same number of samples, so ',
+                   'prevalance_method \"both\" can\'t be used.')
+      stop(pretty_message(msg, emit = F))
+    }
+  } else if (identical(prevalence_method, 'percent')) {
+    effects[, prevalence := included_with_variant / num_samples]
+  } else{
+    stop('prevalence_method should be "count", "percent", "both", or "auto".')
+  }
+  
   # legend_size_breaks controls point size and what point sizes are displayed in legend
   if(identical(legend_size_breaks, 'auto')) {
     if(effects[, .N] < 6) {
-      size_breaks = sort(unique(effects$included_with_variant))
+      size_breaks = sort(unique(effects$prevalence))
     } else {
-      size_breaks = unique(floor(quantile(effects$included_with_variant, seq(0, 1, .25))))
+      if(prevalence_method %in% c('count', 'both')) {
+        size_breaks = unique(floor(quantile(effects$prevalence, seq(0, 1, .25))))
+      } else {
+        size_breaks = unique(round(quantile(effects$prevalence, seq(0, 1, .25)), digits = 3))
+      }
     }
   } else if (identical(legend_size_breaks, FALSE)) {
-    size_breaks = 2 # medium-small
-    effects$included_with_variant = 2 # we're going to do scale_size_identity()
+    size_breaks = 1.5
+    effects[, prevalence := as.numeric(prevalence)] # convert from integer to avoid warning
+    effects$prevalence = 1.5 # medium-small; we're going to do scale_size_identity()
   } else if(is.numeric(legend_size_breaks)) {
     size_breaks = legend_size_breaks
     if(length(size_breaks) == 1) {
-      effects$included_with_variant = size_breaks # for scale_size_identity()
+      effects$prevalence = size_breaks # for scale_size_identity()
     }
   } else {
-    stop('legend_size_breaks should be "auto", numeric vector of point sizes, or FALSE to make all points small.')
+    msg = paste0('legend_size_breaks should be "auto", numeric vector of prevalences to depict, or FALSE to make all points small, ',
+                 'or a single numeric point size.')
+    stop(pretty_message(msg, emit = F))
+  }
+  
+  if(identical(legend_size_name, 'auto')) {
+    if(prevalence_method == 'count'){
+      legend_size_name = 'Variant prevalence'
+    } else if (prevalence_method == 'percent') {
+      legend_size_name = 'Variant frequency\n(within covering samples, \nper effect inference)'
+    } else if (prevalence_method == 'both') {
+      legend_size_name = 'Variant prevalence\n(percent of samples)'
+    }
+  } else if(! is.character(legend_size_name) || length(legend_size_name) != 1) {
+    stop('legend_size_name should be 1-length character.')
   }
   
   # Handle variant (or variant group) labels
@@ -169,8 +251,6 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
     }
     setnames(effects, y_label, 'variant_group_label')
   }
-  
-
   
   # Validate color specification
   # Other nice choices: "darkseagreen3", "lightskyblue4"
@@ -207,9 +287,7 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
   } else {
     stop("color_by should be an R color name (\"purple4\") or the name of a column in effects")
   }
-  
 
-  
   variant_groups = uniqueN(effects$variant_group)
   group_labels = uniqueN(effects$variant_group_label)
   if(length(variant_groups) != length(group_labels)) {
@@ -223,7 +301,7 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
   # When there are multiple variants with same y-position (that is, multiple variants in a variant
   # group), nudge y-position so that points/CIs don't overlap.
   effects[, y_nudge := scale((1:.N)/.N, center = T, scale = F), by = 'variant_group']
-  effects[y_nudge != 0, y_nudge := (y_nudge * .3) / max(y_nudge), by = 'variant_group']
+  effects[y_nudge != 0, y_nudge := (y_nudge * .15) / max(y_nudge), by = 'variant_group']
   
   x_limits = c(min(effects$ci_low_95, na.rm = T), max(effects$ci_high_95, na.rm = T))
   
@@ -238,17 +316,30 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
   } else {
     effects[, dash_end := x_limits[2]]
   }
+  
+  # For aesthetics, we'll eliminate the CI crossbars for groups that have lots of variants.
+  effects[, ci_width := ifelse(.N > 4, 0, .2), by = 'variant_group']
+  
+  
+  x_labeler = function(x) {
+    first_visible_label = which(! is.na(x))[1]
+    x = format(x, scientific = F, big.mark = ',')
+    if(! is.null(lowest_label)) {
+      x[first_visible_label] = lowest_label 
+    }
+    return(x)
+  }
+  
   gg = ggplot(effects, aes(x = selection_intensity, y = variant_group)) +
     geom_segment(aes(x = x_limits[1], xend = dash_end, y = variant_group, yend = variant_group), 
                  color = effects$line_color, linetype = 'dotted', na.rm = T) +
     geom_errorbar(aes(xmin = ci_low_95, xmax = ci_high_95), color = "azure4", na.rm = T, 
-                  position = position_nudge(x = 0, y = effects$y_nudge), width = .2, linewidth = .25) +
-    geom_point(shape = 21, color = 'gray20', aes(size = included_with_variant, fill = point_fill), na.rm = T,
+                  position = position_nudge(x = 0, y = effects$y_nudge), width = effects$ci_width, linewidth = .25) +
+    geom_point(shape = 21, color = 'gray20', aes(size = prevalence, fill = point_fill), na.rm = T,
                position = position_nudge(x = 0, y = effects$y_nudge)) +
-    scale_x_log10(expand = expansion(mult = c(.01, .05)), labels = function(x) format(x, scientific = F, big.mark = ',')) + 
+    scale_x_log10(expand = expansion(mult = c(.01, .05)), labels = x_labeler) + 
     scale_y_discrete(limits = unique(effects$variant_group), labels = unique(effects$variant_group_label))  +
-    scale_alpha_identity() +
-    labs(title = element_blank(), x = x_axis_title, y = y_axis_title) +
+    labs(title = title, x = x_axis_title, y = y_axis_title) +
     theme(axis.title.x = element_text(margin = margin(6, 0, 6, 0)),
           axis.title.y = element_text(margin = margin(0, 6, 0, 6)),
           axis.text.y = element_text(angle = 0, hjust = 1, vjust = 0.5, size = 8, face = effects$to_style),
@@ -260,61 +351,80 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
           legend.position = legend.position,
           legend.direction = 'vertical',
           legend.title = element_text(size = 8), legend.text = element_text(size = 8),
-          plot.margin = margin(l = 6, r = 15, b = 6, unit = 'pt'))
+          plot.margin = margin(l = 6, r = 15, b = 6, unit = 'pt'),
+          plot.title = element_text(margin = margin(t = 6, b = 6)))
   
   if(length(size_breaks) > 1) {
-    highest_prevalence = max(size_breaks)
     # If there is just one point fill color in the plot, make legend's size glyphs that color.
     size_override = list()
     if(use_fill_identity && uniqueN(effects$point_fill) == 1) {
       only_color = effects$point_fill[1]
       size_override = list(fill = only_color, alpha = 1)
     }
-    gg = gg + scale_size(breaks = size_breaks, labels = size_breaks, limits = c(min(size_breaks), max(size_breaks)),
-             guide = guide_legend(title.position = 'top', override.aes = size_override),
-             name = legend_size_name, range = c(1, min(c(6, highest_prevalence - 1))))
+    size_labels = size_breaks
+    if(prevalence_method == 'percent') {
+      size_labels = scales::label_percent(accuracy = .1)(size_labels)
+    }
+    if(prevalence_method == 'both') {
+      # Have already verified that all effects have same number of samples
+      size_labels = paste0(size_breaks, ' (', scales::label_percent(accuracy = .1)(size_breaks/effects$num_samples[1]), ')')
+    }
+    gg = gg + scale_size(breaks = size_breaks, labels = size_labels, 
+                         limits = c(min(effects$prevalence), max(effects$prevalence)),
+                         guide = guide_legend(title.position = 'top', override.aes = size_override),
+                         name = legend_size_name, range = c(1, 6))
   } else {
     gg = gg + scale_size_identity()
   }
   
   
-  if(group_by != 'variant') {
-    # Validate label_individual_variants
-    if(identical(label_individual_variants, TRUE)) {
-      # Use variant_name (unless variant_id is necessary due to ambiguity) if nothing supplied,
-      # unless grouping by gene, in which get aachange from gene name.
-      if(uniqueN(effects$variant_name) != uniqueN(effects$variant_id) && group_by != 'gene') {
-        effects[, individual_label := variant_id]
-      } else if (group_by == 'gene') {
-        effects[variant_type == 'aac', individual_label := gsub('.*_', '', variant_name)]
-        effects[variant_type != 'aac', individual_label := gsub('_', ' ', variant_name)]
-      } else {
-        effects[, individual_label := gsub('_', ' ', variant_name)]
-      }
-    } else if(is.character(label_individual_variants) && length(label_individual_variants) == 1 && 
-              label_individual_variants %in% names(effects)) {
-      setnames(effects, label_individual_variants, 'individual_label')
-      if(! is.character(effects$individual_label)) {
-        msg = paste0('Column specified for label_individual_variants (', label_individual_variants, ') is not type character.')
-        stop(pretty_message(msg, emit = F))
-      }
-      label_individual_variants = TRUE
-    } else if (! identical(label_individual_variants, FALSE)){
-        stop('label_individual_variants should be TRUE/FALSE or the name of a column in the effects table.')
+  # Validate label_individual_variants and decide whether individual labels are happening.
+  # Only worth labeling variants if there is more than one variant per variant_group/color grouping
+  if(identical(label_individual_variants, TRUE) && 
+     effects[, .N, by = c('variant_group', 'point_fill')][, all(N == 1)]) {
+    label_individual_variants = FALSE
+  }
+  
+  if(identical(label_individual_variants, TRUE)) {
+    # Use variant_name (unless variant_id is necessary due to ambiguity) if nothing supplied,
+    # unless grouping by gene, in which get aachange from gene name.
+    if(group_by == 'gene') {
+      effects[variant_type == 'aac', individual_label := gsub('.*_', '', variant_name)]
+      effects[variant_type != 'aac', individual_label := gsub('_', ' ', variant_name)]
+      
+    } else if (uniqueN(effects$variant_id) != uniqueN(effects$variant_name)) {
+      effects[, individual_label := variant_id]
+    } else {
+      effects[, individual_label := gsub('_', ' ', variant_name)]
     }
     
-    if(label_individual_variants) {
-      gg = gg + geom_label_repel(aes(label = individual_label), size = 2.5, box.padding = .3, label.r = .2,
-                                 fill = alpha(c("white"), 0.9), label.size = .1, label.padding = .2,
-                                 segment.color = 'grey20', segment.size = .4,
-                                 position = position_nudge(x = 0, y = effects$y_nudge))
+  } else if(is.character(label_individual_variants) && length(label_individual_variants) == 1 && 
+            label_individual_variants %in% names(effects)) {
+    setnames(effects, label_individual_variants, 'individual_label')
+    if(! is.character(effects$individual_label)) {
+      msg = paste0('Column specified for label_individual_variants (', label_individual_variants, ') is not type character.')
+      stop(pretty_message(msg, emit = F))
     }
+    label_individual_variants = TRUE
+  } else if (! identical(label_individual_variants, FALSE)){
+      stop('label_individual_variants should be TRUE/FALSE or the name of a column in the effects table.')
+  }
+    
+  if(label_individual_variants) {
+    gg = gg + geom_label_repel(aes(label = individual_label), size = 2.5, box.padding = .3, label.r = .2,
+                               fill = alpha(c("white"), 0.9), label.size = .1, label.padding = .15,
+                               segment.color = 'grey20', segment.size = .4,
+                               position = position_nudge(x = 0, y = effects$y_nudge))
   }
   
   # Change axis label using group_by when not "variant" (unless user already explicitly specified
   # via y_title).
   if(group_by != 'variant' && is.null(y_title)) {
-    gg = gg + labs(y = group_by)
+    if (group_by == 'gene') {
+      gg = gg + labs(y = 'Gene') # auto-capitalize
+    } else {
+      gg = gg + labs(y = group_by)
+    }
   }
   
   # Validate legend_color_name
@@ -351,9 +461,9 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
   } else {
     if(is.null(color_label)) {
       if(is.numeric(effects$point_fill)) {
-        gg  = gg + scale_fill_viridis_c(name = legend_color_name)
+        gg  = gg + scale_fill_viridis_c(name = legend_color_name, option = viridis_option)
       } else {
-        gg  = gg + scale_fill_viridis_d(name = legend_color_name)
+        gg  = gg + scale_fill_viridis_d(name = legend_color_name, begin = .2, end = .9, option = viridis_option)
       }
     } else {
       unique_colors = unique(effects[, .(point_fill, fill_label)])

@@ -168,7 +168,7 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
                                                            end.field = "pos", seqinfo = genome_info)
     captured = cesa@mutations$snv[IRanges::overlapsAny(mutations_gr, final_gr, type = "within")]
     if (captured[, .N] == 0) {
-      stop("No mutations captured by input genomic positions (gr/variant_position_table).", call. = F)
+      return(data.table())
     }
     selected_snv_ids = intersect(selected_snv_ids, captured$snv_id)
     aac_passing_gr = cesa@mutations$aac_snv_key[captured$snv_id, unique(aac_id), on = 'snv_id', nomatch = NULL]
