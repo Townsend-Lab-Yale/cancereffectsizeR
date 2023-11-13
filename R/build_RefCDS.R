@@ -66,7 +66,7 @@ build_RefCDS = function(gtf, genome, use_all_transcripts = TRUE, cds_ranges_lack
     warning = function(w) {
       if (grepl("more than one best sequence renaming map", conditionMessage(w))) {
         invokeRestart("muffleWarning")
-      } else if(grepl("cannot switch some of.*to .*style", conditionMessage(w))) {
+      } else if(grepl("cannot switch some.*to .*style", conditionMessage(w))) {
         invokeRestart("muffleWarning")
       }
     }        

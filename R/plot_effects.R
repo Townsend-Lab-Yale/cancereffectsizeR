@@ -191,7 +191,9 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
       stop(pretty_message(msg, emit = F))
     }
   } else if (identical(prevalence_method, 'percent')) {
-    effects[, prevalence := included_with_variant / num_samples]
+    # Rounding to match the rounding that will be applied to labels, to 
+    # avoid possibly getting the same rounded label for two different breaks.
+    effects[, prevalence := round(included_with_variant / num_samples, 3)]
   } else{
     stop('prevalence_method should be "count", "percent", "both", or "auto".')
   }
@@ -201,11 +203,38 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
     if(effects[, .N] < 6) {
       size_breaks = sort(unique(effects$prevalence))
     } else {
-      if(prevalence_method %in% c('count', 'both')) {
-        size_breaks = unique(floor(quantile(effects$prevalence, seq(0, 1, .25))))
-      } else {
-        size_breaks = unique(round(quantile(effects$prevalence, seq(0, 1, .25)), digits = 3))
+      ordered_prev = sort(unique(effects$prevalence))
+      first_break = ordered_prev[1]
+      last_break = max(ordered_prev)
+      
+      num_middle_breaks_left = min(3, length(setdiff(ordered_prev, c(first_break, last_break))))
+      middle_breaks = numeric()
+      while(num_middle_breaks_left > 0) {
+        biggest_left = ordered_prev[length(ordered_prev)]
+        next_biggest = ordered_prev[length(ordered_prev) - 1]
+        ideal_spacing = (biggest_left - ordered_prev[1])/(num_middle_breaks_left + 1)
+        ideal_next_break = biggest_left - ideal_spacing
+        
+        if(ideal_next_break > next_biggest) {
+          next_break = next_biggest
+        } else {
+          next_index = which.min(abs(ordered_prev - ideal_next_break))
+          next_break = ordered_prev[next_index]
+          i = 1
+          while(next_break/biggest_left > (1 + num_middle_breaks_left)/5 && 
+                next_index > 1) {
+            next_break = ordered_prev[next_index - i]
+            i = i + 1
+          }
+        }
+        middle_breaks = c(middle_breaks, next_break)
+        ordered_prev = c(ordered_prev[ordered_prev < next_break], next_break)
+        num_middle_breaks_left = num_middle_breaks_left - 1
+        if(next_break == first_break) {
+          middle_breaks_left = 0
+        }
       }
+      size_breaks = unique(sort(c(first_break, middle_breaks, last_break)))
     }
   } else if (identical(legend_size_breaks, FALSE)) {
     size_breaks = 1.5
@@ -311,10 +340,10 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
   
   # When just one variant per row, dashed lines go to lower CI. With multiple variants, we'll 
   # do the dashed line all the way across
-  if(identical(1, effects[, .N, by = 'variant_group'][, unique(N)])) {
+  if(effects[, .N, by = 'variant_group'][, unique(N)] == 1) {
     effects[, dash_end := ci_low_95]
   } else {
-    effects[, dash_end := x_limits[2]]
+    effects[, dash_end := Inf] # to end of visible plot
   }
   
   # For aesthetics, we'll eliminate the CI crossbars for groups that have lots of variants.
@@ -342,17 +371,23 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
     labs(title = title, x = x_axis_title, y = y_axis_title) +
     theme(axis.title.x = element_text(margin = margin(6, 0, 6, 0)),
           axis.title.y = element_text(margin = margin(0, 6, 0, 6)),
-          axis.text.y = element_text(angle = 0, hjust = 1, vjust = 0.5, size = 8, face = effects$to_style),
+          axis.text.y = element_text(angle = 0, hjust = 1, vjust = 0.5, size = 8),
           axis.text.x = element_text(size = 8),
-          axis.ticks = element_blank(),
+          axis.ticks.x = element_line(color = 'gray50'),
+          axis.ticks.y = element_blank(),
           panel.grid.major = element_blank(),
           panel.grid.minor = element_blank(),
           panel.background = element_blank(),
           legend.position = legend.position,
           legend.direction = 'vertical',
-          legend.title = element_text(size = 8), legend.text = element_text(size = 8),
+          legend.title = element_text(size = 7), legend.text = element_text(size = 7),
           plot.margin = margin(l = 6, r = 15, b = 6, unit = 'pt'),
           plot.title = element_text(margin = margin(t = 6, b = 6)))
+  
+  # Put a border around the legend if it's within the plot space
+  if(is.numeric(legend.position) && all(legend.position > 0) && all(legend.position < 1)) {
+    gg = gg + theme(legend.background = element_rect(fill = alpha(c("white"), 0.9), linewidth = .2, color = 'gray20'))
+  }
   
   if(length(size_breaks) > 1) {
     # If there is just one point fill color in the plot, make legend's size glyphs that color.
@@ -369,10 +404,14 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
       # Have already verified that all effects have same number of samples
       size_labels = paste0(size_breaks, ' (', scales::label_percent(accuracy = .1)(size_breaks/effects$num_samples[1]), ')')
     }
+    size_range = c(1, 6)
+    if (length(size_breaks) < 3) {
+      size_range = c(1, length(size_breaks))
+    }
     gg = gg + scale_size(breaks = size_breaks, labels = size_labels, 
                          limits = c(min(effects$prevalence), max(effects$prevalence)),
                          guide = guide_legend(title.position = 'top', override.aes = size_override),
-                         name = legend_size_name, range = c(1, 6))
+                         name = legend_size_name, range = size_range)
   } else {
     gg = gg + scale_size_identity()
   }

@@ -10,10 +10,9 @@
 #' @param samples Which samples to calculate rates for. Defaults to all samples. Can be a
 #'   vector of Unique_Patient_Identifiers, or a data.table containing rows from the
 #'   CESAnalysis sample table.
-#' @param cores number of cores to use for mutation processing (useful for large data sets or mutation lists)
 #' @return a data table of mutation rates with one column per variant, and a Unique_Patient_Identifier column identifying each row
 #' @export
-baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant_ids = NULL, samples = character(), cores = 1) {
+baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant_ids = NULL, samples = character()) {
   
   if(! is(cesa, "CESAnalysis")) {
     stop("cesa should be CESAnalysis.")
@@ -76,7 +75,7 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
   }
   
   # Let user specify a subset of samples to calculate rates (or, by default, use all samples)
-  mutations = cesa@mutations
+  mutations = copy(cesa@mutations)
   
   # can drop AAC mutations not requested
   if(length(aac_ids) > 0) {
@@ -85,7 +84,6 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
   } else {
     mutations$amino_acid_change = data.table()
   }
-  
   
   # Give a progress message if this is going to take more than a few seconds
   num_variants = length(aac_ids) + length(snv_ids)
@@ -96,7 +94,7 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
   
   num_samples = samples[, .N]
   if(num_variants * num_samples > 1e7) {
-    num_variants = format(num_variants, big.mark = ",") # big.mark? R is so weird
+    num_variants = format(num_variants, big.mark = ",")
     num_samples = format(num_samples, big.mark = ",")
     message(sprintf("Preparing to calculate baseline mutation rates in %s samples across %s sites...", num_samples, num_variants))
   }
@@ -123,14 +121,12 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
   } else {
     relevant_regions = union(mutations$amino_acid_change$gene, unlist(mutations$snv[snv_ids, genes, on = "snv_id"]))
   }
+  
+  # Get all combinations of genes (regions) and patients, then merge in gene_rate_grp from samples table.
   sample_region_rates = as.data.table(expand.grid(region = relevant_regions, Unique_Patient_Identifier = samples$Unique_Patient_Identifier, 
                                                   stringsAsFactors = F), key = "Unique_Patient_Identifier")
+  sample_region_rates[samples, gene_rate_grp := paste0('rate_grp_', gene_rate_grp), on = 'Unique_Patient_Identifier']
   
-  
-  # add gene (regional) mutation rates to the table by using mutrates and the groups of each samples
-  sample_region_rates = sample_region_rates[samples[, .(Unique_Patient_Identifier, gene_rate_grp = paste0('rate_grp_', gene_rate_grp))]]
-  
-
   if (using_pid) {
     # there's also a gene given in transcript rates tables, but we'll drop it here
     melted_mutrates = melt.data.table(mutrates[relevant_regions, -"gene", on = "pid"], id.vars = c("pid"), variable.factor = F)
@@ -139,125 +135,78 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
     melted_mutrates = melt.data.table(mutrates[relevant_regions, on = "gene"], id.vars = c("gene"), variable.factor = F)
     setnames(melted_mutrates, "gene", "region")
   }
-  
   setnames(melted_mutrates, c("variable", "value"), c("gene_rate_grp", "raw_rate"))
-  sample_region_rates = melted_mutrates[sample_region_rates, , on = c("region", "gene_rate_grp")]
+  sample_region_rates[melted_mutrates, raw_rate := raw_rate, on = c('gene_rate_grp', 'region')]
+
   cds_trinuc_comp = get_ref_data(cesa, "gene_trinuc_comp")
 
   # Hash trinuc rates for faster runtime with large data sets (where there could be millions of queries of trinuc_mat)
-  # Will also be using the trinuc_mat directly for summed rates, so need to subset it to just samples of interest
+  # Also creating a melted version for individual rate lookups.
   trinuc_rates = new.env(parent = emptyenv())
   trinuc_mat = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix[samples$Unique_Patient_Identifier, , drop = F]
   for (row in rownames(trinuc_mat)) { 
     trinuc_rates[[row]] = unname(trinuc_mat[row, ])
   }
-  # dot product of trinuc comp and patient's expected relative trinuc rates yields the denominator
-  # for site-specific mutation rate calculation; numerator is raw gene rate multipled by the patient's relative rate for the site's trinuc context
+  trinuc_by_sample = melt(as.data.table(trinuc_mat, keep.rownames = 'Unique_Patient_Identifier'),
+                          id.vars = 'Unique_Patient_Identifier', variable.name = 'trinuc_mut')
+  
+  # Dot product of trinuc comp and patient's expected relative trinuc rates yields the denominator
+  # for site-specific mutation rate calculation; numerator is raw gene rate multiplied by the patient's relative rate for the site's trinuc context
   # (this last value gets multipled in by get_baseline functions below)
   sample_region_rates[, aggregate_rate := raw_rate / sum(cds_trinuc_comp[[region]] * trinuc_rates[[Unique_Patient_Identifier]]), by = c("region", "Unique_Patient_Identifier")]
   setkey(sample_region_rates, "region")
   
   if(length(aac_ids > 0)) {
-    trinuc_mut_by_aac = mutations$amino_acid_change[, .(trinuc_mut = list(mutations$snv[unlist(constituent_snvs), trinuc_mut])), by = "aac_id"]
-    
+    mutations$aac_snv_key[mutations$snv, trinuc_mut := trinuc_mut, on = 'snv_id']
+    trinuc_mut_by_aac = mutations$aac_snv_key[aac_ids, .(aac_id, trinuc_mut), on = 'aac_id']
+
     if (using_pid) {
       mutations$amino_acid_change[, region := pid]
     } else {
       mutations$amino_acid_change[, region := gene]
     }
-    region_by_aac = mutations$amino_acid_change[aac_ids, region]
-    aac_regions = unique(region_by_aac)
-    
-    # build vector agg_rates (see above comment) corresponding to each aac
-    tmp = sample_region_rates[aac_regions, .(list(aggregate_rate)), by = c("region")]
-    agg_rates_by_region = tmp$V1
-    names(agg_rates_by_region) = tmp$region
-    agg_rates_by_region = agg_rates_by_region[region_by_aac]
-    agg_rates_by_region = lapply(agg_rates_by_region, unlist)
-    
     # for each sample, multiply agg_rate by relative trinuc rate of the context for all AAC sites
-    get_baseline_aac = function(aac, agg_rates) {
-      trinuc_mut = trinuc_mut_by_aac[aac, unlist(trinuc_mut)]
-      sample_rates = rowSums(trinuc_mat[, trinuc_mut, drop = F])
-      return(as.numeric(agg_rates * sample_rates))
-    }
     if(length(aac_ids) > 1000) {
       message("Calculating baseline rates for amino-acid-changing mutations...")
-      pbopts = pbapply::pboptions()
-    } else {
-      pbopts = pbapply::pboptions(type = "none")
     }
-    
-    # data.table is supposed to automatically go to single-thread mode when running parallel lapply,
-    # but apparently doesn't work in pbapply
-    if (cores > 1) {
-      original_dt_threads = setDTthreads(1)
-    }
-    aac_rate_list = pbapply::pblapply(1:length(aac_ids), function(x) get_baseline_aac(aac_ids[x], agg_rates_by_region[[x]]), cl = cores)
-    if (cores > 1) {
-      setDTthreads(original_dt_threads)
-    }
-    pbapply::pboptions(pbopts)
-    names(aac_rate_list) = aac_ids
+
+    trinuc_mut_by_sample_per_aac = merge.data.table(trinuc_mut_by_aac, trinuc_by_sample, by = 'trinuc_mut', allow.cartesian = T)
+    sample_rates = trinuc_mut_by_sample_per_aac[, .(rate = sum(value)), by = c('aac_id', 'Unique_Patient_Identifier')]
+    sample_rates[mutations$amino_acid_change, region := region, on = 'aac_id']
+    sample_rates[sample_region_rates, final_rate := rate * aggregate_rate, on = c('region', 'Unique_Patient_Identifier')]
+    final_aac_rates = dcast.data.table(sample_rates,  Unique_Patient_Identifier ~ aac_id, value.var = 'final_rate')
   } else {
-    aac_rate_list = NULL
+    final_aac_rates = data.table(Unique_Patient_Identifier = samples$Unique_Patient_Identifier)
   }
-  
 
   # repeat with SNVs (slightly different handling since SNVs can have more than one gene/pid associated)
   if (length(snv_ids) > 0) {
-    trinuc_mut_by_snv = mutations$snv[snv_ids, trinuc_mut, keyby = "snv_id"]
-    if (using_pid) {
-      region_by_snv = mutations$snv[snv_ids, .(region = nearest_pid), by = "snv_id"]
-    } else {
-      region_by_snv = mutations$snv[snv_ids, .(region = genes), by = "snv_id"]
-    }
-    snv_regions = unique(unlist(region_by_snv$region))
-    tmp = sample_region_rates[snv_regions, .(list(aggregate_rate)), by = "region"]
-    agg_rates_by_region = tmp$V1
-    names(agg_rates_by_region) = tmp$region
-    
-    get_baseline_snv = function(snv, region) {
-      trinuc_mut = trinuc_mut_by_snv[snv, trinuc_mut]
-      sample_rates = trinuc_mat[, trinuc_mut, drop = F]
-      if(length(region) > 1) {
-        simplified = simplify2array(agg_rates_by_region[region])
-        # Edge-case: When just one sample, simplify2array returns numeric instead of matrix
-        if(is.matrix(simplified)) {
-          agg_rates = rowMeans(simplified)
-        } else {
-          agg_rates = sum(simplified)
-        }
-      } else {
-        agg_rates = agg_rates_by_region[[region]]
-      }
-      return(as.numeric(agg_rates * sample_rates))
-    }
     if(length(snv_ids) > 1000) {
       message("Calculating baseline rates for noncoding SNVs...")
-      pbopts = pbapply::pboptions()
+    }
+    trinuc_mut_by_snv = mutations$snv[snv_ids, .(snv_id, trinuc_mut), on = 'snv_id']
+    if (using_pid) {
+      region_by_snv = mutations$snv[snv_ids, .(region = unlist(nearest_pid)), by = "snv_id"]
     } else {
-      # turn of progress bar when few variants
-      pbopts = pbapply::pboptions(type = "none")
+      region_by_snv = mutations$snv[snv_ids, .(snv_id, region = unlist(genes)), by = "snv_id"]
     }
+    sample_rates_snv = merge.data.table(trinuc_mut_by_snv, trinuc_by_sample, by = 'trinuc_mut', allow.cartesian = T)
     
-    if (cores > 1) {
-      original_dt_threads = setDTthreads(1)
-    }
-    snv_rate_list = pbapply::pblapply(1:length(snv_ids), function(x) get_baseline_snv(snv_ids[x], region_by_snv$region[[x]]), cl = cores)
-    if (cores > 1) {
-      setDTthreads(original_dt_threads)
-    }
-    pbapply::pboptions(pbopts)
-    names(snv_rate_list) = snv_ids
+    
+    rates_by_snv = merge.data.table(region_by_snv, sample_region_rates[, .(region, Unique_Patient_Identifier, aggregate_rate)],
+                     by = 'region', all.x = T, all.y = F, allow.cartesian = T)
+    
+    # SNVs that cover multiple regions will get a rate averaged over those regions. In the future this may change.
+    rates_by_snv = rates_by_snv[, .(snv_id, Unique_Patient_Identifier, aggregate_rate = mean(aggregate_rate)), by = c('snv_id', 'Unique_Patient_Identifier')]
+    
+    sample_rates_snv[rates_by_snv, final_rate := value * aggregate_rate, on = c('snv_id', 'Unique_Patient_Identifier')]
+    final_snv_rates = dcast.data.table(sample_rates_snv,  Unique_Patient_Identifier ~ snv_id, value.var = 'final_rate')
   } else {
-    snv_rate_list = NULL
+    final_snv_rates = data.table(Unique_Patient_Identifier = samples$Unique_Patient_Identifier)
   }
   
-  
-  # Combine all rates and create table
-  baseline_rates = as.data.table(c(aac_rate_list, snv_rate_list))
-  baseline_rates$Unique_Patient_Identifier = samples$Unique_Patient_Identifier
+  # Combine all rates
+  baseline_rates = merge.data.table(final_aac_rates, final_snv_rates, by = 'Unique_Patient_Identifier')
   setcolorder(baseline_rates, "Unique_Patient_Identifier")
   return(baseline_rates)
 }

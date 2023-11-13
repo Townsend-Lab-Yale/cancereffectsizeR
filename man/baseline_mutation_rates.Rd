@@ -9,8 +9,7 @@ baseline_mutation_rates(
   aac_ids = NULL,
   snv_ids = NULL,
   variant_ids = NULL,
-  samples = character(),
-  cores = 1
+  samples = character()
 )
 }
 \arguments{
@@ -25,8 +24,6 @@ baseline_mutation_rates(
 \item{samples}{Which samples to calculate rates for. Defaults to all samples. Can be a
 vector of Unique_Patient_Identifiers, or a data.table containing rows from the
 CESAnalysis sample table.}
-
-\item{cores}{number of cores to use for mutation processing (useful for large data sets or mutation lists)}
 }
 \value{
 a data table of mutation rates with one column per variant, and a Unique_Patient_Identifier column identifying each row

@@ -67,6 +67,11 @@ ces_variant <- function(cesa = NULL,
                         cores = 1,
                         conf = .95) 
 {
+  if(! is.numeric(cores) || length(cores) != 1 || cores - as.integer(cores) != 0 || cores < 1) {
+    stop('cores should be 1-length positive integer')
+  }
+  
+  
   if(! is(cesa, "CESAnalysis")) {
     stop("cesa should be a CESAnalysis.")
   }
@@ -372,7 +377,7 @@ ces_variant <- function(cesa = NULL,
       aac_ids = curr_subgroup[variant_type == "aac", variant_id]
       snv_ids = curr_subgroup[variant_type == "snv", variant_id]
       
-      baseline_rates = baseline_mutation_rates(cesa, aac_ids = aac_ids, snv_ids = snv_ids, samples = covered_samples, cores = cores)
+      baseline_rates = baseline_mutation_rates(cesa, aac_ids = aac_ids, snv_ids = snv_ids, samples = covered_samples)
       # put gene(s) by variant into env for quick access
       gene_lookup = curr_subgroup[, all_genes]
       names(gene_lookup) = curr_subgroup[, variant_id]
@@ -551,7 +556,6 @@ ces_variant <- function(cesa = NULL,
   names(curr_results) = run_name
   
   cesa@selection_results = c(cesa@selection_results, curr_results)
-  
   return(cesa)
 }
 

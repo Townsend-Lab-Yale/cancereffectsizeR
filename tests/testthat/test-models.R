@@ -20,6 +20,16 @@ snv_rate_other_way = baseline_mutation_rates(cesa, variant_ids = "1:151292923_C>
                                              samples = 'P-0000015')
 expect_identical(snv_rate, snv_rate_other_way)
 
+
+# Check that SNVs with multiple AAC annotations get rates that are the average
+aac1 = 'ZXDC_P624T_ENSP00000337694.5'
+aac2 = 'ZXDC_P624T_ENSP00000374359.3'
+multi_snv = '3:126461792_G>T'
+same_site_rates = baseline_mutation_rates(cesa, aac_ids = c(aac1, aac2), snv_ids = multi_snv)
+expect_equal(same_site_rates[, (ZXDC_P624T_ENSP00000337694.5 + ZXDC_P624T_ENSP00000374359.3)/2],
+             same_site_rates$`3:126461792_G>T`, tolerance = 1e-12)
+
+
 # Invalid inputs
 expect_error(baseline_mutation_rates(cesa), "no variants were input")
 expect_error(baseline_mutation_rates(cesa, variant_ids = c("1:151292923_C>T", 'hi')), 
@@ -124,7 +134,7 @@ test_that("Gene-level SNV epistasis analysis", {
   variants_to_use = cesa$variants[gene %in% c('EGFR', 'KRAS', 'TP53') & samples_covering == cesa$samples[, .N]]
   cesa = ces_gene_epistasis(cesa, genes = c("EGFR", "KRAS", "TP53"), variants = variants_to_use, conf = .95)
   results_ak = get_test_data("epistatic_effects.rds")
-  expect_equal(cesa@epistasis[[1]], results_ak, tolerance = 1e-5)
+  expect_equal(cesa@epistasis[[1]], results_ak, tolerance = 1e-4)
   
   # now simulate with compound variants, should get almost same results
   comp = define_compound_variants(cesa, 

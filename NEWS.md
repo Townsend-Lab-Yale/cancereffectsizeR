@@ -2,6 +2,11 @@
 # <font style = "opacity:0">cancereffectsizeR 3.0.0</font>
 Patch releases (as in, x.y.1 &#8594; x.y.2) have minor bug fixes or small improvements that do not significantly affect the numerical output of cancer effect analyses. Minor/major updates may change some outputs due to bug fixes or methodological tweaks, as described in these version notes.<br><br>
 
+# cancereffectsizeR 2.8.0
+* plot_effects() visualize cancer effect inferences with custom labels, colors, variant groupings, and more; see website for examples.
+* make_PathScore_input() converts MAF data into an input file for PathScore, a web tool that identifies significantly mutated pathways in cancer. See https://pathscore.publichealth.yale.edu/.
+* Various small fixes.
+
 # cancereffectsizeR 2.7.0
 * mutational_signature_effects() identifies the relative contributions of mutational signatures to mutation burden and cancer effect, within samples and across cohorts.
 * Epistatic effect inferences now report p-values for overall significance of epistatic effects (over a null model of no epistasis) and significance of epistatic effects for each variant/gene in tested pairs. Additionally, output has been beautified with clearer column names and additional documentation.
