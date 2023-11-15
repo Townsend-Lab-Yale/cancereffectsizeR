@@ -29,37 +29,10 @@ cesa = gene_mutation_rates(cesa, covariates = ces.refset.hg38$covariates$lung)
 
 # Infer scaled selection coefficients under the default model of clonal selection.
 # By default, inference is restricted to recurrent mutations.
-cesa = ces_variant(cesa)
+cesa = ces_variant(cesa, run_name = 'example')
 
-# Take top 15 variants, then sort lowest to highest (to plot left to right)
-selection = cesa$selection[[1]]
-top = selection[order(-selection_intensity)][1:15]
-top = top[order(selection_intensity)]
-
-# Plot top effects
-top[, display_name := gsub('_', "\n", variant_name)]
-top[, display_levels := factor(display_name, levels = display_name, ordered = T)]
-plot_title = 'Top cancer effects in TCGA LUAD'
-breaks = unique(as.numeric(round(quantile(top$included_with_variant))))
-
-p = ggplot(top, aes(x = display_levels, y = selection_intensity)) + 
-  geom_errorbar(aes(ymin = ci_low_95, ymax = ci_high_95), width = .2, color = 'darkgrey') +
-  geom_point(aes(color = included_with_variant), size = 3) + 
-  scale_x_discrete() + scale_y_log10(labels = function(x) format(x, big.mark = ",", scientific = F)) + 
-  scale_color_viridis_c(name = 'variant prevalence', guide = 'colorbar', trans = 'log10', 
-                        option = 'plasma', breaks = breaks) +
-  xlab(element_blank()) +
-  ylab(expression('cancer effect'~scriptstyle(~~(log[10])))) +
-  ggtitle(plot_title) +
-  guides(color = guide_colourbar(ticks = FALSE)) + 
-  theme_minimal() + 
-  theme(text = element_text(family = "Verdana"),
-        axis.title.x = element_text(size = 14), 
-        axis.text.x = element_text(size = 8),
-        legend.position = 'bottom',
-        legend.title = element_text(size = 10),
-        panel.grid.major.x = element_blank(),
-        panel.grid.minor.x = element_blank())
+# Visualize top-effect variants.
+p = plot_effects(effects = cesa$selection$example, color_by = '#DB382D', topn = 20)
 
 # Above, p = ... instead of just ggplot(...)
 luad_plot_file = paste0(tutorial_dir, '/top_LUAD_effects.rds')
@@ -104,12 +77,6 @@ signature_exclusions = suggest_cosmic_signature_exclusions(cancer_type = 'BRCA',
 cesa = trinuc_mutation_rates(cesa = cesa, signature_set = ces.refset.hg38$signatures$COSMIC_v3.2, 
                              signature_exclusions = signature_exclusions)
 
-# Save snv_counts for visualization example
-snv_count_file = paste0(tutorial_dir, '/BRCA_snv_counts.rds')
-sample_file = paste0(tutorial_dir, '/BRCA_cesa_samples.rds')
-saveRDS(cesa$mutational_signatures$snv_counts, snv_count_file)
-saveRDS(cesa$samples, sample_file)
-
 # Estimate neutral gene mutation rates using dNdScv, with tissue-specific mutation rate covariates.
 cesa = gene_mutation_rates(cesa, covariates = ces.refset.hg38$covariates$breast)
 saveRDS(cesa$gene_rates, paste0(tutorial_dir, '/BRCA_cesa_gene_rates.rds'))
@@ -128,42 +95,17 @@ saveRDS(site_rates,  paste0(tutorial_dir, '/BRCA_site_rates_example.rds'))
 # By default, inference is restricted to recurrent mutations.
 cesa = ces_variant(cesa, run_name = 'recurrents')
 
-# Extract selection results from CESAnalysis and take top variants for visualization
-top = cesa$selection$recurrents
-top = top[order(-selection_intensity)][1:20] # take top 20 by SI
-top = top[order(selection_intensity)] # will plot lowest to highest (left to right)
 
-# Make variant names pretty for use in plot labels
-top[, display_name := gsub('_', "\n", variant_name)]
-top[, display_levels := factor(display_name, levels = display_name, ordered = T)]
-
-plot_title = 'Top cancer effects in breast carcinoma (CES tutorial data)'
-n.dodge = 2 # can reduce to 1 if labels happen to still fit (e.g., if plotting fewer variants)
-
-# May need to play with breaks for colorbar legibility
-breaks = unique(as.numeric(round(quantile(top$included_with_variant, probs = c(0, .5, .75, 1)))))
-
-p = ggplot(top, aes(x = display_levels, y = selection_intensity)) + 
-  geom_errorbar(aes(ymin = ci_low_95, ymax = ci_high_95), width = .2, color = 'darkgrey') +
-  geom_point(aes(color = included_with_variant), size = 3) + 
-  scale_x_discrete(guide = guide_axis(n.dodge = n.dodge)) + scale_y_log10() + 
-  scale_color_viridis_c(name = 'variant prevalence', guide = 'colorbar', trans = 'log10', 
-                        option = 'plasma', breaks = breaks) +
-  xlab(element_blank()) +
-  ylab(expression('cancer effect'~scriptstyle(~~(log[10])))) +
-  ggtitle(plot_title) +
-  guides(color = guide_colourbar(ticks = FALSE)) + 
-  theme_minimal() + 
-  theme(text = element_text(family = "Verdana"),
-        axis.title.x = element_text(size = 14), 
-        axis.text.x = element_text(size = 8),
-        legend.position = 'bottom',
-        legend.title = element_text(size = 10),
-        panel.grid.major.x = element_blank(),
-        panel.grid.minor.x = element_blank())
+p = plot_effects(cesa$selection$recurrents)
 
 brca_plot_file = paste0(tutorial_dir, '/top_BRCA_effects.rds')
 saveRDS(p, brca_plot_file)
+
+top_genes = cesa$selection$recurrents[order(-selection_intensity), unique(gene)][1:10]
+p2 = plot_effects(cesa$selection$recurrents[gene %in% top_genes], group_by = 'gene',
+             label_individual_variants = FALSE)
+brca_p2_file = paste0(tutorial_dir, '/BRCA_effects_in_top_genes.rds')
+saveRDS(p2, brca_p2_file)
 
 ## Sequential 
 # Take variants that appear at least twice in pM-annotated data

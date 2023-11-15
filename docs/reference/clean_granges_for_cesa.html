@@ -14,7 +14,7 @@ at chromosome ends. Either stops with an error or returns a clean granges object
     
     <a class="navbar-brand me-2" href="../index.html">cancereffectsizeR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.7.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.8.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -69,13 +69,19 @@ at chromosome ends. Either stops with an error or returns a clean granges object
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">clean_granges_for_cesa</span><span class="op">(</span>cesa <span class="op">=</span> <span class="cn">NULL</span>, gr <span class="op">=</span> <span class="cn">NULL</span>, padding <span class="op">=</span> <span class="fl">0</span>, refset_env <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">clean_granges_for_cesa</span><span class="op">(</span></span>
+<span>  cesa <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  gr <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  padding <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  refset_env <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  reduce_sort_strip <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
     <dl><dt>cesa</dt>
-<dd><p>CESAnalysis</p></dd>
+<dd><p>CESAnalysis; required unless refset_env is supplied directly.</p></dd>
 
 
 <dt>gr</dt>
@@ -84,6 +90,15 @@ at chromosome ends. Either stops with an error or returns a clean granges object
 
 <dt>padding</dt>
 <dd><p>How many bases to expand start and end of each position</p></dd>
+
+
+<dt>refset_env</dt>
+<dd><p>A reference data set environment. Required if cesa is not specified.</p></dd>
+
+
+<dt>reduce_sort_strip</dt>
+<dd><p>Unstrands and calls reduce(gr)  which also drops all metadata columns,
+and then sorts the final gr. Default TRUE; use FALSE to preserve original gr structure.</p></dd>
 
 </dl></div>
 

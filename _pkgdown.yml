@@ -24,6 +24,7 @@ reference:
   - check_sample_overlap
   - get_TCGA_project_MAF
   - vcfs_to_maf_table
+  - make_PathScore_input
 - title: Load and manage variants
   contents:
   - load_maf
@@ -71,7 +72,7 @@ reference:
 - title: Visualization
   desc: Display and compare variant effect sizes
   contents:
-  - lollipops
+  - plot_effects
 - title: Selection models
   desc: Likelihood function generators for various models of selection
   contents:
