@@ -42,16 +42,17 @@
 #'   models of selection, or supply a custom function factory (see details).
 #' @param run_name Optionally, a name to identify the current run.
 #' @param lik_args Extra arguments, given as a list, to pass to custom likelihood functions.
+#' @param optimizer_args Named list of arguments to pass to the optimizer, bbmle::mle2. Use, for example,
+#' to choose optimization algorithm or parameter boundaries on custom models.
+#' @param hold_out_same_gene_samples When finding likelihood of each variant, hold out samples that
+#'   lack the variant but have any other mutations in the same gene. By default, TRUE when running
+#'   with single variants, FALSE with a CompoundVariantSet.
 #' @param ordering_col For the (not yet available) sequential model (or possibly custom models),
 #'   the name of the sample table column that defines sample chronology.
 #' @param ordering For the (not yet available) sequential model (or possibly custom models), a
 #'   character vector or list defining the ordering of values in ordering_col. Use a list to assign
 #'   multiple values in ordering_col the same position (e.g., `list(early = c("I", "II), late =
 #'   c("III", "IV")))` for an early vs. late analysis).
-#' @param hold_out_same_gene_samples When finding likelihood of each variant, hold out samples that
-#'   lack the variant but have any other mutations in the same gene. By default, TRUE when running
-#'   with single variants, FALSE with a CompoundVariantSet.
-#' @param groups Deprecated; use samples.
 #' @return CESAnalysis object with selection results appended to the selection output list
 #' @export
 ces_variant <- function(cesa = NULL,
@@ -62,8 +63,8 @@ ces_variant <- function(cesa = NULL,
                         ordering_col = NULL,
                         ordering = NULL,
                         lik_args = list(),
+                        optimizer_args = list(),
                         hold_out_same_gene_samples = "auto",
-                        groups = NULL,
                         cores = 1,
                         conf = .95) 
 {
@@ -71,6 +72,18 @@ ces_variant <- function(cesa = NULL,
     stop('cores should be 1-length positive integer')
   }
   
+  
+  if (! is(optimizer_args, "list") || uniqueN(names(optimizer_args)) != length(optimizer_args)) {
+    stop("optimizer_args should a named list of arguments to pass.")
+  }
+  
+  reserved_args = c('minuslogl', 'start', 'vecpar')
+  if(any(reserved_args %in% names(optimizer_args))) {
+    msg = paste0('Optimizer arguments start, vecpar, and minuslogl cannot be changed here. ', 
+                 'If you are using a custom model, your likelihood function can declare these ',
+                 'values directly (see docs).')
+    stop(pretty_message(msg, emit = F))
+  }
   
   if(! is(cesa, "CESAnalysis")) {
     stop("cesa should be a CESAnalysis.")
@@ -144,9 +157,7 @@ ces_variant <- function(cesa = NULL,
   if(is.null(ordering_col) && ! is.null(ordering)) {
     stop("Use of ordering requires use of ordering_col")
   }
-  if (! is.null(ordering_col) && ! is.null(groups)) {
-    stop("groups is deprecated; use ordering_col/ordering (see docs).")
-  }
+
   
   samples = select_samples(cesa, samples)
   if(samples[, .N] < cesa@samples[, .N]) {
@@ -439,9 +450,16 @@ ces_variant <- function(cesa = NULL,
         names(par_init) = bbmle::parnames(fn)
         # find optimized selection intensities
         # the selection intensity for any stage that has 0 variants will be on the lower boundary; will muffle the associated warning
+        final_optimizer_args = c(list(minuslogl = fn, start = par_init, vecpar = T), optimizer_args)
+        default_args = list(method = 'L-BFGS-B', lower = 1e-3, upper = 1e9)
+        for(arg in names(default_args)) {
+          if(! arg %in% names(final_optimizer_args)) {
+            final_optimizer_args[[substitute(arg)]] = default_args[[substitute(arg)]]
+          }
+        }
         withCallingHandlers(
           {
-            fit = bbmle::mle2(fn, method="L-BFGS-B", start = par_init, vecpar = T, lower=1e-3, upper=1e9)
+            fit = do.call(bbmle::mle2, final_optimizer_args)
           },
           warning = function(w) {
             if (startsWith(conditionMessage(w), "some parameters are on the boundary")) {
@@ -507,9 +525,10 @@ ces_variant <- function(cesa = NULL,
           }
           
         }
-
         if(! is.null(conf)) {
-          variant_output = c(variant_output, univariate_si_conf_ints(fit, fn, .001, 1e20, conf))
+          variant_output = c(variant_output, 
+                             univariate_si_conf_ints(fit, fn, final_optimizer_args$lower, 
+                                                     final_optimizer_args$upper, conf))
         }
         return(variant_output)
       }

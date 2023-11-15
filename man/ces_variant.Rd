@@ -13,8 +13,8 @@ ces_variant(
   ordering_col = NULL,
   ordering = NULL,
   lik_args = list(),
+  optimizer_args = list(),
   hold_out_same_gene_samples = "auto",
-  groups = NULL,
   cores = 1,
   conf = 0.95
 )
@@ -46,11 +46,12 @@ c("III", "IV")))` for an early vs. late analysis).}
 
 \item{lik_args}{Extra arguments, given as a list, to pass to custom likelihood functions.}
 
+\item{optimizer_args}{Named list of arguments to pass to the optimizer, bbmle::mle2. Use, for example,
+to choose optimization algorithm or parameter boundaries on custom models.}
+
 \item{hold_out_same_gene_samples}{When finding likelihood of each variant, hold out samples that
 lack the variant but have any other mutations in the same gene. By default, TRUE when running
 with single variants, FALSE with a CompoundVariantSet.}
-
-\item{groups}{Deprecated; use samples.}
 
 \item{cores}{Number of cores to use for processing variants in parallel (not useful for Windows
 systems).}

@@ -5,7 +5,8 @@ Patch releases (as in, x.y.1 &#8594; x.y.2) have minor bug fixes or small improv
 # cancereffectsizeR 2.8.0
 * plot_effects() visualize cancer effect inferences with custom labels, colors, variant groupings, and more; see website for examples.
 * make_PathScore_input() converts MAF data into an input file for PathScore, a web tool that identifies significantly mutated pathways in cancer. See https://pathscore.publichealth.yale.edu/.
-* Various small fixes.
+* ces_variant() gains the argument optimizer_args, giving you precise control over how
+selection models are fit. This is intended for use with custom models of selection.
 
 # cancereffectsizeR 2.7.0
 * mutational_signature_effects() identifies the relative contributions of mutational signatures to mutation burden and cancer effect, within samples and across cohorts.

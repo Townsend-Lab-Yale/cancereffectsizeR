@@ -41,6 +41,7 @@
 #' @param title Main title for the plot (by default, no title)
 #' @param x_title Text for the X-axis label.
 #' @param y_title Text for the Y-axis label.
+#' @return A ggplot
 #' @export
 plot_effects = function(effects, topn = 30, group_by = 'variant',
                         title = '',
@@ -106,6 +107,11 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
   
   missing_cols = setdiff(required_cols, names(effects))
   if(length(missing_cols) > 0) {
+    if(identical(missing_cols, 'held_out')) {
+      msg('Column held_out is missing from effects table. This column was added to effects output in cancereffectsizeR v2.8.0. ',
+          'If you are trying to use effects loaded from an older analysis, the solution is to re-run the ces_variant() call.')
+      warning(pretty_message(msg, emit = F))
+    }
     stop("Missing required columns in effects table: ", paste(missing_cols, collapse = ', '), '.')
   }
   

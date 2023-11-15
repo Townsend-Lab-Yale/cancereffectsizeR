@@ -83,6 +83,9 @@ has the same number of samples covering every inference, you can choose "both".}
 
 \item{show_ci}{TRUE/FALSE to depict confidence intervals in plot (default TRUE).}
 }
+\value{
+A ggplot
+}
 \description{
 Visualize and compare cancer effects for variants of interest.
 }
