@@ -313,9 +313,6 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
       }
 
     } else {
-      if(! color_by %in% colors()) {
-        stop("Invalid color_by: not a recognized R color.")
-      }
       effects$point_fill = color_by
       use_fill_identity = TRUE
     }
@@ -346,7 +343,7 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
   
   # When just one variant per row, dashed lines go to lower CI. With multiple variants, we'll 
   # do the dashed line all the way across
-  if(effects[, .N, by = 'variant_group'][, unique(N)] == 1) {
+  if(identical(as.integer(effects[, .N, by = 'variant_group'][, unique(N)]), 1L)) {
     effects[, dash_end := ci_low_95]
   } else {
     effects[, dash_end := Inf] # to end of visible plot
@@ -373,7 +370,8 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
     geom_point(shape = 21, color = 'gray20', aes(size = prevalence, fill = point_fill), na.rm = T,
                position = position_nudge(x = 0, y = effects$y_nudge)) +
     scale_x_log10(expand = expansion(mult = c(.01, .05)), labels = x_labeler) + 
-    scale_y_discrete(limits = unique(effects$variant_group), labels = unique(effects$variant_group_label))  +
+    scale_y_discrete(limits = unique(effects$variant_group), labels = unique(effects$variant_group_label),
+                     expand = expansion(add = 1))  +
     labs(title = title, x = x_axis_title, y = y_axis_title) +
     theme(axis.title.x = element_text(margin = margin(6, 0, 6, 0)),
           axis.title.y = element_text(margin = margin(0, 6, 0, 6)),
