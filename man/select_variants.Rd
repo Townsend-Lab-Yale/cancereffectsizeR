@@ -24,8 +24,8 @@ select_variants(
 Note that variants that are not in the annotation tables will never be returned. Use
 \code{add_variants()} to include variants absent from MAF data in your CESAnalysis.}
 
-\item{variant_ids}{Vector of variant IDs to include in output. Exactly the specified variants
-will be returned. Cannot be combined with other filtering arguments.}
+\item{variant_ids}{Filter out any variants besides those specified. (Variants specified here can
+still get removed by other filters.)}
 
 \item{type}{Vector of variant types to include, such as "sbs" or "aac".}
 

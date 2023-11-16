@@ -43,8 +43,8 @@
 #' @param min_freq Filter out variants with MAF frequency below threshold (default 0).
 #'   Note that variants that are not in the annotation tables will never be returned. Use
 #'   \code{add_variants()} to include variants absent from MAF data in your CESAnalysis.
-#' @param variant_ids Vector of variant IDs to include in output. Exactly the specified variants
-#'   will be returned. Cannot be combined with other filtering arguments.
+#' @param variant_ids Filter out any variants besides those specified. (Variants specified here can
+#'   still get removed by other filters.)
 #' @param type Vector of variant types to include, such as "sbs" or "aac".
 #' @param gr Filter out any variants not within input GRanges +/- \code{padding} bases.
 #' @param variant_position_table Filter out any variants that don't intersect the
