@@ -25,9 +25,17 @@ get_refset_dirs = function() {
 get_ref_data = function(data_dir_or_cesa, datatype) {
   data_dir = data_dir_or_cesa
   if (is(data_dir_or_cesa, "CESAnalysis")) {
+    # Usually, the data should already be loaded into the package environment
+    if(data_dir_or_cesa@ref_key %in% ls(.ces_ref_data)) {
+      cached_data = .ces_ref_data[[data_dir_or_cesa@ref_key]][[datatype]]
+      if(! is.null(cached_data)) {
+        return(cached_data)
+      }
+    }
     data_dir = data_dir_or_cesa@ref_data_dir
   }
   path = paste0(data_dir, "/", datatype, ".rds")
+  
   if (check_for_ref_data(data_dir_or_cesa, datatype)) {
     return(readRDS(path))
   } else {

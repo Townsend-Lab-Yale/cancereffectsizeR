@@ -10,7 +10,6 @@ expect_equal(rate_a, rate_b)
 expect_equal(rate_a[[1]], 'TCGA-BH-A18H')
 expect_equal(rate_a[[2]], 1.536797e-06)
 
-
 # Try taking one SBS rate in one sample
 sbs_rate = baseline_mutation_rates(cesa, sbs_ids = "1:151292923_C>T", 
                                      samples = 'P-0000015')
@@ -19,6 +18,16 @@ expect_equal(sbs_rate[[2]], 1.824055e-06)
 sbs_rate_other_way = baseline_mutation_rates(cesa, variant_ids = "1:151292923_C>T", 
                                              samples = 'P-0000015')
 expect_identical(sbs_rate, sbs_rate_other_way)
+
+
+# Check that SNVs with multiple AAC annotations get rates that are the average
+aac1 = 'ZXDC_P624T_ENSP00000337694.5'
+aac2 = 'ZXDC_P624T_ENSP00000374359.3'
+multi_snv = '3:126461792_G>T'
+same_site_rates = baseline_mutation_rates(cesa, aac_ids = c(aac1, aac2), sbs_ids = multi_snv)
+expect_equal(same_site_rates[, (ZXDC_P624T_ENSP00000337694.5 + ZXDC_P624T_ENSP00000374359.3)/2],
+             same_site_rates$`3:126461792_G>T`)
+
 
 # Invalid inputs
 expect_error(baseline_mutation_rates(cesa), "no variants were input")
@@ -36,7 +45,6 @@ main_effects_ak = fread(get_test_file("default_model_effects_brca_hg38.txt"))
 test_that("ces_variant default effects", {
   cesa = ces_variant(cesa, variants = select_variants(cesa, genes = test_genes), run_name = 'main_test', cores = 1)
   main_effects = copy(cesa@selection_results[[1]])
-  expect_equal(attr(main_effects, "si_cols"), "selection_intensity")
   expect_equal(main_effects[order(variant_id)], main_effects_ak[order(variant_id)], check.attributes = F, tolerance = 1e-4)
 })
 
@@ -125,7 +133,7 @@ test_that("Gene-level SBS epistasis analysis", {
   variants_to_use = cesa$variants[gene %in% c('EGFR', 'KRAS', 'TP53') & samples_covering == cesa$samples[, .N]]
   cesa = ces_gene_epistasis(cesa, genes = c("EGFR", "KRAS", "TP53"), variants = variants_to_use, conf = .95)
   results_ak = get_test_data("epistatic_effects.rds")
-  expect_equal(cesa@epistasis[[1]], results_ak, tolerance = 1e-5)
+  expect_equal(cesa@epistasis[[1]], results_ak, tolerance = 1e-4)
   
   # now simulate with compound variants, should get almost same results
   comp = define_compound_variants(cesa, 

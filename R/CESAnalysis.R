@@ -255,7 +255,7 @@ load_cesa = function(file) {
   }
   
   
-  if (cesa_version < as.package_version('3.0.0')) {
+  if (cesa_version < as.package_version('3.0.0') && cesa_version != as.package_version('2.7.9000')) {
     msg = paste0('This analysis was created using an old version of cancereffectsizeR (prior to version 3.0). ',
                  "You're running v", ces_version, ". A summary of the analysis in list format has been loaded for your reference. ",
                  "Re-run your analysis scripts with the latest release if you want to continue the project.")
@@ -540,11 +540,15 @@ epistasis_results = function(cesa = NULL) {
 #' genome. Optionally, also applies padding to start and end positions of ranges, stopping
 #' at chromosome ends. Either stops with an error or returns a clean granges object.
 #' 
-#' @param cesa CESAnalysis
+#' @param cesa CESAnalysis; required unless refset_env is supplied directly.
 #' @param gr GRanges object
 #' @param padding How many bases to expand start and end of each position
+#' @param refset_env A reference data set environment. Required if cesa is not specified.
+#' @param reduce_sort_strip Unstrands and calls reduce(gr)  which also drops all metadata columns,
+#'   and then sorts the final gr. Default TRUE; use FALSE to preserve original gr structure.
 #' @keywords internal
-clean_granges_for_cesa = function(cesa = NULL, gr = NULL, padding = 0, refset_env = NULL) {
+clean_granges_for_cesa = function(cesa = NULL, gr = NULL, padding = 0, refset_env = NULL,
+                                  reduce_sort_strip = TRUE) {
   if(is.null(cesa)) {
     bsg = refset_env$genome
     supported_chr = refset_env$supported_chr
@@ -567,7 +571,7 @@ clean_granges_for_cesa = function(cesa = NULL, gr = NULL, padding = 0, refset_en
     warning = function(w) {
       if (grepl("more than one best sequence renaming map", conditionMessage(w))) {
         invokeRestart("muffleWarning")
-      } else if(grepl("cannot switch some of.*to .*style", conditionMessage(w))) {
+      } else if(grepl("cannot switch some .*to .*style", conditionMessage(w))) {
         invokeRestart("muffleWarning")
       }
     }        
@@ -589,12 +593,16 @@ clean_granges_for_cesa = function(cesa = NULL, gr = NULL, padding = 0, refset_en
     stop(conditionMessage(w))
   })
   
-  # drop any metadata
-  GenomicRanges::mcols(gr) = NULL
   
-  # sort, reduce, unstrand
-  gr = GenomicRanges::reduce(GenomicRanges::sort(gr), drop.empty.ranges = T)
-  GenomicRanges::strand(gr) = "*"
+  if(reduce_sort_strip) {
+    # drop any metadata
+    GenomicRanges::mcols(gr) = NULL
+    
+    # sort, reduce, unstrand
+    gr = GenomicRanges::reduce(GenomicRanges::sort(gr), drop.empty.ranges = T)
+    GenomicRanges::strand(gr) = "*"
+  }
+
   
   # require genome name to match the reference genome (too many potential errors if we allow anonymous or mismatched genome)
   expected_genome = GenomeInfoDb::genome(bsg)[1]

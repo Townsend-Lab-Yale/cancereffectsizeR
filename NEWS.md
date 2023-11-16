@@ -7,6 +7,12 @@ Patch releases (as in, x.y.1 &#8594; x.y.2) have minor bug fixes or small improv
 * select_variants() and variant_counts() are simpler and more powerful.
 * Breaking changes: Pre-3.0 analyses can only be loaded in a read-only summary format. Some table column names and function arguments have changed throughout the package, so scripts may need to be updated.
 
+# cancereffectsizeR 2.8.0
+* plot_effects() visualizes cancer effect inferences with custom labels, colors, variant groupings, and more; see website for examples.
+* make_PathScore_input() converts MAF data into an input file for PathScore, a web tool that identifies significantly mutated pathways in cancer. See https://pathscore.publichealth.yale.edu/.
+* ces_variant() gains the argument optimizer_args, giving you precise control over how
+selection models are fit. This is intended for use with custom models of selection.
+
 # cancereffectsizeR 2.7.0
 * mutational_signature_effects() identifies the relative contributions of mutational signatures to mutation burden and cancer effect, within samples and across cohorts.
 * Epistatic effect inferences now report p-values for overall significance of epistatic effects (over a null model of no epistasis) and significance of epistatic effects for each variant/gene in tested pairs. Additionally, output has been beautified with clearer column names and additional documentation.

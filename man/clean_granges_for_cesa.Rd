@@ -4,14 +4,25 @@
 \alias{clean_granges_for_cesa}
 \title{clean_granges_for_cesa}
 \usage{
-clean_granges_for_cesa(cesa = NULL, gr = NULL, padding = 0, refset_env = NULL)
+clean_granges_for_cesa(
+  cesa = NULL,
+  gr = NULL,
+  padding = 0,
+  refset_env = NULL,
+  reduce_sort_strip = TRUE
+)
 }
 \arguments{
-\item{cesa}{CESAnalysis}
+\item{cesa}{CESAnalysis; required unless refset_env is supplied directly.}
 
 \item{gr}{GRanges object}
 
 \item{padding}{How many bases to expand start and end of each position}
+
+\item{refset_env}{A reference data set environment. Required if cesa is not specified.}
+
+\item{reduce_sort_strip}{Unstrands and calls reduce(gr)  which also drops all metadata columns,
+and then sorts the final gr. Default TRUE; use FALSE to preserve original gr structure.}
 }
 \description{
 Tries to format an input GRanges object to be compatible with a CESAnalysis reference

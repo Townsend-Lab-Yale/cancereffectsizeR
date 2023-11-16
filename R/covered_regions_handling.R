@@ -253,7 +253,7 @@ update_covered_in = function(cesa) {
     # Record variants that aren't covered anywhere (from generic whole-genome data)
     uncovered_variants = data.table(variant_id = setdiff(c(variant_gr$variant_id, aac_key$aac_id), variants_to_cov$variant_id))
     uncovered_variants[, cov := .(list(character()))]
-    variants_to_cov = rbind(variants_to_cov, uncovered_variants) # entries till be NULL
+    variants_to_cov = rbind(variants_to_cov, uncovered_variants) # entries will be NULL
     variants_to_cov = setNames(variants_to_cov$cov, variants_to_cov$variant_id)
     
     cov_to_variants = cov_table[, .(variants = list(variant_id)), by = 'cov_name']

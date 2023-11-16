@@ -48,16 +48,15 @@ setwd('CES_tutorial')
 ## Quickstart
 
 ### Theoretical overview
-Very briefly, we extract mutational signatures from each sample's SNV mutation profile using  [MutationalPatterns](https://bioconductor.org/packages/release/bioc/html/MutationalPatterns.html). The relative weights of biologically associated signatures are used to infer trinucleotide-context-specific relative rates of SNV mutations for each sample. Cohort-wide neutral gene mutation rates are calculated with [dNdScv](https://github.com/im3sanger/dndscv), with tissue-specific covariates provided by `ces.refset.hg38`. Combining this information, the rate of neutral mutation at a particular variant site is calculated by partitioning the gene mutation rate across all sites in the gene in accordance with the signature-informed relative rates. Comparing rates of observed and expected mutation under a model of somatic selection allows an inference of selection intensity, which we call cancer effect size.
+Very briefly, we extract mutational signatures from each sample's SNV mutation profile using  [MutationalPatterns](https://bioconductor.org/packages/release/bioc/html/MutationalPatterns.html). The relative weights of biologically associated signatures are used to infer trinucleotide-context-specific relative rates of SNV mutations for each sample. Cohort-wide neutral gene mutation rates are calculated with [dNdScv](https://github.com/im3sanger/dndscv), with tissue-specific covariates provided by `ces.refset.hg38`. Combining this information, the rate of neutral mutation at a particular variant site is calculated by partitioning the gene mutation rate across all sites in the gene in accordance with the signature-informed relative rates. Comparing rates of observed and expected mutation under a model of somatic selection allows inference of scaled selection coefficients, which we also call cancer effects.
 
 ### Example: Lung adenocarcinoma data from TCGA
-If you want to skip all the details and run through a no-frills cancereffectsizeR analysis now, see below. Otherwise, take a peek to get a sense of what's to come, or keep reading for a more thorough walkthrough.
+If you want to skip all the details and run through a no-frills cancereffectsizeR analysis, here's the quickstart:
 
 <details><summary>(Show/hide quickstart)</summary>
 ```{r}
 library(cancereffectsizeR)
 library(data.table)
-library(ggplot2)
 
 # Download TCGA lung adenocarcinoma (LUAD) somatic variant data.
 tcga_maf_file = 'TCGA-LUAD.maf.gz'
@@ -83,40 +82,13 @@ cesa = gene_mutation_rates(cesa, covariates = ces.refset.hg38$covariates$lung)
 
 # Infer scaled selection coefficients under the default model of clonal selection.
 # By default, inference is restricted to recurrent mutations.
-cesa = ces_variant(cesa)
+cesa = ces_variant(cesa, run_name = 'example')
 
-# Take top 15 variants, then sort lowest to highest (to plot left to right)
-selection = cesa$selection[[1]]
-top = selection[order(-selection_intensity)][1:15]
-top = top[order(selection_intensity)]
+# Visualize top-effect variants.
+plot_effects(effects = cesa$selection$example, color_by = '#DB382D', topn = 20)
 
-# Plot top effects
-top[, display_name := gsub('_', "\n", variant_name)]
-top[, display_levels := factor(display_name, levels = display_name, ordered = T)]
-plot_title = 'Top cancer effects in TCGA LUAD'
-breaks = unique(as.numeric(round(quantile(top$included_with_variant))))
+# See the full tutorial for more details and a broader view of functionality!
 
-ggplot(top, aes(x = display_levels, y = selection_intensity)) + 
-  geom_errorbar(aes(ymin = ci_low_95, ymax = ci_high_95), width = .2, color = 'darkgrey') +
-  geom_point(aes(color = included_with_variant), size = 3) + 
-  scale_x_discrete() + scale_y_log10(labels = function(x) format(x, big.mark = ",", scientific = F)) + 
-  scale_color_viridis_c(name = 'variant prevalence', guide = 'colorbar', trans = 'log10', 
-                        option = 'plasma', breaks = breaks) +
-  xlab(element_blank()) +
-  ylab(expression('cancer effect'~scriptstyle(~~(log[10])))) +
-  ggtitle(plot_title) +
-  guides(color = guide_colourbar(ticks = FALSE)) + 
-  theme_minimal() + 
-  theme(text = element_text(family = "Verdana"),
-        axis.title.x = element_text(size = 14), 
-        axis.text.x = element_text(size = 8),
-        legend.position = 'bottom',
-        legend.title = element_text(size = 10),
-        panel.grid.major.x = element_blank(),
-        panel.grid.minor.x = element_blank())
-
-# There's lots more that can be done with cancereffectsizeR! See the full tutorial for some
-# useful details and a broader view of functionality.
 ```
 
 ```{r echo = F, eval = T}
@@ -193,9 +165,9 @@ cesa = CESAnalysis(refset = "ces.refset.hg38")
 cesa = load_maf(cesa = cesa, maf = tcga_maf, maf_name = 'BRCA')
 ```
 
-You will see a message that some variants fall outside of the refset's exome definitions. Since we don't know exactly what exome capture techniques were used for the BRCA project (probably different methods at different study sites), this isn't unexpected. (On the off chance that you do know the exact exome capture intervals of whatever data you're using, you should supply those intervals with `load_maf()`'s `covered_regions` argument. For WGS data, simply set `coverage = "genome"`.)
+You will see a message that some variants fall outside of the refset's exome definitions. Since we don't know exactly what exome capture techniques were used for the BRCA project (probably different methods at different study sites), this isn't unexpected. When you do know the exact exome capture intervals of whatever data you're using, you should supply those intervals with `load_maf()`'s `covered_regions` argument. For WGS data, set `coverage = "genome"`.
 
-To navigate a CESAnalysis, use the dollar sign ($). We can use these accessors to look at the MAF data as well more detailed variant annotations, and if we want we can perform various filtering operations, such as identifying the most prevalent variants in the loaded data.
+To navigate a CESAnalysis, use the dollar sign ($). We can use these accessors to look at the MAF data as well as more detailed variant annotations, and if we want we can perform various filtering operations, such as identifying the most prevalent variants in the loaded data.
 ```{r}
 cesa$maf
 cesa$variants
@@ -209,20 +181,6 @@ Let's load the clinical data into the analysis, too.
 ```{r}
 cesa = load_sample_data(cesa, tcga_clinical)
 ```
-
-Now that we've loaded the sample data, we can, for example, see how variant counts break down across different sample groups. Let's see a breakdown PIK3CA mutation status by BRCA receptor phenotype.
-```{r}
-# Get samples with 1 or more PIK3CA mutation
-samples_with_pik3ca = cesa$maf[top_gene == "PIK3CA", unique(Unique_Patient_Identifier)]
-pik3ca_sample_counts = cesa$samples[samples_with_pik3ca, .(with_PIK3CA = .N),
-                                    by = 'receptor_status', on = 'Unique_Patient_Identifier']
-total_sample_counts = cesa$samples[, .N, by = 'receptor_status']
-combined_counts = merge.data.table(pik3ca_sample_counts, total_sample_counts, by = 'receptor_status')
-combined_counts[, freq := with_PIK3CA / N]
-combined_counts
-```
-PIK3CA mutation is least prevalent in triple negative breast cancer.
-
 
 ### Load targeted gene sequencing data
 To load our TGS data, we need to be able to define its coverage. Why? To estimate the selection of a mutation, we need to know which samples have the mutation, which samples do not, and which are unknown due to lack of sequencing coverage. Our TGS samples were sequenced with multiple panels covering different genes, and unfortunately, the exact coverage (defined by genomic coordinates) is not publicly available for all of these. Therefore, for simplicity, we will filter the TGS data to mutations at a handful of top cancer genes that are covered in all of the panels. When we load the data, all records outside of these genes will be excluded, leaving us with greater power to infer selection in these genes without impacting our estimates outside these genes, which will use just the TCGA data. (As mentioned earlier, we shouldn't filter WXS/WGS data this way, since it would interfere with mutation rate calculation, but TGS samples are not involved in mutation rate calculation.)
@@ -243,13 +201,6 @@ tgs_maf$pM = 'M1'
 cesa = load_maf(cesa, maf = tgs_maf, sample_data_cols = 'pM', maf_name = 'MBC',
                 coverage = 'targeted', covered_regions = tgs_coverage, 
                 covered_regions_name = 'top_genes', covered_regions_padding = 10)
-```
-
-Now that all the data is loaded, we'll show one data-wrangling example: Let's look at variant prevalence by metastatic disease status. By default, the `variant_counts()` function considers all mutations, but we'll subset to recurrent mutations.
-```{r}
-counts_by_M = variant_counts(cesa = cesa, variant_ids = cesa$variants[maf_prevalence > 1, variant_id],
-                             by = 'pM')
-counts_by_M[M1_prevalence > 0][order(-M1_prevalence)]
 ```
 
 ## Mutational processes and relative mutation rates
@@ -273,34 +224,6 @@ The `trinuc_mutation_rates()` run has added some useful information to the CESAn
 * **biological_weights**: The proportion of mutations attributed to each biologically-associated signature within each sample. Mutations attributed to signatures associated with sequencing/processing artifacts are left out. (Technical detail: Due to the instability of signature attributions on samples with few mutations, Samples with few MAF variants have their weights adjusted towards group-average weights, as indicated in the `group_avg_blended` column. If you want to make claims about subgroup differences in mutational processes, consider leaving these samples out or using the raw attributions. You should also leave out the TGS samples, which in this analysis are treated as having 0 mutations.)
 * **trinuc_rates**: Inferred relative rates of mutation, produced by matrix-multiplying biological_weights and signature definitions. (These rates will not equal empirical rates of observed mutations.)
 
-While we're here, MutationalPatterns has some nice plot functions that we can use. For example, we can plot the mean SNV profile for each BRCA receptor subtype. (We would want to exclude TGS samples in this plot because cancer hotspot mutations are not reflective of overall mutational processes, but our TGS samples lack receptor_status information, so they will already be left out without having to specifically exclude them.)
-
-```{r eval = T, include = F}
-snv_counts = readRDS(system.file("tutorial/BRCA_snv_counts.rds", package = 'cancereffectsizeR'))
-cesa = list(samples = readRDS(system.file("tutorial/BRCA_cesa_samples.rds", package = 'cancereffectsizeR')))
-```
-
-```{r}
-snv_counts = cesa$mutational_signatures$snv_counts
-```
-```{r eval = T}
-# Counts look like this:
-snv_counts[1:5, c("TCGA-A2-A1FW", "TCGA-C8-A1HL", "TCGA-EW-A1P5", "TCGA-C8-A1HM", "TCGA-AN-A0FN")]
-
-# We'll sum up the counts by group, leaving out a sample that has no SNVs.
-summed_snv_by_group = data.table()
-receptor_groups = unique(na.omit(cesa$samples$receptor_status))
-samples_with_snvs = cesa$samples[colnames(snv_counts), on = "Unique_Patient_Identifier"]
-for (grp in receptor_groups) {
-  curr_samples = samples_with_snvs[grp, Unique_Patient_Identifier, on = 'receptor_status']
-  curr_snv_sum = rowSums(snv_counts[, curr_samples])
-  summed_snv_by_group[, (grp) := curr_snv_sum]
-}
-summed_snv_by_group = as.matrix(summed_snv_by_group)
-rownames(summed_snv_by_group) = rownames(snv_counts)
-MutationalPatterns::plot_96_profile(summed_snv_by_group)
-```
-
 ## Gene mutation rates
 Next, we'll use `gene_mutation_rates()` to estimate regional rates of mutation in the absence of selection. We'll use the method provided in the dNdScv package, which uses dN/dS ratios and mutation rate covariates. Our refset has pre-computed covariates for a variety of tissue types. As with mutational processes, this analysis will not use the TGS samples, but the calculated rates will be assumed to hold for them.
 ```{r}
@@ -319,14 +242,14 @@ cesa = list(gene_rates = readRDS(system.file("tutorial/BRCA_cesa_gene_rates.rds"
 head(cesa$gene_rates)
 ```
 
-We can also look at dNdScv's identification of selection at the gene level. We'll filter results to q < .05. Since ces.refset.hg38 covers multiple isoforms for some genes, the dNdScv output is actually per protein, not per gene, so we'll  take the extra step of showing just the lowest q-value for each significant gene.
+We can also look at dNdScv's identification of selection at the gene level. We'll filter results to q < .05. Since ces.refset.hg38 covers multiple isoforms for some genes, the dNdScv output is actually per protein, not per gene, so we'll take the extra step of showing just the lowest q-value for each significant gene.
 
 ```{r eval = T}
 dndscv_results = cesa$dNdScv_results[[1]]
 sig_genes = dndscv_results[qallsubs_cv < .05]
 
 # Take lowest q-value record for each gene, and sort by significance.
-sig_genes = sig_genes[, .SD[which.min(qallsubs_cv)], by = 'gene'][order(qallsubs_cv)]
+sig_genes = sig_genes[, .SD[which.min(qallsubs_cv)], by = 'gene'][order(qallsubs_cv)][1:10]
 ```
 
 ```{r eval = T, echo = F}
@@ -362,43 +285,9 @@ We can use our estimated rates and the MAF variant data to infer scaled selectio
 cesa = ces_variant(cesa = cesa, run_name = 'recurrents')
 ```
 
-Let's visualize the most selected variants. The following should be fairly adaptable for a variety of data sets.
+Let's visualize the most selected variants with `plot_effects()`.
 ```{r}
-library(ggplot2)
-
-# Extract selection results from CESAnalysis and take top variants for visualization
-top = cesa$selection$recurrents
-top = top[order(-selection_intensity)][1:20] # take top 20 by SI
-top = top[order(selection_intensity)] # will plot lowest to highest (left to right)
-
-# Make variant names pretty for use in plot labels
-top[, display_name := gsub('_', "\n", variant_name)]
-top[, display_levels := factor(display_name, levels = display_name, ordered = T)]
-
-plot_title = 'Top cancer effects in breast carcinoma (CES tutorial data)'
-n.dodge = 2 # can reduce to 1 if labels happen to still fit (e.g., if plotting fewer variants)
-
-# May need to play with breaks for colorbar legibility
-breaks = unique(as.numeric(round(quantile(top$included_with_variant, probs = c(0, .5, .75, 1)))))
-
-ggplot(top, aes(x = display_levels, y = selection_intensity)) + 
-  geom_errorbar(aes(ymin = ci_low_95, ymax = ci_high_95), width = .2, color = 'darkgrey') +
-  geom_point(aes(color = included_with_variant), size = 3) + 
-  scale_x_discrete(guide = guide_axis(n.dodge = n.dodge)) + scale_y_log10() + 
-  scale_color_viridis_c(name = 'variant prevalence', guide = 'colorbar', trans = 'log10', 
-                        option = 'plasma', breaks = breaks) +
-  xlab(element_blank()) +
-  ylab(expression('cancer effect'~scriptstyle(~~(log[10])))) +
-  ggtitle(plot_title) +
-  guides(color = guide_colourbar(ticks = FALSE)) + 
-  theme_minimal() + 
-  theme(text = element_text(family = "Verdana"),
-        axis.title.x = element_text(size = 14), 
-        axis.text.x = element_text(size = 8),
-        legend.position = 'bottom',
-        legend.title = element_text(size = 10),
-        panel.grid.major.x = element_blank(),
-        panel.grid.minor.x = element_blank())
+plot_effects(effects = cesa$selection$recurrents)
 ```
 
 ```{r eval = T, echo = F}
@@ -406,6 +295,17 @@ readRDS(paste0(tutorial_dir, '/top_BRCA_effects.rds'))
 ```
 
 _PIK3CA_ and _ESR1_ variants take many of the top spots. The deconvolution of mutation rate from selection has revealed that some relatively low-prevalence variants have high effects. Interestingly, according to dNdScv, mutation in _ESR1_ at the gene level was not significantly greater than neutral in the TCGA cohort of primary tumors. The incorporation of metastatic TGS data and cancereffectsizeR's assessment of selection at variant-level resolution confirm _ESR1_'s importance.
+
+Here's a look at the effects of all recurrent variants across some of the highest-effect genes.
+```{r}
+top_genes = cesa$selection$recurrents[order(-selection_intensity), unique(gene)][1:10]
+plot_effects(cesa$selection$recurrents[gene %in% top_genes], group_by = 'gene',
+             label_individual_variants = FALSE)
+```
+
+```{r eval = T, echo = F}
+readRDS(paste0(tutorial_dir, '/BRCA_effects_in_top_genes.rds'))
+```
 
 ### More options
 By default, all recurrent variants (variants that appear at least twice in MAF data) are included in a `ces_variant()` run. As demonstrated, the `variants` argument can be used to specify which variants to test. Variants with prevalences of 1 or even 0 (perhaps helpful to establish an effect ceiling) can be included: `variants = cesa$variants` will include all annotated mutations in the analysis. Note that most single-hit variants will have over-estimated effects because most are probably neutral passengers, and the occurrence of any non-selected variant is inherently improbable.
@@ -436,7 +336,7 @@ cesa$epistasis$variant_epistasis_example
 readRDS(paste0(tutorial_dir, '/variant_ep_example.rds'))
 ```
 
-Confidence intervals tend to be wide in epistatic analyses. Even with the most prevalent somatic variants, both co-occurrence and mutual exclusivity can often be explained by chance. The output for PIK3CA E545K and E542K confirms the negative epistatic relationship that we would have expected given their mutual exclusivity in our data (and our knowledge of their biological effects). For E545K and AKT1 E17K, we see reduced selection for both after the acquisition of the other driver, but the confidence intervals leave open the possibility that selection for E545K is unaffected by AKT1 E17K status. (Additionally, the NA's on some of the lower bounds indicate that they fall below the lower limit of the optimization algorithm.)
+Confidence intervals tend to be wide in epistatic analyses. Even with the most prevalent somatic variants, both co-occurrence and mutual exclusivity can often be explained by chance. The output for PIK3CA E545K and E542K confirms the negative epistatic relationship that we would have expected given their mutual exclusivity in our data (and our knowledge of their biological effects). For E545K and AKT1 E17K, we see reduced selection for both after the acquisition of the other driver, but the confidence intervals leave open the possibility that selection for AKT1 E17K is unaffected by PIK3CA status. (Additionally, the NA's on some of the lower bounds indicate that they fall below the lower limit of the optimization algorithm.)
 
 ### Epistasis and CompoundVariantSets
 We can probe this PIK3CA/AKT1 relationship further if we assume that all prevalent PIK3CA mutations share the same epistatic relationship with AKT1 E17K. The `define_compound_variants()` feature lets us combine arbitrary variants into "compound variants" that are treated as if they were single variants by cancereffectsizeR's selection inference functions. (In brief, the mutation rate of the compound variant is equal to the sum of rates of constituent variants, and any sample with one or more of the constituent variants "has the compound variant.") Below, we define a CompoundVariantSet with two compound variants: All _PIK3CA_ variants with MAF prevalence > 1, and AKT E17K. We then pass the CompoundVariantSet to ces_epistasis(), which will test all pairs of compound variants (here, just the one pair).

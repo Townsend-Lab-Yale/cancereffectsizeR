@@ -13,8 +13,8 @@ ces_variant(
   ordering_col = NULL,
   ordering = NULL,
   lik_args = list(),
+  optimizer_args = list(),
   hold_out_same_gene_samples = "auto",
-  groups = NULL,
   cores = 1,
   conf = 0.95
 )
@@ -46,11 +46,12 @@ c("III", "IV")))` for an early vs. late analysis).}
 
 \item{lik_args}{Extra arguments, given as a list, to pass to custom likelihood functions.}
 
+\item{optimizer_args}{Named list of arguments to pass to the optimizer, bbmle::mle2. Use, for example,
+to choose optimization algorithm or parameter boundaries on custom models.}
+
 \item{hold_out_same_gene_samples}{When finding likelihood of each variant, hold out samples that
 lack the variant but have any other mutations in the same gene. By default, TRUE when running
 with single variants, FALSE with a CompoundVariantSet.}
-
-\item{groups}{Deprecated; use samples.}
 
 \item{cores}{Number of cores to use for processing variants in parallel (not useful for Windows
 systems).}
@@ -66,6 +67,16 @@ default model, a variant is assumed to have a consistent scaled selection coeffi
 effect) across all included samples.
 }
 \details{
+Definitions of the sample count columns in the effects output:
+\itemize{
+  \item included_with_variant: Number of samples that have the variant and were included in the inference.
+  \item included_total: Number of samples that have coverage at the site and were included in the inference.
+  \item held_out: Samples that have coverage at the site, but were held out of the inference due to \code{hold_out_same_gene_samples = TRUE}.
+  \item uncovered: Samples that were not included in the inference because their sequencing did not cover the variant site.
+ }
+Note that if a table of samples to include in the inference is specified with \code{samples}, any
+CESAnalysis samples not present in the table will not be included in any of the above accounts.
+
 It's possible to pass in your own selection model. You'll need to create a "function factory"
 that, for any variant, produces a likelihood function that can be evaluated on the data. The
 first two arguments must be \code{rates_tumors_with} and \code{rates_tumors_without}, which give the baseline

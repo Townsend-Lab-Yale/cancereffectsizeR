@@ -4,6 +4,16 @@
 #' default model, a variant is assumed to have a consistent scaled selection coefficient (cancer
 #' effect) across all included samples.
 #' 
+#' Definitions of the sample count columns in the effects output:
+#' \itemize{
+#'   \item included_with_variant: Number of samples that have the variant and were included in the inference.
+#'   \item included_total: Number of samples that have coverage at the site and were included in the inference.
+#'   \item held_out: Samples that have coverage at the site, but were held out of the inference due to \code{hold_out_same_gene_samples = TRUE}.
+#'   \item uncovered: Samples that were not included in the inference because their sequencing did not cover the variant site.
+#'  }
+#' Note that if a table of samples to include in the inference is specified with \code{samples}, any
+#' CESAnalysis samples not present in the table will not be included in any of the above accounts.
+#' 
 #' It's possible to pass in your own selection model. You'll need to create a "function factory"
 #' that, for any variant, produces a likelihood function that can be evaluated on the data. The
 #' first two arguments must be \code{rates_tumors_with} and \code{rates_tumors_without}, which give the baseline
@@ -32,16 +42,17 @@
 #'   models of selection, or supply a custom function factory (see details).
 #' @param run_name Optionally, a name to identify the current run.
 #' @param lik_args Extra arguments, given as a list, to pass to custom likelihood functions.
+#' @param optimizer_args Named list of arguments to pass to the optimizer, bbmle::mle2. Use, for example,
+#' to choose optimization algorithm or parameter boundaries on custom models.
+#' @param hold_out_same_gene_samples When finding likelihood of each variant, hold out samples that
+#'   lack the variant but have any other mutations in the same gene. By default, TRUE when running
+#'   with single variants, FALSE with a CompoundVariantSet.
 #' @param ordering_col For the (not yet available) sequential model (or possibly custom models),
 #'   the name of the sample table column that defines sample chronology.
 #' @param ordering For the (not yet available) sequential model (or possibly custom models), a
 #'   character vector or list defining the ordering of values in ordering_col. Use a list to assign
 #'   multiple values in ordering_col the same position (e.g., `list(early = c("I", "II), late =
 #'   c("III", "IV")))` for an early vs. late analysis).
-#' @param hold_out_same_gene_samples When finding likelihood of each variant, hold out samples that
-#'   lack the variant but have any other mutations in the same gene. By default, TRUE when running
-#'   with single variants, FALSE with a CompoundVariantSet.
-#' @param groups Deprecated; use samples.
 #' @return CESAnalysis object with selection results appended to the selection output list
 #' @export
 ces_variant <- function(cesa = NULL,
@@ -52,11 +63,28 @@ ces_variant <- function(cesa = NULL,
                         ordering_col = NULL,
                         ordering = NULL,
                         lik_args = list(),
+                        optimizer_args = list(),
                         hold_out_same_gene_samples = "auto",
-                        groups = NULL,
                         cores = 1,
                         conf = .95) 
 {
+  if(! is.numeric(cores) || length(cores) != 1 || cores - as.integer(cores) != 0 || cores < 1) {
+    stop('cores should be 1-length positive integer')
+  }
+  
+  
+  if (! is(optimizer_args, "list") || uniqueN(names(optimizer_args)) != length(optimizer_args)) {
+    stop("optimizer_args should a named list of arguments to pass.")
+  }
+  
+  reserved_args = c('minuslogl', 'start', 'vecpar')
+  if(any(reserved_args %in% names(optimizer_args))) {
+    msg = paste0('Optimizer arguments start, vecpar, and minuslogl cannot be changed here. ', 
+                 'If you are using a custom model, your likelihood function can declare these ',
+                 'values directly (see docs).')
+    stop(pretty_message(msg, emit = F))
+  }
+  
   if(! is(cesa, "CESAnalysis")) {
     stop("cesa should be a CESAnalysis.")
   }
@@ -129,9 +157,7 @@ ces_variant <- function(cesa = NULL,
   if(is.null(ordering_col) && ! is.null(ordering)) {
     stop("Use of ordering requires use of ordering_col")
   }
-  if (! is.null(ordering_col) && ! is.null(groups)) {
-    stop("groups is deprecated; use ordering_col/ordering (see docs).")
-  }
+
   
   samples = select_samples(cesa, samples)
   if(samples[, .N] < cesa@samples[, .N]) {
@@ -275,7 +301,7 @@ ces_variant <- function(cesa = NULL,
   tmp = unique(maf[, .(gene = unlist(genes)), by = "Unique_Patient_Identifier"])[, .(samples = list(Unique_Patient_Identifier)), by = "gene"]
   tumors_with_variants_by_gene = tmp$samples
   names(tumors_with_variants_by_gene) = tmp$gene
-  tumors_with_variants_by_gene = list2env(tumors_with_variants_by_gene)
+  #tumors_with_variants_by_gene = list2env(tumors_with_variants_by_gene)
   
   # identify mutations by sample
   sbs_aac_of_interest = cesa@mutations$aac_sbs_key[aac_ids, on = 'aac_id']
@@ -333,6 +359,7 @@ ces_variant <- function(cesa = NULL,
     i = i+1
     message(sprintf("Preparing to calculate cancer effects (batch %i of %i)...", i, num_coverage_groups))
     covered_samples = c(samples[coverage_group, Unique_Patient_Identifier, nomatch = NULL], genome_wide_cov_samples)
+    variants[curr_variants$variant_id, num_covered_and_in_samples := length(covered_samples), on = 'variant_id']
     
     if(length(covered_samples) == 0) {
       warning("Skipped batch ", i, " because no samples had coverage at the variant sites in the batch.")
@@ -360,8 +387,7 @@ ces_variant <- function(cesa = NULL,
       aac_ids = curr_subgroup[variant_type == "aac", variant_id]
       sbs_ids = curr_subgroup[variant_type == "sbs", variant_id]
       
-      baseline_rates = baseline_mutation_rates(cesa, aac_ids = aac_ids, sbs_ids = sbs_ids, samples = covered_samples, cores = cores)
-
+      baseline_rates = baseline_mutation_rates(cesa, aac_ids = aac_ids, sbs_ids = sbs_ids, samples = covered_samples)
       
       # function to run MLE on given variant_id (vector of IDs for compound variants)
       process_variant = function(variant_id) {
@@ -419,9 +445,16 @@ ces_variant <- function(cesa = NULL,
         names(par_init) = bbmle::parnames(fn)
         # find optimized selection intensities
         # the selection intensity for any stage that has 0 variants will be on the lower boundary; will muffle the associated warning
+        final_optimizer_args = c(list(minuslogl = fn, start = par_init, vecpar = T), optimizer_args)
+        default_args = list(method = 'L-BFGS-B', lower = 1e-3, upper = 1e9)
+        for(arg in names(default_args)) {
+          if(! arg %in% names(final_optimizer_args)) {
+            final_optimizer_args[[substitute(arg)]] = default_args[[substitute(arg)]]
+          }
+        }
         withCallingHandlers(
           {
-            fit = bbmle::mle2(fn, method="L-BFGS-B", start = par_init, vecpar = T, lower=1e-3, upper=1e9)
+            fit = do.call(bbmle::mle2, final_optimizer_args)
           },
           warning = function(w) {
             if (startsWith(conditionMessage(w), "some parameters are on the boundary")) {
@@ -445,18 +478,13 @@ ces_variant <- function(cesa = NULL,
                            as.list(selection_intensity),
                            list(loglikelihood = loglikelihood))
         
-        # need a catch here for when user supplies custom model,
-        # otherwise it breaks when checking model against a character string. 
-        # Right now, behavior is that if user supplies sample_index as NULL
-        # the selection inference is treated as not stage-specific 
-        if(is.character(model) | is.null(lik_args$sample_index)){
+        if(is.character(model) || is.null(lik_args$sample_index)){
           
           if(is.character(model)){
             if (model == 'basic') {
               # Record counts of total samples included in inference and included samples with the variant.
               # This may vary from the naive output of variant_counts() due to issues of sample coverage and 
               # (by default) the use of hold_out_same_gene_samples = TRUE.
-              
               
               num_samples_with = length(tumors_with_variant)
               num_samples_total = num_samples_with + length(tumors_without)
@@ -482,7 +510,7 @@ ces_variant <- function(cesa = NULL,
             
           }
           
-          if(is(model, "function") & is.null(lik_args$sample_index)){
+          if(is(model, "function") && is.null(lik_args$sample_index)){
             
             num_samples_with = length(tumors_with_variant)
             num_samples_total = num_samples_with + length(tumors_without)
@@ -492,10 +520,10 @@ ces_variant <- function(cesa = NULL,
           }
           
         }
-        
-        
         if(! is.null(conf)) {
-          variant_output = c(variant_output, univariate_si_conf_ints(fit, fn, .001, 1e20, conf))
+          variant_output = c(variant_output, 
+                             univariate_si_conf_ints(fit, fn, final_optimizer_args$lower, 
+                                                     final_optimizer_args$upper, conf))
         }
         return(variant_output)
       }
@@ -517,21 +545,31 @@ ces_variant <- function(cesa = NULL,
     setattr(selection_results, "is_compound", TRUE)
     setcolorder(selection_results, c("variant_name", "variant_type"))
   } else {
-    selection_results[variants, c("variant_type", "variant_name") := list(variant_type, variant_name), on = "variant_id"]
+    # Fill in top-priority gene for variants that are in coding regions or essential splice (or within 1 bp)
+    # Other variants will get NA gene.
+    selection_results[variants, c("variant_type", "variant_name", "gene", "intergenic") := 
+                        list(variant_type, variant_name, gene, intergenic), on = "variant_id"]
+    selection_results[intergenic == T, gene := NA]
+    selection_results$intergenic = NULL
     setattr(selection_results, "is_compound", FALSE)
-    setcolorder(selection_results, c("variant_name", "variant_type"))
+    setcolorder(selection_results, c("variant_name", "variant_type", "gene"))
     setcolorder(selection_results, c(setdiff(names(selection_results), 'variant_id'), 'variant_id'))
   }
+
   
-  # isolate selection columns for plotting functions (and maybe more, eventually)
-  ll_col_num = which(colnames(selection_results) == "loglikelihood")
-  si_cols = colnames(selection_results)[3:(ll_col_num - 1)]
-  setattr(selection_results, "si_cols", si_cols)
+  if(running_compound) {
+    num_eligible_by_comp = sapply(compound_variants$definitions, 
+                     function(x) variants[x, min(num_covered_and_in_samples)], USE.NAMES = TRUE)
+    selection_results[, held_out := num_eligible_by_comp[variant_name] - included_total]
+  } else {
+    selection_results[variants, held_out := num_covered_and_in_samples - included_total, on = 'variant_id']
+  }
+  selection_results[, uncovered := samples[, .N] - included_total - held_out]
   
   curr_results = list(selection_results)
   names(curr_results) = run_name
-  cesa@selection_results = c(cesa@selection_results, curr_results)
   
+  cesa@selection_results = c(cesa@selection_results, curr_results)
   return(cesa)
 }
 

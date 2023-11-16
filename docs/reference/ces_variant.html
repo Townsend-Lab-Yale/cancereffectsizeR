@@ -14,7 +14,7 @@ effect) across all included samples."><!-- mathjax --><script src="https://cdnjs
     
     <a class="navbar-brand me-2" href="../index.html">cancereffectsizeR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.7.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.8.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -78,8 +78,8 @@ effect) across all included samples.</p>
 <span>  ordering_col <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  ordering <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  lik_args <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  optimizer_args <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  hold_out_same_gene_samples <span class="op">=</span> <span class="st">"auto"</span>,</span>
-<span>  groups <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  cores <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  conf <span class="op">=</span> <span class="fl">0.95</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -129,14 +129,15 @@ c("III", "IV")))` for an early vs. late analysis).</p></dd>
 <dd><p>Extra arguments, given as a list, to pass to custom likelihood functions.</p></dd>
 
 
+<dt>optimizer_args</dt>
+<dd><p>Named list of arguments to pass to the optimizer, bbmle::mle2. Use, for example,
+to choose optimization algorithm or parameter boundaries on custom models.</p></dd>
+
+
 <dt>hold_out_same_gene_samples</dt>
 <dd><p>When finding likelihood of each variant, hold out samples that
 lack the variant but have any other mutations in the same gene. By default, TRUE when running
 with single variants, FALSE with a CompoundVariantSet.</p></dd>
-
-
-<dt>groups</dt>
-<dd><p>Deprecated; use samples.</p></dd>
 
 
 <dt>cores</dt>
@@ -156,7 +157,13 @@ systems).</p></dd>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>It's possible to pass in your own selection model. You'll need to create a "function factory"
+    <p>Definitions of the sample count columns in the effects output:</p><ul><li><p>included_with_variant: Number of samples that have the variant and were included in the inference.</p></li>
+<li><p>included_total: Number of samples that have coverage at the site and were included in the inference.</p></li>
+<li><p>held_out: Samples that have coverage at the site, but were held out of the inference due to <code>hold_out_same_gene_samples = TRUE</code>.</p></li>
+<li><p>uncovered: Samples that were not included in the inference because their sequencing did not cover the variant site.</p></li>
+</ul><p>Note that if a table of samples to include in the inference is specified with <code>samples</code>, any
+CESAnalysis samples not present in the table will not be included in any of the above accounts.</p>
+<p>It's possible to pass in your own selection model. You'll need to create a "function factory"
 that, for any variant, produces a likelihood function that can be evaluated on the data. The
 first two arguments must be <code>rates_tumors_with</code> and <code>rates_tumors_without</code>, which give the baseline
 site mutation rates in samples with and without the variant. The third argument must be

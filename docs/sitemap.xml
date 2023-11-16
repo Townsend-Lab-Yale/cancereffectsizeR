@@ -211,6 +211,9 @@
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/maf_records.html</loc>
   </url>
   <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/make_PathScore_input.html</loc>
+  </url>
+  <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/mutational_signature_effects.html</loc>
   </url>
   <url>
@@ -221,6 +224,9 @@
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/pairwise_variant_epistasis.html</loc>
+  </url>
+  <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/plot_effects.html</loc>
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/preload_maf.html</loc>
