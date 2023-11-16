@@ -235,7 +235,13 @@ load_cesa = function(file) {
   cesa@selection_results = lapply(cesa@selection_results, setDT)
   cesa@epistasis = lapply(cesa@epistasis, setDT)
   cesa@mutations$amino_acid_change = setDT(cesa@mutations$amino_acid_change, key = "aac_id")
-  cesa@mutations$sbs = setDT(cesa@mutations$sbs, key = "sbs_id")
+  
+  if(! is.null(cesa@mutations$sbs)) {
+    cesa@mutations$sbs = setDT(cesa@mutations$sbs, key = "sbs_id")
+  } else {
+    cesa@mutations$snv = setDT(cesa@mutations$snv, key = "snv_id")
+  }
+  
   
   if (! is.null(cesa@trinucleotide_mutation_weights[["signature_weight_table"]])) {
     cesa@trinucleotide_mutation_weights[["signature_weight_table"]] = setDT(cesa@trinucleotide_mutation_weights[["signature_weight_table"]])
@@ -249,9 +255,9 @@ load_cesa = function(file) {
   }
   
   
-  if (cesa_version < as.package_version('2.7.9000')) {
+  if (cesa_version < as.package_version('3.0.0')) {
     msg = paste0('This analysis was created using an old version of cancereffectsizeR (prior to version 3.0). ',
-                 "You're running v", ces_version, ". Loading a summary of the analysis in list format for your reference. ",
+                 "You're running v", ces_version, ". A summary of the analysis in list format has been loaded for your reference. ",
                  "Re-run your analysis scripts with the latest release if you want to continue the project.")
     warning(pretty_message(msg, emit = F))
     
