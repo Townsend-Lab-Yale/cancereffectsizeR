@@ -16,4 +16,5 @@ tmp.rds
 brca.maf.gz
 thca.maf.gz
 ucec.maf.gz
+untracked/*
 

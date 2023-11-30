@@ -188,7 +188,7 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
     if (using_pid) {
       region_by_snv = mutations$snv[snv_ids, .(region = unlist(nearest_pid)), by = "snv_id"]
     } else {
-      region_by_snv = mutations$snv[snv_ids, .(snv_id, region = unlist(genes)), by = "snv_id"]
+      region_by_snv = mutations$snv[snv_ids, .(region = unlist(genes)), by = "snv_id"]
     }
     sample_rates_snv = merge.data.table(trinuc_mut_by_snv, trinuc_by_sample, by = 'trinuc_mut', allow.cartesian = T)
     

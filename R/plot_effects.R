@@ -132,7 +132,7 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
     if(! group_by %in% names(effects)) {
       stop('Specified group_by column ', group_by, ' is not present in effects table.')
     }
-    setnames(effects, group_by, 'variant_group')
+    effects[, variant_group := effects[[group_by]]]
     if(! is.character(effects$variant_group) && ! is.factor(effects$variant_group)) {
       effects$variant_group = as.factor(effects$variant_group)
     }
@@ -149,6 +149,13 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
   }
   
   # Remove variants (or variant groups) outside of topn.
+  # Allow user to specificy topn = Inf in a variety of ways.
+  if(is.numeric(topn) && length(topn) == 1 && is.infinite(topn) && topn > 0) {
+    topn = NULL
+  }
+  if(length(topn) == 1 && is.na(topn)) {
+    topn = NULL
+  }
   if(! is.null(topn)) {
     if(! is.numeric(topn) || length(topn) != 1 || as.integer(topn) != topn) {
       stop('topn should be a positive integer.')
@@ -284,7 +291,7 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
     if(! y_label %in% names(effects)) {
       stop('Column ', y_label, ' does not exist in effects table.')
     }
-    setnames(effects, y_label, 'variant_group_label')
+    effects[, variant_group_label := effects[[y_label]]]
   }
   
   # Validate color specification
@@ -299,7 +306,7 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
                      "color_by that is both a column name and an R color.")
         stop(pretty_message(msg, emit = F))
       }
-      setnames(effects, color_by, 'point_fill')
+      effects[, point_fill := effects[[color_by]]]
       
       use_fill_identity = FALSE
       if(is.character(effects$point_fill)) {
@@ -443,7 +450,7 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
     
   } else if(is.character(label_individual_variants) && length(label_individual_variants) == 1 && 
             label_individual_variants %in% names(effects)) {
-    setnames(effects, label_individual_variants, 'individual_label')
+    effects[, individual_label := effects[[label_individual_variants]]]
     if(! is.character(effects$individual_label)) {
       msg = paste0('Column specified for label_individual_variants (', label_individual_variants, ') is not type character.')
       stop(pretty_message(msg, emit = F))
@@ -485,7 +492,7 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
     if(! color_label %in% names(effects)) {
       stop("color_label column ", color_label, ' not found in effects table.')
     }
-    setnames(effects, color_label, 'fill_label')
+    effects[, fill_label := effects[[color_label]]]
     if(! is.character(effects$fill_label)) {
       stop("color_label column ", color_label, ' is not type character.')
     }
