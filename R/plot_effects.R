@@ -235,7 +235,7 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
           next_break = ordered_prev[next_index]
           i = 1
           while(next_break/biggest_left > (1 + num_middle_breaks_left)/5 && 
-                next_index > 1) {
+                next_index > 1 && length(next_break) > 1) {
             next_break = ordered_prev[next_index - i]
             i = i + 1
           }
