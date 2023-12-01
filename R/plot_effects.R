@@ -108,7 +108,7 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
   missing_cols = setdiff(required_cols, names(effects))
   if(length(missing_cols) > 0) {
     if(identical(missing_cols, 'held_out')) {
-      msg('Column held_out is missing from effects table. This column was added to effects output in cancereffectsizeR v2.8.0. ',
+      msg = paste0('Column held_out is missing from effects table. This column was added to effects output in cancereffectsizeR v2.8.0. ',
           'If you are trying to use effects loaded from an older analysis, the solution is to re-run the ces_variant() call.')
       warning(pretty_message(msg, emit = F))
     }
