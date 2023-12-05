@@ -72,7 +72,8 @@ FALSE or to a single desired point size to turn of size scaling.}
 labeled when group_by is not 'variant'. Set FALSE to not label variants, or specify a column
 name that supplies a label for each row in the effects table. By default, variant names will be
 used for labels. If group_by is exactly "gene", labels will be shortened to just the amino acid
-changes.}
+changes. Some labels will be omitted (with a warning) if it seems there are too many to display
+in the plot space.}
 
 \item{order_by_effect}{When TRUE (default), variants are plotted in order of effect. When FALSE,
 variants are plotted top-down in the order they are supplied.}

@@ -557,14 +557,24 @@ ces_variant <- function(cesa = NULL,
   }
 
   
-  if(running_compound) {
-    num_eligible_by_comp = sapply(compound_variants$definitions, 
-                     function(x) variants[x, min(num_covered_and_in_samples)], USE.NAMES = TRUE)
-    selection_results[, held_out := num_eligible_by_comp[variant_name] - included_total]
+  if(hold_out_same_gene_samples == FALSE) {
+    selection_results[, held_out := 0]
   } else {
-    selection_results[variants, held_out := num_covered_and_in_samples - included_total, on = 'variant_id']
+    if('included_total' %in% names(selection_results)) {
+      if (running_compound) {
+        num_eligible_by_comp = sapply(compound_variants$definitions, 
+                                      function(x) variants[x, min(num_covered_and_in_samples)], USE.NAMES = TRUE)
+        selection_results[, held_out := num_eligible_by_comp[variant_name] - included_total]
+      } else {
+        selection_results[variants, held_out := num_covered_and_in_samples - included_total, on = 'variant_id']
+      }
+    }
   }
-  selection_results[, uncovered := samples[, .N] - included_total - held_out]
+  
+  if(all(c('held_out', 'included_total') %in% names(selection_results))) {
+    selection_results[, uncovered := samples[, .N] - included_total - held_out]
+  }
+  
   
   curr_results = list(selection_results)
   names(curr_results) = run_name

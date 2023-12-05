@@ -186,3 +186,24 @@ make_PathScore_input = function(maf, file = NULL, genome = 'hg38') {
   }
   return(output)
 }
+
+
+#' Get PathScore coding regions
+#' 
+#' Returns GRanges that represent the coding sequence (CDS) definitions used by PathScore. The hg19
+#' version was created by running liftOver on the hg38 intervals.
+#' 
+#' @param genome Genome build: Either "hg39" (default) or "hg19".
+#' @export
+get_PathScore_coding_regions = function(genome = 'hg38') {
+  if(identical(genome, 'hg38')) {
+    return(readRDS(system.file('PathScore/PathScore_CDS_ranges_hg38.rds', package = 'cancereffectsizeR')))
+  } else if(identical(genome, 'hg19')) {
+    return(readRDS(system.file('PathScore/PathScore_CDS_ranges_hg19.rds', package = 'cancereffectsizeR')))
+  } else {
+    stop("genome should be \"hg38\" or \"hg19\".")
+  }
+}
+
+
+

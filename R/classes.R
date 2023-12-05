@@ -163,6 +163,48 @@ setMethod("[", "CompoundVariantSet", function(x, i , j, ..., drop) {
              cesa_uid = x@cesa_uid, cesa_num_samples = x@cesa_num_samples))
 })
 
+setMethod("[[", "CompoundVariantSet", function(x, i , j, ..., drop) {
+  compounds = `[`(x@compounds, i, j, nomatch = NULL, ...)
+  sample_calls = x@sample_calls[compounds$compound_name]
+  snvs = x@snvs[compounds$compound_name, on = 'compound_name']
+  return(new("CompoundVariantSet", compounds = compounds, snvs = snvs, sample_calls = sample_calls,
+             cesa_uid = x@cesa_uid, cesa_num_samples = x@cesa_num_samples))
+})
+
+setMethod('names', "CompoundVariantSet", function(x) {
+  return(x@compounds$compound_name)
+})
+
+setMethod('names<-', "CompoundVariantSet", function(x, value) {
+  if(length(x) != length(value)) {
+    stop('Length mismatch on name assignment.')
+  }
+  if(is.numeric(value) || is.factor(value)) {
+    value = as.character(value)
+  }
+  if(! is.character(value)) {
+    stop('Names must be type character (or numeric/factor, which get converted to character).')
+  }
+  if(uniqueN(value) != length(value)) {
+    stop('Names must all be unique.')
+  }
+  if(any(sapply(value, nchar) < 1)) {
+    stop('Names cannot have zero characters.')
+  }
+  x@compounds[, old_name := compound_name]
+  x@compounds[, compound_name := value]
+  
+  for_snvs = x@compounds[x@snvs$compound_name, compound_name, on = 'old_name']
+  x@snvs[, compound_name := for_snvs]
+  
+  for_sample_calls = x@compounds[names(x@sample_calls), compound_name, on = 'old_name']
+  names(x@sample_calls) = for_sample_calls
+  x@compounds$old_name = NULL
+  setcolorder(x@compounds, 'compound_name')
+  return(x)
+})
+
+
 # thanks to https://stackoverflow.com/a/26080137
 as.list.CompoundVariantSet <-function(x) {
   lapply(seq_along(x), function(i) x[i])
