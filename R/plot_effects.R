@@ -34,7 +34,8 @@
 #'   labeled when group_by is not 'variant'. Set FALSE to not label variants, or specify a column
 #'   name that supplies a label for each row in the effects table. By default, variant names will be
 #'   used for labels. If group_by is exactly "gene", labels will be shortened to just the amino acid
-#'   changes.
+#'   changes. Some labels will be omitted (with a warning) if it seems there are too many to display
+#'   in the plot space.
 #' @param order_by_effect When TRUE (default), variants are plotted in order of effect. When FALSE,
 #'   variants are plotted top-down in the order they are supplied.
 #' @param show_ci TRUE/FALSE to depict confidence intervals in plot (default TRUE).
@@ -327,9 +328,7 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
     stop("color_by should be an R color name (\"purple4\") or the name of a column in effects")
   }
 
-  variant_groups = uniqueN(effects$variant_group)
-  group_labels = uniqueN(effects$variant_group_label)
-  if(length(variant_groups) != length(group_labels)) {
+  if(uniqueN(effects[, .(variant_group, variant_group_label)]) != uniqueN(effects$variant_group)) {
     if(group_by == 'variant') {
       stop('There is not exactly one unique label per variant. Check your y_label.')
     } else {
@@ -373,9 +372,9 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
     geom_segment(aes(x = x_limits[1], xend = dash_end, y = variant_group, yend = variant_group), 
                  color = effects$line_color, linetype = 'dotted', na.rm = T) +
     geom_errorbar(aes(xmin = ci_low_95, xmax = ci_high_95), color = "azure4", na.rm = T, 
-                  position = position_nudge(x = 0, y = effects$y_nudge), width = effects$ci_width, linewidth = .25) +
+                    position = position_nudge(x = 0, y = effects$y_nudge), width = effects$ci_width, linewidth = .25) +
     geom_point(shape = 21, color = 'gray20', aes(size = prevalence, fill = point_fill), na.rm = T,
-               position = position_nudge(x = 0, y = effects$y_nudge)) +
+               position = position_nudge(x = 0, y = effects$y_nudge)) + 
     scale_x_log10(expand = expansion(mult = c(.01, .05)), labels = x_labeler) + 
     scale_y_discrete(limits = unique(effects$variant_group), labels = unique(effects$variant_group_label),
                      expand = expansion(add = 1))  +
@@ -427,7 +426,6 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
     gg = gg + scale_size_identity()
   }
   
-  
   # Validate label_individual_variants and decide whether individual labels are happening.
   # Only worth labeling variants if there is more than one variant per variant_group/color grouping
   if(identical(label_individual_variants, TRUE) && 
@@ -461,10 +459,37 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
   }
     
   if(label_individual_variants) {
-    gg = gg + geom_label_repel(aes(label = individual_label), size = 2.5, box.padding = .3, label.r = .2,
+    # To-do: remove some labels when it seems like there will be way to many
+    num_variant_groups = uniqueN(effects$variant_group)
+    effects[, si_group_rank := frank(-selection_intensity), by = 'variant_group']
+    give_warning = FALSE
+    if(num_variant_groups > 25) {
+      label_text_size = 2
+      effects[si_group_rank > 3, individual_label := NA]
+      give_warning = max(effects$si_group_rank) > 3
+    } else if(num_variant_groups > 10) {
+      label_text_size = 2.25
+      effects[si_group_rank > 6, individual_label := NA]
+      give_warning = max(effects$si_group_rank) > 6
+    } else {
+      effects[si_group_rank > 15, individual_label := NA]
+      give_warning = max(effects$si_group_rank) > 15
+      effects[, individual_label_sizes := 2.5]
+      effects[si_group_rank > 6, individual_label_sizes := 2.25]
+      effects[si_group_rank > 10, individual_label_sizes := 2]
+      effects[, individual_label_sizes := min(individual_label_sizes), by = 'variant_group']
+      label_text_size = effects$individual_label_sizes
+    }
+    
+    if(give_warning) {
+      msg = paste0('Some variant labels have been omitted due to the density of variants in the plot space.')
+      warning(pretty_message(msg, emit = F))
+    }
+    
+    gg = gg + geom_label_repel(aes(label = individual_label), size = label_text_size, box.padding = .3, label.r = .2,
                                fill = alpha(c("white"), 0.9), label.size = .1, label.padding = .15,
                                segment.color = 'grey20', segment.size = .4,
-                               position = position_nudge(x = 0, y = effects$y_nudge))
+                               position = position_nudge(x = 0, y = effects$y_nudge), na.rm = TRUE)
   }
   
   # Change axis label using group_by when not "variant" (unless user already explicitly specified

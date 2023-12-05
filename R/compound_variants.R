@@ -1,10 +1,12 @@
-#' Create CompoundVariantSet directly from SNV IDs
+#' Create CompoundVariantSet from variant IDs
 #'
-#' A compound variant is an arbitrary group of SNVs that can be tested for selection as if
-#' it were a single variant. (Any sample with one or more of the constituent SNVs "has the
-#' compound variant", and the baseline rate of the variant is the rate of having at least
-#' one of the SNVs.) A CompoundVariantSet is a collection of disjoint compound variants;
-#' that is, no SNV can appear in more than one compound variant.\cr
+#' A CompoundVariantSet is a collection of "compound variants". A compound variant is an arbitrary
+#' group of variants that have sequencing coverage across some set of samples. (Any of these samples
+#' with one or more of the constituent SNVs "has the compound variant"--samples with coverage at
+#' only some of the sites are not considered.) The compound variants within a CompoundVariantSet are
+#' always disjoint: that is, no individual variant appears in more than one of the compound
+#' variants.
+#' 
 #' Example: \code{CompoundVariantSet(cesa, variant_id = list(kras12 = c("KRAS G12C", "KRAS G12D",
 #' "KRAS G12V")))} creates a CompoundVariantSet containing one compound variant. To create
 #' a large set, it's usually easier to use define_compound_variants(), which calls this
@@ -31,10 +33,14 @@ CompoundVariantSet = function(cesa, variant_id) {
   setkey(cesa@mutations$snv, "snv_id")
   
   if (is(variant_id, "character")) {
-    prev_name = names(variant_id)
-    variant_id = as.list(unname(variant_id))
-    names(variant_id) = prev_name
+    comp_name = names(variant_id)
+    if(is.null(comp_name)) {
+      comp_name = 'compound.1'
+    }
+    variant_id = list(unname(variant_id))
+    names(variant_id) = comp_name
   }
+  
   if(! is(variant_id, "list")) {
     stop("variant_id should be list or character")
   }
@@ -48,12 +54,12 @@ CompoundVariantSet = function(cesa, variant_id) {
   if (! all(sapply(variant_id, length) > 0)) {
     stop("All elements of snv_id list must have nonzero length")
   }
-  
   compound_names = names(variant_id)
-  legal_compound_name = '^[a-z0-9][-0-9a-z\\_\\.]*$'
-  if (! is.null(compound_names) && ! all(grepl(legal_compound_name, compound_names, ignore.case = T))) {
-    stop("Some or all compound variant names are invalid. Must start with letter or number and contain ",
-         "only letters, numbers, hyphens, underscores, periods.")
+  
+  # Name compound variants sequentially when the user supplied an unnamed list.
+  if(is.null(compound_names)) {
+    compound_names = paste0('compound.', 1:length(variant_id))
+    names(variant_id) = compound_names
   }
   
   # first check that no variants overlap (will need to check again after breaking down AACs)
@@ -190,7 +196,7 @@ CompoundVariantSet = function(cesa, variant_id) {
                                     total_subvariant_freq = sum(total_maf_freq)), by = "compound_name"]
   compound_snvs[, shared_cov := NULL]
   
-  # shared_cov_freq is the number of samples that have one or more of a compound variant, within samples have coverage
+  # shared_cov_freq is the number of samples that have one or more of a compound variant, within samples that have coverage
   # at all compound variant sites
   compound_counts_cov = unique(covered_sample_table, by = c("variant_id", "Unique_Patient_Identifier"))
   compound_counts_cov = compound_counts_cov[, .(shared_cov_freq = uniqueN(Unique_Patient_Identifier)), by = "compound_name"]
@@ -363,6 +369,11 @@ define_compound_variants = function(cesa, variant_table, by = NULL, merge_distan
     }
     names(merged_groups) = paste(curr_split_group_name, 1:length(merged_groups), sep = ".")
     variant_chunks = c(variant_chunks, merged_groups)
+  }
+  
+  # If every group gets exactly one compound variant, strip .1 suffixes
+  if(identical(split_group_names, sub('\\.1', '', names(variant_chunks)))) {
+    names(variant_chunks) = split_group_names
   }
   return(CompoundVariantSet(cesa, variant_id = variant_chunks))
 }

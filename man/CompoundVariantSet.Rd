@@ -2,7 +2,7 @@
 % Please edit documentation in R/compound_variants.R
 \name{CompoundVariantSet}
 \alias{CompoundVariantSet}
-\title{Create CompoundVariantSet directly from SNV IDs}
+\title{Create CompoundVariantSet from variant IDs}
 \usage{
 CompoundVariantSet(cesa, variant_id)
 }
@@ -14,17 +14,19 @@ vectors, each of which defines a separate compound variant. If the vector or lis
 named, names will be kept. Otherwise, compound variants will be named sequentially.}
 }
 \description{
-A compound variant is an arbitrary group of SNVs that can be tested for selection as if
-it were a single variant. (Any sample with one or more of the constituent SNVs "has the
-compound variant", and the baseline rate of the variant is the rate of having at least
-one of the SNVs.) A CompoundVariantSet is a collection of disjoint compound variants;
-that is, no SNV can appear in more than one compound variant.\cr
+A CompoundVariantSet is a collection of "compound variants". A compound variant is an arbitrary
+group of variants that have sequencing coverage across some set of samples. (Any of these samples
+with one or more of the constituent SNVs "has the compound variant"--samples with coverage at
+only some of the sites are not considered.) The compound variants within a CompoundVariantSet are
+always disjoint: that is, no individual variant appears in more than one of the compound
+variants.
+}
+\details{
 Example: \code{CompoundVariantSet(cesa, variant_id = list(kras12 = c("KRAS G12C", "KRAS G12D",
 "KRAS G12V")))} creates a CompoundVariantSet containing one compound variant. To create
 a large set, it's usually easier to use define_compound_variants(), which calls this
 function internally to define compound variants from an input variant table.
-}
-\details{
+
 If you're using this function because you have a complex use case that
 define_compound_variants() can't handle, please let us know so we can try to make
 improvements!
