@@ -2,6 +2,10 @@
 # <font style = "opacity:0">cancereffectsizeR 3.0.0</font>
 Patch releases (as in, x.y.1 &#8594; x.y.2) have minor bug fixes or small improvements that do not significantly affect the numerical output of cancer effect analyses. Minor/major updates may change some outputs due to bug fixes or methodological tweaks, as described in these version notes.<br><br>
 
+# cancereffectsizeR 2.8.1
+* get_PathScore_coding_regions() provides access to the CDS definitions used by PathScore (and by make_PathScore_input()).
+* Various small fixes.
+
 # cancereffectsizeR 2.8.0
 * plot_effects() visualize cancer effect inferences with custom labels, colors, variant groupings, and more; see website for examples.
 * make_PathScore_input() converts MAF data into an input file for PathScore, a web tool that identifies significantly mutated pathways in cancer. See https://pathscore.publichealth.yale.edu/.
