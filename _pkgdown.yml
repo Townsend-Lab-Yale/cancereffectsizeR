@@ -25,6 +25,7 @@ reference:
   - get_TCGA_project_MAF
   - vcfs_to_maf_table
   - make_PathScore_input
+  - get_PathScore_coding_regions
 - title: Load and manage variants
   contents:
   - load_maf
