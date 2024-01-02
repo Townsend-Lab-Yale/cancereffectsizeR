@@ -706,6 +706,9 @@ trinuc_snv_counts = function(maf,
     if (length(duplicated_vec_pos) > 0) {
       ds_maf <- ds_maf[-duplicated_vec_pos,]
     }
+    if(ds_maf[, .N] == 0) {
+      stop('After excluding recurrent variants, there are no SBS variants in the input MAF data.')
+    }
   }
   
   # build the data.frame required by MutationalPatterns (similar to deconstructSigs)
