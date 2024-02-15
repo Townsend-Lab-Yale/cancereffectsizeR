@@ -60,8 +60,12 @@ gene_mutation_rates <- function(cesa, covariates = NULL, samples = character(), 
          "dndscv_args:\n", paste(reserved_args, collapse = ", "), '.')
   }
 
-  RefCDS = .ces_ref_data[[cesa@ref_key]]$RefCDS
-  gr_genes = .ces_ref_data[[cesa@ref_key]]$gr_genes # CDS definitions
+  RefCDS = .ces_ref_data[[cesa@ref_key]]$RefCDS.dndscv
+  gr_genes = .ces_ref_data[[cesa@ref_key]]$gr_genes.dndscv
+  if(is.null(RefCDS)) {
+    RefCDS = .ces_ref_data[[cesa@ref_key]]$RefCDS
+    gr_genes = .ces_ref_data[[cesa@ref_key]]$gr_genes
+  }
   using_cds_rates = "gene" %in% names(GenomicRanges::mcols(gr_genes))
   
   skip_covariate_validation = FALSE

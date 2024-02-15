@@ -8,27 +8,51 @@
 #' 
 #' @param output_dir Name/path of an existing, writable output directory where all data
 #'   will be saved. The name of this directory will serve as the name of the custom refset.
-#' @param refcds_output Transcript information in the two-item list (consisting of RefCDS
-#'   and gr_genes) that is output by \code{build_RefCDS}.
+#' @param refcds_dndscv Transcript information in the two-item list (consisting of RefCDS
+#'   and gr_genes) that is output by \code{build_RefCDS}. This transcript information will be used with dNdScv.
+#' @param refcds_anno Transcript information in the two-item list (consisting of RefCDS
+#'   and gr_genes) that is output by \code{build_RefCDS}. This transcript information will be used for
+#'   cancereffectsizeR's annotations. If unspecified, the same reference information as supplied for dNdScv will be used.
 #' @param species_name Name of the species, primarily for display (e.g., "human").
 #' @param genome_build_name Name of the genome build, primarily for display (e.g., "hg19").
 #' @param BSgenome_name The name of the BSgenome package to use (e.g., "hg19"); will used by
 #'   cancereffectsizeR to load the reference genome via BSgenome::getBSgenome().
-#' @param supported_chr Character vector of supported chromosomes. Note that
-#'   cancereffectsizeR uses NCBI-style chromosome names, which means no chr prefixes ("X",
-#'   not "chrX"). Mitochondrial contigs shouldn't be included since they would require
-#'   special handling that hasn't been implemented.
-#' @param default_exome A BED file or GRanges object that defines coding regions in the genome as might
-#' be used by an exome capture kit. This file (or GRanges) might be acquired or generated from exome capture kit documentation,
-#' or alternatively, coding regions defined in a GTF file (or the granges output by build_RefCDS()).
-#' @param exome_interval_padding Number of bases to pad start/end of each covered
-#'   interval, to allow for some variants to be called just outside of targeted regions,
-#'   where there still may be pretty good sequencing coverage.
+#' @param supported_chr Character vector of supported chromosomes. Note that cancereffectsizeR uses
+#'   NCBI-style chromosome names, which means no chr prefixes ("X", not "chrX"). Mitochondrial
+#'   contigs shouldn't be included since they would require special handling that hasn't been
+#'   implemented.
+#' @param default_exome A BED file or GRanges object that defines coding regions in the genome as
+#'   might be used by an exome capture kit. This file (or GRanges) might be acquired or generated
+#'   from exome capture kit documentation, or alternatively, coding regions defined in a GTF file
+#'   (or the granges output by build_RefCDS()).
+#' @param exome_interval_padding Number of bases to pad start/end of each covered interval, to allow
+#'   for some variants to be called just outside of targeted regions, where there still may be
+#'   pretty good sequencing coverage.
+#' @param transcript_info Additional information about coding (and, optionally, noncoding)
+#'   transcripts from a Gencode GTF, supplied as a data.table. See the format provided in
+#'   ces.refset.hg38. You'll have to match the format (including column names) pretty closely to get
+#'   expected behavior. Noncoding transcripts are represented only by records with transcript_type =
+#'   "transcript", and protein-coding transcripts are representing with transcript, CDS, and UTR
+#'   records. Note that in Gencode format.
 #' @export
-create_refset = function(output_dir, refcds_output, species_name, genome_build_name, 
+create_refset = function(output_dir, refcds_dndscv, refcds_anno = NULL, species_name, genome_build_name, 
                          BSgenome_name, supported_chr = c(1:22, 'X', 'Y'), default_exome = NULL,
-                         exome_interval_padding = 0) {
-  
+                         exome_interval_padding = 0, transcript_info = NULL) {
+  if(! is.null(transcript_info)) {
+    if(! is.data.table(transcript_info)) {
+      stop('transcript_info must be a data.table (and a quite specifically formatted one at that).')
+    }
+  }
+  if(! is(refcds_dndscv, 'list') || length(refcds_dndscv) != 2) {
+    stop('refcds_dndscv does not look right. Expected 2-length list (containing RefCDS and gr_genes).')
+  }
+  use_separate_refcds_anno = TRUE
+  if(is.null(refcds_anno)) {
+    refcds_anno = refcds_dndscv
+    use_separate_refcds_anno = FALSE
+  } else  if(! is(refcds_anno, 'list') || length(refcds_dndscv) != 2) {
+    stop('refcds_anno does not look right. Expected 2-length list (containing RefCDS and gr_genes).')
+  }
   if (! is.character(output_dir) || length(output_dir) != 1) {
     stop("output_dir should be 1-length character (path for a new directory)")
   }
@@ -39,10 +63,6 @@ create_refset = function(output_dir, refcds_output, species_name, genome_build_n
   
   if(file.access(output_dir, mode = 2) != 0) {
     stop("output_dir doesn't appear to be writable.")
-  }
-  
-  if (! is(refcds_output, "list") || length(refcds_output) != 2) {
-    stop("refcds_output doesn't look valid; it should be a two-item list from build_RefCDS()")
   }
   
   if (! is.character(species_name) || length(species_name) != 1) {
@@ -91,7 +111,7 @@ create_refset = function(output_dir, refcds_output, species_name, genome_build_n
   genome_info[['supported_chr']] = supported_chr
   
   # use seqlevelsStyle from RefCDS, since it will need to match
-  chromosome_style = seqlevelsStyle(refcds_output[[2]])[1]
+  chromosome_style = seqlevelsStyle(refcds_anno[[2]])[1]
   genome_info[['chromosome_style']] = chromosome_style
   
   # Compute and save genome-wide trinucleotide contexts
@@ -142,8 +162,7 @@ create_refset = function(output_dir, refcds_output, species_name, genome_build_n
   
   # go through all the transcripts in the RefCDS object
   gene_trinuc_comp  = new.env(parent = emptyenv())
-  RefCDS = refcds_output[[1]]
-  message("Counting trinculeotide contexts in ", format(length(RefCDS), big.mark = ','), " RefCDS entries...")
+  message("Counting trinculeotide contexts in ", format(length(refcds_dndscv[[1]]), big.mark = ','), " RefCDS entries...")
   process_cds = function(entry) {
     total_counts = integer(96) # number of distinct deconstructSigs SNVs
     # for each transcripts, need to consider each exon and 1 base up/downstream for trinucleotide context
@@ -182,15 +201,14 @@ create_refset = function(output_dir, refcds_output, species_name, genome_build_n
     comp = total_counts / sum(total_counts)
     return(unname(comp))
   }
-  gene_trinuc_comp = pbapply::pblapply(RefCDS, process_cds)
-  names(gene_trinuc_comp) = names(RefCDS)
+  gene_trinuc_comp = pbapply::pblapply(refcds_dndscv[[1]], process_cds)
+  names(gene_trinuc_comp) = names(refcds_dndscv[[1]])
   gene_trinuc_comp = list2env(gene_trinuc_comp, parent = emptyenv())
-  
-  
   
   # Optional: load and save default exome intervals ()
   # If you don't set a default exome, the user must always supply coverage intervals.
-  if (! is.null(default_exome)) {
+  using_exome_files = ! is.null(default_exome)
+  if (using_exome_files) {
     message("Loading default exome and counting trinucleotide contexts...")
     
     if(is.character(default_exome)) {
@@ -221,25 +239,55 @@ create_refset = function(output_dir, refcds_output, species_name, genome_build_n
     # reorder the counts as desired, then save as a data frame since that's what deconstructSigs wants
     exome_counts = exome_tri_contexts[context_names] + exome_tri_contexts[reverse_complement_names]
     exome_counts = data.frame(x = exome_counts)
-    
-    saveRDS(default_exome, paste0(output_dir, "/default_exome_gr.rds"))
-    saveRDS(exome_counts, paste0(output_dir, "/tri.counts.exome.rds"))
   }
   
-  message("Saving data files...")
-  output_dir = sub('/+$', '', output_dir)
-  saveRDS(genome_info , paste0(output_dir, "/genome_build_info.rds"))
-  saveRDS(genome_counts, paste0(output_dir, "/tri.counts.genome.rds"))
-  refcds = refcds_output[[1]]
-  gr_genes = refcds_output[[2]]
-  saveRDS(refcds, paste0(output_dir, "/RefCDS.rds"))
-  saveRDS(gr_genes, paste0(output_dir, "/gr_genes.rds"))
+  gr_genes = refcds_dndscv[[2]]
   if (is.null(gr_genes$gene)) {
     gene_names = unique(gr_genes$names)
   } else {
     gene_names = unique(gr_genes$gene)
   }
+  
+  if(use_separate_refcds_anno) {
+    gr_genes_anno = refcds_anno[[2]]
+    if (is.null(gr_genes_anno$gene)) {
+      anno_gene_names = sort(unique(gr_genes_anno$names))
+    } else {
+      anno_gene_names = sort(unique(gr_genes_anno$gene))
+    }
+    if(! identical(anno_gene_names, sort(gene_names))) {
+      stop('The separate RefCDS that were supplied for annotation and dNdScv do not have exactly the same gene names.')
+    }
+    # If refcds_anno is not the same object as refcds_dndscv, we'll get rid of elements not needed for our annotation.
+    refcds_anno[[1]] = lapply(refcds_anno[[1]], '[', c('gene_name', 'gene_id', 'protein_id', 'CDS_length', 'chr', 
+                                                       'real_gene_name', 'strand', 'intervals_cds', 'intervals_splice', 'seq_cds'))
+  }
+  
+  message("Saving data files...")
+  output_dir = sub('/+$', '', output_dir)
+  
+  if(using_exome_files) {
+    saveRDS(default_exome, paste0(output_dir, "/default_exome_gr.rds"))
+    saveRDS(exome_counts, paste0(output_dir, "/tri.counts.exome.rds"))
+  }
+  
+  saveRDS(genome_info , paste0(output_dir, "/genome_build_info.rds"))
+  saveRDS(genome_counts, paste0(output_dir, "/tri.counts.genome.rds"))
+  saveRDS(refcds_anno[[1]], paste0(output_dir, "/RefCDS.rds"))
+  saveRDS(refcds_anno[[2]], paste0(output_dir, "/gr_genes.rds"))
+  
+  # If we are using separate RefCDS for cancereffectsizeR annotation and dNdScv,
+  # that means we still need to save copies of the dNdScv versions.
+  if(use_separate_refcds_anno) {
+    saveRDS(refcds_dndscv[[1]], paste0(output_dir, "/RefCDS.dndscv.rds"))
+    saveRDS(refcds_dndscv[[2]], paste0(output_dir, "/gr_genes.dndscv.rds"))
+  }
+  
   saveRDS(gene_names, paste0(output_dir, "/gene_names.rds"))
   saveRDS(gene_trinuc_comp, paste0(output_dir, "/gene_trinuc_comp.rds"))
+  
+  if(! is.null(transcript_info)) {
+    saveRDS(transcript_info, paste0(output_dir, '/transcript_info.rds'))
+  }
 }
 

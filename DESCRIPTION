@@ -1,7 +1,7 @@
 Package: cancereffectsizeR
 Type: Package
 Title: Calculate Cancer Effect Size
-Version: 2.8.1
+Version: 2.9.0
 Authors@R: c(person("Vincent L.", "Cannataro", email = "cannatarov@emmanuel.edu", role = c("aut"),
              comment = c(ORCID = "0000-0002-6364-7747")),
              person("Jeff", "Mandell", email = "jeff.mandell@yale.edu", role = c("aut", "cre"),
@@ -18,7 +18,7 @@ Imports:
 	Biostrings,
 	BSgenome,
 	crayon,
-	data.table (>= 1.12.4),
+	data.table (>= 1.15.0),
 	dndscv,
 	GenomeInfoDb,
 	GenomicRanges,
@@ -30,18 +30,19 @@ Imports:
 	seqinr,
 	stringi
 Suggests: 
-  deconstructSigs,
-  formattable,
-  ggplot2,
-  ggrepel,
-  knitr,
-  mockr,
-  MutationalPatterns (>= 2.99.4),
-  rmarkdown,
-  styler,
-  testthat (>= 2.1.0)
+    deconstructSigs,
+    formattable,
+    ggplot2,
+    ggrepel,
+    knitr,
+    mockr,
+    MutationalPatterns (>= 2.99.4),
+    rmarkdown,
+    styler,
+    testthat (>= 3.0.0)
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.2.3
 BugReports: https://github.com/Townsend-Lab-Yale/cancereffectsizeR/issues
+Config/testthat/edition: 2

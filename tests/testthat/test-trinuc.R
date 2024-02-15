@@ -1,20 +1,21 @@
 cesa = load_cesa(get_test_file("cesa_for_trinuc_weighting_calc.rds"))
 test_that("Trinucleotide signature weight calculation", {
-  to_remove = suggest_cosmic_signatures_to_remove(cancer_type = "LUAD", treatment_naive = T, quiet = T)
+  to_remove = suggest_cosmic_signature_exclusions(cancer_type = "LUAD", treatment_naive = T, quiet = T)
   expect_identical(to_remove, c("SBS7a", "SBS7b", "SBS7c", "SBS7d", "SBS8", "SBS10a", "SBS10b", "SBS11", "SBS12",
                                 "SBS14", "SBS16", "SBS19", "SBS20", "SBS21", "SBS22", "SBS23", "SBS24", "SBS25",
                                 "SBS26", "SBS30", "SBS31", "SBS32", "SBS33", "SBS34", "SBS35", "SBS36", "SBS37",
                                 "SBS38", "SBS39", "SBS41", "SBS42", "SBS44", "SBS84", "SBS85", "SBS86", "SBS87",
                                 "SBS88", "SBS89", "SBS90", "SBS91", "SBS92", "SBS93", "SBS94"))
   
-  cesa = trinuc_mutation_rates(cesa, signatures_to_remove = to_remove, signature_set = "COSMIC_v3.1",
+  cesa = trinuc_mutation_rates(cesa, signature_exclusions = to_remove, signature_set = "COSMIC_v3.1",
                                signature_extractor = 'deconstructSigs')
   
   expect_error(trinuc_mutation_rates(cesa, signature_set = "COSMIC_v3.1"), 'have already been run')
   expect_error(trinuc_mutation_rates(cesa, signature_set = "COSMIC_v3.1", samples = cesa$samples[1]), 'have already been run')
   
   trinuc_ak = get_test_data("trinuc_mut_weighting.rds")
-  expect_equal(cesa@trinucleotide_mutation_weights, trinuc_ak, tolerance = 1e-4)
+  expect_equal(length(waldo::compare(cesa@trinucleotide_mutation_weights, trinuc_ak, 
+                                     tolerance = 1e-4, ignore_attr = 'index')), 0)
   
   
   # Ensure SNV counts (total and used by dS) look right

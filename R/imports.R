@@ -50,8 +50,8 @@ pretty_message = function(msg, emit = T, black = emit) {
   msg = paste0(strwrap(msg), collapse = "\n")
   if (black) {
     # If current theme is dark, make the message white
-    if(Sys.getenv("RSTUDIO") == "1" && rstudioapi::getThemeInfo()$dark) {
-      msg = crayon::white(msg)
+    if(Sys.getenv("RSTUDIO") == "1" && rstudioapi::isAvailable() && rstudioapi::getThemeInfo()$dark) {
+      msg = crayon::white(msg) # nocov
     } else {
       msg = crayon::black(msg)
     }
