@@ -48,7 +48,10 @@ set_gene_rates = function(cesa = NULL, rates = NULL, samples = character(),
   if(ncol(rates) != 2) {
     stop("rates should be a two-column table giving genes (or protein IDs) and their associated rates.")
   }
-  setnames(rates, c("region", "rate")) # will rename "rate" to current group after more validation
+  if(! 'rate' %in% names(rates)) {
+    stop('Expected a column named \"rate\" in input gene rate table.')
+  }
+  setnames(rates, setdiff(names(rates), 'rate'), 'region') # gene or pid becomes region
   if (! is(rates$region, "character") | ! is(rates$rate, "numeric")) {
     stop("In rates, gene (or protein_id) and rate should be character and numeric, respectively")
   }
@@ -63,7 +66,7 @@ set_gene_rates = function(cesa = NULL, rates = NULL, samples = character(),
     stop("All rates must be non-negative.")
   }
   
-  # Load ref set genes and compare to rates
+  # Load refset genes and compare to rates
   gr_genes = get_ref_data(cesa, "gr_genes")
   
   
@@ -146,6 +149,8 @@ set_gene_rates = function(cesa = NULL, rates = NULL, samples = character(),
   } else {
     cesa@mutrates = rates
   }
+  rate_cols = names(cesa@mutrates)[names(cesa@mutrates) %like% 'rate']
+  setcolorder(cesa@mutrates, setdiff(names(cesa@mutrates), rate_cols))
   
   cesa = update_cesa_history(cesa, match.call())
   return(cesa)

@@ -485,10 +485,10 @@ pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compoun
     tumors_with_neither = setdiff(eligible_tumors, c(tumors_with_v1, tumors_with_v2))
     
     # 2-item lists: first item is baseline rates for v1; second for v2
-    with_just_1 = as.list(all_rates[tumors_just_v1])[2:3]
-    with_just_2 = as.list(all_rates[tumors_just_v2])[2:3]
-    with_both = as.list(all_rates[tumors_with_both])[2:3]
-    with_neither = as.list(all_rates[tumors_with_neither])[2:3]
+    with_just_1 = lapply(as.list(all_rates[tumors_just_v1])[2:3], setNames, tumors_just_v1)
+    with_just_2 = lapply(as.list(all_rates[tumors_just_v2])[2:3], setNames, tumors_just_v2)
+    with_both = lapply(as.list(all_rates[tumors_with_both])[2:3], setNames, tumors_with_both)
+    with_neither = lapply(as.list(all_rates[tumors_with_neither])[2:3], setNames, tumors_with_neither)
   }
 
   # call factory function to get variant-specific likelihood function

@@ -238,7 +238,7 @@ load_maf = function(cesa = NULL, maf = NULL, maf_name = character(), coverage = 
                  sprintf("%.1f", 100 * num_excluded / initial_num_records), '%) ',
                  "had problems and were excluded: ")
     problem_summary = excluded[, .(num_records = .N), by = "problem"]
-    if(Sys.getenv("RSTUDIO") == "1" && rstudioapi::getThemeInfo()$dark) {
+    if(Sys.getenv("RSTUDIO") == "1" && rstudioapi::isAvailable() &&rstudioapi::getThemeInfo()$dark) {
       message(crayon::white(paste0(utils::capture.output(print(problem_summary, row.names = F)), collapse = "\n")))
     } else {
       message(crayon::black(paste0(utils::capture.output(print(problem_summary, row.names = F)), collapse = "\n")))

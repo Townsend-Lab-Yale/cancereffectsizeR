@@ -71,6 +71,16 @@ check_for_ref_data = function(data_dir_or_cesa, datatype) {
 preload_ref_data = function(data_dir) {
   ref = new.env()
   ref[["RefCDS"]] = get_ref_data(data_dir, "RefCDS")
+  
+  if(check_for_ref_data(data_dir, "RefCDS.dndscv")) {
+    ref[["RefCDS.dndscv"]] = get_ref_data(data_dir, "RefCDS.dndscv")
+    ref[["gr_genes.dndscv"]] = get_ref_data(data_dir, "gr_genes.dndscv")
+  }
+  
+  if(check_for_ref_data(data_dir, "transcript_info")) {
+    ref[["transcripts"]] = get_ref_data(data_dir, "transcript_info")
+  }
+  
   ref[["gr_genes"]] = get_ref_data(data_dir, "gr_genes")
   ref[["gene_names"]] = get_ref_data(data_dir, "gene_names")
   
@@ -104,6 +114,8 @@ preload_ref_data = function(data_dir) {
      GenomeInfoDb::genome(default_exome) = GenomeInfoDb::genome(bsg)[1]
      ref[["default_exome"]] = default_exome
   }
+  
+
   
   # Load trinuc composition of each gene (composition is a 96-length numeric, deconstructSigs order)
   ref[["gene_trinuc_comp"]] = get_ref_data(data_dir, "gene_trinuc_comp")

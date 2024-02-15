@@ -100,17 +100,3 @@ suggest_cosmic_signature_exclusions = function(cancer_type = NULL, treatment_nai
   }
   return(invisible(to_remove))
 }
-
-#' Previous name of suggest_cosmic_signature_exclusions
-#' 
-#' This function was renamed suggest_cosmic_signature_exclusions(). For now, calling it
-#' with the old name will simply pass the arguments along to the new version. It will
-#' eventually be removed.
-#' 
-#' @export
-#' @keywords internal
-suggest_cosmic_signatures_to_remove = function(...) {
-  message("Calling suggest_cosmic_signature_exclusions().")
-  message("The alias suggest_cosmic_signatures_to_remove() will itself be removed in a future update.")
-  suggest_cosmic_signature_exclusions(...)
-}

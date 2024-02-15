@@ -84,21 +84,12 @@ CESAnalysis = function(refset = NULL) {
   ## genome_info: environment with stuff like genome build name, species, name of associated BSgenome
   ## sbs_signatures: List CES signature sets used in the analysis
   ## cached_variants (not populated here): output of select_variants() run with default arguments
-  ## cds_refset: TRUE if gr_genes/RefCDS are protein-based; FALSE if gene-based.
+  ##      (automatically updated as needed by load_cesa/update_covered_in)
   genome_info = get_ref_data(data_dir, "genome_build_info")
   ces_version = packageVersion("cancereffectsizeR")
-  if(refset_name == 'ces.refset.hg38') {
-    cds_refset = TRUE
-  } else if (refset_name == 'ces.refset.hg19') {
-    cds_refset = FALSE
-  } else {
-    gr_genes = get_ref_data(data_dir, "gr_genes")
-    cds_refset = "gene" %in% names(GenomicRanges::mcols(gr_genes))
-  }
   advanced = list("version" = ces_version, using_exome_plus = F, 
                   recording = T, uid = unclass(Sys.time()), genome_info = genome_info,
-                  sbs_signatures = list(), refset_version = refset_version,
-                  cds_refset = cds_refset)
+                  sbs_signatures = list(), refset_version = refset_version)
   
   # Mutation table specifications (see template tables declared in imports.R)
   mutation_tables = list(amino_acid_change = copy(aac_annotation_template), 

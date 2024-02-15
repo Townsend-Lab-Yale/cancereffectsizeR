@@ -33,8 +33,8 @@ to plot multiple effects per variant, such as to compare effects across subgroup
 \code{group_by} is gene, include up to this many groups. Groups are ranked by their
 highest-effect variants.)}
 
-\item{group_by}{If 'variant' (the default), one variant per row in the plot. If "gene" or some other column name, 
-variants will be plotted together accordingly. When "gene", some}
+\item{group_by}{If 'variant' (the default), one variant per row in the plot. If "gene" or some
+other column name, variants will be plotted together accordingly.}
 
 \item{title}{Main title for the plot (by default, no title)}
 
@@ -43,7 +43,7 @@ variants will be plotted together accordingly. When "gene", some}
 \item{y_title}{Text for the Y-axis label.}
 
 \item{y_label}{Y-axis labels for each group of variants. By default ("auto"), will be variant names
-when \code{group_by = "variant"}, the values in group_by otherwise.}
+when \code{group_by = "variant"}, and the values in the group_by column otherwise.}
 
 \item{color_by}{A single color to use for geom_point fill (default "darkseagreen4"). Or, the name of
 a column that specifies color groupings. Can be used to distinguish points when multiple effects
@@ -51,8 +51,8 @@ are plotted per variant (for example, when comparing effects between subgroups),
 highlight related groups of variants. A viridis color scale will be applied, unless ever single value
 in the color column is interpretable as an R color, in which case the given colors will be used.}
 
-\item{color_label}{If color_by is supplying color names for scale_color_identity(), optionally include color_label
-so that colors can be labeled in the plot legend.}
+\item{color_label}{If color_by is supplying color names for scale_color_identity(), optionally
+include color_label so that colors can be labeled in the plot legend.}
 
 \item{legend.position}{Passed to ggplot's legend.position (none, left, right, top, bottom, or
 coordinates). Use "none" to eliminate the legend. Defaults to "right".}

@@ -317,7 +317,7 @@ preload_maf = function(maf = NULL, refset = NULL, coverage_intervals_to_check = 
   if(problem_summary[, .N] > 0) {
     pretty_message("Some MAF records have problems:")
     # this is how to print a table nicely in the message stream
-    if(Sys.getenv("RSTUDIO") == "1" && rstudioapi::getThemeInfo()$dark) {
+    if(Sys.getenv("RSTUDIO") == "1" && rstudioapi::isAvailable() && rstudioapi::getThemeInfo()$dark) {
       message(crayon::white(paste0(utils::capture.output(print(problem_summary, row.names = F)), collapse = "\n")))
     } else {
       message(crayon::black(paste0(utils::capture.output(print(problem_summary, row.names = F)), collapse = "\n")))

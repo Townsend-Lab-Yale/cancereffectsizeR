@@ -103,8 +103,8 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, sbs_ids = NULL, variant
   
   
   # produce a table with all pairwise combinations of Unique_Patient_Identifier and relevant regional rates
-  # relevant genes/pids are those associated with one of the AACs/sbs of interest
-  using_pid = cesa@advanced$cds_refset
+  # relevant genes/pids are those associated with one of the AACs/SNVs of interest
+  using_pid = "pid" %in% names(mutrates)
   if(using_pid) {
     if (! "pid" %in% names(mutrates)) {
       # If using a CDS-based refset (i.e., not ces.refset.hg19) and regional rates are gene-based

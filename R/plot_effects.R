@@ -7,10 +7,10 @@
 #' @param topn Include up to this many variants. The highest-effect variants are plotted. (Or, if
 #'   \code{group_by} is gene, include up to this many groups. Groups are ranked by their
 #'   highest-effect variants.)
-#' @param group_by If 'variant' (the default), one variant per row in the plot. If "gene" or some other column name, 
-#'   variants will be plotted together accordingly. When "gene", some 
+#' @param group_by If 'variant' (the default), one variant per row in the plot. If "gene" or some
+#'   other column name, variants will be plotted together accordingly.
 #' @param y_label Y-axis labels for each group of variants. By default ("auto"), will be variant names
-#' when \code{group_by = "variant"}, the values in group_by otherwise.
+#' when \code{group_by = "variant"}, and the values in the group_by column otherwise.
 #' @param color_by A single color to use for geom_point fill (default "darkseagreen4"). Or, the name of
 #'   a column that specifies color groupings. Can be used to distinguish points when multiple effects
 #'   are plotted per variant (for example, when comparing effects between subgroups), or to
@@ -19,8 +19,8 @@
 #' @param prevalence_method Show each variant's prevalence as a raw mutation count ("count", the default), or as
 #'   a percentage of samples with sequencing coverage at the site ("percent"). If the effects table
 #'   has the same number of samples covering every inference, you can choose "both".
-#' @param color_label If color_by is supplying color names for scale_color_identity(), optionally include color_label
-#' so that colors can be labeled in the plot legend. 
+#' @param color_label If color_by is supplying color names for scale_color_identity(), optionally
+#'   include color_label so that colors can be labeled in the plot legend.
 #' @param legend.position Passed to ggplot's legend.position (none, left, right, top, bottom, or
 #'   coordinates). Use "none" to eliminate the legend. Defaults to "right".
 #' @param legend_size_name The title for the point size scale (larger points = more prevalent variants).
@@ -98,6 +98,7 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
     effects[, variant_id := variant_name]
   }
   
+  
   required_cols = c('variant_name', 'variant_type', 'selection_intensity', 'included_with_variant', 'held_out')
   
   if(identical(show_ci, TRUE)) {
@@ -119,6 +120,7 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
   if(effects[, .N] == 0) {
     stop('effects table has zero rows.')
   }
+
 
   # group_by can be variant (default), gene (also gets special behavior), or any other character/factor column name.
   if(! is.character(group_by) || length(group_by) != 1) {
@@ -169,12 +171,22 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
   
   # Deal with NA selection/CI
   lowest_label = NULL
-  lowest_real = effects[included_with_variant > 0, min(ci_low_95, na.rm = TRUE)]
-  even_lower = 10^floor(log10(lowest_real)) # rounding down to next factor of 10 below any lower CI
-  values_to_check = unlist(effects[, .(selection_intensity, ci_low_95)])
+  
+  if(show_ci) {
+    lowest_real = effects[included_with_variant > 0, min(ci_low_95, na.rm = TRUE)]
+    values_to_check = unlist(effects[, .(selection_intensity, ci_low_95)])
+  } else {
+    lowest_real = effects[included_with_variant > 0, min(selection_intensity, na.rm = TRUE)]
+    values_to_check = effects$selection_intensity
+  }
+  
+  even_lower = 10^floor(log10(lowest_real)) # rounding down to next factor of 10 below any lower CI (or effect)
+  
   if(anyNA(values_to_check) || any(values_to_check < lowest_real)) {
     lowest_label = paste0('   <', format(even_lower, scientific = F, big.mark = ',')) # whitespace for aesthetics
-    effects[is.na(ci_low_95) | ci_low_95 < lowest_real, ci_low_95 := even_lower]
+    if(show_ci) {
+      effects[is.na(ci_low_95) | ci_low_95 < lowest_real, ci_low_95 := even_lower]
+    }
     effects[is.na(selection_intensity) | selection_intensity < lowest_real, selection_intensity := even_lower]
   }
   
@@ -341,7 +353,12 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
   effects[, y_nudge := scale((1:.N)/.N, center = T, scale = F), by = 'variant_group']
   effects[y_nudge != 0, y_nudge := (y_nudge * .15) / max(y_nudge), by = 'variant_group']
   
-  x_limits = c(min(effects$ci_low_95, na.rm = T), max(effects$ci_high_95, na.rm = T))
+  if(show_ci) {
+    x_limits = c(min(effects$ci_low_95, na.rm = T), max(effects$ci_high_95, na.rm = T))
+  } else {
+    x_limits = c(min(effects$selection_intensity, na.rm = T), max(effects$selection_intensity, na.rm = T))
+  }
+  
   
   # Alternating rows of output will have darker and lighter dashed lines to connect to group names.
   # The dashed lines go until highest lower CI in each group.
@@ -350,7 +367,11 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
   # When just one variant per row, dashed lines go to lower CI. With multiple variants, we'll 
   # do the dashed line all the way across
   if(identical(as.integer(effects[, .N, by = 'variant_group'][, unique(N)]), 1L)) {
-    effects[, dash_end := ci_low_95]
+    if(show_ci) {
+      effects[, dash_end := ci_low_95]
+    } else {
+      effects[, dash_end := selection_intensity]
+    }
   } else {
     effects[, dash_end := Inf] # to end of visible plot
   }
@@ -370,10 +391,12 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
   
   gg = ggplot(effects, aes(x = selection_intensity, y = variant_group)) +
     geom_segment(aes(x = x_limits[1], xend = dash_end, y = variant_group, yend = variant_group), 
-                 color = effects$line_color, linetype = 'dotted', na.rm = T) +
-    geom_errorbar(aes(xmin = ci_low_95, xmax = ci_high_95), color = "azure4", na.rm = T, 
-                    position = position_nudge(x = 0, y = effects$y_nudge), width = effects$ci_width, linewidth = .25) +
-    geom_point(shape = 21, color = 'gray20', aes(size = prevalence, fill = point_fill), na.rm = T,
+                 color = effects$line_color, linetype = 'dotted', na.rm = T)
+  if(show_ci) {
+    gg = gg + geom_errorbar(aes(xmin = ci_low_95, xmax = ci_high_95), color = "azure4", na.rm = T, 
+                            position = position_nudge(x = 0, y = effects$y_nudge), width = effects$ci_width, linewidth = .25)
+  }
+  gg = gg + geom_point(shape = 21, color = 'gray20', aes(size = prevalence, fill = point_fill), na.rm = T,
                position = position_nudge(x = 0, y = effects$y_nudge)) + 
     scale_x_log10(expand = expansion(mult = c(.01, .05)), labels = x_labeler) + 
     scale_y_discrete(limits = unique(effects$variant_group), labels = unique(effects$variant_group_label),
