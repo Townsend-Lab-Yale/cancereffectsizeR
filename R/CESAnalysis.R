@@ -211,7 +211,12 @@ load_cesa = function(file) {
   
   ces_version = packageVersion('cancereffectsizeR')
   
+  # Take the lowest version when the CESAnalysis has multiple associated versions
   cesa_version = cesa@advanced$version
+  if(cesa_version %like% '/') {
+    all_versions = lapply(strsplit(cesa_version, '/')[[1]], as.package_version)
+    cesa_version = Reduce(min, all_versions)
+  }
   if(cesa_version < as.package_version('2.0.0')) {
     msg = paste0('This analysis was created with a very old development version of cancereffectsizeR (prior to v2.0). ',
                  'You could try reading some of its contents by loading with readRDS(). Any ongoing analysis should use ',
@@ -312,7 +317,7 @@ load_cesa = function(file) {
   if (as.character(current_version) != as.character(previous_version)) {
     warning("Version change: CESAnalysis previously created in CES ", previous_version, ".\n",
             "Currently running version ", current_version, '.', call. = F)
-    cesa@advanced$version = paste(previous_version, current_version, sep = '/' )
+    cesa@advanced$version = current_version
     cesa@run_history = c(cesa@run_history, paste0("\n[Now running CES ", current_version, ']'))
   }
   cesa = update_cesa_history(cesa, match.call())

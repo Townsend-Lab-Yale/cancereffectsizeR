@@ -544,7 +544,7 @@ build_RefCDS = function(gtf, genome, use_all_transcripts = TRUE, cds_ranges_lack
     # since df_genes$gene is actually a protein ID, match with the "gene_name" in 
     # df_genes (also protein ID), and get corresponding real_gene_name
     actual_gene_names = gene_info[df_genes, real_gene_name, on = c(entry_name = "entry")]
-    GenomicRanges::mcols(gr_cds)$gene = actual_gene_names
+    GenomicRanges::mcols(gr_cds)$gene = gene_info[gr_cds$names, real_gene_name, on = 'protein_id']
     pretty_message(paste0("Note: For compatibility with dNdScv, the \"gene_name\" attribute of each RefCDS entry is ",
                    "actually the protein ID (sorry). A \"real_gene_name\" attribute has also been added ",
                    "to each entry, and cancereffectsizeR will automatically keep things straight."))

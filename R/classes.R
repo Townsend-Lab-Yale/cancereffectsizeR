@@ -75,6 +75,7 @@ setMethod("$", "CESAnalysis",
             } else if (name == "annotations") {
               return(list(amino_acid_change = copy(x@mutations$amino_acid_change),
                           sbs = copy(x@mutations$sbs), dbs = copy(x@mutations$dbs),
+                          dbs_aac = copy(x@mutations$dbs_codon_change),
                           aac_sbs_key = copy(x@mutations$aac_sbs_key),
                           aac_dbs_key = copy(x@mutations$aac_dbs_key),
                           variant_coverage = x@mutations$variants_to_cov
