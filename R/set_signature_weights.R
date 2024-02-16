@@ -9,7 +9,7 @@
 #' or you can supply your own signature set definitions as documented in
 #' ?trinuc_mutation_rates.
 #'
-#' The input data table must have a Unique_Patient_Identifier column and one column per
+#' The input data table must have a patient_id column and one column per
 #' signature in the signature set. All samples in the CESAnalysis must be included in the
 #' input table, and each sample's weights should have a sum on (0, 1]. Since these weights
 #' are used by cancereffectsizeR to infer trinucleotide-context-specific relative rates
@@ -81,52 +81,52 @@ set_signature_weights = function(cesa, signature_set, weights, ignore_extra_samp
   
   # validate weights
   signature_names = rownames(signatures)
-  if (! identical(sort(c(signature_names, "Unique_Patient_Identifier")), sort(colnames(weights)))) {
+  if (! identical(sort(c(signature_names, "patient_id")), sort(colnames(weights)))) {
     stop("Column names of weights must exactly match all signature names in the signature set (with none missing), ",
-         "plus a Unique_Patient_Identifier column.")
+         "plus a patient_id column.")
   }
   
   if (! all(weights[, sapply(.SD, is.numeric), .SDcols = signature_names])) {
     stop("Not all signature weight columns in input are type numeric.")
   }
-  if (! is(weights$Unique_Patient_Identifier, "character")) {
-    stop("Input weights column Unique_Patient_Identifier should be type character.")
+  if (! is(weights$patient_id, "character")) {
+    stop("Input weights column patient_id should be type character.")
   }
   
-  if(any(duplicated(weights$Unique_Patient_Identifier))) {
+  if(any(duplicated(weights$patient_id))) {
     stop("Some samples appear more than once in the weights table.")
   }
   
   
-  if (length(setdiff(cesa@samples$Unique_Patient_Identifier, weights$Unique_Patient_Identifier)) > 0) {
+  if (length(setdiff(cesa@samples$patient_id, weights$patient_id)) > 0) {
     stop("Not all samples in the CESAnalysis appear in the input weights table.")
   }
   
-  if (length(setdiff(weights$Unique_Patient_Identifier, cesa@samples$Unique_Patient_Identifier)) > 0 & ! ignore_extra_samples) {
+  if (length(setdiff(weights$patient_id, cesa@samples$patient_id)) > 0 & ! ignore_extra_samples) {
     stop("There are samples in the input weight table that are not part of the CESAnalysis. (Re-run with ",
          "ignore_extra_samples = TRUE to ignore these.)")
   }
   
   # subset to CESAnalysis samples
-  weights = weights[Unique_Patient_Identifier %in% cesa@samples$Unique_Patient_Identifier]
+  weights = weights[patient_id %in% cesa@samples$patient_id]
   
   if(anyNA(weights)) {
     stop("There are NA values in the input weights table.")
   }
   
   # Require sum of weights <= 1, but allow some floating point imprecision
-  weights_okay = apply(weights[, -"Unique_Patient_Identifier"], 1, function(x) { total = sum(x); total > 0 && total <= 1 + 100 * .Machine$double.eps})
+  weights_okay = apply(weights[, -"patient_id"], 1, function(x) { total = sum(x); total > 0 && total <= 1 + 100 * .Machine$double.eps})
   if (! all(weights_okay)) {
-    bad_samples = weights[which(! weights_okay), Unique_Patient_Identifier]
+    bad_samples = weights[which(! weights_okay), patient_id]
     stop("Some samples have all-zero weights or weights summing greater than 1:\n", paste(bad_samples, collapse = ", "), ".")
   }
 
   
-  total_sbs_counts = cesa@maf[variant_type == "sbs"][, .(total_sbs = .N), by = "Unique_Patient_Identifier"]
-  weights[total_sbs_counts, total_sbs := total_sbs, on = "Unique_Patient_Identifier"]
+  total_sbs_counts = cesa@maf[variant_type == "sbs"][, .(total_sbs = .N), by = "patient_id"]
+  weights[total_sbs_counts, total_sbs := total_sbs, on = "patient_id"]
   weights[is.na(total_sbs), total_sbs := 0]
   weights[, c("sig_extraction_sbs", "group_avg_blended") := list(NA_integer_, NA)]
-  setcolorder(weights, c("Unique_Patient_Identifier", "total_sbs", "sig_extraction_sbs", "group_avg_blended"))
+  setcolorder(weights, c("patient_id", "total_sbs", "sig_extraction_sbs", "group_avg_blended"))
   
   # Produce relative rates of biological process signatures
   # It's up to the user to figure out how to deal with a sample that has entirely artifact weighting
@@ -135,7 +135,7 @@ set_signature_weights = function(cesa, signature_set, weights, ignore_extra_samp
                                           signature_names = signature_names, fail_if_zeroed = TRUE)
   
   trinuc_rates = calculate_trinuc_rates(as.matrix(bio_weights[, ..signature_names]), as.matrix(signatures), 
-                                        bio_weights$Unique_Patient_Identifier)
+                                        bio_weights$patient_id)
   cesa = copy_cesa(cesa)
   cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix = trinuc_rates
   cesa@trinucleotide_mutation_weights$raw_signature_weights = weights
@@ -162,12 +162,12 @@ artifact_account = function(weights, signature_names, artifact_signatures = NULL
   if(! is.null(artifact_signatures) && length(artifact_signatures) > 0) {
     bio_weights[, (artifact_signatures) := 0]
   }
-  bio_weights[, adjust := sum(.SD), .SDcols = signature_names, by = "Unique_Patient_Identifier"]
+  bio_weights[, adjust := sum(.SD), .SDcols = signature_names, by = "patient_id"]
   zeroed_out_index = bio_weights[adjust == 0, which = T]
   if (length(zeroed_out_index) > 0) {
     if(fail_if_zeroed) {
       stop("Some tumor(s) have all-zero weights across non-artifact signatures:\n",
-           paste(bio_weights[zeroed_out_index, Unique_Patient_Identifier], collapse = ", "), ".")
+           paste(bio_weights[zeroed_out_index, patient_id], collapse = ", "), ".")
     }
     bio_weights[zeroed_out_index, adjust := 1] # don't alter all-zero rows
   }
@@ -231,12 +231,12 @@ convert_signature_weights_for_mp = function(signature_weight_table) {
   if(! is(signature_weight_table, "data.table")) {
     stop("signature_weight_table should be data.table")
   }
-  if (! "Unique_Patient_Identifier" %in% names(signature_weight_table)) {
-    stop("Didn't find Unique_Patient_Identifier column. The input should be a table generated by trinuc_mutation_rates().")
+  if (! "patient_id" %in% names(signature_weight_table)) {
+    stop("Didn't find patient_id column. The input should be a table generated by trinuc_mutation_rates().")
   }
-  cols_to_keep = setdiff(names(signature_weight_table), c("Unique_Patient_Identifier", "total_sbs",
+  cols_to_keep = setdiff(names(signature_weight_table), c("patient_id", "total_sbs",
                                                           "sig_extraction_sbs", "group_avg_blended"))
-  rn = signature_weight_table$Unique_Patient_Identifier
+  rn = signature_weight_table$patient_id
   signature_weight_table = signature_weight_table[, ..cols_to_keep]
   contrib_mat = as.matrix(signature_weight_table)
   rownames(contrib_mat) = rn

@@ -78,9 +78,9 @@ test_that("ces_variant on subsets of samples", {
   # Add some synthetic variants with no coverage; shouldn't affect selection
   new_maf = copy(cesa@maf)
   new_samples = copy(cesa@samples)
-  new_maf[, Unique_Patient_Identifier := paste0(Unique_Patient_Identifier, '.1')] # cast as new samples
+  new_maf[, patient_id := paste0(patient_id, '.1')] # cast as new samples
   new_samples[, covered_regions := "no_cov"]
-  new_samples[, Unique_Patient_Identifier := paste0(Unique_Patient_Identifier, '.1')]
+  new_samples[, patient_id := paste0(patient_id, '.1')]
   new_rates = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix
   rownames(new_rates) = paste0(rownames(cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix), '.1')
   without_cov = GenomicRanges::setdiff(cesa@coverage$exome$`exome+`, GRanges("14:37591985-37591990"))

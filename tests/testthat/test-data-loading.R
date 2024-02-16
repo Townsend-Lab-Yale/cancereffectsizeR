@@ -1,5 +1,6 @@
 # get_test_file and get_test_data are loaded automatically from helpers.R by testthat
 tiny_maf = fread(get_test_file("tiny.hg38.maf.txt"))
+setnames(tiny_maf, 'Unique_Patient_Identifier', 'patient_id', skip_absent = TRUE)
 test_that("load_maf and variant annotation", {
   preloaded = preload_maf(maf = tiny_maf, refset = 'ces.refset.hg38')
   expect_equivalent(preloaded, fread(get_test_file('tiny_preloaded.txt')))
@@ -100,7 +101,7 @@ test_that("load_maf and variant annotation", {
   
   # check load_sample_data and clear_sample_data
   original_samples = copy(tiny@samples)
-  t1 = original_samples[, .(Unique_Patient_Identifier = rev(Unique_Patient_Identifier), 
+  t1 = original_samples[, .(patient_id = rev(patient_id), 
                             coverage, covered_regions, num = 1:.N)]
   new_info = load_sample_data(tiny, t1)@samples
   
@@ -114,14 +115,14 @@ test_that("load_maf and variant annotation", {
   new_info = load_sample_data(tiny, t2)@samples
   expect_identical(new_info$num, c(rep(NA, new_info[, .N - 5]), 5:1))
   
-  expect_error(load_sample_data(tiny, t1[, -"Unique_Patient_Identifier"]), "must have a Unique_Patient_Identifier")
-  expect_error(load_sample_data(tiny, t1[, .(Unique_Patient_Identifier, coverage)]), "There are no new data columns")
+  expect_error(load_sample_data(tiny, t1[, -"patient_id"]), "must have a patient_id")
+  expect_error(load_sample_data(tiny, t1[, .(patient_id, coverage)]), "There are no new data columns")
   
   new_info[, num2 := 1:.N]
   tiny = load_sample_data(tiny, new_info)
   
   expect_error(load_sample_data(tiny, new_info), 'non-missing values overwritten by sample_data')
-  expect_error(clear_sample_data(tiny, c('num', 'num2', 'Unique_Patient_Identifier')), 'Internal columns')
+  expect_error(clear_sample_data(tiny, c('num', 'num2', 'patient_id')), 'Internal columns')
   tiny = clear_sample_data(tiny, c('num', 'num2'))
   all.equal(tiny@samples, original_samples)
 })
@@ -167,7 +168,7 @@ test_that("Coverage arguments", {
 })
 
 test_that('Noncoding DBS MAF annotates', {
-  dbs_maf = data.table(Unique_Patient_Identifier = c("A", "B"), 
+  dbs_maf = data.table(patient_id = c("A", "B"), 
              Chromosome = c("8", "13"), Start_Position = c(85401532, 112091000), 
              Reference_Allele = c("TT", "TC"), Tumor_Allele = c("CC", "AA"), 
              variant_type = c("dbs", "dbs"), variant_id = c("8:85401532_TT>CC", "13:112091000_TC>AA"))
@@ -184,7 +185,7 @@ test_that('Noncoding DBS MAF annotates', {
 # FYI, the same holds for hg38.
 test_that('Handle all MAF records excluded due to ambiguous trinuc context', {
   maf = as.data.table(list(Chromosome = 1, Start_Position = 10001, Reference_Allele = 'T', Tumor_Allele = 'C',
-                           Unique_Patient_Identifier = 'hello'))
+                           patient_id = 'hello'))
   expect_warning(expect_message({cesa = load_maf(cesa = CESAnalysis('ces.refset.hg19'), maf = maf)}, 
                  'excluded due to ambiguous trinucleotide'), 'Could this be whole-genome')
   expect_equal(cesa$excluded[, .N], 1)

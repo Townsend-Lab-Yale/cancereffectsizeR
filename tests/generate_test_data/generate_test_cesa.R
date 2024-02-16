@@ -3,9 +3,10 @@ prev_dir = setwd(system.file("tests/test_data/", package = "cancereffectsizeR"))
 # read in the MAF, assign three random groups, and annotate
 
 maf = fread("brca_subset_hg38.maf.gz")
+setnames(maf, 'Unique_Patient_Identifier', 'patient_id', skip_absent = TRUE)
 maf = preload_maf(maf, refset = 'ces.refset.hg38')
 
-sample_data = data.table(Unique_Patient_Identifier = unique(maf$Unique_Patient_Identifier))
+sample_data = data.table(patient_id = unique(maf$patient_id))
 set.seed(879)
 fruits = c("cherry", "marionberry", "mountain_apple")
 sample_data[, fruit := sample(fruits, .N, replace = T)]
@@ -13,9 +14,11 @@ sample_data[, fruit := sample(fruits, .N, replace = T)]
 cesa = load_maf(cesa = CESAnalysis(refset = "ces.refset.hg38"), maf = maf, maf_name = "BRCA")
 cesa = load_sample_data(cesa, sample_data)
 
-tgs_maf_file = "../../inst/tutorial/metastatic_breast_2021_hg38.maf"
-tgs_maf = preload_maf(maf = tgs_maf_file, refset = "ces.refset.hg38")
-tgs_maf[, fruit := sample(fruits, 1), by = 'Unique_Patient_Identifier']
+tgs_maf = fread("../../inst/tutorial/metastatic_breast_2021_hg38.maf")
+
+setnames(tgs_maf, 'Unique_Patient_Identifier', 'patient_id', skip_absent = TRUE)
+tgs_maf = preload_maf(maf = tgs_maf, refset = "ces.refset.hg38")
+tgs_maf[, fruit := sample(fruits, 1), by = 'patient_id']
 
 
 # Define coverage using the coding regions of these genes, as defined by the refset

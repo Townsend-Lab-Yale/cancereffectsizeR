@@ -25,8 +25,8 @@ test_that("Trinucleotide signature weight calculation", {
   
   full_weight_table = get_signature_weights(cesa)
   expect_equal(full_weight_table[, .N], 5)
-  expect_equal(full_weight_table[Unique_Patient_Identifier == "one_indel", unlist(.(total_sbs, sig_extraction_sbs))], c(0, 0))
-  expect_equal(full_weight_table[Unique_Patient_Identifier == "zeroed-out", unlist(.(total_sbs, sig_extraction_sbs))], c(18, 0))
+  expect_equal(full_weight_table[patient_id == "one_indel", unlist(.(total_sbs, sig_extraction_sbs))], c(0, 0))
+  expect_equal(full_weight_table[patient_id == "zeroed-out", unlist(.(total_sbs, sig_extraction_sbs))], c(18, 0))
   
   # All tumors should have an above-threshold number of usable SBS, or they should be group-average-blended (but never both)
   expect_true(all(full_weight_table[, xor(sig_extraction_sbs > 49, group_avg_blended == T)]))
@@ -45,14 +45,14 @@ test_that("Trinucleotide signature weight calculation", {
   
   # setting signature weights using raw weights will reproduce the same 
   # relative biological weights and trinuc_rates for non-mean-blended samples
-  raw_weight_input = prev_raw_sig[, .SD, .SDcols = patterns("(SBS)|(Uni)")]
+  raw_weight_input = prev_raw_sig[, .SD, .SDcols = patterns("(SBS)|(patient_id)")]
   cesa3 = set_signature_weights(cesa, signature_set = "COSMIC_v3.1", weights = raw_weight_input)
   
   
   which_pure = prev_relative_bio_sig[group_avg_blended == F, which = T]
   all.equal(cesa3@trinucleotide_mutation_weights$signature_weight_table[which_pure, -c("sig_extraction_sbs", "group_avg_blended")],
             prev_relative_bio_sig[which_pure, -c("sig_extraction_sbs", "group_avg_blended")])
-  all.equal(cesa3@trinucleotide_mutation_weights$raw_signature_weights[,  .SD, .SDcols = patterns("(SBS)|(Uni)")],
+  all.equal(cesa3@trinucleotide_mutation_weights$raw_signature_weights[,  .SD, .SDcols = patterns("(SBS)|(patient_id)")],
             raw_weight_input)
   all.equal(cesa3@trinucleotide_mutation_weights$trinuc_proportion_matrix[which_pure,],
             prev_rates_matrix[which_pure, ])
@@ -72,8 +72,8 @@ test_that("Trinucleotide signature weight calculation", {
                                 signature_extractor = "MutationalPatterns")
   
   # Compare ak rates (based off of deconstructSigs) with MP-derived rates
-  mut_mat_1 = t(as.matrix(trinuc_ak$trinuc_proportion_matrix, rownames = 'Unique_Patient_Identifier'))
-  mut_mat_2 = t(as.matrix(cesa5$trinuc_rates, rownames = 'Unique_Patient_Identifier'))
+  mut_mat_1 = t(as.matrix(trinuc_ak$trinuc_proportion_matrix, rownames = 'patient_id'))
+  mut_mat_2 = t(as.matrix(cesa5$trinuc_rates, rownames = 'patient_id'))
   expect_identical(colnames(mut_mat_1), colnames(mut_mat_2)) # ensure samples match up
   colnames(mut_mat_1) = paste0('dS_', colnames(mut_mat_1))
   colnames(mut_mat_2) = paste0('MP_', colnames(mut_mat_2))
@@ -93,9 +93,9 @@ test_that("Trinucleotide signature weight calculation", {
   
   full_weight_table = get_signature_weights(cesa5)
   expect_equal(full_weight_table[, .N], 5)
-  expect_equal(full_weight_table[Unique_Patient_Identifier == "one_indel", unlist(.(total_sbs, sig_extraction_sbs))], c(0, 0))
+  expect_equal(full_weight_table[patient_id == "one_indel", unlist(.(total_sbs, sig_extraction_sbs))], c(0, 0))
   # Note that it is c(18, 18) with use of MutationalPatters because of different calculation method
-  expect_equal(full_weight_table[Unique_Patient_Identifier == "zeroed-out", unlist(.(total_sbs, sig_extraction_sbs))], c(18, 18))
+  expect_equal(full_weight_table[patient_id == "zeroed-out", unlist(.(total_sbs, sig_extraction_sbs))], c(18, 18))
   
   # All tumors should have an above-threshold number of usable SBS, or they should be group-average-blended (but never both)
   expect_true(all(full_weight_table[, xor(sig_extraction_sbs > 49, group_avg_blended == T)]))

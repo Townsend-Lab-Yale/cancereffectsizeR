@@ -1,4 +1,4 @@
-"Unique_Patient_Identifier"	"Chromosome"	"Start_Position"	"Reference_Allele"	"Tumor_Allele"	"variant_type"	"variant_id"	"problem"	"cosmic_site_tier"	"germline_variant_site"	"repetitive_region"
+"patient_id"	"Chromosome"	"Start_Position"	"Reference_Allele"	"Tumor_Allele"	"variant_type"	"variant_id"	"problem"	"cosmic_site_tier"	"germline_variant_site"	"repetitive_region"
 "TCGA-AO-A1KT"	"1"	10599296	"G"	"T"	"sbs"	"1:10599296_G>T"	NA	"Other"	FALSE	FALSE
 "TCGA-AO-A1KT"	"2"	47021904	"G"	"A"	"sbs"	"2:47021904_G>A"	NA	"Other"	FALSE	FALSE
 "TCGA-AO-A1KT"	"2"	74248364	"G"	"A"	"sbs"	"2:74248364_G>A"	NA	"Other"	FALSE	FALSE

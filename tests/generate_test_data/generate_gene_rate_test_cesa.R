@@ -12,8 +12,10 @@ saveRDS(luad, "luad_hg19_for_gene_rate_test.rds")
 
 luad = gene_mutation_rates(luad, covariates = "lung")
 # saveRDS(dndscv_args[c('mutations', 'gene_list', 'cv')], 'dndscv_input_single.rds') # subset of run_dndscv() input.
-# saveRDS(dndscv_output, "dndscv_raw_output_single.rds") # output of run_dndscv().
 # saveRDS(fit, 'dndscv_test_fit_object.rds') # from get_dndscv_model_fit() in gene_mutation_rates()
+# dndscv_output$nbreg = list(theta = dndscv_output$nbreg$theta)
+# saveRDS(dndscv_output[c('sel_cv', 'genemuts', 'annotmuts', 'nbreg')], "dndscv_raw_output_single.rds") 
+# [Then continue.]
 
 saveRDS(luad@mutrates, "gene_mutation_rates_with_ci.rds")
 setwd(prev_dir)

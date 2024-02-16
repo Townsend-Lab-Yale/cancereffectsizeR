@@ -32,7 +32,7 @@ latest data release. This function might work with non-TCGA MAF data hosted on G
 caution.
 }
 \details{
-TCGA cohort MAFs will be structured as downloaded, with a Unique_Patient_Identifier
+TCGA cohort MAFs will be structured as downloaded, with a patient_id
 column generated from the first 12 characters of Tumor_Sample_Barcode. When passed to
 preload_maf() or load_maf(), this column will supersede Tumor_Sample_Barcode. In the
 handful of patients with multiple Tumor_Sample_Barcodes (essentially replicated

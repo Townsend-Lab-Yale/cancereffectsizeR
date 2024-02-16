@@ -7,14 +7,14 @@
 #' @keywords internal
 detect_mnv = function(maf) {
   # MNVs are only possible in sample/chromosome combinations with more than one MAF record
-  poss_mnv = maf[order(Unique_Patient_Identifier, Chromosome, Start_Position)][, .SD[.N > 1], 
-                                                                               by = c("Unique_Patient_Identifier", "Chromosome")]
+  poss_mnv = maf[order(patient_id, Chromosome, Start_Position)][, .SD[.N > 1], 
+                                                                               by = c("patient_id", "Chromosome")]
   
   if(poss_mnv[, .N] == 0) {
     return(poss_mnv)
   }
-  poss_mnv[, dist_to_prev := c(Inf, diff(Start_Position)), by = c("Unique_Patient_Identifier", "Chromosome")]
-  poss_mnv[, dist_to_next := c(dist_to_prev[2:.N], Inf), by = c("Unique_Patient_Identifier", "Chromosome")]
+  poss_mnv[, dist_to_prev := c(Inf, diff(Start_Position)), by = c("patient_id", "Chromosome")]
+  poss_mnv[, dist_to_next := c(dist_to_prev[2:.N], Inf), by = c("patient_id", "Chromosome")]
   poss_mnv[dist_to_prev < 3 | dist_to_next < 3, is_mnv := T]
   
   # organize into groups of likely multi-nucleotide events

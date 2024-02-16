@@ -46,7 +46,7 @@ dbs_codon_change_template = data.table(dbs_aac_id = character(), chr = character
 
 aac_dbs_key_template = data.table(dbs_id = character(), dbs_aac_id = character(), multi_anno_site = logical())
 
-sample_table_template = data.table(Unique_Patient_Identifier = character(), coverage = character(), 
+sample_table_template = data.table(patient_id = character(), coverage = character(), 
                                   covered_regions = character(), sig_analysis_grp = integer(), gene_rate_grp = integer(),
                                   maf_source = character())
 

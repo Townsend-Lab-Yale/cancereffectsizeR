@@ -38,8 +38,8 @@ assign_group_average_trinuc_rates = function(cesa) {
   }
   
   # Subset to just WES/WGS data
-  non_tgs_samples = cesa@samples[coverage != "targeted", Unique_Patient_Identifier]
-  sbs_maf = sbs_maf[Unique_Patient_Identifier %in% non_tgs_samples]
+  non_tgs_samples = cesa@samples[coverage != "targeted", patient_id]
+  sbs_maf = sbs_maf[patient_id %in% non_tgs_samples]
   
   
   # get trinuc contexts of each sbs and produce a data frame of counts, organized the same way as deconstructSigs data
@@ -50,7 +50,7 @@ assign_group_average_trinuc_rates = function(cesa) {
   ds_muts = factor(deconstructSigs_notations[.(trinuc, sbs_maf$Tumor_Allele), deconstructSigs_ID], levels = deconstructSigs_trinuc_string)
   
   # mysteriously convert two-way table to data frame
-  tmp = table(sbs_maf$Unique_Patient_Identifier, ds_muts)
+  tmp = table(sbs_maf$patient_id, ds_muts)
   counts = apply(tmp, 2, rbind)
   rownames(counts) = rownames(tmp)
   trinuc_breakdown_per_tumor = as.data.frame(counts)
@@ -67,7 +67,7 @@ assign_group_average_trinuc_rates = function(cesa) {
   # create trinuc_proportion_matrix (1 row per sample, all rows with identical trinuc_prop)
   num_samples = cesa@samples[, .N]
   trinuc_proportion_matrix = matrix(rep(trinuc_prop, num_samples), byrow = T, ncol = 96, 
-                                    dimnames = list(cesa@samples$Unique_Patient_Identifier, names(trinuc_prop)))
+                                    dimnames = list(cesa@samples$patient_id, names(trinuc_prop)))
   cesa@samples[, sig_analysis_grp := 0L]
   cesa@trinucleotide_mutation_weights = list(trinuc_proportion_matrix=trinuc_proportion_matrix)
   return(cesa)

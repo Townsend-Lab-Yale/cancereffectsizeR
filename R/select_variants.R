@@ -226,7 +226,7 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   }
 
   if (cesa@maf[, .N] > 0) {
-    counts_and_cov = .variant_counts(cesa, samples = cesa@samples[, .(Unique_Patient_Identifier, covered_regions)],
+    counts_and_cov = .variant_counts(cesa, samples = cesa@samples[, .(patient_id, covered_regions)],
                                      sbs_from_aac = aac_sbs_key[, .(aac_id, sbs_id)],
                                      noncoding_sbs_id = selected_sbs_ids)
     setnames(counts_and_cov, c("N", "num_cov"), c("maf_prevalence", "samples_covering"))

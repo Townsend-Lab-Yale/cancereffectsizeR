@@ -18,7 +18,7 @@
 #' that, for any variant, produces a likelihood function that can be evaluated on the data. The
 #' first two arguments must be \code{rates_tumors_with} and \code{rates_tumors_without}, which give the baseline
 #' site mutation rates in samples with and without the variant. The third argument must be
-#' \code{sample_index}, a data.table that associates \code{Unique_Patient_Identifier} with group names and
+#' \code{sample_index}, a data.table that associates \code{patient_id} with group names and
 #' indices. (Your function factory must accept this argument, but it doesn't have to use its value.)
 #' Values for all three of these arguments will be calculated by ces_variant and passed to your
 #' function factory automatically. Your function can take whatever additional arguments you like,
@@ -32,7 +32,7 @@
 #'   systems).
 #' @param conf Cancer effect confidence interval width (NULL skips calculation, speeds runtime).
 #' @param samples Which samples to include in inference. Defaults to all samples. Can be a vector of
-#'   Unique_Patient_Identifiers, or a data.table containing rows from the CESAnalysis sample table.
+#'   patient_ids, or a data.table containing rows from the CESAnalysis sample table.
 #' @param variants Which variants to estimate effects for, specified with a variant table such as
 #'   from \code{[CESAnalysis]$variants} or \code{select_variants()}, or a \code{CompoundVariantSet}
 #'   from \code{define_compound_variants()}. Defaults to all recurrent mutations; that is,
@@ -230,7 +230,7 @@ ces_variant <- function(cesa = NULL,
         name_by_state[[ordering[[i]][j]]] = names(ordering)[i]
       }
     }
-    sample_index = samples[, .(Unique_Patient_Identifier = Unique_Patient_Identifier,
+    sample_index = samples[, .(patient_id = patient_id,
                                group_index = unlist(index_by_state[ordering_col]), 
                                group_name = unlist(name_by_state[ordering_col]))]
   } else if(is(model, "character")){
@@ -297,8 +297,8 @@ ces_variant <- function(cesa = NULL,
   }
   
   # identify mutations by nearest gene(s)
-  maf = cesa@maf[samples$Unique_Patient_Identifier, on = "Unique_Patient_Identifier"]
-  tmp = unique(maf[, .(gene = unlist(genes)), by = "Unique_Patient_Identifier"])[, .(samples = list(Unique_Patient_Identifier)), by = "gene"]
+  maf = cesa@maf[samples$patient_id, on = "patient_id"]
+  tmp = unique(maf[, .(gene = unlist(genes)), by = "patient_id"])[, .(samples = list(patient_id)), by = "gene"]
   tumors_with_variants_by_gene = tmp$samples
   names(tumors_with_variants_by_gene) = tmp$gene
   #tumors_with_variants_by_gene = list2env(tumors_with_variants_by_gene)
@@ -306,14 +306,14 @@ ces_variant <- function(cesa = NULL,
   # identify mutations by sample
   sbs_aac_of_interest = cesa@mutations$aac_sbs_key[aac_ids, on = 'aac_id']
   tmp = maf[sbs_aac_of_interest, .(variant_id), on = c(variant_id = 'sbs_id'), 
-            by = "Unique_Patient_Identifier", nomatch = NULL]
+            by = "patient_id", nomatch = NULL]
   tmp[sbs_aac_of_interest, aac_id := aac_id, on = c(variant_id = 'sbs_id')]
-  tmp = tmp[, .(samples = list(unique(Unique_Patient_Identifier))), by = "aac_id"]
+  tmp = tmp[, .(samples = list(unique(patient_id))), by = "aac_id"]
   samples_by_aac = setNames(tmp$samples, tmp$aac_id)
   
   setkey(maf, "variant_id")
   # need nomatch because some noncoding sbs may not be present in the samples
-  tmp = maf[noncoding_sbs_ids, variant_id, by = "Unique_Patient_Identifier", nomatch = NULL][, .(samples = list(Unique_Patient_Identifier)), by = "variant_id"]
+  tmp = maf[noncoding_sbs_ids, variant_id, by = "patient_id", nomatch = NULL][, .(samples = list(patient_id)), by = "variant_id"]
   samples_by_sbs = tmp$samples
   names(samples_by_sbs) = tmp$variant_id
   samples_by_variant = list2env(c(samples_by_aac, samples_by_sbs))
@@ -324,7 +324,7 @@ ces_variant <- function(cesa = NULL,
   # These are WGS samples with purportedly whole-genome coverage.
   # That is, for better or worse, assuming that any variant can be found in these samples.
   # (Trimmed-interval WGS samples will have coverage = "genome" and covered_regions != "genome.")
-  genome_wide_cov_samples = samples["genome", Unique_Patient_Identifier, nomatch = NULL]
+  genome_wide_cov_samples = samples["genome", patient_id, nomatch = NULL]
   
   
   # Will process variants by coverage group (i.e., groups of variants that have the same tumors covering them)
@@ -358,7 +358,7 @@ ces_variant <- function(cesa = NULL,
     }
     i = i+1
     message(sprintf("Preparing to calculate cancer effects (batch %i of %i)...", i, num_coverage_groups))
-    covered_samples = c(samples[coverage_group, Unique_Patient_Identifier, nomatch = NULL], genome_wide_cov_samples)
+    covered_samples = c(samples[coverage_group, patient_id, nomatch = NULL], genome_wide_cov_samples)
     variants[curr_variants$variant_id, num_covered_and_in_samples := length(covered_samples), on = 'variant_id']
     
     if(length(covered_samples) == 0) {
@@ -406,7 +406,7 @@ ces_variant <- function(cesa = NULL,
           all_genes = get0(variant_id, envir = gene_lookup, ifnotfound = NA_character_)
           rates = baseline_rates[, ..variant_id][[1]]
         }
-        names(rates) = baseline_rates[, Unique_Patient_Identifier]
+        names(rates) = baseline_rates[, patient_id]
         
         # usually but not always just 1 gene when not compound (when compound, anything possible)
         if (hold_out_same_gene_samples) {
@@ -493,13 +493,13 @@ ces_variant <- function(cesa = NULL,
             } else {
               # Build a table of counts, being careful not to drop groups with zero counts
               counts_total = data.table(group_name = names(ordering), num_with = 0, num_without = 0)
-              counts_with = sample_index[tumors_with_variant, .(num_with = .N), by = 'group_name', on = "Unique_Patient_Identifier"]
+              counts_with = sample_index[tumors_with_variant, .(num_with = .N), by = 'group_name', on = "patient_id"]
               
               # if no tumors have variant, counts_with will be null
               if(counts_with[, .N] > 0) {
                 counts_total[counts_with, num_with := i.num_with, on = 'group_name']
               }
-              counts_without = sample_index[tumors_without, .(num_without = .N), by = 'group_name', on = "Unique_Patient_Identifier"]
+              counts_without = sample_index[tumors_without, .(num_without = .N), by = 'group_name', on = "patient_id"]
               counts_total[counts_without, num_without := i.num_without, on = 'group_name']
               counts_total[, num_total := num_with + num_without]
               

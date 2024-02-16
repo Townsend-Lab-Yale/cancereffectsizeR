@@ -27,8 +27,8 @@ variant_counts = function(cesa, variant_ids = character(), by = character()) {
     stop(pretty_message(msg, emit = F))
   }
   
-  if("Unique_Patient_Identifier" %in% by_cols) {
-    stop("It doesn't really make sense to have Unique_Patient_Identifier in by.")
+  if("patient_id" %in% by_cols) {
+    stop("It doesn't really make sense to have patient_id in by.")
   }
   
   # Get sample table with just by_cols, UPI, covered_regions.
@@ -38,7 +38,7 @@ variant_counts = function(cesa, variant_ids = character(), by = character()) {
     by_cols[by_cols == "covered_regions"] = "cr_copy_for_by"
     samples[, cr_copy_for_by := covered_regions]
   }
-  samples_with_by_cols = samples[, .SD, .SDcols = c(by_cols, "Unique_Patient_Identifier", "covered_regions")]
+  samples_with_by_cols = samples[, .SD, .SDcols = c(by_cols, "patient_id", "covered_regions")]
   
   if(! is(variant_ids, "character")) {
     stop("variant_ids should be character")
@@ -84,7 +84,7 @@ variant_counts = function(cesa, variant_ids = character(), by = character()) {
   maf = copy(cesa@maf)
   if(maf[, .N] == 0) {
     # Empty maf lacks column names (will probably change soon)
-    maf = data.table(Unique_Patient_Identifier = character(), variant_id = character())
+    maf = data.table(patient_id = character(), variant_id = character())
   }
   
   
@@ -94,8 +94,8 @@ variant_counts = function(cesa, variant_ids = character(), by = character()) {
                                              lapply(.SD, unique)), stringsAsFactors = FALSE), 
                              .SDcols = by_cols])
     final_counts[, N := 0]
-    dt = merge.data.table(dt, samples[, .SD, .SDcols = c(by_cols, 'Unique_Patient_Identifier')], all.x = TRUE, by = 'Unique_Patient_Identifier')
-    nonzero_counts = dt[! is.na(Unique_Patient_Identifier), .(count = .N), by = c('variant_id', by_cols)]
+    dt = merge.data.table(dt, samples[, .SD, .SDcols = c(by_cols, 'patient_id')], all.x = TRUE, by = 'patient_id')
+    nonzero_counts = dt[! is.na(patient_id), .(count = .N), by = c('variant_id', by_cols)]
     final_counts[nonzero_counts, N := count, on = c(by_cols, 'variant_id')]
     return(final_counts)
   }
@@ -103,7 +103,7 @@ variant_counts = function(cesa, variant_ids = character(), by = character()) {
   
   combined_counts = data.table()
   if(sbs_from_aac[, .N] > 0) {
-    sbs_from_aac_counts = setDT(maf[sbs_from_aac, .(Unique_Patient_Identifier, variant_id = aac_id), 
+    sbs_from_aac_counts = setDT(maf[sbs_from_aac, .(patient_id, variant_id = aac_id), 
                                     on = c(variant_id = "sbs_id"), 
                                     allow.cartesian = T])
     aac_count_output = get_complete_counts(dt = sbs_from_aac_counts)
@@ -113,7 +113,7 @@ variant_counts = function(cesa, variant_ids = character(), by = character()) {
   
   # Get prevalences of sbs
   if(length(noncoding_sbs_id) > 0) {
-    sbs_counts = maf[noncoding_sbs_id, .(Unique_Patient_Identifier, variant_id), on = 'variant_id']
+    sbs_counts = maf[noncoding_sbs_id, .(patient_id, variant_id), on = 'variant_id']
     final_sbs_counts = get_complete_counts(sbs_counts)
     combined_counts = rbind(combined_counts, final_sbs_counts)
   }

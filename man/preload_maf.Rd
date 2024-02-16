@@ -9,7 +9,7 @@ preload_maf(
   refset = NULL,
   coverage_intervals_to_check = NULL,
   chain_file = NULL,
-  sample_col = "Unique_Patient_Identifier",
+  sample_col = "patient_id",
   chr_col = "Chromosome",
   start_col = "Start_Position",
   ref_col = "Reference_Allele",
@@ -39,7 +39,7 @@ padding should be added.)}
 records to the genome build used in the CESAnalysis.}
 
 \item{sample_col}{column name with patient ID; defaults to
-Unique_Patient_Identifier, or, in its absence, Tumor_Sample_Barcode}
+patient_id, or, in its absence, Tumor_Sample_Barcode}
 
 \item{chr_col}{column name with chromosome data  (Chromosome)}
 

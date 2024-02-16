@@ -29,7 +29,7 @@ trinuc_mutation_rates(
 \code{suggest_cosmic_signature_exclusions()} for advice on COSMIC signatures}
 
 \item{samples}{Which samples to include in the current run. Defaults to all samples.
-Can be a vector of Unique_Patient_Identifiers, or a data.table containing rows from
+Can be a vector of patient_ids, or a data.table containing rows from
 the CESAnalysis sample table.}
 
 \item{cores}{How many cores to use for processing tumors in parallel.}

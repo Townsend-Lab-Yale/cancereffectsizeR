@@ -127,9 +127,6 @@ Let's also load and examine a table of patient information. Although the TCGA sa
 ```{r eval = T}
 tcga_clinical = fread(system.file("tutorial/TCGA_BRCA_clinical.txt", package = "cancereffectsizeR"))
 
-# Change patient identifier column name in clinical table to match the MAF.
-setnames(tcga_clinical, "patient_id", "Unique_Patient_Identifier")
-
 # Peek at data
 tcga_clinical[1:5]
 ```
@@ -141,7 +138,7 @@ tcga_maf = preload_maf(maf = tcga_maf_file, refset = "ces.refset.hg38")
 ```
 
 When MAFs created by \code{get_TCGA_project_MAF()} are fed into \code{preload_maf()}, TCGA sample
-replicates are effectively merged, since the Unique_Patient_Identifier column supersedes
+replicates are effectively merged, since the patient_id column supersedes
 Tumor_Sample_Barcode (the original sample identifiers). You will see a note that preload_maf()
 caught and handled the ensuing duplicate mutation records.
 

@@ -11,7 +11,7 @@ read_in_maf(
   start_col = "Start_Position",
   ref_col = "Reference_Allele",
   tumor_allele_col = "guess",
-  sample_col = "Unique_Patient_Identifier",
+  sample_col = "patient_id",
   more_cols = NULL,
   chain_file = NULL,
   separate_old_problems = FALSE
@@ -31,7 +31,7 @@ read_in_maf(
 \item{tumor_allele_col}{column name with alternate allele data; by default,
 values from Tumor_Seq_Allele2 and Tumor_Seq_Allele1 columns are used.}
 
-\item{sample_col}{column name with sample ID data (Tumor_Sample_Barcode or Unique_Patient_Identifier)}
+\item{sample_col}{column name with sample ID data (Tumor_Sample_Barcode or patient_id)}
 
 \item{chain_file}{a LiftOver chain file (text format, name ends in .chain) to convert MAF
 records to the genome build used in the CESAnalysis.}

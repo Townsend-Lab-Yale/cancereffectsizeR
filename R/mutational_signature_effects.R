@@ -48,9 +48,9 @@ mutational_signature_effects <- function(cesa = cesa, effects = NULL, samples = 
   
   # Subset to desired samples
   if(is.null(samples)) {
-    samples = cesa$samples$Unique_Patient_Identifier
+    samples = cesa$samples$patient_id
   } else {
-    samples = select_samples(cesa = cesa, samples = samples)$Unique_Patient_Identifier
+    samples = select_samples(cesa = cesa, samples = samples)$patient_id
   }
   
   # Get data.table with signature weights (one row per tumor)
@@ -66,16 +66,16 @@ mutational_signature_effects <- function(cesa = cesa, effects = NULL, samples = 
   # To reduce number of columns in output tables, drop signatures where weights are always 0.
   not_zero = signature_weights[, (sapply(.SD, function(x) any(x != 0))), .SDcols = signature_names]
   not_zero = names(which(not_zero == T))
-  signature_weights = signature_weights[, c("Unique_Patient_Identifier", ..not_zero)]
-  setkey(signature_weights, "Unique_Patient_Identifier")
-  signature_weights = signature_weights[samples, on = 'Unique_Patient_Identifier']
+  signature_weights = signature_weights[, c("patient_id", ..not_zero)]
+  setkey(signature_weights, "patient_id")
+  signature_weights = signature_weights[samples, on = 'patient_id']
   signature_names = signature_names[signature_names %in% not_zero]
   signature_defs = signature_defs[not_zero, ]
   
   # Calculate trinuc rates for the signatures in use. (Can't use cesa$trinuc_rates due to obscure edge case.)
-  trinuc_rates = as.data.table(as.matrix(signature_weights[, -"Unique_Patient_Identifier"]) %*% as.matrix(signature_defs))
-  trinuc_rates[, Unique_Patient_Identifier := signature_weights$Unique_Patient_Identifier]
-  trinuc_rates = melt(trinuc_rates, id.vars = 'Unique_Patient_Identifier', variable.name = 'trinuc_context')
+  trinuc_rates = as.data.table(as.matrix(signature_weights[, -"patient_id"]) %*% as.matrix(signature_defs))
+  trinuc_rates[, patient_id := signature_weights$patient_id]
+  trinuc_rates = melt(trinuc_rates, id.vars = 'patient_id', variable.name = 'trinuc_context')
   
   if(! is.data.table(effects) || effects[, .N] == 0) {
     stop("Expected effects to be data.table.")
@@ -140,16 +140,16 @@ mutational_signature_effects <- function(cesa = cesa, effects = NULL, samples = 
   }
   
   # Subset to included samples and get a table of variants, SIs, UPIs
-  maf = cesa$maf[samples, on = 'Unique_Patient_Identifier', nomatch = NULL]
-  variant_sources = merge.data.table(variant_sources, maf[, .(sbs = variant_id, Unique_Patient_Identifier)], 
+  maf = cesa$maf[samples, on = 'patient_id', nomatch = NULL]
+  variant_sources = merge.data.table(variant_sources, maf[, .(sbs = variant_id, patient_id)], 
                                           by = 'sbs', all = FALSE)
-  variant_sources[trinuc_rates, trinuc_rate := value, on = c('Unique_Patient_Identifier', 'trinuc_context')]
+  variant_sources[trinuc_rates, trinuc_rate := value, on = c('patient_id', 'trinuc_context')]
   
   
   # For each row (tumor-variant combination) in variant_sbs_pairing, calculate
   # P(signature produced variant) = (sig_weight * sig_trinuc_rate) / tumor_trinuc_rate.
-  sig_weights_by_sbs = signature_weights[variant_sources$Unique_Patient_Identifier, .SD, 
-                                     .SDcols = signature_names, on = 'Unique_Patient_Identifier']
+  sig_weights_by_sbs = signature_weights[variant_sources$patient_id, .SD, 
+                                     .SDcols = signature_names, on = 'patient_id']
   sig_trinuc_rates = t(signature_defs)[variant_sources$trinuc_context, signature_names]
   sig_prob_by_sbs = (sig_weights_by_sbs * sig_trinuc_rates) / variant_sources$trinuc_rate
   
@@ -158,7 +158,7 @@ mutational_signature_effects <- function(cesa = cesa, effects = NULL, samples = 
   # because it should typically have been called called as a multinucleotide variant in
   # preload_maf(). But if it does occur, the variant/UPI pairings will be repeated.
   # In the future, upstream improvements will prevent AACs from being called in such patients. 
-  variant_sources = variant_sources[, .(variant_id, Unique_Patient_Identifier, selection_intensity)]
+  variant_sources = variant_sources[, .(variant_id, patient_id, selection_intensity)]
   variant_sources[, (signature_names) := sig_prob_by_sbs]
   
   # For each variant, get the average source contributions across all patients with the variant.
@@ -168,11 +168,11 @@ mutational_signature_effects <- function(cesa = cesa, effects = NULL, samples = 
   
   # Effect share for a given variant and signature is P(signature is source) * selection_intensity.
   # When reported for each patient and the cohort, we normalize such that sum across signatures is 1.
-  effect_shares = variant_sources[, .(Unique_Patient_Identifier, .SD * variant_sources$selection_intensity), .SDcols = signature_names]
+  effect_shares = variant_sources[, .(patient_id, .SD * variant_sources$selection_intensity), .SDcols = signature_names]
   
   # For each patient, sum the effect shares across all variants in the patient, and normalize.
-  patient_effect_shares = effect_shares[, lapply(.SD, sum), .SDcols = signature_names, by = 'Unique_Patient_Identifier']
-  patient_effect_shares[, (signature_names) := .SD/rowSums(.SD), .SDcols = signature_names, by = 'Unique_Patient_Identifier']
+  patient_effect_shares = effect_shares[, lapply(.SD, sum), .SDcols = signature_names, by = 'patient_id']
+  patient_effect_shares[, (signature_names) := .SD/rowSums(.SD), .SDcols = signature_names, by = 'patient_id']
   
   # For all included samples, sum all effect shares and normalize.
   total_effect = sum(variant_sources$selection_intensity) # equivalent to sum(effect_shares[, .SD, .SDcols = signature_names])

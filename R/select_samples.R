@@ -1,7 +1,7 @@
 #' Retrieve validated subset of CESAnalysis samples table
 #' 
 #' @param cesa CESAnalysis
-#' @param samples Vector of Unique_Patient_Identifiers, or data.table consisting
+#' @param samples Vector of patient_ids, or data.table consisting
 #' of rows from a CESAnalysis samples table. If empty, returns full sample table.
 #' @return data.table consisting of one or more rows from the CESAnalysis samples table.
 #' @keywords internal
@@ -13,13 +13,13 @@ select_samples = function(cesa = NULL, samples = character()) {
     stop("samples should be character or data.table.")
   }
   if (is(samples, "data.table")) {
-    if(! "Unique_Patient_Identifier" %in% names(samples)) {
-      stop("samples should be character or a data.table with a Unique_Patient_Identifier column.")
+    if(! "patient_id" %in% names(samples)) {
+      stop("samples should be character or a data.table with a patient_id column.")
     }
     if(samples[, .N] == 0) {
       stop("The input samples table is empty")
     }
-    samples = samples$Unique_Patient_Identifier
+    samples = samples$patient_id
   }
   
   curr_sample_info = cesa@samples
@@ -30,7 +30,7 @@ select_samples = function(cesa = NULL, samples = character()) {
     if(any(duplicated(samples))) {
       stop("Input samples contains duplicates.")
     }
-    curr_sample_info = cesa@samples[samples, on = "Unique_Patient_Identifier", nomatch = NULL]
+    curr_sample_info = cesa@samples[samples, on = "patient_id", nomatch = NULL]
     if(curr_sample_info[, .N] != length(samples)) {
       stop("Some input samples not present in CESAnalysis samples table.")
     }
@@ -60,5 +60,5 @@ samples_with = function(cesa, any_of = NULL) {
   sbs_from_aac = cesa@mutations$aac_sbs_key[aac_ids, unique(sbs_id), on = 'aac_id']
   all_sbs_ids = union(sbs_from_aac, sbs_ids)
   
-  return(cesa@maf[all_sbs_ids, unique(Unique_Patient_Identifier), on = 'variant_id', nomatch = NULL])
+  return(cesa@maf[all_sbs_ids, unique(patient_id), on = 'variant_id', nomatch = NULL])
 }

@@ -24,7 +24,7 @@ supply custom covariates data in the form of a matrix or prcomp object (see webs
 for details).}
 
 \item{samples}{Which samples to include in the current run. Defaults to all samples. Can be a
-vector of Unique_Patient_Identifiers, or a data.table containing rows from the CESAnalysis
+vector of patient_ids, or a data.table containing rows from the CESAnalysis
 sample table.}
 
 \item{dndscv_args}{Custom arguments to pass to dNdScv. (The arguments \code{mutations},

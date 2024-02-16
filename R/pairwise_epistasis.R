@@ -20,7 +20,7 @@
 #'   annotations, the one listed in the "gene" column is used. In the recurrent method, nearby
 #'   noncoding variants may be included.
 #' @param samples Which samples to include in inference. Can be a vector of
-#'   Unique_Patient_Identifiers, or a data.table containing rows from the CESAnalysis sample table.
+#'   patient_ids, or a data.table containing rows from the CESAnalysis sample table.
 #'   Samples that do not have coverage at all variant sites in a given inference will be set aside.
 #' @param run_name Optionally, a name to identify the current run.
 #' @param conf Confidence interval size from 0 to 1 (.95 -> 95\%). NULL skips calculation,
@@ -262,7 +262,7 @@ ces_gene_epistasis = function(cesa = NULL, genes = NULL, variants = NULL,
 #'   supply a CompoundVariantSet (see \code{define_compound_variants()}) to test all pairs
 #'   of compound variants in the set.
 #' @param samples Which samples to include in inference. Defaults to all samples.
-#'   Can be a vector of Unique_Patient_Identifiers, or a data.table containing rows from
+#'   Can be a vector of patient_ids, or a data.table containing rows from
 #'   the CESAnalysis sample table.
 #' @param run_name Optionally, a name to identify the current run.
 #' @param conf confidence interval size from 0 to 1 (.95 -> 95\%); NULL skips calculation,
@@ -437,7 +437,7 @@ pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compoun
     variant_ids = c(v1, v2)
   }
 
-  eligible_tumors = samples[covered_regions %in% joint_coverage, Unique_Patient_Identifier]
+  eligible_tumors = samples[covered_regions %in% joint_coverage, patient_id]
   if (length(eligible_tumors) == 0) {
     warning(sprintf("No samples have coverage at both %s and %s, so this variant pair had to be skipped.", v1, v2), immediate. = T, call. = F)
   }
@@ -454,10 +454,10 @@ pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compoun
     
     v1_rates = all_rates[, ..v1_ids]
     v1_rates = rowSums(v1_rates)
-    names(v1_rates) = all_rates$Unique_Patient_Identifier
+    names(v1_rates) = all_rates$patient_id
     v2_rates = all_rates[, ..v2_ids]
     v2_rates = rowSums(v2_rates)
-    names(v2_rates) = all_rates$Unique_Patient_Identifier
+    names(v2_rates) = all_rates$patient_id
     
     # 2-item lists: first item is baseline rates for v1; second for v2
     with_just_1 = NULL; with_just_2 = NULL; with_both = NULL; with_neither = NULL
@@ -474,9 +474,9 @@ pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compoun
       with_neither = list(v1_rates[tumors_with_neither], v2_rates[tumors_with_neither])
     }
   } else {
-    setcolorder(all_rates, c("Unique_Patient_Identifier", v1, v2))
-    setkey(all_rates, "Unique_Patient_Identifier")
-    covered_maf = cesa@maf[eligible_tumors, on = "Unique_Patient_Identifier", nomatch = NULL]
+    setcolorder(all_rates, c("patient_id", v1, v2))
+    setkey(all_rates, "patient_id")
+    covered_maf = cesa@maf[eligible_tumors, on = "patient_id", nomatch = NULL]
     tumors_with_v1 = intersect(samples_with(cesa, v1), eligible_tumors)
     tumors_with_v2 = intersect(samples_with(cesa, v2), eligible_tumors)
     tumors_with_both = intersect(tumors_with_v1, tumors_with_v2)

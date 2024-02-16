@@ -27,7 +27,7 @@
 #' @param refset name of reference data set (refset) to use; run \code{list_ces_refsets()} for
 #'   available refsets. Alternatively, the path to a custom reference data directory.
 #' @param sample_col column name with patient ID; defaults to
-#'   Unique_Patient_Identifier, or, in its absence, Tumor_Sample_Barcode
+#'   patient_id, or, in its absence, Tumor_Sample_Barcode
 #' @param chr_col column name with chromosome data  (Chromosome)           
 #' @param start_col column name with start position (Start_Position)
 #' @param ref_col column name with reference allele data (Reference_Allele)
@@ -55,7 +55,7 @@
 #'   quality-control annotations (if available with the chosen refset data).
 #' @export
 preload_maf = function(maf = NULL, refset = NULL, coverage_intervals_to_check = NULL,
-                    chain_file = NULL, sample_col = "Unique_Patient_Identifier", chr_col = "Chromosome", start_col = "Start_Position",
+                    chain_file = NULL, sample_col = "patient_id", chr_col = "Chromosome", start_col = "Start_Position",
                     ref_col = "Reference_Allele", tumor_allele_col = "guess", keep_extra_columns = TRUE, detect_hidden_mnv = "auto") {
   if(is.null(refset)) {
     msg = paste0("Required argument refset: Supply a reference data package (e.g., ces.refset.hg38 or ces.refset.hg19).")
@@ -198,7 +198,7 @@ preload_maf = function(maf = NULL, refset = NULL, coverage_intervals_to_check = 
       # Create DBS entries suitable for MAF table
       mnv[, is_dbs := .N == 2 && diff(Start_Position) == 1 && variant_type[1] == 'sbs' && variant_type[2] == 'sbs', by = mnv_group]
       dbs = mnv[is_dbs == T, 
-                .(Unique_Patient_Identifier = Unique_Patient_Identifier[1], 
+                .(patient_id = patient_id[1], 
                   Chromosome = Chromosome[1], Start_Position = Start_Position[1],
                   Reference_Allele = paste(Reference_Allele, collapse = ''),
                   Tumor_Allele = paste0(Tumor_Allele, collapse = ''), variant_type = 'dbs',
@@ -206,8 +206,8 @@ preload_maf = function(maf = NULL, refset = NULL, coverage_intervals_to_check = 
       dbs[, dbs_id := paste0(Chromosome, ':', Start_Position, '_', Reference_Allele, '>', Tumor_Allele)]
       
       # Remove the SBS entries that form the new DBS variants
-      maf[dbs, dbs_id := i.dbs_id, on = c("Unique_Patient_Identifier", variant_id = "v1")]
-      maf[dbs, dbs_id := i.dbs_id, on = c("Unique_Patient_Identifier", variant_id = "v2")]
+      maf[dbs, dbs_id := i.dbs_id, on = c("patient_id", variant_id = "v1")]
+      maf[dbs, dbs_id := i.dbs_id, on = c("patient_id", variant_id = "v2")]
       
       if (all(c("prelift_chr", "prelift_start", "liftover_strand_flip", "prelift_variant_id") %in% names(maf))) {
         dbs[maf, c("prelift_chr", "prelift_start", "liftover_strand_flip", "prelift_variant_id") := list(prelift_chr, 
@@ -234,10 +234,10 @@ preload_maf = function(maf = NULL, refset = NULL, coverage_intervals_to_check = 
       num_mnv_groups = mnv[is_dbs == FALSE, uniqueN(mnv_group)]
       
       if(num_mnv_groups > 0) {
-        mnv = mnv[is_dbs == F, .(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele, Tumor_Allele, 
+        mnv = mnv[is_dbs == F, .(patient_id, Chromosome, Start_Position, Reference_Allele, Tumor_Allele, 
                                  variant_id, mnv_group)]
         
-        maf[mnv, mnv_group := mnv_group, on = c("Unique_Patient_Identifier", "Chromosome", "Start_Position")]
+        maf[mnv, mnv_group := mnv_group, on = c("patient_id", "Chromosome", "Start_Position")]
         maf[! is.na(mnv_group), problem := 'merged_with_nearby_variant']
         mnv[, increment := Start_Position - Start_Position[1], by = 'mnv_group']
         mnv[increment == 0, to_add := '']
@@ -354,7 +354,7 @@ preload_maf = function(maf = NULL, refset = NULL, coverage_intervals_to_check = 
     }
   }
   
-  setcolorder(maf, c("Unique_Patient_Identifier", "Chromosome", "Start_Position", 
+  setcolorder(maf, c("patient_id", "Chromosome", "Start_Position", 
                      "Reference_Allele", "Tumor_Allele", "variant_type", "variant_id"))
   
   # Enable skipping reference allele check on load_maf(), provided user doesn't mess with things.
@@ -427,7 +427,7 @@ check_sample_overlap = function(maf_list) {
     maf_names = names(maf_list)
   }
   
-  maf_cols = c("Chromosome", "Start_Position", "Reference_Allele", "Tumor_Allele", "Unique_Patient_Identifier")
+  maf_cols = c("Chromosome", "Start_Position", "Reference_Allele", "Tumor_Allele", "patient_id")
   all_samples = character()
   for (i in maf_names) {
     maf = maf_list[[i]]
@@ -435,10 +435,10 @@ check_sample_overlap = function(maf_list) {
       msg = paste0("Missing some required MAF columns in MAF ", i, ". (One fix is to run your MAF data through preload_maf() first.)")
       stop(pretty_message(msg, emit = F))
     }
-    if (any(maf$Unique_Patient_Identifier %in% all_samples)) {
+    if (any(maf$patient_id %in% all_samples)) {
       stop("MAF ", i, " contains sample(s) already present in previous MAFs in maf_list.")
     }
-    all_samples = union(all_samples, maf$Unique_Patient_Identifier)
+    all_samples = union(all_samples, maf$patient_id)
   }
   
   
@@ -459,15 +459,15 @@ check_sample_overlap = function(maf_list) {
   records_to_check = maf[recurrent_muts, on = "mut_id"]
   
   # Also will count shared mutations by 1000bp window
-  setkey(records_to_check, "Unique_Patient_Identifier")
+  setkey(records_to_check, "patient_id")
   setindex(records_to_check, "mut_id")
   
-  if(uniqueN(maf$Unique_Patient_Identifier) < 2) {
+  if(uniqueN(maf$patient_id) < 2) {
     stop("Less than two samples in MAF input.")
   }
   
   # Only need to count samples with recurrent mutations
-  samples_to_check = maf[recurrent_muts, unique(Unique_Patient_Identifier), on = 'mut_id']
+  samples_to_check = maf[recurrent_muts, unique(patient_id), on = 'mut_id']
   
   if(length(samples_to_check) < 2) {
     message("There are no recurrent mutations in the input, so there is no overlap between samples!")
@@ -523,9 +523,9 @@ check_sample_overlap = function(maf_list) {
   dups = count_overlaps(samples_to_check = samples_to_check, dt = records_to_check)
   
   # Add total variant counts
-  counts_by_sample = maf[, .N, by = "Unique_Patient_Identifier"]
-  dups[counts_by_sample, variants_A := N, on = c(sample_A = "Unique_Patient_Identifier")]
-  dups[counts_by_sample, variants_B := N, on = c(sample_B = "Unique_Patient_Identifier")]
+  counts_by_sample = maf[, .N, by = "patient_id"]
+  dups[counts_by_sample, variants_A := N, on = c(sample_A = "patient_id")]
+  dups[counts_by_sample, variants_B := N, on = c(sample_B = "patient_id")]
   
   
   ## Flag cases where both samples have <6 total mutations and any shared mutations
@@ -543,13 +543,13 @@ check_sample_overlap = function(maf_list) {
   # Filter down to the pairs to examine manually, add variant window counts, format for output
   to_examine = dups[to_examine == T, -"to_examine"][order(-greater_overlap)]
   to_examine[, greater_overlap := round(greater_overlap, 3)]
-  window_counts_by_sample = maf[, .(N = uniqueN(window)), by = "Unique_Patient_Identifier"]
+  window_counts_by_sample = maf[, .(N = uniqueN(window)), by = "patient_id"]
   
-  to_examine[window_counts_by_sample, variant_windows_A := N, on = c(sample_A = "Unique_Patient_Identifier")]
-  to_examine[window_counts_by_sample, variant_windows_B := N, on = c(sample_B = "Unique_Patient_Identifier")]
+  to_examine[window_counts_by_sample, variant_windows_A := N, on = c(sample_A = "patient_id")]
+  to_examine[window_counts_by_sample, variant_windows_B := N, on = c(sample_B = "patient_id")]
   
-  to_examine[maf, source_A := source_maf, on = c(sample_A = "Unique_Patient_Identifier")]
-  to_examine[maf, source_B := source_maf, on = c(sample_B = "Unique_Patient_Identifier")]
+  to_examine[maf, source_A := source_maf, on = c(sample_A = "patient_id")]
+  to_examine[maf, source_B := source_maf, on = c(sample_B = "patient_id")]
   setcolorder(to_examine, c("sample_A", "source_A", "variants_A", "variant_windows_A", 
                             "sample_B", "source_B", "variants_B", "variant_windows_B", "windows_shared",
                             "variants_shared", "greater_overlap"))

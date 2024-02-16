@@ -45,7 +45,7 @@
 #' @param signature_exclusions Specify any signatures to exclude from analysis; use
 #'   \code{suggest_cosmic_signature_exclusions()} for advice on COSMIC signatures
 #' @param samples Which samples to include in the current run. Defaults to all samples.
-#'   Can be a vector of Unique_Patient_Identifiers, or a data.table containing rows from
+#'   Can be a vector of patient_ids, or a data.table containing rows from
 #'   the CESAnalysis sample table.
 #' @param cores How many cores to use for processing tumors in parallel.
 #' @param signature_extractor One of "MutationalPatterns" (default) or "deconstructSigs".
@@ -246,8 +246,8 @@ trinuc_mutation_rates <- function(cesa,
     }
   }
 
-  setkey(curr_sample_info, "Unique_Patient_Identifier")
-  all_tumors = curr_sample_info$Unique_Patient_Identifier # may include some tumors with no sbs, or with only recurrent sbs
+  setkey(curr_sample_info, "patient_id")
+  all_tumors = curr_sample_info$patient_id # may include some tumors with no sbs, or with only recurrent sbs
   
   # Check that tumors aren't already present in trinuc rates / weights tables
   # Since you can't have a signature weight entry without also being in rates matrix, just check rates matrix
@@ -260,19 +260,19 @@ trinuc_mutation_rates <- function(cesa,
   # First, save the full counts across all data for user access. Re-running if user has loaded more MAF data.
   full_trinuc_sbs_counts = cesa@trinucleotide_mutation_weights$trinuc_sbs_counts
   if (is.null(full_trinuc_sbs_counts) || 
-      ncol(full_trinuc_sbs_counts) < cesa@maf[variant_type == 'sbs', uniqueN(Unique_Patient_Identifier)]) {
+      ncol(full_trinuc_sbs_counts) < cesa@maf[variant_type == 'sbs', uniqueN(patient_id)]) {
     full_trinuc_sbs_counts = trinuc_sbs_counts(cesa@maf, genome = get_cesa_bsg(cesa), 
                                                exclude_recurrent = FALSE, style = 'MutationalPatterns')
   }
   
   
   # Recalculate using just tumors in current run. Tumors with no non-recurrent sbs won't be included in output.
-  trinuc_breakdown_per_tumor = trinuc_sbs_counts(cesa@maf[all_tumors, on = "Unique_Patient_Identifier"],
+  trinuc_breakdown_per_tumor = trinuc_sbs_counts(cesa@maf[all_tumors, on = "patient_id"],
                                                  genome = get_cesa_bsg(cesa), exclude_recurrent = TRUE,
                                                  style = 'MutationalPatterns')
   
   # can only find signatures in tumors with exome/genome data that have non-recurrent sbs
-  tumors_eligible_for_trinuc_calc = intersect(curr_sample_info[coverage != "targeted", Unique_Patient_Identifier], unique(colnames(trinuc_breakdown_per_tumor)))
+  tumors_eligible_for_trinuc_calc = intersect(curr_sample_info[coverage != "targeted", patient_id], unique(colnames(trinuc_breakdown_per_tumor)))
   tumors_needing_group_average_rates = setdiff(all_tumors, tumors_eligible_for_trinuc_calc)
   
   substitution_counts = colSums(trinuc_breakdown_per_tumor)
@@ -394,15 +394,15 @@ trinuc_mutation_rates <- function(cesa,
   
   message("Extracting mutational signatures from SBS...")
   raw_signature_output = rbindlist(pbapply::pblapply(tumors_eligible_for_trinuc_calc, process_tumor, cl = cores))
-  raw_signature_output$Unique_Patient_Identifier = tumors_eligible_for_trinuc_calc
+  raw_signature_output$patient_id = tumors_eligible_for_trinuc_calc
 
   rel_bio_weights = artifact_account(raw_signature_output, signature_names, artifact_signatures, 
                                               fail_if_zeroed = FALSE)
-  trinuc_rates = calculate_trinuc_rates(weights = as.matrix(rel_bio_weights[, -c("Unique_Patient_Identifier")]),
+  trinuc_rates = calculate_trinuc_rates(weights = as.matrix(rel_bio_weights[, -c("patient_id")]),
                                         signatures = as.matrix(signatures), tumor_names = tumors_eligible_for_trinuc_calc)
   
-  setkey(raw_signature_output, 'Unique_Patient_Identifier')
-  setkey(rel_bio_weights, "Unique_Patient_Identifier")
+  setkey(raw_signature_output, 'patient_id')
+  setkey(rel_bio_weights, "patient_id")
   blended_weights = copy(raw_signature_output)
   
   # Set aside tumors that get all-zero biological signature weights (rare).
@@ -459,11 +459,11 @@ trinuc_mutation_rates <- function(cesa,
     }
     
     mean_all_weights = as.data.table(mean_all_weights)
-    mean_all_weights$Unique_Patient_Identifier = 'mean'
+    mean_all_weights$patient_id = 'mean'
     mean_rel_bio_weights = artifact_account(weights = mean_all_weights, signature_names = signature_names,
                                                      artifact_signatures = artifact_signatures, fail_if_zeroed = FALSE)
-    mean_all_weights[, Unique_Patient_Identifier := NULL]
-    mean_rel_bio_weights[, Unique_Patient_Identifier := NULL]
+    mean_all_weights[, patient_id := NULL]
+    mean_rel_bio_weights[, patient_id := NULL]
     
     # calculate rates using just the mean weights for use in assume_identical_mutational_processes (and tumors_needing_group_average_rates)
     # converting to numeric for insertion into trinuc_proportion_matrix
@@ -527,29 +527,29 @@ trinuc_mutation_rates <- function(cesa,
     # adjusted_sig_table includes artifact signature_weights
     bio_sig_table = rel_bio_weights
     adjusted_sig_table = blended_weights
-    bio_sig_table[, group_avg_blended := Unique_Patient_Identifier %in% tumors_below_threshold] # will include zeroed tumors
-    bio_sig_table[, sig_extraction_sbs := as.numeric(substitution_counts[Unique_Patient_Identifier])] # otherwise will be "table" class
-    total_sbs_counts = cesa@maf[variant_type == "sbs"][bio_sig_table, .(total_sbs = .N), on = "Unique_Patient_Identifier", by = "Unique_Patient_Identifier"]
-    bio_sig_table = bio_sig_table[total_sbs_counts, on = "Unique_Patient_Identifier"]
+    bio_sig_table[, group_avg_blended := patient_id %in% tumors_below_threshold] # will include zeroed tumors
+    bio_sig_table[, sig_extraction_sbs := as.numeric(substitution_counts[patient_id])] # otherwise will be "table" class
+    total_sbs_counts = cesa@maf[variant_type == "sbs"][bio_sig_table, .(total_sbs = .N), on = "patient_id", by = "patient_id"]
+    bio_sig_table = bio_sig_table[total_sbs_counts, on = "patient_id"]
     
     adjusted_sig_table[bio_sig_table, 
                   c("group_avg_blended", "sig_extraction_sbs", "total_sbs") := list(group_avg_blended, sig_extraction_sbs, total_sbs),
-                  on = "Unique_Patient_Identifier"]
+                  on = "patient_id"]
     
     # to reflect that no sbs informed inferred weights of zeroed-out tumors, set sig_extraction_sbs to 0
     # note that adjusted_sig_table keeps the actual counts used by signature extractor
-    bio_sig_table[Unique_Patient_Identifier %in% zeroed_out_tumors, sig_extraction_sbs := 0] 
+    bio_sig_table[patient_id %in% zeroed_out_tumors, sig_extraction_sbs := 0] 
     
     
-    tumors_without_data = setdiff(curr_sample_info$Unique_Patient_Identifier, bio_sig_table$Unique_Patient_Identifier)
+    tumors_without_data = setdiff(curr_sample_info$patient_id, bio_sig_table$patient_id)
     num_to_add = length(tumors_without_data)
     if (num_to_add > 0) {
       group_avg_weights = as.numeric(aggregate_extraction$rel_bio_weights)
       new_rows = matrix(nrow = num_to_add, data = rep.int(group_avg_weights, num_to_add), byrow = T)
       colnames(new_rows) = colnames(aggregate_extraction$rel_bio_weights)
-      total_sbs = cesa@maf[variant_type == "sbs"][, .N, keyby = "Unique_Patient_Identifier"][tumors_without_data, N]
+      total_sbs = cesa@maf[variant_type == "sbs"][, .N, keyby = "patient_id"][tumors_without_data, N]
       total_sbs[is.na(total_sbs)] = 0
-      new_table = data.table(Unique_Patient_Identifier = tumors_without_data, total_sbs = total_sbs, 
+      new_table = data.table(patient_id = tumors_without_data, total_sbs = total_sbs, 
                              sig_extraction_sbs = 0, group_avg_blended = T)
       bio_sig_table = rbind(bio_sig_table, cbind(new_table, new_rows))
       
@@ -557,22 +557,22 @@ trinuc_mutation_rates <- function(cesa,
       group_avg_weights_raw = as.numeric(aggregate_extraction$all_weights)
       new_rows_raw = matrix(nrow = num_to_add, data = rep.int(group_avg_weights_raw, num_to_add), byrow = T)
       colnames(new_rows_raw) = colnames(aggregate_extraction$all_weights)
-      new_table[, sig_extraction_sbs := as.numeric(substitution_counts[Unique_Patient_Identifier])]
+      new_table[, sig_extraction_sbs := as.numeric(substitution_counts[patient_id])]
       new_table[is.na(sig_extraction_sbs), sig_extraction_sbs := 0]
       adjusted_sig_table = rbind(adjusted_sig_table, cbind(new_table, new_rows_raw))
     }
-    setcolorder(bio_sig_table, c("Unique_Patient_Identifier", "total_sbs", "sig_extraction_sbs", "group_avg_blended"))
-    setcolorder(adjusted_sig_table, c("Unique_Patient_Identifier", "total_sbs", "sig_extraction_sbs", "group_avg_blended"))
+    setcolorder(bio_sig_table, c("patient_id", "total_sbs", "sig_extraction_sbs", "group_avg_blended"))
+    setcolorder(adjusted_sig_table, c("patient_id", "total_sbs", "sig_extraction_sbs", "group_avg_blended"))
     
     new_bio_sig_table = rbind(cesa@trinucleotide_mutation_weights[["signature_weight_table"]], bio_sig_table, fill = T)
     cesa@trinucleotide_mutation_weights[["signature_weight_table"]] = new_bio_sig_table
     new_adjusted_sig_table = rbind(cesa@trinucleotide_mutation_weights[["signature_weight_table_with_artifacts"]], adjusted_sig_table, fill = T)
     cesa@trinucleotide_mutation_weights[["signature_weight_table_with_artifacts"]] = new_adjusted_sig_table
     
-    setcolorder(raw_signature_output, "Unique_Patient_Identifier")
+    setcolorder(raw_signature_output, "patient_id")
     
     new_raw_table = rbind(cesa@trinucleotide_mutation_weights[["raw_signature_weights"]], raw_signature_output, fill = T)
-    setkey(new_raw_table, "Unique_Patient_Identifier")
+    setkey(new_raw_table, "patient_id")
     cesa@trinucleotide_mutation_weights[["raw_signature_weights"]] = new_raw_table
     
     
@@ -583,7 +583,7 @@ trinuc_mutation_rates <- function(cesa,
 
   
   curr_grp_num = max(c(0, na.omit(cesa@samples$sig_analysis_grp))) + 1
-  cesa@samples[curr_sample_info$Unique_Patient_Identifier, sig_analysis_grp := curr_grp_num, on = "Unique_Patient_Identifier"]
+  cesa@samples[curr_sample_info$patient_id, sig_analysis_grp := curr_grp_num, on = "patient_id"]
   return(cesa)
 }
 
@@ -647,16 +647,16 @@ trinuc_sbs_counts = function(maf,
     stop("genome should be a BSgenome object.")
   }
   
-  if(! all(c("variant_type", "Unique_Patient_Identifier", 'variant_id') %in% names(maf))) {
+  if(! all(c("variant_type", "patient_id", 'variant_id') %in% names(maf))) {
     message('Validating input table...')
     suppressWarnings(maf[, c("variant_type", "variant_id") := NULL])
-    if (! 'Unique_Patient_Identifier' %in% names(maf)) {
+    if (! 'patient_id' %in% names(maf)) {
       if(! 'Tumor_Sample_Barcode' %in% names(maf)) {
-        stop("Found neither Unique_Patient_Identifier nor Tumor_Sample_Barcode in MAF table.")
+        stop("Found neither patient_id nor Tumor_Sample_Barcode in MAF table.")
       }
       maf = copy(maf)
       message("Counting sbs by Tumor_Sample_Barcode...")
-      setnames(maf, 'Tumor_Sample_Barcode', 'Unique_Patient_Identifier')
+      setnames(maf, 'Tumor_Sample_Barcode', 'patient_id')
     }
     if (! 'Tumor_Allele' %in% names(maf)) {
       if (! 'Tumor_Seq_Allele2' %in% names(maf)) {
@@ -720,7 +720,7 @@ trinuc_sbs_counts = function(maf,
   trinuc_sbs = factor(deconstructSigs_notations[.(trinuc, ds_maf$Tumor_Allele), deconstructSigs_ID], levels = deconstructSigs_trinuc_string)
   
   # mysteriously convert two-way table to data.frame
-  tmp = table(ds_maf$Unique_Patient_Identifier, trinuc_sbs)
+  tmp = table(ds_maf$patient_id, trinuc_sbs)
   counts = apply(tmp, 2, rbind)
   
   # edge case: when just 1 sample in data set, counts comes back as integer vector but need matrix

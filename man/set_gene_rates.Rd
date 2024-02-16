@@ -18,7 +18,7 @@ set_gene_rates(
 and rate in column 2}
 
 \item{samples}{Which samples the input rates apply to. Defaults to all samples. Can be
-a vector of Unique_Patient_Identifiers, or a data.table containing rows from the
+a vector of patient_ids, or a data.table containing rows from the
 CESAnalysis sample table.}
 
 \item{missing_genes_take_nearest}{Set to TRUE to have each gene/protein_id missing from

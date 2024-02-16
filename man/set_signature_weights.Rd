@@ -33,7 +33,7 @@ or you can supply your own signature set definitions as documented in
 ?trinuc_mutation_rates.
 }
 \details{
-The input data table must have a Unique_Patient_Identifier column and one column per
+The input data table must have a patient_id column and one column per
 signature in the signature set. All samples in the CESAnalysis must be included in the
 input table, and each sample's weights should have a sum on (0, 1]. Since these weights
 are used by cancereffectsizeR to infer trinucleotide-context-specific relative rates

@@ -9,7 +9,7 @@ select_samples(cesa = NULL, samples = character())
 \arguments{
 \item{cesa}{CESAnalysis}
 
-\item{samples}{Vector of Unique_Patient_Identifiers, or data.table consisting
+\item{samples}{Vector of patient_ids, or data.table consisting
 of rows from a CESAnalysis samples table. If empty, returns full sample table.}
 }
 \value{

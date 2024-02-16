@@ -63,7 +63,7 @@ make_PathScore_input = function(maf, file = NULL, genome = 'hg38') {
   required_maf_cols = c('Chromosome', 'Start_Position', 'Reference_Allele', 'Tumor_Allele', 'patient_id')
   missing_cols = setdiff(required_maf_cols, names(maf))
   if(length(missing_cols) > 0) {
-    missing_cols[missing_cols == 'patient_id'] = 'patient_id (or Unique_Patient_Identifier/Tumor_Sample_Barcode)'
+    missing_cols[missing_cols == 'patient_id'] = 'patient_id (or Tumor_Sample_Barcode)'
     missing_cols[missing_cols == 'Tumor_Allele'] = 'Tumor_Allele (or Tumor_Seq_Allele2)'
     msg = paste0('Required MAF columns missing: ', paste(missing_cols, collapse = ', '), '.')
     stop(pretty_message(msg, emit = F))

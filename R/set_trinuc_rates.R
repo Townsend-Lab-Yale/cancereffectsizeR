@@ -4,7 +4,7 @@
 #' tumors in a CESAnalysis. (These could be rates previously generated with
 #' \code{trinuc_mutation_rates()}, or they could calculated using your own methods.) The
 #' input rates must be a data.table or matrix. If supplying a data table, there must be a
-#' Unique_Patient_Identifier column; if supplying a a matrix, the identifiers should be
+#' patient_id column; if supplying a a matrix, the identifiers should be
 #' supplied as rownames instead. Either way, all samples in the CESAnalysis must be
 #' represented in the input rates. To avoid user error, there cannot be any superfluous
 #' samples in the input rates unless \code{ignore_extra_samples = T}. Besides the
@@ -32,11 +32,11 @@ set_trinuc_rates = function(cesa, trinuc_rates, ignore_extra_samples = FALSE) {
   }
   if(is.null(trinuc_rates) || ! is(trinuc_rates, "matrix")) {
     if(is(trinuc_rates, "data.table")) {
-      if(! "Unique_Patient_Identifier" %in% names(trinuc_rates)) {
-        stop("If you supply a data.table, there must be a Unique_Patient_Identifier column", call. = F)
+      if(! "patient_id" %in% names(trinuc_rates)) {
+        stop("If you supply a data.table, there must be a patient_id column", call. = F)
       }
-      trinuc_proportion_matrix = as.matrix(trinuc_rates[, -"Unique_Patient_Identifier"])
-      rownames(trinuc_proportion_matrix) = trinuc_rates$Unique_Patient_Identifier
+      trinuc_proportion_matrix = as.matrix(trinuc_rates[, -"patient_id"])
+      rownames(trinuc_proportion_matrix) = trinuc_rates$patient_id
     } else {
       stop("Expected trinuc rates to be a data.table or matrix", call. = F)
     }
@@ -56,14 +56,14 @@ set_trinuc_rates = function(cesa, trinuc_rates, ignore_extra_samples = FALSE) {
     stop("Incorrect number of columns and/or incorrect column names or column order", call. = F)
   }
   
-  if(length(setdiff(rownames(trinuc_proportion_matrix), cesa$samples$Unique_Patient_Identifier)) > 0) {
+  if(length(setdiff(rownames(trinuc_proportion_matrix), cesa$samples$patient_id)) > 0) {
     if(! ignore_extra_samples) {
       stop(paste0("There are samples in the input rates that are not in the CESAnalysis; if this is intentional, re-run with \n",
                   "ignore_extra_samples = TRUE."), call. = F)
     }
-    trinuc_proportion_matrix = trinuc_proportion_matrix[cesa$samples$Unique_Patient_Identifier, , drop = F]
+    trinuc_proportion_matrix = trinuc_proportion_matrix[cesa$samples$patient_id, , drop = F]
   }
-  if(! identical(sort(cesa@samples$Unique_Patient_Identifier), sort(rownames(trinuc_proportion_matrix)))) {
+  if(! identical(sort(cesa@samples$patient_id), sort(rownames(trinuc_proportion_matrix)))) {
     stop("Not all samples in the CESAnalysis are present in the input rates.", call. = F)
   }
   

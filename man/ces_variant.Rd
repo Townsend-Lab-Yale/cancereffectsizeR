@@ -29,7 +29,7 @@ from \code{define_compound_variants()}. Defaults to all recurrent mutations; tha
 \code{[CESAnalysis]$variants}.}
 
 \item{samples}{Which samples to include in inference. Defaults to all samples. Can be a vector of
-Unique_Patient_Identifiers, or a data.table containing rows from the CESAnalysis sample table.}
+patient_ids, or a data.table containing rows from the CESAnalysis sample table.}
 
 \item{model}{Set to "basic" (default) or "sequential" (not yet available) to use built-in
 models of selection, or supply a custom function factory (see details).}
@@ -81,7 +81,7 @@ It's possible to pass in your own selection model. You'll need to create a "func
 that, for any variant, produces a likelihood function that can be evaluated on the data. The
 first two arguments must be \code{rates_tumors_with} and \code{rates_tumors_without}, which give the baseline
 site mutation rates in samples with and without the variant. The third argument must be
-\code{sample_index}, a data.table that associates \code{Unique_Patient_Identifier} with group names and
+\code{sample_index}, a data.table that associates \code{patient_id} with group names and
 indices. (Your function factory must accept this argument, but it doesn't have to use its value.)
 Values for all three of these arguments will be calculated by ces_variant and passed to your
 function factory automatically. Your function can take whatever additional arguments you like,

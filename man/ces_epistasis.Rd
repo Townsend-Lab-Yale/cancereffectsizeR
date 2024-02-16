@@ -23,7 +23,7 @@ supply a CompoundVariantSet (see \code{define_compound_variants()}) to test all 
 of compound variants in the set.}
 
 \item{samples}{Which samples to include in inference. Defaults to all samples.
-Can be a vector of Unique_Patient_Identifiers, or a data.table containing rows from
+Can be a vector of patient_ids, or a data.table containing rows from
 the CESAnalysis sample table.}
 
 \item{run_name}{Optionally, a name to identify the current run.}

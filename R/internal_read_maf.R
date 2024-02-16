@@ -13,7 +13,7 @@
 #' 
 #' @param refset_env a refset data environment
 #' @param maf Path of tab-delimited text file in MAF format, or an MAF in data.table or data.frame format
-#' @param sample_col column name with sample ID data (Tumor_Sample_Barcode or Unique_Patient_Identifier)
+#' @param sample_col column name with sample ID data (Tumor_Sample_Barcode or patient_id)
 #' @param chr_col column name with chromosome data  (Chromosome)           
 #' @param start_col column name with start position (Start_Position)
 #' @param ref_col column name with reference allele data (Reference_Allele)
@@ -28,7 +28,7 @@
 #' @return data.table with core MAF columns, any other requested columns, and a "problem" column
 #' @keywords internal
 read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Start_Position", 
-                       ref_col = "Reference_Allele", tumor_allele_col = "guess", sample_col = "Unique_Patient_Identifier", 
+                       ref_col = "Reference_Allele", tumor_allele_col = "guess", sample_col = "patient_id", 
                        more_cols = NULL, chain_file = NULL, separate_old_problems = FALSE) {
   
   select_cols = c(sample_col, chr_col, start_col, ref_col, 'problem')
@@ -39,7 +39,7 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
   }
   
   # when sample_col has default value, will also check for Tumor_Sample_Barcode if the default isn't found
-  if (sample_col == "Unique_Patient_Identifier") {
+  if (sample_col == "patient_id") {
     select_cols = c(select_cols, "Tumor_Sample_Barcode")
   }
   
@@ -116,7 +116,7 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
   missing_cols = character()
   input_maf_cols = colnames(maf)
   
-  if (sample_col == "Unique_Patient_Identifier" && ! sample_col %in% input_maf_cols &&
+  if (sample_col == "patient_id" && ! sample_col %in% input_maf_cols &&
       "Tumor_Sample_Barcode" %in% input_maf_cols) {
     sample_col = "Tumor_Sample_Barcode"
     pretty_message("Found column Tumor_Sample_Barcode; we'll assume that this column identifies patients.")
@@ -137,9 +137,9 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
   
   setnames(maf, c(chr_col, start_col, ref_col, tumor_allele_col, sample_col),
            c("Chromosome", "Start_Position", "Reference_Allele", "Tumor_Allele",
-             "Unique_Patient_Identifier"), skip_absent = TRUE) # tumor_allele_col will be absent when set to "guess"
-  maf[, c("Chromosome", "Unique_Patient_Identifier") := list(as.character(Chromosome),
-                                                             as.character(Unique_Patient_Identifier))]
+             "patient_id"), skip_absent = TRUE) # tumor_allele_col will be absent when set to "guess"
+  maf[, c("Chromosome", "patient_id") := list(as.character(Chromosome),
+                                                             as.character(patient_id))]
   maf[, Start_Position := as.numeric(Start_Position)]
   maf[, Reference_Allele := toupper(Reference_Allele)]
   
@@ -175,7 +175,7 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
   }
   suppressWarnings(maf[, c("Tumor_Seq_Allele1", "Tumor_Seq_Allele2") := NULL])
   
-  maf_cols = c("Unique_Patient_Identifier", "Chromosome", "Start_Position", "Reference_Allele", "Tumor_Allele")
+  maf_cols = c("patient_id", "Chromosome", "Start_Position", "Reference_Allele", "Tumor_Allele")
   
   old_problems = data.table()
   if('problem' %in% names(maf)) {
@@ -212,16 +212,16 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
   num_bad = sum(looks_empty)
   maf[looks_empty, problem := 'missing_values']
   
-  duplicate_records = duplicated(maf[,.(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele, Tumor_Allele)])
+  duplicate_records = duplicated(maf[,.(patient_id, Chromosome, Start_Position, Reference_Allele, Tumor_Allele)])
   maf[duplicate_records, problem := 'duplicate_record']
   
   # Change duplicate record annotation for TCGA patients with multiple (essentially replicate) samples
   if('Tumor_Sample_Barcode' %in% names(maf)) {
-    if(sample_col == 'Unique_Patient_Identifier') {
+    if(sample_col == 'patient_id') {
       maf[, within_sample_dup := FALSE]
       sample_barcode_dups = duplicated(maf[,.(Tumor_Sample_Barcode, Chromosome, Start_Position, Reference_Allele)])
       maf[sample_barcode_dups, within_sample_dup := TRUE]
-      maf[, is_tcga_patient := Unique_Patient_Identifier %like% '^TCGA-.{7}$']
+      maf[, is_tcga_patient := patient_id %like% '^TCGA-.{7}$']
       maf[within_sample_dup == FALSE & problem == 'duplicate_record' & is_tcga_patient == TRUE, problem := 'duplicate_from_TCGA_sample_merge']
       maf[, c('within_sample_dup', 'is_tcga_patient') := NULL]
     }
@@ -304,7 +304,7 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
     # fixes. Therefore, liftOver sometimes reveals duplicate records when two mutations in same
     # sample get lifted to the same locus in a newer build. Find these by searching for duplicates
     # among records with non-NA fields (those with NAs already have noted problems).
-    lifted_to_same = maf[, duplicated(.SD) & complete.cases(.SD), .SDcols = c('Unique_Patient_Identifier', 'Chromosome', 'Start_Position', 'Reference_Allele')]
+    lifted_to_same = maf[, duplicated(.SD) & complete.cases(.SD), .SDcols = c('patient_id', 'Chromosome', 'Start_Position', 'Reference_Allele')]
     maf[lifted_to_same, problem := 'duplicate_record_after_liftOver']
   } else {
     # If liftOver is not being used (which would catch problems earlier), make sure all records are in-bounds.
@@ -356,9 +356,9 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
 #' @keywords internal
 identify_maf_variants = function(maf) {
   has_upi = TRUE
-  if(! 'Unique_Patient_Identifier' %in% names(maf)) {
+  if(! 'patient_id' %in% names(maf)) {
     # insert placeholder to be deleted at end of function
-    maf$Unique_Patient_Identifier = 'patient'
+    maf$patient_id = 'patient'
     has_upi = FALSE
   }
   suppressWarnings(maf[, c("variant_id", "variant_type") := NULL])
@@ -393,7 +393,7 @@ identify_maf_variants = function(maf) {
     
     tmp = copy(complex_variants)
     to_identify = complex_variants[, .(Chromosome, Start_Position, Reference_Allele, Tumor_Allele,
-                                       Unique_Patient_Identifier, rn)][0]
+                                       patient_id, rn)][0]
     
     # iteratively process comma-delimited variant IDs from left to right
     while(tmp[, .N] > 0) {
@@ -401,7 +401,7 @@ identify_maf_variants = function(maf) {
                              Start_Position,
                              Reference_Allele = gsub(',.*', '', Reference_Allele),
                              Tumor_Allele = gsub(',.*', '', Tumor_Allele),
-                             Unique_Patient_Identifier, rn)]
+                             patient_id, rn)]
       
       left_variant[, to_add := 0]
       left_variant[Reference_Allele %like% '\\(\\+\\d+\\)',  to_add := as.numeric(gsub('.*\\(\\+(\\d+).*', '\\1', Reference_Allele))]
@@ -416,7 +416,7 @@ identify_maf_variants = function(maf) {
                   Start_Position,
                   Reference_Allele = sub('.*?,', '', Reference_Allele),
                   Tumor_Allele = sub('.*?,', '', Tumor_Allele),
-                  Unique_Patient_Identifier, rn)]
+                  patient_id, rn)]
     }
     
     to_identify = identify_maf_variants(to_identify)
@@ -436,11 +436,11 @@ identify_maf_variants = function(maf) {
   
   maf[, is_complex := NULL]
   maf[, start_char := NULL]
-  setcolorder(maf, c("Unique_Patient_Identifier", "Chromosome", "Start_Position", 
+  setcolorder(maf, c("patient_id", "Chromosome", "Start_Position", 
               "Reference_Allele", "Tumor_Allele", "variant_type", "variant_id"))
   if(! has_upi) {
     # Remove placeholder
-    maf$Unique_Patient_Identifier = NULL
+    maf$patient_id = NULL
   }
   return(maf)
 }

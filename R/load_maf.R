@@ -166,14 +166,14 @@ load_maf = function(cesa = NULL, maf = NULL, maf_name = character(), coverage = 
   refset = .ces_ref_data[[cesa@ref_key]]
   
   read_args = list(maf = maf, refset_env = refset,
-                   sample_col = 'Unique_Patient_Identifier', chr_col = 'Chromosome', start_col = 'Start_Position',
+                   sample_col = 'patient_id', chr_col = 'Chromosome', start_col = 'Start_Position',
                    ref_col = 'Reference_Allele', tumor_allele_col = 'guess', separate_old_problems = TRUE)
 
   if(length(sample_data_cols) > 0) {
     read_args = c(read_args, list(more_cols = sample_data_cols))
   }
   
-  reserved_cols = c("Unique_Patient_Identifier", "Chromosome", "Start_Position", "Reference_Allele", 
+  reserved_cols = c("patient_id", "Chromosome", "Start_Position", "Reference_Allele", 
                     "Tumor_Seq_Allele1", "Tumor_Seq_Allele2", "Tumor_Allele", "Tumor_Sample_Barcode")
   illegal_sample_cols = intersect(reserved_cols, read_args[["more_cols"]])
   if(length(illegal_sample_cols) > 0) {
@@ -211,7 +211,7 @@ load_maf = function(cesa = NULL, maf = NULL, maf_name = character(), coverage = 
     
     bad_cols = character()
     for (col in sample_data_cols) {
-      col_good = maf[, .(good = uniqueN(.SD[[1]]) == 1), by = "Unique_Patient_Identifier", .SDcols = col][, all(good)]
+      col_good = maf[, .(good = uniqueN(.SD[[1]]) == 1), by = "patient_id", .SDcols = col][, all(good)]
       if (! col_good) {
         bad_cols = c(bad_cols, col)
       }
@@ -221,14 +221,14 @@ load_maf = function(cesa = NULL, maf = NULL, maf_name = character(), coverage = 
     }
     
     # save sample data for later (only need 1 row per sample, since it's all sample-level data)
-    sample_data = unique(maf[, .SD, .SDcols = c("Unique_Patient_Identifier", sample_data_cols)], by = "Unique_Patient_Identifier")
+    sample_data = unique(maf[, .SD, .SDcols = c("patient_id", sample_data_cols)], by = "patient_id")
     maf = maf[, .SD, .SDcols = setdiff(names(maf), sample_data_cols)]
   }
   
   
   # Set aside records with problems and notify user
   initial_num_records = maf[, .N]
-  excluded = maf[! is.na(problem), .(Unique_Patient_Identifier, Chromosome, Start_Position, 
+  excluded = maf[! is.na(problem), .(patient_id, Chromosome, Start_Position, 
                                      Reference_Allele, Tumor_Allele, variant_id, variant_type, problem)]
   maf = maf[is.na(problem), -"problem"]
 
@@ -261,19 +261,19 @@ load_maf = function(cesa = NULL, maf = NULL, maf_name = character(), coverage = 
     excluded = rbind(excluded, old_problems[, ..excluded_cols])
   }
   
-  new_samples = data.table(Unique_Patient_Identifier = unique(maf$Unique_Patient_Identifier))
+  new_samples = data.table(patient_id = unique(maf$patient_id))
   new_samples[, coverage := coverage]
   new_samples[, covered_regions := covered_regions_name]
   
   # see if any sample appears more than once in sample table (happens when one sample has multiple listed groups)
-  repeated_samples = new_samples[duplicated(Unique_Patient_Identifier), unique(Unique_Patient_Identifier)]
+  repeated_samples = new_samples[duplicated(patient_id), unique(patient_id)]
   if(length(repeated_samples) > 0) {
     stop(paste0("The following samples are associated with multiple groups in the input data:\n", paste(repeated_samples, collapse=", ")))
   }
   
   # make sure no new samples were already in the previously loaded MAF data
   if(cesa@samples[, .N] > 0) {
-    repeat_samples = intersect(cesa@samples[, Unique_Patient_Identifier], new_samples[, Unique_Patient_Identifier])
+    repeat_samples = intersect(cesa@samples[, patient_id], new_samples[, patient_id])
     if (length(repeat_samples) > 0) {
       stop(paste0("Error: Can't load MAF data because some sample IDs already appear in previously loaded data.\n",
                   "Either merge these data sets manually or remove duplicated samples: ",
@@ -327,13 +327,13 @@ load_maf = function(cesa = NULL, maf = NULL, maf_name = character(), coverage = 
   
   # merge in any sample-level data
   if (! is.null(sample_data)) {
-    new_samples = merge.data.table(new_samples, sample_data, by = "Unique_Patient_Identifier")
+    new_samples = merge.data.table(new_samples, sample_data, by = "patient_id")
   }
   new_samples[, maf_source := maf_name]
   
   cesa@samples = rbind(cesa@samples, new_samples, fill = TRUE)
-  setcolorder(cesa@samples, c("Unique_Patient_Identifier", "coverage", "covered_regions"))
-  setkey(cesa@samples, "Unique_Patient_Identifier")
+  setcolorder(cesa@samples, c("patient_id", "coverage", "covered_regions"))
+  setkey(cesa@samples, "patient_id")
   
   if (excluded[, .N] > 0) {
     cesa@excluded = rbind(cesa@excluded, excluded, fill = T) 
@@ -352,7 +352,7 @@ load_maf = function(cesa = NULL, maf = NULL, maf_name = character(), coverage = 
   num_bad = length(bad_trinuc_context)
   if (num_bad > 0) {
     bad_ids = sbs_table[bad_trinuc_context, sbs_id]
-    bad_trinuc_context_maf = maf[bad_ids, .(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele, Tumor_Allele, variant_id, variant_type), on = 'variant_id']
+    bad_trinuc_context_maf = maf[bad_ids, .(patient_id, Chromosome, Start_Position, Reference_Allele, Tumor_Allele, variant_id, variant_type), on = 'variant_id']
     maf = maf[! bad_ids, on = 'variant_id']
     msg = paste0("Note: ", num_bad, " MAF records excluded due to ambiguous trinucleotide context ",
                   "(likely N's in the reference genome).")

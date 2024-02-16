@@ -13,7 +13,7 @@
 #'   supply custom covariates data in the form of a matrix or prcomp object (see website
 #'   for details).
 #' @param samples Which samples to include in the current run. Defaults to all samples. Can be a
-#'   vector of Unique_Patient_Identifiers, or a data.table containing rows from the CESAnalysis
+#'   vector of patient_ids, or a data.table containing rows from the CESAnalysis
 #'   sample table.
 #' @param dndscv_args Custom arguments to pass to dNdScv. (The arguments \code{mutations},
 #'   \code{gene_list}, \code{cv}, and \code{refdb} are supplied by cancereffectsizeR and can't be
@@ -36,7 +36,7 @@ gene_mutation_rates <- function(cesa, covariates = NULL, samples = character(), 
   
   # select MAF records to use for gene mutation rate calculation (via dNdScv)
   # for now, records from TGS samples are kept out; in the future, we could check out dNdScv's panel sequencing features
-  curr_run_grp_samples = sample_info$Unique_Patient_Identifier
+  curr_run_grp_samples = sample_info$patient_id
   sample_info = sample_info[coverage %in% c("exome", "genome")]
   if(sample_info[, .N] == 0) {
     stop("Cannot run dNdSCv because there are no whole-exome or whole-genome samples among the input samples.")
@@ -48,7 +48,7 @@ gene_mutation_rates <- function(cesa, covariates = NULL, samples = character(), 
                  "want to re-run, run clear_gene_rates() first.")
     stop(pretty_message(msg, emit = F))
   }
-  dndscv_samples = sample_info$Unique_Patient_Identifier
+  dndscv_samples = sample_info$patient_id
   
   if (! is(dndscv_args, "list") || uniqueN(names(dndscv_args)) != length(dndscv_args)) {
     stop("dndscv_args should a named list of arguments to pass.")
@@ -176,8 +176,8 @@ gene_mutation_rates <- function(cesa, covariates = NULL, samples = character(), 
  
   
   
-  mutations = cesa@maf[Unique_Patient_Identifier %in% dndscv_samples & variant_type == "sbs", 
-                       .(Unique_Patient_Identifier, Chromosome, Start_Position, Reference_Allele, Tumor_Allele)]
+  mutations = cesa@maf[patient_id %in% dndscv_samples & variant_type == "sbs", 
+                       .(patient_id, Chromosome, Start_Position, Reference_Allele, Tumor_Allele)]
   if(mutations[, .N] == 0) {
     stop("Can't run dNdScv because there are no usable sbs mutations in the input samples.")
   }
@@ -270,7 +270,7 @@ gene_mutation_rates <- function(cesa, covariates = NULL, samples = character(), 
   # convert dNdScv's main output to data.table
   setDT(dndscv_output$sel_cv)
 
-  cesa@samples[curr_run_grp_samples, gene_rate_grp := curr_rate_group, on = "Unique_Patient_Identifier"]
+  cesa@samples[curr_run_grp_samples, gene_rate_grp := curr_rate_group, on = "patient_id"]
   
   if(using_cds_rates) {
     setnames(mutrates_dt, 'gene', 'pid')

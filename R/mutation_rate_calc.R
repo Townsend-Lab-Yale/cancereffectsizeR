@@ -8,9 +8,9 @@
 #' @param sbs_ids vector of IDs for SBS
 #' @param variant_ids vector of mixed IDs (faster to use sbs_ids and aac_ids for large jobs, if already known)
 #' @param samples Which samples to calculate rates for. Defaults to all samples. Can be a
-#'   vector of Unique_Patient_Identifiers, or a data.table containing rows from the
+#'   vector of patient_ids, or a data.table containing rows from the
 #'   CESAnalysis sample table.
-#' @return a data table of mutation rates with one column per variant, and a Unique_Patient_Identifier column identifying each row
+#' @return a data table of mutation rates with one column per variant, and a patient_id column identifying each row
 #' @export
 baseline_mutation_rates = function(cesa, aac_ids = NULL, sbs_ids = NULL, variant_ids = NULL, samples = character()) {
   
@@ -102,7 +102,7 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, sbs_ids = NULL, variant
   mutrates = cesa@mutrates[, .SD, .SDcols = patterns('gene|pid|(rate_grp_\\d+)$')]
   
   
-  # produce a table with all pairwise combinations of Unique_Patient_Identifier and relevant regional rates
+  # produce a table with all pairwise combinations of patient_id and relevant regional rates
   # relevant genes/pids are those associated with one of the AACs/SNVs of interest
   using_pid = "pid" %in% names(mutrates)
   if(using_pid) {
@@ -123,9 +123,9 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, sbs_ids = NULL, variant
   }
   
   # Get all combinations of genes (regions) and patients, then merge in gene_rate_grp from samples table.
-  sample_region_rates = as.data.table(expand.grid(region = relevant_regions, Unique_Patient_Identifier = samples$Unique_Patient_Identifier, 
-                                                  stringsAsFactors = F), key = "Unique_Patient_Identifier")
-  sample_region_rates[samples, gene_rate_grp := paste0('rate_grp_', gene_rate_grp), on = 'Unique_Patient_Identifier']
+  sample_region_rates = as.data.table(expand.grid(region = relevant_regions, patient_id = samples$patient_id, 
+                                                  stringsAsFactors = F), key = "patient_id")
+  sample_region_rates[samples, gene_rate_grp := paste0('rate_grp_', gene_rate_grp), on = 'patient_id']
   
   if (using_pid) {
     # there's also a gene given in transcript rates tables, but we'll drop it here
@@ -143,17 +143,17 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, sbs_ids = NULL, variant
   # Hash trinuc rates for faster runtime with large data sets (where there could be millions of queries of trinuc_mat)
   # Also creating a melted version for individual rate lookups.
   trinuc_rates = new.env(parent = emptyenv())
-  trinuc_mat = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix[samples$Unique_Patient_Identifier, , drop = F]
+  trinuc_mat = cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix[samples$patient_id, , drop = F]
   for (row in rownames(trinuc_mat)) { 
     trinuc_rates[[row]] = unname(trinuc_mat[row, ])
   }
-  trinuc_by_sample = melt(as.data.table(trinuc_mat, keep.rownames = 'Unique_Patient_Identifier'),
-                          id.vars = 'Unique_Patient_Identifier', variable.name = 'trinuc_mut')
+  trinuc_by_sample = melt(as.data.table(trinuc_mat, keep.rownames = 'patient_id'),
+                          id.vars = 'patient_id', variable.name = 'trinuc_mut')
   
   # Dot product of trinuc comp and patient's expected relative trinuc rates yields the denominator
   # for site-specific mutation rate calculation; numerator is raw gene rate multiplied by the patient's relative rate for the site's trinuc context
   # (this last value gets multipled in by get_baseline functions below)
-  sample_region_rates[, aggregate_rate := raw_rate / sum(cds_trinuc_comp[[region]] * trinuc_rates[[Unique_Patient_Identifier]]), by = c("region", "Unique_Patient_Identifier")]
+  sample_region_rates[, aggregate_rate := raw_rate / sum(cds_trinuc_comp[[region]] * trinuc_rates[[patient_id]]), by = c("region", "patient_id")]
   setkey(sample_region_rates, "region")
   
   if(length(aac_ids > 0)) {
@@ -171,12 +171,12 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, sbs_ids = NULL, variant
     }
 
     trinuc_mut_by_sample_per_aac = merge.data.table(trinuc_mut_by_aac, trinuc_by_sample, by = 'trinuc_mut', allow.cartesian = T)
-    sample_rates = trinuc_mut_by_sample_per_aac[, .(rate = sum(value)), by = c('aac_id', 'Unique_Patient_Identifier')]
+    sample_rates = trinuc_mut_by_sample_per_aac[, .(rate = sum(value)), by = c('aac_id', 'patient_id')]
     sample_rates[mutations$amino_acid_change, region := region, on = 'aac_id']
-    sample_rates[sample_region_rates, final_rate := rate * aggregate_rate, on = c('region', 'Unique_Patient_Identifier')]
-    final_aac_rates = dcast.data.table(sample_rates,  Unique_Patient_Identifier ~ aac_id, value.var = 'final_rate')
+    sample_rates[sample_region_rates, final_rate := rate * aggregate_rate, on = c('region', 'patient_id')]
+    final_aac_rates = dcast.data.table(sample_rates,  patient_id ~ aac_id, value.var = 'final_rate')
   } else {
-    final_aac_rates = data.table(Unique_Patient_Identifier = samples$Unique_Patient_Identifier)
+    final_aac_rates = data.table(patient_id = samples$patient_id)
   }
 
   # repeat with SBS (slightly different handling since SBS can have more than one gene/pid associated)
@@ -193,21 +193,21 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, sbs_ids = NULL, variant
     sample_rates_sbs = merge.data.table(trinuc_mut_by_sbs, trinuc_by_sample, by = 'trinuc_mut', allow.cartesian = T)
     
     
-    rates_by_sbs = merge.data.table(region_by_sbs, sample_region_rates[, .(region, Unique_Patient_Identifier, aggregate_rate)],
+    rates_by_sbs = merge.data.table(region_by_sbs, sample_region_rates[, .(region, patient_id, aggregate_rate)],
                      by = 'region', all.x = T, all.y = F, allow.cartesian = T)
     
     # SBS that cover multiple regions will get a rate averaged over those regions. In the future this may change.
-    rates_by_sbs = rates_by_sbs[, .(sbs_id, Unique_Patient_Identifier, aggregate_rate = mean(aggregate_rate)), by = c('sbs_id', 'Unique_Patient_Identifier')]
+    rates_by_sbs = rates_by_sbs[, .(sbs_id, patient_id, aggregate_rate = mean(aggregate_rate)), by = c('sbs_id', 'patient_id')]
     
-    sample_rates_sbs[rates_by_sbs, final_rate := value * aggregate_rate, on = c('sbs_id', 'Unique_Patient_Identifier')]
-    final_sbs_rates = dcast.data.table(sample_rates_sbs,  Unique_Patient_Identifier ~ sbs_id, value.var = 'final_rate')
+    sample_rates_sbs[rates_by_sbs, final_rate := value * aggregate_rate, on = c('sbs_id', 'patient_id')]
+    final_sbs_rates = dcast.data.table(sample_rates_sbs,  patient_id ~ sbs_id, value.var = 'final_rate')
   } else {
-    final_sbs_rates = data.table(Unique_Patient_Identifier = samples$Unique_Patient_Identifier)
+    final_sbs_rates = data.table(patient_id = samples$patient_id)
   }
   
   # Combine all rates
-  baseline_rates = merge.data.table(final_aac_rates, final_sbs_rates, by = 'Unique_Patient_Identifier')
-  setcolorder(baseline_rates, "Unique_Patient_Identifier")
+  baseline_rates = merge.data.table(final_aac_rates, final_sbs_rates, by = 'patient_id')
+  setcolorder(baseline_rates, "patient_id")
   return(baseline_rates)
 }
 

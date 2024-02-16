@@ -8,7 +8,7 @@
 #' (e.g., TARGET and GENIE-MSK), but it hasn't been tested and users should proceed with
 #' caution.
 #' 
-#' TCGA cohort MAFs will be structured as downloaded, with a Unique_Patient_Identifier
+#' TCGA cohort MAFs will be structured as downloaded, with a patient_id
 #' column generated from the first 12 characters of Tumor_Sample_Barcode. When passed to
 #' preload_maf() or load_maf(), this column will supersede Tumor_Sample_Barcode. In the
 #' handful of patients with multiple Tumor_Sample_Barcodes (essentially replicated
@@ -227,7 +227,7 @@ get_TCGA_project_MAF = function(project = NULL, filename = NULL, test_run = FALS
   cohort_maf = rbindlist(lapply(to_read, fread, skip = 'Hugo'), idcol = "source_file_id") # column headers start with Hugo_Symbol (comment lines precede)
   
   if(is_tcga_project) {
-    cohort_maf[, Unique_Patient_Identifier := substr(Tumor_Sample_Barcode, 1, 12)]
+    cohort_maf[, patient_id := substr(Tumor_Sample_Barcode, 1, 12)]
     cohort_maf[, c("V1", "V2", "V3", "type_vial", "portion_analyte", "plate", "center") := tstrsplit(Tumor_Sample_Barcode, split = "-")]
     cohort_maf[, c("V1", "V2", "V3", "portion_analyte", "plate", "center") := NULL] # already extracted participant ID
     cohort_maf[, tissue_type := substr(type_vial, 1, 2)]
@@ -257,20 +257,20 @@ get_TCGA_project_MAF = function(project = NULL, filename = NULL, test_run = FALS
   
   if(is_tcga_project) {
     num_samples = uniqueN(cohort_maf$Tumor_Sample_Barcode)
-    num_participants = uniqueN(cohort_maf$Unique_Patient_Identifier)
+    num_participants = uniqueN(cohort_maf$patient_id)
     message("Writing MAF file covering ", num_samples , " samples from ",
                           num_participants, " patients....")
     
     
-    cohort_maf[, multisample_patient := uniqueN(Tumor_Sample_Barcode) > 1, by = "Unique_Patient_Identifier"]
+    cohort_maf[, multisample_patient := uniqueN(Tumor_Sample_Barcode) > 1, by = "patient_id"]
     
-    samples_per_tissue_type = unique(cohort_maf[, .(tissue_type, Tumor_Sample_Barcode, Unique_Patient_Identifier)])
-    multiple_samples_same_tissue = samples_per_tissue_type[, .N, by = c("Unique_Patient_Identifier", "tissue_type")][N > 1, Unique_Patient_Identifier]
+    samples_per_tissue_type = unique(cohort_maf[, .(tissue_type, Tumor_Sample_Barcode, patient_id)])
+    multiple_samples_same_tissue = samples_per_tissue_type[, .N, by = c("patient_id", "tissue_type")][N > 1, patient_id]
     num_multisample_same_tissue = uniqueN(multiple_samples_same_tissue) 
     if(num_multisample_same_tissue > 0) {
       msg = paste0(num_multisample_same_tissue, " patients have multiple sequenced samples ",
                    "that ultimately derive from the same tissue sample. We typically merge somatic calls by patient for these samples. ",
-                   "In cancereffectsizeR, preload_maf() will automatically merge and de-duplicate records by using the Unique_Patient_Identifier field, rather than ",
+                   "In cancereffectsizeR, preload_maf() will automatically merge and de-duplicate records by using the patient_id field, rather than ",
                    "Tumor_Sample_Barcode. In non-cancereffectsizeR analyses, make sure that same-patient samples are not inadvertently treated as coming ",
                    "from different patients. (These samples are marked in the multisample_patient field.)")
       pretty_message(msg)
@@ -278,7 +278,7 @@ get_TCGA_project_MAF = function(project = NULL, filename = NULL, test_run = FALS
       setcolorder(cohort_maf, 'multisample_patient')
     }
     
-    cohort_maf[, multitissue_patient := uniqueN(tissue_type) > 1, by = "Unique_Patient_Identifier"]
+    cohort_maf[, multitissue_patient := uniqueN(tissue_type) > 1, by = "patient_id"]
     
     if(any(cohort_maf$multitissue_patient)) {
       msg = paste0("Some patients, marked in a multitissue_patient column, have samples from multiple tissue sources. (See ",
@@ -290,7 +290,7 @@ get_TCGA_project_MAF = function(project = NULL, filename = NULL, test_run = FALS
     } else {
       cohort_maf[, multitissue_patient := NULL]
     }
-    setcolorder(cohort_maf, c('Unique_Patient_Identifier', 'Tumor_Sample_Barcode'))
+    setcolorder(cohort_maf, c('patient_id', 'Tumor_Sample_Barcode'))
     cohort_maf[, c("type_vial", "tissue_type", "primary_sample") := NULL]
   } else {
     num_samples = uniqueN(cohort_maf$Tumor_Sample_Barcode)

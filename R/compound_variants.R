@@ -176,8 +176,8 @@ CompoundVariantSet = function(cesa, variant_id) {
   aac_anno[num_genes > 1, aachanges := variant_names]
   compound_sbs[aac_anno, c('genes', 'aachanges') := list(genes, aachanges), on = 'sbs_id']
 
-  sample_table = cesa@maf[compound_sbs$sbs_id, Unique_Patient_Identifier, on = "variant_id", by = "variant_id", nomatch = NULL]
-  sample_table[cesa@samples, covered_regions := covered_regions, on = "Unique_Patient_Identifier"]
+  sample_table = cesa@maf[compound_sbs$sbs_id, patient_id, on = "variant_id", by = "variant_id", nomatch = NULL]
+  sample_table[cesa@samples, covered_regions := covered_regions, on = "patient_id"]
   sample_table[compound_sbs, c("compound_name", "shared_cov") := list(compound_name, shared_cov), on = c(variant_id = "sbs_id")]
   sample_table[, compound_covered := covered_regions == "genome" | covered_regions %in% unlist(shared_cov), by = "variant_id"]
   total_freq = sample_table[, .(total_maf_freq = .N), by = "variant_id"]
@@ -199,13 +199,13 @@ CompoundVariantSet = function(cesa, variant_id) {
   
   # shared_cov_freq is the number of samples that have one or more of a compound variant, within samples that have coverage
   # at all compound variant sites
-  compound_counts_cov = unique(covered_sample_table, by = c("variant_id", "Unique_Patient_Identifier"))
-  compound_counts_cov = compound_counts_cov[, .(shared_cov_freq = uniqueN(Unique_Patient_Identifier)), by = "compound_name"]
+  compound_counts_cov = unique(covered_sample_table, by = c("variant_id", "patient_id"))
+  compound_counts_cov = compound_counts_cov[, .(shared_cov_freq = uniqueN(patient_id)), by = "compound_name"]
   compound_stats = compound_stats[compound_counts_cov, on = "compound_name"]
-  compound_counts_total = unique(sample_table, by = c("variant_id", "Unique_Patient_Identifier"))
+  compound_counts_total = unique(sample_table, by = c("variant_id", "patient_id"))
   
   # Record which samples (including those outside shared coverage) have the variant
-  samples_by_variant = compound_counts_total[, .(samples = list(unique(Unique_Patient_Identifier))), by = "compound_name"]
+  samples_by_variant = compound_counts_total[, .(samples = list(unique(patient_id))), by = "compound_name"]
   samples_with = stats::setNames(samples_by_variant$samples, samples_by_variant$compound_name)
   compound_counts_total = samples_by_variant[, .(total_freq = length(samples[[1]])), by = "compound_name"]
   compound_stats = compound_stats[compound_counts_total, on = "compound_name"]

@@ -16,7 +16,7 @@
 #' @param rates A two-column data.table with either gene name or protein_id in column 1
 #'   and rate in column 2
 #' @param samples Which samples the input rates apply to. Defaults to all samples. Can be
-#'   a vector of Unique_Patient_Identifiers, or a data.table containing rows from the
+#'   a vector of patient_ids, or a data.table containing rows from the
 #'   CESAnalysis sample table.
 #' @param missing_genes_take_nearest Set to TRUE to have each gene/protein_id missing from
 #'   rates take the rate of the nearest non-missing gene/protein.
@@ -138,7 +138,7 @@ set_gene_rates = function(cesa = NULL, rates = NULL, samples = character(),
     setnames(rates, c("region", "rate"), c("gene", rate_grp_colname))
   }
   
-  cesa@samples[curr_sample_info$Unique_Patient_Identifier, gene_rate_grp := curr_rate_group, on = "Unique_Patient_Identifier"]
+  cesa@samples[curr_sample_info$patient_id, gene_rate_grp := curr_rate_group, on = "patient_id"]
   
   if (curr_rate_group > 1) {
     if (using_pid) {

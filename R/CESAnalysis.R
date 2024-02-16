@@ -260,7 +260,7 @@ load_cesa = function(file) {
     ces_summary = list(maf = cesa@maf, samples = cesa@samples,
                        annotations = list(sbs = cesa@mutations$sbs, codon_change = cesa@mutations$amino_acid_change,
                                           sbs_codon_key = cesa@mutations$aac_sbs_key),
-                       trinuc_rates = as.data.table(cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix, keep.rownames = "Unique_Patient_Identifier"),
+                       trinuc_rates = as.data.table(cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix, keep.rownames = "patient_id"),
                        sbs_signatures = cesa@trinucleotide_mutation_weights$raw_signature_weights,
                        gene_rates = cesa@mutrates,
                        variant_effects = cesa@selection_results, epistatic_effects = cesa@epistasis,
@@ -439,7 +439,7 @@ get_trinuc_rates = function(cesa = NULL) {
   if(! is(cesa, "CESAnalysis")) {
     stop("\nUsage: get_trinuc_rates(cesa), where cesa is a CESAnalysis")
   }
-  return(as.data.table(cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix, keep.rownames = "Unique_Patient_Identifier"))
+  return(as.data.table(cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix, keep.rownames = "patient_id"))
 }
 
 #' Get table of signature attributions

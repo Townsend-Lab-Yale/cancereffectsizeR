@@ -30,7 +30,7 @@ annotations, the one listed in the "gene" column is used. In the recurrent metho
 noncoding variants may be included.}
 
 \item{samples}{Which samples to include in inference. Can be a vector of
-Unique_Patient_Identifiers, or a data.table containing rows from the CESAnalysis sample table.
+patient_ids, or a data.table containing rows from the CESAnalysis sample table.
 Samples that do not have coverage at all variant sites in a given inference will be set aside.}
 
 \item{run_name}{Optionally, a name to identify the current run.}
