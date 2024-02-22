@@ -65,7 +65,9 @@ variant_counts = function(cesa, variant_ids = character(), by = character()) {
   }
   
   # call internal function
-  return(.variant_counts(cesa, samples_with_by_cols, sbs_from_aac, noncoding_sbs_id, by_cols))
+  counts = .variant_counts(cesa, samples_with_by_cols, sbs_from_aac, noncoding_sbs_id, by_cols)
+  setnames(counts, 'cr_copy_for_by', 'covered_regions', skip_absent = TRUE) # in case covered_regions got renamed
+  
 }
 
 #' Internal variant prevalence and coverage calculation

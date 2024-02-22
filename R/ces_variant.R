@@ -16,15 +16,12 @@
 #' 
 #' It's possible to pass in your own selection model. You'll need to create a "function factory"
 #' that, for any variant, produces a likelihood function that can be evaluated on the data. The
-#' first two arguments must be \code{rates_tumors_with} and \code{rates_tumors_without}, which give the baseline
-#' site mutation rates in samples with and without the variant. The third argument must be
-#' \code{sample_index}, a data.table that associates \code{patient_id} with group names and
-#' indices. (Your function factory must accept this argument, but it doesn't have to use its value.)
-#' Values for all three of these arguments will be calculated by ces_variant and passed to your
-#' function factory automatically. Your function can take whatever additional arguments you like,
-#' and you can pass in values using \code{lik_args}. The likelihood function parameters that
-#' ces_variant will optimize should be named and have default values. See the source code of
-#' \code{sswm_lik()} for an example.
+#' first two arguments must be \code{rates_tumors_with} and \code{rates_tumors_without}, which give
+#' the baseline site mutation rates in samples with and without the variant. These rates  will be
+#' calculated by ces_variant and passed to your function factory automatically. Your function can
+#' take whatever additional arguments you like; specify other arguments using \code{lik_args}. The
+#' likelihood function parameters that ces_variant will optimize should be named and have default
+#' values. See the source code of \code{sswm_lik()} for an example.
 #' 
 #' 
 #' @param cesa CESAnalysis object
@@ -47,21 +44,13 @@
 #' @param hold_out_same_gene_samples When finding likelihood of each variant, hold out samples that
 #'   lack the variant but have any other mutations in the same gene. By default, TRUE when running
 #'   with single variants, FALSE with a CompoundVariantSet.
-#' @param ordering_col For the (not yet available) sequential model (or possibly custom models),
-#'   the name of the sample table column that defines sample chronology.
-#' @param ordering For the (not yet available) sequential model (or possibly custom models), a
-#'   character vector or list defining the ordering of values in ordering_col. Use a list to assign
-#'   multiple values in ordering_col the same position (e.g., `list(early = c("I", "II), late =
-#'   c("III", "IV")))` for an early vs. late analysis).
-#' @return CESAnalysis object with selection results appended to the selection output list
+#' @return CESAnalysis with selection results appended to the selection output list
 #' @export
 ces_variant <- function(cesa = NULL,
                         variants = select_variants(cesa, min_freq = 2),
                         samples = character(),
                         model = "default",
                         run_name = "auto",
-                        ordering_col = NULL,
-                        ordering = NULL,
                         lik_args = list(),
                         optimizer_args = list(),
                         hold_out_same_gene_samples = "auto",
@@ -130,9 +119,9 @@ ces_variant <- function(cesa = NULL,
       if (model == 'basic') {
         lik_factory = sswm_lik
       } else if(model == 'sequential') {
-        lik_factory = sswm_sequential_lik
+        stop('The sequential model is not yet available.')
       } else {
-        stop("Unrecognized model")
+        stop("Unrecognized model.")
       }
     }
   } else if (! is(model, "function")) {
@@ -153,10 +142,6 @@ ces_variant <- function(cesa = NULL,
   if(length(lik_args) != uniqueN(names(lik_args))) {
     stop('lik_args should be a named list without repeated names.')
   }
-  
-  if(is.null(ordering_col) && ! is.null(ordering)) {
-    stop("Use of ordering requires use of ordering_col")
-  }
 
   
   samples = select_samples(cesa, samples)
@@ -164,78 +149,10 @@ ces_variant <- function(cesa = NULL,
     num_excluded = cesa@samples[, .N] - samples[, .N]
     pretty_message(paste0("Note that ", num_excluded, " samples are being excluded from selection inference."))
   }
-  if(! is.null(ordering_col)) {
-    if(is.character(model) && model == 'basic') {
-      warning("You supplied an ordering_col, but it's not used in the default model.")
-    }
-    if(! is(ordering_col, 'character')) {
-      stop("ordering_col should be type character (a column name from CESAnalysis sample table).")
-    }
-    if(! ordering_col %in% names(cesa@samples)) {
-      stop("Input ordering_col is not present in CESAnalysis sample table.")
-    }
-    if (is.null(ordering)) {
-      stop("Use argument ordering to define sequence of values in ordering_col.")
-    }
-    if (is(ordering, "character")) {
-      ordering = as.list(ordering)
-    } else if(! is(ordering, "list")) {
-      stop("ordering should be character or list.")
-    }
-    if(! all(sapply(ordering, is, "character"))) {
-      stop("All elements of ordering should be character")
-    }
-    if(uniqueN(unlist(ordering)) != length(unlist(ordering))) {
-      stop("ordering contains repeated values.")
-    } 
-    if(length(ordering) < 2) {
-      stop("ordering should length 2 or greater if it's being used.")
-    }
-    samples[, ordering_col := as.character(samples[[ordering_col]])]
-    if(samples[, ! all(unlist(ordering) %in% ordering_col)]) {
-      if(samples[, .N] == cesa@samples[, .N]) {
-        stop("Some values in ordering do not appear in ", ordering_col, " in sample table.")
-      } else {
-        stop("Some values in ordering do not appear in ", ordering_col, " for the samples included in this run.")
-      }
-    }
-    
-    num_na = samples[, sum(is.na(ordering_col))]
-    if(num_na > 0) {
-      pretty_message(paste0("Note: ", num_na, " samples left out of run due to NA values in ordering_col."), black = F)
-      samples = samples[!is.na(ordering_col)]
-    }
-    
-    extra_values = setdiff(samples$ordering_col, unlist(ordering))
-    if (length(extra_values) > 0) {
-      msg = paste0("Note: Excluding samples with values in ", ordering_col, " not given in ordering: ", 
-                   paste(extra_values, collapse = ', '), '.')
-      samples = samples[! extra_values, on = "ordering_col"]
-      pretty_message(msg, black = F)
-    }
-    
-    index_by_state = list()
-    name_by_state = list()
-    
-    if(is.null(names(ordering))) {
-      if (length(unlist(ordering)) == length(ordering)) {
-        names(ordering) = unlist(ordering)
-      } else {
-        names(ordering) = 1:length(ordering)
-      }
-    }
-    for (i in 1:length(ordering)) {
-      for (j in 1:length(ordering[[i]])) {
-        index_by_state[[ordering[[i]][j]]] = i
-        name_by_state[[ordering[[i]][j]]] = names(ordering)[i]
-      }
-    }
-    sample_index = samples[, .(patient_id = patient_id,
-                               group_index = unlist(index_by_state[ordering_col]), 
-                               group_name = unlist(name_by_state[ordering_col]))]
-  } else if(is(model, "character")){
+
+  if(is(model, "character")){
     if(model == 'sequential') {
-      stop('The sequential model requires use of ordering_col/ordering (see docs)')
+      stop('This model is not yet available.')
     }
   }
   
@@ -429,17 +346,6 @@ ces_variant <- function(cesa = NULL,
         
         lik_args = c(list(rates_tumors_with = rates_tumors_with, rates_tumors_without = rates_tumors_without), 
                      lik_args)
-        
-        # sample_index supplied if defined and not running our SSWM (it doesn't use it)
-        if(! identical(lik_factory, sswm_lik)) {
-          # unless it is already passed in by user in lik_args in the beginning
-          if(!"sample_index" %in% names(lik_args)){
-            
-            lik_args = c(lik_args, list(sample_index = sample_index))
-            
-          }
-          
-        }
         fn = do.call(lik_factory, lik_args)
         par_init = formals(fn)[[1]]
         names(par_init) = bbmle::parnames(fn)
@@ -478,48 +384,15 @@ ces_variant <- function(cesa = NULL,
                            as.list(selection_intensity),
                            list(loglikelihood = loglikelihood))
         
-        if(is.character(model) || is.null(lik_args$sample_index)){
-          
-          if(is.character(model)){
-            if (model == 'basic') {
-              # Record counts of total samples included in inference and included samples with the variant.
-              # This may vary from the naive output of variant_counts() due to issues of sample coverage and 
-              # (by default) the use of hold_out_same_gene_samples = TRUE.
-              
-              num_samples_with = length(tumors_with_variant)
-              num_samples_total = num_samples_with + length(tumors_without)
-              variant_output = c(variant_output, list(included_with_variant = num_samples_with,
-                                                      included_total = num_samples_total))
-            } else {
-              # Build a table of counts, being careful not to drop groups with zero counts
-              counts_total = data.table(group_name = names(ordering), num_with = 0, num_without = 0)
-              counts_with = sample_index[tumors_with_variant, .(num_with = .N), by = 'group_name', on = "patient_id"]
-              
-              # if no tumors have variant, counts_with will be null
-              if(counts_with[, .N] > 0) {
-                counts_total[counts_with, num_with := i.num_with, on = 'group_name']
-              }
-              counts_without = sample_index[tumors_without, .(num_without = .N), by = 'group_name', on = "patient_id"]
-              counts_total[counts_without, num_without := i.num_without, on = 'group_name']
-              counts_total[, num_total := num_with + num_without]
-              
-              counts_with = setNames(counts_total$num_with, paste0('included_with_variant_', counts_total$group_name))
-              counts_total = setNames(counts_total$num_total, paste0('included_total_', counts_total$group_name))
-              variant_output = c(variant_output, unlist(S4Vectors::zipup(counts_with, counts_total), use.names = F))
-            }
-            
-          }
-          
-          if(is(model, "function") && is.null(lik_args$sample_index)){
-            
-            num_samples_with = length(tumors_with_variant)
-            num_samples_total = num_samples_with + length(tumors_without)
-            variant_output = c(variant_output, list(included_with_variant = num_samples_with,
-                                                    included_total = num_samples_total))
-            
-          }
-          
-        }
+        # Record counts of total samples included in inference and included samples with the variant.
+        # This may vary from the naive output of variant_counts() due to issues of sample coverage and 
+        # (by default) the use of hold_out_same_gene_samples = TRUE.
+        
+        num_samples_with = length(tumors_with_variant)
+        num_samples_total = num_samples_with + length(tumors_without)
+        variant_output = c(variant_output, list(included_with_variant = num_samples_with,
+                                                included_total = num_samples_total))
+
         if(! is.null(conf)) {
           variant_output = c(variant_output, 
                              univariate_si_conf_ints(fit, fn, final_optimizer_args$lower, 

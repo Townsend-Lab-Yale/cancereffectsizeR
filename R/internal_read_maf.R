@@ -40,7 +40,7 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
   
   # when sample_col has default value, will also check for Tumor_Sample_Barcode if the default isn't found
   if (sample_col == "patient_id") {
-    select_cols = c(select_cols, "Tumor_Sample_Barcode")
+    select_cols = c(select_cols, "Tumor_Sample_Barcode", "Unique_Patient_Identifier")
   }
   
   if (! is.null(more_cols)) {
@@ -116,10 +116,15 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
   missing_cols = character()
   input_maf_cols = colnames(maf)
   
-  if (sample_col == "patient_id" && ! sample_col %in% input_maf_cols &&
-      "Tumor_Sample_Barcode" %in% input_maf_cols) {
-    sample_col = "Tumor_Sample_Barcode"
-    pretty_message("Found column Tumor_Sample_Barcode; we'll assume that this column identifies patients.")
+  if (sample_col == "patient_id" && ! sample_col %in% input_maf_cols) {
+    if ('Unique_Patient_Identifier' %in% input_maf_cols) {
+      pretty_message("Found column Unique_Patient_Identifier; we'll assume that this column identifies patients.")
+      sample_col = "Unique_Patient_Identifier"
+    }
+    else if('Tumor_Sample_Barcode' %in% input_maf_cols) {
+      pretty_message("Found column Tumor_Sample_Barcode; we'll assume that this column identifies patients.")
+      sample_col = "Tumor_Sample_Barcode"
+    }
   }
   cols_to_check = c(sample_col, ref_col, chr_col, start_col)
   if (tumor_allele_col != "guess") {
