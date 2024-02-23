@@ -30,8 +30,9 @@ with average_effect_shares (described below) to identify signatures with disprop
 \item \strong{effect_shares} (list):
 \itemize{
 \item \strong{by_sample} (data.table): The share of each sample's cancer effect (summed across the sample's variants) attributable to each signature.
-\item \strong{average_effect_shares} (numeric): Across the cohort, the average share of cancer effect attributable to each signature. Compare with
-average_source_shares, above, to identify signatures with disproportionate contributions to oncogenesis.
+\item \strong{average_effect_shares} (numeric): For each signature, the average proportion of each sample's cancer effects that are attributable to signature. Compare with
+average_source_shares, above, to identify signatures with disproportionate contributions to oncogenesis. Only variants
+present in \code{effects} are included in this calculation.
 }
 }
 }
