@@ -25,8 +25,9 @@
 #' \item \strong{effect_shares} (list):
 #' \itemize{
 #' \item \strong{by_sample} (data.table): The share of each sample's cancer effect (summed across the sample's variants) attributable to each signature.
-#' \item \strong{average_effect_shares} (numeric): Across the cohort, the average share of cancer effect attributable to each signature. Compare with
-#' average_source_shares, above, to identify signatures with disproportionate contributions to oncogenesis.
+#' \item \strong{average_effect_shares} (numeric): For each signature, the average proportion of each sample's cancer effects that are attributable to signature. Compare with
+#' average_source_shares, above, to identify signatures with disproportionate contributions to oncogenesis. Only variants
+#' present in \code{effects} are included in this calculation.
 #' }
 #' }
 mutational_signature_effects <- function(cesa = cesa, effects = NULL, samples = NULL) {
@@ -175,10 +176,7 @@ mutational_signature_effects <- function(cesa = cesa, effects = NULL, samples = 
   patient_effect_shares[, (signature_names) := .SD/rowSums(.SD), .SDcols = signature_names, by = 'patient_id']
   
   # For all included samples, sum all effect shares and normalize.
-  total_effect = sum(variant_sources$selection_intensity) # equivalent to sum(effect_shares[, .SD, .SDcols = signature_names])
-  cohort_effect_shares = effect_shares[, lapply(.SD, function(x) sum(x)/total_effect), .SDcols = signature_names]
-  cohort_effect_shares = setNames(as.numeric(cohort_effect_shares), names(cohort_effect_shares))
-  effect_shares = list(patient = patient_effect_shares, cohort = cohort_effect_shares)
+  cohort_effect_shares = patient_effect_shares[, sapply(.SD, mean), .SDcols = signature_names]
   
   # For signature weight
   mean_signature_weights = signature_weights[, sapply(.SD, mean), .SDcols = signature_names]
