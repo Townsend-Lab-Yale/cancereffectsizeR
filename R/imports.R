@@ -16,6 +16,7 @@ options(datatable.prettyprint.char = 40)
 for(refset in names(.official_refsets)) {
   if(refset %in% loadedNamespaces()) {
     .ces_ref_data[[refset]] = get(refset, envir = as.environment(paste0('package:', refset)))
+    lockEnvironment(.ces_ref_data[[refset]], bindings = TRUE)
   }
 }
 

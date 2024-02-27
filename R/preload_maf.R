@@ -156,16 +156,9 @@ preload_maf = function(maf = NULL, refset = NULL, coverage_intervals_to_check = 
     coverage_gr = clean_granges_for_cesa(refset_env = refset_env, gr = coverage_gr)
   }
   
+  anno_grs = list()
   if ('preload_anno' %in% ls(.ces_ref_data[[refset_name]])) {
     anno_grs = .ces_ref_data[[refset_name]][['preload_anno']]
-  } else {
-    # If there are no preload annotation grs already loaded, check if any exist and load
-    # them, or return if none exist
-    preload_anno_files = list.files(paste0(data_dir, "/maf_preload_anno"), pattern = '\\.rds$', full.names = T)
-    anno_grs = lapply(preload_anno_files, readRDS)
-    if(length(anno_grs) > 0) {
-      .ces_ref_data[[refset_name]][['preload_anno']] = anno_grs
-    }
   }
   
   if(! is.logical(detect_hidden_mnv) || length(detect_hidden_mnv) != 1) {

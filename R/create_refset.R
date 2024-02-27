@@ -34,10 +34,20 @@
 #'   expected behavior. Noncoding transcripts are represented only by records with transcript_type =
 #'   "transcript", and protein-coding transcripts are representing with transcript, CDS, and UTR
 #'   records. Note that in Gencode format.
+#' @param cores How many cores to use (default 1).
 #' @export
 create_refset = function(output_dir, refcds_dndscv, refcds_anno = NULL, species_name, genome_build_name, 
                          BSgenome_name, supported_chr = c(1:22, 'X', 'Y'), default_exome = NULL,
-                         exome_interval_padding = 0, transcript_info = NULL) {
+                         exome_interval_padding = 0, transcript_info = NULL, cores = 1) {
+  if(! is.numeric(cores) || cores - as.integer(cores) != 0) {
+    stop('cores should be type integer')
+  }
+  cores_available = parallel::detectCores()
+  if(is.na(cores_available)) cores_available = 1
+  if(cores > cores_available) {
+    message('Running with cores = ', cores_available, ' since that is how many appear available.')
+  }
+  
   if(! is.null(transcript_info)) {
     if(! is.data.table(transcript_info)) {
       stop('transcript_info must be a data.table (and a quite specifically formatted one at that).')
@@ -160,11 +170,19 @@ create_refset = function(output_dir, refcds_dndscv, refcds_anno = NULL, species_
   # deconstructSigs only includes C/T as central nucleotides; we need reverse complement for A/G in center
   reverse_trinuc_mut_names = as.character(Biostrings::reverseComplement(Biostrings::DNAStringSet(trinuc_mut_names)))
   
-  # go through all the transcripts in the RefCDS object
-  gene_trinuc_comp  = new.env(parent = emptyenv())
-  message("Counting trinculeotide contexts in ", format(length(refcds_dndscv[[1]]), big.mark = ','), " RefCDS entries...")
+  
+  # Get the reference dinucleotides for the COSMIC DBS classes, in order
+  dn_names = sub(">.*", "", cosmic_dbs_classes)
+  cosmic_dbs_dinuc = unique(dn_names)
+  reverse_dn_names = as.character(Biostrings::reverseComplement(Biostrings::DNAStringSet(dn_names)))
+  
+  # We use the annotation RefCDS, not the dNdScv one, because we need context counts for every coding annotation
+  message("Counting trinculeotide contexts in ", format(length(refcds_anno[[1]]), big.mark = ','), " RefCDS entries...")
+    
+  
   process_cds = function(entry) {
-    total_counts = integer(96) # number of distinct deconstructSigs SNVs
+    total_counts = integer(96) # number of distinct deconstructSigs sbs
+    dn_counts = integer(length(cosmic_dbs_classes))
     # for each transcripts, need to consider each exon and 1 base up/downstream for trinucleotide context
     intervals = entry$intervals_cds # two-column matrix with start/stop coordinates of each cds
     cds_lengths = intervals[,2] - intervals[,1] 
@@ -188,24 +206,55 @@ create_refset = function(output_dir, refcds_dndscv, refcds_anno = NULL, species_
       # order the counts in deconstructSigs order and add them to total counts for this transcript
       total_counts = cds_counts[trinuc_mut_names] + cds_counts[reverse_trinuc_mut_names] + total_counts
       
+      # Repeat for dinucleotides
+      dn_seq = Biostrings::xscat(Biostrings::subseq(entry$seq_cds1up, start = start, width = 1), 
+                                 Biostrings::subseq(entry$seq_cds, start = start, end = end), 
+                                 Biostrings::subseq(entry$seq_cds1down, start = end, width = 1))
+      curr_dn_counts = Biostrings::dinucleotideFrequency(dn_seq)
+      
+      cosmic_dinuc_counts = curr_dn_counts[cosmic_dbs_dinuc]
+      other_dinuc_names = setdiff(names(curr_dn_counts), cosmic_dbs_dinuc)
+      other_dinuc_counts = curr_dn_counts[other_dinuc_names]
+      other_names_reversed = as.character(reverseComplement(DNAStringSet(other_dinuc_names)))
+      cosmic_dinuc_counts[other_names_reversed] = cosmic_dinuc_counts[other_names_reversed] + other_dinuc_counts
+      
+      dn_counts = dn_counts + cosmic_dinuc_counts[dn_names]
+      
+      
       # next cds sequence starts with next base in the seq_cds sequence
       start = end + 1
     }
     
-    # add pseudocounts if any trinucleotides have zero occurences
+    # Need nonzero counts for every context in case the gene's rate is used for a nearby noncoding site
+    # with a context that doesn't appear in the CDS.
     if(0 %in% total_counts) {
       total_counts = total_counts + 1
     }
+    if(0 %in% dn_counts) {
+      dn_counts = dn_counts + 1
+    }
     
     # normalize and add trinuc comp to environment (dropping names since they don't match deconstructSigs format)
-    comp = total_counts / sum(total_counts)
-    return(unname(comp))
+    comp = unname(total_counts / sum(total_counts))
+    dn_comp = unname(dn_counts / sum(dn_counts))
+    
+    return(list(comp, dn_comp))
   }
-  gene_trinuc_comp = pbapply::pblapply(refcds_dndscv[[1]], process_cds)
-  names(gene_trinuc_comp) = names(refcds_dndscv[[1]])
+  
+  trinuc_and_dinuc = pbapply::pblapply(refcds_anno[[1]], process_cds, cl = cores)
+  
+  
+  gene_trinuc_comp = lapply(trinuc_and_dinuc, '[[', 1)
+  names(gene_trinuc_comp) = names(refcds_anno[[1]])
   gene_trinuc_comp = list2env(gene_trinuc_comp, parent = emptyenv())
   
-  # Optional: load and save default exome intervals ()
+  dbs_comp = lapply(trinuc_and_dinuc, '[[', 2)
+  names(dbs_comp) = names(refcds_anno[[1]])
+  dbs_comp = list2env(dbs_comp, parent = emptyenv())
+  
+  
+  
+  # Optional: load and save default exome intervals
   # If you don't set a default exome, the user must always supply coverage intervals.
   using_exome_files = ! is.null(default_exome)
   if (using_exome_files) {
@@ -285,6 +334,7 @@ create_refset = function(output_dir, refcds_dndscv, refcds_anno = NULL, species_
   
   saveRDS(gene_names, paste0(output_dir, "/gene_names.rds"))
   saveRDS(gene_trinuc_comp, paste0(output_dir, "/gene_trinuc_comp.rds"))
+  saveRDS(dbs_comp, paste0(output_dir, '/cds_dbs_exposure.rds'))
   
   if(! is.null(transcript_info)) {
     saveRDS(transcript_info, paste0(output_dir, '/transcript_info.rds'))
