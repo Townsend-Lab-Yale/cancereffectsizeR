@@ -70,10 +70,11 @@ CESAnalysis = function(refset = NULL) {
     message("Loading reference data set ", refset_name, "...")
     if (using_custom_refset) {
       .ces_ref_data[[refset_name]] = preload_ref_data(data_dir)
+      assign(refset_name, .ces_ref_data[[refset_name]], envir = globalenv())
     } else {
       .ces_ref_data[[refset_name]] = get(refset_name, envir = as.environment(paste0('package:', refset_name)))
     }
-    .ces_ref_data[[refset_name]][["data_dir"]] = data_dir
+    lockEnvironment(.ces_ref_data[[refset_name]], bindings = TRUE)
   }
     
   # advanced is a grab bag of additional stuff to keep track of
@@ -280,7 +281,8 @@ load_cesa = function(file) {
   }
   
   refset_name = cesa@ref_key
-  if (refset_name %in% names(.official_refsets)) {
+  is_official = refset_name %in% names(.official_refsets)
+  if (is_official) {
     if(! require(refset_name, character.only = T, quietly = T)) {
       stop("CES reference data set ", refset_name, " not installed. Run this to install:\n", 
            "remotes::install_github(\"Townsend-Lab-Yale/", refset_name, "\")")
@@ -293,7 +295,7 @@ load_cesa = function(file) {
            "remotes::install_github(\"Townsend-Lab-Yale/", refset_name, "\")")
     }
     previous_version = as.package_version(cesa@advanced$refset_version)
-    if (previous_version$major != actual_version$major | previous_version$minor != actual_version$minor) {
+    if (previous_version$major != actual_version$major || previous_version$minor != actual_version$minor) {
       msg = paste0("This CESAnalysis was annotated with data from ", refset_name, ' ', previous_version, " and you currently have ",
                    "version ", actual_version, ". You should create a new CESAnalysis and start over if you want to continue analysis.")
       warning(pretty_message(msg, emit = F))
@@ -309,8 +311,11 @@ load_cesa = function(file) {
     }
   }
   
-  if (! is.na(cesa@ref_data_dir) & ! cesa@ref_key %in% ls(.ces_ref_data)) {
+  if (! is.na(cesa@ref_data_dir) && ! cesa@ref_key %in% ls(.ces_ref_data)) {
     .ces_ref_data[[cesa@ref_key]] = preload_ref_data(cesa@ref_data_dir)
+    if(! is_official) {
+      assign(cesa@ref_key, .ces_ref_data[[cesa@ref_key]], envir = globalenv())
+    }
   }
   current_version = packageVersion("cancereffectsizeR")
   previous_version = cesa@advanced$version
@@ -372,7 +377,7 @@ set_refset_dir = function(cesa, dir) {
   
   cesa@ref_data_dir = dir
   .ces_ref_data[[cesa@ref_key]] = preload_ref_data(dir)
-  .ces_ref_data[[cesa@ref_key]][["data_dir"]] = dir
+  assign(cesa@ref_key, .ces_ref_data[[cesa@ref_key]], globalenv())
   cesa = update_cesa_history(cesa, match.call())
   return(cesa)
 }

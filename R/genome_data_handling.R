@@ -139,6 +139,13 @@ preload_ref_data = function(data_dir) {
     }
     ref[["signatures"]] = sig_set_list
   }
+  ref[['data_dir']] = data_dir
+  
+  preload_anno_files = list.files(paste0(data_dir, "/maf_preload_anno"), pattern = '\\.rds$', full.names = T)
+  if(length(preload_anno_files) > 0) {
+    ref[['preload_anno']] = lapply(preload_anno_files, readRDS)
+  }
+  lockEnvironment(ref, bindings = TRUE)
   return(ref)
 }
 

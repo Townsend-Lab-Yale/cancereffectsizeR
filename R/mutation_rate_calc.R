@@ -101,26 +101,32 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, sbs_ids = NULL, variant
   # Get a copy of regional mutation rates, leaving out CI columns
   mutrates = cesa@mutrates[, .SD, .SDcols = patterns('gene|pid|(rate_grp_\\d+)$')]
   
-  
   # produce a table with all pairwise combinations of patient_id and relevant regional rates
   # relevant genes/pids are those associated with one of the AACs/SNVs of interest
+  
+  cds_trinuc_comp = get_ref_data(cesa, "gene_trinuc_comp")
+  
+  # If gene rates table gives protein ID (older refset versions), then gene_trinuc_comp is by protein ID.
+  # In newer refset versions, there is no pid in mutrates, so we can check cds_trinuc_comp.
   using_pid = "pid" %in% names(mutrates)
-  if(using_pid) {
-    if (! "pid" %in% names(mutrates)) {
-      # If using a CDS-based refset (i.e., not ces.refset.hg19) and regional rates are gene-based
-      # (this may happen if user inputs custom rates), add protein annotations to mutrates table.
-      # All proteins associated with a given gene will get the same rate.
-      gr_genes = get_ref_data(cesa, "gr_genes")
-      if("gene" %in% names(GenomicRanges::mcols(gr_genes))) {
-        pid_to_gene = unique(as.data.table(gr_genes)[, .(pid = names, gene = gene)])
-      }
-      mutrates = mutrates[pid_to_gene, on = 'gene']
-    }
+  
+  if ("pid" %in% names(mutrates)) {
+    using_pid = TRUE
     # Note that unlist(NULL data.table) returns NULL (which is okay)
     relevant_regions = union(mutations$amino_acid_change$pid, unlist(mutations$sbs[sbs_ids, nearest_pid, on = "sbs_id"]))
+  } else if(is.null(cds_trinuc_comp[[mutrates[1, gene]]])) {
+    using_pid = TRUE
+    new_mutrates = data.table(pid = unique(c(mutations$amino_acid_change$pid,
+                                           unlist(mutations$sbs$nearest_pid))))
+    RefCDS = get_ref_data(cesa, 'RefCDS')
+    new_mutrates[, gene := sapply(RefCDS[pid], '[[', 'real_gene_name')]
+    mutrates = merge.data.table(new_mutrates, mutrates, by = 'gene')
+    relevant_regions = mutrates$pid
   } else {
+    using_pid = FALSE
     relevant_regions = union(mutations$amino_acid_change$gene, unlist(mutations$sbs[sbs_ids, genes, on = "sbs_id"]))
   }
+
   
   # Get all combinations of genes (regions) and patients, then merge in gene_rate_grp from samples table.
   sample_region_rates = as.data.table(expand.grid(region = relevant_regions, patient_id = samples$patient_id, 
@@ -138,7 +144,6 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, sbs_ids = NULL, variant
   setnames(melted_mutrates, c("variable", "value"), c("gene_rate_grp", "raw_rate"))
   sample_region_rates[melted_mutrates, raw_rate := raw_rate, on = c('gene_rate_grp', 'region')]
 
-  cds_trinuc_comp = get_ref_data(cesa, "gene_trinuc_comp")
 
   # Hash trinuc rates for faster runtime with large data sets (where there could be millions of queries of trinuc_mat)
   # Also creating a melted version for individual rate lookups.
