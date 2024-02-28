@@ -25,7 +25,6 @@ reference:
   - get_TCGA_project_MAF
   - vcfs_to_maf_table
   - make_PathScore_input
-  - get_PathScore_coding_regions
 - title: Load and manage variants
   contents:
   - load_maf
@@ -74,6 +73,7 @@ reference:
   desc: Display and compare variant effect sizes
   contents:
   - plot_effects
+  - plot_signature_effects
 - title: Selection models
   desc: Likelihood function generators for various models of selection
   contents:
@@ -81,6 +81,8 @@ reference:
   - pairwise_epistasis_lik
 - title: Explore reference data
   contents:
+  - cosmic_sbs_etiologies
+  - get_PathScore_coding_regions
   - list_ces_refsets
   - list_ces_covariates
   - list_ces_signature_sets

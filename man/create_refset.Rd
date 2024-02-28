@@ -14,7 +14,8 @@ create_refset(
   supported_chr = c(1:22, "X", "Y"),
   default_exome = NULL,
   exome_interval_padding = 0,
-  transcript_info = NULL
+  transcript_info = NULL,
+  cores = 1
 )
 }
 \arguments{
@@ -55,6 +56,8 @@ ces.refset.hg38. You'll have to match the format (including column names) pretty
 expected behavior. Noncoding transcripts are represented only by records with transcript_type =
 "transcript", and protein-coding transcripts are representing with transcript, CDS, and UTR
 records. Note that in Gencode format.}
+
+\item{cores}{How many cores to use (default 1).}
 }
 \description{
 Use this function to create and save a directory of custom reference data that can be

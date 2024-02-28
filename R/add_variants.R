@@ -265,7 +265,7 @@ aac_to_snv_ids = function(refcds_entry_name, aa_pos, aa_alt, bsg, refcds) {
     ref_seq = Biostrings::complement(codon)
   }
   
-  to_annotate = codon_snvs_to_aa[[as.character(codon)]][[aa_alt]]
+  to_annotate = codon_sbs_to_aa[[as.character(codon)]][[aa_alt]]
   snv_id = character()
   for (i in 1:3) {
     if(length(to_annotate[[i]]) > 0) {

@@ -196,7 +196,7 @@ annotate_variants <- function(refset = NULL, variants = NULL) {
     
     # for each aa_mut, get a three-item list representing SNVs in first, second, third positions of the reference codon
     # that cause the same amino acid change as aa_alt (which will always include the ntchange that came from the MAF)
-    possible_snvs = mapply(function(x, y) codon_snvs_to_aa[[x]][[y]], as.character(coding_sequences), aac$aa_alt, SIMPLIFY = F)
+    possible_snvs = mapply(function(x, y) codon_sbs_to_aa[[x]][[y]], as.character(coding_sequences), aac$aa_alt, SIMPLIFY = F)
     
     
     nt1_snvs = lapply(possible_snvs, function(x) x[[1]])

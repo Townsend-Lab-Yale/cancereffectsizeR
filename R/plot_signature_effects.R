@@ -1,169 +1,96 @@
-# File: plot_signature_effects.R
-# Author: Derek Song
-# Date: August 14, 2023 (last updated 2.26.24 by DS)
-# Purpose: Plot and compare the source weight and effect share of mutational
-# signatures in one or many groups. To be used with mutational_signature_effects().
-
-# load graphing libraries
-library(viridis)
-library(ggplot2)
-
-#' @param mutational_effects
-#' The output of mutational_signature_effects().
-#' Calculate signature source weights and effect shares for each group,
-#' then pass all results to the function in either a named list (if there are 
-#' multiple groups), or the normal output of mutational_signature_effects
-#' (if there is only one group).
-#' 
-#' Examples of acceptable inputs:
-#' 
-#' \code{mutational_effects = list(group_A = mutational_signature_effects(...),
-#'                           group_B = mutational_signature_effects(...),
-#'                           ...)}
-#' 
-#' \code{mutational_effects = mutational_signature_effects(...)}                       
+#' Plot mutational source and effect attributions
 #'
-#' @param signature_groupings
-#' How signatures are grouped in the plot.
-#' 1. "auto" shows the superset of the top_n signatures by cancer effect in each
-#' group, lumping remaining signatures into "Other".
-#'
-#' 2. "suggested" supplies signature groupings according to shared etiology
-#' as outlined in Cannataro et al. 2022. Also provides colors that convey the etiology
-#' of each grouping. If this is used, any provided color palette
-#' in "colors" will be overridden.
-#'
-#' 3. Alternatively, supply a named list where each element contains one or more
-#' signature names. The list names will be used to label the groups. If any
-#' signatures included in signature_groupings don't exist in the data, they will 
-#' not be graphed (but NO warning will be thrown). Remaining signatures will be
-#' lumped into "Other".
+#' Compare the extent to which mutational signatures contribute mutations (mutational source share)
+#' to the degree to which they contribute high-effect mutations (cancer effect share).
 #' 
-#' Example:
-#' 
-#' \code{signature_groupings = list(clocklike = c('SBS1', 'SBS5'), tobacco = 'SBS4')}
-#' 
-#' You can also choose to display a manual list of signatures this way:
-#' 
-#' \code{signature_groupings = list(SBS1 = 'SBS1, SBS5 = 'SBS5')}
-#'
-#' @param colors
-#' Supplies signature group colors.
-#' A character vector of colors to use (i.e. a color palette), or
-#' "auto". The number of colors provided must be at least the number of
-#' signature groupings + 1, for the "Other" category.
-#' 
-#' @param top_n 
-#' How many signatures to include in the plot if signature_groupings = 'auto'.
-#' If signature_groupings is not auto, this is not used.
+#' @param mutational_effects Output from mutational_signature_effects(). To compare
+#' groups of samples, supply a named list with each element corresponding to output
+#' from a separate run of mutational_signature_effects().
+#' @param signature_groupings A data.table of signature names and descriptions; signatures with
+#'   identical descriptions are grouped together. Only signatures present in the data get displayed.
+#'   Setting to "auto" (the default) uses the table returned by cosmic_sbs_etiologies() which only
+#'   makes sense when using COSMIC signatures. A custom table should have columns "name",
+#'   "short_name", and "description". Optionally, include a "color" column to manually specify colors
+#'   for each group. Alternatively, setting to "cannataro"
+#'   applies the same signature grouping and color palette as
+#'   \href{https://academic.oup.com/mbe/article/39/5/msac084/6570859}{Cannataro et al. 2022}.
+#' @param viridis_option A viridis color mapping, specified with a single letter ('A' to 'H'). By
+#'   default, map 'G' (mako) is used.
+#' @param num_sig_groups How many groups of signatures to display. Remaining signatures (from groups
+#'   with lower effect shares, when averaged across sample groups) get lumped into an "Other
+#'   signatures" group.
 
 plot_signature_effects = function(mutational_effects = NULL,
                                                signature_groupings = 'auto',
-                                               colors = 'auto',
-                                               top_n = 5) {
-  # Check for proper colors input
-  is_color_palette = function(palette_list) {
-    valid_colors = colors()
-    all_valid = all(sapply(palette_list, function(color) color %in% valid_colors))
-    return(all_valid)
+                                               viridis_option = NULL,
+                                               num_sig_groups = 7) {
+  if(! require("ggplot2")) {
+    stop('Package ggplot2 must be installed for plotting.')
   }
   
-  if(!(identical(colors, 'auto') |
-       is_color_palette(colors)
-  )) {
-    stop('check that colors is a proper color palette')
+  if(! is.numeric(num_sig_groups) || length(num_sig_groups) != 1 || 
+     num_sig_groups - as.integer(num_sig_groups) != 0 || num_sig_groups < 1) {
+    stop('num_sig_groups must be a positive integer.')
   }
   
-  # Check that mutational_effects is a proper input, otherwise pass an error.
-  # (i.e. a mutational_signature_effects() output, either as a single table or named list)
-  if (length(mutational_effects) == 2 &&
-      identical(names(mutational_effects),
-                c("mutational_sources", "effect_shares"))) {
-    # mutational_effects corresponds to expected output (singular table).
+  running_cannataro = identical(tolower(signature_groupings), 'cannataro')
+  using_cannataro_colors = is.null(viridis_option) && running_cannataro
+  
+  if(is.null(viridis_option)) {
+    viridis_option = 'G'
+  } else if(! is.character(viridis_option) || length(viridis_option) != 1 || ! nchar(viridis_option) == 1) {
+    stop('Specify viridis color map with a single letter ("A"-"H")')
+    # Will leave the specific viridis character unvalidated, in case more maps are created in the future.
+  }
+  viridis_option = toupper(viridis_option)
+  
+  # If num_sig_groups is not default, warn that num_sig_groups is ignored under cannataro
+  if(num_sig_groups != 7 && running_cannataro) {
+    warning('Ignoring num_sig_groups because signature_groupings = "cannataro".')
+  }
+  
+  # assign signature_groupings to table according to signature_groupings parameter
+  if (identical(signature_groupings, 'auto')) {
+    signature_groupings = cosmic_sbs_etiologies()
+  } 
+  
+  # Check that mutational_effects is mutational_signature_effects() output, or a list of such outputs.
+  if (is(mutational_effects, 'list') && length(mutational_effects) == 2 &&
+      identical(names(mutational_effects), c("mutational_sources", "effect_shares"))) {
     
-    # Put it into a list, since the rest of the function uses list syntax.
-    # make sample_groupings NA since there's only one group
+    # Convert a single mutational effects output into 1-length list.
     mutational_effects = list(mutational_effects)
     sample_groupings = NA
     
-  } else if (typeof(mutational_effects) == 'list' &&
+  } else if (is(mutational_effects, 'list') && ! is.null(names(mutational_effects)) &&
              all(sapply(mutational_effects, function(x) length(x) == 2 &&
                         identical(names(x), c("mutational_sources", "effect_shares"))))) {
     # Check that mutational_effects is a named list containing expected outputs.
     # If so, extract names and put into sample_groupings.
-    f = function(lst)
-      length(lst) == sum(names(lst) != "", na.rm = TRUE)
-    if (f(mutational_effects)) {
-      # is a named list
-      sample_groupings = names(mutational_effects)
-    } else {
-      stop(
-        'check that mutational_effects is a named list or single table of mutational_signature_effects() output(s)'
-      )
+    sample_groupings = names(mutational_effects)
+    if(uniqueN(setdiff(sample_groupings, '')) != length(sample_groupings)) {
+      stop('mutational_effects list entries should have unique names')
     }
   } else {
-    stop(
-      'check that mutational_effects is a named list or single table of mutational_signature_effects() output(s)'
-    )
+    stop('mutational_effects must be mutational_signature_effects() output or a named list of such outputs.')
   }
   
   # Create empty list to load data into
   final_df_list = list()
-  # Load relevant data from all mutational_signature_effects() outputs into one table for plotting
-  for (i in 1:length(mutational_effects)) {
-    # extract one mutational_signature_effects() output
-    effects_output = mutational_effects[[i]]
-    source_share = effects_output$mutational_sources$average_source_shares
-    effect_share = effects_output$effect_shares$average_effect_shares
-    
-    # create separate tables for effect and source share, then merge
-    df_weights = data.table(type = "SW",
-                            prop = source_share,
-                            name = names(source_share))
-    df_effects = data.table(type = "CEW",
-                            prop = effect_share,
-                            name = names(effect_share))
-    df = rbind(df_weights, df_effects)
-    
-    # assign group based on sample_groupings
-    df[, sample_group := sample_groupings[[i]]]
-    
-    # append table to list of SW/CEW data, grouped by sample_groupings
-    final_df_list = append(final_df_list, list(df))
-  }
   
-  # combine all tables
-  df_final = do.call(rbind, final_df_list)
+  df_weights = rbindlist(lapply(mutational_effects,
+                                function(x) {
+                                  weights = x$mutational_sources$average_source_shares
+                                  data.table(type = 'SW', prop = weights, name = names(weights))
+                                }), idcol = 'sample_group')
+  df_effects = rbindlist(lapply(mutational_effects,
+                                function(x) {
+                                  effects = x$effect_shares$average_effect_shares
+                                  data.table(type = 'CEW', prop = effects, name = names(effects))
+                                }), idcol = 'sample_group')
+  df_final = rbind(df_weights, df_effects)
   
-  # assign signature_groupings to table according to signature_groupings parameter
-  if (identical(signature_groupings, 'auto')) {
-    # get superset of top_n signatures by CEW in each group
-    # first check that top_n is not too big and is not a weird number in general
-    if(!(is.numeric(top_n) &
-         (0 < top_n) &
-         (top_n <= length(mutational_effects[[1]]$mutational_sources$average_source_shares)))) {
-      stop('check that top_n is a number between 0 and the number of signatures present in the data')
-    }
-    
-    superset_sigs = list()
-    for (i in 1:length(mutational_effects)) {
-      mut_effects = mutational_effects[[i]]
-      top_sigs = sort(mut_effects$effect_shares$average_effect_shares,
-                      decreasing = TRUE)[1:top_n]
-      superset_sigs = append(superset_sigs, names(top_sigs))
-    }
-    
-    superset_sigs = unique(unlist(superset_sigs))
-    
-    # order signatures numerically
-    superset_sigs = superset_sigs[order(as.numeric(gsub("\\D", "", superset_sigs)))]
-    
-    # load into grouping vector
-    signature_groupings = list()
-    for (sig in superset_sigs) {
-      signature_groupings[[sig]] <- sig
-    }
-  } else if (identical(signature_groupings, 'suggested')) {
+  if (running_cannataro) {
     # group signatures into suggested categories as outlined in Cannataro et al.
     signature_groupings = list(
       "Deamination with age, clock-like (1)" = "SBS1",
@@ -176,36 +103,135 @@ plot_signature_effects = function(mutational_effects = NULL,
       "Mutagenic chemical exposure (22, 24, 42, 88)" = c("SBS22", "SBS24", "SBS42", "SBS88"),
       "Alcohol-associated (16)" = "SBS16"
     )
+    other_label = "Non-actionable and unknown signatures"
     
-    # set colors to suggested to use custom palette
-    colors = 'suggested'
+  } else if(! is.data.table(signature_groupings)) {
+    stop('signature_groupings should be "auto", "cannataro", or a data.table describing the signatures (see docs).')
+  } else {
+    
+    if(length(signature_groupings) != uniqueN(names(signature_groupings))) {
+      stop('Input signature_groupings table has repeated column names.')
+    }
+    required_cols = c('name', 'short_name', 'description')
+    missing_cols = setdiff(required_cols, names(signature_groupings))
+    if(length(missing_cols) > 0) {
+      stop('Missing columns in signature_groupings table: ', paste0(missing_cols, collapse = ', '), '.')
+    }
+    
+    if('other signatures' %in% signature_groupings$description) {
+      stop('signature_groupings has signatures with description \"other signatures\", which is reserved.')
+    }
+    other_label = 'other signatures'
+    
+    all_effect_shares = rbindlist(lapply(mutational_effects, function(x) as.list(x$effect_shares$average_effect_shares)), idcol = 'cohort')
+    shares_melted = melt.data.table(all_effect_shares, id.vars = 'cohort', variable.factor = F, variable.name = 'name')
+    
+    # Subset signature groupings to only include signatures that actually appear
+    signature_groupings = signature_groupings[name %in% shares_melted$name]
+    
+    shares_melted[signature_groupings, c('description', 'short_name') := .(description, short_name), on = 'name']
+    
+    # Don't consider signatures in other groups (they'll be represented in the "other" group)
+    shares_melted = shares_melted[! is.na(short_name)]
+    shares_melted[, sig_grp_id := .GRP, by = 'description']
+    summed_shares = shares_melted[, .(in_grp_sum = sum(value)), by = c('cohort', 'sig_grp_id')]
+    
+    top_grp_ids = summed_shares[order(in_grp_sum, decreasing = T)][! duplicated(sig_grp_id)][1:min(.N, num_sig_groups), sig_grp_id]
+    
+    final_groupings = list()
+    for(id in top_grp_ids) {
+      grp_info = shares_melted[sig_grp_id == id]
+      short_names = paste(unique(grp_info$short_name), collapse = ', ')
+      curr_descrip = paste0(grp_info$description[1], ' (', short_names, ')')
+      curr_sigs = unique(grp_info$name)
+      final_groupings[[curr_descrip]] = curr_sigs
+    }
+    
+    if('color' %in% names(signature_groupings)) {
+      if(! is.character(signature_groupings$color)) {
+        stop('The optional color column in signature_groupings is expected to be type character.')
+      }
+      if(uniqueN(signature_groupings[, .(description, color)]) != uniqueN(signature_groupings$description)) {
+        stop('Unusable color column in signature_groupings table: Exactly one color must be associated with each signature group.')
+      }
+      sig_to_color = unique(signature_groupings[, .(name, color)])
+      df_final[sig_to_color, color := color, on = 'name']
+      df_final[! name %in% unlist(final_groupings), color := NA]
+    }
+    signature_groupings = final_groupings
   }
   
+  # Signatures present in data but not represented in a signature grouping join "other" signatures
+  other_signatures = setdiff(df_effects$name, unlist(signature_groupings))
+  
+  if(all(unlist(signature_groupings) %like% '^SBS') && ! all(other_signatures %like% '^SBS')) {
+    msg = paste0('Data contains some non-SBS signatures, but the signature_groupings table only describes SBS signatures. ',
+                 'Non-SBS signatures will all be grouped with "', other_label, '". Consider updating ',
+                 'the signature_groupings to include these signatures.')
+    warning(pretty_message(msg, emit = F))
+  }
+  signature_groupings[[other_label]] = other_signatures
+  
+  
+  # Unwind list to get a table matching signatures to their labels
+  signature_labels = rbindlist(lapply(1:length(signature_groupings), 
+                                      function(x) data.table(name = signature_groupings[[x]], 
+                                                             label = names(signature_groupings)[x])))
   # create group column and assign signature_groupings
   # nested loop syntax is for cases when signature_groupings contains several signatures
   # Ex: "UV light" = SBS7a-d and SBS38
-  df_final$group = NA
+  df_final[signature_labels, group := label, on = 'name']
   
-  num_signature_groups = length(signature_groupings)
-  for (i in 1:(num_signature_groups)) {
-    for (j in 1:(length(signature_groupings[[i]]))) {
-      for (k in 1:(nrow(df_final))) {
-        if (df_final$name[k] == signature_groupings[[i]][j]) {
-          df_final$group[k] = names(signature_groupings[i])
-        }
-      }
-    }
+  # first, we reorder and rename some values to make the graph pretty.
+  # reorder facets because the order is weird
+  df_final$facet = factor(df_final$sample_group,
+                          levels = sample_groupings)
+  # rename values
+  df_final$weight_type = ifelse(df_final$type == "SW",
+                                "Source\nshare",
+                                "Effect\nshare")
+  # reorder weight bars manually to show Source Share, then Effect Share
+  df_final$weight_type = factor(
+    df_final$weight_type,
+    levels = c("Effect\nshare", "Source\nshare")
+  )
+  # Order signature groups by mean effect share (or use the cannataro order)
+  summed_shares = df_final[type == 'CEW' & group != other_label, .(summed_share = sum(prop)), by = c('group', 'sample_group')]
+  mean_share_order = summed_shares[, .(mean_share = mean(summed_share)), by = 'group'][order(mean_share), group]
+  final_order = c(other_label, mean_share_order)
+  df_final$group = factor(df_final$group, levels = final_order)
+  
+  gg = ggplot(data = df_final) +
+    geom_bar(
+      mapping = aes(
+        y = weight_type,
+        fill = group,
+        weight = prop
+      ),
+      position = 'fill',
+      width = .9,
+      color = 'black'
+    ) +
+    xlab('Proportion') + ylab('') +
+    theme_classic() + theme(
+      axis.ticks.y = element_blank(),
+      axis.title.x = element_text(size = 10),
+      axis.text.y = element_text(size = 8),
+      axis.line.y = element_blank(),
+      legend.position = 'right') +
+    scale_x_continuous(n.breaks = 10, limits = c(-0.001, 1.001), expand = expansion(add = 0))
+  if(! any(is.na(df_final$facet))) {
+    gg = gg + facet_wrap(~ facet, ncol = 1, strip.position = 'left') + 
+      theme(strip.background = element_blank(), strip.placement = 'outside', 
+            strip.text.y.left = element_text(size = 12, angle = 0))
   }
-  
-  # Use custom palette outlined in Cannataro et al.
-  if (identical(colors, 'suggested')) {
-    # set all remaining signatures to "Non-actionable..."
-    df_final$group = ifelse(is.na(df_final$group),
-                            "Non-actionable and unknown signatures",
-                            df_final$group)
-    
-    # Set color palette to match signatures with colors that convey etiology
-    palette = c(
+  sig_legend_name = 'Signatures'
+  if(all(df_final$name %like% '^SBS')) {
+    sig_legend_name = 'Signatures (COSMIC SBS)'
+  }
+  if(using_cannataro_colors) {
+    # Use custom palette outlined in Cannataro et al.
+    cannataro_colors = c(
       "Deamination with age, clock-like (1)" = "gray40",
       "Unknown, clock-like (5)" = "gray60",
       "APOBEC (2, 13)" = "#7570b3",
@@ -217,135 +243,22 @@ plot_signature_effects = function(mutational_effects = NULL,
       "Alcohol-associated (16)" = "#d95f02",
       "Non-actionable and unknown signatures" = "black"
     )
-  } else if (identical(colors, 'auto')) {
-    # set all remaining signatures to 'other'.
-    df_final$group = ifelse(is.na(df_final$group),
-                            "Other",
-                            df_final$group)
+    gg = gg + scale_fill_manual(name = sig_legend_name, values = cannataro_colors)
+  } else if(is.null(df_final$color)) {
+    gg = gg + scale_fill_viridis_d(name = sig_legend_name, option = viridis_option, begin = .2, direction = -1)
   } else {
-    # set all remaining signatures to 'other'.
-    df_final$group = ifelse(is.na(df_final$group),
-                            "Other",
-                            df_final$group)
-    
-    # check that user-provided palette has enough colors
-    if(length(colors) < length(unique(df_final$group))) {
-      stop(paste0('user-supplied color palette does not have enough colors.
-                  (amount needed: ',
-                  length(unique(df_final$group)), ')'))
-    }
-    
-    # Use user-provided palette
-    palette = colors
+    df_final[group == other_label, color := 'white']
+    group_to_color = setNames(unique(df_final$color), unique(df_final$group))
+    gg = gg + scale_fill_manual(name = sig_legend_name, values = group_to_color)
   }
   
-  # time to plot!
-  
-  # first, we reorder and rename some values to make the graph pretty.
-  # reorder facets because the order is weird
-  df_final$facet = factor(df_final$sample_group,
-                          levels = sample_groupings)
-  # rename values
-  df_final$weight_type = ifelse(df_final$type == "SW",
-                                "Mutational\n Source Share",
-                                "Cancer Effect\n Share")
-  # reorder weight bars manually to show Source Share, then Effect Share
-  df_final$weight_type = factor(
-    df_final$weight_type,
-    levels = c("Mutational\n Source Share",
-               "Cancer Effect\n Share")
-  )
-  # reorder signature groups
-  if(identical(colors, 'suggested')) {
-    # order into same order as in Cannataro et al. 2022
-    df_final$group = factor(
-      df_final$group,
-      levels = c(
-        "Non-actionable and unknown signatures",
-        "Deamination with age, clock-like (1)",
-        "Unknown, clock-like (5)",
-        "APOBEC (2, 13)",
-        "Defective homologous recombination (3)",
-        "Tobacco (4, 29)",
-        "UV light (7a–d, 38)",
-        "Prior treatment (11, 31, 32, 35)",
-        "Mutagenic chemical exposure (22, 24, 42, 88)",
-        "Alcohol-associated (16)"
-      )
-    )
-  } else if(exists('superset_sigs')) {
-    # order numerically
-    df_final$group = factor(
-      df_final$group,
-      levels = c("Other", superset_sigs)
-    )
-  } else {
-    # force into the same order as original signature_groupings param
-    df_final$group = factor(
-      df_final$group,
-      levels = c("Other", names(signature_groupings))
-    )
-  }
-  
-  # run ggplot
-  
-  if (any(is.na(df_final$facet))) {
-    # Single table provided, plot without group argument
-    gg = ggplot(data = df_final) +
-      geom_bar(
-        mapping = aes(
-          x = weight_type,
-          fill = group,
-          weight = prop
-        ),
-        position = 'fill',
-        width = .8,
-        color = 'black'
-      ) +
-      ylab('Weight proportion') +
-      xlab('Signature weights and cancer effect weights') +
-      theme_classic() + theme(
-        axis.title.x = element_text(size = 12),
-        axis.ticks.x = element_blank(),
-        axis.title.y = element_text(size = 12)
-      ) +
-      scale_y_continuous(n.breaks = 10) + theme(legend.position = 'right')
-    
-    if(identical(colors, 'auto')) {
-      gg = gg + scale_fill_viridis(name = 'Signature', discrete = TRUE) # Using viridis color scale
-    } else {
-      gg = gg + scale_fill_manual(name = 'Signature', values = rev(palette))
-    }
-    
-  } else {
-    # Named list provided, plot with group argument
-    gg = ggplot(data = df_final) +
-      geom_bar(
-        mapping = aes(
-          x = weight_type,
-          fill = group,
-          weight = prop
-        ),
-        position = 'fill',
-        width = .8,
-        color = 'black'
-      ) +
-      ylab('Weight proportion') +
-      xlab('Signature weights and cancer effect weights') +
-      scale_fill_viridis(discrete = TRUE) + # Using viridis color scale
-      theme_classic() + theme(
-        axis.title.x = element_text(size = 12),
-        axis.ticks.x = element_blank(),
-        axis.title.y = element_text(size = 12)
-      ) +
-      scale_y_continuous(n.breaks = 10) + theme(legend.position = 'right') +
-      facet_wrap(~ facet, nrow = 1)
-    
-    if(identical(colors, 'auto')) {
-      gg = gg + scale_fill_viridis(name = 'Signature', discrete = TRUE) # Using viridis color scale
-    } else {
-      gg = gg + scale_fill_manual(name = 'Signature', values = rev(palette))
-    }
-  }
+  gg = gg + guides(fill = guide_legend(reverse=TRUE))
+  return(gg)
 }
 
+#' COSMIC signatures with known etiologies
+#'
+#' @export
+cosmic_sbs_etiologies = function() {
+  return(cosmic_sbs_signature_etiology)
+}

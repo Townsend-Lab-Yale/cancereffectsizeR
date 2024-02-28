@@ -233,7 +233,7 @@ validate_aac_ids = function(aac_ids, refset) {
     codons = codons[-invalid_alt]
   }
   
-  dt[, alt_possible := mapply(function(codon, alt) length(unlist(codon_snvs_to_aa[[codon]][[alt]])) > 0, 
+  dt[, alt_possible := mapply(function(codon, alt) length(unlist(codon_sbs_to_aa[[codon]][[alt]])) > 0, 
                                                  as.character(codons), aa_alt)]
   impossible_alt = dt[alt_possible == FALSE, which = T]
   if(length(impossible_alt) > 0) {

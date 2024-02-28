@@ -1,0 +1,48 @@
+name	short_name	description
+SBS1	1	spontaneous 5-methylcytosine deamination
+SBS2	2	APOBEC
+SBS3	3	defective homologous recombination
+SBS4	4	tobacco-related
+SBS5	5	unknown, clock-like
+SBS6	6	DNA mismatch repair
+SBS6	6	mismatch repair defects
+SBS7a	7a	UV light
+SBS7b	7b	UV light
+SBS7c	7c	UV light
+SBS7d	7d	UV light
+SBS9	9	polymerase eta somatic hypermutation
+SBS10a	10a	defective polymerase epsilon
+SBS10b	10b	defective polymerase epsilon
+SBS10c	10c	defective POLD1 proofreading
+SBS10d	10d	defective POLD1 proofreading
+SBS11	11	chemotherapeutic agents
+SBS13	13	APOBEC
+SBS14	14	mismatch repair defects
+SBS15	15	mismatch repair defects
+SBS16	16	associated with alcohol consumption
+SBS18	18	reactive oxygen species
+SBS20	20	mismatch repair defects
+SBS21	21	mismatch repair defects
+SBS22	22	aristocholic acid
+SBS22a	22a	aristocholic acid
+SBS22b	22b	aristocholic acid
+SBS24	24	aflatoxin
+SBS25	25	chemotherapeutic agents
+SBS26	26	mismatch repair defects
+SBS29	29	tobacco-related
+SBS30	30	BER deficiency due to NTHL1 mutation
+SBS31	31	chemotherapeutic agents
+SBS32	32	chemotherapeutic agents
+SBS35	35	chemotherapeutic agents
+SBS36	36	BER deficiency due to MUTYH mutation
+SBS38	38	UV light
+SBS42	42	occupational exposure to haloalkanes
+SBS44	44	mismatch repair defects
+SBS84	84	activation-induced cytidine deaminases
+SBS85	85	activation-induced cytidine deaminases
+SBS86	86	chemotherapeutic agents
+SBS87	87	chemotherapeutic agents
+SBS88	88	colibactin exposure
+SBS90	90	chemotherapeutic agents
+SBS92	92	tobacco-related
+SBS99	99	chemotherapeutic agents
