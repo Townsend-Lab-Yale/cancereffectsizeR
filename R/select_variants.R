@@ -78,16 +78,16 @@
 #'   and re-run \code{select_variants()} to put those variants into a new table for
 #'   selection functions.
 #' @param remove_secondary_aac Default TRUE, except overridden (effectively FALSE) when
-#'   include_subvariants = T. Due to overlapping coding region definitions in reference
-#'   data (e.g., genes with multiple transcripts), a site can have more than one
-#'   amino-acid-change annotation. To avoid returning the same genome-positional
-#'   variants multiple times, the default is to return one AAC in these situations.
-#'   Tiebreakers are MAF prevalence, essential splice site status, premature stop codon,
-#'   non-silent status, gene/protein mutation count, alphabetical. If you set
-#'   remove_secondary_aac to FALSE, you can't put the output variant table in selection
-#'   calculation functions. An alternative is to set to FALSE, pick which
-#'   (non-overlapping) variants you want, and then re-run select_variants() with those
-#'   variants specified in \code{variant_ids}.
+#'   include_subvariants = T. Due to overlapping coding region definitions in reference data (e.g.,
+#'   genes with multiple transcripts), a site can have more than one amino-acid-change annotation.
+#'   To avoid returning the same genome-positional variants multiple times, the default is to return
+#'   one AAC in these situations. Tiebreakers are essential splice site status, premature stop
+#'   codon, MANE/MANE PLUS status if available (favoring canonical or medically relevant
+#'   transcripts), non-silent status, MAF prevalence, gene/protein mutation count, and sorting
+#'   order. If you set remove_secondary_aac to FALSE, you can't put the output variant table in
+#'   selection calculation functions. An alternative is to set to FALSE, pick which
+#'   (non-overlapping) variants you want, and then re-run select_variants() with those variants
+#'   specified in \code{variant_ids}.
 #' @return A data table with info on selected variants (see details), or a list of IDs.
 #' @export
 select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL, gr = NULL, variant_position_table = NULL, 
@@ -369,11 +369,19 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
       multi_hits[maf_pid_counts, pid_freq := pid_freq, on = 'pid']
       
       # Any set of overlapping AACs has a single AAC chosen based on the following criteria:
-      # MAF frequency (usually equal among all), essential splice status, premature stop codon, nonsilent status,
-      # which protein has the most overall mutations in MAF data (will usually favor longer transcripts),
-      # and finally just alphabetical on variant ID
+      # Essential splice status, premature stop codon, nonsilent status, mane/mane-plus status (if available),
+      # MAF frequency (usually equal among all), which protein has the most overall mutations in MAF data (will usually favor longer transcripts),
+      # and finally default sorting order on variant ID.
       multi_hits[, is_premature := aa_alt == "STOP" & aa_ref != "STOP"]
-      multi_hits = multi_hits[order(-maf_prevalence, -essential_splice, -is_premature, aa_ref == aa_alt, -pid_freq, variant_id)]
+      
+      if(check_for_ref_data(cesa, 'transcript_info')) {
+        transcripts = get_ref_data(cesa, 'transcript_info')
+        multi_hits[transcripts, c('is_mane', 'is_mane_plus') := .(is_mane, is_mane_plus), on = c(pid = 'protein_id')]
+        multi_hits = multi_hits[order(-essential_splice, -is_premature, aa_ref == aa_alt, -is_mane, -is_mane_plus, -maf_prevalence, -pid_freq, variant_id)]
+        multi_hits[, c('is_mane', 'is_mane_plus') := NULL]
+      } else {
+        multi_hits = multi_hits[order(-essential_splice, -is_premature, aa_ref == aa_alt, -maf_prevalence, -pid_freq, variant_id)]
+      }
       multi_hits[, is_premature := NULL]
       
       # When chr/nt/aachange all match, the higher-up entry in the table will always be

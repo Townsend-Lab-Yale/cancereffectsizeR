@@ -19,7 +19,7 @@
 #' @param num_sig_groups How many groups of signatures to display. Remaining signatures (from groups
 #'   with lower effect shares, when averaged across sample groups) get lumped into an "Other
 #'   signatures" group.
-
+#' @export
 plot_signature_effects = function(mutational_effects = NULL,
                                                signature_groupings = 'auto',
                                                viridis_option = NULL,

@@ -74,16 +74,6 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
     }
   }
   
-  # Let user specify a subset of samples to calculate rates (or, by default, use all samples)
-  mutations = copy(cesa@mutations)
-  
-  # can drop AAC mutations not requested
-  if(length(aac_ids) > 0) {
-    mutations$amino_acid_change = mutations$amino_acid_change[aac_ids]
-    setkey(mutations$amino_acid_change, "aac_id")
-  } else {
-    mutations$amino_acid_change = data.table()
-  }
   
   # Give a progress message if this is going to take more than a few seconds
   num_variants = length(aac_ids) + length(snv_ids)
@@ -91,6 +81,20 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, snv_ids = NULL, variant
   if(num_variants == 0) {
     stop("Can't calculate mutation rates because no variants were input.")
   }
+  
+  # Can drop mutations not requested
+  mutations = copy(cesa@mutations)
+  snvs_needed = snv_ids
+  if(length(aac_ids) > 0) {
+    mutations$amino_acid_change = mutations$amino_acid_change[aac_ids]
+    setkey(mutations$amino_acid_change, "aac_id")
+    snvs_needed = union(snvs_needed, mutations$aac_snv_key[aac_ids, snv_id, on = 'aac_id'])
+  } else {
+    mutations$amino_acid_change = data.table()
+  }
+  
+  mutations$snv = mutations$snv[snvs_needed, on = 'snv_id']
+  setkey(mutations$snv, 'snv_id')
   
   num_samples = samples[, .N]
   if(num_variants * num_samples > 1e7) {

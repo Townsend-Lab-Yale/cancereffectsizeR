@@ -65,6 +65,9 @@ gene_mutation_rates <- function(cesa, covariates = NULL, samples = character(), 
   if(is.null(RefCDS)) {
     RefCDS = .ces_ref_data[[cesa@ref_key]]$RefCDS
     gr_genes = .ces_ref_data[[cesa@ref_key]]$gr_genes
+    full_gr_genes = gr_genes
+  } else {
+    full_gr_genes = .ces_ref_data[[cesa@ref_key]]$gr_genes
   }
   using_cds_rates = "gene" %in% names(GenomicRanges::mcols(gr_genes))
   
@@ -153,12 +156,21 @@ gene_mutation_rates <- function(cesa, covariates = NULL, samples = character(), 
     }
     
     # On CDS refsets, pid and gene names are not really properly validated yet
-    if(length(bad_genes) > 0 && ! using_cds_rates) {
+    prop_bad = length(bad_genes)/length(genes_in_pca)
+    if(prop_bad > 0.2 && ! using_cds_rates) {
+      if(prop_bad == 1) {
+        stop('None of the gene names in the reference data are present in the covariates data.')
+      }
       if(length(bad_genes) > 30) {
         bad_genes = c(bad_genes[1:30], '...')
       }
-      stop("Rownames of covariates matrix include genes not present in reference data:\n",
+      warning("Rownames of covariates matrix include genes not present in reference data:\n",
            paste(bad_genes, collapse = ', '), '.')
+    }
+    if(length(bad_genes) > 0 && ! using_cds_rates) {
+      good_genes = intersect(setdiff(genes_in_pca, bad_genes), names(RefCDS))
+      genes_in_pca = good_genes
+      cv = cv[genes_in_pca, ]
     }
   }
  
@@ -229,7 +241,13 @@ gene_mutation_rates <- function(cesa, covariates = NULL, samples = character(), 
   # usually), won't get rates calculated by dNdScv. Here, we assign them the rate of the
   # nearest gene, as measured by center-to-center distance. (And, in the case of CDS
   # rates, this same logic works.)
-  missing_genes = setdiff(GenomicRanges::mcols(gr_genes)["names"][,1], mutrates_dt$gene)
+  
+  if(using_cds_rates || is.null(full_gr_genes$gene)) {
+    missing_genes = setdiff(GenomicRanges::mcols(full_gr_genes)["names"][,1], mutrates_dt$gene)
+  } else {
+    missing_genes = setdiff(GenomicRanges::mcols(full_gr_genes)["gene"][,1], mutrates_dt$gene)
+  }
+  
   
   tmp = as.data.table(gr_genes)
   gene_intervals = tmp[, .(chr = as.character(seqnames[1]), start = min(start), end = max(end)), by = "names"]

@@ -63,16 +63,16 @@ set collapse_lists = T to convert these columns to comma-delimited strings, whic
 sometimes easier to work with.}
 
 \item{remove_secondary_aac}{Default TRUE, except overridden (effectively FALSE) when
-include_subvariants = T. Due to overlapping coding region definitions in reference
-data (e.g., genes with multiple transcripts), a site can have more than one
-amino-acid-change annotation. To avoid returning the same genome-positional
-variants multiple times, the default is to return one AAC in these situations.
-Tiebreakers are MAF prevalence, essential splice site status, premature stop codon,
-non-silent status, gene/protein mutation count, alphabetical. If you set
-remove_secondary_aac to FALSE, you can't put the output variant table in selection
-calculation functions. An alternative is to set to FALSE, pick which
-(non-overlapping) variants you want, and then re-run select_variants() with those
-variants specified in \code{variant_ids}.}
+include_subvariants = T. Due to overlapping coding region definitions in reference data (e.g.,
+genes with multiple transcripts), a site can have more than one amino-acid-change annotation.
+To avoid returning the same genome-positional variants multiple times, the default is to return
+one AAC in these situations. Tiebreakers are essential splice site status, premature stop
+codon, MANE/MANE PLUS status if available (favoring canonical or medically relevant
+transcripts), non-silent status, MAF prevalence, gene/protein mutation count, and sorting
+order. If you set remove_secondary_aac to FALSE, you can't put the output variant table in
+selection calculation functions. An alternative is to set to FALSE, pick which
+(non-overlapping) variants you want, and then re-run select_variants() with those variants
+specified in \code{variant_ids}.}
 }
 \value{
 A data table with info on selected variants (see details), or a list of IDs.
