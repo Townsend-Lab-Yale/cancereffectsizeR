@@ -8,7 +8,7 @@ withr::defer(pbapply::pboptions(pbopts), teardown_env())
 Sys.setlocale(locale = "")
 
 # Set text width so that messages don't get unexpected newlines inserted,
-# which can expect_message fail
+# which can make expect_message regexes fail
 width_opt = options(width = 150)$width
 
 # restore text width on teardown

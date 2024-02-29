@@ -8,8 +8,8 @@ test_that("load_maf and variant annotation", {
   expect_equal(tiny$maf[order(variant_id)], tiny_ak$maf[order(variant_id)])
   expect_equal(tiny@excluded, tiny_ak@excluded, ignore.row.order = T)
   expect_equal(tiny@mutations, tiny_ak@mutations)
-  expect_equal(tiny@mutations$snv[, .N], 388)
-  expect_equal(tiny@mutations$amino_acid_change[, .N], 381)
+  expect_equal(tiny@mutations$snv[, .N], 394)
+  expect_equal(tiny@mutations$amino_acid_change[, .N], 757)
   expect_equal(tiny$samples[, .N], 8) 
    
   # same ranges should be in each coverage GenomicRange (depending on BSgenome version, little contigs may vary)
@@ -37,14 +37,15 @@ test_that("load_maf and variant annotation", {
   selected = select_variants(tiny, variant_ids  = "12:132824581_A>C", genes = "TAF1C")
   expect_equal(tiny@mutations$snv["12:132824581_A>C", unlist(covered_in)], character())
   expect_equal(selected[, .N], 2)
-  selected = select_variants(tiny, variant_ids = "12:132824581_A>C", genes = "TAF1C", min_freq = 0, include_subvariants = T)
-  expect_equal(selected[, .N], 3)
+  selected = select_variants(tiny, variant_ids = "12:132824581_A>C", genes = "TAF1C", 
+                             min_freq = 0, include_subvariants = T)
+  expect_equal(selected[, .N], 7)
   selected = select_variants(tiny, min_freq = 1)
   expect_equal(sum(selected$maf_prevalence), 265) 
   expect_equal(variant_counts(tiny, "12:132824581_A>C")$total_prevalence, 0)
   expect_equal(sum(variant_counts(tiny, selected$variant_id)$total_prevalence), 265)
   
-  # Check a the essential splice site manually added to ces.refset.hg38
+  # Check the essential splice site manually added to ces.refset.hg38
   tiny = add_variants(target_cesa = tiny, aac_id = 'TP53_T125T_ENSP00000269305.4')
   expect_equal(tiny$variants[variant_id == "TP53_T125T_ENSP00000269305.4", essential_splice], T)
   

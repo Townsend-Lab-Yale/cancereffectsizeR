@@ -60,7 +60,7 @@ cesa = ces_gene_epistasis(cesa, genes = c("EGFR", "KRAS", "TP53"), variants = va
 saveRDS(cesa$epistasis[[1]], "epistatic_effects.rds")
 
 
-mut_effects = mutational_signature_effects(cesa = cesa, effects = cesa$selection$main_test, 
+mut_effects = mutational_signature_effects(cesa = cesa, effects = cesa$selection[[1]], 
                                            samples = cesa$samples[coverage == 'exome'])
 saveRDS(mut_effects, 'mut_effect_attribution.rds')
 
