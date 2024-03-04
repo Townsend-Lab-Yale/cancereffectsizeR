@@ -49,7 +49,7 @@ validate_snv_ids = function(snv_ids, bsg) {
 #' multiple protein IDs per gene, will return more IDs than input. Otherwise,
 #' input/output will maintain order.
 #' 
-#' @param partial_ids AAC variant names, such as "KRAS_G12C" or "MIB2 G395C"
+#' @param partial_ids AAC variant id prefixes, such as "KRAS_G12C" or "MIB2 G395C"
 #' @param refset reference data set (environment object)
 #' @keywords internal
 complete_aac_ids = function(partial_ids, refset) {

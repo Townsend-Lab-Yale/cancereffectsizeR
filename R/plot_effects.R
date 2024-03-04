@@ -289,10 +289,15 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
     stop('legend_size_name should be 1-length character.')
   }
   
+  # Look for parenthesized characters at the end of variant names, which are protein IDs, and insert new line.
+  effects[nchar(variant_name > 15) & variant_name %like% '^[^\\)]+\\(.*\\)$',
+          variant_name := gsub('^([^\\)]+)(\\(.*\\))$', '\\1\n\\2', variant_name)]
+  
   # Handle variant (or variant group) labels
   if(identical(y_label, 'auto')) {
     if(group_by == 'variant') {
       if(uniqueN(effects$variant_name) == uniqueN(effects$variant_id)) {
+        # REMOVE for version 3
         effects[, variant_group_label := gsub('_', ' ', variant_name)]
       } else {
         effects[, variant_group_label := variant_id] # unusual situation
@@ -458,9 +463,9 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
   
   if(identical(label_individual_variants, TRUE)) {
     # Use variant_name (unless variant_id is necessary due to ambiguity) if nothing supplied,
-    # unless grouping by gene, in which get aachange from gene name.
+    # unless grouping by gene, in which case get aachange from gene name.
     if(group_by == 'gene') {
-      effects[variant_type == 'aac', individual_label := gsub('.*_', '', variant_name)]
+      effects[variant_type == 'aac', individual_label := sub('.*?[_ ]', '', variant_name)]
       effects[variant_type != 'aac', individual_label := gsub('_', ' ', variant_name)]
       
     } else if (uniqueN(effects$variant_id) != uniqueN(effects$variant_name)) {

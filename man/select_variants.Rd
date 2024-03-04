@@ -26,10 +26,9 @@ select_variants(
 Note that variants that are not in the annotation tables will never be returned. Use
 \code{add_variants()} to include variants absent from MAF data in your CESAnalysis.}
 
-\item{variant_ids}{Vector of variant IDs to include in output regardless of
-filtering options. You can use CES-style AAC and SNV IDs or variant names like 
-"KRAS G12C". If this argument is used by itself (without any filtering arguments),
-then only these specified variants will be returned.}
+\item{variant_ids}{Vector of variant IDs to include in output regardless of filtering options.
+You can also use variant names like "KRAS G12C". If this argument is used by itself (without
+any filtering arguments), then only these specified variants will be returned.}
 
 \item{gr}{Filter out any variants not within input GRanges +/- \code{padding} bases.}
 
@@ -78,13 +77,13 @@ specified in \code{variant_ids}.}
 A data table with info on selected variants (see details), or a list of IDs.
 }
 \description{
-This function helps you find and view variant data from your CESAnalysis's MAF data and
-mutation annotation tables. By default, almost all amino-acid-change mutations and
-noncoding SNVs are returned. You can apply a series of filters to restrict output to
-certain genes or genomic regions or require a minimum variant frequency in MAF data.
-You can also specify some variants to include in output regardless of filters with
-\code{variant_ids}. Special behavior: If \code{variant_ids} is used by
-itself, then only those specified variants will be returned.
+This function helps you find and view variant data from your CESAnalysis's MAF data and mutation
+annotation tables. By default, almost all coding substitutions (amino acid changes; AACs) and
+noncoding SNVs are returned. You can apply a series of filters to restrict output to certain
+genes or genomic regions or require a minimum variant frequency in MAF data. You can also specify
+some variants to include in output regardless of filters with \code{variant_ids}. Special
+behavior: If \code{variant_ids} is used by itself, then only those specified variants will be
+returned.
 }
 \details{
 Only variants that are present in the CESAnalysis's annotation tables can be returned,
@@ -96,19 +95,23 @@ not actually in any gene.
 
 Definitions of some less self-explanatory columns:
 \itemize{
-  \item variant_name: short, often but not necessarily uniquely identifying name (use
-  variant_id to guarantee uniqueness) 
-  \item start/end: lowest/highest genomic positions overlapping variant
-  \item variant_id: unique IDs for variants given the associated genome assembly version and the transcript data
-  \item ref/alt: genomic reference and alternate alleles (for genomic
-  variants; NA for AACs) 
-  \item gene: the affected gene in AACs; for SNVs, the
-  overlapping gene (or an arbitrary gene if more than one overlaps), or the nearest gene
-  for intergenic SNVs
-  \item strand: for AACs, 1 if the reference sequence strand is the coding strand; -1 otherwise
+  \item variant_name: In a coding variant, gene and protein change on the (MANE) canonical
+  transcripts, such as "BRAF V600E". For coding changes reported on other transcripts, the
+  protein ID is included: "POLH W415C (ENSP00000361300.1)". With older reference data sets
+  (ces.refset.hg19, versions of ces.refset.hg38 < 1.3, and any custom reference data set that
+  doesn't have complete information on canonical transcripts), the variant name is a 
+  shortening of the variant_id.
+  \item start/end: Lowest/highest genomic positions overlapping variant.
+  \item variant_id: Unique IDs for variants given the associated genome assembly version and the transcript data.
+  \item ref/alt: Genomic reference and alternate alleles (for genomic
+  variants; NA for AACs).
+  \item Gene: the affected gene in AACs; for SNVs, the
+  overlapping gene (arbitrarily chosen when more than one overlap), or the nearest gene
+  for intergenic/intronic SNVs.
+  \item strand: for AACs, 1 if the reference sequence strand is the coding strand; -1 otherwise.
   \item essential_splice: Variant is 1,2 bp upstream or
   1,2,5 bp downstream of an annotated splice position (edge case: if an SNV has
-  multiple gene/transcript annotations, this doesn't say which one it's essential for)
+  multiple gene/transcript annotations, this doesn't say which one it's essential for).
   \item intergenic: variant does not overlap any coding regions in the reference data
   \item trinuc_mut: for SNVs, the reference trinucleotide context, in deconstructSigs notation
   \item coding_seq: coding strand nucleotides in order of transcription

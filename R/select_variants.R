@@ -1,12 +1,12 @@
 #' Select and filter variants
 #'
-#' This function helps you find and view variant data from your CESAnalysis's MAF data and
-#' mutation annotation tables. By default, almost all amino-acid-change mutations and
-#' noncoding SNVs are returned. You can apply a series of filters to restrict output to
-#' certain genes or genomic regions or require a minimum variant frequency in MAF data.
-#' You can also specify some variants to include in output regardless of filters with
-#' \code{variant_ids}. Special behavior: If \code{variant_ids} is used by
-#' itself, then only those specified variants will be returned.
+#' This function helps you find and view variant data from your CESAnalysis's MAF data and mutation
+#' annotation tables. By default, almost all coding substitutions (amino acid changes; AACs) and
+#' noncoding SNVs are returned. You can apply a series of filters to restrict output to certain
+#' genes or genomic regions or require a minimum variant frequency in MAF data. You can also specify
+#' some variants to include in output regardless of filters with \code{variant_ids}. Special
+#' behavior: If \code{variant_ids} is used by itself, then only those specified variants will be
+#' returned.
 #' 
 #' Only variants that are present in the CESAnalysis's annotation tables can be returned,
 #' which by default are those present in the MAF data. To select variants absent from MAF
@@ -17,19 +17,23 @@
 #' 
 #' Definitions of some less self-explanatory columns:
 #' \itemize{
-#'   \item variant_name: short, often but not necessarily uniquely identifying name (use
-#'   variant_id to guarantee uniqueness) 
-#'   \item start/end: lowest/highest genomic positions overlapping variant
-#'   \item variant_id: unique IDs for variants given the associated genome assembly version and the transcript data
-#'   \item ref/alt: genomic reference and alternate alleles (for genomic
-#'   variants; NA for AACs) 
-#'   \item gene: the affected gene in AACs; for SNVs, the
-#'   overlapping gene (or an arbitrary gene if more than one overlaps), or the nearest gene
-#'   for intergenic SNVs
-#'   \item strand: for AACs, 1 if the reference sequence strand is the coding strand; -1 otherwise
+#'   \item variant_name: In a coding variant, gene and protein change on the (MANE) canonical
+#'   transcripts, such as "BRAF V600E". For coding changes reported on other transcripts, the
+#'   protein ID is included: "POLH W415C (ENSP00000361300.1)". With older reference data sets
+#'   (ces.refset.hg19, versions of ces.refset.hg38 < 1.3, and any custom reference data set that
+#'   doesn't have complete information on canonical transcripts), the variant name is a 
+#'   shortening of the variant_id.
+#'   \item start/end: Lowest/highest genomic positions overlapping variant.
+#'   \item variant_id: Unique IDs for variants given the associated genome assembly version and the transcript data.
+#'   \item ref/alt: Genomic reference and alternate alleles (for genomic
+#'   variants; NA for AACs).
+#'   \item Gene: the affected gene in AACs; for SNVs, the
+#'   overlapping gene (arbitrarily chosen when more than one overlap), or the nearest gene
+#'   for intergenic/intronic SNVs.
+#'   \item strand: for AACs, 1 if the reference sequence strand is the coding strand; -1 otherwise.
 #'   \item essential_splice: Variant is 1,2 bp upstream or
 #'   1,2,5 bp downstream of an annotated splice position (edge case: if an SNV has
-#'   multiple gene/transcript annotations, this doesn't say which one it's essential for)
+#'   multiple gene/transcript annotations, this doesn't say which one it's essential for).
 #'   \item intergenic: variant does not overlap any coding regions in the reference data
 #'   \item trinuc_mut: for SNVs, the reference trinucleotide context, in deconstructSigs notation
 #'   \item coding_seq: coding strand nucleotides in order of transcription
@@ -47,10 +51,9 @@
 #' @param min_freq Filter out variants with MAF frequency below threshold (default 0).
 #'   Note that variants that are not in the annotation tables will never be returned. Use
 #'   \code{add_variants()} to include variants absent from MAF data in your CESAnalysis.
-#' @param variant_ids Vector of variant IDs to include in output regardless of
-#'   filtering options. You can use CES-style AAC and SNV IDs or variant names like 
-#'   "KRAS G12C". If this argument is used by itself (without any filtering arguments),
-#'   then only these specified variants will be returned.
+#' @param variant_ids Vector of variant IDs to include in output regardless of filtering options.
+#'   You can also use variant names like "KRAS G12C". If this argument is used by itself (without
+#'   any filtering arguments), then only these specified variants will be returned.
 #' @param gr Filter out any variants not within input GRanges +/- \code{padding} bases.
 #' @param variant_position_table Filter out any variants that don't intersect the
 #'   positions given in chr/start/end of this table (1-based closed coordinates).
@@ -204,8 +207,7 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
     
     # if any IDs are missing, try to interpret them as "short" AAC names (i.e., without protein ID)
     if (length(missing_ids) > 0) {
-      missing_ids = gsub(' ', '_', missing_ids)
-      tmp = cesa@mutations$amino_acid_change[, .(aac_id, variant_name = paste(gene, aachange, sep = "_"))]
+      tmp = cesa@mutations$amino_acid_change[, .(aac_id, variant_name)]
       aac_matches = tmp[missing_ids, on = "variant_name"]
       
       missing_ids = aac_matches[is.na(aac_id), variant_name]
@@ -225,10 +227,6 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
                      "will be returned. (There may be additional matching variants with MAF frequency = 0 that are not ",
                      "annotated in this analysis; these will not be returned.)")
         pretty_message(msg, black = F)
-      } else {
-        msg = paste0("Shorthand amino-acid-change names (styled like \"KRAS_G12C\") were recognized and uniquely ",
-                     "paired with cancereffectsizeR's aac_ids.")
-        pretty_message(msg)
       }
     }
     # under include_subvariants, all SNVs of passlisted AACs get included
@@ -290,7 +288,7 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   
   # Annotate SNV table and prepare to merge with AACs
   selected_snv[, variant_type := "snv"]
-  selected_snv[, variant_name := snv_id] # SNV IDs are already short and uniquely identifying
+  selected_snv[, variant_name := sub('_', ' ', snv_id)] # SNV IDs are already short and uniquely identifying
   selected_snv[, constituent_snvs := list(NA_character_)]
   selected_snv[, strand := NA_integer_] # because AAC table is +1/-1
   selected_snv[, c("start", "end") := .(pos, pos)]
@@ -307,7 +305,6 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   setnames(selected_snv, c("genes", "snv_id"), c("all_genes", "variant_id"))
   
   # AACs get a short variant name that might not be uniquely identifying if a gene has more than one CDS
-  selected_aac[, variant_name := paste(gene, aachange, sep = "_")]
   selected_aac[, variant_type := "aac"]
   selected_aac[, intergenic := FALSE]
   selected_aac[, start := pmin(nt1_pos, nt3_pos)]
@@ -374,8 +371,8 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
       # and finally default sorting order on variant ID.
       multi_hits[, is_premature := aa_alt == "STOP" & aa_ref != "STOP"]
       
-      if(check_for_ref_data(cesa, 'transcript_info')) {
-        transcripts = get_ref_data(cesa, 'transcript_info')
+      if(check_for_ref_data(cesa, 'transcripts')) {
+        transcripts = get_ref_data(cesa, 'transcripts')
         multi_hits[transcripts, c('is_mane', 'is_mane_plus') := .(is_mane, is_mane_plus), on = c(pid = 'protein_id')]
         multi_hits = multi_hits[order(-essential_splice, -is_premature, aa_ref == aa_alt, -is_mane, -is_mane_plus, -maf_prevalence, -pid_freq, variant_id)]
         multi_hits[, c('is_mane', 'is_mane_plus') := NULL]
@@ -446,6 +443,14 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   setattr(combined, "cesa_id", cesa@advanced$uid)
   setattr(combined, "nonoverlapping", nonoverlapping)
   setkey(combined, 'variant_id', physical = F)
+  
+  if(check_for_ref_data(cesa, "transcripts")) {
+    transcripts = get_ref_data(cesa, "transcripts")
+    combined[transcripts, let(is_MANE_transcript = is_mane,
+                              transcript_tags = transcript_tags),
+                              on = c(pid = 'protein_id')]
+    combined[variant_type == 'snv', is_MANE_transcript := NA]
+  }
   return(combined[]) # brackets force the output to print when unassigned (should automatically, but this is a known data.table issue)
 }
 

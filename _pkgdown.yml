@@ -81,7 +81,7 @@ reference:
   - pairwise_epistasis_lik
 - title: Explore reference data
   contents:
-  - cosmic_sbs_etiologies
+  - cosmic_signature_info
   - get_PathScore_coding_regions
   - list_ces_refsets
   - list_ces_covariates

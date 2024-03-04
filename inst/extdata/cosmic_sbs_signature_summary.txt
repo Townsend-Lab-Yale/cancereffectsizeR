@@ -1,48 +1,89 @@
-name	short_name	description
-SBS1	1	spontaneous 5-methylcytosine deamination
-SBS2	2	APOBEC
-SBS3	3	defective homologous recombination
-SBS4	4	tobacco-related
-SBS5	5	unknown, clock-like
-SBS6	6	DNA mismatch repair
-SBS6	6	mismatch repair defects
-SBS7a	7a	UV light
-SBS7b	7b	UV light
-SBS7c	7c	UV light
-SBS7d	7d	UV light
-SBS9	9	polymerase eta somatic hypermutation
-SBS10a	10a	defective polymerase epsilon
-SBS10b	10b	defective polymerase epsilon
-SBS10c	10c	defective POLD1 proofreading
-SBS10d	10d	defective POLD1 proofreading
-SBS11	11	chemotherapeutic agents
-SBS13	13	APOBEC
-SBS14	14	mismatch repair defects
-SBS15	15	mismatch repair defects
-SBS16	16	associated with alcohol consumption
-SBS18	18	reactive oxygen species
-SBS20	20	mismatch repair defects
-SBS21	21	mismatch repair defects
-SBS22	22	aristocholic acid
-SBS22a	22a	aristocholic acid
-SBS22b	22b	aristocholic acid
-SBS24	24	aflatoxin
-SBS25	25	chemotherapeutic agents
-SBS26	26	mismatch repair defects
-SBS29	29	tobacco-related
-SBS30	30	BER deficiency due to NTHL1 mutation
-SBS31	31	chemotherapeutic agents
-SBS32	32	chemotherapeutic agents
-SBS35	35	chemotherapeutic agents
-SBS36	36	BER deficiency due to MUTYH mutation
-SBS38	38	UV light
-SBS42	42	occupational exposure to haloalkanes
-SBS44	44	mismatch repair defects
-SBS84	84	activation-induced cytidine deaminases
-SBS85	85	activation-induced cytidine deaminases
-SBS86	86	chemotherapeutic agents
-SBS87	87	chemotherapeutic agents
-SBS88	88	colibactin exposure
-SBS90	90	chemotherapeutic agents
-SBS92	92	tobacco-related
-SBS99	99	chemotherapeutic agents
+name	short_name	description	detail	present_in_COSMIC_3.4
+SBS1	1	spontaneous 5-methylcytosine deamination		TRUE
+SBS2	2	APOBEC activity		TRUE
+SBS3	3	defective homologous recombination		TRUE
+SBS4	4	tobacco-related	tobacco smoking	TRUE
+SBS5	5	"unknown, clock-like"		TRUE
+SBS6	6	mismatch repair defects		TRUE
+SBS7a	7a	UV light		TRUE
+SBS7b	7b	UV light		TRUE
+SBS7c	7c	UV light		TRUE
+SBS7d	7d	UV light		TRUE
+SBS8	8	unknown etiology		TRUE
+SBS9	9	polymerase eta somatic hypermutation		TRUE
+SBS10a	10a	defective polymerase epsilon	polymerase epsiolon exonuclease domain mutations	TRUE
+SBS10b	10b	defective polymerase epsilon	polymerase epsiolon exonuclease domain mutations	TRUE
+SBS10c	10c	defective POLD1 proofreading		TRUE
+SBS10d	10d	defective POLD1 proofreading		TRUE
+SBS11	11	chemotherapeutic agents	temozolomide treatment	TRUE
+SBS12	12	unknown etiology		TRUE
+SBS13	13	APOBEC activity		TRUE
+SBS14	14	mismatch repair defects	concurrent polymerase epsilon mutation and mismatch repair defect	TRUE
+SBS15	15	mismatch repair defects		TRUE
+SBS16	16	associated with alcohol consumption	COSMIC describes etiology as unknown	TRUE
+SBS17a	17a	unknown etiology		TRUE
+SBS17b	17b	unknown etiology		TRUE
+SBS18	18	reactive oxygen species		TRUE
+SBS19	19	unknown etiology		TRUE
+SBS20	20	mismatch repair defects	concurrent POLD1 mutation and defective DNA mismatch repair	TRUE
+SBS21	21	mismatch repair defects		TRUE
+SBS22	22	aristocholic acid exposure		FALSE
+SBS22a	22a	aristocholic acid exposure		TRUE
+SBS22b	22b	aristocholic acid exposure		TRUE
+SBS23	23	unknown etiology		TRUE
+SBS24	24	aflatoxin exposure		TRUE
+SBS25	25	chemotherapeutic agents	COSMIC considers unknown but notes presence in chemotherapy-exposed Hodgkin's lymphoma cell lines	TRUE
+SBS26	26	mismatch repair defects		TRUE
+SBS27	27	likely or possible artifact		TRUE
+SBS28	28	unknown etiology		TRUE
+SBS29	29	tobacco-related	tobacco chewing	TRUE
+SBS30	30	BER deficiency due to NTHL1 mutation		TRUE
+SBS31	31	chemotherapeutic agents	platinum chemotherapy treatment	TRUE
+SBS32	32	chemotherapeutic agents	azathioprine treatment	TRUE
+SBS33	33	unknown etiology		TRUE
+SBS34	34	unknown etiology		TRUE
+SBS35	35	chemotherapeutic agents	platinum chemotherapy treatment	TRUE
+SBS36	36	BER deficiency due to MUTYH mutation		TRUE
+SBS37	37	unknown etiology		TRUE
+SBS38	38	UV light	indirect effects of UV exposure	TRUE
+SBS39	39	unknown etiology		TRUE
+SBS40	40	unknown etiology		FALSE
+SBS40a	40a	unknown etiology		TRUE
+SBS40b	40b	unknown etiology		TRUE
+SBS40c	40c	unknown etiology		TRUE
+SBS41	41	unknown etiology		TRUE
+SBS42	42	occupational exposure to haloalkanes		TRUE
+SBS43	43	likely or possible artifact		TRUE
+SBS44	44	mismatch repair defects		TRUE
+SBS45	45	likely or possible artifact		TRUE
+SBS46	46	likely or possible artifact		TRUE
+SBS47	47	likely or possible artifact		TRUE
+SBS48	48	likely or possible artifact		TRUE
+SBS49	49	likely or possible artifact		TRUE
+SBS50	50	likely or possible artifact		TRUE
+SBS51	51	likely or possible artifact		TRUE
+SBS52	52	likely or possible artifact		TRUE
+SBS53	53	likely or possible artifact		TRUE
+SBS54	54	likely or possible artifact		TRUE
+SBS55	55	likely or possible artifact		TRUE
+SBS56	56	likely or possible artifact		TRUE
+SBS57	57	likely or possible artifact		TRUE
+SBS58	58	likely or possible artifact		TRUE
+SBS59	59	likely or possible artifact		TRUE
+SBS60	60	likely or possible artifact		TRUE
+SBS84	84	activation-induced cytidine deaminases	activity of AIDs	TRUE
+SBS85	85	activation-induced cytidine deaminases	indirect effects of AIDs	TRUE
+SBS86	86	chemotherapeutic agents	unknown chemotherapy treatment	TRUE
+SBS87	87	chemotherapeutic agents	thiopurine treatment	TRUE
+SBS88	88	colibactin exposure		TRUE
+SBS89	89	unknown etiology		TRUE
+SBS90	90	chemotherapeutic agents	duocarmycin exposure	TRUE
+SBS91	91	unknown etiology		TRUE
+SBS92	92	tobacco-related	affects bladder tissue of tobacco smokers	TRUE
+SBS93	93	unknown etiology		TRUE
+SBS94	94	unknown etiology		TRUE
+SBS95	95	likely or possible artifact		TRUE
+SBS96	96	unknown etiology		TRUE
+SBS97	97	unknown etiology		TRUE
+SBS98	98	unknown etiology		TRUE
+SBS99	99	chemotherapeutic agents	melphalan exposure	TRUE

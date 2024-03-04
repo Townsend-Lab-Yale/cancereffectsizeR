@@ -68,7 +68,7 @@ test_that("ces_variant with user-supplied variants", {
 
 test_that("ces_variant on subsets of samples", {
   # This variant appears appears 3 times in cherry, 1 in mountain apple, 0 in marionberry
-  variant = select_variants(cesa, variant_ids = "FOXA1_F266L")
+  variant = select_variants(cesa, variant_ids = "FOXA1 F266L")
   
   just_cherry = ces_variant(cesa, variants = variant, samples = cesa$samples[fruit == 'cherry'])@selection_results[[1]]$selection_intensity
   also_marionberry = ces_variant(cesa, variants = variant, samples = cesa$samples[fruit %in% c('cherry', 'marionberry')])@selection_results[[1]]$selection_intensity
@@ -94,12 +94,12 @@ test_that("ces_variant on subsets of samples", {
   
   # illegally adding new samples/data
   cesa@samples = rbind(cesa@samples, new_samples)
-  cesa@maf = rbind(cesa@maf, new_maf[top_consequence != 'FOXA1_F266L']) # avoid adding uncovered records
+  cesa@maf = rbind(cesa@maf, new_maf[top_consequence != 'FOXA1 F266L']) # avoid adding uncovered records
   cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix = rbind(cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix,
                                                                        new_rates)
   
   # selection intensity should be unchanged by addition of new samples
-  variant = select_variants(cesa, variant_ids = "FOXA1_F266L")
+  variant = select_variants(cesa, variant_ids = "FOXA1 F266L")
   all_with_new = ces_variant(cesa, variants = variant)@selection_results[[1]]
   expect_identical(with_all, all_with_new$selection_intensity)
   
@@ -119,7 +119,10 @@ test_that("ces_variant on subsets of samples", {
 })
 
 test_that("Variant-level epistasis", {
-  results = ces_epistasis(cesa, variants = list(c("KRAS_G12V_ENSP00000256078.5", "GATA3 M293K")), conf = .9)@epistasis[[1]]
+  # To-do: It would be nice if the GATA3 variant could be interpreted from just GATA3 M293K, since there is just
+  # one substitution it could be (given the transcript set; other GATA3 transcripts do not have M293).
+  # The issue is that the variant is not on the canonical transcript.
+  results = ces_epistasis(cesa, variants = list(c("KRAS_G12V_ENSP00000256078.5", "GATA3 M293K (ENSP00000341619.3)")), conf = .9)@epistasis[[1]]
   to_test = results[, as.numeric(.(ces_A0, ces_B0, ces_A_on_B, ces_B_on_A, nA0,
                                    nB0, nAB, n00))]
   expect_equal(to_test[1:4], c(15903, 13624, 0.001, 0.001), tolerance = 1e-3)

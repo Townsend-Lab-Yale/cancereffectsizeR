@@ -20,6 +20,6 @@ List of variant_ids, with each element corresponding to one variant_type.
 Sorts input variant IDs by type, completes IDs by adding protein ID to plain variant
 names (e.g. "KRAS G12C"), and ensures that IDs are valid even if not present in
 annotations. This includes verifying that reference alleles are correct in SNV IDs and
-that amino-acid-changes are possible given the coding sequence.
+that amino acid changes are possible given the coding sequence.
 }
 \keyword{internal}

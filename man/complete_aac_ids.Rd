@@ -7,7 +7,7 @@
 complete_aac_ids(partial_ids, refset)
 }
 \arguments{
-\item{partial_ids}{AAC variant names, such as "KRAS_G12C" or "MIB2 G395C"}
+\item{partial_ids}{AAC variant id prefixes, such as "KRAS_G12C" or "MIB2 G395C"}
 
 \item{refset}{reference data set (environment object)}
 }

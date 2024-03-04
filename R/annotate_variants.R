@@ -288,8 +288,12 @@ annotate_variants <- function(refset = NULL, variants = NULL) {
     
     # deconstructSigs_notations is a keyed table in CES sysdata
     snv_table[, trinuc_mut := deconstructSigs_notations[.(genomic_context, snv_table$alt), deconstructSigs_ID]] 
+    snv_table[, essential_splice := F]
+    snv_table[, variant_name := gsub('_', ' ', snv_id)]
+    setcolorder(snv_table, 'variant_name')
   } else {
     snv_table[, trinuc_mut := character(0)]
+    snv_table[, essential_splice := logical(0)]
   }
   
 	# Annotate SNVs that are at essential splice sites according to RefCDS, and then apply to any associated AACs
@@ -297,8 +301,6 @@ annotate_variants <- function(refset = NULL, variants = NULL) {
 	cds_in_data = unique(unlist(snv_table$cds))
 	ind_no_splice = sapply(RefCDS[cds_in_data], function(x) length(x$intervals_splice) == 0)
 	cds_with_splice_sites = cds_in_data[! ind_no_splice]
-	snv_table[, essential_splice := F]
-	aac[, essential_splice := F]
 	if (length(cds_with_splice_sites) > 0) {
 	  essential_splice_sites = unique(rbindlist(lapply(RefCDS[cds_with_splice_sites], function(x) return(list(chr = x$chr, start = x$intervals_splice)))))
 	  essential_splice_sites[, end := start]
@@ -316,15 +318,22 @@ annotate_variants <- function(refset = NULL, variants = NULL) {
 	
 	# clean up aac table, except when it's empty
 	if (aac[, .N] > 0) {
-	  # to do: eventually, probably want to keep the entry_name field (call it refcds_entry?)
-	  aac_table = aac[, .(aac_id, chr, gene = gene_name, strand, pid, aachange, aa_ref, aa_pos, aa_alt, nt1_pos, nt2_pos, nt3_pos, 
+	  aac_table = aac[, .(variant_name = paste0(gene_name, '_', aachange), aac_id, chr, gene = gene_name,
+	                      strand, pid, aachange, aa_ref, aa_pos, aa_alt, nt1_pos, nt2_pos, nt3_pos, 
 	                            coding_seq, constituent_snvs, essential_splice)]
+	  
+	  # Use an improved variant naming system (names are uniquely identifying) when transcripts are available.
+	  if(! is.null(refset$transcripts)) {
+	    aac_table[refset$transcripts, is_mane := is_mane, on = c(pid = 'protein_id')]
+	    aac_table[is_mane == TRUE, variant_name := gsub('_', ' ', variant_name)]
+	    aac_table[is_mane == FALSE, variant_name := paste0(gene, ' ', aachange, ' (', pid, ')')]
+	    aac_table[, is_mane := NULL]
+	  }
 	  setkey(aac_table, 'aac_id')
-	  setcolorder(aac_table, c("aac_id", "gene", "aachange", "strand"))
+	  setcolorder(aac_table, c("variant_name", "aac_id", "gene", "aachange", "strand"))
 	} else {
 	  aac_table = data.table()
 	}
-	
 	
 	
 	# Workaround to add gene name until this function is properly cleaned up

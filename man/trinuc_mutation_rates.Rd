@@ -106,12 +106,9 @@ sample in the current run) are used.
 
 A custom signature set should be given as a named three-item list, where "signatures"
 is a pure data.frame with signature definitions, "name" is a 1-length character naming
-the set, and "metadata" is a data.table with a "Signature" column that matches rownames
+the set, and "metadata" is a data.table with a name column that matches rownames
 in the signature definitions. The following columns allow special functionality:
 \itemize{ 
-\item Etiology: Known or hypothesized mutational processes underlying the signature. Used 
-for human-readable tables and plots, so best to enter something like "Unknown" rather
-than leaving any entries empty or NA
 \item Likely_Artifact (logical T/F): Marks signatures that are believed to
 derive from sample processing, sequencing, calling error, or other non-biological
 sources. cancereffectsizeR adjusts for artifact signatures when inferring relative

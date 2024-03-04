@@ -28,7 +28,7 @@
 #' @param exome_interval_padding Number of bases to pad start/end of each covered interval, to allow
 #'   for some variants to be called just outside of targeted regions, where there still may be
 #'   pretty good sequencing coverage.
-#' @param transcript_info Additional information about coding (and, optionally, noncoding)
+#' @param transcripts Additional information about coding (and, optionally, noncoding)
 #'   transcripts from a Gencode GTF, supplied as a data.table. See the format provided in
 #'   ces.refset.hg38. You'll have to match the format (including column names) pretty closely to get
 #'   expected behavior. Noncoding transcripts are represented only by records with transcript_type =
@@ -38,7 +38,7 @@
 #' @export
 create_refset = function(output_dir, refcds_dndscv, refcds_anno = NULL, species_name, genome_build_name, 
                          BSgenome_name, supported_chr = c(1:22, 'X', 'Y'), default_exome = NULL,
-                         exome_interval_padding = 0, transcript_info = NULL, cores = 1) {
+                         exome_interval_padding = 0, transcripts = NULL, cores = 1) {
   if(! is.numeric(cores) || cores - as.integer(cores) != 0) {
     stop('cores should be type integer')
   }
@@ -48,9 +48,9 @@ create_refset = function(output_dir, refcds_dndscv, refcds_anno = NULL, species_
     message('Running with cores = ', cores_available, ' since that is how many appear available.')
   }
   
-  if(! is.null(transcript_info)) {
-    if(! is.data.table(transcript_info)) {
-      stop('transcript_info must be a data.table (and a quite specifically formatted one at that).')
+  if(! is.null(transcripts)) {
+    if(! is.data.table(transcripts)) {
+      stop('transcripts must be a data.table (and a quite specifically formatted one at that).')
     }
   }
   if(! is(refcds_dndscv, 'list') || length(refcds_dndscv) != 2) {
@@ -336,8 +336,8 @@ create_refset = function(output_dir, refcds_dndscv, refcds_anno = NULL, species_
   saveRDS(gene_trinuc_comp, paste0(output_dir, "/gene_trinuc_comp.rds"))
   saveRDS(dbs_comp, paste0(output_dir, '/cds_dbs_exposure.rds'))
   
-  if(! is.null(transcript_info)) {
-    saveRDS(transcript_info, paste0(output_dir, '/transcript_info.rds'))
+  if(! is.null(transcripts)) {
+    saveRDS(transcripts, paste0(output_dir, '/transcripts.rds'))
   }
 }
 

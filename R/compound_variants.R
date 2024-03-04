@@ -71,9 +71,6 @@ CompoundVariantSet = function(cesa, variant_id) {
   }
   
   
-  # replace spaces with underscores (mainly to allow things like KRAS G12C -> KRAS_G12C)
-  variant_id = lapply(variant_id, function(x) gsub(" ", "_", x))
-  
   selected = select_variants(cesa, variant_ids = all_ids, include_subvariants = T)
   selected_snvs = selected[variant_type == "snv"]
   setkey(selected_snvs, "variant_id")
@@ -101,7 +98,14 @@ CompoundVariantSet = function(cesa, variant_id) {
       
       # handle user input of variant names (in place of IDs)
       if (length(remaining_ids) > 0) {
-        current_aacs = rbind(current_aacs, selected_aacs[remaining_ids, nomatch = NULL, on = "variant_name"])
+        more_aac = selected_aacs[remaining_ids, nomatch = NULL, on = "variant_name"]
+        remaining_ids = setdiff(remaining_ids, more_aac$variant_id)
+        if(length(remaining_ids) > 0) {
+          # In older refsets, variant_name had underscores.
+          remaining_ids = gsub(" ", "_", remaining_ids)
+          more_aac = rbind(more_aac, selected_aacs[remaining_ids, nomatch = NULL, on = "variant_name"])
+        }
+        current_aacs = rbind(current_aacs, more)
       }
       
       if (current_aacs[, .N] + current_snvs[, .N] != length(current_ids)) {
@@ -168,8 +172,10 @@ CompoundVariantSet = function(cesa, variant_id) {
   
   # add in simplified AAC/gene annotations
   aac_anno = cesa@mutations$aac_snv_key[compound_snvs$snv_id, on = 'snv_id', nomatch = NULL]
-  aac_anno[cesa@mutations$amino_acid_change, c("gene", "aachange") := list(gene, aachange), on = 'aac_id']
-  aac_anno[, variant_name := paste0(gene, '_', aachange)]
+  aac_anno[cesa@mutations$amino_acid_change, 
+    c("gene", "aachange", 'variant_name') := list(gene, aachange, variant_name), on = 'aac_id']
+
+
   aac_anno = aac_anno[, .(variant_names = list(unique(variant_name)), genes = list(unique(gene)), 
                           aachanges = list(unique(aachange)), num_genes = uniqueN(gene)), by = 'snv_id']
   aac_anno[num_genes > 1, aachanges := variant_names]

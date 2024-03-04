@@ -3,22 +3,27 @@
 #' Compare the extent to which mutational signatures contribute mutations (mutational source share)
 #' to the degree to which they contribute high-effect mutations (cancer effect share).
 #' 
-#' @param mutational_effects Output from mutational_signature_effects(). To compare
+#' @param mutational_effects Output from \link{mutational_signature_effects}(). To compare
 #' groups of samples, supply a named list with each element corresponding to output
 #' from a separate run of mutational_signature_effects().
 #' @param signature_groupings A data.table of signature names and descriptions; signatures with
 #'   identical descriptions are grouped together. Only signatures present in the data get displayed.
-#'   Setting to "auto" (the default) uses the table returned by cosmic_sbs_etiologies() which only
+#'   Setting to "auto" (the default) uses the table returned by \code{\link{cosmic_signature_info}()}, which only
 #'   makes sense when using COSMIC signatures. A custom table should have columns "name",
-#'   "short_name", and "description". Optionally, include a "color" column to manually specify colors
-#'   for each group. Alternatively, setting to "cannataro"
-#'   applies the same signature grouping and color palette as
-#'   \href{https://academic.oup.com/mbe/article/39/5/msac084/6570859}{Cannataro et al. 2022}.
+#'   "short_name", and "description". Additional options:
+#'   \itemize{
+#'   \item To force a signature group to appear in the plot even if it
+#'   has a low effect share, add a column called "prioritize" and set to TRUE where desired.
+#'   \item To make a signature appear in its own group, make its description unique.
+#'   \item Add a "color" column to manually specify colors for each group.
+#'   }
+#' Alternatively, setting \code{signature_groupings = "cannataro"} applies the same signature
+#' grouping and color palette as
+#' \href{https://academic.oup.com/mbe/article/39/5/msac084/6570859}{Cannataro et al. 2022}.
 #' @param viridis_option A viridis color mapping, specified with a single letter ('A' to 'H'). By
 #'   default, map 'G' (mako) is used.
-#' @param num_sig_groups How many groups of signatures to display. Remaining signatures (from groups
-#'   with lower effect shares, when averaged across sample groups) get lumped into an "Other
-#'   signatures" group.
+#' @param num_sig_groups How many groups of signatures to display. Groups are ordered by their
+#'   highest effect shares, and the rest get lumped into an "other signatures" group.
 #' @export
 plot_signature_effects = function(mutational_effects = NULL,
                                                signature_groupings = 'auto',
@@ -51,7 +56,7 @@ plot_signature_effects = function(mutational_effects = NULL,
   
   # assign signature_groupings to table according to signature_groupings parameter
   if (identical(signature_groupings, 'auto')) {
-    signature_groupings = cosmic_sbs_etiologies()
+    signature_groupings = cosmic_signature_info()
   } 
   
   # Check that mutational_effects is mutational_signature_effects() output, or a list of such outputs.
@@ -117,6 +122,11 @@ plot_signature_effects = function(mutational_effects = NULL,
     if(length(missing_cols) > 0) {
       stop('Missing columns in signature_groupings table: ', paste0(missing_cols, collapse = ', '), '.')
     }
+    for(col in required_cols) {
+      if(! is.character(signature_groupings[[col]])) {
+        stop("Column ", col, " should be type character.")
+      }
+    }
     
     if('other signatures' %in% signature_groupings$description) {
       stop('signature_groupings has signatures with description \"other signatures\", which is reserved.')
@@ -128,21 +138,45 @@ plot_signature_effects = function(mutational_effects = NULL,
     
     # Subset signature groupings to only include signatures that actually appear
     signature_groupings = signature_groupings[name %in% shares_melted$name]
+    signature_groupings[is.na(short_name), short_name := '']
+    signature_groupings[is.na(description) | description == '',
+                        let(description = short_name, short_name = '')]
+    
     
     shares_melted[signature_groupings, c('description', 'short_name') := .(description, short_name), on = 'name']
     
     # Don't consider signatures in other groups (they'll be represented in the "other" group)
     shares_melted = shares_melted[! is.na(short_name)]
     shares_melted[, sig_grp_id := .GRP, by = 'description']
-    summed_shares = shares_melted[, .(in_grp_sum = sum(value)), by = c('cohort', 'sig_grp_id')]
+    summed_shares = shares_melted[, .(in_grp_sum = sum(value), description = description[1]), by = c('cohort', 'sig_grp_id')]
+
+    prioritized_ids = character()
+    if('prioritize' %in% names(signature_groupings)) {
+      if(! is.logical(signature_groupings$prioritize)) {
+        stop('The optional prioritize column in signature_groupings is expected to be type logical.')
+      }
+      if(uniqueN(signature_groupings[, .(description, prioritize)]) != uniqueN(signature_groupings$description)) {
+        stop('Unusable prioritize column in signature_groupings table: Must have consistent value for all signatures with matching description..')
+      }
+      summed_shares[signature_groupings, prioritize := prioritize, on = 'description']
+      prioritized_ids = summed_shares[prioritize == T, unique(sig_grp_id)]
+    }
     
-    top_grp_ids = summed_shares[order(in_grp_sum, decreasing = T)][! duplicated(sig_grp_id)][1:min(.N, num_sig_groups), sig_grp_id]
+    top_grp_ids = summed_shares[order(-in_grp_sum)][, unique(sig_grp_id)]
+    top_grp_ids = na.omit(unique(c(prioritized_ids, top_grp_ids))[1:num_sig_groups])
     
     final_groupings = list()
     for(id in top_grp_ids) {
       grp_info = shares_melted[sig_grp_id == id]
       short_names = paste(unique(grp_info$short_name), collapse = ', ')
-      curr_descrip = paste0(grp_info$description[1], ' (', short_names, ')')
+      descrip = grp_info$description[1]
+      if(short_names != '') {
+        short_names = paste0('(', short_names, ')')
+      }
+      curr_descrip = paste0(grp_info$description[1], ' ', short_names)
+      if(nchar(curr_descrip) > 45) {
+        curr_descrip = paste0(grp_info$description[1], short_names)
+      }
       curr_sigs = unique(grp_info$name)
       final_groupings[[curr_descrip]] = curr_sigs
     }
@@ -256,9 +290,14 @@ plot_signature_effects = function(mutational_effects = NULL,
   return(gg)
 }
 
-#' COSMIC signatures with known etiologies
+#' Get COSMIC signature descriptions
 #'
+#' Returns a table describing COSMIC signatures. All signatures from v3.0 to the latest release
+#' (v3.4) are included, with information derived from the most recent information on the COSMIC
+#' website. (Exception: A reported association between SBS16 and alcohol consumption, noted here, is
+#' not mentioned on the COSMIC website.)
+#' 
 #' @export
-cosmic_sbs_etiologies = function() {
-  return(cosmic_sbs_signature_etiology)
+cosmic_signature_info = function() {
+  return(copy(cosmic_sbs_signature_etiology))
 }

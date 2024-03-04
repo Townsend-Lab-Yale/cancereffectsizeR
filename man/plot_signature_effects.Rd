@@ -17,20 +17,25 @@ groups of samples, supply a named list with each element corresponding to output
 from a separate run of mutational_signature_effects().}
 
 \item{signature_groupings}{A data.table of signature names and descriptions; signatures with
-identical descriptions are grouped together. Only signatures present in the data get displayed.
-Setting to "auto" (the default) uses the table returned by cosmic_sbs_etiologies() which only
-makes sense when using COSMIC signatures. A custom table should have columns "name",
-"short_name", and "description". Optionally, include a "color" column to manually specify colors
-for each group. Alternatively, setting to "cannataro"
-applies the same signature grouping and color palette as
+  identical descriptions are grouped together. Only signatures present in the data get displayed.
+  Setting to "auto" (the default) uses the table returned by \code{\link{cosmic_signature_info}()}, which only
+  makes sense when using COSMIC signatures. A custom table should have columns "name",
+  "short_name", and "description". Additional options:
+  \itemize{
+  \item To force a signature group to appear in the plot even if it
+  has a low effect share, add a column called "prioritize" and set to TRUE where desired.
+  \item To make a signature appear in its own group, make its description unique.
+  \item Add a "color" column to manually specify colors for each group.
+  }
+Alternatively, setting \code{signature_groupings = "cannataro"} applies the same signature
+grouping and color palette as
 \href{https://academic.oup.com/mbe/article/39/5/msac084/6570859}{Cannataro et al. 2022}.}
 
 \item{viridis_option}{A viridis color mapping, specified with a single letter ('A' to 'H'). By
 default, map 'G' (mako) is used.}
 
-\item{num_sig_groups}{How many groups of signatures to display. Remaining signatures (from groups
-with lower effect shares, when averaged across sample groups) get lumped into an "Other
-signatures" group.}
+\item{num_sig_groups}{How many groups of signatures to display. Groups are ordered by their
+highest effect shares, and the rest get lumped into an "other signatures" group.}
 }
 \description{
 Compare the extent to which mutational signatures contribute mutations (mutational source share)

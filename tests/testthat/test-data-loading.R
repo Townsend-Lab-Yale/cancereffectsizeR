@@ -20,10 +20,11 @@ test_that("load_maf and variant annotation", {
   variants_to_check = copy(tiny@maf)
   variants_to_check[, variant_type := NULL] # cause variants to be re-identified
   re_anno = annotate_variants(ces.refset.hg38, variants_to_check)
-  expect_equal(tiny@mutations$amino_acid_change[, -"covered_in"], re_anno$amino_acid_change)
+  to_compare = tiny@mutations$amino_acid_change[, -"covered_in"]
+  expect_equivalent(to_compare, re_anno$amino_acid_change)
   
   # column order is different when running annotate_variants() directly.
-  setcolorder(re_anno$snv, c("snv_id", "chr", "pos", "ref", "alt", "genes", "intergenic", 
+  setcolorder(re_anno$snv, c("variant_name", "snv_id", "chr", "pos", "ref", "alt", "genes", "intergenic", 
                              "trinuc_mut", "essential_splice", "nearest_pid"))
   expect_equal(tiny@mutations$snv[, -"covered_in"], re_anno$snv)
   
