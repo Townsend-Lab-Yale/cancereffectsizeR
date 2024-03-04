@@ -20,7 +20,7 @@ exome/genome data, which means that you need at least some exome or genome data 
     
     <a class="navbar-brand me-2" href="../index.html">cancereffectsizeR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.8.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.9.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -197,11 +197,8 @@ rates, only non-recurrent SNVs (those that do not appear in more than one
 sample in the current run) are used.</p>
 <p>A custom signature set should be given as a named three-item list, where "signatures"
 is a pure data.frame with signature definitions, "name" is a 1-length character naming
-the set, and "metadata" is a data.table with a "Signature" column that matches rownames
-in the signature definitions. The following columns allow special functionality:</p><ul><li><p>Etiology: Known or hypothesized mutational processes underlying the signature. Used 
-for human-readable tables and plots, so best to enter something like "Unknown" rather
-than leaving any entries empty or NA</p></li>
-<li><p>Likely_Artifact (logical T/F): Marks signatures that are believed to
+the set, and "metadata" is a data.table with a name column that matches rownames
+in the signature definitions. The following columns allow special functionality:</p><ul><li><p>Likely_Artifact (logical T/F): Marks signatures that are believed to
 derive from sample processing, sequencing, calling error, or other non-biological
 sources. cancereffectsizeR adjusts for artifact signatures when inferring relative
 trinucleotide mutation rates.</p></li>
