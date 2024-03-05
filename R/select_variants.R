@@ -4,7 +4,7 @@
 #' mutation annotation tables. By default, almost all amino-acid-changing mutations and
 #' noncoding SBS are returned. You can apply a series of filters to restrict output to
 #' certain genes or genomic regions, require a minimum variant frequency in MAF data, and/or
-#' specify exact \code{variant_ids} to returns.
+#' specify exact \code{variant_ids} to return.
 #' 
 #' Only variants that are annotated in the CESAnalysis can be returned. To view more annotations,
 #' such as for variants absent from the MAF data, you must first call add_variants() to add them to
@@ -15,8 +15,12 @@
 #' 
 #' Definitions of some less self-explanatory columns:
 #' \itemize{
-#'   \item variant_name: short, often but not necessarily uniquely identifying name (use
-#'   variant_id to guarantee uniqueness) 
+#'   \item variant_name: In a coding variant, gene and protein change on the (MANE) canonical
+#'   transcripts, such as "BRAF V600E". For coding changes reported on other transcripts, the
+#'   protein ID is included: "POLH W415C (ENSP00000361300.1)". With older reference data sets
+#'   (ces.refset.hg19, versions of ces.refset.hg38 < 1.3, and any custom reference data set that
+#'   doesn't have complete information on canonical transcripts), the variant name is a 
+#'   shortening of the variant_id.
 #'   \item start/end: lowest/highest genomic positions overlapping variant
 #'   \item variant_id: unique IDs for variants given the associated genome assembly version and the transcript data
 #'   \item ref/alt: genomic reference and alternate alleles (for genomic
@@ -168,8 +172,7 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
     
     # if any IDs are missing, try to interpret them as "short" AAC names (i.e., without protein ID)
     if (length(missing_ids) > 0) {
-      missing_ids = gsub(' ', '_', missing_ids)
-      tmp = cesa@mutations$amino_acid_change[, .(aac_id, variant_name = paste(gene, aachange, sep = "_"))]
+      tmp = cesa@mutations$amino_acid_change[, .(aac_id, variant_name)]
       aac_matches = tmp[missing_ids, on = "variant_name"]
       
       missing_ids = aac_matches[is.na(aac_id), variant_name]
@@ -189,10 +192,6 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
                      "(There may be additional matching variants with MAF frequency = 0 that are not ",
                      "annotated in this analysis; these will not be returned.)")
         pretty_message(msg, black = F)
-      } else {
-        msg = paste0("Shorthand amino-acid-change names (styled like \"KRAS_G12C\") were recognized and uniquely ",
-                     "paired with cancereffectsizeR's aac_ids.")
-        pretty_message(msg)
       }
     }
     selected_sbs_ids = intersect(selected_sbs_ids, matching_sbs_ids)
@@ -244,7 +243,7 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   
   # Annotate sbs table and prepare to merge with AACs
   selected_sbs[, variant_type := "sbs"]
-  selected_sbs[, variant_name := sbs_id] # SBS IDs are already short and uniquely identifying
+  selected_sbs[, variant_name := sub('_', ' ', sbs_id)] # SBS IDs are already short and uniquely identifying
   selected_sbs[, strand := NA_integer_] # because AAC table is +1/-1
   selected_sbs[, c("start", "end") := .(pos, pos)]
   selected_sbs[, pos := NULL]
@@ -260,7 +259,6 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   setnames(selected_sbs, "sbs_id", "variant_id")
   
   # AACs get a short variant name that might not be uniquely identifying if a gene has more than one CDS
-  selected_aac[, variant_name := paste(gene, aachange, sep = "_")]
   selected_aac[, variant_type := "aac"]
   selected_aac[, intergenic := FALSE]
   selected_aac[, start := pmin(nt1_pos, nt3_pos)]
@@ -301,16 +299,22 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
     maf_pid_counts = aac_sbs_key[, .(pid_freq = sum(sbs_count)), keyby = "pid"]
     multi_hits[maf_pid_counts, pid_freq := pid_freq, on = 'pid']
     multi_hits = merge.data.table(multi_hits, cesa@mutations$aac_sbs_key, by.x = 'variant_id', by.y = 'aac_id')
-    
+    multi_hits[, is_premature := aa_alt == "STOP" & aa_ref != "STOP"]
+        
     # Any set of overlapping AACs has a single AAC chosen based on the following criteria:
     # MAF frequency (usually equal among all), essential splice status, premature stop codon, nonsilent status,
     # which protein has the most overall mutations in MAF data (will usually favor longer transcripts),
     # and finally just alphabetical on variant ID
-    multi_hits[, is_premature := aa_alt == "STOP" & aa_ref != "STOP"]
-    multi_hits = multi_hits[order(-maf_prevalence, -essential_splice, -is_premature, aa_ref == aa_alt, -pid_freq, variant_id)]
+    if(check_for_ref_data(cesa, 'transcripts')) {
+        transcripts = get_ref_data(cesa, 'transcripts')
+        multi_hits[transcripts, c('is_mane', 'is_mane_plus') := .(is_mane, is_mane_plus), on = c(pid = 'protein_id')]
+        multi_hits = multi_hits[order(-essential_splice, -is_premature, aa_ref == aa_alt, -is_mane, -is_mane_plus, -maf_prevalence, -pid_freq, variant_id)]
+        multi_hits[, c('is_mane', 'is_mane_plus') := NULL]
+    } else {
+        multi_hits = multi_hits[order(-essential_splice, -is_premature, aa_ref == aa_alt, -maf_prevalence, -pid_freq, variant_id)]
+    }
     multi_hits[, is_premature := NULL]
     multi_hits[, sbs_id_dup := duplicated(sbs_id)]
-    
     chosen_aac = multi_hits[, .(to_use = ! any(sbs_id_dup)), by = 'variant_id'][to_use == T, variant_id]
     
     # remove secondary (non-chosen) AACs, but save all sbs IDs and re-select those passing filters
@@ -326,6 +330,7 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
     sbs_to_reselect = intersect(sbs_to_recover, sbs_in_not_chosen_aac)
     if (length(sbs_to_reselect) > 0) {
       reselected = select_variants(cesa, variant_ids = sbs_to_reselect)
+      reselected = reselected[, .SD, .SDcols = names(combined)]
       combined = rbind(combined, reselected)
     }
   }
@@ -337,6 +342,15 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
                           "center_nt_pos", "pid", "multi_anno_site", 
                           "maf_prevalence", "samples_covering"))
   
+  
+  if(check_for_ref_data(cesa, "transcripts")) {
+    transcripts = get_ref_data(cesa, "transcripts")
+    combined[transcripts, let(is_MANE_transcript = is_mane,
+                              transcript_tags = transcript_tags),
+                              on = c(pid = 'protein_id')]
+    combined[variant_type == 'sbs', is_MANE_transcript := NA]
+  }
+
   setattr(combined, "cesa_id", cesa@advanced$uid)
   setkey(combined, 'variant_id', physical = F)
   return(combined[]) # brackets force the output to print when unassigned (should automatically, but this is a known data.table issue)

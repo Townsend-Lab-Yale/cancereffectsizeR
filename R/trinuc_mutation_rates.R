@@ -13,12 +13,9 @@
 #' 
 #' A custom signature set should be given as a named three-item list, where "signatures"
 #' is a pure data.frame with signature definitions, "name" is a 1-length character naming
-#' the set, and "metadata" is a data.table with a "Signature" column that matches rownames
+#' the set, and "metadata" is a data.table with a name column that matches rownames
 #' in the signature definitions. The following columns allow special functionality:
 #' \itemize{ 
-#' \item Etiology: Known or hypothesized mutational processes underlying the signature. Used 
-#' for human-readable tables and plots, so best to enter something like "Unknown" rather
-#' than leaving any entries empty or NA
 #' \item Likely_Artifact (logical T/F): Marks signatures that are believed to
 #' derive from sample processing, sequencing, calling error, or other non-biological
 #' sources. cancereffectsizeR adjusts for artifact signatures when inferring relative
@@ -166,7 +163,7 @@ trinuc_mutation_rates <- function(cesa,
   }
   if(is(signature_set, "character")) {
     if (length(signature_set) != 1) {
-      stop("signature_set should be 1-length character; run list_ces_signature_sets() for options.\n(Or, it can a custom signature set; see docs.)", call. = F)
+      stop("signature_set should be 1-length character list; run list_ces_signature_sets() for options.\n(Or, it can be a custom signature set; see docs.)", call. = F)
     }
     signature_set_data = get_ces_signature_set(cesa@ref_key, signature_set)
   } else if(is(signature_set, "list")) {
@@ -205,23 +202,20 @@ trinuc_mutation_rates <- function(cesa,
   signature_set_name = signature_set_data$name
   signatures = signature_set_data$signatures
   signature_metadata = signature_set_data$meta
+
+  # Column name has changed
+  if(! 'name' %in% names(signature_metadata)) {
+    setnames(signature_metadata, 'Signature', 'name')
+  }
   
   # columns Exome_Min and Genome_Min always go together in metadata, per signature set validation rules
   # If they're present, we'll enforce their signature mutation count minimums for each tumor
   mutation_count_rules = "Exome_Min" %in% names(signature_metadata)
 
-  # If running with v3.0/v3.1 COSMIC signature set, help out the user by dropping signatures from future releases
-  if(signature_set_name %in% c("COSMIC v3", "COSMIC v3.1")) {
-    if (require("ces.refset.hg19", quietly = T)) {
-      latest_set = ces.refset.hg19$signatures$COSMIC_v3.2$signatures
-      if (is.null(latest_set)) {
-        # If refset package is < v1.1.1
-        latest_set = ces.refset.hg19$signatures$COSMIC_v3.1$signatures
-      }
-      future_signatures = setdiff(rownames(latest_set), rownames(signatures))
-      signatures_to_remove = signatures_to_remove[! signatures_to_remove %in% future_signatures]
-    }
-  }
+  # Help out the user by dropping signatures from future or past COSMIC releases
+  cosmic_signatures_across_verions = cosmic_signature_info()$name
+  other_version_signatures = setdiff(cosmic_signatures_across_verions, rownames(signatures))
+  signatures_to_remove = signatures_to_remove[! signatures_to_remove %in% other_version_signatures]
   
   # Save a copy of signature set in the CESAnalysis
   # If already ran with different sample group, make sure signature set data is the same
@@ -328,7 +322,7 @@ trinuc_mutation_rates <- function(cesa,
                 "sequencing error or other artifacts, you should fix this.")
     pretty_message(msg)
   } else {
-    artifact_signatures = signature_metadata[Likely_Artifact == TRUE, Signature]
+    artifact_signatures = signature_metadata[Likely_Artifact == TRUE, name]
     if(any(artifact_signatures %in% signatures_to_remove)) {
       warning("Warning: You have chosen to remove at least one artifact signature from analysis,\n",
               "which will change how artifact accounting behaves (usually, all artifact signatures should be left in).")
@@ -349,9 +343,9 @@ trinuc_mutation_rates <- function(cesa,
     curr_sample_cov = curr_sample_info[tumor_name, coverage]
     if (mutation_count_rules) {
       if (curr_sample_cov == "exome") {
-        current_sigs_to_remove = union(current_sigs_to_remove, signature_metadata[num_variants < Exome_Min, Signature])
+        current_sigs_to_remove = union(current_sigs_to_remove, signature_metadata[num_variants < Exome_Min, name])
       } else if (curr_sample_cov == "genome") {
-        current_sigs_to_remove = union(current_sigs_to_remove, signature_metadata[num_variants < Genome_Min, Signature])
+        current_sigs_to_remove = union(current_sigs_to_remove, signature_metadata[num_variants < Genome_Min, name])
       }
     }
     
@@ -438,7 +432,7 @@ trinuc_mutation_rates <- function(cesa,
     # have the same mutational processes.
     mean_calc_artifact_signatures = artifact_signatures
     if (mutation_count_rules && assume_identical_mutational_processes == FALSE) {
-      mean_calc_artifact_signatures = union(artifact_signatures, signature_metadata[sig_averaging_threshold < Exome_Min, Signature])
+      mean_calc_artifact_signatures = union(artifact_signatures, signature_metadata[sig_averaging_threshold < Exome_Min, name])
     }
     
     message("Determining group-average signatures from samples with at least ", sig_averaging_threshold, " sbs...")

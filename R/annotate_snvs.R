@@ -252,14 +252,25 @@ annotate_sbs = function(sbs, refset) {
   # clean up aac table, except when it's empty
   if (aac[, .N] > 0) {
     # to do: eventually, probably want to keep the entry_name field (call it refcds_entry?)
-    aac_table = aac[, .(aac_id, chr, gene = gene_name, strand, pid, aachange, aa_ref, aa_pos, aa_alt, nt1_pos, nt2_pos, nt3_pos, 
+    aac_table = aac[, .(variant_name = paste0(gene_name, '_', aachange), aac_id, chr, gene = gene_name, 
+                        strand, pid, aachange, aa_ref, aa_pos, aa_alt, nt1_pos, nt2_pos, nt3_pos, 
                         coding_seq, essential_splice)]
+    
+    # Use an improved variant naming system (names are uniquely identifying) when transcripts are available.
+    if(! is.null(refset$transcripts)) {
+      aac_table[refset$transcripts, is_mane := is_mane, on = c(pid = 'protein_id')]
+      aac_table[is_mane == TRUE, variant_name := gsub('_', ' ', variant_name)]
+      aac_table[is_mane == FALSE, variant_name := paste0(gene, ' ', aachange, ' (', pid, ')')]
+      aac_table[, is_mane := NULL]
+    }
     setkey(aac_table, 'aac_id')
-    setcolorder(aac_table, c("aac_id", "gene", "aachange", "strand"))
+    setcolorder(aac_table, c("variant_name", "aac_id", "gene", "aachange", "strand"))
   } else {
     aac_table = copy(aac_annotation_template)
   }
   sbs_table[, c("dist", "cds") := NULL]
+  sbs_table[, variant_name := gsub('_', ' ', sbs_id)]
+  setcolorder(sbs_table, 'variant_name')
   setkey(sbs_table, "sbs_id")
   
   return(list(amino_acid_change = aac_table, sbs = sbs_table, aac_sbs_key = aac_sbs_key))

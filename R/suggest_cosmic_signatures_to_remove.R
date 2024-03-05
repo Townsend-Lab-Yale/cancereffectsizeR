@@ -36,23 +36,10 @@ suggest_cosmic_signature_exclusions = function(cancer_type = NULL, treatment_nai
     stop("argument quiet should be T/F")
   }
   
-  # Use ces.refset.hg38 or ces.refset.hg19 for signature data (will use COSMIC v3.2 for this)
-  signature_set_path = system.file("refset/signatures/COSMIC_v3.2_signatures.rds", package = "ces.refset.hg38")
-  
-  if(signature_set_path == '') {
-    signature_set_path = system.file("refset/signatures/COSMIC_v3.2_signatures.rds", package = "ces.refset.hg19")
-  }
-  
-  if(signature_set_path == '') {
-    message("To use this function, install the latest version ces.refset.h38 or ces.refset.hg19:")
-    message("remotes::install_github(\"Townsend-Lab-Yale/ces.refset.hg38@*release\")")
-    message("remotes::install_github(\"Townsend-Lab-Yale/ces.refset.hg19@*release\")")
-    stop("Required reference data not available; install a CES refset data package.")
-  }
-  
-  sig_metadata = readRDS(signature_set_path)$meta
-  original_sig_order = copy(sig_metadata$Signature)
-  setkey(sig_metadata, "Signature")
+  sig_metadata = cosmic_signature_info()
+  suppressWarnings({sig_metadata$short_name = NULL})
+  original_sig_order = copy(sig_metadata$name)
+  setkey(sig_metadata, "name")
   
   if(! is.null(cancer_type)) {
     if(length(cancer_type) != 1 || ! is.character(cancer_type)) {
@@ -73,25 +60,34 @@ suggest_cosmic_signature_exclusions = function(cancer_type = NULL, treatment_nai
       stop()
     }
     to_remove = c(names(which(unlist(dt[index,]) == 0)))
-    to_remove = intersect(to_remove, sig_metadata$Signature) # compatibility with v3.1, when using
+    to_remove = intersect(to_remove, sig_metadata$name) # compatibility with v3.1, when using
     if(! quiet) {
       pretty_message(paste0("The following signatures are suggested absent in ", cancer_type, ", either by Alexandrov 2020 or the COSMIC signature website:"))
-      print(sig_metadata[to_remove, .(Signature, Etiology)])
+      print(sig_metadata[to_remove])
       cat("\n")
     }
   }
   
-  treatment_sigs = c("SBS11", "SBS31", "SBS32", "SBS35", "SBS86", "SBS87", "SBS90")
+  treatment_sigs = c("SBS11", "SBS31", "SBS25", "SBS32", "SBS35", "SBS86", "SBS87", "SBS90", "SBS99")
   if(treatment_naive == TRUE) {
     if(! quiet) {
       cat("The following signatures are associated with various treatments:\n")
-      print(sig_metadata[treatment_sigs, .(Signature, Etiology)])
+      print(sig_metadata[treatment_sigs])
     }
     to_remove = c(to_remove, treatment_sigs)
   }
   
+  # COSMIC v3.4 split SBS22 into 22a,b and SBS40 into 40a,b,c. We'll apply the same tissue exclusions.
+  if('SBS22' %in% to_remove) {
+    to_remove = c(to_remove, c("SBS22a", 'SBS22b'))
+  }
+  if('SBS40' %in% to_remove) {
+    to_remove = c(to_remove, c("SBS40a", 'SBS40b', 'SBS40c'))
+  }
+  
   # make unique and put signatures in numeric order
   to_remove = unique(to_remove)
+  
   to_remove = original_sig_order[original_sig_order %in% to_remove]
   if(! quiet) {
     sig_string = paste0("signature_exclusions = c(\"", paste(to_remove, collapse = "\", \""), "\")")

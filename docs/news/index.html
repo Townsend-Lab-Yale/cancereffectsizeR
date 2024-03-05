@@ -10,7 +10,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">cancereffectsizeR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.8.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.0.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -57,9 +57,21 @@
     </div>
 
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="3.0.0" id="cancereffectsizer-300"><font style="opacity:0">cancereffectsizeR 3.0.0</font><a class="anchor" aria-label="anchor" href="#cancereffectsizer-300"></a></h2>
+<h2 class="pkg-version" data-toc-text="4.0.0" id="cancereffectsizer-400"><font style="opacity:0">cancereffectsizeR 4.0.0</font><a class="anchor" aria-label="anchor" href="#cancereffectsizer-400"></a></h2>
 <p>Patch releases (as in, x.y.1 → x.y.2) have minor bug fixes or small improvements that do not significantly affect the numerical output of cancer effect analyses. Minor/major updates may change some outputs due to bug fixes or methodological tweaks, as described in these version notes.<br><br></p>
 </div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="3.0.0" id="cancereffectsizer-300">cancereffectsizeR 3.0.0<a class="anchor" aria-label="anchor" href="#cancereffectsizer-300"></a></h2>
+<ul><li>Doublet base substitutions (DBS) are included in variant annotation tables.</li>
+<li>select_variants() and variant_counts() are simpler and more powerful.</li>
+<li>Breaking changes: Pre-3.0 analyses can only be loaded in a read-only summary format. Some table column names and function arguments have changed throughout the package, so scripts may need to be updated.</li>
+</ul></div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2.9.0" id="cancereffectsizer-290">cancereffectsizeR 2.9.0<a class="anchor" aria-label="anchor" href="#cancereffectsizer-290"></a></h2>
+<ul><li>plot_signature_effects() visualizes the relative contributions of mutational signatures to mutation and selection.</li>
+<li>Change to how mutational_signature_effects() calculates cohort-averaged signature effect shares. See the function’s updated documentation for clarification of how outputs are calculated.</li>
+<li>When available, canonical transcripts (MANE transcripts) are now favored in determining the consequences of substitutions. Alternate transcripts will still be favored if they show more dramatic alterations. For example, if a substitution is a missense on the canonical transcript and splice-site-disrupting on an alternate transcript, the alternate transcript will be reported in the [CESAnalysis]$variants table. Additionally, a new annotation column (is_MANE) identifies if the transcript being reported is canonical. These features require the new reference data package release, ces.refset.hg38 v1.3.0.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2.8.1" id="cancereffectsizer-281">cancereffectsizeR 2.8.1<a class="anchor" aria-label="anchor" href="#cancereffectsizer-281"></a></h2>
 <ul><li>get_PathScore_coding_regions() provides access to the CDS definitions used by PathScore (and by make_PathScore_input()).</li>
@@ -67,7 +79,7 @@
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2.8.0" id="cancereffectsizer-280">cancereffectsizeR 2.8.0<a class="anchor" aria-label="anchor" href="#cancereffectsizer-280"></a></h2>
-<ul><li>plot_effects() visualize cancer effect inferences with custom labels, colors, variant groupings, and more; see website for examples.</li>
+<ul><li>plot_effects() visualizes cancer effect inferences with custom labels, colors, variant groupings, and more; see website for examples.</li>
 <li>make_PathScore_input() converts MAF data into an input file for PathScore, a web tool that identifies significantly mutated pathways in cancer. See <a href="https://pathscore.publichealth.yale.edu/" class="external-link uri">https://pathscore.publichealth.yale.edu/</a>.</li>
 <li>ces_variant() gains the argument optimizer_args, giving you precise control over how selection models are fit. This is intended for use with custom models of selection.</li>
 </ul></div>

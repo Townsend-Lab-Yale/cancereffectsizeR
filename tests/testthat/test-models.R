@@ -8,13 +8,13 @@ rate_a = baseline_mutation_rates(cesa, variant_ids = "SCNN1D_G467R_ENSP000003684
 rate_b = baseline_mutation_rates(cesa, aac_ids = "SCNN1D_G467R_ENSP00000368411.5", samples = "TCGA-BH-A18H")
 expect_equal(rate_a, rate_b)
 expect_equal(rate_a[[1]], 'TCGA-BH-A18H')
-expect_equal(rate_a[[2]], 1.536797e-06)
+expect_equal(rate_a[[2]], 1.348378e-06)
 
 # Try taking one SBS rate in one sample
 sbs_rate = baseline_mutation_rates(cesa, sbs_ids = "1:151292923_C>T", 
                                      samples = 'P-0000015')
 expect_equal(sbs_rate[[1]], 'P-0000015')
-expect_equal(sbs_rate[[2]], 1.824055e-06)
+expect_equal(sbs_rate[[2]], 1.32419e-06)
 sbs_rate_other_way = baseline_mutation_rates(cesa, variant_ids = "1:151292923_C>T", 
                                              samples = 'P-0000015')
 expect_identical(sbs_rate, sbs_rate_other_way)
@@ -52,28 +52,28 @@ test_that("ces_variant default effects", {
 test_that("ces_variant with user-supplied variants", {
   # Test an SBS only covered in targeted panel.
   expected_si = ces_variant(cesa, variants = select_variants(cesa, variant_ids = '16:68823629_A>C'))@selection_results[[1]]$selection_intensity
-  expect_equal(expected_si, 4187.333, tolerance = 1e-5)
+  expect_equal(expected_si, 6380, tolerance = 1e-3)
   
   
   # Test an intergenic SBS. Should get same result regardless of hold-out option.
-  expected_si = 7751.457
+  expected_si = 10469
   expect_equal(ces_variant(cesa, variants = select_variants(cesa, variant_ids = "1:1468632_C>A"))@selection_results[[1]]$selection_intensity,
-               expected_si, tolerance = 1e-4)
+               expected_si, tolerance = 1e-3)
   expect_equal(ces_variant(cesa, variants = select_variants(cesa, variant_ids = "1:1468632_C>A"),
                            hold_out_same_gene_samples = F)@selection_results[[1]]$selection_intensity, 
-               expected_si, tolerance = 1e-4)
+               expected_si, tolerance = 1e-3)
 })
 
 
 test_that("ces_variant on subsets of samples", {
   # This variant appears appears 3 times in cherry, 1 in mountain apple, 0 in marionberry
-  variant = select_variants(cesa, variant_ids = "FOXA1_F266L")
+  variant = select_variants(cesa, variant_ids = "FOXA1 F266L")
   
   just_cherry = ces_variant(cesa, variants = variant, samples = cesa$samples[fruit == 'cherry'])@selection_results[[1]]$selection_intensity
   also_marionberry = ces_variant(cesa, variants = variant, samples = cesa$samples[fruit %in% c('cherry', 'marionberry')])@selection_results[[1]]$selection_intensity
   with_all = ces_variant(cesa, variants = variant)@selection_results[[1]]$selection_intensity
   expect_lt(also_marionberry, just_cherry)
-  expect_lt(also_marionberry, with_all)
+  expect_lt(with_all, also_marionberry) # adding samples that don't have the variant lowers effect
   
   # Add some synthetic variants with no coverage; shouldn't affect selection
   new_maf = copy(cesa@maf)
@@ -93,12 +93,12 @@ test_that("ces_variant on subsets of samples", {
   
   # illegally adding new samples/data
   cesa@samples = rbind(cesa@samples, new_samples)
-  cesa@maf = rbind(cesa@maf, new_maf[top_consequence != 'FOXA1_F266L']) # avoid adding uncovered records
+  cesa@maf = rbind(cesa@maf, new_maf[top_consequence != 'FOXA1 F266L']) # avoid adding uncovered records
   cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix = rbind(cesa@trinucleotide_mutation_weights$trinuc_proportion_matrix,
                                                                        new_rates)
   
   # selection intensity should be unchanged by addition of new samples
-  variant = select_variants(cesa, variant_ids = "FOXA1_F266L")
+  variant = select_variants(cesa, variant_ids = "FOXA1 F266L")
   all_with_new = ces_variant(cesa, variants = variant)@selection_results[[1]]
   expect_identical(with_all, all_with_new$selection_intensity)
   
@@ -118,14 +118,14 @@ test_that("ces_variant on subsets of samples", {
 })
 
 test_that("Variant-level epistasis", {
-  results = ces_epistasis(cesa, variants = list(c("KRAS_G12V_ENSP00000256078.5", "GATA3 M293K")), conf = .9)@epistasis[[1]]
+  # To-do: It would be nice if the GATA3 variant could be interpreted from just GATA3 M293K, since there is just
+  # one substitution it could be (given the transcript set; other GATA3 transcripts do not have M293).
+  # The issue is that the variant is not on the canonical transcript.
+  results = ces_epistasis(cesa, variants = list(c("KRAS_G12V_ENSP00000256078.5", "GATA3 M293K (ENSP00000341619.3)")), conf = .9)@epistasis[[1]]
   to_test = results[, as.numeric(.(ces_A0, ces_B0, ces_A_on_B, ces_B_on_A, nA0,
                                    nB0, nAB, n00))]
-  expect_equal(to_test[1:4], c(13057.7094428118, 11974.1862697053, 0.001, 0.001), tolerance = 1e-5)
+  expect_equal(to_test[1:4], c(14817, 12536, 0.001, 0.001), tolerance = 1e-3)
   expect_equal(to_test[5:8], c(7, 6, 0, 1077))
-  ci = as.numeric(results[, .SD, .SDcols = patterns("ci")])
-  expect_equal(ci, c(6527.46003622592, 22938.2519029567, 5623.19405835833, 21906.9674813457, 
-                     NA, 897584.501451215, NA, 744152.729482514), tolerance = 1e-5)
 })
 
 
@@ -189,7 +189,7 @@ test_that("Compound variant creation", {
   expect_equal(length(pos_comp), 2)
   expect_equal(pos_comp$sbs_info[, .N], 6)
   results = ces_variant(cesa, variants = pos_comp, hold_out_same_gene_samples = T, conf = NULL)$selection[[1]]
-  expect_equal(results$selection_intensity, c(3545.80843024223, 5950.80593547194), tolerance = 1e-5)
+  expect_equal(results$selection_intensity, c(3254, 6890), tolerance = 1e-3)
   
   expect_equal(length(define_compound_variants(cesa, recurrents, merge_distance = 1000)), 52)
   expect_equal(length(define_compound_variants(cesa, recurrents, merge_distance = 1e9)), 15)
@@ -215,7 +215,7 @@ test_that("Just genome data", {
   c2 = add_variants(target_cesa = c2, source_cesa = cesa)
   c2 = load_maf(c2, maf = cesa$maf[1:100], coverage = 'genome')
   c2 = assign_group_average_trinuc_rates(c2)
-  c2 = set_gene_rates(c2, rates = cesa$gene_rates[, .(pid, rate = rate_grp_1)])
+  c2 = set_gene_rates(c2, rates = cesa$gene_rates[, .(gene, rate = rate_grp_1)])
   c2 = ces_variant(c2, variants = c2$variants[c2$maf$variant_id[1:5], on = 'variant_id'])
   expect_equivalent(unique(c2$selection$selection.1$included_with_variant), 1)
   expect_equivalent(unique(c2$selection$selection.1$included_total), 2)

@@ -33,7 +33,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">cancereffectsizeR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.8.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.0.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -240,19 +240,17 @@ M1). Hormone receptor status (progesterone or estrogen receptor
 positive) and HER2 amplification status are also recorded in a combined
 column.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">tcga_clinical</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/fread.html" class="external-link">fread</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"tutorial/TCGA_BRCA_clinical.txt"</span>, package <span class="op">=</span> <span class="st">"cancereffectsizeR"</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Change patient identifier column name in clinical table to match the MAF.</span></span>
-<span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/setattr.html" class="external-link">setnames</a></span><span class="op">(</span><span class="va">tcga_clinical</span>, <span class="st">"patient_id"</span>, <span class="st">"Unique_Patient_Identifier"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">tcga_clinical</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdatatable.gitlab.io/data.table/reference/fread.html" class="external-link">fread</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"tutorial/TCGA_BRCA_clinical.txt"</span>, package <span class="op">=</span> <span class="st">"cancereffectsizeR"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Peek at data</span></span>
 <span><span class="va">tcga_clinical</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span></span></code></pre></div>
-<pre><code><span><span class="co">##    Unique_Patient_Identifier   pM receptor_status</span></span>
-<span><span class="co">## 1:              TCGA-3C-AAAU &lt;NA&gt;       HR+/HER2-</span></span>
-<span><span class="co">## 2:              TCGA-3C-AALI   M0       HR+/HER2+</span></span>
-<span><span class="co">## 3:              TCGA-3C-AALJ   M0            &lt;NA&gt;</span></span>
-<span><span class="co">## 4:              TCGA-3C-AALK   M0       HR+/HER2+</span></span>
-<span><span class="co">## 5:              TCGA-4H-AAAK   M0            &lt;NA&gt;</span></span></code></pre>
+<pre><code><span><span class="co">##      patient_id     pM receptor_status</span></span>
+<span><span class="co">##          &lt;char&gt; &lt;char&gt;          &lt;char&gt;</span></span>
+<span><span class="co">## 1: TCGA-3C-AAAU   &lt;NA&gt;       HR+/HER2-</span></span>
+<span><span class="co">## 2: TCGA-3C-AALI     M0       HR+/HER2+</span></span>
+<span><span class="co">## 3: TCGA-3C-AALJ     M0            &lt;NA&gt;</span></span>
+<span><span class="co">## 4: TCGA-3C-AALK     M0       HR+/HER2+</span></span>
+<span><span class="co">## 5: TCGA-4H-AAAK     M0            &lt;NA&gt;</span></span></code></pre>
 <p>The <code><a href="../reference/preload_maf.html">preload_maf()</a></code> function takes in MAF data, extracts
 the columns needed by cancereffectsizeR, adds a couple of genomic
 annotations, and checks for common problems. (For your own analyses, see
@@ -262,10 +260,10 @@ already uses the hg38 genome build, but if it didn’t, we could use the
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tcga_maf</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/preload_maf.html">preload_maf</a></span><span class="op">(</span>maf <span class="op">=</span> <span class="va">tcga_maf_file</span>, refset <span class="op">=</span> <span class="st">"ces.refset.hg38"</span><span class="op">)</span></span></code></pre></div>
 <p>When MAFs created by are fed into , TCGA sample replicates are
-effectively merged, since the Unique_Patient_Identifier column
-supersedes Tumor_Sample_Barcode (the original sample identifiers). You
-will see a note that preload_maf() caught and handled the ensuing
-duplicate mutation records.</p>
+effectively merged, since the patient_id column supersedes
+Tumor_Sample_Barcode (the original sample identifiers). You will see a
+note that preload_maf() caught and handled the ensuing duplicate
+mutation records.</p>
 </div>
 <div class="section level3">
 <h3 id="metastatic-data-tgs">Metastatic data (TGS)<a class="anchor" aria-label="anchor" href="#metastatic-data-tgs"></a>
@@ -402,7 +400,7 @@ information to the CESAnalysis:</p>
 <li>
 <strong>snv_counts</strong>: A matrix of SNV counts by trinucleotide
 context. (You can also generate such a matrix from MAF data with
-<code><a href="../reference/trinuc_snv_counts.html">trinuc_snv_counts()</a></code>.)</li>
+<code>trinuc_snv_counts()</code>.)</li>
 <li>
 <strong>raw_attributions</strong>: Signature attributions as
 generated by the extractor. For MutationalPatterns, this matrix contains
@@ -445,6 +443,7 @@ regression:</p>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">cesa</span><span class="op">$</span><span class="va">gene_rates</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">##                  pid    gene         rate rate_grp_1_95_low rate_grp_1_95_high</span></span>
+<span><span class="co">##               &lt;char&gt;  &lt;char&gt;        &lt;num&gt;             &lt;num&gt;              &lt;num&gt;</span></span>
 <span><span class="co">## 1: ENSP00000000233.5    ARF5 6.350206e-07      5.947954e-07       6.778247e-07</span></span>
 <span><span class="co">## 2: ENSP00000000412.3    M6PR 5.756903e-07      5.446158e-07       6.084135e-07</span></span>
 <span><span class="co">## 3: ENSP00000000442.6   ESRRA 5.382191e-07      5.018193e-07       5.769928e-07</span></span>
@@ -1012,11 +1011,14 @@ necessary to look at these rates, but just to show that we can:</p>
 <span><span class="va">samples_to_check</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TCGA-A2-A3Y0"</span>, <span class="st">"TCGA-XX-A89A"</span>, <span class="st">"P-0000224"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/baseline_mutation_rates.html">baseline_mutation_rates</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, variant_ids <span class="op">=</span> <span class="va">variants_to_check</span>, samples <span class="op">=</span> <span class="va">samples_to_check</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">##    Unique_Patient_Identifier PIK3CA_E542K_ENSP00000263967.3</span></span>
+<pre><code><span><span class="co">## Key: &lt;Unique_Patient_Identifier&gt;</span></span>
+<span><span class="co">##    Unique_Patient_Identifier PIK3CA_E542K_ENSP00000263967.3</span></span>
+<span><span class="co">##                       &lt;char&gt;                          &lt;num&gt;</span></span>
 <span><span class="co">## 1:                 P-0000224                   8.932666e-06</span></span>
 <span><span class="co">## 2:              TCGA-A2-A3Y0                   1.773358e-06</span></span>
 <span><span class="co">## 3:              TCGA-XX-A89A                   1.211613e-05</span></span>
 <span><span class="co">##    PIK3CA_E545K_ENSP00000263967.3 PIK3CA_H1047R_ENSP00000263967.3</span></span>
+<span><span class="co">##                             &lt;num&gt;                           &lt;num&gt;</span></span>
 <span><span class="co">## 1:                   8.932666e-06                    7.888865e-07</span></span>
 <span><span class="co">## 2:                   1.773358e-06                    8.421009e-07</span></span>
 <span><span class="co">## 3:                   1.211613e-05                    8.045869e-08</span></span></code></pre>
@@ -1113,21 +1115,27 @@ E17K (n=82). Let’s also test E545K with a nearby PIK3CA variant, E542K
 <span><span class="op">)</span></span>
 <span><span class="va">cesa</span><span class="op">$</span><span class="va">epistasis</span><span class="op">$</span><span class="va">variant_epistasis_example</span></span></code></pre></div>
 <pre><code><span><span class="co">##                         variant_A                      variant_B   ces_A0</span></span>
+<span><span class="co">##                            &lt;char&gt;                         &lt;char&gt;    &lt;num&gt;</span></span>
 <span><span class="co">## 1: PIK3CA_E545K_ENSP00000263967.3    AKT1_E17K_ENSP00000270202.4 11130.70</span></span>
 <span><span class="co">## 2: PIK3CA_E545K_ENSP00000263967.3 PIK3CA_E542K_ENSP00000263967.3 11189.57</span></span>
 <span><span class="co">##       ces_B0 ces_A_on_B ces_B_on_A  p_A_change  p_B_change  p_epistasis</span></span>
+<span><span class="co">##        &lt;num&gt;      &lt;num&gt;      &lt;num&gt;       &lt;num&gt;       &lt;num&gt;        &lt;num&gt;</span></span>
 <span><span class="co">## 1: 20326.259      0.001   4951.256 0.178474474 0.196913991 6.427694e-03</span></span>
 <span><span class="co">## 2:  6503.937      0.001      0.001 0.007341657 0.006866898 5.072464e-05</span></span>
-<span><span class="co">##    expected_nAB_epistasis expected_nAB_null AB_epistatic_ratio nA0 nB0 nAB  n00</span></span>
-<span><span class="co">## 1:                     NA                NA                 NA 159  80   1 1614</span></span>
-<span><span class="co">## 2:                     NA                NA                 NA 160  93   0 1601</span></span>
-<span><span class="co">##    n_total ci_low_95_ces_A0 ci_high_95_ces_A0 ci_low_95_ces_B0</span></span>
-<span><span class="co">## 1:    1854         9492.836          12947.23        16190.360</span></span>
-<span><span class="co">## 2:    1854         9542.933          13015.87         5269.582</span></span>
+<span><span class="co">##    expected_nAB_epistasis expected_nAB_null AB_epistatic_ratio   nA0   nB0</span></span>
+<span><span class="co">##                     &lt;num&gt;             &lt;num&gt;              &lt;num&gt; &lt;int&gt; &lt;int&gt;</span></span>
+<span><span class="co">## 1:                     NA                NA                 NA   159    80</span></span>
+<span><span class="co">## 2:                     NA                NA                 NA   160    93</span></span>
+<span><span class="co">##      nAB   n00 n_total ci_low_95_ces_A0 ci_high_95_ces_A0 ci_low_95_ces_B0</span></span>
+<span><span class="co">##    &lt;int&gt; &lt;int&gt;   &lt;int&gt;            &lt;num&gt;             &lt;num&gt;            &lt;num&gt;</span></span>
+<span><span class="co">## 1:     1  1614    1854         9492.836          12947.23        16190.360</span></span>
+<span><span class="co">## 2:     0  1601    1854         9542.933          13015.87         5269.582</span></span>
 <span><span class="co">##    ci_high_95_ces_B0 ci_low_95_ces_A_on_B ci_high_95_ces_A_on_B</span></span>
+<span><span class="co">##                &lt;num&gt;                &lt;num&gt;                 &lt;num&gt;</span></span>
 <span><span class="co">## 1:         25113.390                   NA              8977.807</span></span>
 <span><span class="co">## 2:          7917.667                   NA              4279.271</span></span>
 <span><span class="co">##    ci_low_95_ces_B_on_A ci_high_95_ces_B_on_A</span></span>
+<span><span class="co">##                   &lt;num&gt;                 &lt;num&gt;</span></span>
 <span><span class="co">## 1:             282.2305             21877.772</span></span>
 <span><span class="co">## 2:                   NA              2431.834</span></span></code></pre>
 <p>Confidence intervals tend to be wide in epistatic analyses. Even with
@@ -1168,14 +1176,19 @@ will test all pairs of compound variants (here, just the one pair).</p>
 <span><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ces_epistasis.html">ces_epistasis</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, variants <span class="op">=</span> <span class="va">comp</span>, run_name <span class="op">=</span> <span class="st">"AKT1_E17K_vs_PIK3CA"</span><span class="op">)</span></span>
 <span><span class="va">cesa</span><span class="op">$</span><span class="va">epistasis</span><span class="op">$</span><span class="va">AKT1_E17K_vs_PIK3CA</span></span></code></pre></div>
 <pre><code><span><span class="co">##    variant_A variant_B   ces_A0  ces_B0 ces_A_on_B ces_B_on_A   p_A_change</span></span>
+<span><span class="co">##       &lt;char&gt;    &lt;char&gt;    &lt;num&gt;   &lt;num&gt;      &lt;num&gt;      &lt;num&gt;        &lt;num&gt;</span></span>
 <span><span class="co">## 1:  PIK3CA.1    AKT1.1 3810.182 24607.8   773.8737      0.001 0.0001711363</span></span>
 <span><span class="co">##      p_B_change  p_epistasis expected_nAB_epistasis expected_nAB_null</span></span>
+<span><span class="co">##           &lt;num&gt;        &lt;num&gt;                  &lt;num&gt;             &lt;num&gt;</span></span>
 <span><span class="co">## 1: 0.0003463118 4.249944e-11               3.975553          29.06133</span></span>
-<span><span class="co">##    AB_epistatic_ratio nA0 nB0 nAB  n00 n_total ci_low_95_ces_A0</span></span>
-<span><span class="co">## 1:          0.1367987 642  77   4 1131    1854         3520.196</span></span>
+<span><span class="co">##    AB_epistatic_ratio   nA0   nB0   nAB   n00 n_total ci_low_95_ces_A0</span></span>
+<span><span class="co">##                 &lt;num&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt;   &lt;int&gt;            &lt;num&gt;</span></span>
+<span><span class="co">## 1:          0.1367987   642    77     4  1131    1854         3520.196</span></span>
 <span><span class="co">##    ci_high_95_ces_A0 ci_low_95_ces_B0 ci_high_95_ces_B0 ci_low_95_ces_A_on_B</span></span>
+<span><span class="co">##                &lt;num&gt;            &lt;num&gt;             &lt;num&gt;                &lt;num&gt;</span></span>
 <span><span class="co">## 1:          4116.012         19625.39          30372.21             239.0299</span></span>
 <span><span class="co">##    ci_high_95_ces_A_on_B ci_low_95_ces_B_on_A ci_high_95_ces_B_on_A</span></span>
+<span><span class="co">##                    &lt;num&gt;                &lt;num&gt;                 &lt;num&gt;</span></span>
 <span><span class="co">## 1:              1815.867                   NA               6207.78</span></span></code></pre>
 <p>Note that the effect sizes are smaller for PIK3CA here, since we
 mixed in lots of lower-effect PIK3CA variants. While four samples have
@@ -1197,22 +1210,27 @@ alternatively, supply a custom table of variants.</p>
 <span><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ces_gene_epistasis.html">ces_gene_epistasis</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, genes <span class="op">=</span> <span class="va">genes</span>, variants <span class="op">=</span> <span class="st">"nonsilent"</span>, run_name <span class="op">=</span> <span class="st">"gene_epistasis_example"</span><span class="op">)</span></span>
 <span><span class="va">cesa</span><span class="op">$</span><span class="va">epistasis</span><span class="op">$</span><span class="va">gene_epistasis_example</span></span></code></pre></div>
 <pre><code><span><span class="co">##    variant_A variant_B   ces_A0   ces_B0 ces_A_on_B ces_B_on_A   p_A_change</span></span>
+<span><span class="co">##       &lt;char&gt;    &lt;char&gt;    &lt;num&gt;    &lt;num&gt;      &lt;num&gt;      &lt;num&gt;        &lt;num&gt;</span></span>
 <span><span class="co">## 1:      AKT1    PIK3CA 3581.700 2299.752      0.001   634.1875 0.0005423974</span></span>
 <span><span class="co">## 2:      AKT1      TP53 4112.667 1192.098   1876.640  2158.4580 0.9999999999</span></span>
 <span><span class="co">## 3:    PIK3CA      TP53 2717.966 1231.045   1335.496  1210.1055 1.0000000000</span></span>
 <span><span class="co">##      p_B_change  p_epistasis expected_nAB_epistasis expected_nAB_null</span></span>
+<span><span class="co">##           &lt;num&gt;        &lt;num&gt;                  &lt;num&gt;             &lt;num&gt;</span></span>
 <span><span class="co">## 1: 0.0005989039 3.950251e-11               6.107632          32.75439</span></span>
 <span><span class="co">## 2: 1.0000000000 9.130784e-01              13.999997          12.67865</span></span>
 <span><span class="co">## 3: 0.9999999994 6.154169e-02              59.999998          73.82244</span></span>
-<span><span class="co">##    AB_epistatic_ratio nA0 nB0 nAB  n00 n_total ci_low_95_ces_A0</span></span>
-<span><span class="co">## 1:          0.1864676  82 665   6 1101    1854         2883.614</span></span>
-<span><span class="co">## 2:          1.1042184  48 168  14  660     890         3127.742</span></span>
-<span><span class="co">## 3:          0.8127609 301 122  60  407     890         2429.439</span></span>
+<span><span class="co">##    AB_epistatic_ratio   nA0   nB0   nAB   n00 n_total ci_low_95_ces_A0</span></span>
+<span><span class="co">##                 &lt;num&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt;   &lt;int&gt;            &lt;num&gt;</span></span>
+<span><span class="co">## 1:          0.1864676    82   665     6  1101    1854         2883.614</span></span>
+<span><span class="co">## 2:          1.1042184    48   168    14   660     890         3127.742</span></span>
+<span><span class="co">## 3:          0.8127609   301   122    60   407     890         2429.439</span></span>
 <span><span class="co">##    ci_high_95_ces_A0 ci_low_95_ces_B0 ci_high_95_ces_B0 ci_low_95_ces_A_on_B</span></span>
+<span><span class="co">##                &lt;num&gt;            &lt;num&gt;             &lt;num&gt;                &lt;num&gt;</span></span>
 <span><span class="co">## 1:          4384.660         2127.634          2481.117                   NA</span></span>
 <span><span class="co">## 2:          5278.438         1020.702          1381.731                   NA</span></span>
 <span><span class="co">## 3:          3028.661         1028.612          1457.914             500.0392</span></span>
 <span><span class="co">##    ci_high_95_ces_A_on_B ci_low_95_ces_B_on_A ci_high_95_ces_B_on_A</span></span>
+<span><span class="co">##                    &lt;num&gt;                &lt;num&gt;                 &lt;num&gt;</span></span>
 <span><span class="co">## 1:              860.7654             250.5081              1299.106</span></span>
 <span><span class="co">## 2:             7016.7307             960.3172              3944.565</span></span>
 <span><span class="co">## 3:             2356.6830             797.9251              1704.604</span></span></code></pre>

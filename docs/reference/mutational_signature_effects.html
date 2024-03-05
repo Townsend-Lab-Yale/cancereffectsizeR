@@ -16,7 +16,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">cancereffectsizeR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.8.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.0.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -103,8 +103,9 @@ Calculated by averaging <code>[CESAnalysis]$mutational_signatures$biological_wei
 with average_effect_shares (described below) to identify signatures with disproportionate contributions to oncogenesis.</p></li>
 </ul></li>
 <li><p><strong>effect_shares</strong> (list):</p><ul><li><p><strong>by_sample</strong> (data.table): The share of each sample's cancer effect (summed across the sample's variants) attributable to each signature.</p></li>
-<li><p><strong>average_effect_shares</strong> (numeric): Across the cohort, the average share of cancer effect attributable to each signature. Compare with
-average_source_shares, above, to identify signatures with disproportionate contributions to oncogenesis.</p></li>
+<li><p><strong>average_effect_shares</strong> (numeric): For each signature, the average proportion of each sample's cancer effects that are attributable to signature. Compare with
+average_source_shares, above, to identify signatures with disproportionate contributions to oncogenesis. Only variants
+present in <code>effects</code> are included in this calculation.</p></li>
 </ul></li>
 </ul></div>
 

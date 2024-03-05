@@ -25,7 +25,6 @@ reference:
   - get_TCGA_project_MAF
   - vcfs_to_maf_table
   - make_PathScore_input
-  - get_PathScore_coding_regions
 - title: Load and manage variants
   contents:
   - load_maf
@@ -49,7 +48,7 @@ reference:
   contents:
   - trinuc_mutation_rates
   - suggest_cosmic_signature_exclusions
-  - trinuc_snv_counts
+  - trinuc_sbs_counts
   - convert_signature_weights_for_mp
   - clear_trinuc_rates_and_signatures
   - set_signature_weights
@@ -74,6 +73,7 @@ reference:
   desc: Display and compare variant effect sizes
   contents:
   - plot_effects
+  - plot_signature_effects
 - title: Selection models
   desc: Likelihood function generators for various models of selection
   contents:
@@ -81,6 +81,8 @@ reference:
   - pairwise_epistasis_lik
 - title: Explore reference data
   contents:
+  - cosmic_signature_info
+  - get_PathScore_coding_regions
   - list_ces_refsets
   - list_ces_covariates
   - list_ces_signature_sets
@@ -100,7 +102,7 @@ reference:
   - get_trinuc_rates
   - get_signature_weights
   - get_gene_rates
-  - snv_results
+  - sbs_results
   - epistasis_results
 
 home:

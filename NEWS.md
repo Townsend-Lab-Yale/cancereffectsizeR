@@ -8,8 +8,9 @@ Patch releases (as in, x.y.1 &#8594; x.y.2) have minor bug fixes or small improv
 * Breaking changes: Pre-3.0 analyses can only be loaded in a read-only summary format. Some table column names and function arguments have changed throughout the package, so scripts may need to be updated.
 
 # cancereffectsizeR 2.9.0
+* plot_signature_effects() visualizes the relative contributions of mutational signatures to mutation and selection.
 * Change to how mutational_signature_effects() calculates cohort-averaged signature effect shares. See the function's updated documentation for clarification of how outputs are calculated.
-* Support for new annotations and features that will come with a reference data update (ces.refset.hg38 v1.3.0, coming soon).
+* When available, canonical transcripts (MANE transcripts) are now favored in determining the consequences of substitutions. Alternate transcripts will still be favored if they show more dramatic alterations. For example, if a substitution is a missense on the canonical transcript and splice-site-disrupting on an alternate transcript, the alternate transcript will be reported in the [CESAnalysis]$variants table. Additionally, a new annotation column (is_MANE) identifies if the transcript being reported is canonical. These features require the new reference data package release, ces.refset.hg38 v1.3.0.
 
 # cancereffectsizeR 2.8.1
 * get_PathScore_coding_regions() provides access to the CDS definitions used by PathScore (and by make_PathScore_input()).

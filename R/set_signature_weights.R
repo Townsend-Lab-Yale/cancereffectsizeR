@@ -53,7 +53,10 @@ set_signature_weights = function(cesa, signature_set, weights, ignore_extra_samp
   }
   signature_set_name = signature_set_data$name
   signatures = signature_set_data$signatures
-  signature_metadata = signature_set_data$meta
+  signature_metadata = copy(signature_set_data$meta)
+  if(! 'name' %in% names(signature_metadata)) {
+    setnames(signature_metadata, 'Signature', 'name')
+  }
   
   previous_set = cesa@advanced$sbs_signatures[[signature_set_name]]
   if (! is.null(previous_set)) {
@@ -130,7 +133,7 @@ set_signature_weights = function(cesa, signature_set, weights, ignore_extra_samp
   
   # Produce relative rates of biological process signatures
   # It's up to the user to figure out how to deal with a sample that has entirely artifact weighting
-  artifact_signatures = signature_metadata[Likely_Artifact == TRUE, Signature]
+  artifact_signatures = signature_metadata[Likely_Artifact == TRUE, name]
   bio_weights = artifact_account(weights, artifact_signatures = artifact_signatures, 
                                           signature_names = signature_names, fail_if_zeroed = TRUE)
   

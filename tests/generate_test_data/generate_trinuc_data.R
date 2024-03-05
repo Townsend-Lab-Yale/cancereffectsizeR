@@ -8,7 +8,7 @@ setnames(maf, 'Unique_Patient_Identifier', 'patient_id', skip_absent = TRUE)
 cesa = load_maf(cesa = CESAnalysis("ces.refset.hg19"), maf = maf)
 save_cesa(cesa, "cesa_for_trinuc_weighting_calc.rds")
 trimut = trinuc_mutation_rates(cesa, signature_set = "COSMIC_v3.1", 
-                               signatures_to_remove = suggest_cosmic_signature_exclusions("LUAD", TRUE, TRUE),
+                               signature_exclusions = suggest_cosmic_signature_exclusions("LUAD", TRUE, TRUE),
                                signature_extractor = 'deconstructSigs')
 saveRDS(trimut@trinucleotide_mutation_weights, "trinuc_mut_weighting.rds")
 setwd(prev_dir)

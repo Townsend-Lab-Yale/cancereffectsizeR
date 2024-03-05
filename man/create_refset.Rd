@@ -14,7 +14,8 @@ create_refset(
   supported_chr = c(1:22, "X", "Y"),
   default_exome = NULL,
   exome_interval_padding = 0,
-  transcript_info = NULL
+  transcripts = NULL,
+  cores = 1
 )
 }
 \arguments{
@@ -49,12 +50,14 @@ from exome capture kit documentation, or alternatively, coding regions defined i
 for some variants to be called just outside of targeted regions, where there still may be
 pretty good sequencing coverage.}
 
-\item{transcript_info}{Additional information about coding (and, optionally, noncoding)
+\item{transcripts}{Additional information about coding (and, optionally, noncoding)
 transcripts from a Gencode GTF, supplied as a data.table. See the format provided in
 ces.refset.hg38. You'll have to match the format (including column names) pretty closely to get
 expected behavior. Noncoding transcripts are represented only by records with transcript_type =
 "transcript", and protein-coding transcripts are representing with transcript, CDS, and UTR
 records. Note that in Gencode format.}
+
+\item{cores}{How many cores to use (default 1).}
 }
 \description{
 Use this function to create and save a directory of custom reference data that can be

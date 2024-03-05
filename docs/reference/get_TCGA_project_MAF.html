@@ -20,7 +20,7 @@ caution."><!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax/libs/ma
     
     <a class="navbar-brand me-2" href="../index.html">cancereffectsizeR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.8.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.0.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -109,7 +109,7 @@ handful of patients have metastatic, recurrent, or additional primary samples.)<
 </dl></div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>TCGA cohort MAFs will be structured as downloaded, with a Unique_Patient_Identifier
+    <p>TCGA cohort MAFs will be structured as downloaded, with a patient_id
 column generated from the first 12 characters of Tumor_Sample_Barcode. When passed to
 preload_maf() or load_maf(), this column will supersede Tumor_Sample_Barcode. In the
 handful of patients with multiple Tumor_Sample_Barcodes (essentially replicated

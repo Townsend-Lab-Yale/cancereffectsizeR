@@ -10,8 +10,6 @@ ces_variant(
   samples = character(),
   model = "default",
   run_name = "auto",
-  ordering_col = NULL,
-  ordering = NULL,
   lik_args = list(),
   optimizer_args = list(),
   hold_out_same_gene_samples = "auto",
@@ -36,14 +34,6 @@ models of selection, or supply a custom function factory (see details).}
 
 \item{run_name}{Optionally, a name to identify the current run.}
 
-\item{ordering_col}{For the (not yet available) sequential model (or possibly custom models),
-the name of the sample table column that defines sample chronology.}
-
-\item{ordering}{For the (not yet available) sequential model (or possibly custom models), a
-character vector or list defining the ordering of values in ordering_col. Use a list to assign
-multiple values in ordering_col the same position (e.g., `list(early = c("I", "II), late =
-c("III", "IV")))` for an early vs. late analysis).}
-
 \item{lik_args}{Extra arguments, given as a list, to pass to custom likelihood functions.}
 
 \item{optimizer_args}{Named list of arguments to pass to the optimizer, bbmle::mle2. Use, for example,
@@ -59,7 +49,7 @@ systems).}
 \item{conf}{Cancer effect confidence interval width (NULL skips calculation, speeds runtime).}
 }
 \value{
-CESAnalysis object with selection results appended to the selection output list
+CESAnalysis with selection results appended to the selection output list
 }
 \description{
 This function calculates variant effect sizes under the chosen model of selection. Under the
@@ -79,13 +69,10 @@ CESAnalysis samples not present in the table will not be included in any of the 
 
 It's possible to pass in your own selection model. You'll need to create a "function factory"
 that, for any variant, produces a likelihood function that can be evaluated on the data. The
-first two arguments must be \code{rates_tumors_with} and \code{rates_tumors_without}, which give the baseline
-site mutation rates in samples with and without the variant. The third argument must be
-\code{sample_index}, a data.table that associates \code{patient_id} with group names and
-indices. (Your function factory must accept this argument, but it doesn't have to use its value.)
-Values for all three of these arguments will be calculated by ces_variant and passed to your
-function factory automatically. Your function can take whatever additional arguments you like,
-and you can pass in values using \code{lik_args}. The likelihood function parameters that
-ces_variant will optimize should be named and have default values. See the source code of
-\code{sswm_lik()} for an example.
+first two arguments must be \code{rates_tumors_with} and \code{rates_tumors_without}, which give
+the baseline site mutation rates in samples with and without the variant. These rates  will be
+calculated by ces_variant and passed to your function factory automatically. Your function can
+take whatever additional arguments you like; specify other arguments using \code{lik_args}. The
+likelihood function parameters that ces_variant will optimize should be named and have default
+values. See the source code of \code{sswm_lik()} for an example.
 }

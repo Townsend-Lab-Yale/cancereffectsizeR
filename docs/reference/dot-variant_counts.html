@@ -10,7 +10,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">cancereffectsizeR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.8.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.0.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -66,8 +66,8 @@
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">.variant_counts</span><span class="op">(</span></span>
 <span>  <span class="va">cesa</span>,</span>
 <span>  <span class="va">samples</span>,</span>
-<span>  <span class="va">snv_from_aac</span>,</span>
-<span>  <span class="va">noncoding_snv_id</span>,</span>
+<span>  <span class="va">sbs_from_aac</span>,</span>
+<span>  <span class="va">noncoding_sbs_id</span>,</span>
 <span>  by_cols <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -82,12 +82,12 @@
 <dd><p>validated samples table</p></dd>
 
 
-<dt>snv_from_aac</dt>
-<dd><p>data.table with columns aac_id, snv_id (validated and with annotations in CESAnalysis)</p></dd>
+<dt>sbs_from_aac</dt>
+<dd><p>data.table with columns aac_id, sbs_id (validated and with annotations in CESAnalysis)</p></dd>
 
 
-<dt>noncoding_snv_id</dt>
-<dd><p>vector of snv_ids to treat as noncoding variants</p></dd>
+<dt>noncoding_sbs_id</dt>
+<dd><p>vector of sbs_ids to treat as noncoding variants</p></dd>
 
 
 <dt>by_cols</dt>

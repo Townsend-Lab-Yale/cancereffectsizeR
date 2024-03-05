@@ -49,7 +49,7 @@ This function helps you find and view variant data from your CESAnalysis's MAF d
 mutation annotation tables. By default, almost all amino-acid-changing mutations and
 noncoding SBS are returned. You can apply a series of filters to restrict output to
 certain genes or genomic regions, require a minimum variant frequency in MAF data, and/or
-specify exact \code{variant_ids} to returns.
+specify exact \code{variant_ids} to return.
 }
 \details{
 Only variants that are annotated in the CESAnalysis can be returned. To view more annotations,
@@ -61,8 +61,12 @@ tables, these variants will not be captured by the genes filter of this function
 
 Definitions of some less self-explanatory columns:
 \itemize{
-  \item variant_name: short, often but not necessarily uniquely identifying name (use
-  variant_id to guarantee uniqueness) 
+  \item variant_name: In a coding variant, gene and protein change on the (MANE) canonical
+  transcripts, such as "BRAF V600E". For coding changes reported on other transcripts, the
+  protein ID is included: "POLH W415C (ENSP00000361300.1)". With older reference data sets
+  (ces.refset.hg19, versions of ces.refset.hg38 < 1.3, and any custom reference data set that
+  doesn't have complete information on canonical transcripts), the variant name is a 
+  shortening of the variant_id.
   \item start/end: lowest/highest genomic positions overlapping variant
   \item variant_id: unique IDs for variants given the associated genome assembly version and the transcript data
   \item ref/alt: genomic reference and alternate alleles (for genomic

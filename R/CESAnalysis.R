@@ -236,7 +236,22 @@ load_cesa = function(file) {
   if(! is.null(cesa@mutations$sbs)) {
     cesa@mutations$sbs = setDT(cesa@mutations$sbs, key = "sbs_id")
   } else {
-    cesa@mutations$snv = setDT(cesa@mutations$snv, key = "snv_id")
+    cesa@mutations$sbs = setDT(cesa@mutations$sbs, key = "sbs_id")
+    
+    # If there is no variant_name column, the analysis came from before v2.9, when better variant
+    # names (and the refsets they require) were implemented. Therefore, continue to use the less
+    # ideal variant naming.
+    if(! 'variant_name' %in% names(cesa@mutations$amino_acid_change)) {
+      cesa@mutations$amino_acid_change[, variant_name := paste0(gene, '_', aachange)]
+      setcolorder(cesa@mutations$amino_acid_change, 'variant_name')
+      cesa@mutations$sbs[, variant_name := gsub('_', ' ', sbs_id)]
+      setcolorder(cesa@mutations$sbs, 'variant_name')
+    }
+    
+    if (! is.null(cesa@mutations$aac_sbs_key)) {
+      # if it is NULL, gets handled later
+      cesa@mutations$aac_sbs_key = setDT(cesa@mutations$aac_sbs_key, key = "aac_id")
+    }
   }
   
   
@@ -299,6 +314,13 @@ load_cesa = function(file) {
       msg = paste0("This CESAnalysis was annotated with data from ", refset_name, ' ', previous_version, " and you currently have ",
                    "version ", actual_version, ". You should create a new CESAnalysis and start over if you want to continue analysis.")
       warning(pretty_message(msg, emit = F))
+    } else if(! is.null(previous_version)) {
+      previous_version = as.package_version(previous_version)
+      if (previous_version$major != actual_version$major || previous_version$minor != actual_version$minor) {
+        msg = paste0("This CESAnalysis was annotated using the reference data package ", refset_name, ' ', previous_version, " and you currently have ",
+                     "version ", actual_version, ". Since the reference data has changed, you need to re-run from a new CESAnalysis if you want to do any new analyses.")
+        warning(pretty_message(msg, emit = F))
+      }
     }
     cesa@ref_data_dir = system.file("refset", package = refset_name)
   } else {
@@ -319,8 +341,10 @@ load_cesa = function(file) {
   }
   current_version = packageVersion("cancereffectsizeR")
   previous_version = cesa@advanced$version
-  if (as.character(current_version) != as.character(previous_version)) {
-    warning("Version change: CESAnalysis previously created in CES ", previous_version, ".\n",
+  previous_version = as.package_version(sub('/.*', '', previous_version))
+
+  if (current_version$major != previous_version$major || current_version$minor != previous_version$minor) {
+    warning("Version change: CESAnalysis previously created in cancereffectsizeR ", previous_version, ".\n",
             "Currently running version ", current_version, '.', call. = F)
     cesa@advanced$version = current_version
     cesa@run_history = c(cesa@run_history, paste0("\n[Now running CES ", current_version, ']'))

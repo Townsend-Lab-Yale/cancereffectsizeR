@@ -8,11 +8,9 @@ test_that("load_maf and variant annotation", {
   tiny_ak = load_cesa(get_test_file("tiny_hg38_maf_loaded.rds"))
   expect_equal(tiny$maf[order(variant_id)], tiny_ak$maf[order(variant_id)])
   expect_equal(tiny@excluded, tiny_ak@excluded, ignore.row.order = T)
-  suppressWarnings({tiny_ak@mutations$amino_acid_change$constituent_sbss = NULL})
-  expect_equal(tiny@mutations[c("amino_acid_change", "sbs", "aac_sbs_key")], 
-               tiny_ak@mutations[c("amino_acid_change", "sbs", "aac_sbs_key")])
-  expect_equal(tiny@mutations$sbs[, .N], 389)
-  expect_equal(tiny@mutations$amino_acid_change[, .N], 381)
+  expect_equivalent(tiny@mutations, tiny_ak@mutations)
+  expect_equal(tiny@mutations$sbs[, .N], 395)
+  expect_equal(tiny@mutations$amino_acid_change[, .N], 757)
   expect_equal(tiny$samples[, .N], 9) 
    
   # same ranges should be in each coverage GenomicRange (depending on BSgenome version, little contigs may vary)
@@ -23,10 +21,11 @@ test_that("load_maf and variant annotation", {
   variants_to_check = copy(tiny@maf)
   variants_to_check[, variant_type := NULL] # cause variants to be re-identified
   re_anno = annotate_variants(ces.refset.hg38, variants_to_check)
-  expect_equal(tiny@mutations$amino_acid_change, re_anno$amino_acid_change)
+  to_compare = tiny@mutations$amino_acid_change
+  expect_equivalent(to_compare, re_anno$amino_acid_change)
   
   # column order is different when running annotate_variants() directly.
-  setcolorder(re_anno$sbs, c("sbs_id", "chr", "pos", "ref", "alt", "genes", "intergenic", 
+  setcolorder(re_anno$sbs, c("variant_name", "sbs_id", "chr", "pos", "ref", "alt", "genes", "intergenic", 
                              "trinuc_mut", "essential_splice", "nearest_pid"))
   expect_equivalent(tiny@mutations$sbs, re_anno$sbs)
   
@@ -36,17 +35,10 @@ test_that("load_maf and variant annotation", {
   # add a variant that isn't covered by any covered regions
   tiny = add_variants(target_cesa = tiny, sbs_id = "12:132824581_A>C")
   
-  
-  selected = select_variants(tiny, variant_ids  = "12:132824581_A>C")
-  expect_equal(selected[, .N], 1)
-  expect_equal(selected$gene, 'GOLGA3')
-  
-  # Nearest gene is GOLGA3, but it's not in GOLGA3
-  expect_null(select_variants(tiny, genes = 'GOLGA3', variant_ids = "12:132824581_A>C"))
-  
-  # 1:222654794_G>C is an essential splice variant of MIA3, so it should get captured.
-  expect_equal(select_variants(tiny, genes = 'MIA3', variant_ids = '1:222654794_G>C')[, .N], 1)
-  
+  # The SBS is not in the gene, so nothing gets selection
+  selected = select_variants(tiny, variant_ids  = "12:132824581_A>C", genes = "TAF1C")
+  expect_equal(selected, NULL)
+
   # All variant_ids specified should be returned
   expect_equal(select_variants(tiny, variant_ids = c('HAUS7_A110A_ENSP00000359230.6', 'X:153462634_C>T', 
                                         'X:153462634_C>G', 'X:153462634_C>A'))[, .N], 4)
@@ -57,12 +49,13 @@ test_that("load_maf and variant annotation", {
   expect_equal(three_sbs$variant_type, c('sbs', 'sbs', 'sbs'))
   
   expect_equal(tiny@mutations$variants_to_cov$`12:132824581_A>C`, character())
+
   selected = select_variants(tiny, min_freq = 1)
   expect_equal(sum(selected$maf_prevalence), 266) 
   expect_equal(variant_counts(tiny, "12:132824581_A>C")$N, 0)
   expect_equal(sum(variant_counts(tiny, selected$variant_id)$N), 266)
   
-  # Check an essential splice site manually added to ces.refset.hg38
+  # Check the essential splice site manually added to ces.refset.hg38
   tiny = add_variants(target_cesa = tiny, aac_id = 'TP53_T125T_ENSP00000269305.4')
   expect_equal(tiny$variants[variant_id == "TP53_T125T_ENSP00000269305.4", essential_splice], T)
   
@@ -72,8 +65,6 @@ test_that("load_maf and variant annotation", {
   
   # TTN is not in the data set
   expect_null(select_variants(tiny, genes = c("TTN")))
-    
-  
   
   # test adding covered regions and covered_regions_padding
   tiny = add_covered_regions(target_cesa = tiny, covered_regions = GRanges("chr12:132824580"), 

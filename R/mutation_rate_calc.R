@@ -76,11 +76,13 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, sbs_ids = NULL, variant
   
   # Let user specify a subset of samples to calculate rates (or, by default, use all samples)
   mutations = copy(cesa@mutations)
+  sbs_needed = sbs_ids
   
   # can drop AAC mutations not requested
   if(length(aac_ids) > 0) {
     mutations$amino_acid_change = mutations$amino_acid_change[aac_ids]
     setkey(mutations$amino_acid_change, "aac_id")
+    sbs_needed = union(sbs_needed, mutations$aac_sbs_key[aac_ids, sbs_id, on = 'aac_id'])
   } else {
     mutations$amino_acid_change = data.table()
   }
@@ -92,6 +94,13 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, sbs_ids = NULL, variant
     stop("Can't calculate mutation rates because no variants were input.")
   }
   
+  if(is.null(sbs_needed)) {
+    mutations$sbs = mutations$sbs[0]
+  } else {
+    mutations$sbs = mutations$sbs[sbs_needed, on = 'sbs_id']
+  }
+  setkey(mutations$sbs, 'sbs_id')
+  
   num_samples = samples[, .N]
   if(num_variants * num_samples > 1e7) {
     num_variants = format(num_variants, big.mark = ",")
@@ -102,7 +111,7 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, sbs_ids = NULL, variant
   mutrates = cesa@mutrates[, .SD, .SDcols = patterns('gene|pid|(rate_grp_\\d+)$')]
   
   # produce a table with all pairwise combinations of patient_id and relevant regional rates
-  # relevant genes/pids are those associated with one of the AACs/SNVs of interest
+  # relevant genes/pids are those associated with one of the AACs/SBS of interest
   
   cds_trinuc_comp = get_ref_data(cesa, "gene_trinuc_comp")
   

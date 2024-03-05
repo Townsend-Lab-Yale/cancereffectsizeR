@@ -167,8 +167,8 @@ setMethod("[", "CompoundVariantSet", function(x, i , j, ..., drop) {
 setMethod("[[", "CompoundVariantSet", function(x, i , j, ..., drop) {
   compounds = `[`(x@compounds, i, j, nomatch = NULL, ...)
   sample_calls = x@sample_calls[compounds$compound_name]
-  snvs = x@snvs[compounds$compound_name, on = 'compound_name']
-  return(new("CompoundVariantSet", compounds = compounds, snvs = snvs, sample_calls = sample_calls,
+  sbs = x@sbs[compounds$compound_name, on = 'compound_name']
+  return(new("CompoundVariantSet", compounds = compounds, sbs = sbs, sample_calls = sample_calls,
              cesa_uid = x@cesa_uid, cesa_num_samples = x@cesa_num_samples))
 })
 
@@ -195,8 +195,8 @@ setMethod('names<-', "CompoundVariantSet", function(x, value) {
   x@compounds[, old_name := compound_name]
   x@compounds[, compound_name := value]
   
-  for_snvs = x@compounds[x@snvs$compound_name, compound_name, on = 'old_name']
-  x@snvs[, compound_name := for_snvs]
+  for_sbs = x@compounds[x@sbs$compound_name, compound_name, on = 'old_name']
+  x@sbs[, compound_name := for_sbs]
   
   for_sample_calls = x@compounds[names(x@sample_calls), compound_name, on = 'old_name']
   names(x@sample_calls) = for_sample_calls

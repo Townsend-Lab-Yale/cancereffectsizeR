@@ -356,8 +356,9 @@ ces_epistasis = function(cesa = NULL, variants = NULL, samples = character(), ru
     setkey(cesa@mutations$amino_acid_change, "aac_id")
     setkey(cesa@mutations$sbs, "sbs_id")
     
-    # validate that all variant IDs appear in mutation annotations
-    aac_names = cesa@mutations$amino_acid_change[, .(aac_id, variant_name = paste(gene, aachange, sep = "_"))]
+    # Validate that all variant IDs appear in mutation annotations
+    aac_names = cesa@mutations$amino_acid_change[, .(aac_id, variant_name)]
+    
     notify_name_conversion = F
     for (i in 1:length(variants)) {
       pair = variants[[i]]
@@ -368,7 +369,6 @@ ces_epistasis = function(cesa = NULL, variants = NULL, samples = character(), ru
       for (j in 1:2) {
         variant = pair[j]
         if (cesa@mutations$sbs[variant, .N, nomatch = NULL] == 0 && aac_names[variant == aac_id, .N, nomatch = NULL] == 0) {
-          variant = gsub(' ', '_', variant)
           record_by_name = aac_names[variant, on = "variant_name", nomatch = NULL]
           num_records = record_by_name[, .N]
           if (num_records == 0) {
@@ -376,6 +376,7 @@ ces_epistasis = function(cesa = NULL, variants = NULL, samples = character(), ru
           } else if (num_records > 1) {
             stop("More than one variant in the CESAnalysis has the name \"", variant, "\". Use a full variant_id to specify which to test.")
           } else {
+            # This should never happen with ces.refset.hg38 1.3 and later, because variant_name is uniquely identifying.
             notify_name_conversion = T
             variants[[i]][j] = record_by_name[, aac_id]
           }

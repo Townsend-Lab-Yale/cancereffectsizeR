@@ -37,6 +37,9 @@
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/CompoundVariantSet.html</loc>
   </url>
   <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/aac_to_sbs_ids.html</loc>
+  </url>
+  <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/aac_to_snv_ids.html</loc>
   </url>
   <url>
@@ -44,6 +47,9 @@
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/add_variants.html</loc>
+  </url>
+  <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/annotate_sbs.html</loc>
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/annotate_variants.html</loc>
@@ -115,6 +121,9 @@
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/copy_cesa.html</loc>
   </url>
   <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/cosmic_signature_info.html</loc>
+  </url>
+  <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/create_refset.html</loc>
   </url>
   <url>
@@ -161,6 +170,9 @@
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/get_gr_from_table.html</loc>
+  </url>
+  <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/get_nearest_refset_entries.html</loc>
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/get_ref_data.html</loc>
@@ -232,6 +244,9 @@
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/plot_effects.html</loc>
   </url>
   <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/plot_signature_effects.html</loc>
+  </url>
+  <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/preload_maf.html</loc>
   </url>
   <url>
@@ -257,6 +272,9 @@
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/save_cesa.html</loc>
+  </url>
+  <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/sbs_results.html</loc>
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/select_samples.html</loc>
@@ -301,6 +319,9 @@
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/trinuc_mutation_rates.html</loc>
   </url>
   <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/trinuc_sbs_counts.html</loc>
+  </url>
+  <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/trinuc_snv_counts.html</loc>
   </url>
   <url>
@@ -311,6 +332,9 @@
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/validate_aac_ids.html</loc>
+  </url>
+  <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/validate_sbs_ids.html</loc>
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/validate_signature_set.html</loc>

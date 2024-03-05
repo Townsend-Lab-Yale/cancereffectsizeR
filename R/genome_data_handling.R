@@ -77,8 +77,8 @@ preload_ref_data = function(data_dir) {
     ref[["gr_genes.dndscv"]] = get_ref_data(data_dir, "gr_genes.dndscv")
   }
   
-  if(check_for_ref_data(data_dir, "transcript_info")) {
-    ref[["transcripts"]] = get_ref_data(data_dir, "transcript_info")
+  if(check_for_ref_data(data_dir, "transcripts")) {
+    ref[["transcripts"]] = get_ref_data(data_dir, "transcripts")
   }
   
   ref[["gr_genes"]] = get_ref_data(data_dir, "gr_genes")
@@ -130,13 +130,24 @@ preload_ref_data = function(data_dir) {
     ref[["covariates"]] = cov_list
   }
   
-  signature_sets = list.files(paste0(data_dir, "/signatures/"), pattern =  "_signatures.rds$", full.names = T)
-  if (length(signature_sets) > 0) {
-    sig_set_list = list()
-    for (sig_file in signature_sets) {
+  current_signature_sets = list.files(paste0(data_dir, "/signatures/"), pattern =  "_signatures.rds$", full.names = T)
+  sig_set_list = list()
+  if (length(current_signature_sets) > 0) {
+    for (sig_file in current_signature_sets) {
       sig_set_name = gsub('_signatures.rds$', '', base::basename(sig_file))
       sig_set_list[[sig_set_name]] = readRDS(sig_file)
     }
+  }
+  previous_signature_sets = list.files(paste0(data_dir, "/signatures/previous/"), pattern =  "_signatures.rds$", full.names = T)
+  if(length(previous_signature_sets) > 0) {
+    sig_set_list[['previous_versions']] = list()
+    for(sig_file in previous_signature_sets) {
+      sig_set_name = gsub('_signatures.rds$', '', base::basename(sig_file))
+      sig_set_list[['previous_versions']][[sig_set_name]] = readRDS(sig_file)
+    }
+  }
+  
+  if(length(sig_set_list) > 0) {
     ref[["signatures"]] = sig_set_list
   }
   ref[['data_dir']] = data_dir
@@ -207,8 +218,8 @@ list_ces_signature_sets = function() {
   for (i in 1:length(refset_dirs)) {
     genome = refset_names[i]
     ref_dir = refset_dirs[i]
-    sig_files = list.files(paste0(ref_dir, "/signatures/"))
-    sig_sets = gsub("_signatures\\.rds$", '', sig_files)
+    sig_files = list.files(paste0(ref_dir, "/signatures/"), recursive = T)
+    sig_sets = gsub("_signatures\\.rds$", '', basename(sig_files))
     if (length(sig_sets) == 0) {
       pretty_message(paste0(genome, ": (no signature sets available)"))
     } else {
@@ -240,15 +251,21 @@ get_ces_signature_set = function(refset, name) {
   }
   refset_dir = refset_dirs[refset]
 
-  sig_file = paste0(refset_dir, "/signatures/", name, "_signatures.rds")
-  if (! file.exists(sig_file)) {
-    no_spaces = paste0(refset_dir, "/signatures/", gsub(' ', '_', name), "_signatures.rds")
-    if (! file.exists(no_spaces)) {
-      stop("Couldn't find signature data; expected to find it at ", sig_file)
-    }
-    sig_file = no_spaces
+  sig_files = list.files(path = paste0(refset_dir, '/signatures/'), pattern = '_signatures.rds', recursive = T, full.names = T)
+  sig_file = sig_files[sub('_signatures.rds', '', basename(sig_files)) == name]
+  if(length(sig_file) == 0) {
+    name = gsub(' ', '_', name)
+    sig_files = list.files(path = paste0(refset_dir, '/signatures/'), pattern = '_signatures.rds', recursive = T, full.names = T)
+    sig_file = sig_files[sub('_signatures.rds', '', basename(sig_files)) == name]
   }
-  return(readRDS(sig_file))
+  
+  if(length(sig_file) == 0) {
+    pretty_message("Available signature sets: ")
+    list_ces_signature_sets()
+    stop("Couldn't find specified signature set.")
+  }
+  
+  return(readRDS(sig_file[1]))
 }
 
 #' get_cesa_bsg 
@@ -302,13 +319,15 @@ validate_signature_set = function(signature_set) {
   }
   # Validate signature metadata if it's not empty
   if (signature_metadata[, .N] > 0) {
-    if (is.null(signature_metadata$Signature)) {
-      stop("Signature metadata incorrectly formatted (see docs).")
+    if (is.null(signature_metadata$name)) {
+      if(is.null(signature_metadata$Signature)) {
+        stop("name metadata incorrectly formatted (see docs).")
+      } 
     }
-    if (any(! rownames(signatures) %in% signature_metadata$Signature)) {
+    if (any(! rownames(signatures) %in% signature_metadata$name)) {
       stop("Improperly formatted signature set: Some signatures in your signature definitions are missing from the metadata table.")
     }
-    if(length(signature_metadata$Signature) != length(unique(signature_metadata$Signature))) {
+    if(length(signature_metadata$name) != length(unique(signature_metadata$name))) {
       stop("Improperly formatted signature set: Some signatures are repeated in your signature metadata table")
     }
     

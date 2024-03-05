@@ -20,12 +20,12 @@ for(refset in names(.official_refsets)) {
   }
 }
 
-sbs_annotation_template = data.table(sbs_id = character(), chr = character(), pos = numeric(), 
+sbs_annotation_template = data.table(variant_name = character(), sbs_id = character(), chr = character(), pos = numeric(), 
                                      ref = character(), alt = character(), genes = list(), intergenic = logical(), 
                                      trinuc_mut = character(), essential_splice = logical(), 
                                      nearest_pid = list())
 
-aac_annotation_template = data.table(aac_id = character(), gene = character(), aachange = character(), 
+aac_annotation_template = data.table(variant_name = character(), aac_id = character(), gene = character(), aachange = character(), 
                        strand = integer(), chr = character(), pid = character(), aa_ref = character(), 
                        aa_pos = numeric(), aa_alt = character(), 
                        nt1_pos = numeric(), nt2_pos = numeric(), nt3_pos = numeric(), 

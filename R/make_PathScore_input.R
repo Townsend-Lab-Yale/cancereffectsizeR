@@ -107,7 +107,7 @@ make_PathScore_input = function(maf, file = NULL, genome = 'hg38') {
     stop(pretty_message(msg, emit = F))
   }
   
-  for_ref_check = maf[variant_type == 'snv', .(chr = Chromosome, start = Start_Position, end = Start_Position, Reference_Allele)]
+  for_ref_check = maf[variant_type == 'sbs', .(chr = Chromosome, start = Start_Position, end = Start_Position, Reference_Allele)]
   if(for_ref_check[, .N] > 0) {
     if(for_ref_check[, .N] > 1000) {
       for_ref_check = for_ref_check[sample(1:.N, size = 1000, replace = F)]
