@@ -156,8 +156,11 @@ which we also call cancer effects.</p>
 <div class="section level3">
 <h3 id="example-lung-adenocarcinoma-data-from-tcga">Example: Lung adenocarcinoma data from TCGA<a class="anchor" aria-label="anchor" href="#example-lung-adenocarcinoma-data-from-tcga"></a>
 </h3>
-<p>If you want to skip all the details and run through a no-frills
-cancereffectsizeR analysis, here’s the quickstart:</p>
+<p>Here is a straightforward cancereffectsizeR workflow: We load TCGA
+LUAD data, calculate mutation rates, and quantify selection. We also
+attribute selection to mutational signatures and find that mutations
+attributed to tobacco-associated signatures have disproportionately
+large selective effects.</p>
 <details><summary>
 (Show/hide quickstart)
 </summary><div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
@@ -181,7 +184,7 @@ cancereffectsizeR analysis, here’s the quickstart:</p>
 <span><span class="co"># a mutational signature analysis (leaving out signatures not found in LUAD)</span></span>
 <span><span class="va">signature_exclusions</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/suggest_cosmic_signature_exclusions.html">suggest_cosmic_signature_exclusions</a></span><span class="op">(</span>cancer_type <span class="op">=</span> <span class="st">"LUAD"</span>, treatment_naive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/trinuc_mutation_rates.html">trinuc_mutation_rates</a></span><span class="op">(</span></span>
-<span>  cesa <span class="op">=</span> <span class="va">cesa</span>, signature_set <span class="op">=</span> <span class="va">ces.refset.hg38</span><span class="op">$</span><span class="va">signatures</span><span class="op">$</span><span class="va">COSMIC_v3.2</span>,</span>
+<span>  cesa <span class="op">=</span> <span class="va">cesa</span>, signature_set <span class="op">=</span> <span class="va">ces.refset.hg38</span><span class="op">$</span><span class="va">signatures</span><span class="op">$</span><span class="va">COSMIC_v3.4</span>,</span>
 <span>  signature_exclusions <span class="op">=</span> <span class="va">signature_exclusions</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -195,8 +198,14 @@ cancereffectsizeR analysis, here’s the quickstart:</p>
 <span><span class="co"># Visualize top-effect variants.</span></span>
 <span><span class="fu"><a href="../reference/plot_effects.html">plot_effects</a></span><span class="op">(</span>effects <span class="op">=</span> <span class="va">cesa</span><span class="op">$</span><span class="va">selection</span><span class="op">$</span><span class="va">example</span>, color_by <span class="op">=</span> <span class="st">"#DB382D"</span>, topn <span class="op">=</span> <span class="fl">20</span><span class="op">)</span></span>
 <span></span>
+<span><span class="co"># Attribute effects to mutational signatures</span></span>
+<span><span class="va">mut_effects</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mutational_signature_effects.html">mutational_signature_effects</a></span><span class="op">(</span><span class="va">cesa</span>, <span class="va">cesa</span><span class="op">$</span><span class="va">selection</span><span class="op">$</span><span class="va">example</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Plot a comparison of how signatures contribute to mutation vs. selection</span></span>
+<span><span class="fu"><a href="../reference/plot_signature_effects.html">plot_signature_effects</a></span><span class="op">(</span><span class="va">mut_effects</span>, viridis_option <span class="op">=</span> <span class="st">"F"</span>, num_sig_groups <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
+<span></span>
 <span><span class="co"># See the full tutorial for more details and a broader view of functionality!</span></span></code></pre></div>
-<p><img src="cancereffectsizeR_files/figure-html/unnamed-chunk-6-1.png" width="700"></p>
+<p><img src="cancereffectsizeR_files/figure-html/unnamed-chunk-6-1.png" width="700"><img src="cancereffectsizeR_files/figure-html/unnamed-chunk-6-2.png" width="700"></p>
 </details>
 </div>
 </div>
@@ -394,7 +403,7 @@ guidance.</p>
 <span><span class="va">signature_exclusions</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/suggest_cosmic_signature_exclusions.html">suggest_cosmic_signature_exclusions</a></span><span class="op">(</span>cancer_type <span class="op">=</span> <span class="st">"BRCA"</span>, treatment_naive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/trinuc_mutation_rates.html">trinuc_mutation_rates</a></span><span class="op">(</span><span class="va">cesa</span>,</span>
-<span>  signature_set <span class="op">=</span> <span class="va">ces.refset.hg38</span><span class="op">$</span><span class="va">signatures</span><span class="op">$</span><span class="va">COSMIC_v3.2</span>,</span>
+<span>  signature_set <span class="op">=</span> <span class="va">ces.refset.hg38</span><span class="op">$</span><span class="va">signatures</span><span class="op">$</span><span class="va">COSMIC_v3.4</span>,</span>
 <span>  signature_exclusions <span class="op">=</span> <span class="va">signature_exclusions</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>The <code><a href="../reference/trinuc_mutation_rates.html">trinuc_mutation_rates()</a></code> run has added some useful
@@ -445,32 +454,24 @@ to hold for them.</p>
 regression:</p>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">cesa</span><span class="op">$</span><span class="va">gene_rates</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">##                  pid    gene         rate rate_grp_1_95_low rate_grp_1_95_high</span></span>
-<span><span class="co">##               &lt;char&gt;  &lt;char&gt;        &lt;num&gt;             &lt;num&gt;              &lt;num&gt;</span></span>
-<span><span class="co">## 1: ENSP00000000233.5    ARF5 6.350206e-07      5.947954e-07       6.778247e-07</span></span>
-<span><span class="co">## 2: ENSP00000000412.3    M6PR 5.756903e-07      5.446158e-07       6.084135e-07</span></span>
-<span><span class="co">## 3: ENSP00000000442.6   ESRRA 5.382191e-07      5.018193e-07       5.769928e-07</span></span>
-<span><span class="co">## 4: ENSP00000001008.4   FKBP4 8.303021e-07      7.736213e-07       8.906310e-07</span></span>
-<span><span class="co">## 5: ENSP00000001146.2 CYP26B1 9.182355e-07      8.796483e-07       9.581680e-07</span></span>
-<span><span class="co">## 6: ENSP00000002125.4 NDUFAF7 5.969951e-07      5.716527e-07       6.233497e-07</span></span></code></pre>
+<pre><code><span><span class="co">##       gene         rate rate_grp_1_95_low rate_grp_1_95_high</span></span>
+<span><span class="co">##     &lt;char&gt;        &lt;num&gt;             &lt;num&gt;              &lt;num&gt;</span></span>
+<span><span class="co">## 1:    A1BG 6.127126e-07      5.613872e-07       6.677908e-07</span></span>
+<span><span class="co">## 2:    A1CF 7.084595e-07      6.658288e-07       7.532645e-07</span></span>
+<span><span class="co">## 3:     A2M 7.896587e-07      7.532342e-07       8.269888e-07</span></span>
+<span><span class="co">## 4:   A2ML1 6.255639e-07      5.869469e-07       6.656543e-07</span></span>
+<span><span class="co">## 5: A3GALT2 5.508752e-07      5.100439e-07       5.946168e-07</span></span>
+<span><span class="co">## 6:  A4GALT 7.261875e-07      6.757761e-07       7.797770e-07</span></span></code></pre>
 <p>We can also look at dNdScv’s identification of selection at the gene
-level. We’ll filter results to q &lt; .05. Since ces.refset.hg38 covers
-multiple isoforms for some genes, the dNdScv output is actually per
-protein, not per gene, so we’ll take the extra step of showing just the
-lowest q-value for each significant gene.</p>
+level. We’ll filter results to q &lt; .05.</p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">dndscv_results</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">dNdScv_results</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
-<span><span class="va">sig_genes</span> <span class="op">&lt;-</span> <span class="va">dndscv_results</span><span class="op">[</span><span class="va">qallsubs_cv</span> <span class="op">&lt;</span> <span class="fl">.05</span><span class="op">]</span></span>
-<span></span>
-<span><span class="co"># Take lowest q-value record for each gene, and sort by significance.</span></span>
-<span><span class="va">sig_genes</span> <span class="op">&lt;-</span> <span class="va">sig_genes</span><span class="op">[</span>, <span class="va">.SD</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/which.min.html" class="external-link">which.min</a></span><span class="op">(</span><span class="va">qallsubs_cv</span><span class="op">)</span><span class="op">]</span>, by <span class="op">=</span> <span class="st">"gene"</span><span class="op">]</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="va">qallsubs_cv</span><span class="op">)</span><span class="op">]</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span><span class="op">]</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="co"># View top dNdScv genes, sorted by significance</span></span>
+<span><span class="va">dndscv_results</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">dNdScv_results</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="va">sig_genes</span> <span class="op">&lt;-</span> <span class="va">dndscv_results</span><span class="op">[</span><span class="va">qallsubs_cv</span> <span class="op">&lt;</span> <span class="fl">.05</span><span class="op">]</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="va">qallsubs_cv</span><span class="op">)</span><span class="op">]</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span><span class="op">]</span></span></code></pre></div>
 <table class="table table table-condensed">
 <thead><tr>
 <th style="text-align:right;">
-gene
-</th>
-<th style="text-align:right;">
-pid
+gene_name
 </th>
 <th style="text-align:right;">
 n_syn
@@ -518,28 +519,25 @@ qallsubs_cv
 TP53
 </td>
 <td style="text-align:right;">
-ENSP00000484409.1
-</td>
-<td style="text-align:right;">
 0
 </td>
 <td style="text-align:right;">
-181
+198
 </td>
 <td style="text-align:right;">
-33
+46
 </td>
 <td style="text-align:right;">
-15
+22
 </td>
 <td style="text-align:right;">
-284.977302
+188.063121
 </td>
 <td style="text-align:right;">
-646.27154
+580.81334
 </td>
 <td style="text-align:right;">
-646.27154
+580.81334
 </td>
 <td style="text-align:right;">
 0.000000e+00
@@ -565,9 +563,6 @@ ENSP00000484409.1
 PIK3CA
 </td>
 <td style="text-align:right;">
-ENSP00000263967.3
-</td>
-<td style="text-align:right;">
 5
 </td>
 <td style="text-align:right;">
@@ -580,7 +575,7 @@ ENSP00000263967.3
 0
 </td>
 <td style="text-align:right;">
-51.795017
+49.946758
 </td>
 <td style="text-align:right;">
 0.00000
@@ -592,7 +587,7 @@ ENSP00000263967.3
 0.000000e+00
 </td>
 <td style="text-align:right;">
-1.802329e-01
+1.741979e-01
 </td>
 <td style="text-align:right;">
 0.000000e+00
@@ -601,7 +596,7 @@ ENSP00000263967.3
 0.000000e+00
 </td>
 <td style="text-align:right;">
-8.421570e-01
+8.485461e-01
 </td>
 <td style="text-align:right;">
 0.000000e+00
@@ -610,9 +605,6 @@ ENSP00000263967.3
 <tr>
 <td style="text-align:right;">
 PTEN
-</td>
-<td style="text-align:right;">
-ENSP00000361021.3
 </td>
 <td style="text-align:right;">
 0
@@ -627,25 +619,25 @@ ENSP00000361021.3
 3
 </td>
 <td style="text-align:right;">
-11.614513
+9.088199
 </td>
 <td style="text-align:right;">
-92.49163
+91.77341
 </td>
 <td style="text-align:right;">
-92.49163
+91.77341
 </td>
 <td style="text-align:right;">
-1.740561e-07
-</td>
-<td style="text-align:right;">
-0.000000e+00
+5.238135e-06
 </td>
 <td style="text-align:right;">
 0.000000e+00
 </td>
 <td style="text-align:right;">
-2.712921e-04
+0.000000e+00
+</td>
+<td style="text-align:right;">
+1.299282e-02
 </td>
 <td style="text-align:right;">
 0.000000e+00
@@ -657,9 +649,6 @@ ENSP00000361021.3
 <tr>
 <td style="text-align:right;">
 CDH1
-</td>
-<td style="text-align:right;">
-ENSP00000261769.4
 </td>
 <td style="text-align:right;">
 3
@@ -674,25 +663,16 @@ ENSP00000261769.4
 13
 </td>
 <td style="text-align:right;">
-4.488897
+4.475685
 </td>
 <td style="text-align:right;">
-142.19777
+141.11002
 </td>
 <td style="text-align:right;">
-142.19777
+141.11002
 </td>
 <td style="text-align:right;">
-3.108585e-04
-</td>
-<td style="text-align:right;">
-0.000000e+00
-</td>
-<td style="text-align:right;">
-0.000000e+00
-</td>
-<td style="text-align:right;">
-2.657038e-01
+4.219075e-04
 </td>
 <td style="text-align:right;">
 0.000000e+00
@@ -700,60 +680,19 @@ ENSP00000261769.4
 <td style="text-align:right;">
 0.000000e+00
 </td>
-</tr>
-<tr>
 <td style="text-align:right;">
-MAP2K4
+5.232557e-01
 </td>
 <td style="text-align:right;">
-ENSP00000262445.5
+0.000000e+00
 </td>
 <td style="text-align:right;">
-0
-</td>
-<td style="text-align:right;">
-13
-</td>
-<td style="text-align:right;">
-9
-</td>
-<td style="text-align:right;">
-3
-</td>
-<td style="text-align:right;">
-10.481331
-</td>
-<td style="text-align:right;">
-77.49077
-</td>
-<td style="text-align:right;">
-77.49077
-</td>
-<td style="text-align:right;">
-1.663177e-06
-</td>
-<td style="text-align:right;">
-1.332268e-15
-</td>
-<td style="text-align:right;">
-1.110223e-16
-</td>
-<td style="text-align:right;">
-2.319432e-03
-</td>
-<td style="text-align:right;">
-2.941758e-12
-</td>
-<td style="text-align:right;">
-2.451465e-13
+0.000000e+00
 </td>
 </tr>
 <tr>
 <td style="text-align:right;">
 KMT2C
-</td>
-<td style="text-align:right;">
-ENSP00000262189.6
 </td>
 <td style="text-align:right;">
 5
@@ -768,39 +707,80 @@ ENSP00000262189.6
 2
 </td>
 <td style="text-align:right;">
-1.497858
+1.532738
 </td>
 <td style="text-align:right;">
-14.32712
+14.61201
 </td>
 <td style="text-align:right;">
-14.32712
+14.61201
 </td>
 <td style="text-align:right;">
-2.676400e-01
+2.523294e-01
 </td>
 <td style="text-align:right;">
-2.553513e-15
+3.663736e-15
 </td>
 <td style="text-align:right;">
 2.220446e-16
 </td>
 <td style="text-align:right;">
-7.910200e-01
+7.803695e-01
 </td>
 <td style="text-align:right;">
-5.204649e-12
+1.188736e-11
 </td>
 <td style="text-align:right;">
-4.525781e-13
+7.710721e-13
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+MAP2K4
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+13
+</td>
+<td style="text-align:right;">
+9
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+10.810199
+</td>
+<td style="text-align:right;">
+76.15288
+</td>
+<td style="text-align:right;">
+76.15288
+</td>
+<td style="text-align:right;">
+2.433399e-06
+</td>
+<td style="text-align:right;">
+4.107825e-15
+</td>
+<td style="text-align:right;">
+8.881784e-16
+</td>
+<td style="text-align:right;">
+7.041852e-03
+</td>
+<td style="text-align:right;">
+1.188736e-11
+</td>
+<td style="text-align:right;">
+2.570240e-12
 </td>
 </tr>
 <tr>
 <td style="text-align:right;">
 MAP3K1
-</td>
-<td style="text-align:right;">
-ENSP00000382423.3
 </td>
 <td style="text-align:right;">
 5
@@ -815,39 +795,36 @@ ENSP00000382423.3
 2
 </td>
 <td style="text-align:right;">
-2.976285
+2.988223
 </td>
 <td style="text-align:right;">
-24.41896
+24.31043
 </td>
 <td style="text-align:right;">
-24.41896
+24.31043
 </td>
 <td style="text-align:right;">
-2.751383e-03
+3.202730e-03
 </td>
 <td style="text-align:right;">
-1.221245e-15
+2.331468e-15
 </td>
 <td style="text-align:right;">
-1.176836e-14
+2.253753e-14
 </td>
 <td style="text-align:right;">
-7.910200e-01
+7.803695e-01
 </td>
 <td style="text-align:right;">
-2.941758e-12
+1.012032e-11
 </td>
 <td style="text-align:right;">
-2.227331e-11
+5.590273e-11
 </td>
 </tr>
 <tr>
 <td style="text-align:right;">
 AKT1
-</td>
-<td style="text-align:right;">
-ENSP00000270202.4
 </td>
 <td style="text-align:right;">
 1
@@ -862,7 +839,7 @@ ENSP00000270202.4
 0
 </td>
 <td style="text-align:right;">
-17.148712
+17.900089
 </td>
 <td style="text-align:right;">
 0.00000
@@ -871,30 +848,27 @@ ENSP00000270202.4
 0.00000
 </td>
 <td style="text-align:right;">
-1.171285e-13
+2.093881e-13
 </td>
 <td style="text-align:right;">
-5.747608e-01
+5.882058e-01
 </td>
 <td style="text-align:right;">
-5.659917e-13
+9.905410e-13
 </td>
 <td style="text-align:right;">
-2.387350e-10
+1.211868e-09
 </td>
 <td style="text-align:right;">
-8.421570e-01
+8.485461e-01
 </td>
 <td style="text-align:right;">
-7.893201e-10
+2.149845e-09
 </td>
 </tr>
 <tr>
 <td style="text-align:right;">
 ARID1A
-</td>
-<td style="text-align:right;">
-ENSP00000320485.7
 </td>
 <td style="text-align:right;">
 2
@@ -909,39 +883,36 @@ ENSP00000320485.7
 2
 </td>
 <td style="text-align:right;">
-1.998436
+2.100089
 </td>
 <td style="text-align:right;">
-27.51025
+28.62643
 </td>
 <td style="text-align:right;">
-27.51025
+28.62643
 </td>
 <td style="text-align:right;">
-1.371621e-01
+1.212432e-01
 </td>
 <td style="text-align:right;">
-4.649614e-13
+5.273559e-13
 </td>
 <td style="text-align:right;">
-2.422507e-12
+2.593925e-12
 </td>
 <td style="text-align:right;">
-7.910200e-01
+7.803695e-01
 </td>
 <td style="text-align:right;">
-8.800059e-10
+1.308069e-09
 </td>
 <td style="text-align:right;">
-3.209458e-09
+5.004258e-09
 </td>
 </tr>
 <tr>
 <td style="text-align:right;">
 NCOR1
-</td>
-<td style="text-align:right;">
-ENSP00000268712.2
 </td>
 <td style="text-align:right;">
 2
@@ -956,31 +927,31 @@ ENSP00000268712.2
 5
 </td>
 <td style="text-align:right;">
-2.631322
+2.637482
 </td>
 <td style="text-align:right;">
-18.50677
+18.67881
 </td>
 <td style="text-align:right;">
-18.50677
+18.67881
 </td>
 <td style="text-align:right;">
-1.900419e-02
+2.289725e-02
 </td>
 <td style="text-align:right;">
-4.472978e-12
+8.482326e-12
 </td>
 <td style="text-align:right;">
-3.332179e-11
+5.398637e-11
 </td>
 <td style="text-align:right;">
-7.910200e-01
+7.803695e-01
 </td>
 <td style="text-align:right;">
-7.901366e-09
+1.840983e-08
 </td>
 <td style="text-align:right;">
-4.204416e-08
+9.373654e-08
 </td>
 </tr>
 </tbody>
@@ -1014,17 +985,66 @@ necessary to look at these rates, but just to show that we can:</p>
 <span><span class="va">samples_to_check</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TCGA-A2-A3Y0"</span>, <span class="st">"TCGA-XX-A89A"</span>, <span class="st">"P-0000224"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/baseline_mutation_rates.html">baseline_mutation_rates</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, variant_ids <span class="op">=</span> <span class="va">variants_to_check</span>, samples <span class="op">=</span> <span class="va">samples_to_check</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## Key: &lt;Unique_Patient_Identifier&gt;</span></span>
-<span><span class="co">##    Unique_Patient_Identifier PIK3CA_E542K_ENSP00000263967.3</span></span>
-<span><span class="co">##                       &lt;char&gt;                          &lt;num&gt;</span></span>
-<span><span class="co">## 1:                 P-0000224                   8.932666e-06</span></span>
-<span><span class="co">## 2:              TCGA-A2-A3Y0                   1.773358e-06</span></span>
-<span><span class="co">## 3:              TCGA-XX-A89A                   1.211613e-05</span></span>
-<span><span class="co">##    PIK3CA_E545K_ENSP00000263967.3 PIK3CA_H1047R_ENSP00000263967.3</span></span>
-<span><span class="co">##                             &lt;num&gt;                           &lt;num&gt;</span></span>
-<span><span class="co">## 1:                   8.932666e-06                    7.888865e-07</span></span>
-<span><span class="co">## 2:                   1.773358e-06                    8.421009e-07</span></span>
-<span><span class="co">## 3:                   1.211613e-05                    8.045869e-08</span></span></code></pre>
+<table class="table table table-condensed">
+<thead><tr>
+<th style="text-align:right;">
+Unique_Patient_Identifier
+</th>
+<th style="text-align:right;">
+PIK3CA_E542K_ENSP00000263967.3
+</th>
+<th style="text-align:right;">
+PIK3CA_E545K_ENSP00000263967.3
+</th>
+<th style="text-align:right;">
+PIK3CA_H1047R_ENSP00000263967.3
+</th>
+</tr></thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+P-0000224
+</td>
+<td style="text-align:right;">
+9.15e-06
+</td>
+<td style="text-align:right;">
+9.15e-06
+</td>
+<td style="text-align:right;">
+1.11e-06
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+TCGA-A2-A3Y0
+</td>
+<td style="text-align:right;">
+1.84e-06
+</td>
+<td style="text-align:right;">
+1.84e-06
+</td>
+<td style="text-align:right;">
+8.73e-07
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+TCGA-XX-A89A
+</td>
+<td style="text-align:right;">
+1.32e-05
+</td>
+<td style="text-align:right;">
+1.32e-05
+</td>
+<td style="text-align:right;">
+2.23e-08
+</td>
+</tr>
+</tbody>
+</table>
 <p>Interestingly, PIK3CA H1047R, the most prevalent variant in our MAF
 data (246/1875 samples), is estimated to have a substantially lower rate
 of occurrence than E545K and E542K in these particular samples.</p>
@@ -1037,12 +1057,12 @@ intensity) under a model of selection. These cancer effects are directly
 proportional to the proliferative advantage provided by each variant.
 First, let’s calculate selection under the package’s default model of
 selection with ces_variant():</p>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Including an optional run_name</span></span>
 <span><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ces_variant.html">ces_variant</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, run_name <span class="op">=</span> <span class="st">"recurrents"</span><span class="op">)</span></span></code></pre></div>
 <p>Let’s visualize the most selected variants with
 <code><a href="../reference/plot_effects.html">plot_effects()</a></code>.</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_effects.html">plot_effects</a></span><span class="op">(</span>effects <span class="op">=</span> <span class="va">cesa</span><span class="op">$</span><span class="va">selection</span><span class="op">$</span><span class="va">recurrents</span><span class="op">)</span></span></code></pre></div>
 <p><img src="cancereffectsizeR_files/figure-html/unnamed-chunk-27-1.png" width="700"></p>
 <p><em>PIK3CA</em> and <em>ESR1</em> variants take many of the top
@@ -1055,10 +1075,9 @@ cancereffectsizeR’s assessment of selection at variant-level resolution
 confirm <em>ESR1</em>’s importance.</p>
 <p>Here’s a look at the effects of all recurrent variants across some of
 the highest-effect genes.</p>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">top_genes</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">selection</span><span class="op">$</span><span class="va">recurrents</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="op">-</span><span class="va">selection_intensity</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">gene</span><span class="op">)</span><span class="op">]</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span><span class="op">]</span></span>
-<span><span class="fu"><a href="../reference/plot_effects.html">plot_effects</a></span><span class="op">(</span><span class="va">cesa</span><span class="op">$</span><span class="va">selection</span><span class="op">$</span><span class="va">recurrents</span><span class="op">[</span><span class="va">gene</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="va">top_genes</span><span class="op">]</span>,</span>
-<span>  group_by <span class="op">=</span> <span class="st">"gene"</span>,</span>
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_effects.html">plot_effects</a></span><span class="op">(</span><span class="va">cesa</span><span class="op">$</span><span class="va">selection</span><span class="op">$</span><span class="va">recurrents</span>,</span>
+<span>  group_by <span class="op">=</span> <span class="st">"gene"</span>, topn <span class="op">=</span> <span class="fl">10</span>,</span>
 <span>  label_individual_variants <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p><img src="cancereffectsizeR_files/figure-html/unnamed-chunk-29-1.png" width="700"></p>
@@ -1107,40 +1126,251 @@ depending on the state of the other site.</p>
 <p>Let’s try two prevalent BRCA mutations, PIK3CA E545K (n=159) and AKT1
 E17K (n=82). Let’s also test E545K with a nearby PIK3CA variant, E542K
 (n=93).</p>
-<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Start by pulling full variant IDs (with protein identifier) from variants table</span></span>
-<span><span class="va">group1</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"PIK3CA_E545K"</span>, <span class="st">"AKT1_E17K"</span><span class="op">)</span>, <span class="va">variant_id</span>, on <span class="op">=</span> <span class="st">"variant_name"</span><span class="op">]</span></span>
-<span><span class="va">group2</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"PIK3CA_E545K"</span>, <span class="st">"PIK3CA_E542K"</span><span class="op">)</span>, <span class="va">variant_id</span>, on <span class="op">=</span> <span class="st">"variant_name"</span><span class="op">]</span></span>
+<span><span class="va">group1</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"PIK3CA E545K"</span>, <span class="st">"AKT1 E17K"</span><span class="op">)</span>, <span class="va">variant_id</span>, on <span class="op">=</span> <span class="st">"variant_name"</span><span class="op">]</span></span>
+<span><span class="va">group2</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"PIK3CA E545K"</span>, <span class="st">"PIK3CA E542K"</span><span class="op">)</span>, <span class="va">variant_id</span>, on <span class="op">=</span> <span class="st">"variant_name"</span><span class="op">]</span></span>
 <span></span>
 <span><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ces_epistasis.html">ces_epistasis</a></span><span class="op">(</span></span>
 <span>  cesa <span class="op">=</span> <span class="va">cesa</span>, variants <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">group1</span>, <span class="va">group2</span><span class="op">)</span>,</span>
 <span>  conf <span class="op">=</span> <span class="fl">.95</span>, run_name <span class="op">=</span> <span class="st">"variant_epistasis_example"</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">cesa</span><span class="op">$</span><span class="va">epistasis</span><span class="op">$</span><span class="va">variant_epistasis_example</span></span></code></pre></div>
-<pre><code><span><span class="co">##                         variant_A                      variant_B   ces_A0</span></span>
-<span><span class="co">##                            &lt;char&gt;                         &lt;char&gt;    &lt;num&gt;</span></span>
-<span><span class="co">## 1: PIK3CA_E545K_ENSP00000263967.3    AKT1_E17K_ENSP00000270202.4 11130.70</span></span>
-<span><span class="co">## 2: PIK3CA_E545K_ENSP00000263967.3 PIK3CA_E542K_ENSP00000263967.3 11189.57</span></span>
-<span><span class="co">##       ces_B0 ces_A_on_B ces_B_on_A  p_A_change  p_B_change  p_epistasis</span></span>
-<span><span class="co">##        &lt;num&gt;      &lt;num&gt;      &lt;num&gt;       &lt;num&gt;       &lt;num&gt;        &lt;num&gt;</span></span>
-<span><span class="co">## 1: 20326.259      0.001   4951.256 0.178474474 0.196913991 6.427694e-03</span></span>
-<span><span class="co">## 2:  6503.937      0.001      0.001 0.007341657 0.006866898 5.072464e-05</span></span>
-<span><span class="co">##    expected_nAB_epistasis expected_nAB_null AB_epistatic_ratio   nA0   nB0</span></span>
-<span><span class="co">##                     &lt;num&gt;             &lt;num&gt;              &lt;num&gt; &lt;int&gt; &lt;int&gt;</span></span>
-<span><span class="co">## 1:                     NA                NA                 NA   159    80</span></span>
-<span><span class="co">## 2:                     NA                NA                 NA   160    93</span></span>
-<span><span class="co">##      nAB   n00 n_total ci_low_95_ces_A0 ci_high_95_ces_A0 ci_low_95_ces_B0</span></span>
-<span><span class="co">##    &lt;int&gt; &lt;int&gt;   &lt;int&gt;            &lt;num&gt;             &lt;num&gt;            &lt;num&gt;</span></span>
-<span><span class="co">## 1:     1  1614    1854         9492.836          12947.23        16190.360</span></span>
-<span><span class="co">## 2:     0  1601    1854         9542.933          13015.87         5269.582</span></span>
-<span><span class="co">##    ci_high_95_ces_B0 ci_low_95_ces_A_on_B ci_high_95_ces_A_on_B</span></span>
-<span><span class="co">##                &lt;num&gt;                &lt;num&gt;                 &lt;num&gt;</span></span>
-<span><span class="co">## 1:         25113.390                   NA              8977.807</span></span>
-<span><span class="co">## 2:          7917.667                   NA              4279.271</span></span>
-<span><span class="co">##    ci_low_95_ces_B_on_A ci_high_95_ces_B_on_A</span></span>
-<span><span class="co">##                   &lt;num&gt;                 &lt;num&gt;</span></span>
-<span><span class="co">## 1:             282.2305             21877.772</span></span>
-<span><span class="co">## 2:                   NA              2431.834</span></span></code></pre>
+<table class="table table table-condensed">
+<thead><tr>
+<th style="text-align:right;">
+variant_A
+</th>
+<th style="text-align:right;">
+variant_B
+</th>
+<th style="text-align:right;">
+ces_A0
+</th>
+<th style="text-align:right;">
+ces_B0
+</th>
+<th style="text-align:right;">
+ces_A_on_B
+</th>
+<th style="text-align:right;">
+ces_B_on_A
+</th>
+<th style="text-align:right;">
+p_A_change
+</th>
+<th style="text-align:right;">
+p_B_change
+</th>
+<th style="text-align:right;">
+p_epistasis
+</th>
+<th style="text-align:right;">
+expected_nAB_epistasis
+</th>
+<th style="text-align:right;">
+expected_nAB_null
+</th>
+<th style="text-align:right;">
+AB_epistatic_ratio
+</th>
+<th style="text-align:right;">
+nA0
+</th>
+<th style="text-align:right;">
+nB0
+</th>
+<th style="text-align:right;">
+nAB
+</th>
+<th style="text-align:right;">
+n00
+</th>
+<th style="text-align:right;">
+n_total
+</th>
+<th style="text-align:right;">
+ci_low_95_ces_A0
+</th>
+<th style="text-align:right;">
+ci_high_95_ces_A0
+</th>
+<th style="text-align:right;">
+ci_low_95_ces_B0
+</th>
+<th style="text-align:right;">
+ci_high_95_ces_B0
+</th>
+<th style="text-align:right;">
+ci_low_95_ces_A_on_B
+</th>
+<th style="text-align:right;">
+ci_high_95_ces_A_on_B
+</th>
+<th style="text-align:right;">
+ci_low_95_ces_B_on_A
+</th>
+<th style="text-align:right;">
+ci_high_95_ces_B_on_A
+</th>
+</tr></thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+PIK3CA_E545K_ENSP00000263967.3
+</td>
+<td style="text-align:right;">
+AKT1_E17K_ENSP00000497822.1
+</td>
+<td style="text-align:right;">
+10855
+</td>
+<td style="text-align:right;">
+26453
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+<td style="text-align:right;">
+6541.475
+</td>
+<td style="text-align:right;">
+0.17701
+</td>
+<td style="text-align:right;">
+0.20577
+</td>
+<td style="text-align:right;">
+6.76e-03
+</td>
+<td style="text-align:right;">
+1.02e+00
+</td>
+<td style="text-align:right;">
+7.54
+</td>
+<td style="text-align:right;">
+1.35e-01
+</td>
+<td style="text-align:right;">
+159
+</td>
+<td style="text-align:right;">
+80
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1614
+</td>
+<td style="text-align:right;">
+1854
+</td>
+<td style="text-align:right;">
+9257
+</td>
+<td style="text-align:right;">
+12626
+</td>
+<td style="text-align:right;">
+21071
+</td>
+<td style="text-align:right;">
+32683
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+8735
+</td>
+<td style="text-align:right;">
+373
+</td>
+<td style="text-align:right;">
+28908
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+PIK3CA_E545K_ENSP00000263967.3
+</td>
+<td style="text-align:right;">
+PIK3CA_E542K_ENSP00000263967.3
+</td>
+<td style="text-align:right;">
+10913
+</td>
+<td style="text-align:right;">
+6343
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+<td style="text-align:right;">
+0.00732
+</td>
+<td style="text-align:right;">
+0.00671
+</td>
+<td style="text-align:right;">
+4.94e-05
+</td>
+<td style="text-align:right;">
+1.31e-06
+</td>
+<td style="text-align:right;">
+9.34
+</td>
+<td style="text-align:right;">
+1.40e-07
+</td>
+<td style="text-align:right;">
+160
+</td>
+<td style="text-align:right;">
+93
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1601
+</td>
+<td style="text-align:right;">
+1854
+</td>
+<td style="text-align:right;">
+9307
+</td>
+<td style="text-align:right;">
+12694
+</td>
+<td style="text-align:right;">
+5139
+</td>
+<td style="text-align:right;">
+7722
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+4171
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+2360
+</td>
+</tr>
+</tbody>
+</table>
 <p>Confidence intervals tend to be wide in epistatic analyses. Even with
 the most prevalent somatic variants, both co-occurrence and mutual
 exclusivity can often be explained by chance. The output for PIK3CA
@@ -1168,35 +1398,176 @@ variant.”) Below, we define a CompoundVariantSet with two compound
 variants: All <em>PIK3CA</em> variants with MAF prevalence &gt; 1, and
 AKT E17K. We then pass the CompoundVariantSet to ces_epistasis(), which
 will test all pairs of compound variants (here, just the one pair).</p>
-<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Collect all the variants that we want in the CompoundVariantSet into a table</span></span>
 <span><span class="va">top_PIK3CA</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="va">gene</span> <span class="op">==</span> <span class="st">"PIK3CA"</span> <span class="op">&amp;</span> <span class="va">maf_prevalence</span> <span class="op">&gt;</span> <span class="fl">1</span><span class="op">]</span></span>
-<span><span class="va">top_akt1</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="va">variant_name</span> <span class="op">==</span> <span class="st">"AKT1_E17K"</span><span class="op">]</span></span>
+<span><span class="va">top_akt1</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="va">variant_name</span> <span class="op">==</span> <span class="st">"AKT1 E17K"</span><span class="op">]</span></span>
 <span><span class="va">for_compound</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="va">top_PIK3CA</span>, <span class="va">top_akt1</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># see define_compound_variants() documentation for details on arguments</span></span>
 <span><span class="va">comp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/define_compound_variants.html">define_compound_variants</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, variant_table <span class="op">=</span> <span class="va">for_compound</span>, by <span class="op">=</span> <span class="st">"gene"</span>, merge_distance <span class="op">=</span> <span class="cn">Inf</span><span class="op">)</span></span>
 <span><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ces_epistasis.html">ces_epistasis</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, variants <span class="op">=</span> <span class="va">comp</span>, run_name <span class="op">=</span> <span class="st">"AKT1_E17K_vs_PIK3CA"</span><span class="op">)</span></span>
 <span><span class="va">cesa</span><span class="op">$</span><span class="va">epistasis</span><span class="op">$</span><span class="va">AKT1_E17K_vs_PIK3CA</span></span></code></pre></div>
-<pre><code><span><span class="co">##    variant_A variant_B   ces_A0  ces_B0 ces_A_on_B ces_B_on_A   p_A_change</span></span>
-<span><span class="co">##       &lt;char&gt;    &lt;char&gt;    &lt;num&gt;   &lt;num&gt;      &lt;num&gt;      &lt;num&gt;        &lt;num&gt;</span></span>
-<span><span class="co">## 1:  PIK3CA.1    AKT1.1 3810.182 24607.8   773.8737      0.001 0.0001711363</span></span>
-<span><span class="co">##      p_B_change  p_epistasis expected_nAB_epistasis expected_nAB_null</span></span>
-<span><span class="co">##           &lt;num&gt;        &lt;num&gt;                  &lt;num&gt;             &lt;num&gt;</span></span>
-<span><span class="co">## 1: 0.0003463118 4.249944e-11               3.975553          29.06133</span></span>
-<span><span class="co">##    AB_epistatic_ratio   nA0   nB0   nAB   n00 n_total ci_low_95_ces_A0</span></span>
-<span><span class="co">##                 &lt;num&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt;   &lt;int&gt;            &lt;num&gt;</span></span>
-<span><span class="co">## 1:          0.1367987   642    77     4  1131    1854         3520.196</span></span>
-<span><span class="co">##    ci_high_95_ces_A0 ci_low_95_ces_B0 ci_high_95_ces_B0 ci_low_95_ces_A_on_B</span></span>
-<span><span class="co">##                &lt;num&gt;            &lt;num&gt;             &lt;num&gt;                &lt;num&gt;</span></span>
-<span><span class="co">## 1:          4116.012         19625.39          30372.21             239.0299</span></span>
-<span><span class="co">##    ci_high_95_ces_A_on_B ci_low_95_ces_B_on_A ci_high_95_ces_B_on_A</span></span>
-<span><span class="co">##                    &lt;num&gt;                &lt;num&gt;                 &lt;num&gt;</span></span>
-<span><span class="co">## 1:              1815.867                   NA               6207.78</span></span></code></pre>
+<table class="table table table-condensed">
+<thead><tr>
+<th style="text-align:right;">
+variant_A
+</th>
+<th style="text-align:right;">
+variant_B
+</th>
+<th style="text-align:right;">
+ces_A0
+</th>
+<th style="text-align:right;">
+ces_B0
+</th>
+<th style="text-align:right;">
+ces_A_on_B
+</th>
+<th style="text-align:right;">
+ces_B_on_A
+</th>
+<th style="text-align:right;">
+p_A_change
+</th>
+<th style="text-align:right;">
+p_B_change
+</th>
+<th style="text-align:right;">
+p_epistasis
+</th>
+<th style="text-align:right;">
+expected_nAB_epistasis
+</th>
+<th style="text-align:right;">
+expected_nAB_null
+</th>
+<th style="text-align:right;">
+AB_epistatic_ratio
+</th>
+<th style="text-align:right;">
+nA0
+</th>
+<th style="text-align:right;">
+nB0
+</th>
+<th style="text-align:right;">
+nAB
+</th>
+<th style="text-align:right;">
+n00
+</th>
+<th style="text-align:right;">
+n_total
+</th>
+<th style="text-align:right;">
+ci_low_95_ces_A0
+</th>
+<th style="text-align:right;">
+ci_high_95_ces_A0
+</th>
+<th style="text-align:right;">
+ci_low_95_ces_B0
+</th>
+<th style="text-align:right;">
+ci_high_95_ces_B0
+</th>
+<th style="text-align:right;">
+ci_low_95_ces_A_on_B
+</th>
+<th style="text-align:right;">
+ci_high_95_ces_A_on_B
+</th>
+<th style="text-align:right;">
+ci_low_95_ces_B_on_A
+</th>
+<th style="text-align:right;">
+ci_high_95_ces_B_on_A
+</th>
+</tr></thead>
+<tbody><tr>
+<td style="text-align:right;">
+PIK3CA
+</td>
+<td style="text-align:right;">
+AKT1
+</td>
+<td style="text-align:right;">
+3756
+</td>
+<td style="text-align:right;">
+30457
+</td>
+<td style="text-align:right;">
+6.88
+</td>
+<td style="text-align:right;">
+6215
+</td>
+<td style="text-align:right;">
+0.000182
+</td>
+<td style="text-align:right;">
+0.000392
+</td>
+<td style="text-align:right;">
+4.87e-11
+</td>
+<td style="text-align:right;">
+3.98
+</td>
+<td style="text-align:right;">
+29.1
+</td>
+<td style="text-align:right;">
+0.137
+</td>
+<td style="text-align:right;">
+642
+</td>
+<td style="text-align:right;">
+77
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+1131
+</td>
+<td style="text-align:right;">
+1854
+</td>
+<td style="text-align:right;">
+3471
+</td>
+<td style="text-align:right;">
+4056
+</td>
+<td style="text-align:right;">
+24153
+</td>
+<td style="text-align:right;">
+37800
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+1014
+</td>
+<td style="text-align:right;">
+1874
+</td>
+<td style="text-align:right;">
+14410
+</td>
+</tr></tbody>
+</table>
 <p>Note that the effect sizes are smaller for PIK3CA here, since we
-mixed in lots of lower-effect PIK3CA variants. While four samples have
-both AKT1 E17K and one of the PIK3CA variants, this result strengthens
-the case for AKT1 mutation reducing selection for PIK3CA mutation.</p>
+mixed in lots of lower-effect PIK3CA variants. While four samples carry
+both AKT1 E17K and a PIK3CA variant, this result strengthens the case
+for AKT1 mutation reducing selection for PIK3CA mutation.</p>
 </div>
 <div class="section level3">
 <h3 id="gene-level-epistasis">Gene-level epistasis<a class="anchor" aria-label="anchor" href="#gene-level-epistasis"></a>
@@ -1207,43 +1578,443 @@ gene level. The <code>variants</code> argument provides three options
 for which variants from each gene to include in the inference:
 “recurrent” uses all recurrent variants; “nonsilent” uses nonsynonymous
 coding variants and any variants in essential splice sites; or,
-alternatively, supply a custom table of variants.</p>
-<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
+alternatively, supply a custom table of variants. In order to take
+advantage of the targeted sequencing data (which doesn’t quite cover all
+mutated sites in these genes), we will supply a custom table of variants
+that are covered across all samples.</p>
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">genes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"AKT1"</span>, <span class="st">"PIK3CA"</span>, <span class="st">"TP53"</span><span class="op">)</span></span>
-<span><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ces_gene_epistasis.html">ces_gene_epistasis</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, genes <span class="op">=</span> <span class="va">genes</span>, variants <span class="op">=</span> <span class="st">"nonsilent"</span>, run_name <span class="op">=</span> <span class="st">"gene_epistasis_example"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Get consensus covered regions</span></span>
+<span><span class="va">combined_coverage</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sets.html" class="external-link">intersect</a></span><span class="op">(</span><span class="va">cesa</span><span class="op">$</span><span class="va">coverage_ranges</span><span class="op">$</span><span class="va">exome</span><span class="op">$</span><span class="va">`exome+`</span>, <span class="va">cesa</span><span class="op">$</span><span class="va">coverage_ranges</span><span class="op">$</span><span class="va">targeted</span><span class="op">$</span><span class="va">top_genes</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Get variants in the genes of interest that have sequencing coverage in all samples</span></span>
+<span><span class="va">variants</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/select_variants.html">select_variants</a></span><span class="op">(</span><span class="va">cesa</span>, genes <span class="op">=</span> <span class="va">genes</span>, gr <span class="op">=</span> <span class="va">combined_coverage</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ces_gene_epistasis.html">ces_gene_epistasis</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, genes <span class="op">=</span> <span class="va">genes</span>, variants <span class="op">=</span> <span class="va">variants</span>, run_name <span class="op">=</span> <span class="st">"gene_epistasis_example"</span><span class="op">)</span></span>
 <span><span class="va">cesa</span><span class="op">$</span><span class="va">epistasis</span><span class="op">$</span><span class="va">gene_epistasis_example</span></span></code></pre></div>
-<pre><code><span><span class="co">##    variant_A variant_B   ces_A0   ces_B0 ces_A_on_B ces_B_on_A   p_A_change</span></span>
-<span><span class="co">##       &lt;char&gt;    &lt;char&gt;    &lt;num&gt;    &lt;num&gt;      &lt;num&gt;      &lt;num&gt;        &lt;num&gt;</span></span>
-<span><span class="co">## 1:      AKT1    PIK3CA 3581.700 2299.752      0.001   634.1875 0.0005423974</span></span>
-<span><span class="co">## 2:      AKT1      TP53 4112.667 1192.098   1876.640  2158.4580 0.9999999999</span></span>
-<span><span class="co">## 3:    PIK3CA      TP53 2717.966 1231.045   1335.496  1210.1055 1.0000000000</span></span>
-<span><span class="co">##      p_B_change  p_epistasis expected_nAB_epistasis expected_nAB_null</span></span>
-<span><span class="co">##           &lt;num&gt;        &lt;num&gt;                  &lt;num&gt;             &lt;num&gt;</span></span>
-<span><span class="co">## 1: 0.0005989039 3.950251e-11               6.107632          32.75439</span></span>
-<span><span class="co">## 2: 1.0000000000 9.130784e-01              13.999997          12.67865</span></span>
-<span><span class="co">## 3: 0.9999999994 6.154169e-02              59.999998          73.82244</span></span>
-<span><span class="co">##    AB_epistatic_ratio   nA0   nB0   nAB   n00 n_total ci_low_95_ces_A0</span></span>
-<span><span class="co">##                 &lt;num&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt;   &lt;int&gt;            &lt;num&gt;</span></span>
-<span><span class="co">## 1:          0.1864676    82   665     6  1101    1854         2883.614</span></span>
-<span><span class="co">## 2:          1.1042184    48   168    14   660     890         3127.742</span></span>
-<span><span class="co">## 3:          0.8127609   301   122    60   407     890         2429.439</span></span>
-<span><span class="co">##    ci_high_95_ces_A0 ci_low_95_ces_B0 ci_high_95_ces_B0 ci_low_95_ces_A_on_B</span></span>
-<span><span class="co">##                &lt;num&gt;            &lt;num&gt;             &lt;num&gt;                &lt;num&gt;</span></span>
-<span><span class="co">## 1:          4384.660         2127.634          2481.117                   NA</span></span>
-<span><span class="co">## 2:          5278.438         1020.702          1381.731                   NA</span></span>
-<span><span class="co">## 3:          3028.661         1028.612          1457.914             500.0392</span></span>
-<span><span class="co">##    ci_high_95_ces_A_on_B ci_low_95_ces_B_on_A ci_high_95_ces_B_on_A</span></span>
-<span><span class="co">##                    &lt;num&gt;                &lt;num&gt;                 &lt;num&gt;</span></span>
-<span><span class="co">## 1:              860.7654             250.5081              1299.106</span></span>
-<span><span class="co">## 2:             7016.7307             960.3172              3944.565</span></span>
-<span><span class="co">## 3:             2356.6830             797.9251              1704.604</span></span></code></pre>
+<table class="table table table-condensed">
+<thead><tr>
+<th style="text-align:right;">
+variant_A
+</th>
+<th style="text-align:right;">
+variant_B
+</th>
+<th style="text-align:right;">
+ces_A0
+</th>
+<th style="text-align:right;">
+ces_B0
+</th>
+<th style="text-align:right;">
+ces_A_on_B
+</th>
+<th style="text-align:right;">
+ces_B_on_A
+</th>
+<th style="text-align:right;">
+p_A_change
+</th>
+<th style="text-align:right;">
+p_B_change
+</th>
+<th style="text-align:right;">
+p_epistasis
+</th>
+<th style="text-align:right;">
+expected_nAB_epistasis
+</th>
+<th style="text-align:right;">
+expected_nAB_null
+</th>
+<th style="text-align:right;">
+AB_epistatic_ratio
+</th>
+<th style="text-align:right;">
+nA0
+</th>
+<th style="text-align:right;">
+nB0
+</th>
+<th style="text-align:right;">
+nAB
+</th>
+<th style="text-align:right;">
+n00
+</th>
+<th style="text-align:right;">
+n_total
+</th>
+<th style="text-align:right;">
+ci_low_95_ces_A0
+</th>
+<th style="text-align:right;">
+ci_high_95_ces_A0
+</th>
+<th style="text-align:right;">
+ci_low_95_ces_B0
+</th>
+<th style="text-align:right;">
+ci_high_95_ces_B0
+</th>
+<th style="text-align:right;">
+ci_low_95_ces_A_on_B
+</th>
+<th style="text-align:right;">
+ci_high_95_ces_A_on_B
+</th>
+<th style="text-align:right;">
+ci_low_95_ces_B_on_A
+</th>
+<th style="text-align:right;">
+ci_high_95_ces_B_on_A
+</th>
+</tr></thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+AKT1
+</td>
+<td style="text-align:right;">
+PIK3CA
+</td>
+<td style="text-align:right;">
+3370
+</td>
+<td style="text-align:right;">
+1739
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+<td style="text-align:right;">
+547.624
+</td>
+<td style="text-align:right;">
+0.00215
+</td>
+<td style="text-align:right;">
+0.0014
+</td>
+<td style="text-align:right;">
+2.00e-10
+</td>
+<td style="text-align:right;">
+7.04
+</td>
+<td style="text-align:right;">
+33.5
+</td>
+<td style="text-align:right;">
+0.210
+</td>
+<td style="text-align:right;">
+83
+</td>
+<td style="text-align:right;">
+667
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+1097
+</td>
+<td style="text-align:right;">
+1854
+</td>
+<td style="text-align:right;">
+2719
+</td>
+<td style="text-align:right;">
+4116
+</td>
+<td style="text-align:right;">
+1609
+</td>
+<td style="text-align:right;">
+1876
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+886
+</td>
+<td style="text-align:right;">
+234
+</td>
+<td style="text-align:right;">
+1071
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+AKT1
+</td>
+<td style="text-align:right;">
+TP53
+</td>
+<td style="text-align:right;">
+2521
+</td>
+<td style="text-align:right;">
+1616
+</td>
+<td style="text-align:right;">
+3576.736
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+<td style="text-align:right;">
+0.94556
+</td>
+<td style="text-align:right;">
+0.8365
+</td>
+<td style="text-align:right;">
+2.32e-01
+</td>
+<td style="text-align:right;">
+15.36
+</td>
+<td style="text-align:right;">
+21.6
+</td>
+<td style="text-align:right;">
+0.712
+</td>
+<td style="text-align:right;">
+75
+</td>
+<td style="text-align:right;">
+426
+</td>
+<td style="text-align:right;">
+15
+</td>
+<td style="text-align:right;">
+1338
+</td>
+<td style="text-align:right;">
+1854
+</td>
+<td style="text-align:right;">
+1993
+</td>
+<td style="text-align:right;">
+3136
+</td>
+<td style="text-align:right;">
+1470
+</td>
+<td style="text-align:right;">
+1773
+</td>
+<td style="text-align:right;">
+2053
+</td>
+<td style="text-align:right;">
+5723
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+1192
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+PIK3CA
+</td>
+<td style="text-align:right;">
+TP53
+</td>
+<td style="text-align:right;">
+1591
+</td>
+<td style="text-align:right;">
+1983
+</td>
+<td style="text-align:right;">
+2343.782
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+<td style="text-align:right;">
+0.23271
+</td>
+<td style="text-align:right;">
+0.0154
+</td>
+<td style="text-align:right;">
+8.42e-06
+</td>
+<td style="text-align:right;">
+126.90
+</td>
+<td style="text-align:right;">
+161.9
+</td>
+<td style="text-align:right;">
+0.784
+</td>
+<td style="text-align:right;">
+551
+</td>
+<td style="text-align:right;">
+318
+</td>
+<td style="text-align:right;">
+123
+</td>
+<td style="text-align:right;">
+862
+</td>
+<td style="text-align:right;">
+1854
+</td>
+<td style="text-align:right;">
+1460
+</td>
+<td style="text-align:right;">
+1729
+</td>
+<td style="text-align:right;">
+1802
+</td>
+<td style="text-align:right;">
+2176
+</td>
+<td style="text-align:right;">
+1936
+</td>
+<td style="text-align:right;">
+2813
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+319
+</td>
+</tr>
+</tbody>
+</table>
 <p>Mutational selection in the two oncogenes appears to be maintained
 after mutation in TP53. In contrast, loss of TP53 is less selected after
-mutations in AKT1/PIK3CA; one explanation is that cell populations in
+mutations in AKT1/PIK3CA. One explanation is that cell populations in
 which these powerful drivers have fixed must have already subverted
 tumor suppression mechanisms, making TP53 mutations superfluous. The two
-oncogenes also appear to show some mutual exclusivity, in that selection
-for each is reduced after mutation in the other.</p>
+oncogenes show significant mutual exclusivity, in that selection for
+each is reduced after mutation in the other.</p>
+<p>Here’s a plot showing the change in selection for mutated sites in
+each gene after mutation in the other gene. Asterisks indicate
+significant changes in selection for individual genes. Not infrequently,
+the epistatic model is significantly better than a no-epistasis model,
+but there is not significance for altered selection in either gene
+individually, since a strong enough change in selection in either one of
+the genes could sufficiently explain the data.</p>
+<p><img src="cancereffectsizeR_files/figure-html/unnamed-chunk-36-1.png" width="700"></p>
+<details><summary>
+(Show/hide epistasis plot code)
+</summary><div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">require</a></span><span class="op">(</span><span class="va">grid</span><span class="op">)</span> <span class="co"># Need the grid package for this plot</span></span>
+<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">epistasis</span><span class="op">$</span><span class="va">gene_epistasis_example</span></span>
+<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="va">results</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span></span>
+<span>  v1 <span class="op">=</span> <span class="va">variant_A</span>, v2 <span class="op">=</span> <span class="va">variant_B</span>, <span class="va">ces_A0</span>, <span class="va">ces_B0</span>, <span class="va">ces_A_on_B</span>,</span>
+<span>  <span class="va">ces_B_on_A</span>, <span class="va">p_A_change</span>, <span class="va">p_B_change</span>, <span class="va">p_epistasis</span></span>
+<span><span class="op">)</span><span class="op">]</span></span>
+<span></span>
+<span><span class="co"># By change, we mean fold-change of selection on mutant background over wildtype background</span></span>
+<span><span class="va">results</span><span class="op">[</span>, <span class="va">change_in_v2</span> <span class="op">:=</span> <span class="va">ces_B_on_A</span> <span class="op">/</span> <span class="va">ces_B0</span><span class="op">]</span></span>
+<span><span class="va">results</span><span class="op">[</span>, <span class="va">change_in_v1</span> <span class="op">:=</span> <span class="va">ces_A_on_B</span> <span class="op">/</span> <span class="va">ces_A0</span><span class="op">]</span></span>
+<span></span>
+<span><span class="co"># Put in desired order for display</span></span>
+<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="va">results</span><span class="op">[</span>, <span class="va">pairname</span> <span class="op">:=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="va">v1</span>, <span class="va">v2</span>, sep <span class="op">=</span> <span class="st">"."</span><span class="op">)</span><span class="op">]</span></span>
+<span></span>
+<span><span class="va">results</span><span class="op">[</span>, <span class="va">x</span> <span class="op">:=</span> <span class="fl">1</span><span class="op">:</span><span class="va">.N</span><span class="op">]</span></span>
+<span><span class="va">results</span><span class="op">[</span>, <span class="va">v1_x</span> <span class="op">:=</span> <span class="va">x</span> <span class="op">-</span> <span class="fl">.2</span><span class="op">]</span></span>
+<span><span class="va">results</span><span class="op">[</span>, <span class="va">v2_x</span> <span class="op">:=</span> <span class="va">x</span> <span class="op">+</span> <span class="fl">.2</span><span class="op">]</span></span>
+<span><span class="va">results</span><span class="op">[</span>, <span class="va">alpha</span> <span class="op">:=</span> <span class="fl">.6</span><span class="op">]</span></span>
+<span><span class="va">results</span><span class="op">[</span><span class="va">p_epistasis</span> <span class="op">&lt;</span> <span class="fl">.05</span>, <span class="va">alpha</span> <span class="op">:=</span> <span class="fl">1</span><span class="op">]</span></span>
+<span></span>
+<span><span class="va">results</span><span class="op">[</span>, <span class="va">v1_signif</span> <span class="op">:=</span> <span class="st">""</span><span class="op">]</span></span>
+<span><span class="va">results</span><span class="op">[</span><span class="va">p_A_change</span> <span class="op">&lt;</span> <span class="fl">.05</span>, <span class="va">v1_signif</span> <span class="op">:=</span> <span class="st">"*"</span><span class="op">]</span></span>
+<span><span class="va">results</span><span class="op">[</span><span class="va">p_A_change</span> <span class="op">&lt;</span> <span class="fl">.01</span>, <span class="va">v1_signif</span> <span class="op">:=</span> <span class="st">"**"</span><span class="op">]</span></span>
+<span><span class="va">results</span><span class="op">[</span><span class="va">p_A_change</span> <span class="op">&lt;</span> <span class="fl">.001</span>, <span class="va">v1_signif</span> <span class="op">:=</span> <span class="st">"***"</span><span class="op">]</span></span>
+<span><span class="va">results</span><span class="op">[</span>, <span class="va">v1_signif_y</span> <span class="op">:=</span> <span class="va">change_in_v1</span> <span class="op">+</span> <span class="op">(</span><span class="fl">.13</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/sign.html" class="external-link">sign</a></span><span class="op">(</span><span class="va">change_in_v1</span> <span class="op">-</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">]</span></span>
+<span></span>
+<span><span class="va">results</span><span class="op">[</span>, <span class="va">v2_signif</span> <span class="op">:=</span> <span class="st">""</span><span class="op">]</span></span>
+<span><span class="va">results</span><span class="op">[</span><span class="va">p_B_change</span> <span class="op">&lt;</span> <span class="fl">.05</span>, <span class="va">v2_signif</span> <span class="op">:=</span> <span class="st">"*"</span><span class="op">]</span></span>
+<span><span class="va">results</span><span class="op">[</span><span class="va">p_B_change</span> <span class="op">&lt;</span> <span class="fl">.01</span>, <span class="va">v2_signif</span> <span class="op">:=</span> <span class="st">"**"</span><span class="op">]</span></span>
+<span><span class="va">results</span><span class="op">[</span><span class="va">p_B_change</span> <span class="op">&lt;</span> <span class="fl">.001</span>, <span class="va">v2_signif</span> <span class="op">:=</span> <span class="st">"***"</span><span class="op">]</span></span>
+<span><span class="va">results</span><span class="op">[</span>, <span class="va">v2_signif_y</span> <span class="op">:=</span> <span class="va">change_in_v2</span> <span class="op">+</span> <span class="op">(</span><span class="fl">.13</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/sign.html" class="external-link">sign</a></span><span class="op">(</span><span class="va">change_in_v2</span> <span class="op">-</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">]</span></span>
+<span></span>
+<span><span class="va">x_labels</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu">S4Vectors</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/S4Vectors/man/zip-methods.html" class="external-link">zipup</a></span><span class="op">(</span><span class="va">results</span><span class="op">$</span><span class="va">v1</span>, <span class="va">results</span><span class="op">$</span><span class="va">v2</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">x_label_pos</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu">S4Vectors</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/S4Vectors/man/zip-methods.html" class="external-link">zipup</a></span><span class="op">(</span><span class="va">results</span><span class="op">$</span><span class="va">v1_x</span>, <span class="va">results</span><span class="op">$</span><span class="va">v2_x</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Have to get fancy to depict significance nicely in legend.</span></span>
+<span><span class="va">draw_signif_key</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">params</span>, <span class="va">size</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/grid/grid.grob.html" class="external-link">grobTree</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/grid/grid.rect.html" class="external-link">rectGrob</a></span><span class="op">(</span></span>
+<span>      x <span class="op">=</span> <span class="fl">.25</span>, y <span class="op">=</span> <span class="fl">.5</span>, width <span class="op">=</span> <span class="fl">.5</span>, height <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>      gp <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/grid/gpar.html" class="external-link">gpar</a></span><span class="op">(</span>col <span class="op">=</span> <span class="cn">NA</span>, fill <span class="op">=</span> <span class="fu">alpha</span><span class="op">(</span><span class="st">"plum4"</span>, <span class="va">data</span><span class="op">$</span><span class="va">alpha</span><span class="op">)</span>, lty <span class="op">=</span> <span class="va">data</span><span class="op">$</span><span class="va">linetype</span><span class="op">)</span></span>
+<span>    <span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/grid/grid.rect.html" class="external-link">rectGrob</a></span><span class="op">(</span></span>
+<span>      x <span class="op">=</span> <span class="fl">.75</span>, y <span class="op">=</span> <span class="fl">.5</span>, width <span class="op">=</span> <span class="fl">.5</span>, height <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>      gp <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/grid/gpar.html" class="external-link">gpar</a></span><span class="op">(</span>col <span class="op">=</span> <span class="cn">NA</span>, fill <span class="op">=</span> <span class="fu">alpha</span><span class="op">(</span><span class="st">"sandybrown"</span>, <span class="va">data</span><span class="op">$</span><span class="va">alpha</span><span class="op">)</span>, lty <span class="op">=</span> <span class="va">data</span><span class="op">$</span><span class="va">linetype</span><span class="op">)</span></span>
+<span>    <span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="fu">ggplot</span><span class="op">(</span>data <span class="op">=</span> <span class="va">results</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="co"># Put in a reference line depicting no change in selection</span></span>
+<span>  <span class="fu">geom_hline</span><span class="op">(</span>yintercept <span class="op">=</span> <span class="fl">1</span>, color <span class="op">=</span> <span class="st">"darkgrey"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">geom_rect</span><span class="op">(</span><span class="fu">aes</span><span class="op">(</span>xmin <span class="op">=</span> <span class="va">v1_x</span> <span class="op">-</span> <span class="fl">.2</span>, xmax <span class="op">=</span> <span class="va">v1_x</span> <span class="op">+</span> <span class="fl">.2</span>, ymin <span class="op">=</span> <span class="fl">1</span>, ymax <span class="op">=</span> <span class="va">change_in_v1</span>, fill <span class="op">=</span> <span class="st">"v1"</span>, alpha <span class="op">=</span> <span class="va">alpha</span><span class="op">)</span>,</span>
+<span>    show.legend <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="cn">FALSE</span>, fill <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span>  <span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">geom_rect</span><span class="op">(</span><span class="fu">aes</span><span class="op">(</span>xmin <span class="op">=</span> <span class="fl">1</span>, xmax <span class="op">=</span> <span class="fl">1</span>, ymin <span class="op">=</span> <span class="fl">0</span>, ymax <span class="op">=</span> <span class="fl">0</span>, alpha <span class="op">=</span> <span class="va">alpha</span><span class="op">)</span>,</span>
+<span>    show.legend <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="cn">TRUE</span>, fill <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>, key_glyph <span class="op">=</span> <span class="va">draw_signif_key</span></span>
+<span>  <span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">geom_text</span><span class="op">(</span><span class="fu">aes</span><span class="op">(</span>x <span class="op">=</span> <span class="va">v1_x</span>, y <span class="op">=</span> <span class="va">v1_signif_y</span>, label <span class="op">=</span> <span class="va">v1_signif</span><span class="op">)</span>, size <span class="op">=</span> <span class="fl">7</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">scale_alpha_identity</span><span class="op">(</span></span>
+<span>    breaks <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">.6</span><span class="op">)</span>, labels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Significant"</span>, <span class="st">"Not significant"</span><span class="op">)</span>,</span>
+<span>    guide <span class="op">=</span> <span class="fu">guide_legend</span><span class="op">(</span></span>
+<span>      title <span class="op">=</span> <span class="st">"Pairwise epistasis"</span>, override.aes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>fill <span class="op">=</span> <span class="st">"sandybrown"</span>, alpha <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">.6</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>      order <span class="op">=</span> <span class="fl">1</span></span>
+<span>    <span class="op">)</span></span>
+<span>  <span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">geom_rect</span><span class="op">(</span><span class="fu">aes</span><span class="op">(</span>xmin <span class="op">=</span> <span class="va">v2_x</span> <span class="op">-</span> <span class="fl">.2</span>, xmax <span class="op">=</span> <span class="va">v2_x</span> <span class="op">+</span> <span class="fl">.2</span>, ymin <span class="op">=</span> <span class="fl">1</span>, ymax <span class="op">=</span> <span class="va">change_in_v2</span>, fill <span class="op">=</span> <span class="st">"v2"</span>, alpha <span class="op">=</span> <span class="va">alpha</span><span class="op">)</span>,</span>
+<span>    show.legend <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="cn">FALSE</span>, fill <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span>  <span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">geom_text</span><span class="op">(</span><span class="fu">aes</span><span class="op">(</span>x <span class="op">=</span> <span class="va">v2_x</span>, y <span class="op">=</span> <span class="va">v2_signif_y</span>, label <span class="op">=</span> <span class="va">v2_signif</span><span class="op">)</span>, size <span class="op">=</span> <span class="fl">7</span><span class="op">)</span> <span class="op">+</span></span>
+<span></span>
+<span>  <span class="co"># Build legend</span></span>
+<span>  <span class="fu">scale_fill_manual</span><span class="op">(</span></span>
+<span>    name <span class="op">=</span> <span class="st">"Ratio of selection"</span>,</span>
+<span>    breaks <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"v1"</span>, <span class="st">"v2"</span><span class="op">)</span>,</span>
+<span>    labels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>      <span class="fu"><a href="https://rdrr.io/r/base/expression.html" class="external-link">expression</a></span><span class="op">(</span><span class="fu">frac</span><span class="op">(</span><span class="st">"gene 1 on mutated gene 2"</span>, <span class="st">"gene 1 on wildtype gene 2"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>      <span class="fu"><a href="https://rdrr.io/r/base/expression.html" class="external-link">expression</a></span><span class="op">(</span><span class="fu">frac</span><span class="op">(</span><span class="st">"gene 2 on mutated gene 1"</span>, <span class="st">"gene 2 on wildtype gene 1"</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="op">)</span>,</span>
+<span>    values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"v1"</span> <span class="op">=</span> <span class="st">"plum4"</span>, <span class="st">"v2"</span> <span class="op">=</span> <span class="st">"sandybrown"</span><span class="op">)</span>,</span>
+<span>    guide <span class="op">=</span> <span class="fu">guide_legend</span><span class="op">(</span>label.theme <span class="op">=</span> <span class="fu">element_text</span><span class="op">(</span>size <span class="op">=</span> <span class="fl">6.5</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">scale_x_continuous</span><span class="op">(</span>breaks <span class="op">=</span> <span class="va">x_label_pos</span>, labels <span class="op">=</span> <span class="va">x_labels</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">scale_y_continuous</span><span class="op">(</span>breaks <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span>from <span class="op">=</span> <span class="fl">0</span>, to <span class="op">=</span> <span class="fl">3</span>, by <span class="op">=</span> <span class="fl">.25</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">xlab</span><span class="op">(</span><span class="st">"Gene pair"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ylab</span><span class="op">(</span><span class="st">"Ratio of selection coefficients"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">theme_classic</span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">theme</span><span class="op">(</span></span>
+<span>    legend.position <span class="op">=</span> <span class="st">"bottom"</span>, legend.title <span class="op">=</span> <span class="fu">element_text</span><span class="op">(</span>size <span class="op">=</span> <span class="fl">10</span><span class="op">)</span>,</span>
+<span>    axis.ticks.length.x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/grid/unit.html" class="external-link">unit</a></span><span class="op">(</span><span class="fl">0</span>, <span class="st">"cm"</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span></code></pre></div>
+</details>
 </div>
 </div>
 <div class="section level2">
@@ -1253,7 +2024,7 @@ for each is reduced after mutation in the other.</p>
 want to take a break–you can save a commemorative (and space-efficient)
 copy of your CESAnalysis using <code><a href="../reference/save_cesa.html">save_cesa()</a></code>. You can reload
 the analysis anytime with <code><a href="../reference/load_cesa.html">load_cesa()</a></code>.</p>
-<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/save_cesa.html">save_cesa</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, <span class="st">"cancerffectsizeR_tutorial_analysis.rds"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># In some future R session...</span></span>
