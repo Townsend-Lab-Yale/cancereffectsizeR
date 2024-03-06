@@ -175,7 +175,7 @@ plot_signature_effects = function(mutational_effects = NULL,
       }
       curr_descrip = paste0(grp_info$description[1], ' ', short_names)
       if(nchar(curr_descrip) > 45) {
-        curr_descrip = paste0(grp_info$description[1], short_names)
+        curr_descrip = paste0(grp_info$description[1], '\n', short_names)
       }
       curr_sigs = unique(grp_info$name)
       final_groupings[[curr_descrip]] = curr_sigs
