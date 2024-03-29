@@ -59,6 +59,8 @@
 #'   impact of epistatic interactions on the co-occurrence of variants A and B. Since the expectations take mutation rates into account,
 #'   this ratio is a better indicator than the relative frequencies of A0, B0, AB, 00 in the data set.
 #'   \item nA0, nB0, nAB, n00: Number of (included) samples with mutations in just A, just B, both A and B, and neither.
+#'   \item ces_A_null, ces_B_null: Cancer effects of A and B when estimated independently; that is,
+#'   effects under a no-epistasis model.
 #'  }
 #' @export
 ces_gene_epistasis = function(cesa = NULL, genes = NULL, variants = NULL,
@@ -303,6 +305,8 @@ ces_gene_epistasis = function(cesa = NULL, genes = NULL, variants = NULL,
 #'   impact of epistatic interactions on the co-occurrence of variants A and B. Since the expectations take mutation rates into account,
 #'   this ratio is a better indicator than the relative frequencies of A0, B0, AB, 00 in the data set.
 #'   \item nA0, nB0, nAB, n00: Number of (included) samples with mutations in just A, just B, both A and B, and neither.
+#'   \item ces_A_null, ces_B_null: Cancer effects of A and B when estimated independently; that is,
+#'   effects under a no-epistasis model.
 #'  }
 #' @export
 ces_epistasis = function(cesa = NULL, variants = NULL, samples = character(), run_name = "auto", cores = 1, 
@@ -593,7 +597,7 @@ pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compoun
                                 vecpar = TRUE, eval.only = T)))
   if(! isTRUE(all.equal(ll_check, as.numeric(bbmle::logLik(v1_fit)) + as.numeric(bbmle::logLik(v2_fit)), tolerance = 1e-6))) {
     msg = paste0('An internal check failed during significance testing on ', v1, '/', v2, '. P-values cannot be reported ', 
-                 'for this pair. Please consider reporting the issue on GitHub.')
+                 'for this pair. We would appreciate it if you could report the issue on GitHub.')
     warning(pretty_message(msg, emit = F))
     p_v1 = NA
     p_v2 = NA
@@ -675,7 +679,8 @@ pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compoun
                             nB0 = length(tumors_just_v2),
                             nAB = length(tumors_with_both),
                             n00 = length(tumors_with_neither),
-                            n_total = length(v1_rates))
+                            n_total = length(v1_rates),
+                            ces_A_null = v1_simple_estimate, ces_B_null = v2_simple_estimate)
   if(! is.null(conf)) {
     bbmle::parnames(epistasis_lik_fn) = c('ces_A0', 'ces_B0', 'ces_A_on_B', 'ces_B_on_A')
     variant_ep_results = c(variant_ep_results, univariate_si_conf_ints(fit, epistasis_lik_fn, .001, 1e9, conf))

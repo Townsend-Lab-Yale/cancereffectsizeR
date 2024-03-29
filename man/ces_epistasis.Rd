@@ -70,6 +70,8 @@ CESAnalysis with a table of epistatic inferences appended to list \code{[CESAnal
   impact of epistatic interactions on the co-occurrence of variants A and B. Since the expectations take mutation rates into account,
   this ratio is a better indicator than the relative frequencies of A0, B0, AB, 00 in the data set.
   \item nA0, nB0, nAB, n00: Number of (included) samples with mutations in just A, just B, both A and B, and neither.
+  \item ces_A_null, ces_B_null: Cancer effects of A and B when estimated independently; that is,
+  effects under a no-epistasis model.
  }
 }
 \description{
