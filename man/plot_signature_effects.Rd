@@ -12,7 +12,7 @@ plot_signature_effects(
 )
 }
 \arguments{
-\item{mutational_effects}{Output from mutational_signature_effects(). To compare
+\item{mutational_effects}{Output from \link{mutational_signature_effects}(). To compare
 groups of samples, supply a named list with each element corresponding to output
 from a separate run of mutational_signature_effects().}
 

@@ -136,6 +136,10 @@ test_that("Gene-level SNV epistasis analysis", {
   results_ak = get_test_data("epistatic_effects.rds")
   expect_equal(cesa@epistasis[[1]], results_ak, tolerance = 1e-4)
   
+  # The no-epistasis estimates should always be greater than one epistatic coefficient and less than the other.
+  expect_true(unique(cesa@epistasis[[1]][, xor(ces_A_null < ces_A0, ces_A_null < ces_A_on_B) &
+                                          xor(ces_B_null < ces_B0, ces_B_null < ces_B_on_A)]))
+  
   # now simulate with compound variants, should get almost same results
   comp = define_compound_variants(cesa, 
                                   variant_table = select_variants(cesa, genes = c("EGFR", "KRAS", "TP53"))[samples_covering == cesa$samples[, .N]],
