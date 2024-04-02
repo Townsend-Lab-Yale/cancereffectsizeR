@@ -158,8 +158,8 @@ test_that("Gene-level SBS epistasis analysis", {
   early_output = cesa$epistasis$early_output
   expect_equal(early_output[, unique(c(nA0, nB0, nAB, n00, n_total))], 0)
   
-  # 4 parameters and 8 low/high CIs should all be NA
-  expect_equal(early_output[, as.numeric(.SD), .SDcols = patterns('ces')], rep(NA_real_, 12))
+  # 4 parameters and 8 low/high CIs should all be NA, as will ces_A_null and ces_B_null
+  expect_equal(early_output[, as.numeric(.SD), .SDcols = patterns('ces')], rep(NA_real_, 14))
   
   covered_variants = select_variants(cesa = cesa, genes = c('ARID1A', 'TTN'), gr = cesa$coverage_ranges$exome$`exome+`)
   cesa = ces_gene_epistasis(cesa, genes = c('ARID1A', 'TTN'), variants = covered_variants, run_name = 'should_work')

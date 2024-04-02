@@ -513,7 +513,8 @@ pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compoun
                         nB0 = length(tumors_just_v2),
                         nAB = length(tumors_with_both),
                         n00 = length(tumors_with_neither),
-                        n_total = n_total)
+                        n_total = n_total,
+                        ces_A_null = NA_real_, ces_B_null = NA_real_)
     if (! is.null(conf)) {
      si_names = c('ces_A0', 'ces_B0', 'ces_A_on_B', 'ces_B_on_A')
      ci_high_colname = paste0("ci_high_", conf * 100)
