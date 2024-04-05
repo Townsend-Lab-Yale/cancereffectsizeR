@@ -689,7 +689,7 @@ trinuc_sbs_counts = function(maf,
     problems = ds_maf[! is.na(problem), which = T]
     if (length(problems) > 0) {
       ds_maf = ds_maf[! problems]
-      message("Found a preload_maf()-style \"problem\" column and removed ", length(problems), " 46 problematic records.")
+      message("Found a preload_maf()-style \"problem\" column and removed ", length(problems), " problematic records.")
     }
   }
   if (exclude_recurrent) {
