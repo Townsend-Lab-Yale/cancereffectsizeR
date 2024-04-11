@@ -14,3 +14,9 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
+@media (min-width: 1000px) {
+    .container .row {
+      justify-content: center
+    }
+}
