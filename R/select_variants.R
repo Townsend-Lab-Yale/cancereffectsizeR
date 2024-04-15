@@ -372,8 +372,8 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
       multi_hits[, is_premature := aa_alt == "STOP" & aa_ref != "STOP"]
       
       if(check_for_ref_data(cesa, 'transcripts')) {
-        transcripts = get_ref_data(cesa, 'transcripts')
-        multi_hits[transcripts, c('is_mane', 'is_mane_plus') := .(is_mane, is_mane_plus), on = c(pid = 'protein_id')]
+        transcripts = unique(get_ref_data(cesa, 'transcripts')[, .(is_mane, is_mane_plus, pid = protein_id)])
+        multi_hits[transcripts, c('is_mane', 'is_mane_plus') := .(is_mane, is_mane_plus), on = 'pid']
         multi_hits = multi_hits[order(-essential_splice, -is_premature, aa_ref == aa_alt, -is_mane, -is_mane_plus, -maf_prevalence, -pid_freq, variant_id)]
         multi_hits[, c('is_mane', 'is_mane_plus') := NULL]
       } else {
@@ -445,10 +445,10 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   setkey(combined, 'variant_id', physical = F)
   
   if(check_for_ref_data(cesa, "transcripts")) {
-    transcripts = get_ref_data(cesa, "transcripts")
+    transcripts = unique(get_ref_data(cesa, "transcripts")[, .(is_mane, transcript_tags, pid = protein_id)])
     combined[transcripts, let(is_MANE_transcript = is_mane,
                               transcript_tags = transcript_tags),
-                              on = c(pid = 'protein_id')]
+                              on = 'pid']
     combined[variant_type == 'snv', is_MANE_transcript := NA]
   }
   return(combined[]) # brackets force the output to print when unassigned (should automatically, but this is a known data.table issue)
