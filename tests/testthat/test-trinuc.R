@@ -1,4 +1,6 @@
 cesa = load_cesa(get_test_file("cesa_for_trinuc_weighting_calc.rds"))
+test_that("Old signature set validates", 
+          expect_no_error(validate_signature_set(ces.refset.hg19$signatures$COSMIC_v3.1)))
 test_that("Trinucleotide signature weight calculation", {
   to_remove = suggest_cosmic_signature_exclusions(cancer_type = "LUAD", treatment_naive = T, quiet = T)
   expect_identical(to_remove, c("SBS7a", "SBS7b", "SBS7c", "SBS7d", "SBS8", "SBS10a", "SBS10b", "SBS11", "SBS12",

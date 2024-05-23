@@ -52,6 +52,9 @@ plot_epistasis = function(epistatic_effects, pairs_per_row = 8,
   if(packageVersion('ggplot2') < as.package_version('3.5.0')) {
     stop('Update ggplot2: it must be version 3.5.0 or later.')
   }
+  if(! require('ggrepel')) {
+    stop('ggrepel must be installed.')
+  }
   
   if(! identical(dodge_labels, 'auto')) {
     if(! rlang::is_bool(dodge_labels)) {
