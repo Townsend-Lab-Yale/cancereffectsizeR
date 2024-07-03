@@ -224,7 +224,9 @@ read_in_maf = function(maf, refset_env, chr_col = "Chromosome", start_col = "Sta
       maf[within_sample_dup == FALSE & problem == 'duplicate_record' & is_tcga_patient == TRUE, problem := 'duplicate_from_TCGA_sample_merge']
       maf[, c('within_sample_dup', 'is_tcga_patient') := NULL]
     }
-    maf[, Tumor_Sample_Barcode := NULL]
+    if(! 'Tumor_Sample_Barcode' %in% more_cols && ! identical(more_cols, 'all')) {
+      maf[, Tumor_Sample_Barcode := NULL]
+    }
   }
   
   

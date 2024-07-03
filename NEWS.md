@@ -2,6 +2,11 @@
 # <font style = "opacity:0">cancereffectsizeR 3.0.0</font>
 Patch releases (as in, x.y.1 &#8594; x.y.2) have minor bug fixes or small improvements that do not significantly affect the numerical output of cancer effect analyses. Minor/major updates may change some outputs due to bug fixes or methodological tweaks, as described in these version notes.<br><br>
 
+# cancereffectsizeR 2.9.1
+* Added lift_bed() function to ease conversion of BED intervals between genome builds.
+* Added an initial version of an epistatic effect plotting function, plot_epistasis().
+* Various minor improvements.
+
 # cancereffectsizeR 2.9.0
 * plot_signature_effects() visualizes the relative contributions of mutational signatures to mutation and selection.
 * Change to how mutational_signature_effects() calculates cohort-averaged signature effect shares. See the function's updated documentation for clarification of how outputs are calculated.

@@ -18,10 +18,11 @@
 #'   \item Add a "color" column to manually specify colors for each group.
 #'   }
 #' Alternatively, setting \code{signature_groupings = "cannataro"} applies the same signature
-#' grouping and color palette as
-#' \href{https://academic.oup.com/mbe/article/39/5/msac084/6570859}{Cannataro et al. 2022}.
+#' groupings and color palette as
+#' \href{https://academic.oup.com/mbe/article/39/5/msac084/6570859}{Cannataro et al. 2022}. You can use
+#' Cannataro signature groupings with a different color palette by specifying \code{viridis_option}.
 #' @param viridis_option A viridis color mapping, specified with a single letter ('A' to 'H'). By
-#'   default, map 'G' (mako) is used.
+#'   default, map 'G' (mako) unless using Cannataro signature groupings.
 #' @param num_sig_groups How many groups of signatures to display. Groups are ordered by their
 #'   highest effect shares, and the rest get lumped into an "other signatures" group.
 #' @export
