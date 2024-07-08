@@ -2,9 +2,10 @@
 # <font style = "opacity:0">cancereffectsizeR 3.0.0</font>
 Patch releases (as in, x.y.1 &#8594; x.y.2) have minor bug fixes or small improvements that do not significantly affect the numerical output of cancer effect analyses. Minor/major updates may change some outputs due to bug fixes or methodological tweaks, as described in these version notes.<br><br>
 
-# cancereffectsizeR 2.9.1
-* Added lift_bed() function to ease conversion of BED intervals between genome builds.
+# cancereffectsizeR 2.10.0
+* Tweaked optimizer settings for epistatic inference to improve convergence.
 * Added an initial version of an epistatic effect plotting function, plot_epistasis().
+* Added lift_bed() function to ease conversion of BED intervals between genome builds.
 * Various minor improvements.
 
 # cancereffectsizeR 2.9.0

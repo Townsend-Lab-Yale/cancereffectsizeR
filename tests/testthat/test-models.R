@@ -134,7 +134,8 @@ test_that("Gene-level SNV epistasis analysis", {
   variants_to_use = cesa$variants[gene %in% c('EGFR', 'KRAS', 'TP53') & samples_covering == cesa$samples[, .N]]
   cesa = ces_gene_epistasis(cesa, genes = c("EGFR", "KRAS", "TP53"), variants = variants_to_use, conf = .95)
   results_ak = get_test_data("epistatic_effects.rds")
-  expect_equal(cesa@epistasis[[1]], results_ak, tolerance = 1e-4)
+  # change in optimization control since generating test data has changed output, but still within this tolerance
+  expect_equal(cesa@epistasis[[1]], results_ak, tolerance = 1e-3) 
   
   # The no-epistasis estimates should always be greater than one epistatic coefficient and less than the other.
   expect_true(unique(cesa@epistasis[[1]][, xor(ces_A_null < ces_A0, ces_A_null < ces_A_on_B) &

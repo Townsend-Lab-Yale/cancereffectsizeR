@@ -25,6 +25,7 @@ reference:
   - get_TCGA_project_MAF
   - vcfs_to_maf_table
   - make_PathScore_input
+  - lift_bed
 - title: Load and manage variants
   contents:
   - load_maf
@@ -73,6 +74,7 @@ reference:
   desc: Display and compare variant effect sizes
   contents:
   - plot_effects
+  - plot_epistasis
   - plot_signature_effects
 - title: Selection models
   desc: Likelihood function generators for various models of selection

@@ -533,7 +533,8 @@ pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compoun
   # the selection intensity when some group has 0 variants will be on the lower boundary; will muffle the associated warning
   withCallingHandlers(
     {
-      fit = bbmle::mle2(epistasis_lik_fn, method="L-BFGS-B", start = par_init, vecpar = T, lower=1e-3, upper=1e9)
+      fit = bbmle::mle2(epistasis_lik_fn, method="L-BFGS-B", start = par_init, control = list(ndeps = c(.1, .1, .1, .1)),
+                        vecpar = TRUE, lower=1e-3, upper=1e9)
     },
     warning = function(w) {
       if (startsWith(conditionMessage(w), "some parameters are on the boundary")) {
@@ -556,7 +557,7 @@ pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compoun
   names(par_init) = bbmle::parnames(fn)
   withCallingHandlers(
     {
-      v1_fit = bbmle::mle2(fn, method="L-BFGS-B", start = par_init, vecpar = T, lower=1e-3, upper=1e9)
+      v1_fit = bbmle::mle2(fn, method="L-BFGS-B", start = par_init, vecpar = TRUE, lower=1e-3, upper=1e9)
     },
     warning = function(w) {
       if (startsWith(conditionMessage(w), "some parameters are on the boundary")) {
@@ -577,7 +578,7 @@ pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compoun
   names(par_init) = bbmle::parnames(fn)
   withCallingHandlers(
     {
-      v2_fit = bbmle::mle2(fn, method="L-BFGS-B", start = par_init, vecpar = T, lower=1e-3, upper=1e9)
+      v2_fit = bbmle::mle2(fn, method="L-BFGS-B", start = par_init, vecpar = TRUE, lower=1e-3, upper=1e9)
     },
     warning = function(w) {
       if (startsWith(conditionMessage(w), "some parameters are on the boundary")) {
@@ -595,7 +596,7 @@ pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compoun
   v2_simple_estimate = bbmle::coef(v2_fit)
   ll_check = as.numeric(bbmle::logLik(bbmle::mle2(epistasis_lik_fn, start = list(ces_v1 = v1_simple_estimate, ces_v1_after_v2 = v1_simple_estimate,
                                                  ces_v2 = v2_simple_estimate, ces_v2_after_v1 = v2_simple_estimate),
-                                vecpar = TRUE, eval.only = T)))
+                                                 control = list(ndeps = c(.1, .1, .1, .1)), vecpar = TRUE, eval.only = T)))
   if(! isTRUE(all.equal(ll_check, as.numeric(bbmle::logLik(v1_fit)) + as.numeric(bbmle::logLik(v2_fit)), tolerance = 1e-6))) {
     msg = paste0('An internal check failed during significance testing on ', v1, '/', v2, '. P-values cannot be reported ', 
                  'for this pair. We would appreciate it if you could report the issue on GitHub.')
@@ -609,7 +610,9 @@ pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compoun
     
     withCallingHandlers(
       {
-        refit_v1 = bbmle::mle2(epistasis_lik_fn, method="L-BFGS-B", start = param_init_v1, vecpar = T, lower = 1e-3, upper= 1e9,
+        refit_v1 = bbmle::mle2(epistasis_lik_fn, method="L-BFGS-B", start = param_init_v1, 
+                               control = list(ndeps = c(.1, .1)),
+                               vecpar = TRUE, lower = 1e-3, upper= 1e9,
                                fixed = list(ces_v1 = v1_simple_estimate, ces_v1_after_v2 = v1_simple_estimate))
       },
       warning = function(w) {
@@ -627,7 +630,8 @@ pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compoun
     
     withCallingHandlers(
       {
-        refit_v2 = bbmle::mle2(epistasis_lik_fn, method="L-BFGS-B", start = param_init_v2, vecpar = T, lower = 1e-3, upper = 1e9, 
+        refit_v2 = bbmle::mle2(epistasis_lik_fn, method="L-BFGS-B", start = param_init_v2, control = list(ndeps = c(.1, .1)),
+                               vecpar = TRUE, lower = 1e-3, upper = 1e9, 
                                fixed = list(ces_v2 = v2_simple_estimate, ces_v2_after_v1 = v2_simple_estimate))
       },
       warning = function(w) {

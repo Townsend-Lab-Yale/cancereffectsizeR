@@ -168,8 +168,9 @@ plot_epistasis = function(epistatic_effects, pairs_per_row = 8,
                                           ci_low_95_ces_B_on_A))])
   data_min = min(low_values[low_values > inference_floor])
   
-  plot_ymin = data_min / 30
-  threshold_line = sqrt(plot_ymin * data_min) # log-space mean of plot_ymin and data_min
+  threshold_line = 10^floor(log10(data_min))
+  plot_ymin = threshold_line * .6
+  #threshold_line = sqrt(plot_ymin * data_min) # log-space mean of plot_ymin and data_min
   
   # Enforce threshold to display, so all of the selection-to-zero arrows are cleaner
   cols_to_set = c('ci_low_95_ces_A0', 'ci_low_95_ces_A_on_B', 'ci_low_95_ces_B0', 'ci_low_95_ces_B_on_A',
@@ -252,6 +253,13 @@ plot_epistasis = function(epistatic_effects, pairs_per_row = 8,
                    grid::linesGrob(x = c(.1, .9), y = c(.65, .65), arrow = arrow(type = 'closed', length = unit(.15, 'npc')),
                                    gp = grid::gpar(col = alpha(alternating_colors[2], data$alpha), lwd = 2)))
   }
+  
+  y_labeler = function(x) {
+    x = format(x, big.mark = ",", scientific = FALSE)
+    which_threshold = suppressWarnings(which(as.numeric(x) == threshold_line))
+    x[which_threshold] = format(paste0('<', as.numeric(x[which_threshold])), big.mark = ',', scientific = FALSE)
+    return(x)
+  }
   gg = ggplot(data = effects) + 
     
     # Alternating grey background boxes
@@ -300,7 +308,7 @@ plot_epistasis = function(epistatic_effects, pairs_per_row = 8,
                                             override.aes = list(color = alternating_colors[1]))) + 
     scale_x_continuous(breaks = final_pos, labels = names(final_pos), expand = expansion(0),
                        guide = guide_axis(cap = T, n.dodge = n_dodge)) + 
-    scale_y_log10(labels = function(x) format(x, big.mark = ",", scientific = FALSE), limits = c(plot_ymin, NA), 
+    scale_y_log10(labels = y_labeler, limits = c(plot_ymin, NA), 
                   expand = expansion(0)) +
     xlab(x_title) + ylab('Scaled selection coefficients') + 
     theme_classic() + 
@@ -372,10 +380,10 @@ plot_epistasis = function(epistatic_effects, pairs_per_row = 8,
     gg = gg + theme(legend.position = 'none')
   } else {
     gg = gg + theme(legend.direction = 'horizontal', 
-                    legend.title = element_text(size = 10, lineheight = .5, hjust = 0, vjust = .5, margin = margin(b = 0, r = 12)),
+                    legend.title = element_text(size = 10, lineheight = .5, hjust = 0, vjust = .6, margin = margin(b = 0, r = 12)),
                     legend.title.position = 'left',
                     legend.position = 'inside', legend.position.inside = c(0, 0), 
-                    legend.justification = 'left', legend.margin = margin(t = 45 + 12 * (n_dodge > 1), r = 6),
+                    legend.justification = 'left', legend.margin = margin(t = 55 + 12 * (n_dodge > 1), r = 6),
                     legend.background = element_rect(fill = rgb(0, 0, 0, 0)))
   }
   return(list(gg, effects))
