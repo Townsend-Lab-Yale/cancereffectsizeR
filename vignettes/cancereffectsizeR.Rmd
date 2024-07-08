@@ -390,87 +390,13 @@ formattable::formattable(readRDS(paste0(tutorial_dir, '/gene_ep_example.rds')), 
 
 Mutational selection in the two oncogenes appears to be maintained after mutation in TP53. In contrast, loss of TP53 is less selected after mutations in AKT1/PIK3CA. One explanation is that cell populations in which these powerful drivers have fixed must have already subverted tumor suppression mechanisms, making TP53 mutations superfluous. The two oncogenes show significant mutual exclusivity, in that selection for each is reduced after mutation in the other.
 
-Here's a plot showing the change in selection for mutated sites in each gene after mutation in the other gene. Asterisks indicate significant changes in selection for individual genes. Not infrequently, the epistatic model is significantly better than a no-epistasis model, but there is not significance for altered selection in either gene individually, since a strong enough change in selection in either one of the genes could sufficiently explain the data.
+Here's a plot showing the change in selection for mutated sites in each gene after mutation in the other gene. The epistatic model is not significantly better than a no-epistasis model for AKT1/TP53. The other gene pairs do show significant epistatic effects. Asterisks indicate significant changes in selection for individual genes. Estimates/CIs depicted on the dashed gray line are at the floor of the inference; such estimates are consistent with low or negative selection.
 
 ```{r eval = T, echo = F}
 readRDS(paste0(tutorial_dir, '/BRCA_epistasis_example.rds'))
 ```
 
-<details><summary>(Show/hide epistasis plot code)</summary>
-```{r}
-require(grid) # Need the grid package for this plot
-results = cesa$epistasis$gene_epistasis_example
-results = results[, .(v1 = variant_A, v2 = variant_B, ces_A0, ces_B0, ces_A_on_B, 
-                                ces_B_on_A, p_A_change, p_B_change, p_epistasis)]
-
-# By change, we mean fold-change of selection on mutant background over wildtype background
-results[, change_in_v2 := ces_B_on_A / ces_B0]
-results[, change_in_v1 := ces_A_on_B /ces_A0]
-
-# Put in desired order for display
-results = results[, pairname := paste(v1, v2, sep = '.')]
-
-results[, x := 1:.N]
-results[, v1_x := x - .2]
-results[, v2_x := x + .2]
-results[, alpha := .6]
-results[p_epistasis < .05, alpha := 1]
-
-results[, v1_signif := ""]
-results[p_A_change < .05, v1_signif := "*"]
-results[p_A_change < .01, v1_signif := "**"]
-results[p_A_change < .001, v1_signif := "***"]
-results[, v1_signif_y := change_in_v1 + (.13 * sign(change_in_v1 - 1))]
-
-results[, v2_signif := ""]
-results[p_B_change < .05, v2_signif := "*"]
-results[p_B_change < .01, v2_signif := "**"]
-results[p_B_change < .001, v2_signif := "***"]
-results[, v2_signif_y := change_in_v2 + (.13 * sign(change_in_v2 - 1))]
-
-x_labels = unlist(S4Vectors::zipup(results$v1, results$v2))
-x_label_pos = unlist(S4Vectors::zipup(results$v1_x, results$v2_x))
-
-# Have to get fancy to depict significance nicely in legend.
-draw_signif_key = function(data, params, size) {
-  grobTree(rectGrob(x = .25, y = .5, width = .5, height = 1, 
-                    gp = gpar(col = NA, fill = alpha('plum4', data$alpha), lty = data$linetype)),
-           rectGrob(x = .75, y = .5, width = .5, height = 1, 
-                    gp = gpar(col = NA, fill = alpha('sandybrown', data$alpha), lty = data$linetype)))
-}
-
-ggplot(data = results) + 
-  # Put in a reference line depicting no change in selection
-  geom_hline(yintercept = 1, color = 'darkgrey') +
-  
-  geom_rect(aes(xmin = v1_x - .2, xmax = v1_x + .2, ymin = 1, ymax = change_in_v1, fill = 'v1', alpha = alpha),
-            show.legend = c(alpha = FALSE, fill = TRUE)) +
-  geom_rect(aes(xmin = 1, xmax = 1, ymin = 0, ymax = 0, alpha = alpha), 
-            show.legend = c(alpha = TRUE, fill = FALSE), key_glyph = draw_signif_key) +
-  geom_text(aes(x = v1_x, y = v1_signif_y, label = v1_signif), size = 7) +
-  scale_alpha_identity(breaks = c(1, .6), labels = c('Significant', 'Not significant'),
-                       guide = guide_legend(title = 'Pairwise epistasis', override.aes = list(fill = 'sandybrown', alpha = c(1, .6)),
-                                            order = 1)) +
-  
-  geom_rect(aes(xmin = v2_x - .2, xmax = v2_x + .2, ymin = 1, ymax = change_in_v2, fill = 'v2', alpha = alpha),
-            show.legend = c(alpha = FALSE, fill = TRUE)) +
-  geom_text(aes(x = v2_x, y = v2_signif_y, label = v2_signif), size = 7) + 
-  
-  # Build legend
-  scale_fill_manual(name = 'Ratio of selection', 
-                    breaks = c('v1', 'v2'), 
-                    labels = list(expression(frac('gene 1 on mutated gene 2', 'gene 1 on wildtype gene 2')), 
-                                  expression(frac('gene 2 on mutated gene 1', 'gene 2 on wildtype gene 1'))),
-                    values = c('v1' = 'plum4', 'v2' = 'sandybrown'),
-                    guide = guide_legend(label.theme = element_text(size = 6.5))) +
-  scale_x_continuous(breaks = x_label_pos, labels = x_labels) + 
-  scale_y_continuous(breaks = seq(from = 0, to = 3, by = .25)) +
-  xlab('Gene pair') + ylab('Ratio of selection coefficients') + 
-  theme_classic() +
-  theme(legend.position = 'bottom', legend.title = element_text(size = 10), 
-        axis.ticks.length.x = unit(0, 'cm'))
-```
-
+Even when epistatic effects are significant, it's not uncommon for gene-specific changes in selection to be insignificant. The reason is that patterns of co-occurrence can often be explained by a strong enough change in selection for either gene individually. (This also explains why confidence intervals on the parameters are typically wide.)
 
 
 ## Save your work

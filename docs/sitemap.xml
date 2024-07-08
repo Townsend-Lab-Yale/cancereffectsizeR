@@ -190,6 +190,9 @@
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/index.html</loc>
   </url>
   <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/lift_bed.html</loc>
+  </url>
+  <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/list_ces_covariates.html</loc>
   </url>
   <url>
@@ -233,6 +236,9 @@
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/plot_effects.html</loc>
+  </url>
+  <url>
+    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/plot_epistasis.html</loc>
   </url>
   <url>
     <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/plot_signature_effects.html</loc>
