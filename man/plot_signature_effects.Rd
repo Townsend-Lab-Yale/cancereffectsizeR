@@ -8,7 +8,8 @@ plot_signature_effects(
   mutational_effects = NULL,
   signature_groupings = "auto",
   viridis_option = NULL,
-  num_sig_groups = 7
+  num_sig_groups = 7,
+  other_color = "white"
 )
 }
 \arguments{
@@ -37,6 +38,8 @@ default, map 'G' (mako) unless using Cannataro signature groupings.}
 
 \item{num_sig_groups}{How many groups of signatures to display. Groups are ordered by their
 highest effect shares, and the rest get lumped into an "other signatures" group.}
+
+\item{other_color}{Color to use for signatures in the "other" group, supplied as a scalar character.}
 }
 \description{
 Compare the extent to which mutational signatures contribute mutations (mutational source share)

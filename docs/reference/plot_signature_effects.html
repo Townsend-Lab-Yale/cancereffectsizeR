@@ -70,7 +70,8 @@ to the degree to which they contribute high-effect mutations (cancer effect shar
 <span>  mutational_effects <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  signature_groupings <span class="op">=</span> <span class="st">"auto"</span>,</span>
 <span>  viridis_option <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  num_sig_groups <span class="op">=</span> <span class="fl">7</span></span>
+<span>  num_sig_groups <span class="op">=</span> <span class="fl">7</span>,</span>
+<span>  other_color <span class="op">=</span> <span class="st">"white"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -105,6 +106,10 @@ default, map 'G' (mako) unless using Cannataro signature groupings.</p></dd>
 <dt>num_sig_groups</dt>
 <dd><p>How many groups of signatures to display. Groups are ordered by their
 highest effect shares, and the rest get lumped into an "other signatures" group.</p></dd>
+
+
+<dt>other_color</dt>
+<dd><p>Color to use for signatures in the "other" group, supplied as a scalar character.</p></dd>
 
 </dl></div>
 
