@@ -1,26 +1,37 @@
-#' pairwise_epistasis_lik
+#' timed_pairwise_epistasis_lik
 #'
 #' For a pair of variants (or two groups of variants), creates a likelihood function for a
-#' model of pairwise epistasis with a "strong mutation, weak selection" assumption.
+#' model of pairwise epistasis with a "strong mutation, weak selection" assumption and an estimate from MutationTimeR of which variant occurred after (ie. in the context of) the other. 
 #' 
 #' The arguments to this function are automatically supplied by \code{ces_epistasis()} and \code{ces_gene_epistasis()}.
 #' 
 #' @param with_just_1 three-item list of Unique_Patient_Identifiers and baseline rates in v1/v2 for tumors with mutation in just the first variant(s)
 #' @param with_just_2 three-item list of Unique_Patient_Identifiers and baseline rates in v1/v2 for tumors with mutation in just the second variant(s)
 #' @param with_both three-item list of Unique_Patient_Identifiers and baseline rates in v1/v2 for tumors with mutation in both
-#' @param with_neither three-item list of Unique_Patient_Identifiers and baseline rates in v1/v2 for tumors with mutation n neither
+#' @param with_neither three-item list of Unique_Patient_Identifiers and baseline rates in v1/v2 for tumors with mutation n neither two-item list of baseline rates in v1/v2 for tumors with mutation n neither
+#' @param which_first a three-item list of Unique_Patient_Identifiers for mutations with both, where v1 occurred first/v2 occurred first/unspecified which came first.
 #'
 #' @export
 #' @return A likelihood function
-pairwise_epistasis_lik  <- function(with_just_1, with_just_2, with_both, with_neither) {
- 
+timed_pairwise_epistasis_lik  <- function(with_just_1, with_just_2, with_both, with_neither, which_first) {
+  
   with_neither = with_neither[2:3]
   with_just_1 = with_just_1[2:3]
   with_just_2 = with_just_2[2:3]
-  with_both = with_both[2:3]
+  
+  if(uniqueN(unlist(which_first)) != length(unlist(which_first))) {
+    stop("Samples cannot belong to multiple timing categories in which_first")
+  }
+  
+  with_both_1b2 = as.list(as.data.table(with_both)[Unique_Patient_Identifiers %in% which_first$v1_first, ])[2:3]
+  with_both_2b1 = as.list(as.data.table(with_both)[Unique_Patient_Identifiers %in% which_first$v2_first, ])[2:3]
+  with_both_unspecified = as.list(as.data.table(with_both)[Unique_Patient_Identifiers %in% which_first$unspecified, ])[2:3]
+  
+  with_both_UPI = setdiff(unlist(with_both[1]), unlist(which_first))
+  with_both = as.list(as.data.table(with_both)[Unique_Patient_Identifiers %in% with_both_UPI, ])[2:3]
+  
   
   fn = function(par) {
-    
     # sometimes the pars end up as NaNs or NAs, possibly because of inappropriate optimization techniques
     if(! all(is.finite(par))) {
       return(1e200)
@@ -60,6 +71,41 @@ pairwise_epistasis_lik  <- function(with_just_1, with_just_2, with_both, with_ne
       sum_log_lik = sum_log_lik + sum(log(lik))
     }
     
+    
+    if(! is.null(with_both_1b2)) {
+      A = par[1] * with_both_1b2[[1]]
+      B = par[2] * with_both_1b2[[2]]
+      B_on_A = par[4] * with_both_1b2[[2]] 
+      
+      lik  = (A / (A + B)) * (1 - exp(-1 * (A + B)) - (((A + B) / (A + B - B_on_A)) * (exp(-1 * B_on_A) - exp(-1 * (A + B)))))
+      sum_log_lik = sum_log_lik + sum(log(lik))
+    }
+    
+    
+    if(! is.null(with_both_2b1)) {
+      A = par[1] * with_both_2b1[[1]]
+      B = par[2] * with_both_2b1[[2]]
+      A_on_B = par[4] * with_both_2b1[[2]] 
+      
+      lik  = (B / (A + B)) * (1 - exp(-1 * (A + B)) - ( ((A + B) / (A + B - A_on_B)) * (exp(-1 * A_on_B) - exp(-1 * (A + B)))))
+      sum_log_lik = sum_log_lik + sum(log(lik))
+    }
+    
+    
+    if(! is.null(with_both_unspecified)) {
+      A = par[1] * with_both_unspecified[[1]]
+      B = par[2] * with_both_unspecified[[2]]
+      A_on_B = par[3] * with_both_unspecified[[1]]
+      B_on_A = par[4] * with_both_unspecified[[2]] 
+      
+      
+      p_wt = exp(-1 * (A+B))
+      p_A = (A / (A + B - B_on_A)) * (exp(-1 * B_on_A) - exp(-1 * (A + B)))
+      p_B = (B / (A + B - A_on_B)) * (exp(-1 * A_on_B) - exp(-1 * (A + B)))   
+      p_AB_unspecified = 1 - p_wt - p_A - p_B
+      sum_log_lik = sum_log_lik + sum(log(p_AB_unspecified))
+    }
+    
     if(! is.null(with_both)) {
       A = par[1] * with_both[[1]]
       B = par[2] * with_both[[2]]
@@ -72,6 +118,7 @@ pairwise_epistasis_lik  <- function(with_just_1, with_just_2, with_both, with_ne
       p_AB = 1 - p_wt - p_A - p_B
       sum_log_lik = sum_log_lik + sum(log(p_AB))
     }
+    
     
     # in case it tried all the max at once.
     if(!is.finite(sum_log_lik)){
@@ -87,3 +134,10 @@ pairwise_epistasis_lik  <- function(with_just_1, with_just_2, with_both, with_ne
   bbmle::parnames(fn) = c("ces_v1", "ces_v2", "ces_v1_after_v2", "ces_v2_after_v1")
   return(fn)
 }
+
+
+
+
+
+
+
