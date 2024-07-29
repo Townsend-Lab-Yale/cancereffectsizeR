@@ -22,7 +22,10 @@
 #' @param samples Which samples to include in inference. Can be a vector of
 #'   Unique_Patient_Identifiers, or a data.table containing rows from the CESAnalysis sample table.
 #'   Samples that do not have coverage at all variant sites in a given inference will be set aside.
+#' @param model Set to "default"  to use built-in
+#'   model of epistatic selection, or supply a custom function factory (see details).
 #' @param run_name Optionally, a name to identify the current run.
+#' @param lik_args Extra arguments, given as a list, to pass to custom likelihood functions.
 #' @param conf Confidence interval size from 0 to 1 (.95 -> 95\%). NULL skips calculation,
 #'   which may be helpful to reduce runtime when analyzing many gene pairs.
 #' @param cores Number of cores for parallel processing of gene pairs.
@@ -63,8 +66,15 @@
 #'   effects under a no-epistasis model.
 #'  }
 #' @export
-ces_gene_epistasis = function(cesa = NULL, genes = NULL, variants = NULL,
-                              samples = character(), run_name = "auto", cores = 1, conf = .95,
+ces_gene_epistasis = function(cesa = NULL, 
+                              genes = NULL, 
+                              variants = NULL,
+                              samples = character(), 
+                              model = "default",
+                              run_name = "auto", 
+                              cores = 1, 
+                              conf = .95,
+                              lik_args = list(),
                               return_fit = FALSE)
 {
   if (! is(cesa, "CESAnalysis")) {
@@ -228,8 +238,7 @@ ces_gene_epistasis = function(cesa = NULL, genes = NULL, variants = NULL,
     function(x) {
       variant_ids = setNames(list(variants_to_use[x[1], variant_id], variants_to_use[x[2], variant_id]), x)
       comp = CompoundVariantSet(cesa, variant_ids)
-      tmp = pairwise_variant_epistasis(cesa = cesa, variant_pair = c(1, 2), samples = samples, compound_variants = comp,
-                                           conf = conf)
+      tmp = pairwise_variant_epistasis(cesa = cesa, variant_pair = c(1, 2), samples = samples, compound_variants = comp, conf = conf, model = model, lik_args = lik_args)
     }, cl = cores
   )
   fits = lapply(results, '[[', 'fit')
@@ -358,7 +367,7 @@ ces_epistasis = function(cesa = NULL, variants = NULL, samples = character(), ru
   
   if(is(variants, "CompoundVariantSet")) {
     index_pairs = utils::combn(1:length(variants), 2, simplify = F)
-    results = pbapply::pblapply(X = index_pairs, FUN = pairwise_variant_epistasis, samples = samples, compound_variants = variants, cesa=cesa, conf = conf, cl = cores)
+    results = pbapply::pblapply(X = index_pairs, FUN = pairwise_variant_epistasis, samples = samples, compound_variants = variants, cesa=cesa, conf = conf, cl = cores, model = model, lik_args = lik_args)
   } else if (is(variants, "list")) {
     setkey(cesa@mutations$amino_acid_change, "aac_id")
     setkey(cesa@mutations$snv, "snv_id")
@@ -393,7 +402,7 @@ ces_epistasis = function(cesa = NULL, variants = NULL, samples = character(), ru
     if (notify_name_conversion) {
       pretty_message("Shorthand variant names were recognized and uniquely paired with cancereffectsizeR's aac_ids.")
     }
-    results = pbapply::pblapply(X = variants, FUN = pairwise_variant_epistasis, cesa=cesa, samples = samples, conf = conf, cl = cores)
+    results = pbapply::pblapply(X = variants, FUN = pairwise_variant_epistasis, cesa=cesa, samples = samples, conf = conf, cl = cores, model = model, lik_args = lik_args)
   } else {
     stop("variants should be of type list or CompoundVariantSet")
   }
@@ -421,8 +430,11 @@ ces_epistasis = function(cesa = NULL, variants = NULL, samples = character(), ru
 #' @param variant_pair 2-length character of variant IDs, or 2-length numeric giving
 #'   indices of CompoundVariantSet for the current two compound variants
 #' @param compound_variants If testing a pair of compound variants, the CompoundVariantSet defining them
+#' @param model Passed from ces_epistasis or ces_gene_epistasis. Set to "default" to use built-in
+#'   model of epistatic selection, or supply a custom function factory (see details).
+#' @param lik_args Extra arguments, given as a list, passed from ces_epistasis or ces_gene_epistasis
 #' @keywords internal
-pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compound_variants = NULL) {
+pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compound_variants = NULL, model = "default", lik_args = list()) {
   running_compound = FALSE
   if (is(compound_variants, "CompoundVariantSet")) {
     running_compound = TRUE
@@ -500,11 +512,44 @@ pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compoun
     with_both = lapply(as.list(all_rates[tumors_with_both])[2:3], setNames, tumors_with_both)
     with_neither = lapply(as.list(all_rates[tumors_with_neither])[2:3], setNames, tumors_with_neither)
   }
+  
+  if(is(model, "character")) {
+    if(length(model) != 1 || ! model %in% c("default")) {
+      stop("model should specify a built-in selection model (i.e., \"default\") or a custom function factory.")
+    } else {
+      if (model == 'default') {
+        lik_factory = pairwise_epistasis_lik
+      } else {
+        stop("Unrecognized model")
+      }
+    }
+  } else if (! is(model, "function")) {
+    stop("model should specify a built-in selection model (\"default\") or a custom function factory.")
+  } else {
+    lik_factory = model
+  }
+  
+  
+  if(! is(lik_args, "list")) {
+    stop("lik_args should be named list") 
+  }
+  
+  if(length(lik_args) > 0 && is.character(model)){
+    if(model %in% c('default')) {
+      stop("lik_args aren't used in the chosen model.")
+    }
+  }
+  if(length(lik_args) != uniqueN(names(lik_args))) {
+    stop('lik_args should be a named list without repeated names.')
+  }
 
+  lik_args = c(list(with_just_1 = with_just_1, with_just_2 = with_just_2, with_both = with_both, with_neither = with_neither), lik_args)
+  
   # call factory function to get variant-specific likelihood function
-  epistasis_lik_fn = pairwise_epistasis_lik(with_just_1, with_just_2, with_both, with_neither)
+  epistasis_lik_fn = do.call(lik_factory, lik_args)
   par_init = formals(epistasis_lik_fn)[[1]]
   names(par_init) = bbmle::parnames(epistasis_lik_fn)
+  
   
   # No point of testing epistasis if either variant doesn't appear
   if (length(tumors_with_v1) == 0 || length(tumors_with_v2) == 0) {
@@ -533,6 +578,7 @@ pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compoun
     }
     return(list(summary = early_output, fit = NULL)) # fit list will have a NULL entry
   }
+  
   
   # find optimized selection intensities
   # the selection intensity when some group has 0 variants will be on the lower boundary; will muffle the associated warning
