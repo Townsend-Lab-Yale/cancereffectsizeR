@@ -30,7 +30,8 @@
 #' @param cesa CESAnalysis object
 #' @param cores Number of cores to use for processing variants in parallel (not useful for Windows
 #'   systems).
-#' @param conf Cancer effect confidence interval width (NULL skips calculation, speeds runtime).
+#' @param conf Cancer effect confidence interval width (NULL skips calculation, speeds runtime). Ignored
+#' when running custom models.
 #' @param samples Which samples to include in inference. Defaults to all samples. Can be a vector of
 #'   Unique_Patient_Identifiers, or a data.table containing rows from the CESAnalysis sample table.
 #' @param variants Which variants to estimate effects for, specified with a variant table such as
@@ -44,15 +45,13 @@
 #' @param lik_args Extra arguments, given as a list, to pass to custom likelihood functions.
 #' @param optimizer_args Named list of arguments to pass to the optimizer, bbmle::mle2. Use, for example,
 #' to choose optimization algorithm or parameter boundaries on custom models.
+#' @param return_fit TRUE/FALSE (default FALSE): Embed model fit for each variant in a "fit"
+#'   attribute of the selection results table. Use \code{attr(selection_table, 'fit')} to access the
+#'   list of fitted models. Defaults to FALSE to save memory. Model fit objects can be of moderate
+#'   or large size. If you run thousands of variants at once, you may exhaust your system memory.
 #' @param hold_out_same_gene_samples When finding likelihood of each variant, hold out samples that
 #'   lack the variant but have any other mutations in the same gene. By default, TRUE when running
 #'   with single variants, FALSE with a CompoundVariantSet.
-#' @param ordering_col For the (not yet available) sequential model (or possibly custom models),
-#'   the name of the sample table column that defines sample chronology.
-#' @param ordering For the (not yet available) sequential model (or possibly custom models), a
-#'   character vector or list defining the ordering of values in ordering_col. Use a list to assign
-#'   multiple values in ordering_col the same position (e.g., `list(early = c("I", "II), late =
-#'   c("III", "IV")))` for an early vs. late analysis).
 #' @return CESAnalysis object with selection results appended to the selection output list
 #' @export
 ces_variant <- function(cesa = NULL,
@@ -60,16 +59,19 @@ ces_variant <- function(cesa = NULL,
                         samples = character(),
                         model = "default",
                         run_name = "auto",
-                        ordering_col = NULL,
-                        ordering = NULL,
                         lik_args = list(),
-                        optimizer_args = list(),
+                        optimizer_args = if(identical(model, 'default')) list(method = 'L-BFGS-B', lower = 1e-3, upper = 1e9) else list(),
+                        return_fit = FALSE,
                         hold_out_same_gene_samples = "auto",
                         cores = 1,
-                        conf = .95) 
+                        conf = .95)
 {
   if(! is.numeric(cores) || length(cores) != 1 || cores - as.integer(cores) != 0 || cores < 1) {
     stop('cores should be 1-length positive integer')
+  }
+  
+  if(! rlang::is_bool(return_fit)) {
+    stop('return_fit should be TRUE/FALSE.')
   }
   
   
@@ -145,18 +147,10 @@ ces_variant <- function(cesa = NULL,
     stop("lik args should be named list") 
   }
   
-  if(length(lik_args) > 0 && is.character(model)){
-    if(model %in% c('basic', 'sequential')) {
-      stop("lik_args aren't used in the chosen model.")
-    }
-  }
   if(length(lik_args) != uniqueN(names(lik_args))) {
     stop('lik_args should be a named list without repeated names.')
   }
   
-  if(is.null(ordering_col) && ! is.null(ordering)) {
-    stop("Use of ordering requires use of ordering_col")
-  }
 
   
   samples = select_samples(cesa, samples)
@@ -164,89 +158,20 @@ ces_variant <- function(cesa = NULL,
     num_excluded = cesa@samples[, .N] - samples[, .N]
     pretty_message(paste0("Note that ", num_excluded, " samples are being excluded from selection inference."))
   }
-  if(! is.null(ordering_col)) {
-    if(is.character(model) && model == 'basic') {
-      warning("You supplied an ordering_col, but it's not used in the default model.")
-    }
-    if(! is(ordering_col, 'character')) {
-      stop("ordering_col should be type character (a column name from CESAnalysis sample table).")
-    }
-    if(! ordering_col %in% names(cesa@samples)) {
-      stop("Input ordering_col is not present in CESAnalysis sample table.")
-    }
-    if (is.null(ordering)) {
-      stop("Use argument ordering to define sequence of values in ordering_col.")
-    }
-    if (is(ordering, "character")) {
-      ordering = as.list(ordering)
-    } else if(! is(ordering, "list")) {
-      stop("ordering should be character or list.")
-    }
-    if(! all(sapply(ordering, is, "character"))) {
-      stop("All elements of ordering should be character")
-    }
-    if(uniqueN(unlist(ordering)) != length(unlist(ordering))) {
-      stop("ordering contains repeated values.")
-    } 
-    if(length(ordering) < 2) {
-      stop("ordering should length 2 or greater if it's being used.")
-    }
-    samples[, ordering_col := as.character(samples[[ordering_col]])]
-    if(samples[, ! all(unlist(ordering) %in% ordering_col)]) {
-      if(samples[, .N] == cesa@samples[, .N]) {
-        stop("Some values in ordering do not appear in ", ordering_col, " in sample table.")
-      } else {
-        stop("Some values in ordering do not appear in ", ordering_col, " for the samples included in this run.")
-      }
-    }
-    
-    num_na = samples[, sum(is.na(ordering_col))]
-    if(num_na > 0) {
-      pretty_message(paste0("Note: ", num_na, " samples left out of run due to NA values in ordering_col."), black = F)
-      samples = samples[!is.na(ordering_col)]
-    }
-    
-    extra_values = setdiff(samples$ordering_col, unlist(ordering))
-    if (length(extra_values) > 0) {
-      msg = paste0("Note: Excluding samples with values in ", ordering_col, " not given in ordering: ", 
-                   paste(extra_values, collapse = ', '), '.')
-      samples = samples[! extra_values, on = "ordering_col"]
-      pretty_message(msg, black = F)
-    }
-    
-    index_by_state = list()
-    name_by_state = list()
-    
-    if(is.null(names(ordering))) {
-      if (length(unlist(ordering)) == length(ordering)) {
-        names(ordering) = unlist(ordering)
-      } else {
-        names(ordering) = 1:length(ordering)
-      }
-    }
-    for (i in 1:length(ordering)) {
-      for (j in 1:length(ordering[[i]])) {
-        index_by_state[[ordering[[i]][j]]] = i
-        name_by_state[[ordering[[i]][j]]] = names(ordering)[i]
-      }
-    }
-    sample_index = samples[, .(Unique_Patient_Identifier = Unique_Patient_Identifier,
-                               group_index = unlist(index_by_state[ordering_col]), 
-                               group_name = unlist(name_by_state[ordering_col]))]
-  } else if(is(model, "character")){
-    if(model == 'sequential') {
-      stop('The sequential model requires use of ordering_col/ordering (see docs)')
-    }
-  }
-  
+
   cesa = copy_cesa(cesa)
   cesa = update_cesa_history(cesa, match.call())
   
   # Set keys in case they've been lost
   mutations = cesa@mutations
   if(! is.null(conf)) {
-    if(! is(conf, "numeric") || length(conf) > 1 || conf <= 0 || conf >= 1) {
-      stop("conf should be 1-length numeric (e.g., .95 for 95% confidence intervals)", call. = F)
+    if(is(model, 'function')) {
+      warning('conf is ignored when running a custom model.')
+      conf = NULL
+    } else {
+      if(! is(conf, "numeric") || length(conf) > 1 || conf <= 0 || conf >= 1) {
+        stop("conf should be 1-length numeric (e.g., .95 for 95% confidence intervals)", call. = F)
+      }
     }
   }
   
@@ -346,7 +271,8 @@ ces_variant <- function(cesa = NULL,
   i = 0
   setkey(maf, "variant_id")
   setkey(variants, "variant_id")
-  for (coverage_group in coverage_groups) {
+  
+  selection_results = lapply(coverage_groups, function(coverage_group) {
     # one coverage group may be NA, for variants that are not covered by any specific covered_regions
     if(length(coverage_group) == 1 && is.na(coverage_group)) {
       curr_variants = variants[which(sapply(variants$covered_in, function(x) identical(x, NA_character_)))]
@@ -380,7 +306,7 @@ ces_variant <- function(cesa = NULL,
     }
     
     
-    for (j in 1:num_proc_groups) {
+    curr_results = lapply(1:num_proc_groups, function(j) {
       if (num_proc_groups > 1) {
         message(sprintf("Working on sub-batch %i of %i...", j, num_proc_groups))
       }
@@ -434,29 +360,13 @@ ces_variant <- function(cesa = NULL,
         
         lik_args = c(list(rates_tumors_with = rates_tumors_with, rates_tumors_without = rates_tumors_without), 
                      lik_args)
-        
-        # sample_index supplied if defined and not running our SSWM (it doesn't use it)
-        if(! identical(lik_factory, sswm_lik)) {
-          # unless it is already passed in by user in lik_args in the beginning
-          if(!"sample_index" %in% names(lik_args)){
-            
-            lik_args = c(lik_args, list(sample_index = sample_index))
-            
-          }
-          
-        }
         fn = do.call(lik_factory, lik_args)
         par_init = formals(fn)[[1]]
         names(par_init) = bbmle::parnames(fn)
         # find optimized selection intensities
         # the selection intensity for any stage that has 0 variants will be on the lower boundary; will muffle the associated warning
         final_optimizer_args = c(list(minuslogl = fn, start = par_init, vecpar = T), optimizer_args)
-        default_args = list(method = 'L-BFGS-B', lower = 1e-3, upper = 1e9)
-        for(arg in names(default_args)) {
-          if(! arg %in% names(final_optimizer_args)) {
-            final_optimizer_args[[substitute(arg)]] = default_args[[substitute(arg)]]
-          }
-        }
+
         withCallingHandlers(
           {
             fit = do.call(bbmle::mle2, final_optimizer_args)
@@ -495,42 +405,23 @@ ces_variant <- function(cesa = NULL,
               num_samples_total = num_samples_with + length(tumors_without)
               variant_output = c(variant_output, list(included_with_variant = num_samples_with,
                                                       included_total = num_samples_total))
-            } else {
-              # Build a table of counts, being careful not to drop groups with zero counts
-              counts_total = data.table(group_name = names(ordering), num_with = 0, num_without = 0)
-              counts_with = sample_index[tumors_with_variant, .(num_with = .N), by = 'group_name', on = "Unique_Patient_Identifier"]
-              
-              # if no tumors have variant, counts_with will be null
-              if(counts_with[, .N] > 0) {
-                counts_total[counts_with, num_with := i.num_with, on = 'group_name']
-              }
-              counts_without = sample_index[tumors_without, .(num_without = .N), by = 'group_name', on = "Unique_Patient_Identifier"]
-              counts_total[counts_without, num_without := i.num_without, on = 'group_name']
-              counts_total[, num_total := num_with + num_without]
-              
-              counts_with = setNames(counts_total$num_with, paste0('included_with_variant_', counts_total$group_name))
-              counts_total = setNames(counts_total$num_total, paste0('included_total_', counts_total$group_name))
-              variant_output = c(variant_output, unlist(S4Vectors::zipup(counts_with, counts_total), use.names = F))
             }
-            
           }
           
           if(is(model, "function") && is.null(lik_args$sample_index)){
-            
             num_samples_with = length(tumors_with_variant)
             num_samples_total = num_samples_with + length(tumors_without)
             variant_output = c(variant_output, list(included_with_variant = num_samples_with,
                                                     included_total = num_samples_total))
-            
           }
-          
         }
         if(! is.null(conf)) {
+          min_value = ifelse(is.null(final_optimizer_args$lower), -Inf, final_optimizer_args$lower)
+          max_value = ifelse(is.null(final_optimizer_args$upper), Inf, final_optimizer_args$upper)
           variant_output = c(variant_output, 
-                             univariate_si_conf_ints(fit, fn, final_optimizer_args$lower, 
-                                                     final_optimizer_args$upper, conf))
+                             univariate_si_conf_ints(fit, fn, min_value, max_value, conf))
         }
-        return(variant_output)
+        return(list(summary = variant_output, fit = if (return_fit) fit else NULL))
       }
       
       if (running_compound) {
@@ -539,9 +430,17 @@ ces_variant <- function(cesa = NULL,
         variants_to_run = curr_subgroup$variant_id
       }
       message("Calculating cancer effects...")
-      selection_results = rbind(selection_results, rbindlist(pbapply::pblapply(variants_to_run, process_variant, cl = cores)))
-    }
-  }
+      subgroup_results = pbapply::pblapply(variants_to_run, process_variant, cl = cores)
+      subgroup_selection = rbindlist(lapply(subgroup_results, '[[', 1))
+      subgroup_fit = lapply(subgroup_results, '[[', 2)
+      return(list(subgroup_selection, subgroup_fit))
+    })
+    group_selection = rbindlist(lapply(curr_results, '[[', 1))
+    group_fit = lapply(curr_results, '[[', 2)
+    return(list(group_selection, group_fit))
+  })
+  fits = unlist(lapply(selection_results, '[[', 2))
+  selection_results = rbindlist(lapply(selection_results, '[[', 1))
   
   if (running_compound) {
     selection_results[, variant_type := "compound"]
@@ -580,9 +479,17 @@ ces_variant <- function(cesa = NULL,
     selection_results[, uncovered := samples[, .N] - included_total - held_out]
   }
   
-  
+  if(return_fit) {
+    fits = lapply(fits, function(x) {
+      x@call.orig = call('[not shown]')
+      parent.env(environment(x)) = emptyenv() # otherwise, whole CESAnalysis will be embedded via parent
+      return(x)
+    })
+    setattr(selection_results, 'fit', fits)
+  }
   curr_results = list(selection_results)
   names(curr_results) = run_name
+  
   
   cesa@selection_results = c(cesa@selection_results, curr_results)
   return(cesa)

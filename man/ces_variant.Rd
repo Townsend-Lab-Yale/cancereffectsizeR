@@ -10,10 +10,10 @@ ces_variant(
   samples = character(),
   model = "default",
   run_name = "auto",
-  ordering_col = NULL,
-  ordering = NULL,
   lik_args = list(),
-  optimizer_args = list(),
+  optimizer_args = if (identical(model, "default")) list(method = "L-BFGS-B", lower =
+    0.001, upper = 1e+09) else list(),
+  return_fit = FALSE,
   hold_out_same_gene_samples = "auto",
   cores = 1,
   conf = 0.95
@@ -36,18 +36,15 @@ models of selection, or supply a custom function factory (see details).}
 
 \item{run_name}{Optionally, a name to identify the current run.}
 
-\item{ordering_col}{For the (not yet available) sequential model (or possibly custom models),
-the name of the sample table column that defines sample chronology.}
-
-\item{ordering}{For the (not yet available) sequential model (or possibly custom models), a
-character vector or list defining the ordering of values in ordering_col. Use a list to assign
-multiple values in ordering_col the same position (e.g., `list(early = c("I", "II), late =
-c("III", "IV")))` for an early vs. late analysis).}
-
 \item{lik_args}{Extra arguments, given as a list, to pass to custom likelihood functions.}
 
 \item{optimizer_args}{Named list of arguments to pass to the optimizer, bbmle::mle2. Use, for example,
 to choose optimization algorithm or parameter boundaries on custom models.}
+
+\item{return_fit}{TRUE/FALSE (default FALSE): Embed model fit for each variant in a "fit"
+attribute of the selection results table. Use \code{attr(selection_table, 'fit')} to access the
+list of fitted models. Defaults to FALSE to save memory. Model fit objects can be of moderate
+or large size. If you run thousands of variants at once, you may exhaust your system memory.}
 
 \item{hold_out_same_gene_samples}{When finding likelihood of each variant, hold out samples that
 lack the variant but have any other mutations in the same gene. By default, TRUE when running

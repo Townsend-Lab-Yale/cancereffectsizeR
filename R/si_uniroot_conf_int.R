@@ -22,7 +22,7 @@ univariate_si_conf_ints = function(fit, lik_fn, min_si, max_si, conf) {
     } else {
       # univariate likelihood function freezes all but one SI at MLE
       # offset makes output at MLE negative; function should be positive at lower/upper boundaries,
-      # and uniroot will find the zeroes, which should represent the lower/uppper CIs
+      # and uniroot will find the zeroes, which should represent the lower/upper CIs
       ulik = function(x) { 
         pars = selection_intensity
         pars[i] = x

@@ -236,6 +236,11 @@ ces_gene_epistasis = function(cesa = NULL, genes = NULL, variants = NULL,
   results = rbindlist(lapply(results, '[[', 'summary'))
   
   if(return_fit) {
+    fits = lapply(fits, function(x) {
+      x@call.orig = call('[not shown]')
+      parent.env(environment(x)) = emptyenv()
+      return(x)
+    })
     setattr(results, 'fit', fits)
   }
   
