@@ -1,6 +1,9 @@
 
 # <font style = "opacity:0">cancereffectsizeR 3.0.0</font>
 Patch releases (as in, x.y.1 &#8594; x.y.2) have minor bug fixes or small improvements that do not significantly affect the numerical output of cancer effect analyses. Minor/major updates may change some outputs due to bug fixes or methodological tweaks, as described in these version notes.<br><br>
+# cancereffectsizeR 2.10.1
+* Minor fixes.
+
 
 # cancereffectsizeR 2.10.0
 * Tweaked optimizer settings for epistatic inference to improve convergence.

@@ -53,7 +53,8 @@ with single variants, FALSE with a CompoundVariantSet.}
 \item{cores}{Number of cores to use for processing variants in parallel (not useful for Windows
 systems).}
 
-\item{conf}{Cancer effect confidence interval width (NULL skips calculation, speeds runtime).}
+\item{conf}{Cancer effect confidence interval width (NULL skips calculation, speeds runtime). Ignored
+when running custom models.}
 }
 \value{
 CESAnalysis object with selection results appended to the selection output list

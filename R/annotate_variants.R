@@ -295,6 +295,9 @@ annotate_variants <- function(refset = NULL, variants = NULL) {
     snv_table[, trinuc_mut := character(0)]
     snv_table[, essential_splice := logical(0)]
   }
+  if(aac[, .N] > 0) {
+    aac$essential_splice = FALSE
+  }
   
 	# Annotate SNVs that are at essential splice sites according to RefCDS, and then apply to any associated AACs
 	# Note that we're not keeping track of which genes these splice site positions apply to

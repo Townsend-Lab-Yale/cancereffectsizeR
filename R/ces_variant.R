@@ -166,7 +166,9 @@ ces_variant <- function(cesa = NULL,
   mutations = cesa@mutations
   if(! is.null(conf)) {
     if(is(model, 'function')) {
-      warning('conf is ignored when running a custom model.')
+      if(! rlang::is_scalar_double(conf) || conf != .95) {
+        warning('conf is ignored when running a custom model.')
+      }
       conf = NULL
     } else {
       if(! is(conf, "numeric") || length(conf) > 1 || conf <= 0 || conf >= 1) {
