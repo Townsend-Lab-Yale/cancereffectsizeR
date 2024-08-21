@@ -270,18 +270,17 @@ ces_variant <- function(cesa = NULL,
   coverage_groups = unique(variants$covered_in)
   num_coverage_groups = length(coverage_groups)
   
-  i = 0
   setkey(maf, "variant_id")
   setkey(variants, "variant_id")
   
-  selection_results = lapply(coverage_groups, function(coverage_group) {
+  selection_results = lapply(1:length(coverage_groups), function(i) {
+    coverage_group = coverage_groups[[i]]
     # one coverage group may be NA, for variants that are not covered by any specific covered_regions
     if(length(coverage_group) == 1 && is.na(coverage_group)) {
       curr_variants = variants[which(sapply(variants$covered_in, function(x) identical(x, NA_character_)))]
     } else {
       curr_variants = variants[which(sapply(variants$covered_in, function(x) identical(x, coverage_group)))]
     }
-    i = i+1
     message(sprintf("Preparing to calculate cancer effects (batch %i of %i)...", i, num_coverage_groups))
     if(is.null(coverage_group)) {
       covered_samples = genome_wide_cov_samples
