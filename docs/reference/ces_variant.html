@@ -14,7 +14,7 @@ effect) across all included samples."><!-- mathjax --><script src="https://cdnjs
     
     <a class="navbar-brand me-2" href="../index.html">cancereffectsizeR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.10.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.10.1</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -75,10 +75,10 @@ effect) across all included samples.</p>
 <span>  samples <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  model <span class="op">=</span> <span class="st">"default"</span>,</span>
 <span>  run_name <span class="op">=</span> <span class="st">"auto"</span>,</span>
-<span>  ordering_col <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  ordering <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  lik_args <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>  optimizer_args <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  optimizer_args <span class="op">=</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">model</span>, <span class="st">"default"</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"L-BFGS-B"</span>, lower <span class="op">=</span></span>
+<span>    <span class="fl">0.001</span>, upper <span class="op">=</span> <span class="fl">1e+09</span><span class="op">)</span> <span class="kw">else</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  return_fit <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  hold_out_same_gene_samples <span class="op">=</span> <span class="st">"auto"</span>,</span>
 <span>  cores <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  conf <span class="op">=</span> <span class="fl">0.95</span></span>
@@ -113,18 +113,6 @@ models of selection, or supply a custom function factory (see details).</p></dd>
 <dd><p>Optionally, a name to identify the current run.</p></dd>
 
 
-<dt>ordering_col</dt>
-<dd><p>For the (not yet available) sequential model (or possibly custom models),
-the name of the sample table column that defines sample chronology.</p></dd>
-
-
-<dt>ordering</dt>
-<dd><p>For the (not yet available) sequential model (or possibly custom models), a
-character vector or list defining the ordering of values in ordering_col. Use a list to assign
-multiple values in ordering_col the same position (e.g., `list(early = c("I", "II), late =
-c("III", "IV")))` for an early vs. late analysis).</p></dd>
-
-
 <dt>lik_args</dt>
 <dd><p>Extra arguments, given as a list, to pass to custom likelihood functions.</p></dd>
 
@@ -132,6 +120,13 @@ c("III", "IV")))` for an early vs. late analysis).</p></dd>
 <dt>optimizer_args</dt>
 <dd><p>Named list of arguments to pass to the optimizer, bbmle::mle2. Use, for example,
 to choose optimization algorithm or parameter boundaries on custom models.</p></dd>
+
+
+<dt>return_fit</dt>
+<dd><p>TRUE/FALSE (default FALSE): Embed model fit for each variant in a "fit"
+attribute of the selection results table. Use <code>attr(selection_table, 'fit')</code> to access the
+list of fitted models. Defaults to FALSE to save memory. Model fit objects can be of moderate
+or large size. If you run thousands of variants at once, you may exhaust your system memory.</p></dd>
 
 
 <dt>hold_out_same_gene_samples</dt>
@@ -146,7 +141,8 @@ systems).</p></dd>
 
 
 <dt>conf</dt>
-<dd><p>Cancer effect confidence interval width (NULL skips calculation, speeds runtime).</p></dd>
+<dd><p>Cancer effect confidence interval width (NULL skips calculation, speeds runtime). Ignored
+when running custom models.</p></dd>
 
 </dl></div>
     <div class="section level2">

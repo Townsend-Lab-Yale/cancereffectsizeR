@@ -33,7 +33,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">cancereffectsizeR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.10.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.10.1</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -106,14 +106,15 @@ by copy-and-pasting code into an R script.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>timeout <span class="op">=</span> <span class="fl">600</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"remotes"</span><span class="op">)</span></span>
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"Townsend-Lab-Yale/cancereffectsizeR"</span>, dependencies <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
-<p>Regrettably, there is a bug in some versions of the GenomeInfoDb
-package that produces cryptic error messages in cancereffectsizeR, along
-the lines of <code>!anyNA(m32) is not TRUE</code>. If you encounter this
-issue, the simplest solution is to upgrade your Bioconductor
-version:</p>
+<p>Regrettably, some Bioconductor releases contain versions of required
+packages with bugs that cause cryptic messages in cancereffectsizeR
+workflows, such as <code>!anyNA(m32) is not TRUE</code> or
+<code>Error in data.frame(…, check.names=F): arguments imply differing number of rows</code>.
+If you encounter these problems, the simplest solution is to upgrade
+your Bioconductor version:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Only necessary if GenomeInfoDb errors are causing problems.</span></span>
-<span><span class="fu">BiocManager</span><span class="fu">::</span><span class="fu"><a href="https://bioconductor.github.io/BiocManager/reference/install.html" class="external-link">install</a></span><span class="op">(</span>version <span class="op">=</span> <span class="st">"3.16"</span><span class="op">)</span> <span class="co"># or newer, when available</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="co"># Only necessary if GenomeInfoDb or MutationalPatterns errors are causing problems.</span></span>
+<span><span class="fu">BiocManager</span><span class="fu">::</span><span class="fu"><a href="https://bioconductor.github.io/BiocManager/reference/install.html" class="external-link">install</a></span><span class="op">(</span>version <span class="op">=</span> <span class="st">"3.20"</span><span class="op">)</span> <span class="co"># or newer, when available</span></span></code></pre></div>
 <p>In addition to installing cancereffectsizeR, you need to install a
 reference data set, or <em>refset</em>. These refsets include genomic
 and gene annotations, mutational signature definitions, and more.
