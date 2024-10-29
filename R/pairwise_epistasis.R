@@ -116,7 +116,6 @@ ces_gene_epistasis = function(cesa = NULL,
       stop("conf should be 1-length numeric (e.g., .95 for 95% confidence intervals)", call. = F)
     }
   }
-
   # genes can be list of character pairs or a character vector, from which all possible pairs will be taken
   gene_pairs = NULL
   if(is(genes, "list") && all(sapply(genes, is.character)) && all(sapply(genes, length) ==2)) {
@@ -231,7 +230,7 @@ ces_gene_epistasis = function(cesa = NULL,
       stop("There are no remaining gene pairs to test for epistasis.")
     }
   }
-  
+
   # use separate CompoundVariantSets for each pair to avoid possible gene-overlap issues
   setkey(variants_to_use, 'gene')
   results = pbapply::pblapply(X = gene_pairs, FUN = 
