@@ -5,22 +5,16 @@
 #' 
 #' The arguments to this function are automatically supplied by \code{ces_epistasis()} and \code{ces_gene_epistasis()}.
 #' 
-#' @param with_just_1 three-item list of Unique_Patient_Identifiers and baseline rates in v1/v2 for tumors with mutation in just the first variant(s)
-#' @param with_just_2 three-item list of Unique_Patient_Identifiers and baseline rates in v1/v2 for tumors with mutation in just the second variant(s)
-#' @param with_both three-item list of Unique_Patient_Identifiers and baseline rates in v1/v2 for tumors with mutation in both
-#' @param with_neither three-item list of Unique_Patient_Identifiers and baseline rates in v1/v2 for tumors with mutation n neither
+#' @param with_just_1 two-item list of baseline rates in v1/v2 for tumors with mutation in just the first variant(s)
+#' @param with_just_2 two-item list of baseline rates in v1/v2 for tumors with mutation in just the second variant(s)
+#' @param with_both two-item list of baseline rates in v1/v2 for tumors with mutation in both
+#' @param with_neither two-item list of baseline rates in v1/v2 for tumors with mutation n neither
 #'
 #' @export
 #' @return A likelihood function
 pairwise_epistasis_lik  <- function(with_just_1, with_just_2, with_both, with_neither) {
- 
-  with_neither = with_neither[2:3]
-  with_just_1 = with_just_1[2:3]
-  with_just_2 = with_just_2[2:3]
-  with_both = with_both[2:3]
-  
+
   fn = function(par) {
-    
     # sometimes the pars end up as NaNs or NAs, possibly because of inappropriate optimization techniques
     if(! all(is.finite(par))) {
       return(1e200)

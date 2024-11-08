@@ -11,6 +11,7 @@ plot_epistasis(
   variant_label_size = 6.5,
   dodge_labels = "auto",
   alternating_colors = c("#7cb4de", "#7DD3AF"),
+  include_schematic = TRUE,
   schematic_label_size = 2.5,
   significance_levels = c(0.05, 0.01, 0.001),
   significance_cols = list(A_change = "p_A_change", B_change = "p_B_change", model =
@@ -34,6 +35,8 @@ to "auto"; you can try setting manually if labels are not looking good.}
 
 \item{alternating_colors}{Colors, provided as character vector, to use on epistatic effect
 arrows. It's recommended to supply one or two colors, but more will work.}
+
+\item{include_schematic}{TRUE/FALSE on whether to include the schematic that shows how to interpret the plot.}
 
 \item{schematic_label_size}{Text size of labels in the schematic.}
 

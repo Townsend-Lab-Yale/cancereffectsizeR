@@ -20,6 +20,7 @@
 #' to "auto"; you can try setting manually if labels are not looking good.
 #' @param alternating_colors Colors, provided as character vector, to use on epistatic effect
 #'   arrows. It's recommended to supply one or two colors, but more will work.
+#' @param include_schematic TRUE/FALSE on whether to include the schematic that shows how to interpret the plot.
 #' @param schematic_label_size Text size of labels in the schematic.
 #' @param significance_levels A vector of 1-3 distinct numeric values on (0, 1) in descending order
 #'   to use for significance annotations.
@@ -39,6 +40,7 @@
 plot_epistasis = function(epistatic_effects, pairs_per_row = 8,
                           x_title = 'Site pairs',
                           variant_label_size = 6.5, dodge_labels = 'auto', alternating_colors = c("#7cb4de", "#7DD3AF"),
+                          include_schematic = TRUE,
                           schematic_label_size = 2.5, 
                           significance_levels = c(.05, .01, .001), 
                           significance_cols = list(A_change = 'p_A_change', 
@@ -62,6 +64,9 @@ plot_epistasis = function(epistatic_effects, pairs_per_row = 8,
     }
   }
   
+  if(! rlang::is_bool(include_schematic)) {
+    stop('include_schematic should be TRUE/FALSE')
+  }
   if(! rlang::is_scalar_integerish(pairs_per_row) || pairs_per_row < 1) {
     stop('pairs_per_row should be a positive integer.')
   }
@@ -138,7 +143,7 @@ plot_epistasis = function(epistatic_effects, pairs_per_row = 8,
   legend_width = floor(pairs_per_row / 4) + 1
   n_grp = ceiling(effects[, .N]/pairs_per_row) 
   
-  while(TRUE) {
+  while(TRUE && include_schematic == TRUE) {
     if(pairs_per_row > effects[, .N]) {
       spaces_open = pairs_per_row - effects[, .N]
     } else {
@@ -320,57 +325,58 @@ plot_epistasis = function(epistatic_effects, pairs_per_row = 8,
   
   ymax = effects$ymax[1]
   
-  if(legend_width == 1) {
-    legend_x = n_grp * pairs_per_row - .25
-    legend_box_xmin = n_grp * pairs_per_row - .47
-  } else if(legend_width == 2) {
-    if(n_grp < 4) {
-      legend_x = n_grp * pairs_per_row - 1
+  if(include_schematic) {
+    if(legend_width == 1) {
+      legend_x = n_grp * pairs_per_row - .25
+      legend_box_xmin = n_grp * pairs_per_row - .47
+    } else if(legend_width == 2) {
+      if(n_grp < 4) {
+        legend_x = n_grp * pairs_per_row - 1
+      } else {
+        legend_x = n_grp * pairs_per_row - 1.25
+      }
+      legend_box_xmin = n_grp * pairs_per_row - 1.47 
+    } else if(legend_width == 3) {
+      if(n_grp < 4) {
+        legend_x = n_grp * pairs_per_row - 1.75
+      } else {
+        legend_x = n_grp * pairs_per_row - 2
+      }
+      legend_box_xmin = n_grp * pairs_per_row - 2.47 
     } else {
-      legend_x = n_grp * pairs_per_row - 1.25
+      legend_x = n_grp * pairs_per_row - (legend_width + 1) * .5
+      legend_box_xmin = n_grp * pairs_per_row - (legend_width - 1) - .47
     }
-    legend_box_xmin = n_grp * pairs_per_row - 1.47 
-  } else if(legend_width == 3) {
-    if(n_grp < 4) {
-      legend_x = n_grp * pairs_per_row - 1.75
-    } else {
-      legend_x = n_grp * pairs_per_row - 2
-    }
-    legend_box_xmin = n_grp * pairs_per_row - 2.47 
-  } else {
-    legend_x = n_grp * pairs_per_row - (legend_width + 1) * .5
-    legend_box_xmin = n_grp * pairs_per_row - (legend_width - 1) - .47
+    legend_box_xmax = n_grp * pairs_per_row + .47
+    legend_title_x = mean(c(legend_box_xmin, legend_box_xmax))
+    
+    log_range = log10(ymax) - log10(plot_ymin)
+    legend_y_low = 10^(log10(plot_ymin) + .12 * log_range) # low end 25% from bottom of box
+    legend_y_high = 10^(log10(plot_ymin) + .7 * log_range)
+    legend_null_y = 10^(log10(plot_ymin) + .3 * log_range)
+    legend_title_y = plot_ymin + 10^(log10(plot_ymin) + .9 * log_range)
+    legend_data = data.table(grp = n_grp)
+    legend_text_spacing = ifelse(legend_width == 1 || n_grp < 4, '\n', ' ')
+    gg = gg + 
+      geom_text(data = legend_data, aes(x = legend_title_x, y = legend_title_y, vjust = 'inward', hjust = 'center', 
+                                        label = 'Types of effects'), size = schematic_label_size + 1, lineheight = .75) +
+      geom_point(data = legend_data, aes(x = legend_x, y = legend_y_low), size = 2.5, color = 'goldenrod2') +
+      geom_segment(data = legend_data, aes(x = legend_x, xend = legend_x, y = legend_y_low, yend = legend_y_high), color = 'goldenrod2', linewidth = 2, lineend = "butt") +
+      geom_point(data = legend_data, aes(x = legend_x, y = legend_y_high), shape = 'triangle filled', size = 2.5, fill = 'goldenrod2', color = 'goldenrod2') +
+      geom_text_repel(data = legend_data, aes(x = legend_x, y = legend_y_low, label = paste0('Epistatic effect:', legend_text_spacing, 'paired site wildtype')),
+                      size = schematic_label_size, lineheight = .9, force = 0, min.segment.length = 0, point.padding = unit(.7 , 'lines'),
+                      hjust = 'left', vjust = 'inward', nudge_x = legend_width * .15) +
+      geom_text_repel(data = legend_data, aes(x = legend_x, y = legend_y_high, label = paste0('Epistatic effect:', legend_text_spacing, 'paired site mutated')),
+                      size = schematic_label_size, lineheight = .9, force = 0, min.segment.length = 0, point.padding = unit(.7 , 'lines'),
+                      hjust = 'left', vjust = 'inward', nudge_x = legend_width * .15) +
+      geom_point(data= legend_data, aes(x = legend_x, y = legend_null_y), color = 'darkslateblue', shape = 'square' ) +
+      geom_text_repel(data = legend_data, aes(x = legend_x, y = legend_null_y, label = paste0('\n\nIsolated site effect:', legend_text_spacing, 'paired site ignored\n')),
+                      size = schematic_label_size, force = 0, lineheight = .9, direction = 'y', min.segment.length = 0, point.padding = unit(.7 , 'lines'),
+                      hjust = 'left', vjust = 'inward', nudge_x = legend_width * .15) + 
+      geom_rect(data = legend_data, aes(xmin = legend_box_xmin,
+                                        xmax = legend_box_xmax,
+                                        ymin = plot_ymin, ymax = ymax), fill = NA, color = 'black')
   }
-  legend_box_xmax = n_grp * pairs_per_row + .47
-  legend_title_x = mean(c(legend_box_xmin, legend_box_xmax))
-  
-  log_range = log10(ymax) - log10(plot_ymin)
-  legend_y_low = 10^(log10(plot_ymin) + .12 * log_range) # low end 25% from bottom of box
-  legend_y_high = 10^(log10(plot_ymin) + .7 * log_range)
-  legend_null_y = 10^(log10(plot_ymin) + .3 * log_range)
-  legend_title_y = plot_ymin + 10^(log10(plot_ymin) + .9 * log_range)
-  legend_data = data.table(grp = n_grp)
-  
-  legend_text_spacing = ifelse(legend_width == 1 || n_grp < 4, '\n', ' ')
-  gg = gg + 
-    geom_text(data = legend_data, aes(x = legend_title_x, y = legend_title_y, vjust = 'inward', hjust = 'center', 
-                                      label = 'Types of effects'), size = schematic_label_size + 1, lineheight = .75) +
-    geom_point(data = legend_data, aes(x = legend_x, y = legend_y_low), size = 2.5, color = 'goldenrod2') +
-    geom_segment(data = legend_data, aes(x = legend_x, xend = legend_x, y = legend_y_low, yend = legend_y_high), color = 'goldenrod2', linewidth = 2, lineend = "butt") +
-    geom_point(data = legend_data, aes(x = legend_x, y = legend_y_high), shape = 'triangle filled', size = 2.5, fill = 'goldenrod2', color = 'goldenrod2') +
-    geom_text_repel(data = legend_data, aes(x = legend_x, y = legend_y_low, label = paste0('Epistatic effect:', legend_text_spacing, 'paired site wildtype')),
-                    size = schematic_label_size, lineheight = .9, force = 0, min.segment.length = 0, point.padding = unit(.7 , 'lines'),
-                    hjust = 'left', vjust = 'inward', nudge_x = legend_width * .15) +
-    geom_text_repel(data = legend_data, aes(x = legend_x, y = legend_y_high, label = paste0('Epistatic effect:', legend_text_spacing, 'paired site mutated')),
-                    size = schematic_label_size, lineheight = .9, force = 0, min.segment.length = 0, point.padding = unit(.7 , 'lines'),
-                    hjust = 'left', vjust = 'inward', nudge_x = legend_width * .15) +
-    geom_point(data= legend_data, aes(x = legend_x, y = legend_null_y), color = 'darkslateblue', shape = 'square' ) +
-    geom_text_repel(data = legend_data, aes(x = legend_x, y = legend_null_y, label = paste0('\n\nIsolated site effect:', legend_text_spacing, 'paired site ignored\n')),
-                    size = schematic_label_size, force = 0, lineheight = .9, direction = 'y', min.segment.length = 0, point.padding = unit(.7 , 'lines'),
-                    hjust = 'left', vjust = 'inward', nudge_x = legend_width * .15) + 
-    geom_rect(data = legend_data, aes(xmin = legend_box_xmin,
-                                      xmax = legend_box_xmax,
-                                      ymin = plot_ymin, ymax = ymax), fill = NA, color = 'black')
   
   if(remove_x_title) {
     gg = gg + theme(axis.title.x = element_blank())
