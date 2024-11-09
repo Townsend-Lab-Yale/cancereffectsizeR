@@ -145,7 +145,6 @@ default_epistasis_pvalue_calc = function(fit) {
   B_on_A = params[4] * v2_rates
   
   # See pairwise_epistasis_lik()
-  ## NOTE: Wrong for custom models
   p_wt = exp(-1 * (A+B))
   p_A = (A / (A + B - B_on_A)) * (exp(-1 * B_on_A) - exp(-1 * (A + B)))
   p_B = (B / (A + B - A_on_B)) * (exp(-1 * A_on_B) - exp(-1 * (A + B)))

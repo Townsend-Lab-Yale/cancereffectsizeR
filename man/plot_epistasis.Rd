@@ -55,7 +55,7 @@ inference. Typically, should be left at the default value, which matches cancere
 epistatic inference defaults. For plot legibility, there will be a dashed horizontal line in
 the output plot, higher than \code{inference_floor} and lower than any non-minimized parameter
 inference, which indicates that all arrows pointing below the line have estimates at the
-optimization floor.7CB4DE (old) c("#8dbee2", "#a3d8c2")}
+optimization floor.}
 }
 \description{
 Visualize pairwise epistatic scaled selection coefficients, as calculated by

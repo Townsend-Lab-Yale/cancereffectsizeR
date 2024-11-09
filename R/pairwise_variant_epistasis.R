@@ -119,8 +119,8 @@ pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compoun
     stop("model should specify a built-in selection model (\"default\") or a custom function factory.")
   } else {
     lik_factory = model
-    if(! is.null(pval_calc_fn) && ! is(pval_calc_fn, 'function') || 
-       ! identical(names(formals(pval_calc_fn)), 'fit')) {
+    if(! is.null(pval_calc_fn) && 
+       (! is(pval_calc_fn, 'function') || ! identical(names(formals(pval_calc_fn)), 'fit'))) {
       stop('pval_calc_fn should be NULL or a function that takes a single named argument (fit, the epistatic model fit object).')
     }
   }
@@ -149,28 +149,12 @@ pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compoun
   # No point of testing epistasis if either variant doesn't appear
   n_total = length(tumors_just_v1) + length(tumors_just_v2) + length(tumors_with_neither) + length(tumors_with_both)
   if (length(tumors_with_v1) == 0 || length(tumors_with_v2) == 0) {
-    early_output = list(variant_A = v1, variant_B = v2, ces_A0 = NA_real_, ces_B0 = NA_real_,
-                        ces_A_on_B = NA_real_, ces_B_on_A = NA_real_, 
-                        p_A_change = NA_real_, p_B_change = NA_real_, p_epistasis = NA_real_, 
-                        expected_nAB_epistasis = NA_real_, expected_nAB_null = NA_real_,
-                        AB_epistatic_ratio = NA_real_,
+    early_output = list(variant_A = v1, variant_B = v2,
                         nA0 = length(tumors_just_v1),
                         nB0 = length(tumors_just_v2),
                         nAB = length(tumors_with_both),
                         n00 = length(tumors_with_neither),
-                        n_total = n_total,
-                        ces_A_null = NA_real_, ces_B_null = NA_real_)
-    if (! is.null(conf)) {
-      si_names = c('ces_A0', 'ces_B0', 'ces_A_on_B', 'ces_B_on_A')
-      ci_high_colname = paste0("ci_high_", conf * 100)
-      ci_low_colname = paste0("ci_low_", conf * 100)
-      low_colnames = paste(ci_low_colname, si_names, sep = "_")
-      high_colnames = paste(ci_high_colname, si_names, sep = "_")
-      ci_colnames = unlist(S4Vectors::zipup(low_colnames, high_colnames))
-      ci_output = as.list(rep.int(NA_real_, 8))
-      names(ci_output) = ci_colnames
-      early_output = c(early_output, ci_output) # low/high for 4 parameters
-    }
+                        n_total = n_total)
     return(list(summary = early_output, fit = NULL)) # fit list will have a NULL entry
   }
   
@@ -192,7 +176,7 @@ pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compoun
   
   withCallingHandlers(
     {
-      fit = fit = do.call(bbmle::mle2, final_optimizer_args)
+      fit = do.call(bbmle::mle2, final_optimizer_args)
     },
     warning = function(w) {
       if (startsWith(conditionMessage(w), "some parameters are on the boundary")) {
@@ -200,7 +184,7 @@ pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compoun
       }
     }
   )
-  
+
   # Calculate p-values and other descriptives
   p_values_and_more = list()
   if(! is.null(pval_calc_fn)) {
@@ -210,12 +194,7 @@ pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compoun
     p_values_and_more = pval_calc_fn(fit)
   }
   
-  # Also remove the whole copy of CESAnalysis in there.
-  # To-do: probably shouldn't be there in the first place.
-  rm('cesa', envir = environment(fit))
   params = bbmle::coef(fit)
-  
-  
   if(running_default) {
     si_output = list(ces_A0 = params[1], ces_B0 = params[2],
                      ces_A_on_B = params[3], ces_B_on_A = params[4])
@@ -233,13 +212,17 @@ pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compoun
       bbmle::parnames(epistasis_lik_fn) = c('ces_A0', 'ces_B0', 'ces_A_on_B', 'ces_B_on_A')
       ci = univariate_si_conf_ints(fit, epistasis_lik_fn, final_optimizer_args$lower, final_optimizer_args$upper, conf)
     } else {
-      ci_dt = as.data.table(confint(fit, level = conf), keep.rownames = 'param')
+      ci_dt = as.data.table(confint(fit, level = conf, quietly = TRUE), keep.rownames = 'param')
       ci_dt[, low_name := paste('ci_low', conf * 100, param, sep = '_')]
       ci_dt[, high_name := paste('ci_high', conf * 100, param, sep = '_')]
-      ci = c(setNames(unlist(ci_dt[, 2]), ci_dt$low_name),
-             setNames(unlist(ci_dt[, 3]), ci_dt$high_name))
+      ci = unlist(S4Vectors::zipup(ci_dt[[2]], ci_dt[[3]]))
+      names(ci) = unlist(S4Vectors::zipup(ci_dt$low_name, ci_dt$high_name))
     }
     variant_ep_results = c(variant_ep_results, ci)
   }
+  
+  # To reduce size, remove copy of CESAnalysis from fit environment.
+  rm('cesa', envir = environment(fit))
+  
   return(list(summary = variant_ep_results, fit = fit))
 }

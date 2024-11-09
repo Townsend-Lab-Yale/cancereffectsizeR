@@ -248,7 +248,7 @@ ces_gene_epistasis = function(cesa = NULL,
     }, cl = cores
   )
   fits = lapply(results, '[[', 'fit')
-  results = rbindlist(lapply(results, '[[', 'summary'))
+  results = rbindlist(lapply(results, '[[', 'summary'), fill = TRUE)
   
   if(return_fit) {
     fits = lapply(fits, function(x) {
@@ -423,7 +423,7 @@ ces_epistasis = function(cesa = NULL, variants = NULL, samples = character(), ru
     stop("variants should be of type list or CompoundVariantSet")
   }
   fits = lapply(results, '[[', 'fit')
-  results = rbindlist(lapply(results, '[[', 'summary'))
+  results = rbindlist(lapply(results, '[[', 'summary'), fill = TRUE)
   if(results[(nA0 == 0 | nB0 == 0) & 
              nAB == 0, .N] > 0) {
     pretty_message(paste0("Some variant pairs had prevalence of 0 in one or both variants across jointly-covering input samples. ",

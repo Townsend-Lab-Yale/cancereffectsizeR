@@ -35,7 +35,7 @@
 #'   epistatic inference defaults. For plot legibility, there will be a dashed horizontal line in
 #'   the output plot, higher than \code{inference_floor} and lower than any non-minimized parameter
 #'   inference, which indicates that all arrows pointing below the line have estimates at the
-#'   optimization floor.7CB4DE (old) c("#8dbee2", "#a3d8c2")
+#'   optimization floor.
 #' @export
 plot_epistasis = function(epistatic_effects, pairs_per_row = 8,
                           x_title = 'Site pairs',
