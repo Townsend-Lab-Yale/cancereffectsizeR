@@ -18,19 +18,25 @@
 #'   \item Add a "color" column to manually specify colors for each group.
 #'   }
 #' Alternatively, setting \code{signature_groupings = "cannataro"} applies the same signature
-#' grouping and color palette as
-#' \href{https://academic.oup.com/mbe/article/39/5/msac084/6570859}{Cannataro et al. 2022}.
+#' groupings and color palette as
+#' \href{https://academic.oup.com/mbe/article/39/5/msac084/6570859}{Cannataro et al. 2022}. You can use
+#' Cannataro signature groupings with a different color palette by specifying \code{viridis_option}.
 #' @param viridis_option A viridis color mapping, specified with a single letter ('A' to 'H'). By
-#'   default, map 'G' (mako) is used.
+#'   default, map 'G' (mako) unless using Cannataro signature groupings.
 #' @param num_sig_groups How many groups of signatures to display. Groups are ordered by their
 #'   highest effect shares, and the rest get lumped into an "other signatures" group.
+#' @param other_color Color to use for signatures in the "other" group, supplied as a scalar character.
 #' @export
 plot_signature_effects = function(mutational_effects = NULL,
                                                signature_groupings = 'auto',
                                                viridis_option = NULL,
-                                               num_sig_groups = 7) {
+                                               num_sig_groups = 7, other_color = 'white') {
   if(! require("ggplot2")) {
     stop('Package ggplot2 must be installed for plotting.')
+  }
+  
+  if(! rlang::is_scalar_character(other_color)) {
+    stop('other_color should be 1-length character.')
   }
   
   if(! is.numeric(num_sig_groups) || length(num_sig_groups) != 1 || 
@@ -281,7 +287,7 @@ plot_signature_effects = function(mutational_effects = NULL,
   } else if(is.null(df_final$color)) {
     gg = gg + scale_fill_viridis_d(name = sig_legend_name, option = viridis_option, begin = .2, direction = -1)
   } else {
-    df_final[group == other_label, color := 'white']
+    df_final[group == other_label, color := other_color]
     group_to_color = setNames(unique(df_final$color), unique(df_final$group))
     gg = gg + scale_fill_manual(name = sig_legend_name, values = group_to_color)
   }

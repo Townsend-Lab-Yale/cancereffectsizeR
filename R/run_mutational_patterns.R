@@ -38,7 +38,16 @@ run_mutational_patterns = function(tumor_trinuc_counts, signatures_df, signature
   signatures_output = tryCatch(
   {
     if(bootstrap_mutations) {
-      do.call(MutationalPatterns::fit_to_signatures_bootstrapped, args)
+      withCallingHandlers(
+        {
+          do.call(MutationalPatterns::fit_to_signatures_bootstrapped, args)
+        },
+        warning = function(w) {
+          if (conditionMessage(w) %like% "At least one of your samples has less than") {
+            invokeRestart("muffleWarning")
+          }
+        }
+      )
     } else {
       do.call(MutationalPatterns::fit_to_signatures_strict, args)$fit_res
     }

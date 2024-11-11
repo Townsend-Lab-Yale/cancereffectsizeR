@@ -27,7 +27,8 @@
 #' @param cesa CESAnalysis object
 #' @param cores Number of cores to use for processing variants in parallel (not useful for Windows
 #'   systems).
-#' @param conf Cancer effect confidence interval width (NULL skips calculation, speeds runtime).
+#' @param conf Cancer effect confidence interval width (NULL skips calculation, speeds runtime). Ignored
+#' when running custom models.
 #' @param samples Which samples to include in inference. Defaults to all samples. Can be a vector of
 #'   patient_ids, or a data.table containing rows from the CESAnalysis sample table.
 #' @param variants Which variants to estimate effects for, specified with a variant table such as
@@ -41,6 +42,10 @@
 #' @param lik_args Extra arguments, given as a list, to pass to custom likelihood functions.
 #' @param optimizer_args Named list of arguments to pass to the optimizer, bbmle::mle2. Use, for example,
 #' to choose optimization algorithm or parameter boundaries on custom models.
+#' @param return_fit TRUE/FALSE (default FALSE): Embed model fit for each variant in a "fit"
+#'   attribute of the selection results table. Use \code{attr(selection_table, 'fit')} to access the
+#'   list of fitted models. Defaults to FALSE to save memory. Model fit objects can be of moderate
+#'   or large size. If you run thousands of variants at once, you may exhaust your system memory.
 #' @param hold_out_same_gene_samples When finding likelihood of each variant, hold out samples that
 #'   lack the variant but have any other mutations in the same gene. By default, TRUE when running
 #'   with single variants, FALSE with a CompoundVariantSet.
@@ -52,27 +57,21 @@ ces_variant <- function(cesa = NULL,
                         model = "default",
                         run_name = "auto",
                         lik_args = list(),
-                        optimizer_args = list(),
+                        optimizer_args = if(identical(model, 'default')) list(method = 'L-BFGS-B', lower = 1e-3, upper = 1e9) else list(),
+                        return_fit = FALSE,
                         hold_out_same_gene_samples = "auto",
                         cores = 1,
-                        conf = .95) 
+                        conf = .95)
 {
   if(! is.numeric(cores) || length(cores) != 1 || cores - as.integer(cores) != 0 || cores < 1) {
     stop('cores should be 1-length positive integer')
   }
   
-  
-  if (! is(optimizer_args, "list") || uniqueN(names(optimizer_args)) != length(optimizer_args)) {
-    stop("optimizer_args should a named list of arguments to pass.")
+  if(! rlang::is_bool(return_fit)) {
+    stop('return_fit should be TRUE/FALSE.')
   }
   
-  reserved_args = c('minuslogl', 'start', 'vecpar')
-  if(any(reserved_args %in% names(optimizer_args))) {
-    msg = paste0('Optimizer arguments start, vecpar, and minuslogl cannot be changed here. ', 
-                 'If you are using a custom model, your likelihood function can declare these ',
-                 'values directly (see docs).')
-    stop(pretty_message(msg, emit = F))
-  }
+  validate_optimizer_args(optimizer_args)
   
   if(! is(cesa, "CESAnalysis")) {
     stop("cesa should be a CESAnalysis.")
@@ -134,11 +133,6 @@ ces_variant <- function(cesa = NULL,
     stop("lik args should be named list") 
   }
   
-  if(length(lik_args) > 0 && is.character(model)){
-    if(model %in% c('basic', 'sequential')) {
-      stop("lik_args aren't used in the chosen model.")
-    }
-  }
   if(length(lik_args) != uniqueN(names(lik_args))) {
     stop('lik_args should be a named list without repeated names.')
   }
@@ -152,7 +146,7 @@ ces_variant <- function(cesa = NULL,
 
   if(is(model, "character")){
     if(model == 'sequential') {
-      stop('This model is not yet available.')
+      stop('This model is not available.')
     }
   }
   
@@ -162,8 +156,15 @@ ces_variant <- function(cesa = NULL,
   # Set keys in case they've been lost
   mutations = cesa@mutations
   if(! is.null(conf)) {
-    if(! is(conf, "numeric") || length(conf) > 1 || conf <= 0 || conf >= 1) {
-      stop("conf should be 1-length numeric (e.g., .95 for 95% confidence intervals)", call. = F)
+    if(is(model, 'function')) {
+      if(! rlang::is_scalar_double(conf) || conf != .95) {
+        warning('conf is ignored when running a custom model.')
+      }
+      conf = NULL
+    } else {
+      if(! is(conf, "numeric") || length(conf) > 1 || conf <= 0 || conf >= 1) {
+        stop("conf should be 1-length numeric (e.g., .95 for 95% confidence intervals)", call. = F)
+      }
     }
   }
   
@@ -266,14 +267,15 @@ ces_variant <- function(cesa = NULL,
   i = 0
   setkey(maf, "variant_id")
   setkey(variants, "variant_id")
-  for (coverage_group in coverage_groups) {
+  
+  selection_results = lapply(1:length(coverage_groups), function(i) {
+    coverage_group = coverage_groups[[i]]
     # one coverage group may be NA, for variants that are not covered by any specific covered_regions
     if(length(coverage_group) == 1 && is.na(coverage_group)) {
       curr_variants = variants[which(sapply(variants$covered_in, function(x) identical(x, NA_character_)))]
     } else {
       curr_variants = variants[which(sapply(variants$covered_in, function(x) identical(x, coverage_group)))]
     }
-    i = i+1
     message(sprintf("Preparing to calculate cancer effects (batch %i of %i)...", i, num_coverage_groups))
     covered_samples = c(samples[coverage_group, patient_id, nomatch = NULL], genome_wide_cov_samples)
     variants[curr_variants$variant_id, num_covered_and_in_samples := length(covered_samples), on = 'variant_id']
@@ -296,7 +298,7 @@ ces_variant <- function(cesa = NULL,
     }
     
     
-    for (j in 1:num_proc_groups) {
+    curr_results = lapply(1:num_proc_groups, function(j) {
       if (num_proc_groups > 1) {
         message(sprintf("Working on sub-batch %i of %i...", j, num_proc_groups))
       }
@@ -352,12 +354,7 @@ ces_variant <- function(cesa = NULL,
         # find optimized selection intensities
         # the selection intensity for any stage that has 0 variants will be on the lower boundary; will muffle the associated warning
         final_optimizer_args = c(list(minuslogl = fn, start = par_init, vecpar = T), optimizer_args)
-        default_args = list(method = 'L-BFGS-B', lower = 1e-3, upper = 1e9)
-        for(arg in names(default_args)) {
-          if(! arg %in% names(final_optimizer_args)) {
-            final_optimizer_args[[substitute(arg)]] = default_args[[substitute(arg)]]
-          }
-        }
+
         withCallingHandlers(
           {
             fit = do.call(bbmle::mle2, final_optimizer_args)
@@ -394,11 +391,12 @@ ces_variant <- function(cesa = NULL,
                                                 included_total = num_samples_total))
 
         if(! is.null(conf)) {
+          min_value = ifelse(is.null(final_optimizer_args$lower), -Inf, final_optimizer_args$lower)
+          max_value = ifelse(is.null(final_optimizer_args$upper), Inf, final_optimizer_args$upper)
           variant_output = c(variant_output, 
-                             univariate_si_conf_ints(fit, fn, final_optimizer_args$lower, 
-                                                     final_optimizer_args$upper, conf))
+                             univariate_si_conf_ints(fit, fn, min_value, max_value, conf))
         }
-        return(variant_output)
+        return(list(summary = variant_output, fit = if (return_fit) fit else NULL))
       }
       
       if (running_compound) {
@@ -407,9 +405,17 @@ ces_variant <- function(cesa = NULL,
         variants_to_run = curr_subgroup$variant_id
       }
       message("Calculating cancer effects...")
-      selection_results = rbind(selection_results, rbindlist(pbapply::pblapply(variants_to_run, process_variant, cl = cores)))
-    }
-  }
+      subgroup_results = pbapply::pblapply(variants_to_run, process_variant, cl = cores)
+      subgroup_selection = rbindlist(lapply(subgroup_results, '[[', 1))
+      subgroup_fit = lapply(subgroup_results, '[[', 2)
+      return(list(subgroup_selection, subgroup_fit))
+    })
+    group_selection = rbindlist(lapply(curr_results, '[[', 1))
+    group_fit = lapply(curr_results, '[[', 2)
+    return(list(group_selection, group_fit))
+  })
+  fits = unlist(lapply(selection_results, '[[', 2))
+  selection_results = rbindlist(lapply(selection_results, '[[', 1))
   
   if (running_compound) {
     selection_results[, variant_type := "compound"]
@@ -448,9 +454,17 @@ ces_variant <- function(cesa = NULL,
     selection_results[, uncovered := samples[, .N] - included_total - held_out]
   }
   
-  
+  if(return_fit) {
+    fits = lapply(fits, function(x) {
+      x@call.orig = call('[not shown]')
+      parent.env(environment(x)) = emptyenv() # otherwise, whole CESAnalysis will be embedded via parent
+      return(x)
+    })
+    setattr(selection_results, 'fit', fits)
+  }
   curr_results = list(selection_results)
   names(curr_results) = run_name
+  
   
   cesa@selection_results = c(cesa@selection_results, curr_results)
   return(cesa)

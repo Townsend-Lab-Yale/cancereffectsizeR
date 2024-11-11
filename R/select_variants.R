@@ -306,8 +306,8 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
     # which protein has the most overall mutations in MAF data (will usually favor longer transcripts),
     # and finally just alphabetical on variant ID
     if(check_for_ref_data(cesa, 'transcripts')) {
-        transcripts = get_ref_data(cesa, 'transcripts')
-        multi_hits[transcripts, c('is_mane', 'is_mane_plus') := .(is_mane, is_mane_plus), on = c(pid = 'protein_id')]
+        transcripts = unique(get_ref_data(cesa, 'transcripts')[, .(is_mane, is_mane_plus, pid = protein_id)])
+        multi_hits[transcripts, c('is_mane', 'is_mane_plus') := .(is_mane, is_mane_plus), on = 'pid']
         multi_hits = multi_hits[order(-essential_splice, -is_premature, aa_ref == aa_alt, -is_mane, -is_mane_plus, -maf_prevalence, -pid_freq, variant_id)]
         multi_hits[, c('is_mane', 'is_mane_plus') := NULL]
     } else {
@@ -344,10 +344,10 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   
   
   if(check_for_ref_data(cesa, "transcripts")) {
-    transcripts = get_ref_data(cesa, "transcripts")
+    transcripts = unique(get_ref_data(cesa, "transcripts")[, .(is_mane, transcript_tags, pid = protein_id)])
     combined[transcripts, let(is_MANE_transcript = is_mane,
                               transcript_tags = transcript_tags),
-                              on = c(pid = 'protein_id')]
+                              on = 'pid']
     combined[variant_type == 'sbs', is_MANE_transcript := NA]
   }
 

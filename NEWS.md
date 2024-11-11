@@ -1,11 +1,15 @@
 
-# <font style = "opacity:0">cancereffectsizeR 4.0.0</font>
+# <font style = "opacity:0">cancereffectsizeR 3.0.0</font>
 Patch releases (as in, x.y.1 &#8594; x.y.2) have minor bug fixes or small improvements that do not significantly affect the numerical output of cancer effect analyses. Minor/major updates may change some outputs due to bug fixes or methodological tweaks, as described in these version notes.<br><br>
 
-# cancereffectsizeR 3.0.0
-* Doublet base substitutions (DBS) are included in variant annotation tables.
-* select_variants() and variant_counts() are simpler and more powerful.
-* Breaking changes: Pre-3.0 analyses can only be loaded in a read-only summary format. Some table column names and function arguments have changed throughout the package, so scripts may need to be updated.
+# cancereffectsizeR 2.10.1
+* Minor fixes.
+
+# cancereffectsizeR 2.10.0
+* Tweaked optimizer settings for epistatic inference to improve convergence.
+* Added an initial version of an epistatic effect plotting function, plot_epistasis().
+* Added lift_bed() function to ease conversion of BED intervals between genome builds.
+* Various minor improvements.
 
 # cancereffectsizeR 2.9.0
 * plot_signature_effects() visualizes the relative contributions of mutational signatures to mutation and selection.
@@ -17,7 +21,7 @@ Patch releases (as in, x.y.1 &#8594; x.y.2) have minor bug fixes or small improv
 * Various small fixes.
 
 # cancereffectsizeR 2.8.0
-* plot_effects() visualizes cancer effect inferences with custom labels, colors, variant groupings, and more; see website for examples.
+* plot_effects() visualize cancer effect inferences with custom labels, colors, variant groupings, and more; see website for examples.
 * make_PathScore_input() converts MAF data into an input file for PathScore, a web tool that identifies significantly mutated pathways in cancer. See https://pathscore.publichealth.yale.edu/.
 * ces_variant() gains the argument optimizer_args, giving you precise control over how
 selection models are fit. This is intended for use with custom models of selection.

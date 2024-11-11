@@ -9,6 +9,7 @@ output:
 knitr::opts_chunk$set(echo = TRUE, eval = FALSE, tidy = 'styler')
 library(data.table)
 library(ggplot2)
+library(grid)
 # Using dev directory if present
 tutorial_dir = system.file("tutorial", package = 'cancereffectsizeR') 
 ```
@@ -25,10 +26,11 @@ install.packages('remotes')
 remotes::install_github("Townsend-Lab-Yale/cancereffectsizeR", dependencies = TRUE)
 ```
 
-Regrettably, there is a bug in some versions of the GenomeInfoDb package that produces cryptic error messages in cancereffectsizeR, along the lines of `!anyNA(m32) is not TRUE`. If you encounter this issue, the simplest solution is to upgrade your Bioconductor version:
+
+Regrettably, some Bioconductor releases contain versions of required packages with bugs that cause cryptic messages in cancereffectsizeR workflows, such as `!anyNA(m32) is not TRUE` or `Error in data.frame(…, check.names=F): arguments imply differing number of rows`. If you encounter these problems, the simplest solution is to upgrade your Bioconductor version:
 ```{R}
-# Only necessary if GenomeInfoDb errors are causing problems.
-BiocManager::install(version = "3.16") # or newer, when available
+# Only necessary if GenomeInfoDb or MutationalPatterns errors are causing problems.
+BiocManager::install(version = "3.20") # or newer, when available
 ```
 
 In addition to installing cancereffectsizeR, you need to install a reference data set, or _refset_. These refsets include genomic and gene annotations, mutational signature definitions, and more. Currently, refsets supporting the hg38 and hg19 builds of the human genome are available as separate data packages. (If you want to build your own refset to use a custom genome build or gene set for almost any species, [you can](custom_refset_instructions.html).) For this tutorial, we'll use the hg38 refset package.
@@ -51,7 +53,8 @@ setwd('CES_tutorial')
 Very briefly, we extract mutational signatures from each sample's SNV mutation profile using  [MutationalPatterns](https://bioconductor.org/packages/release/bioc/html/MutationalPatterns.html). The relative weights of biologically associated signatures are used to infer trinucleotide-context-specific relative rates of SNV mutations for each sample. Cohort-wide neutral gene mutation rates are calculated with [dNdScv](https://github.com/im3sanger/dndscv), with tissue-specific covariates provided by `ces.refset.hg38`. Combining this information, the rate of neutral mutation at a particular variant site is calculated by partitioning the gene mutation rate across all sites in the gene in accordance with the signature-informed relative rates. Comparing rates of observed and expected mutation under a model of somatic selection allows inference of scaled selection coefficients, which we also call cancer effects.
 
 ### Example: Lung adenocarcinoma data from TCGA
-If you want to skip all the details and run through a no-frills cancereffectsizeR analysis, here's the quickstart:
+Here is a straightforward cancereffectsizeR workflow: We load TCGA LUAD data, calculate mutation rates,
+and quantify selection. We also attribute selection to mutational signatures and find that mutations attributed to tobacco-associated signatures have disproportionately large selective effects.
 
 <details><summary>(Show/hide quickstart)</summary>
 ```{r}
@@ -74,7 +77,7 @@ cesa = load_maf(cesa = cesa, maf = maf)
 # Infer trinculeotide-context-specific relative rates of SNV mutation from
 # a mutational signature analysis (leaving out signatures not found in LUAD)
 signature_exclusions = suggest_cosmic_signature_exclusions(cancer_type = 'LUAD', treatment_naive = TRUE)
-cesa = trinuc_mutation_rates(cesa = cesa, signature_set = ces.refset.hg38$signatures$COSMIC_v3.2,
+cesa = trinuc_mutation_rates(cesa = cesa, signature_set = ces.refset.hg38$signatures$COSMIC_v3.4,
                              signature_exclusions = signature_exclusions)
 
 # Estimate neutral gene mutation rates using dNdScv, with tissue-specific mutation rate covariates.
@@ -87,6 +90,12 @@ cesa = ces_variant(cesa, run_name = 'example')
 # Visualize top-effect variants.
 plot_effects(effects = cesa$selection$example, color_by = '#DB382D', topn = 20)
 
+# Attribute effects to mutational signatures
+mut_effects = mutational_signature_effects(cesa, cesa$selection$example)
+
+# Plot a comparison of how signatures contribute to mutation vs. selection
+plot_signature_effects(mut_effects, viridis_option = 'F', num_sig_groups = 5)
+
 # See the full tutorial for more details and a broader view of functionality!
 
 ```
@@ -94,6 +103,8 @@ plot_effects(effects = cesa$selection$example, color_by = '#DB382D', topn = 20)
 ```{r echo = F, eval = T}
 p = readRDS(system.file("tutorial/top_LUAD_effects.rds", package = 'cancereffectsizeR'))
 p
+p2 = readRDS(system.file("tutorial/LUAD_sig_effects.rds", package = 'cancereffectsizeR'))
+p2
 ```
 
 </details>
@@ -209,7 +220,7 @@ We will use signature definitions from the refset (it's also possible to create 
 # We'll use all suggested exclusions (TCGA primary tumors are treatment-naive)
 signature_exclusions = suggest_cosmic_signature_exclusions(cancer_type = 'BRCA', treatment_naive = TRUE)
 
-cesa = trinuc_mutation_rates(cesa, signature_set = ces.refset.hg38$signatures$COSMIC_v3.2, 
+cesa = trinuc_mutation_rates(cesa, signature_set = ces.refset.hg38$signatures$COSMIC_v3.4, 
                              signature_exclusions = signature_exclusions)
 ```
 
@@ -239,14 +250,13 @@ cesa = list(gene_rates = readRDS(system.file("tutorial/BRCA_cesa_gene_rates.rds"
 head(cesa$gene_rates)
 ```
 
-We can also look at dNdScv's identification of selection at the gene level. We'll filter results to q < .05. Since ces.refset.hg38 covers multiple isoforms for some genes, the dNdScv output is actually per protein, not per gene, so we'll take the extra step of showing just the lowest q-value for each significant gene.
+We can also look at dNdScv's identification of selection at the gene level. We'll filter results to q < .05.
 
 ```{r eval = T}
+# View top dNdScv genes, sorted by significance
 dndscv_results = cesa$dNdScv_results[[1]]
-sig_genes = dndscv_results[qallsubs_cv < .05]
+sig_genes = dndscv_results[qallsubs_cv < .05][order(qallsubs_cv)][1:10]
 
-# Take lowest q-value record for each gene, and sort by significance.
-sig_genes = sig_genes[, .SD[which.min(qallsubs_cv)], by = 'gene'][order(qallsubs_cv)][1:10]
 ```
 
 ```{r eval = T, echo = F}
@@ -270,7 +280,7 @@ baseline_mutation_rates(cesa = cesa, variant_ids = variants_to_check, samples = 
 ```
 
 ```{r eval = T, echo = F}
-readRDS(system.file("tutorial/BRCA_site_rates_example.rds", package = "cancereffectsizeR"))
+formattable::formattable(readRDS(system.file("tutorial/BRCA_site_rates_example.rds", package = "cancereffectsizeR")), digits = 3)
 ```
 
 Interestingly, PIK3CA H1047R, the most prevalent variant in our MAF data (246/1875 samples), is estimated to have a substantially lower rate of occurrence than E545K and E542K in these particular samples.
@@ -295,8 +305,7 @@ _PIK3CA_ and _ESR1_ variants take many of the top spots. The deconvolution of mu
 
 Here's a look at the effects of all recurrent variants across some of the highest-effect genes.
 ```{r}
-top_genes = cesa$selection$recurrents[order(-selection_intensity), unique(gene)][1:10]
-plot_effects(cesa$selection$recurrents[gene %in% top_genes], group_by = 'gene',
+plot_effects(cesa$selection$recurrents, group_by = 'gene', topn = 10,
              label_individual_variants = FALSE)
 ```
 
@@ -321,8 +330,8 @@ Let's try two prevalent BRCA mutations, PIK3CA E545K (n=159) and AKT1 E17K (n=82
 
 ```{r}
 # Start by pulling full variant IDs (with protein identifier) from variants table
-group1 = cesa$variants[c("PIK3CA_E545K", "AKT1_E17K"), variant_id, on = 'variant_name']
-group2 = cesa$variants[c("PIK3CA_E545K", "PIK3CA_E542K"), variant_id, on = 'variant_name']
+group1 = cesa$variants[c("PIK3CA E545K", "AKT1 E17K"), variant_id, on = 'variant_name']
+group2 = cesa$variants[c("PIK3CA E545K", "PIK3CA E542K"), variant_id, on = 'variant_name']
 
 cesa = ces_epistasis(cesa = cesa, variants = list(group1, group2), 
                      conf = .95, run_name = 'variant_epistasis_example')
@@ -330,7 +339,7 @@ cesa$epistasis$variant_epistasis_example
 ```
 
 ```{r eval = T, echo = F}
-readRDS(paste0(tutorial_dir, '/variant_ep_example.rds'))
+formattable::formattable(readRDS(paste0(tutorial_dir, '/variant_ep_example.rds')), digits = 3)
 ```
 
 Confidence intervals tend to be wide in epistatic analyses. Even with the most prevalent somatic variants, both co-occurrence and mutual exclusivity can often be explained by chance. The output for PIK3CA E545K and E542K confirms the negative epistatic relationship that we would have expected given their mutual exclusivity in our data (and our knowledge of their biological effects). For E545K and AKT1 E17K, we see reduced selection for both after the acquisition of the other driver, but the confidence intervals leave open the possibility that selection for AKT1 E17K is unaffected by PIK3CA status. (Additionally, the NA's on some of the lower bounds indicate that they fall below the lower limit of the optimization algorithm.)
@@ -341,7 +350,7 @@ We can probe this PIK3CA/AKT1 relationship further if we assume that all prevale
 ```{r}
 # Collect all the variants that we want in the CompoundVariantSet into a table
 top_PIK3CA = cesa$variants[gene == 'PIK3CA' & maf_prevalence > 1]
-top_akt1 = cesa$variants[variant_name == 'AKT1_E17K']
+top_akt1 = cesa$variants[variant_name == 'AKT1 E17K']
 for_compound = rbind(top_PIK3CA, top_akt1)
 
 # see define_compound_variants() documentation for details on arguments
@@ -351,25 +360,41 @@ cesa$epistasis$AKT1_E17K_vs_PIK3CA
 ```
 
 ```{r eval = T, echo = F}
-readRDS(paste0(tutorial_dir, '/comp_variant_ep.rds'))
+formattable::formattable(readRDS(paste0(tutorial_dir, '/comp_variant_ep.rds')), digits = 3)
 ```
 
-Note that the effect sizes are smaller for PIK3CA here, since we mixed in lots of lower-effect PIK3CA variants. While four samples have both AKT1 E17K and one of the PIK3CA variants, this result strengthens the case for AKT1 mutation reducing selection for PIK3CA mutation.
+Note that the effect sizes are smaller for PIK3CA here, since we mixed in lots of lower-effect PIK3CA variants. While four samples carry both AKT1 E17K and a PIK3CA variant, this result strengthens the case for AKT1 mutation reducing selection for PIK3CA mutation.
 
 ### Gene-level epistasis
-The convenience function `ces_gene_epistasis()` provides a simpler way to apply the model of `ces_epistasis()` at the gene level. The `variants` argument provides three options for which variants from each gene to include in the inference: "recurrent" uses all recurrent variants; "nonsilent" uses nonsynonymous coding variants and any variants in essential splice sites; or, alternatively, supply a custom table of variants.
+The convenience function `ces_gene_epistasis()` provides a simpler way to apply the model of `ces_epistasis()` at the gene level. The `variants` argument provides three options for which variants from each gene to include in the inference: "recurrent" uses all recurrent variants; "nonsilent" uses nonsynonymous coding variants and any variants in essential splice sites; or, alternatively, supply a custom table of variants. In order to take advantage of the targeted sequencing data (which doesn't quite cover all mutated sites in these genes), we will supply
+a custom table of variants that are covered across all samples.
 
 ```{r}
 genes = c("AKT1", "PIK3CA", "TP53")
-cesa = ces_gene_epistasis(cesa = cesa, genes = genes, variants = 'nonsilent', run_name = "gene_epistasis_example")
+
+# Get consensus covered regions
+combined_coverage = intersect(cesa$coverage_ranges$exome$`exome+`, cesa$coverage_ranges$targeted$top_genes)
+
+# Get variants in the genes of interest that have sequencing coverage in all samples
+variants = select_variants(cesa, genes = genes, gr = combined_coverage)
+
+cesa = ces_gene_epistasis(cesa = cesa, genes = genes, variants = variants, run_name = "gene_epistasis_example")
 cesa$epistasis$gene_epistasis_example
 ```
 
 ```{r eval = T, echo = F}
-readRDS(paste0(tutorial_dir, '/gene_ep_example.rds'))
+formattable::formattable(readRDS(paste0(tutorial_dir, '/gene_ep_example.rds')), digits = 3)
 ```
 
-Mutational selection in the two oncogenes appears to be maintained after mutation in TP53. In contrast, loss of TP53 is less selected after mutations in AKT1/PIK3CA; one explanation is that cell populations in which these powerful drivers have fixed must have already subverted tumor suppression mechanisms, making TP53 mutations superfluous. The two oncogenes also appear to show some mutual exclusivity, in that selection for each is reduced after mutation in the other.
+Mutational selection in the two oncogenes appears to be maintained after mutation in TP53. In contrast, loss of TP53 is less selected after mutations in AKT1/PIK3CA. One explanation is that cell populations in which these powerful drivers have fixed must have already subverted tumor suppression mechanisms, making TP53 mutations superfluous. The two oncogenes show significant mutual exclusivity, in that selection for each is reduced after mutation in the other.
+
+Here's a plot showing the change in selection for mutated sites in each gene after mutation in the other gene. The epistatic model is not significantly better than a no-epistasis model for AKT1/TP53. The other gene pairs do show significant epistatic effects. Asterisks indicate significant changes in selection for individual genes. Estimates/CIs depicted on the dashed gray line are at the floor of the inference; such estimates are consistent with low or negative selection.
+
+```{r eval = T, echo = F}
+readRDS(paste0(tutorial_dir, '/BRCA_epistasis_example.rds'))
+```
+
+Even when epistatic effects are significant, it's not uncommon for gene-specific changes in selection to be insignificant. The reason is that patterns of co-occurrence can often be explained by a strong enough change in selection for either gene individually. (This also explains why confidence intervals on the parameters are typically wide.)
 
 
 ## Save your work

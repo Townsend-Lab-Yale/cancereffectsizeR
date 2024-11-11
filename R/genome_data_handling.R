@@ -322,7 +322,9 @@ validate_signature_set = function(signature_set) {
     if (is.null(signature_metadata$name)) {
       if(is.null(signature_metadata$Signature)) {
         stop("name metadata incorrectly formatted (see docs).")
-      } 
+      } else {
+        signature_metadata[, name := Signature]
+      }
     }
     if (any(! rownames(signatures) %in% signature_metadata$name)) {
       stop("Improperly formatted signature set: Some signatures in your signature definitions are missing from the metadata table.")

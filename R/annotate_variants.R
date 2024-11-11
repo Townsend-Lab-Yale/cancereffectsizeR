@@ -287,6 +287,9 @@ get_nearest_refset_entries = function(variants, refset) {
     pid_lookup = sapply(refset$RefCDS[genes_to_lookup], '[[', 'protein_id')
     nearest[, pid := pid_lookup[gene]]
   }
+  if(aac[, .N] > 0) {
+    aac$essential_splice = FALSE
+  }
   
   # Sometimes an sbs overlaps the same CDS region twice due to redundant GRanges.
   # Uniquify to get one row per variant/protein match.

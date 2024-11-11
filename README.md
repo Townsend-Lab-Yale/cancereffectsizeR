@@ -1,6 +1,5 @@
 *Welcome to cancereffectsizeR!*
 
-Please visit our site for installation instructions and full documentation: https://townsend-lab-yale.github.io/cancereffectsizeR/.
-(If you browse the docs via GitHub, the links will not all work.)
+Please visit the visit the [package website](https://townsend-lab-yale.github.io/cancereffectsizeR/) for installation, tutorial, and documentation.
 
 We welcome contributions and feedback. If you have questions or want to learn more about how to contribute to development, don't hesitate to open an issue or contact us.

@@ -154,7 +154,7 @@ get_TCGA_project_MAF = function(project = NULL, filename = NULL, test_run = FALS
   num_files = ifelse(test_run, '5', '100000')
   response = httr::GET(files_endpt, 
                        query = list(filters = filters, 
-                                    fields = "file_name,md5sum,release.version", size = num_files, format = 'JSON'))
+                                    fields = "file_name,md5sum", size = num_files, format = 'JSON'))
   
   if (response$status_code != 200) {
     msg = paste0("Could not get list of ", project, " cases (GDC API query failed with status code ", 
