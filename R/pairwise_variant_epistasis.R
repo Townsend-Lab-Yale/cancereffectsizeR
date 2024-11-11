@@ -212,7 +212,17 @@ pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compoun
       bbmle::parnames(epistasis_lik_fn) = c('ces_A0', 'ces_B0', 'ces_A_on_B', 'ces_B_on_A')
       ci = univariate_si_conf_ints(fit, epistasis_lik_fn, final_optimizer_args$lower, final_optimizer_args$upper, conf)
     } else {
-      ci_dt = as.data.table(confint(fit, level = conf, quietly = TRUE), keep.rownames = 'param')
+      withCallingHandlers(
+        {
+          ci = bbmle::confint(fit, level = conf, quietly = TRUE)
+        },
+        warning = function(w) {
+          if (conditionMessage(w) %like% 'reverting from spline to linear approximation') {
+            invokeRestart("muffleWarning")
+          }
+        })
+      
+      ci_dt = as.data.table(ci, keep.rownames = 'param')
       ci_dt[, low_name := paste('ci_low', conf * 100, param, sep = '_')]
       ci_dt[, high_name := paste('ci_high', conf * 100, param, sep = '_')]
       ci = unlist(S4Vectors::zipup(ci_dt[[2]], ci_dt[[3]]))

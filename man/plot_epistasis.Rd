@@ -36,7 +36,9 @@ to "auto"; you can try setting manually if labels are not looking good.}
 \item{alternating_colors}{Colors, provided as character vector, to use on epistatic effect
 arrows. It's recommended to supply one or two colors, but more will work.}
 
-\item{include_schematic}{TRUE/FALSE on whether to include the schematic that shows how to interpret the plot.}
+\item{include_schematic}{TRUE/FALSE on whether to include the schematic that shows how to interpret the plot.
+If you need to put the schematic somewhere special, set to FALSE and then get your own copy of it 
+with \code{epistasis_plot_schematic()}.}
 
 \item{schematic_label_size}{Text size of labels in the schematic.}
 

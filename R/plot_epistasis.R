@@ -21,6 +21,8 @@
 #' @param alternating_colors Colors, provided as character vector, to use on epistatic effect
 #'   arrows. It's recommended to supply one or two colors, but more will work.
 #' @param include_schematic TRUE/FALSE on whether to include the schematic that shows how to interpret the plot.
+#' If you need to put the schematic somewhere special, set to FALSE and then get your own copy of it 
+#' with \code{epistasis_plot_schematic()}.
 #' @param schematic_label_size Text size of labels in the schematic.
 #' @param significance_levels A vector of 1-3 distinct numeric values on (0, 1) in descending order
 #'   to use for significance annotations.
@@ -394,4 +396,74 @@ plot_epistasis = function(epistatic_effects, pairs_per_row = 8,
   }
   return(list(gg, effects))
 }
+
+#' Get epistatic effect schematic
+#' 
+#' Get a copy of the explanatory schematic that appears in epistatic effect plots (see
+#' \code{plot_epistasis()}). May be useful for putting the schematic in custom locations when
+#' assembling complex figures.
+#' 
+#' @param title Schematic title text.
+#' @param schematic_label_size Text size of labels in the schematic (title gets size + 1).
+#' @param with_border TRUE/FALSE on the appearance of a thin visible border around the schematic.
+#' @return The schematic as a ggplot.
+#' @export
+epistasis_plot_schematic = function(title = 'Types of effects', schematic_label_size = 3, with_border = TRUE) {
+  if(! is.numeric(schematic_label_size) || length(schematic_label_size) != 1 || schematic_label_size <= 0) {
+    stop('schematic_label_size should be a positive numeric value.')
+  }
+  if(! rlang::is_bool(with_border)) {
+    stop('with_border should be TRUE/FALSE.')
+  }
+  if(! rlang::is_scalar_character(title)) {
+    stop('title should be scalar character.')
+  }
+  
+  n_grp = 1
+  legend_width = 1
+  legend_x = .25
+  legend_box_xmin = 0
+  legend_box_xmax = 1
+  legend_title_x = mean(c(legend_box_xmin, legend_box_xmax))
+  
+  
+  # Doing everything on log scale so that the schematic can be made in the same way as in
+  # plot_epistasis(), which shows epistatic effects on a log scale.
+  ymax = 1
+  plot_ymin = 1e-3
+  log_range = log10(ymax) - log10(plot_ymin)
+  legend_y_low = 10^(log10(plot_ymin) + .12 * log_range) # low end 25% from bottom of box
+  legend_y_high = 10^(log10(plot_ymin) + .7 * log_range)
+  legend_null_y = 10^(log10(plot_ymin) + .3 * log_range)
+  legend_title_y = plot_ymin + 10^(log10(plot_ymin) + .9 * log_range)
+  legend_data = data.table(grp = n_grp)
+  legend_text_spacing = '\n'
+  
+  border_color = ifelse(with_border, 'black', NA)
+  
+  gg = ggplot() + 
+    geom_text(data = legend_data, aes(x = legend_title_x, y = legend_title_y, vjust = 'inward', hjust = 'center', 
+                                      label = title), size = schematic_label_size + 1, lineheight = .75) +
+    geom_point(data = legend_data, aes(x = legend_x, y = legend_y_low), size = 2.5, color = 'goldenrod2') +
+    geom_segment(data = legend_data, aes(x = legend_x, xend = legend_x, y = legend_y_low, yend = legend_y_high), color = 'goldenrod2', linewidth = 2, lineend = "butt") +
+    geom_point(data = legend_data, aes(x = legend_x, y = legend_y_high), shape = 'triangle filled', size = 2.5, fill = 'goldenrod2', color = 'goldenrod2') +
+    geom_text_repel(data = legend_data, aes(x = legend_x, y = legend_y_low, label = paste0('Epistatic effect:', legend_text_spacing, 'paired site wildtype')),
+                    size = schematic_label_size, lineheight = .9, force = 0, min.segment.length = 0, point.padding = unit(.7 , 'lines'),
+                    hjust = 'left', vjust = 'inward', nudge_x = legend_width * .15) +
+    geom_text_repel(data = legend_data, aes(x = legend_x, y = legend_y_high, label = paste0('Epistatic effect:', legend_text_spacing, 'paired site mutated')),
+                    size = schematic_label_size, lineheight = .9, force = 0, min.segment.length = 0, point.padding = unit(.7 , 'lines'),
+                    hjust = 'left', vjust = 'inward', nudge_x = legend_width * .15) +
+    geom_point(data= legend_data, aes(x = legend_x, y = legend_null_y), color = 'darkslateblue', shape = 'square' ) +
+    geom_text_repel(data = legend_data, aes(x = legend_x, y = legend_null_y, label = paste0('\n\nIsolated site effect:', legend_text_spacing, 'paired site ignored\n')),
+                    size = schematic_label_size, force = 0, lineheight = .9, direction = 'y', min.segment.length = 0, point.padding = unit(.7 , 'lines'),
+                    hjust = 'left', vjust = 'inward', nudge_x = legend_width * .15) + 
+    geom_rect(data = legend_data, aes(xmin = legend_box_xmin,
+                                      xmax = legend_box_xmax,
+                                      ymin = plot_ymin, ymax = ymax), fill = NA, color = border_color) +
+    scale_y_log10() + 
+    theme_void()
+  return(gg)
+}
+
+
 
