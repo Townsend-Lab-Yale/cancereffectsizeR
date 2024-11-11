@@ -10,7 +10,7 @@
 options(datatable.prettyprint.char = 40) 
 
 # Data package names and minimum required version
-.official_refsets = list(ces.refset.hg19 = as.package_version("1.1.0"), ces.refset.hg38 = as.package_version("1.2.0"))
+.official_refsets = list(ces.refset.hg19 = as.package_version("1.1.3"), ces.refset.hg38 = as.package_version("1.3.0"))
 
 # If refset packages are loaded, put their data in .ces_ref_data for easy access
 for(refset in names(.official_refsets)) {

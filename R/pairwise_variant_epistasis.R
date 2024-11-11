@@ -23,24 +23,22 @@ pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compoun
     joint_coverage = c("genome", intersect(compound_variants@compounds$shared_cov[[1]], compound_variants@compounds$shared_cov[[2]]))
     v1 = compound_variants@compounds$compound_name[[1]]
     v2 = compound_variants@compounds$compound_name[[2]]
-    v1_ids = compound_variants@snvs[compound_name == v1, snv_id]
-    v2_ids = compound_variants@snvs[compound_name == v2, snv_id]
+    v1_ids = compound_variants@sbs[compound_name == v1, sbs_id]
+    v2_ids = compound_variants@sbs[compound_name == v2, sbs_id]
     variant_ids = c(v1_ids, v2_ids)
   } else {
     v1 = variant_pair[1]
     v2 = variant_pair[2]
     
-    v1_coverage = c(cesa@mutations$amino_acid_change[v1, unlist(covered_in), nomatch = NULL], 
-                    cesa@mutations$snv[v1, unlist(covered_in), nomatch = NULL])
-    v2_coverage = c(cesa@mutations$amino_acid_change[v2, unlist(covered_in), nomatch = NULL], 
-                    cesa@mutations$snv[v2, unlist(covered_in), nomatch = NULL])
+    v1_coverage = cesa@mutations$variants_to_cov[[v1]]
+    v2_coverage = cesa@mutations$variants_to_cov[[v2]]
     
     # Samples have to have v1 and v2 coverage (and samples with covered_regions == "genome" always have coverage)
     joint_coverage = c("genome", intersect(v1_coverage, v2_coverage))
     variant_ids = c(v1, v2)
   }
   
-  eligible_tumors = samples[covered_regions %in% joint_coverage, Unique_Patient_Identifier]
+  eligible_tumors = samples[covered_regions %in% joint_coverage, patient_id]
   if (length(eligible_tumors) == 0) {
     warning(sprintf("No samples have coverage at both %s and %s, so this variant pair had to be skipped.", v1, v2), immediate. = T, call. = F)
   }
@@ -57,10 +55,10 @@ pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compoun
     
     v1_rates = all_rates[, ..v1_ids]
     v1_rates = rowSums(v1_rates)
-    names(v1_rates) = all_rates$Unique_Patient_Identifier
+    names(v1_rates) = all_rates$patient_id
     v2_rates = all_rates[, ..v2_ids]
     v2_rates = rowSums(v2_rates)
-    names(v2_rates) = all_rates$Unique_Patient_Identifier
+    names(v2_rates) = all_rates$patient_id
     
     # 2-item lists: first item is baseline rates for v1; second for v2
     with_just_1 = NULL; with_just_2 = NULL; with_both = NULL; with_neither = NULL
@@ -77,9 +75,9 @@ pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compoun
       with_neither = list(v1_rates[tumors_with_neither], v2_rates[tumors_with_neither])
     }
   } else {
-    setcolorder(all_rates, c("Unique_Patient_Identifier", v1, v2))
-    setkey(all_rates, "Unique_Patient_Identifier")
-    covered_maf = cesa@maf[eligible_tumors, on = "Unique_Patient_Identifier", nomatch = NULL]
+    setcolorder(all_rates, c("patient_id", v1, v2))
+    setkey(all_rates, "patient_id")
+    covered_maf = cesa@maf[eligible_tumors, on = "patient_id", nomatch = NULL]
     tumors_with_v1 = intersect(samples_with(cesa, v1), eligible_tumors)
     tumors_with_v2 = intersect(samples_with(cesa, v2), eligible_tumors)
     tumors_with_both = intersect(tumors_with_v1, tumors_with_v2)
