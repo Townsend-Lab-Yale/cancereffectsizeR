@@ -461,7 +461,8 @@ epistasis_plot_schematic = function(title = 'Types of effects', schematic_label_
                                       xmax = legend_box_xmax,
                                       ymin = plot_ymin, ymax = ymax), fill = NA, color = border_color) +
     scale_y_log10() + 
-    theme_void()
+    theme_void() + 
+    theme(plot.margin = margin(t = 1, b = 2, l = .5, r = .5, unit = 'cm'))
   return(gg)
 }
 
