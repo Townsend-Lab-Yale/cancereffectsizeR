@@ -188,19 +188,22 @@ ces_gene_epistasis = function(cesa = NULL,
 	genes_to_analyze = intersect(genes_present, genes)
 	num_passing_genes = length(genes_to_analyze)
   if(num_passing_genes == 0) {
-    stop("None of your requested genes have any eligible variants to include in selection inference. ",
-         "Changing the \"variants\" argument might help.")
+    msg = ("None of your requested genes have any eligible variants to include in inference, so returning CESAnalysis unaltered.")
+    pretty_message(msg)
+    return(cesa)
   }
+	
+	if (num_passing_genes == 1) {
+	  msg = paste0("Only 1 requested gene (", genes_to_analyze, ") has eligible variants  in input, so epistasis can't be tested. ",
+	               "Returning CESAnalysis unaltered.")
+	  pretty_message(msg)
+	  return(cesa)
+	}
+	
 	if(num_passing_genes != length(genes)) {
 	  num_missing = length(genes) - num_passing_genes
 	  pretty_message(paste0(num_missing, " of your input genes had no eligible variants in input, so will not be tested. ",
 	                        "You may want to verify that your \"variants\" input is what you intended."))
-	}
-
-	if (num_passing_genes == 1) {
-	  msg = paste0("Only 1 requested gene (", genes_to_analyze, ") has eligible variants  in input, so epistasis can't be tested. ",
-	               "You may want to verify that your \"variants\" input is what you intended.")
-	  stop(pretty_message(msg, emit = F))
 	}
 	
 	if(is.null(gene_pairs)) {
@@ -232,7 +235,8 @@ ces_gene_epistasis = function(cesa = NULL,
     pretty_message(msg, black = F)
     gene_pairs = gene_pairs[-bad_pairs]
     if (length(gene_pairs) == 0) {
-      stop("There are no remaining gene pairs to test for epistasis.")
+      warning('No valid gene pairs to test; returning CESAnalysis unaltered.')
+      return(cesa)
     }
   }
 

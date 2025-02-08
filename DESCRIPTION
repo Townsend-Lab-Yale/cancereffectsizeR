@@ -23,6 +23,7 @@ Imports:
 	GenomeInfoDb,
 	GenomicRanges,
 	methods,
+	MutationalPatterns (>= 2.99.4),
 	IRanges,
 	pbapply,
 	rtracklayer,
@@ -30,13 +31,11 @@ Imports:
 	seqinr,
 	stringi
 Suggests: 
-    deconstructSigs,
     formattable,
     ggplot2,
     ggrepel,
     knitr,
     mockr,
-    MutationalPatterns (>= 2.99.4),
     rmarkdown,
     styler,
     testthat (>= 3.0.0)
