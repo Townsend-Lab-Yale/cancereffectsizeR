@@ -74,8 +74,9 @@ reference:
   desc: Display and compare variant effect sizes
   contents:
   - plot_effects
-  - plot_epistasis
   - plot_signature_effects
+  - plot_epistasis
+  - epistasis_plot_schematic
 - title: Selection models
   desc: Likelihood function generators for various models of selection
   contents:
