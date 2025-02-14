@@ -78,12 +78,13 @@ A data table with info on selected variants (see details), or a list of IDs.
 }
 \description{
 This function helps you find and view variant data from your CESAnalysis's MAF data and mutation
-annotation tables. By default, almost all coding substitutions (amino acid changes; AACs) and
-noncoding SNVs are returned. You can apply a series of filters to restrict output to certain
-genes or genomic regions or require a minimum variant frequency in MAF data. You can also specify
-some variants to include in output regardless of filters with \code{variant_ids}. Special
-behavior: If \code{variant_ids} is used by itself, then only those specified variants will be
-returned.
+annotation tables. By default, substitutions that occur within coding regions are represented at
+the codon level as amino acid changes (including synonymous substitutions, so amino acid "change"
+is a bit of a misnomer), while substitutions outside of coding regions are represented as SNVs.
+You can apply a series of filters to restrict output to certain genes or genomic regions or
+require a minimum variant frequency in MAF data. You can also specify some variants to include in
+output regardless of filters with \code{variant_ids}. Special behavior: If \code{variant_ids} is
+used by itself, then only those specified variants will be returned.
 }
 \details{
 Only variants that are present in the CESAnalysis's annotation tables can be returned,

@@ -145,7 +145,7 @@ ces_variant <- function(cesa = NULL,
   samples = select_samples(cesa, samples)
   if(samples[, .N] < cesa@samples[, .N]) {
     num_excluded = cesa@samples[, .N] - samples[, .N]
-    pretty_message(paste0("Note that ", num_excluded, " samples are being excluded from selection inference."))
+    pretty_message(paste0("Note that ", format(num_excluded, big.mark = ','), " samples are being excluded from selection inference."))
   }
 
   cesa = copy_cesa(cesa)
@@ -278,9 +278,10 @@ ces_variant <- function(cesa = NULL,
     }
     variants[curr_variants$variant_id, num_covered_and_in_samples := length(covered_samples), on = 'variant_id']
     
+    # When not all samples are used, it's possible that no sampels will have coverage at the input variants.
     if(length(covered_samples) == 0) {
-      warning("Skipped batch ", i, " because no samples had coverage at the variant sites in the batch.")
-      next
+      # message("Skipped batch ", i, " because no samples had coverage at the variant sites in the batch.")
+      return(list(data.table(), NULL))
     }
     # rough size of baseline rates data.table in bytes, if all included in one table
     work_size = length(covered_samples) * curr_variants[,.N] * 8
@@ -429,8 +430,16 @@ ces_variant <- function(cesa = NULL,
     group_fit = lapply(curr_results, '[[', 2)
     return(list(group_selection, group_fit))
   })
+  
   fits = unlist(lapply(selection_results, '[[', 2))
   selection_results = rbindlist(lapply(selection_results, '[[', 1))
+  
+  if(selection_results[, .N] == 0) {
+    msg = paste0("No selection inference was performed, so returning CESAnalysis unaltered without selection output. ", 
+                 "Perhaps none of the variants had coverage in the specified samples?")
+    pretty_message(msg)
+    return(cesa)
+  }
   
   if (running_compound) {
     selection_results[, variant_type := "compound"]
