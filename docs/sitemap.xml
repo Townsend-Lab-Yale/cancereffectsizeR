@@ -1,357 +1,124 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/404.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/articles/MAF_filtering_tips.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/articles/cancereffectsizeR.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/articles/cosmic_cancer_type_note.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/articles/create_custom_covariates.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/articles/custom_refset_instructions.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/articles/index.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/authors.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/news/index.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/CESAnalysis.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/CompoundVariantSet.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/aac_to_sbs_ids.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/aac_to_snv_ids.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/add_covered_regions.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/add_variants.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/annotate_sbs.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/annotate_variants.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/artifact_account.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/assign_gr_to_coverage.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/assign_group_average_trinuc_rates.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/baseline_mutation_rates.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/build_RefCDS.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/calculate_trinuc_rates.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/ces_epistasis.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/ces_gene_epistasis.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/ces_variant.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/check_for_ref_data.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/check_sample_overlap.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/clean_granges_for_bsg.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/clean_granges_for_cesa.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/clear_effect_output.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/clear_epistasis_output.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/clear_gene_rates.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/clear_sample_data.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/clear_trinuc_rates_and_signatures.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/complete_aac_ids.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/consolidate_tcga_tumors_by_patient.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/convert_signature_weights_for_mp.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/copy_cesa.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/cosmic_signature_info.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/create_refset.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/define_compound_variants.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/detect_mnv.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/dot-add_covered_regions.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/dot-variant_counts.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/epistasis_results.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/excluded_maf_records.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/fill_missing_genes.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/gene_mutation_rates.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/get_PathScore_coding_regions.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/get_TCGA_project_MAF.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/get_ces_signature_set.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/get_cesa_bsg.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/get_dndscv_model_fit.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/get_gene_rates.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/get_gr_from_table.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/get_nearest_refset_entries.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/get_ref_data.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/get_ref_set_dirs.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/get_refset_dirs.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/get_sample_info.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/get_signature_weights.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/get_trinuc_rates.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/identify_maf_variants.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/index.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/lift_bed.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/list_ces_covariates.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/list_ces_ref_sets.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/list_ces_refsets.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/list_ces_signature_sets.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/load_cesa.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/load_maf.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/load_sample_data.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/lollipops.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/maf_records.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/make_PathScore_input.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/mutational_signature_effects.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/pairwise_epistasis_lik.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/pairwise_gene_epistasis.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/pairwise_variant_epistasis.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/plot_effects.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/plot_epistasis.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/plot_signature_effects.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/preload_maf.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/preload_ref_data.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/read_in_maf.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/read_vcf.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/run_deconstructSigs.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/run_dndscv.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/run_mutational_patterns.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/samples_with.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/save_cesa.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/sbs_results.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/select_samples.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/select_variants.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/set_ces_ref_set_dir.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/set_gene_rates.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/set_refset_dir.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/set_signature_weights.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/set_trinuc_rates.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/snv_results.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/sort_and_validate_variant_ids.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/sswm_lik.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/sswm_sequential_lik.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/suggest_cosmic_signature_exclusions.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/suggest_cosmic_signatures_to_remove.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/trinuc_mutation_rates.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/trinuc_sbs_counts.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/trinuc_snv_counts.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/univariate_si_conf_ints.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/update_covered_in.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/validate_aac_ids.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/validate_sbs_ids.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/validate_signature_set.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/validate_snv_ids.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/variant_counts.html</loc>
-  </url>
-  <url>
-    <loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/vcfs_to_maf_table.html</loc>
-  </url>
+<urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/404.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/articles/MAF_filtering_tips.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/articles/cancereffectsizeR.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/articles/cosmic_cancer_type_note.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/articles/create_custom_covariates.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/articles/custom_refset_instructions.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/articles/index.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/authors.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/index.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/news/index.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/CESAnalysis.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/CompoundVariantSet.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/aac_to_sbs_ids.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/aac_to_snv_ids.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/add_covered_regions.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/add_variants.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/annotate_sbs.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/annotate_variants.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/artifact_account.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/assign_gr_to_coverage.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/assign_group_average_trinuc_rates.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/baseline_mutation_rates.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/build_RefCDS.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/calculate_trinuc_rates.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/ces_epistasis.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/ces_gene_epistasis.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/ces_variant.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/check_for_ref_data.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/check_sample_overlap.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/clean_granges_for_bsg.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/clean_granges_for_cesa.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/clear_effect_output.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/clear_epistasis_output.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/clear_gene_rates.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/clear_sample_data.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/clear_trinuc_rates_and_signatures.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/complete_aac_ids.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/consolidate_tcga_tumors_by_patient.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/convert_signature_weights_for_mp.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/copy_cesa.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/cosmic_signature_info.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/create_refset.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/default_epistasis_pvalue_calc.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/define_compound_variants.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/detect_mnv.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/dot-add_covered_regions.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/dot-variant_counts.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/epistasis_plot_schematic.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/epistasis_results.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/excluded_maf_records.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/fill_missing_genes.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/gene_mutation_rates.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/get_PathScore_coding_regions.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/get_TCGA_project_MAF.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/get_ces_signature_set.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/get_cesa_bsg.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/get_dndscv_model_fit.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/get_gene_rates.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/get_gr_from_table.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/get_nearest_refset_entries.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/get_ref_data.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/get_ref_set_dirs.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/get_refset_dirs.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/get_sample_info.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/get_signature_weights.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/get_trinuc_rates.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/identify_maf_variants.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/index.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/lift_bed.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/list_ces_covariates.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/list_ces_ref_sets.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/list_ces_refsets.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/list_ces_signature_sets.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/load_cesa.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/load_maf.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/load_sample_data.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/lollipops.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/maf_records.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/make_PathScore_input.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/mutational_signature_effects.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/pairwise_epistasis_lik.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/pairwise_gene_epistasis.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/pairwise_variant_epistasis.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/plot_effects.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/plot_epistasis.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/plot_signature_effects.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/preload_maf.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/preload_ref_data.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/read_in_maf.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/read_vcf.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/run_deconstructSigs.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/run_dndscv.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/run_mutational_patterns.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/samples_with.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/save_cesa.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/sbs_results.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/select_samples.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/select_variants.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/set_ces_ref_set_dir.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/set_gene_rates.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/set_refset_dir.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/set_signature_weights.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/set_trinuc_rates.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/snv_results.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/sort_and_validate_variant_ids.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/sswm_lik.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/sswm_sequential_lik.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/suggest_cosmic_signature_exclusions.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/suggest_cosmic_signatures_to_remove.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/trinuc_mutation_rates.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/trinuc_sbs_counts.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/trinuc_snv_counts.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/univariate_si_conf_ints.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/update_covered_in.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/validate_aac_ids.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/validate_optimizer_args.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/validate_sbs_ids.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/validate_signature_set.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/validate_snv_ids.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/variant_counts.html</loc></url>
+<url><loc>https://townsend-lab-yale.github.io/cancereffectsizeR/reference/vcfs_to_maf_table.html</loc></url>
 </urlset>
+

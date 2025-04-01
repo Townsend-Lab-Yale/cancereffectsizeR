@@ -1,8 +1,9 @@
 #' Select and filter variants
 #'
 #' This function helps you find and view variant data from your CESAnalysis's MAF data and
-#' mutation annotation tables. By default, almost all amino-acid-changing mutations and
-#' noncoding SBS are returned. You can apply a series of filters to restrict output to
+#' mutation annotation tables. By default, substitutions that occur within coding regions are represented at
+#' the codon level as amino acid changes (including synonymous substitutions, so amino acid "change"
+#' is a bit of a misnomer), while substitutions outside of coding regions are represented as SBS. You can apply a series of filters to restrict output to
 #' certain genes or genomic regions, require a minimum variant frequency in MAF data, and/or
 #' specify exact \code{variant_ids} to return.
 #' 

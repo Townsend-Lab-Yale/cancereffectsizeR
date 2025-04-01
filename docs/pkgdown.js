@@ -71,6 +71,14 @@
     var url = new URL(window.location.href);
     var toMark = url.searchParams.get("q");
     var mark = new Mark("main#main");
+    if (toMark) {
+      mark.mark(toMark, {
+        accuracy: {
+          value: "complementary",
+          limiters: [",", ".", ":", "/"],
+        }
+      });
+    }
 
   /* Search --------------------------*/
   /* Adapted from https://github.com/rstudio/bookdown/blob/2d692ba4b61f1e466c92e78fd712b0ab08c11d31/inst/resources/bs4_book/bs4_book.js#L25 */
@@ -145,4 +153,10 @@ async function searchFuse(query, callback) {
   });
 })(window.jQuery || window.$)
 
-
+document.addEventListener('keydown', function(event) {
+  // Check if the pressed key is '/'
+  if (event.key === '/') {
+    event.preventDefault();  // Prevent any default action associated with the '/' key
+    document.getElementById('search-input').focus();  // Set focus to the search input
+  }
+});

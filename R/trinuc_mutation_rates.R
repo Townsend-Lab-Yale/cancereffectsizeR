@@ -45,7 +45,10 @@
 #'   Can be a vector of patient_ids, or a data.table containing rows from
 #'   the CESAnalysis sample table.
 #' @param cores How many cores to use for processing tumors in parallel.
-#' @param signature_extractor One of "MutationalPatterns" (default) or "deconstructSigs".
+#' @param signature_extractor The signature extraction package to use. The default and recommended
+#'   package is "MutationalPatterns". The other supported extractor is "deconstructSigs", but that
+#'   package is apparently no longer being maintained, so you may encounter errors if attempting to
+#'   use it.
 #' @param mp_strict_args Named list of arguments to pass to MutationalPatterns'
 #'   fit_to_signatures_strict function. Note that mut_matrix and signatures arguments are
 #'   generated automatically, and that if you'd rather not use the strict method, you can

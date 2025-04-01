@@ -22,8 +22,8 @@ Start by installing the latest release:
 ```{r}
 # Some dependencies are large, so we increase the download time limit to be safe
 options(timeout = 600) 
-install.packages('remotes')
-remotes::install_github("Townsend-Lab-Yale/cancereffectsizeR", dependencies = TRUE)
+install.packages(c('remotes', 'BiocManager'))
+remotes::install_github("Townsend-Lab-Yale/cancereffectsizeR", dependencies = TRUE, repos = BiocManager::repositories())
 ```
 
 

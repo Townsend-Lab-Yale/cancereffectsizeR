@@ -34,7 +34,10 @@ the CESAnalysis sample table.}
 
 \item{cores}{How many cores to use for processing tumors in parallel.}
 
-\item{signature_extractor}{One of "MutationalPatterns" (default) or "deconstructSigs".}
+\item{signature_extractor}{The signature extraction package to use. The default and recommended
+package is "MutationalPatterns". The other supported extractor is "deconstructSigs", but that
+package is apparently no longer being maintained, so you may encounter errors if attempting to
+use it.}
 
 \item{mp_strict_args}{Named list of arguments to pass to MutationalPatterns'
 fit_to_signatures_strict function. Note that mut_matrix and signatures arguments are

@@ -248,6 +248,7 @@ setMethod("show", "CES_Run_History",
   }
 )
 
+#' @export
 as.character.CES_Run_History = function(object) {
   history = object@history[object@history != ""]
 }

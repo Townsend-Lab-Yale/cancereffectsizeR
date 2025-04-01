@@ -2,6 +2,7 @@
 
 S3method(.DollarNames,CESAnalysis)
 S3method(.DollarNames,CompoundVariantSet)
+S3method(as.character,CES_Run_History)
 export(CESAnalysis)
 export(CompoundVariantSet)
 export(add_covered_regions)

@@ -7,6 +7,11 @@ Patch releases (as in, x.y.1 &#8594; x.y.2) have minor bug fixes or small improv
 * select_variants() and variant_counts() are simpler and more powerful.
 * Breaking changes: Pre-3.0 analyses can only be loaded in a read-only summary format. Some table column names and function arguments have changed throughout the package, so scripts may need to be updated.
 
+# cancereffectsizeR 2.10.2
+* Expanded support for customized epistatic inference: support for custom likelihood functions and more control over the optimizer.
+* Improvements to epistatic effect plotting; see ?plot_epistasis and ?epistasis_plot_schematic.
+* Other minor improvements.
+
 # cancereffectsizeR 2.10.1
 * Minor fixes.
 
