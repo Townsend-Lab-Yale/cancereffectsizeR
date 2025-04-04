@@ -155,6 +155,12 @@ preload_ref_data = function(data_dir) {
   preload_anno_files = list.files(paste0(data_dir, "/maf_preload_anno"), pattern = '\\.rds$', full.names = T)
   if(length(preload_anno_files) > 0) {
     ref[['preload_anno']] = lapply(preload_anno_files, readRDS)
+    names(ref[['preload_anno']]) = sapply(ref[['preload_anno']], 'attr', 'anno_col_name')
+  }
+  
+  gene_coord_file = paste0(data_dir, '/gene_coord_cancer_anno.rds')
+  if(file.exists(gene_coord_file)) {
+    ref[['cancer_gene_coord']] = readRDS(gene_coord_file)
   }
   lockEnvironment(ref, bindings = TRUE)
   return(ref)
