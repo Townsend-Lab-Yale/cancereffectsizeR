@@ -27,9 +27,9 @@ SBS18	18	reactive oxygen species		TRUE
 SBS19	19	unknown etiology		TRUE
 SBS20	20	mismatch repair defects	concurrent POLD1 mutation and defective DNA mismatch repair	TRUE
 SBS21	21	mismatch repair defects		TRUE
-SBS22	22	aristocholic acid exposure		FALSE
-SBS22a	22a	aristocholic acid exposure		TRUE
-SBS22b	22b	aristocholic acid exposure		TRUE
+SBS22	22	aristolochic acid exposure		FALSE
+SBS22a	22a	aristolochic acid exposure		TRUE
+SBS22b	22b	aristolochic acid exposure		TRUE
 SBS23	23	unknown etiology		TRUE
 SBS24	24	aflatoxin exposure		TRUE
 SBS25	25	chemotherapeutic agents	COSMIC considers unknown but notes presence in chemotherapy-exposed Hodgkin's lymphoma cell lines	TRUE
