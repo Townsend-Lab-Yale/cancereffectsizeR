@@ -10,6 +10,10 @@ codon_sbs_to_aa = build_codon_snvs_to_aa()
 source("build_codon_dbs_to_aa.R")
 codon_dbs_to_aa = build_codon_dbs_to_aa()
 
+source("build_two_codon_dbs_key.R")
+two_codon_dbs_key = build_two_codon_dbs_key()
+
+
 cosmic_sbs_signature_etiology = data.table::fread(system.file('extdata/cosmic_sbs_signature_summary.txt', package = 'cancereffectsizeR'))
 
 # Pulled from COSMIC DBS mutational signature definitions
@@ -97,6 +101,7 @@ cosmic_dbs_classes = c(
 
 usethis::use_data(deconstructSigs_trinuc_string, 
                   deconstructSigs_notations, codon_sbs_to_aa, codon_dbs_to_aa,
+                  two_codon_dbs_key,
                   cosmic_dbs_classes, cosmic_sbs_signature_etiology,
                   internal = TRUE, overwrite = TRUE)
 setwd(prev_dir)

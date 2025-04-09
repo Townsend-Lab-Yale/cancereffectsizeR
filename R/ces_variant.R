@@ -178,7 +178,7 @@ ces_variant <- function(cesa = NULL,
     }
     
     # re-select variants for maximum safety
-    variants = select_variants(cesa, variant_ids = variants$variant_id)
+    variants = select_variants(cesa, variant_ids = variants$variant_id, type = c('sbs', 'aac'))
     
   } else if (is(variants, "CompoundVariantSet")) {
     running_compound = TRUE

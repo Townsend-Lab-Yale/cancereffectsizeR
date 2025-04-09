@@ -35,13 +35,13 @@ test_that("load_maf and variant annotation", {
   # add a variant that isn't covered by any covered regions
   tiny = add_variants(target_cesa = tiny, sbs_id = "12:132824581_A>C")
   
-  # The SBS is not in the gene, so nothing gets selection
+  # The SBS is not in the gene, so nothing gets selected
   selected = select_variants(tiny, variant_ids  = "12:132824581_A>C", genes = "TAF1C")
   expect_equal(selected, NULL)
 
-  # All variant_ids specified should be returned
-  expect_equal(select_variants(tiny, variant_ids = c('HAUS7_A110A_ENSP00000359230.6', 'X:153462634_C>T', 
-                                        'X:153462634_C>G', 'X:153462634_C>A'))[, .N], 4)
+  # The three constituent SBS should be returned
+  expect_equal(select_variants(tiny, type = 'sbs', variant_ids = c('HAUS7_A110A_ENSP00000359230.6', 'X:153462634_C>T', 
+                                        'X:153462634_C>G', 'X:153462634_C>A'))[, .N], 3)
   
   # Get just the SBS at the site
   three_sbs = select_variants(tiny, variant_position_table = select_variants(tiny, gr = GRanges('X:153462634-153462634')),
@@ -167,8 +167,7 @@ test_that('Noncoding DBS MAF annotates', {
   expected_anno = list(list(c("13:112091000_TC>AA", "8:85401532_TT>CC"),
                             c("13", "8"), c(112091000, 85401532), c("TC", "TT"), c("AA", "CC"), 
                             c("TRUE", "TRUE"), c("FALSE", "FALSE"), c("TC>AA", "TT>CC")), 
-                       list(character(0), character(0), character(0), character(0), character(0), character(0), 
-                            character(0), character(0), character(0), character(0), character(0), character(0), character(0), character(0)))
+                       dbs_codon_change_template)
   expect_equivalent(anno[c('dbs', 'dbs_codon_change')], expected_anno)
 })
 

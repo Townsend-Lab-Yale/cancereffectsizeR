@@ -65,9 +65,10 @@ variant_counts = function(cesa, variant_ids = character(), by = character()) {
   }
   
   # call internal function
-  counts = .variant_counts(cesa, samples_with_by_cols, sbs_from_aac, noncoding_sbs_id, by_cols)
+  counts = .variant_counts(cesa, samples = samples_with_by_cols, 
+                           sbs_from_aac = sbs_from_aac, noncoding_sbs_id = noncoding_sbs_id, by_cols = by_cols)
   setnames(counts, 'cr_copy_for_by', 'covered_regions', skip_absent = TRUE) # in case covered_regions got renamed
-  
+  return(counts)
 }
 
 #' Internal variant prevalence and coverage calculation
@@ -78,11 +79,19 @@ variant_counts = function(cesa, variant_ids = character(), by = character()) {
 #' @param samples validated samples table
 #' @param sbs_from_aac data.table with columns aac_id, sbs_id (validated and with annotations in CESAnalysis)
 #' @param noncoding_sbs_id vector of sbs_ids to treat as noncoding variants
+#' @param dbs_from_aac data.table with columns dbs_aac_id, dbs_id
+#' @param noncoding_dbs_id vector of dbs_ids to treat as noncoding variants
 #' @param by_cols validated column names from sample table that are suitable to use for counting by.
 #' @keywords internal
-.variant_counts = function(cesa, samples, sbs_from_aac, noncoding_sbs_id, 
+.variant_counts = function(cesa, samples, sbs_from_aac = NULL, noncoding_sbs_id = character(),
+                           dbs_from_aac = NULL, noncoding_dbs_id = character(),
                            by_cols = character()) {
-  
+  if(is.null(sbs_from_aac)) {
+    sbs_from_aac = data.table(aac_id = character(), sbs_id = character())
+  }
+  if(is.null(dbs_from_aac)) {
+    dbs_from_aac = data.table(dbs_aac_id = character(), dbs_id = character())
+  }
   maf = copy(cesa@maf)
   if(maf[, .N] == 0) {
     # Empty maf lacks column names (will probably change soon)
@@ -112,17 +121,32 @@ variant_counts = function(cesa, variant_ids = character(), by = character()) {
     combined_counts = rbind(combined_counts, aac_count_output)
   }
   
+  if(dbs_from_aac[, .N] > 0) {
+    dbs_from_aac_counts = setDT(maf[dbs_from_aac, .(patient_id, variant_id = dbs_aac_id), 
+                                    on = c(variant_id = "dbs_id"), 
+                                    allow.cartesian = T])
+    dbs_aac_count_output = get_complete_counts(dbs_from_aac_counts)
+    combined_counts = rbind(combined_counts, dbs_aac_count_output)
+  }
   
-  # Get prevalences of sbs
+  
+  # Get prevalences of SBS
   if(length(noncoding_sbs_id) > 0) {
     sbs_counts = maf[noncoding_sbs_id, .(patient_id, variant_id), on = 'variant_id']
     final_sbs_counts = get_complete_counts(sbs_counts)
     combined_counts = rbind(combined_counts, final_sbs_counts)
   }
   
+  # Get prevalences of DBS
+  if(length(noncoding_dbs_id) > 0) {
+    dbs_counts = maf[noncoding_dbs_id, .(patient_id, variant_id), on = 'variant_id']
+    final_dbs_counts = get_complete_counts(dbs_counts)
+    combined_counts = rbind(combined_counts, final_dbs_counts)
+  }
+  
   
   if(combined_counts[, .N] == 0) {
-    stop("No variants to count.")
+    return(data.table())
   }
   
   calc_cov = function(variant_id) {

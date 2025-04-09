@@ -1,6 +1,17 @@
 # will use pre-annotated CESAnalysis
 cesa = load_cesa(get_test_file("cesa_hg38_for_test.rds"))
-
+suppressWarnings({
+  cesa@mutations$dbs_codon_change[, c('nt1_pos', 'nt2_pos', 'nt3_pos') := NULL]
+  cesa@mutations$aac_sbs_key$multi_anno_site = NULL
+  cesa@mutations$aac_dbs_key$multi_anno_site = NULL
+  
+  cesa@mutations$dbs_codon_change[, variant_name := paste0(gene, '_', aachange)]
+  cesa@mutations$dbs_codon_change[ces.refset.hg38$transcripts, is_mane := is_mane, on = c(pid = 'protein_id')]
+  cesa@mutations$dbs_codon_change[is_mane == TRUE, variant_name := gsub('_', ' ', variant_name)]
+  cesa@mutations$dbs_codon_change[is_mane == FALSE, variant_name := paste0(gene, ' ', aachange, ' (', pid, ')')]
+  cesa@mutations$dbs_codon_change[, is_mane := NULL]
+  
+})
 
 # Make sure baseline_mutation_rates is working (requires full mutation ID)
 # Try taking just one AAC rate in one sample

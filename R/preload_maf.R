@@ -219,7 +219,7 @@ preload_maf = function(maf = NULL, refset = NULL, coverage_intervals_to_check = 
       if(num_dbs > 0) {
         grammar1 = ifelse(num_dbs == 1, 'pair', 'pairs')
         grammar2 = ifelse(num_dbs == 1, 'has', 'have')
-        msg = paste0('Note: ', num_dbs, ' adjacent ', grammar1, ' of SBS', grammar2, ' been reclassified as doublet base substitutions (DBS).')
+        msg = paste0('Note: ', num_dbs, ' adjacent ', grammar1, ' of SBS ', grammar2, ' been reclassified as double-base base substitutions (DBS).')
         pretty_message(msg)
       }
       

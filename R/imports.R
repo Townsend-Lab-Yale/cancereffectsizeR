@@ -10,7 +10,7 @@
 options(datatable.prettyprint.char = 40) 
 
 # Data package names and minimum required version
-.official_refsets = list(ces.refset.hg19 = as.package_version("1.1.3"), ces.refset.hg38 = as.package_version("1.3.9000"))
+.official_refsets = list(ces.refset.hg19 = as.package_version("1.1.3"), ces.refset.hg38 = as.package_version("1.3.0.9000"))
 
 # If refset packages are loaded, put their data in .ces_ref_data for easy access
 for(refset in names(.official_refsets)) {
@@ -32,20 +32,19 @@ aac_annotation_template = data.table(variant_name = character(), aac_id = charac
                        coding_seq = character(), essential_splice = logical())
 
 
-aac_sbs_key_template = data.table(aac_id = character(), sbs_id = character(), multi_anno_site = logical(), key = 'aac_id')
+aac_sbs_key_template = data.table(aac_id = character(), sbs_id = character(), key = 'aac_id')
 
 
 dbs_annotation_template = data.table(dbs_id = character(), chr = character(), pos = numeric(), ref = character(), 
                                      alt = character(), intergenic = character(), essential_splice = character(),
                                      cosmic_dbs_class = character())
 
-dbs_codon_change_template = data.table(dbs_aac_id = character(), chr = character(), pid = character(), 
+dbs_codon_change_template = data.table(variant_name = character(), chr = character(), pid = character(), 
                                        essential_splice = character(), strand = character(), gene = character(), 
-                                       aa_ref = character(), aa_pos = character(), nt1_pos = character(), 
-                                       nt2_pos = character(), nt3_pos = character(), coding_seq = character(), 
-                                       aa_alt = character(), aachange = character())
+                                       aa_ref = character(), aa_pos = character(), coding_seq = character(), 
+                                       aa_alt = character(), aachange = character(), dbs_aac_id = character())
 
-aac_dbs_key_template = data.table(dbs_id = character(), dbs_aac_id = character(), multi_anno_site = logical())
+aac_dbs_key_template = data.table(dbs_id = character(), dbs_aac_id = character())
 
 sample_table_template = data.table(patient_id = character(), coverage = character(), 
                                   covered_regions = character(), sig_analysis_grp = integer(), gene_rate_grp = integer(),

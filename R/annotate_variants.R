@@ -48,8 +48,8 @@ annotate_dbs = function(dbs, refset) {
     return(results)
   }
   
-  final_codon_change = copy(dbs_codon_change_template)
-  final_dbs = copy(dbs_annotation_template)[, -"cosmic_dbs_class"] # will add this field back later
+  final_codon_change = copy(dbs_codon_change_template)[, -"variant_name"] # will add this back later
+  final_dbs = copy(dbs_annotation_template)[, -"cosmic_dbs_class"] # same
   while(dbs[, .N] > 0) {
     dbs[, sbs1 := paste0(Chromosome, ':', Start_Position, '_', substr(Reference_Allele, 1, 1),
                          '>', substr(Tumor_Allele, 1, 1))]
@@ -106,7 +106,6 @@ annotate_dbs = function(dbs, refset) {
     dbs_anno = merge.data.table(dbs_anno, sbs1_sbs_anno, by = 'sbs_id.sbs1', all.x = T)
     dbs_anno = merge.data.table(dbs_anno, sbs2_sbs_anno, by = 'sbs_id.sbs2', all.x = T)
     
-    
     # Produce DBS table
     dbs_anno[dbs, c("chr", "pos", "ref", "alt") := 
                .(Chromosome, Start_Position, Reference_Allele, Tumor_Allele), on = 'dbs_id']
@@ -126,8 +125,46 @@ annotate_dbs = function(dbs, refset) {
     codon_change = dbs_anno[aa_pos.sbs1 == aa_pos.sbs2]
     two_codon = dbs_anno[abs(aa_pos.sbs1 - aa_pos.sbs2) == 1]
     
+    if(two_codon[, .N] > 0) {
+      two_codon[, coding_seq := fcase(aa_pos.sbs1 < aa_pos.sbs2, 
+                                      paste0(coding_seq.sbs1, coding_seq.sbs2),
+                                      default = paste0(coding_seq.sbs2, coding_seq.sbs1))]
+      two_codon[, enclosing_seq := fcase(aa_pos.sbs1 < aa_pos.sbs2, 
+                                         paste0(substr(coding_seq.sbs1, 1, 2), substr(coding_seq.sbs2, 2, 3)),
+                                         default =  paste0(substr(coding_seq.sbs2, 1, 2), substr(coding_seq.sbs1, 2, 3)))]
+      
+      two_codon[aa_alt.sbs1 == 'STOP', aa_alt.sbs1 := '*']
+      two_codon[aa_alt.sbs1 != '*', aa_alt.sbs1 := seqinr::a(aa_alt.sbs1)]
+      two_codon[aa_alt.sbs2 == 'STOP', aa_alt.sbs2 := '*']
+      two_codon[aa_alt.sbs2 != '*', aa_alt.sbs2 := seqinr::a(aa_alt.sbs2)]
+      
+      two_codon[aa_ref.sbs1 == 'STOP', aa_ref.sbs1 := '*']
+      two_codon[aa_ref.sbs1 != '*', aa_ref.sbs1 := seqinr::a(aa_ref.sbs1)]
+      two_codon[aa_ref.sbs2 == 'STOP', aa_ref.sbs2 := '*']
+      two_codon[aa_ref.sbs2 != '*', aa_ref.sbs2 := seqinr::a(aa_ref.sbs2)]
+      
+      two_codon[, aa_alt := fcase(aa_pos.sbs1 < aa_pos.sbs2, paste0(aa_alt.sbs1, aa_alt.sbs2),
+                                  default = paste0(aa_alt.sbs2, aa_alt.sbs1))]
+      two_codon[, aa_ref := fcase(aa_pos.sbs1 < aa_pos.sbs2, paste0(aa_ref.sbs1, aa_ref.sbs2),
+                                  default = paste0(aa_ref.sbs2, aa_ref.sbs1))]
+      two_codon[, aa_pos := pmin(aa_pos.sbs1, aa_pos.sbs2)]
+      
+      # Use the two_codon_dbs_key to get all dinucleotides that produce the aa_alt given the aa_alt and enclosing_seq
+      double_codon_change = two_codon[, .(chr, pid, essential_splice, strand = strand.sbs1, gene = gene.sbs1, aa_ref, 
+                                          aa_pos = aa_pos, coding_seq, pos, ref,
+                                          aa_alt = aa_alt, alt = two_codon_dbs_key[[enclosing_seq]][[aa_alt]]), by = .I]
+      double_codon_change[, aachange := paste0(aa_ref, aa_pos, aa_alt)]
+      double_codon_change[, dbs_aac_id := paste0(gene, '_', aachange, '_', pid)]
+      double_codon_change[, dbs_id := paste0(chr, ':', pos, '_', ref, '>', alt)]
+      new_dbs_from_double_codon = double_codon_change[! dbs_id %in% final_dbs$dbs_id, .(Chromosome = chr, Start_Position = pos, Reference_Allele = ref, 
+                                                                                        Tumor_Allele = alt, variant_id = dbs_id)]
+      double_codon_change = double_codon_change[, .SD, .SDcols = c('dbs_id', setdiff(names(dbs_codon_change_template), 'variant_name'))]
+      final_codon_change = unique(rbind(final_codon_change, double_codon_change, fill =T))
+    } else {
+      new_dbs_from_double_codon = data.table()
+    }
     
-    ## 
+    
     # left-coding, right essential splice: X. > spl
     # right-coding, left essential splice: X.>spl
     # neither-coding: essential splice
@@ -162,7 +199,7 @@ annotate_dbs = function(dbs, refset) {
       codon_change[aa_ref == 'STOP', short_ref := '*']
       codon_change[aa_ref != 'STOP', short_ref := seqinr::a(aa_ref)]
       codon_change[, aachange := paste0(short_ref, aa_pos, aa_alt)]
-      codon_change[, short_ref := NULL]
+      codon_change[, short_alt := aa_alt]
       codon_change[, aa_alt := seqinr::aaa(aa_alt)]
       codon_change[aa_alt == 'Stp', aa_alt := 'STOP']
       codon_change[, dbs_aac_id := paste0(gene, '_', aachange, '_', pid)]
@@ -180,7 +217,7 @@ annotate_dbs = function(dbs, refset) {
       
       
       # build other DBS IDs for each DBS and annotate these
-      # leading coding chars get same posit
+      # leading coding chars get same position
       codon_to_solve = unique(codon_change[, .(coding_seq, aa_alt)])     
       all_dbs = mapply('[[', codon_dbs_to_aa[codon_to_solve$coding_seq], codon_to_solve$aa_alt, SIMPLIFY = FALSE)                                   
       
@@ -220,14 +257,14 @@ annotate_dbs = function(dbs, refset) {
       
       # New DBS could have additional associated DBS AAC that should also be annotated
       new_dbs = unique(nt_records[, .SD, .SDcols = names(final_dbs)][! dbs_id %in% final_dbs$dbs_id])
-      
-      codon_change[, c("intergenic", "ref", "alt", "pos") := NULL]
+      codon_change[, let(aa_ref = short_ref, aa_alt = short_alt)]
+      codon_change[, c("intergenic", "ref", "alt", "pos", "short_alt", "short_ref") := NULL]
       
       # Redundancy (more than one dbs_id listing per dbs_aac_id) maintained until end of annotation to ensure
       # that dbs_id discovered during coding annotation get annotated, too.
       final_codon_change = unique(rbind(final_codon_change, codon_change, fill = T)) 
       
-      # Case 2: Different codons (or one on-codon, one off), wither sbs splice-disrupting.
+      # Case 2: Different codons (or one on-codon, one off), either sbs splice-disrupting.
       dbs_anno[, essential_splice := essential_splice.sbs1 == T | essential_splice.sbs2 == T]
       which_noncoding = dbs_anno[is.na(aac_id.sbs1) & is.na(aac_id.sbs2), which = T]
       noncoding_dbs = dbs_anno[which_noncoding]
@@ -239,6 +276,7 @@ annotate_dbs = function(dbs, refset) {
       dbs = data.table() # In other words, there is nothing left to annotate if there are no new codon-changing DBS
     }
   }
+  dbs = rbind(dbs, new_dbs_from_double_codon)
   
   # cosmic_dbs_classes (in sysdata) contains the correct 78 COSMIC DBS classes.
   # Any initially assigned classes that are invalid need to be reverse complemented.
@@ -247,14 +285,29 @@ annotate_dbs = function(dbs, refset) {
             cosmic_dbs_class := paste0(as.character(reverseComplement(DNAStringSet(ref))),
                                        '>',
                                        as.character(reverseComplement(DNAStringSet(alt))))]
+  
   if (final_codon_change[, .N] > 0) {
-    aac_dbs_key = final_codon_change[, .(dbs_aac_id = unique(dbs_aac_id), 
-                                         multi_anno_site = uniqueN(dbs_aac_id) > 1), by = 'dbs_id']
+    aac_dbs_key = final_codon_change[, .(dbs_aac_id = unique(dbs_aac_id)), by = 'dbs_id']
     final_codon_change$dbs_id = NULL
   } else {
     aac_dbs_key = copy(aac_dbs_key_template)
   }
   final_codon_change = unique(final_codon_change, by = 'dbs_aac_id')
+  
+  # Don't need these (will be absent anyway when there are no single-codon DBS).
+  suppressWarnings(final_codon_change[, c('nt1_pos', 'nt2_pos', 'nt3_pos') := NULL])
+  
+  final_codon_change[, variant_name := paste0(gene, '_', aachange)]
+  setcolorder(final_codon_change, 'variant_name')
+  
+  if(! is.null(refset$transcripts)) {
+    final_codon_change[refset$transcripts, is_mane := is_mane, on = c(pid = 'protein_id')]
+    final_codon_change[is_mane == TRUE, variant_name := gsub('_', ' ', variant_name)]
+    final_codon_change[is_mane == FALSE, variant_name := paste0(gene, ' ', aachange, ' (', pid, ')')]
+    final_codon_change[, is_mane := NULL]
+  }
+  setkey(final_dbs, 'dbs_id')
+  setkey(final_codon_change, 'dbs_aac_id')
   return(list(dbs = final_dbs, dbs_codon_change = final_codon_change, aac_dbs_key = aac_dbs_key))
 }
 

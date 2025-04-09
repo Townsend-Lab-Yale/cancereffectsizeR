@@ -27,7 +27,7 @@ Note that variants that are not in the annotation tables will never be returned.
 \item{variant_ids}{Filter out any variants besides those specified. (Variants specified here can
 still get removed by other filters.)}
 
-\item{type}{Vector of variant types to include, such as "sbs" or "aac".}
+\item{type}{Filter out variants not of the specified types. Supported types are sbs, aac, dbs, dbs_aac.}
 
 \item{gr}{Filter out any variants not within input GRanges +/- \code{padding} bases.}
 
@@ -84,7 +84,6 @@ Definitions of some less self-explanatory columns:
   \item coding_seq: coding strand nucleotides in order of transcription
   \item center_nt_pos: regardless of strand, start/end give positions of two out of three AAC nucleotides; this
                       gives the position of the center nucleotide (maybe useful if the AAC spans a splice site)
-  \item multi_anno_site: T/F whether variant has multiple gene/transcript/AAC annotations
   \item maf_prevalence: number of occurrences of the variant in MAF data
   \item samples_covering: number of MAF samples with sequencing coverage at the variant site
 }

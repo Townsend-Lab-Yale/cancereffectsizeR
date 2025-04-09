@@ -195,7 +195,6 @@ annotate_sbs = function(sbs, refset) {
     sbs_table[sbs, c("genes", "nearest_pid", "cds", "dist") := .(genes, nearest_pid, cds, dist), on = 'sbs_id']
     
     aac_sbs_key = sbs_table[, .(aac_id, sbs_id)]
-    aac_sbs_key[, multi_anno_site := uniqueN(aac_id) > 1, by = 'sbs_id']
     sbs_table = sbs_table[, .(sbs_id, chr, pos, ref, alt, genes, nearest_pid, cds, dist)] # gets uniquified shortly
     
     # add noncoding sbs to sbs table

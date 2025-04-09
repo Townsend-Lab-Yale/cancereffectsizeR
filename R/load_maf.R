@@ -377,6 +377,8 @@ load_maf = function(cesa = NULL, maf = NULL, maf_name = character(), coverage = 
   cesa@mutations[["dbs_codon_change"]] = unique(rbind(cesa@mutations$dbs_codon_change, annotations$dbs_codon_change), by = 'dbs_aac_id')
   cesa@mutations[["dbs"]] = unique(rbind(cesa@mutations$dbs, annotations$dbs), by = 'dbs_id')
   cesa@mutations[["aac_dbs_key"]] = unique(rbind(cesa@mutations$aac_dbs_key, annotations$aac_dbs_key))
+  setkey(cesa@mutations$dbs, 'dbs_id')
+  setkey(cesa@mutations$dbs_codon_change, 'dbs_aac_id')
   
   # add genes list to MAF records (may stop including in near future)
   # use of _tmp names required as of data.table 1.13.2 to keep join from failing

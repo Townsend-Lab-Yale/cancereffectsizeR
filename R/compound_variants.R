@@ -278,8 +278,13 @@ define_compound_variants = function(cesa, variant_table, by = NULL, merge_distan
   }
   
   
-  if (! all(c("chr", "start", "end", "center_nt_pos") %in% names(variant_table))) {
-    stop("variant_table should have chr/start/end/center_nt_pos (as from select_variants()).")
+  if (! all(c("chr", "start", "end", "center_nt_pos", "variant_type") %in% names(variant_table))) {
+    stop("variant_table should have chr/start/end/center_nt_pos/variant_type (as from select_variants()).")
+  }
+  which_doublet = variant_table[variant_type %in% c('dbs', 'dbs_aac'), which = TRUE]
+  if(length(which_doublet) > 0) {
+    variant_table = variant_table[! which_doublet]
+    message('FYI, DBS mutations are not yet supported in CompoundVariantSets and have been excluded.')
   }
   
   by_cols = by

@@ -7,8 +7,10 @@
 .variant_counts(
   cesa,
   samples,
-  sbs_from_aac,
-  noncoding_sbs_id,
+  sbs_from_aac = NULL,
+  noncoding_sbs_id = character(),
+  dbs_from_aac = NULL,
+  noncoding_dbs_id = character(),
   by_cols = character()
 )
 }
@@ -20,6 +22,10 @@
 \item{sbs_from_aac}{data.table with columns aac_id, sbs_id (validated and with annotations in CESAnalysis)}
 
 \item{noncoding_sbs_id}{vector of sbs_ids to treat as noncoding variants}
+
+\item{dbs_from_aac}{data.table with columns dbs_aac_id, dbs_id}
+
+\item{noncoding_dbs_id}{vector of dbs_ids to treat as noncoding variants}
 
 \item{by_cols}{validated column names from sample table that are suitable to use for counting by.}
 }

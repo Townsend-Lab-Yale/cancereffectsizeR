@@ -254,6 +254,9 @@ load_cesa = function(file) {
     }
   }
   
+  cesa@mutations$dbs = setDT(cesa@mutations$dbs, key = 'dbs_id')
+  cesa@mutations$dbs_codon_change = setDT(cesa@mutations$dbs_codon_change, key = 'dbs_aac_id')
+  
   
   if (! is.null(cesa@trinucleotide_mutation_weights[["signature_weight_table"]])) {
     cesa@trinucleotide_mutation_weights[["signature_weight_table"]] = setDT(cesa@trinucleotide_mutation_weights[["signature_weight_table"]])

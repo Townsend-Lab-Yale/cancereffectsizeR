@@ -38,7 +38,6 @@
 #'   \item coding_seq: coding strand nucleotides in order of transcription
 #'   \item center_nt_pos: regardless of strand, start/end give positions of two out of three AAC nucleotides; this
 #'                       gives the position of the center nucleotide (maybe useful if the AAC spans a splice site)
-#'   \item multi_anno_site: T/F whether variant has multiple gene/transcript/AAC annotations
 #'   \item maf_prevalence: number of occurrences of the variant in MAF data
 #'   \item samples_covering: number of MAF samples with sequencing coverage at the variant site
 #' }
@@ -50,7 +49,7 @@
 #'   \code{add_variants()} to include variants absent from MAF data in your CESAnalysis.
 #' @param variant_ids Filter out any variants besides those specified. (Variants specified here can
 #'   still get removed by other filters.)
-#' @param type Vector of variant types to include, such as "sbs" or "aac".
+#' @param type Filter out variants not of the specified types. Supported types are sbs, aac, dbs, dbs_aac.
 #' @param gr Filter out any variants not within input GRanges +/- \code{padding} bases.
 #' @param variant_position_table Filter out any variants that don't intersect the
 #'   positions given in chr/start/end of this table (1-based closed coordinates).
@@ -90,12 +89,12 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
       stop('type must be a character vector of variant types.')
     }
     type = unique(tolower(type))
-    if(length(setdiff(type, c('sbs', 'aac'))) > 0) {
-      msg = "Currently, annotations are only available for SBS (single-base substitution) and AAC (amino-acid-change) variant types."
+    if(length(setdiff(type, c('sbs', 'aac', 'dbs', 'dbs_aac'))) > 0) {
+      msg = "Unsupported variant types specified."
       stop(pretty_message(msg, emit = F))
     }
   } else {
-    type = c('sbs', 'aac')
+    type = c('sbs', 'aac', 'dbs', 'dbs_aac')
   }
   
   # Start with all variants, then apply filters
@@ -107,6 +106,14 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   selected_sbs_ids = character()
   if('sbs' %in% type) {
     selected_sbs_ids = cesa@mutations$sbs$sbs_id
+  }
+  selected_dbs_ids = character()
+  if('dbs' %in% type) {
+    selected_dbs_ids = cesa@mutations$dbs$dbs_id
+  }
+  selected_dbs_aac_ids = character()
+  if('dbs_aac' %in% type) {
+    selected_dbs_aac_ids = cesa@mutations$dbs_codon_change$dbs_aac_id
   }
   
   # handle variant_position_table or gr (for simplicity, not allowing both)
@@ -134,15 +141,24 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   
   # final_gr may derive from variant_position_table or gr
   if(! is.null(final_gr)) {
-    mutations_gr = GenomicRanges::makeGRangesFromDataFrame(cesa@mutations$sbs, seqnames.field = "chr", start.field = "pos", 
+    sbs_gr = GenomicRanges::makeGRangesFromDataFrame(cesa@mutations$sbs, seqnames.field = "chr", start.field = "pos", 
                                                            end.field = "pos", seqinfo = GenomeInfoDb::seqinfo(final_gr))
-    captured = cesa@mutations$sbs[IRanges::overlapsAny(query = mutations_gr, subject = final_gr, type = "within")]
-    if (captured[, .N] == 0) {
+    captured_sbs = cesa@mutations$sbs[IRanges::overlapsAny(query = sbs_gr, subject = final_gr, type = "within")]
+    
+    all_dbs = cesa@mutations$dbs[, .(chr, start = pos, end = pos + 1)]
+    dbs_gr = GenomicRanges::makeGRangesFromDataFrame(all_dbs, seqinfo = GenomeInfoDb::seqinfo(final_gr))
+    captured_dbs = cesa@mutations$dbs[IRanges::overlapsAny(query = dbs_gr, subject = final_gr, type = "within")]
+    
+    if (captured_sbs[, .N] + captured_dbs[, .N] == 0) {
       return(data.table())
     }
-    selected_sbs_ids = intersect(selected_sbs_ids, captured$sbs_id)
-    aac_passing_gr = cesa@mutations$aac_sbs_key[captured$sbs_id, unique(aac_id), on = 'sbs_id', nomatch = NULL]
+    selected_sbs_ids = intersect(selected_sbs_ids, captured_sbs$sbs_id)
+    aac_passing_gr = cesa@mutations$aac_sbs_key[captured_sbs$sbs_id, unique(aac_id), on = 'sbs_id', nomatch = NULL]
     selected_aac_ids = intersect(selected_aac_ids, aac_passing_gr)
+    
+    selected_dbs_ids = intersect(selected_dbs_ids, captured_dbs$dbs_id)
+    dbs_aac_passing_gr = cesa@mutations$aac_dbs_key[captured_dbs$dbs_id, unique(dbs_aac_id), on = 'dbs_id', nomatch = NULL]
+    selected_dbs_aac_ids = intersect(selected_dbs_aac_ids, dbs_aac_passing_gr)
   }
   
   # Apply gene filter
@@ -157,11 +173,16 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
     
     aac_in_genes = cesa@mutations$amino_acid_change[gene %in% genes, aac_id]
     selected_aac_ids = intersect(selected_aac_ids, aac_in_genes)
-    
     # Note we're not returning intergenic sbs that just have one of the chosen genes as their nearest gene
     genes_by_sbs = cesa@mutations$sbs[intergenic == FALSE, .(gene = unlist(genes)), by = "sbs_id"]
     sbs_in_genes = genes_by_sbs[gene %in% genes, unique(sbs_id)]
     selected_sbs_ids = intersect(selected_sbs_ids, sbs_in_genes)
+    
+    dbs_aac_in_genes = cesa@mutations$dbs_codon_change[gene %in% genes, dbs_aac_id]
+    selected_dbs_aac_ids = intersect(selected_dbs_aac_ids, dbs_aac_in_genes)
+    
+    # KNOWN ISSUE: No nearest gene information for DBS
+    selected_dbs_ids = intersect(selected_dbs_ids, cesa@mutations$aac_dbs_key[dbs_aac_id %in% dbs_aac_in_genes, dbs_id])
   }
   
   # Filter by variant_id (in other words, discard all other variants)
@@ -169,14 +190,21 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
     variant_ids = unique(variant_ids)
     matching_sbs_ids = cesa@mutations$sbs[variant_ids, sbs_id, nomatch = NULL]
     matching_aac_ids = cesa@mutations$amino_acid_change[variant_ids, aac_id, nomatch = NULL]
-    missing_ids = setdiff(variant_ids, c(matching_sbs_ids, matching_aac_ids))
+    matching_dbs_ids = cesa@mutations$dbs[variant_ids, dbs_id, on = 'dbs_id', nomatch = NULL]
+    matching_dbs_aac_ids = cesa@mutations$dbs_codon_change[variant_ids, dbs_aac_id, on = 'dbs_aac_id', nomatch = NULL]
+    
+    # KNOWN ISSUE: spaces should be accepted in SBS/DBS ID
+    missing_ids = setdiff(variant_ids, c(matching_sbs_ids, matching_aac_ids, matching_dbs_ids, matching_dbs_aac_ids))
     
     # if any IDs are missing, try to interpret them as "short" AAC names (i.e., without protein ID)
     if (length(missing_ids) > 0) {
-      tmp = cesa@mutations$amino_acid_change[, .(aac_id, variant_name)]
-      aac_matches = tmp[missing_ids, on = "variant_name"]
+      aac_matches = cesa@mutations$amino_acid_change[missing_ids, on = "variant_name"]
       
       missing_ids = aac_matches[is.na(aac_id), variant_name]
+      
+      dbs_aac_matches = cesa@mutations$dbs_codon_change[missing_ids, on = 'variant_name']
+      missing_ids = dbs_aac_matches[is.na(dbs_aac_id), variant_name]
+      
       if (length(missing_ids) > 0) {
         num_missing = length(missing_ids)
         missing_ids = paste(missing_ids, collapse = ", ")
@@ -184,9 +212,10 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
              missing_ids)
       }
       matching_aac_ids = c(matching_aac_ids, aac_matches$aac_id)
-      if (any(duplicated(aac_matches$variant_name))) {
-        msg = paste0("Shorthand amino-acid-change names (styled like \"KRAS_G12C\") were recognized and matched ",
-                     "with cancereffectsizeR-style aac_ids. However, some of your variant names matched more than ",
+      matching_dbs_aac_ids = c(matching_dbs_aac_ids, dbs_aac_matches$dbs_aac_id)
+      if (any(duplicated(aac_matches$variant_name) || any(duplicated(dbs_aac_matches$variant_name)))) {
+        msg = paste0("Amino acid changes with no protein ID (styled like \"KRAS G12C\") were recognized and matched ",
+                     "with specific variant IDs. However, some of your variant names matched more than ",
                      "one aac_id (i.e., the same amino acid change is possible on multiple protein isoforms, and both are present ",
                      "in this analysis's variant annotations.) When the underlying SBS are the same, only one AAC will be returned ",
                      "Otherwise, all matching variants will be returned. ",
@@ -197,8 +226,9 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
     }
     selected_sbs_ids = intersect(selected_sbs_ids, matching_sbs_ids)
     selected_aac_ids = intersect(selected_aac_ids, matching_aac_ids)
+    selected_dbs_ids = intersect(selected_dbs_ids, matching_dbs_ids)
+    selected_dbs_aac_ids = intersect(selected_dbs_aac_ids, matching_dbs_aac_ids)
   }
-  
   
   
   # Constituent SBS of AACs that get tossed in de-overlapping need to be
@@ -206,34 +236,42 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   # track here of SBS that need to appear in final output. Note if any of these don't
   # pass frequency filter, they shouldn't be saved, and they get removed below.
   sbs_to_recover = selected_sbs_ids
+  dbs_to_recover = selected_dbs_ids
   
   # Remove variants contained in other variants, unless variants were explicitly specified by variant_id
   aac_sbs_key = cesa@mutations$aac_sbs_key[selected_aac_ids, on = 'aac_id']
+  aac_dbs_key = cesa@mutations$aac_dbs_key[selected_dbs_aac_ids, on = 'dbs_aac_id']
   
-  if(is.null(variant_ids)) {
-    selected_sbs_ids = setdiff(selected_sbs_ids, aac_sbs_key$sbs_id)
-  }
+  selected_sbs_ids = setdiff(selected_sbs_ids, aac_sbs_key$sbs_id)
+  selected_dbs_ids = setdiff(selected_dbs_ids, aac_dbs_key$dbs_id)
   
   selected_sbs = setDT(cesa@mutations$sbs[selected_sbs_ids, on = 'sbs_id'])
   selected_aac = setDT(cesa@mutations$amino_acid_change[selected_aac_ids, on = 'aac_id'])
+  selected_dbs = setDT(cesa@mutations$dbs[selected_dbs_ids, on = 'dbs_id'])
+  selected_dbs_aac = setDT(cesa@mutations$dbs_codon_change[selected_dbs_aac_ids, on = 'dbs_aac_id'])
   
   # Get variant counts and coverage
   sbs_from_aac = cesa@mutations$aac_sbs_key[selected_aac$aac_id, .(aac_id, sbs_id), on = 'aac_id']
+  dbs_from_aac = cesa@mutations$aac_dbs_key[selected_dbs_aac$dbs_aac_id, .(dbs_aac_id, dbs_id), on = 'dbs_aac_id']
   
-  if(sbs_from_aac[, .N] == 0 && length(selected_sbs_ids) == 0) {
+  if(sbs_from_aac[, .N] == 0 && length(selected_sbs_ids) == 0  && dbs_from_aac[, .N] == 0 && length(selected_dbs_ids) == 0) {
     message("No variants passed selection criteria!")
     return(NULL)
   }
-
   if (cesa@maf[, .N] > 0) {
     counts_and_cov = .variant_counts(cesa, samples = cesa@samples[, .(patient_id, covered_regions)],
-                                     sbs_from_aac = aac_sbs_key[, .(aac_id, sbs_id)],
-                                     noncoding_sbs_id = selected_sbs_ids)
+                                     sbs_from_aac = sbs_from_aac,
+                                     noncoding_sbs_id = selected_sbs_ids,
+                                     dbs_from_aac = dbs_from_aac,
+                                     noncoding_dbs_id = selected_dbs_ids)
     setnames(counts_and_cov, c("N", "num_cov"), c("maf_prevalence", "samples_covering"))
     
   } else {
     counts_and_cov = data.table(variant_id = c(selected_aac$aac_id, selected_sbs_ids),
-                                variant_type = c(rep('aac', selected_aac[, .N]), rep('sbs', length(selected_sbs_ids))),
+                                variant_type = c(rep('aac', selected_aac[, .N]),
+                                                 rep('sbs', length(selected_sbs_ids)),
+                                                 rep('dbs_aac', selected_dbs_aac[, .N]),
+                                                 rep('dbs', length(selected_dbs_ids))),
                                 maf_prevalence = 0, samples_covering = 0)
   }
   
@@ -241,115 +279,126 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   selected_sbs = selected_sbs[maf_prevalence >= min_freq]
   selected_aac[counts_and_cov, c("maf_prevalence", "samples_covering") := list(maf_prevalence, samples_covering), on = c(aac_id = 'variant_id')]
   selected_aac = selected_aac[maf_prevalence >= min_freq]
+  selected_dbs[counts_and_cov, let(maf_prevalence = maf_prevalence, samples_covering = samples_covering),
+               on = c(dbs_id = 'variant_id')]
+  selected_dbs_aac[counts_and_cov, let(maf_prevalence = maf_prevalence, samples_covering = samples_covering),
+               on = c(dbs_aac_id = 'variant_id')]
   
-  # Annotate sbs table and prepare to merge with AACs
-  selected_sbs[, variant_type := "sbs"]
-  selected_sbs[, variant_name := sub('_', ' ', sbs_id)] # SBS IDs are already short and uniquely identifying
-  selected_sbs[, strand := NA_integer_] # because AAC table is +1/-1
-  selected_sbs[, c("start", "end") := .(pos, pos)]
-  selected_sbs[, pos := NULL]
-  # for convenience, take 1 gene per sbs for the output gene column
-  if (selected_sbs[, .N] > 0) {
+  
+  combined = data.table()
+  if(selected_sbs[, .N] > 0) {
+    selected_sbs[, variant_type := "sbs"]
+    selected_sbs[, variant_name := sub('_', ' ', sbs_id)] # SBS IDs are already short and uniquely identifying
+    selected_sbs[, strand := NA_integer_] # because AAC table is +1/-1
+    selected_sbs[, c("start", "end") := .(pos, pos)]
+    selected_sbs[, pos := NULL]
+    # for convenience, take 1 gene per sbs for the output gene column
     selected_sbs[, gene := sapply(genes, function(x) x[1])] 
-  } else {
-    selected_sbs[, gene := character()]
+    selected_sbs[, c('genes', 'nearest_pid')] = NULL # not keeping these list-type annotations
+    setnames(selected_sbs, "sbs_id", "variant_id")
+    combined = rbind(combined, selected_sbs, fill = TRUE, use.names = TRUE)
   }
-  selected_sbs[cesa@mutations$aac_sbs_key, multi_anno_site := multi_anno_site, on = 'sbs_id']
-  selected_sbs[is.na(multi_anno_site), multi_anno_site := FALSE]
-  selected_sbs[, c('genes', 'nearest_pid')] = NULL # not keeping these list-type annotations
-  setnames(selected_sbs, "sbs_id", "variant_id")
   
-  # AACs get a short variant name that might not be uniquely identifying if a gene has more than one CDS
-  selected_aac[, variant_type := "aac"]
-  selected_aac[, intergenic := FALSE]
-  selected_aac[, start := pmin(nt1_pos, nt3_pos)]
-  selected_aac[, end := pmax(nt1_pos, nt3_pos)]
-  selected_aac[, center_nt_pos := nt2_pos]
-  selected_aac[, c("nt1_pos", "nt2_pos", "nt3_pos") := NULL]
+  if(selected_dbs[, .N] > 0) {
+    # KNOWN ISSUE: no gene
+    selected_dbs[, let(variant_type = 'dbs', variant_name = sub('_', ' ', dbs_id),
+                       strand = NA_integer_, start = pos, end = pos + 1, pos = NULL,
+                       gene = NA_character_)]
+    setnames(selected_dbs, 'dbs_id', 'variant_id')
+    combined = rbind(combined, selected_dbs, fill = TRUE, use.names = TRUE)
+  }
   
-  # We call an AAC a multi-anno site if any of its SBS has multiple annotations.
-  multi_anno_aac = cesa@mutations$aac_sbs_key[, any(multi_anno_site), by = 'aac_id']
-  selected_aac[multi_anno_aac, multi_anno_site := V1, on = 'aac_id']
-  setnames(selected_aac, "aac_id", "variant_id")
+  if(selected_aac[, .N] > 0) {
+    selected_aac[, variant_type := "aac"]
+    selected_aac[, intergenic := FALSE]
+    selected_aac[, start := pmin(nt1_pos, nt3_pos)]
+    selected_aac[, end := pmax(nt1_pos, nt3_pos)]
+    selected_aac[, center_nt_pos := nt2_pos]
+    selected_aac[, c("nt1_pos", "nt2_pos", "nt3_pos") := NULL]
+    setnames(selected_aac, "aac_id", "variant_id")
+    combined = rbind(combined, selected_aac, fill = TRUE, use.names = T)
+  }
+  
+  if(selected_dbs_aac[, .N] > 0) {
+    # KNOWN ISSUE: start/end NA
+    selected_dbs_aac[, let(variant_type = 'dbs_aac', intergenic = FALSE,
+                           start = NA, end = NA)]
+    setnames(selected_dbs_aac, 'dbs_aac_id', 'variant_id')
+    combined = rbind(combined, selected_dbs_aac, fill = TRUE, use.names = T)
+  }
   
   # Combine SBS and AAC tables
-  combined = rbindlist(list(selected_aac, selected_sbs), use.names = T, fill = T)
   if(combined[, .N] == 0) {
-    message("No variants passed selection criteria!")
     return(NULL)
   }
   
   # Handle overlapping  mutations using tiebreakers explained below.
-  # Exception: Variants specified by variant_id always get included.
-  multi_hits = combined[variant_type == "aac" & multi_anno_site == TRUE]
+  multi_anno_sbs = aac_sbs_key[, .N, by = 'sbs_id'][N > 1, sbs_id]
+  multi_hit_aac = aac_sbs_key[sbs_id %in% multi_anno_sbs, unique(aac_id)]
+  multi_anno_dbs = aac_dbs_key[, .N, by = 'dbs_id'][N > 1, dbs_id]
+  multi_hit_dbs_aac = aac_dbs_key[dbs_id %in% multi_anno_dbs, unique(dbs_aac_id)]
+  multi_hits = combined[variant_id %in% c(multi_hit_aac, multi_hit_dbs_aac)]
+  aa_key = rbind(aac_sbs_key[aac_id %in% multi_hits$variant_id, .(nt_id = sbs_id, aa_id = aac_id)],
+                 aac_dbs_key[dbs_aac_id %in% multi_hits$variant_id, .(nt_id = dbs_id, aa_id = dbs_aac_id)])
+  multi_hits = merge.data.table(multi_hits, aa_key, by.x = 'variant_id', by.y = 'aa_id', all = TRUE)
   num_to_check = multi_hits[, .N]
-  if (num_to_check > 0 && is.null(variant_ids)) {
-    # for tie-breaking, count how many mutations are in each gene found in these multi_hit records
-    # will need to produce these counts from scratch since some of the variants may not be in this select_variants() run
-    aac_sbs_key = cesa@mutations$aac_sbs_key[multi_anno_site == TRUE] # only multi-anno sites need to be counted
-    aac_sbs_key[cesa@mutations$amino_acid_change, pid := pid, on = 'aac_id']
-    aac_sbs_key = aac_sbs_key[unique(multi_hits$pid), on = 'pid']
-    
-    if (cesa@maf[, .N] > 0) {
-      maf_counts = cesa@maf[variant_type == 'sbs', .N, by = 'variant_id']
-      aac_sbs_key[maf_counts, sbs_count := N, on = c(sbs_id = 'variant_id')]
-    } else {
-      aac_sbs_key[, sbs_count := 0]
-    }
-    aac_sbs_key[is.na(sbs_count), sbs_count := 0]
-    maf_pid_counts = aac_sbs_key[, .(pid_freq = sum(sbs_count)), keyby = "pid"]
-    multi_hits[maf_pid_counts, pid_freq := pid_freq, on = 'pid']
-    multi_hits = merge.data.table(multi_hits, cesa@mutations$aac_sbs_key, by.x = 'variant_id', by.y = 'aac_id')
+
+  if (num_to_check > 0) {
     multi_hits[, is_premature := aa_alt == "STOP" & aa_ref != "STOP"]
         
-    # Any set of overlapping AACs has a single AAC chosen based on the following criteria:
-    # MAF frequency (usually equal among all), essential splice status, premature stop codon, nonsilent status,
-    # which protein has the most overall mutations in MAF data (will usually favor longer transcripts),
-    # and finally just alphabetical on variant ID
+    # Apply prioritization
     if(check_for_ref_data(cesa, 'transcripts')) {
         transcripts = unique(get_ref_data(cesa, 'transcripts')[, .(is_mane, is_mane_plus, pid = protein_id)])
         multi_hits[transcripts, c('is_mane', 'is_mane_plus') := .(is_mane, is_mane_plus), on = 'pid']
-        multi_hits = multi_hits[order(-essential_splice, -is_premature, aa_ref == aa_alt, -is_mane, -is_mane_plus, -maf_prevalence, -pid_freq, variant_id)]
+        multi_hits = multi_hits[order(-essential_splice, -is_premature, aa_ref == aa_alt, -is_mane, -is_mane_plus, -maf_prevalence, variant_id)]
         multi_hits[, c('is_mane', 'is_mane_plus') := NULL]
     } else {
-        multi_hits = multi_hits[order(-essential_splice, -is_premature, aa_ref == aa_alt, -maf_prevalence, -pid_freq, variant_id)]
+        multi_hits = multi_hits[order(-essential_splice, -is_premature, aa_ref == aa_alt, -maf_prevalence, variant_id)]
     }
     multi_hits[, is_premature := NULL]
-    multi_hits[, sbs_id_dup := duplicated(sbs_id)]
-    chosen_aac = multi_hits[, .(to_use = ! any(sbs_id_dup)), by = 'variant_id'][to_use == T, variant_id]
+    multi_hits[, nt_already_used := duplicated(nt_id), by = 'variant_type'] # same nt may be in DBS AACs and SBS AACs
+    multi_hits[, to_use := ! any(nt_already_used), by = 'variant_id']
     
-    # remove secondary (non-chosen) AACs, but save all sbs IDs and re-select those passing filters
-    not_chosen_aac = setdiff(multi_hits$variant_id, chosen_aac)
+    chosen_aa_variants = multi_hits[to_use == TRUE, variant_id]
     
-    combined = combined[! not_chosen_aac, on = 'variant_id']
+    # remove secondary (non-chosen) AACs/DBS AACs, but save all SBS/DBS IDs and re-select those passing filters
+    not_chosen_aa_variants = setdiff(multi_hits$variant_id, chosen_aa_variants)
     
-    sbs_in_chosen_aac = multi_hits[chosen_aac, sbs_id, on = 'variant_id'] # logically, no need for calling unique(sbs_id)
-    sbs_in_not_chosen_aac = setdiff(multi_hits$sbs_id, sbs_in_chosen_aac)
+    combined = combined[! not_chosen_aa_variants, on = 'variant_id']
+    
+    not_used = setdiff(multi_hits[to_use == F, nt_id], multi_hits[to_use == T, nt_id])
+    to_reselect = intersect(not_used, c(sbs_to_recover, dbs_to_recover))
     
     # We need to recover sbs that were in AACs and that passed user's filters,
     # but that are now no longer constituent sbs after de-overlapping.
-    sbs_to_reselect = intersect(sbs_to_recover, sbs_in_not_chosen_aac)
-    if (length(sbs_to_reselect) > 0) {
-      reselected = select_variants(cesa, variant_ids = sbs_to_reselect)
-      reselected = reselected[, .SD, .SDcols = names(combined)]
-      combined = rbind(combined, reselected)
+    if (length(to_reselect) > 0) {
+      reselected = select_variants(cesa, variant_ids = to_reselect)
+      reselected = reselected[, .SD, .SDcols = intersect(names(combined), names(reselected))]
+      combined = rbind(combined, reselected, fill = TRUE)
     }
   }
   # order output in chr/pos order
   setkey(combined, "chr")
   combined = setDT(combined[order(start)][BSgenome::seqnames(bsg), nomatch = NULL, on = "chr"])
-  setcolorder(combined, c("variant_name", "variant_type", "chr", "start", "end", "variant_id", "ref", "alt", "gene", 
-                          "strand", "aachange", "essential_splice", "intergenic", "trinuc_mut", "aa_ref", "aa_pos", "aa_alt", "coding_seq", 
-                          "center_nt_pos", "pid", "multi_anno_site", 
-                          "maf_prevalence", "samples_covering"))
   
+  # Add fields that may be missing depending on what variant types were selected.
+  expected_fields = c("variant_name", "variant_type", "chr", "start", "end", "variant_id", "ref", "alt", "gene", 
+                      "strand", "aachange", "essential_splice", "intergenic", "trinuc_mut", "cosmic_dbs_class", 
+                      "aa_ref", "aa_pos", "aa_alt", "coding_seq", 
+                      "center_nt_pos", "pid", "maf_prevalence", "samples_covering")
+  missing_fields = setdiff(expected_fields, names(combined))
+  if(length(missing_fields) > 0) {
+    combined[, (missing_fields) := NA]
+  }
+  combined = combined[, .SD, .SDcols = expected_fields] # sometimes will have extra fields from reselecting
+  setcolorder(combined, expected_fields)
   
   if(check_for_ref_data(cesa, "transcripts")) {
     transcripts = unique(get_ref_data(cesa, "transcripts")[, .(is_mane, transcript_tags, pid = protein_id)])
     combined[transcripts, let(is_MANE_transcript = is_mane,
                               transcript_tags = transcript_tags),
                               on = 'pid']
-    combined[variant_type == 'sbs', is_MANE_transcript := NA]
+    combined[variant_type %in% c('sbs', 'dbs'), is_MANE_transcript := NA]
   }
 
   setattr(combined, "cesa_id", cesa@advanced$uid)
