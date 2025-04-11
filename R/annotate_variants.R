@@ -71,12 +71,12 @@ annotate_dbs = function(dbs, refset) {
     # Each of these may associated with one or more sbs AACs.
     # We'll merge in all such associations from aac_sbs_key.
     # sbs1/sbs2 that have no AAC will be included with NA values in the columns taken from aac_sbs_key.
-    sbs1_aac_hits = merge.data.table(dbs[, .(sbs_id = sbs1, dbs_id)],
+    sbs1_aac_hits = merge.data.table(unique(dbs[, .(sbs_id = sbs1, dbs_id)]),
                                      anno_out$sbs1$aac_sbs_key, 
-                                     by = 'sbs_id', all.x = T)
-    sbs2_aac_hits = merge.data.table(dbs[, .(sbs_id = sbs2, dbs_id)],
+                                     by = 'sbs_id', all.x = T, allow.cartesian = TRUE)
+    sbs2_aac_hits = merge.data.table(unique(dbs[, .(sbs_id = sbs2, dbs_id)]),
                                      anno_out$sbs2$aac_sbs_key, 
-                                     by = 'sbs_id', all.x = T)
+                                     by = 'sbs_id', all.x = T, allow.cartesian = TRUE)
     
     # Merge in annotations for each AAC, keeping sbs1 and sbs2 annotations separate.
     sbs1_aac_anno = anno_out$sbs1$amino_acid_change[, .(aac_id, gene, aa_ref, aa_pos, aa_alt, coding_seq, strand, pid, nt1_pos, nt2_pos, nt3_pos)]
@@ -153,6 +153,14 @@ annotate_dbs = function(dbs, refset) {
       double_codon_change = two_codon[, .(chr, pid, essential_splice, strand = strand.sbs1, gene = gene.sbs1, aa_ref, 
                                           aa_pos = aa_pos, coding_seq, pos, ref,
                                           aa_alt = aa_alt, alt = two_codon_dbs_key[[enclosing_seq]][[aa_alt]]), by = .I]
+      
+      # For negative-stranded coding sequence, reverse compelement to get genomic alt allele
+      double_codon_change[strand == -1, alt := as.character(Biostrings::reverseComplement(DNAStringSet(alt)))]
+      
+      # Remove records that don't count as DBS (due to one or both ref/alt bases matching)
+      double_codon_change = double_codon_change[substr(ref, 1, 1) != substr(alt, 1, 1) & substr(ref, 2, 2) != substr(alt, 2, 2)]
+      
+      
       double_codon_change[, aachange := paste0(aa_ref, aa_pos, aa_alt)]
       double_codon_change[, dbs_aac_id := paste0(gene, '_', aachange, '_', pid)]
       double_codon_change[, dbs_id := paste0(chr, ':', pos, '_', ref, '>', alt)]
@@ -238,6 +246,7 @@ annotate_dbs = function(dbs, refset) {
         # allow.cartesian because each original codon change may have multiple equivalent DBS in nt_records
         nt_records = nt_records[codon_change, on = c('coding_seq', 'aa_alt'), nomatch = NULL, allow.cartesian = T]
         
+        # The proposed coding_seq 
         nt_records[strand == 1, alt := nt_alt]
         nt_records[strand == -1, alt := as.character(reverseComplement(DNAStringSet(nt_alt)))]
         nt_records = unique(nt_records)
@@ -247,7 +256,12 @@ annotate_dbs = function(dbs, refset) {
         } else if (codon_start_pos == 2) {
           nt_records[, pos := pmin(nt2_pos, nt3_pos)]
         }
-        nt_records[, dbs_id := paste0(chr, ':', pos, '_', ref, '>', alt)]
+        nt_records[, new_ref := fcase(strand == 1, substr(coding_seq, codon_start_pos, codon_start_pos + 1),
+                                      default = substr(as.character(Biostrings::reverseComplement(DNAStringSet(coding_seq))),
+                                                       3 - codon_start_pos, 4 - codon_start_pos))]
+        
+        nt_records[, dbs_id := paste0(chr, ':', pos, '_', new_ref, '>', alt)]
+        nt_records$ref = nt_records$new_ref
         nt_records[, dbs_aac_id := paste0(gene, '_', aachange, '_', pid)]
         return(nt_records)
       }
@@ -269,14 +283,14 @@ annotate_dbs = function(dbs, refset) {
       which_noncoding = dbs_anno[is.na(aac_id.sbs1) & is.na(aac_id.sbs2), which = T]
       noncoding_dbs = dbs_anno[which_noncoding]
       dbs_anno = dbs_anno[! which_noncoding]
-      
       dbs = new_dbs[, .(Chromosome = chr, Start_Position = pos, Reference_Allele = ref, 
                         Tumor_Allele = alt, variant_id = dbs_id)]
     } else {
       dbs = data.table() # In other words, there is nothing left to annotate if there are no new codon-changing DBS
     }
+    dbs = rbind(dbs, new_dbs_from_double_codon)
   }
-  dbs = rbind(dbs, new_dbs_from_double_codon)
+  
   
   # cosmic_dbs_classes (in sysdata) contains the correct 78 COSMIC DBS classes.
   # Any initially assigned classes that are invalid need to be reverse complemented.
