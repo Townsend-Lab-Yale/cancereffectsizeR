@@ -38,6 +38,8 @@ calculate_ploidy = function(cna_calls) {
   return(ploidy_calls)
 }
 
+#' Categorize copy changes relative to ploidy
+#' 
 #' @param cna_calls calls
 #' @return A copy of the input table, with annotation columns added.
 #' @keywords internal
@@ -899,11 +901,14 @@ assign_cosmic_CN_class = function(cna_calls) {
 }
 
 
-# For each range in a chr, count the number of samples with gains, decreases, LOH, non-LOH decrease, etc.
-# All changes are with respect to expected ploidy.
-# When account = TRUE, arm-level and chr-level changes are neutralized before counting.
-
-#' @param chr_ranges get_genomic_windows()
+#' Tabulate copy changes by genomic window.
+#'
+#' Across a chromosome, counts the number of samples with gains, decreases, LOH, non-LOH decrease,
+#' etc. All changes are with respect to expected ploidy.
+#' @param chr Chromosome name as 1-length character
+#' @param chr_ranges From get_genomic_windows()
+#' @param account When TRUE (default), When account = TRUE, arm-level and chr-level changes are 
+#' accounted for (i.e., ignored) when counting changes.
 #' @export
 get_chr_change_counts = function(calls, chr, chr_ranges, account = TRUE) {
   if(! 'exp_total_copy' %in% names(calls)) {
@@ -1275,14 +1280,16 @@ prep_gene_probability_model = function(gene_name, event_type = 'increase',
   return(output)
 }
 
+# sig_def = system.file('extdata/COSMIC_v3.4_CN_GRCh37.txt', package ='ces.refset.hg38')
 cn_signature_extraction = function(sig_def, cna_segments) {
-  cn_sig = fread(cn_sig_def_file)
+  cn_sig = fread(sig_def)
   cn_sig = transpose(cn_sig, make.names = 'Type', keep.names = 'signature')
   cn_names = cn_sig$signature
   cn_sig = as.matrix(cn_sig[, -'signature'])
   rownames(cn_sig) = cn_names
   cn_sig = t(cn_sig)
-  cn_mat = t(table(cna_segments$sample, factor(cna_segments$CNclass))) # To-do: CNclass should be re-derived, to be safe
+  cn_mat = t(table(cna_segments$sample, 
+                   factor(cna_segments$CNclass, levels = rownames(cn_sig))))
   
   # To-do: make multicore
   mp_out = MutationalPatterns::fit_to_signatures_strict(cn_mat, cn_sig)
