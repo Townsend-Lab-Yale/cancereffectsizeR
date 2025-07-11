@@ -1447,8 +1447,15 @@ run_seg_multi = function(selection_loci, cna_calls = NULL, event_type = 'increas
       no_event[, r := si]
     }
 
-    ll_yes = yes_event[, sum(log(1 - exp(-1 * r * neutral_rate)))]
+    
+    # Note: log(-1 * expm1(-1 * r * neutral_rate))] is equivalent to 
+    # log(1 - exp(-1 * r * neutral_rate))], and necessary to evaluate exp(x) when x 
+    # is very close to 0.
+    ll_yes = yes_event[, sum(log(-1 * expm1(-1 * r * neutral_rate)))]
     ll_no = no_event[, -1 * sum(r * neutral_rate)]
+    # if(is.nan(ll_no + ll_yes) | is.infinite(ll_no + ll_yes)) {
+    #   browser()
+    # }
     yes_event[, r := NULL]
     no_event[, r := NULL]
     return(-1 * (ll_no + ll_yes))
