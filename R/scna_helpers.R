@@ -1331,10 +1331,47 @@ get_seg_increase_rates = function(cna_calls, increase_burden) {
 }
 
 
-prep_seg_lik = function(gene_name, cna_calls = NULL, event_type = 'increase', seg_rates,
-                        gene_coord = ces.refset.hg38$cancer_gene_coord) {
+get_disjoint_gene_coord = function(gene_coord) {
+  gene_coord = copy(gene_coord)[, .(gene, cancer_anno, chr, 
+                                    start = fcase(is.na(mane_start), start, 
+                                                  default = mane_start),
+                                    end = fcase(is.na(mane_end), end,
+                                                default = mane_end))]
+  gene_coord[, width := end - start + 1]
+  setkey(gene_coord, chr, start, end)
+  gene_ol = foverlaps(gene_coord, gene_coord, nomatch = NULL)[gene != i.gene]
+  
+  # Every overlap gets listed twice, once with gene/i.gene = gene A, gene B; once with gene/i.gene =
+  # gene B, gene A. To resolve, we'll take all the cases where width < i.width.
+  not_ol = gene_coord[! gene %in% gene_ol$gene]
+  
+  to_remove = gene_ol[width <= i.width, unique(i.gene)]
+  deoverlapped = gene_ol[width <= i.width & ! gene %in% to_remove, .(gene, cancer_anno, chr, start, end)]
+  gene_coord = rbind(deoverlapped, not_ol[, -"width"])
+  gene_coord = unique(gene_coord[order(chr, start)])
+  return(gene_coord[])
+}
+
+run_seg_multi = function(selection_loci, cna_calls = NULL, event_type = 'increase',
+                         seg_rates = NULL) {
+  if(is.null(seg_rates)) {
+    stop('Need seg_rates (from get_seg_increase_rates(), for example).')
+  }
+  if(is.null(cna_calls)) {
+    stop('Need cna_calls.')
+  }
+  if(! identical(event_type, 'increase')) {
+    stop('Currently, must have event_type = "increase".')
+  }
+  if(! is.data.table(selection_loci)) {
+    stop('selection_loci should be data.table.')
+  }
+  if(! all(c('gene', 'chr', 'start', 'end') %in% names(selection_loci))) {
+    stop('selection_loci must have fields gene, chr, start, end.')
+  }
+  
   total_rates = copy(seg_rates$total_rates)
-  seg_rates = copy(seg_rates$seg_rates)
+  bin_rates = copy(seg_rates$seg_rates)
   setkey(cna_calls, chr, start, end)
   
   # This will be moved into CES internal data later.
@@ -1345,88 +1382,196 @@ prep_seg_lik = function(gene_name, cna_calls = NULL, event_type = 'increase', se
   
   groups = sr_info$cosmic_label # size ranges
   
-  stopifnot(all(c('sample', 'size_range', 'seg_rate') %in% names(seg_rates)))
-  curr_rates = seg_rates[size_range %in% groups]
+  stopifnot(all(c('sample', 'size_range', 'seg_rate') %in% names(bin_rates)))
+  curr_rates = bin_rates[size_range %in% groups]
   
   if(curr_rates[, .N] == 0) {
     warning('No rates found; returning empty table')
     return(NULL)
   }
   
-  gr = gene_coord[gene == gene_name, .(chr, start, end)]
+  # To-do: Insert check that loci are non-overlapping.
+  gr = selection_loci
+  stopifnot(uniqueN(gr$gene) == gr[, .N])
   setkey(gr, chr, start, end)
   curr_ol = foverlaps(cna_calls, gr, nomatch = NULL)
   
-  curr_samples = unique(curr_ol$sample)
-  curr_n = length(curr_samples)
+  num_genes = gr[, .N]
+  incomplete_cov = curr_ol[, .(N = uniqueN(gene)), by = 'sample'][N < num_genes, sample]
   
-  curr_ol[curr_rates, neutral_rate := seg_rate, on = c('sample', 'size_range')]
-  
-  #neutral_prob = curr_rates[, .(exp = (rate/n_nondiploid) * curr_n), by = 'size_range']
-  
-  
-  # If more than one event in a sample, we will count the largest event
-  if(event_type == 'decrease') {
-    curr_ol = curr_ol[total_copy < exp_total_copy]
-  } else if(event_type == 'loh') {
-    curr_ol = curr_ol[nMinor == 0] # Yeah, total_copy might increase! Yet something was lost.
-  } else if(event_type == 'increase') {
-    curr_ol = curr_ol[total_copy > exp_total_copy]
+  # To-do: implement better handling of incomplete coverage
+  if(length(incomplete_cov) > 0) {
+    curr_ol = curr_ol[! sample %in% incomplete_cov]
   }
-  
-  neutral_prob = unique(curr_ol[, .(sample, size_range, neutral_rate)]) # sample might have two same-size events
-  neutral_prob[sr_info, bin_order := bin_order, on = c(size_range = 'cosmic_label')]
-  
-  # Get rid of smaller size entries where samples have multiple entries 
-  neutral_prob = unique(neutral_prob[order(-bin_order)], by = 'sample')
-  
-  samples_with = list()
-  
-  # We go from largest to smallest bin
-  for(i in sort(sr_info$bin_order, decreasing = TRUE)) {
-    curr_bin = sr_info[bin_order == i, bin_id]
-    curr_size_range = sr_info[bin_order == i, cosmic_label]
-    
-    curr_samples_with = curr_ol[size_range == curr_size_range, unique(sample)]
-    
-    # Larger events in the same samples take precedence (already handled above, really)
-    samples_with[[curr_bin]] = setdiff(curr_samples_with, unlist(samples_with))
+  if(curr_ol[, .N] == 0) {
+    stop('There are no samples with segments covering all loci!')
   }
-  samples_with$with_any = unlist(samples_with)
-  samples_with$with_none = setdiff(curr_samples, samples_with$with_any)
+  num_samples_used = uniqueN(curr_ol$sample)
   
   
-  # for lik
-  combined_rate = setNames(total_rates$seg_rate, total_rates$sample)[curr_samples]
-  with_none = samples_with$with_none
-  neutral_prob[, total_rate := combined_rate[sample]]
-  cond_prob = setNames(neutral_prob[, neutral_rate/total_rate], neutral_prob$sample)
+  casted = dcast(curr_ol[, .(chr, i.start, i.end, size_range, gene, sample, is_inc = nMajor + nMinor > exp_total_copy)], 
+                 ... ~ gene, value.var = 'gene', fun.aggregate = length)
+  gene_names = gr$gene
   
-  lik = function(gamma) {
-    sum_log_lik = 0
-    if (length(with_none) > 0) {
-      sum_log_lik = -1 * sum(gamma * combined_rate[with_none])
+  # length() in dcast made columns integer; need numeric.
+  casted[, names(.SD) := lapply(.SD, as.numeric), .SDcols = gene_names]
+  
+  no_event = casted[is_inc == FALSE]
+  yes_event = casted[is_inc == TRUE]
+  
+  yes_event[bin_rates, neutral_rate := seg_rate, on = c('sample', 'size_range')]
+  no_event[total_rates, neutral_rate := seg_rate, on = 'sample']
+  
+  yes_event = yes_event[, .SD, .SDcols = c('sample', 'neutral_rate', gene_names)]
+  no_event = no_event[, .SD, .SDcols = c('sample', 'neutral_rate', gene_names)]
+  
+  lik = function(si) {
+    
+    if(length(si) > 1) {
+      yes_event[, r := 1]
+      no_event[, r := 1]
+      for(locus in names(si)) {
+        setnames(yes_event, locus, 'curr_locus')
+        setnames(no_event, locus, 'curr_locus')
+        yes_event[, curr_r := fcase(curr_locus == 0, 1,
+                                    default = si[locus])]
+        no_event[, curr_r := fcase(curr_locus == 0, 1,
+                                   default = si[locus])]
+        setnames(yes_event, 'curr_locus', locus)
+        setnames(no_event, 'curr_locus', locus)
+        yes_event[, r := r * curr_r]
+        no_event[, r := r * curr_r]
+      }
+    } else {
+      yes_event[, r := si]
+      no_event[, r := si]
     }
-    
-    for(bin_id in sr_info$bin_id) {
-      curr_samples = samples_with[[bin_id]]
-      curr_combined_rate = combined_rate[curr_samples] * gamma
-      prob_any = 1 - exp(-curr_combined_rate)
-      prob_curr = prob_any * cond_prob[curr_samples]
-      sum_log_lik = sum_log_lik + sum(log(prob_curr))
-    }
-    return(-1 * sum_log_lik)
+
+    ll_yes = yes_event[, sum(log(1 - exp(-1 * r * neutral_rate)))]
+    ll_no = no_event[, -1 * sum(r * neutral_rate)]
+    yes_event[, r := NULL]
+    no_event[, r := NULL]
+    return(-1 * (ll_no + ll_yes))
   }
-  formals(lik)[["gamma"]] = 1
-  bbmle::parnames(lik) = "gamma"
-  gene_interval = gr[, .(chr = chr[1], start = min(start), end = max(end))]
-  output = list(lik = lik, 
-                groups = samples_with,
-                num_covering = length(curr_samples), n_neutral_dec = sum(curr_rates$rate),
-                interval = gene_interval,
-                gene_name = gene_name)
-  return(output)
+  formals(lik)[["si"]] = rep(1.0, length(gene_names))
+  
+  if(length(gene_names) == 1) {
+    bbmle::parnames(lik) = 'si'
+    par_init = formals(lik)
+    names(par_init) = bbmle::parnames(lik)
+  } else {
+    bbmle::parnames(lik) = gene_names
+    par_init = setNames(formals(lik)[["si"]], gene_names)
+  }
+  
+  fit = bbmle::mle2(lik, start = par_init, vecpar = T, lower = 1e-6, upper = 1e9, method = 'L-BFGS-B')
+  if(length(coef(fit)) == 1) {
+    selection_loci[, si := coef(fit)['si']]
+  } else {
+    selection_loci[, si := coef(fit)[gene]]
+  }
+  selection_loci[, num_samples_used := num_samples_used]
+  
+  return(selection_loci[])
 }
+
+## Deprecated
+# prep_seg_lik = function(gene_name, cna_calls = NULL, event_type = 'increase', seg_rates,
+#                         gene_coord = ces.refset.hg38$cancer_gene_coord) {
+#   total_rates = copy(seg_rates$total_rates)
+#   seg_rates = copy(seg_rates$seg_rates)
+#   setkey(cna_calls, chr, start, end)
+#   
+#   # This will be moved into CES internal data later.
+#   sr_info = data.table(pretty_label = c('L < 100 kb', '100 kb < L < 1 Mb', '1 Mb < L < 10 Mb', '10 Mb < L < 40 Mb', '40 Mb < L'),
+#                        cosmic_label = c('0-100kb', '100kb-1Mb', '1Mb-10Mb', '10Mb-40Mb', '>40Mb'),
+#                        bin_id = c('r1', 'r2', 'r3', 'r4', 'r5'),
+#                        bin_order = 1:5)
+#   
+#   groups = sr_info$cosmic_label # size ranges
+#   
+#   stopifnot(all(c('sample', 'size_range', 'seg_rate') %in% names(seg_rates)))
+#   curr_rates = seg_rates[size_range %in% groups]
+#   
+#   if(curr_rates[, .N] == 0) {
+#     warning('No rates found; returning empty table')
+#     return(NULL)
+#   }
+#   
+#   gr = gene_coord[gene == gene_name, .(chr, start, end)]
+#   setkey(gr, chr, start, end)
+#   curr_ol = foverlaps(cna_calls, gr, nomatch = NULL)
+#   
+#   curr_samples = unique(curr_ol$sample)
+#   curr_n = length(curr_samples)
+#   
+#   curr_ol[curr_rates, neutral_rate := seg_rate, on = c('sample', 'size_range')]
+#   
+#   #neutral_prob = curr_rates[, .(exp = (rate/n_nondiploid) * curr_n), by = 'size_range']
+#   
+#   
+#   # If more than one event in a sample, we will count the largest event
+#   if(event_type == 'decrease') {
+#     curr_ol = curr_ol[total_copy < exp_total_copy]
+#   } else if(event_type == 'loh') {
+#     curr_ol = curr_ol[nMinor == 0] # Yeah, total_copy might increase! Yet something was lost.
+#   } else if(event_type == 'increase') {
+#     curr_ol = curr_ol[total_copy > exp_total_copy]
+#   }
+#   
+#   neutral_prob = unique(curr_ol[, .(sample, size_range, neutral_rate)]) # sample might have two same-size events
+#   neutral_prob[sr_info, bin_order := bin_order, on = c(size_range = 'cosmic_label')]
+#   
+#   # Get rid of smaller size entries where samples have multiple entries 
+#   neutral_prob = unique(neutral_prob[order(-bin_order)], by = 'sample')
+#   
+#   samples_with = list()
+#   
+#   # We go from largest to smallest bin
+#   for(i in sort(sr_info$bin_order, decreasing = TRUE)) {
+#     curr_bin = sr_info[bin_order == i, bin_id]
+#     curr_size_range = sr_info[bin_order == i, cosmic_label]
+#     
+#     curr_samples_with = curr_ol[size_range == curr_size_range, unique(sample)]
+#     
+#     # Larger events in the same samples take precedence (already handled above, really)
+#     samples_with[[curr_bin]] = setdiff(curr_samples_with, unlist(samples_with))
+#   }
+#   samples_with$with_any = unlist(samples_with)
+#   samples_with$with_none = setdiff(curr_samples, samples_with$with_any)
+#   
+#   
+#   # for lik
+#   combined_rate = setNames(total_rates$seg_rate, total_rates$sample)[curr_samples]
+#   with_none = samples_with$with_none
+#   neutral_prob[, total_rate := combined_rate[sample]]
+#   cond_prob = setNames(neutral_prob[, neutral_rate/total_rate], neutral_prob$sample)
+#   
+#   lik = function(gamma) {
+#     sum_log_lik = 0
+#     if (length(with_none) > 0) {
+#       sum_log_lik = -1 * sum(gamma * combined_rate[with_none])
+#     }
+#     
+#     for(bin_id in sr_info$bin_id) {
+#       curr_samples = samples_with[[bin_id]]
+#       curr_combined_rate = combined_rate[curr_samples] * gamma
+#       prob_any = 1 - exp(-curr_combined_rate)
+#       prob_curr = prob_any * cond_prob[curr_samples]
+#       sum_log_lik = sum_log_lik + sum(log(prob_curr))
+#     }
+#     return(-1 * sum_log_lik)
+#   }
+#   formals(lik)[["gamma"]] = 1
+#   bbmle::parnames(lik) = "gamma"
+#   gene_interval = gr[, .(chr = chr[1], start = min(start), end = max(end))]
+#   output = list(lik = lik, 
+#                 groups = samples_with,
+#                 num_covering = length(curr_samples), n_neutral_dec = sum(curr_rates$rate),
+#                 interval = gene_interval,
+#                 gene_name = gene_name)
+#   return(output)
+# }
 
 
 

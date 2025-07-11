@@ -187,7 +187,7 @@ ces_variant <- function(cesa = NULL,
     }
     if (cesa@samples[, .N] != variants@cesa_num_samples) {
       stop("The number of samples in the CESAnalysis has changed since the CompoundVariantSet was created. ",
-           "Please re-generate it.")
+           "Please re-generate the CompoundVariantSet.")
     }
     compound_variants = variants
     variants = select_variants(cesa, variant_ids = compound_variants@sbs$sbs_id)

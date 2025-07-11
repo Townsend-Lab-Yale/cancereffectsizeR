@@ -145,7 +145,7 @@ setMethod("show", "CompoundVariantSet", function(object) {
   plural = ifelse(num_compound == 1, '', 's')
   plural2 = ifelse(num_sbs == 1, '', 's')
   msg = paste0("CompoundVariantSet with ", num_compound, " compound variant", plural, " consisting of ", 
-                num_sbs, " sbs", plural2, ":\n")
+                num_sbs, " SBS:\n")
   cat(msg)
   print(object@compounds, topn = 3)
 })
