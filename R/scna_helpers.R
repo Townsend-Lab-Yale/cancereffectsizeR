@@ -1342,18 +1342,21 @@ get_disjoint_gene_coord = function(gene_coord) {
   gene_ol = foverlaps(gene_coord, gene_coord, nomatch = NULL)[gene != i.gene]
   
   # Every overlap gets listed twice, once with gene/i.gene = gene A, gene B; once with gene/i.gene =
-  # gene B, gene A. To resolve, we'll take all the cases where width < i.width.
+  # gene B, gene A.
   not_ol = gene_coord[! gene %in% gene_ol$gene]
   
-  to_remove = gene_ol[width <= i.width, unique(i.gene)]
-  deoverlapped = gene_ol[width <= i.width & ! gene %in% to_remove, .(gene, cancer_anno, chr, start, end)]
+  # Sort by cancer status then decreasing size (so that we favor cancer genes and longer genes) 
+  gene_ol = gene_ol[(cancer_anno != 'noncancer' & i.cancer_anno == 'noncancer') | width > i.width]
+  to_remove = gene_ol$i.gene
+  deoverlapped = gene_ol[! gene %in% to_remove, .(gene, cancer_anno, chr, start, end)]
+
   gene_coord = rbind(deoverlapped, not_ol[, -"width"])
   gene_coord = unique(gene_coord[order(chr, start)])
   return(gene_coord[])
 }
 
 run_seg_multi = function(selection_loci, cna_calls = NULL, event_type = 'increase',
-                         seg_rates = NULL) {
+                         seg_rates = NULL, debug = FALSE) {
   if(is.null(seg_rates)) {
     stop('Need seg_rates (from get_seg_increase_rates(), for example).')
   }
@@ -1416,12 +1419,41 @@ run_seg_multi = function(selection_loci, cna_calls = NULL, event_type = 'increas
   # length() in dcast made columns integer; need numeric.
   casted[, names(.SD) := lapply(.SD, as.numeric), .SDcols = gene_names]
   
-  no_event = casted[is_inc == FALSE]
-  yes_event = casted[is_inc == TRUE]
+  
+  # What do to when a sample both has and doesn't have an increase/decrease? That is, there is at
+  # least one increase/decrease segment overlapping the gr, and some other segment(s).
+  # For now, we'll say that yes, we have an event. And we'll use just the largest segment of that class.
+  
+  # To-do: We could choose the smallest event, due to its rarity
+  melted = melt(casted, measure.vars = gene_names, variable.name = 'gene')[value == 1]
+  
+  melted[sr_info, bin_order := bin_order, on = c(size_range = 'cosmic_label')]
+  
+  yes_seg_to_use = melted[is_inc == T, .SD[which.max(bin_order)], 
+                          by = c('sample', 'gene')][, .(sample, chr, i.start, i.end, gene)]
+  no_seg_to_use = melted[is_inc == F, .SD[which.max(bin_order)], 
+                         by = c('sample', 'gene')][, .(sample, chr, i.start, i.end, gene)]
+  
+  # Might have a situation where yes/no segments both cover the gene
+  no_seg_to_use = no_seg_to_use[! yes_seg_to_use, on = c('sample', 'gene')]
+  
+  ## Use this in unit testing
+  #stopifnot((no_seg_to_use[, .N] + yes_seg_to_use[, .N]) / 4 == num_samples_used)
+  
+  yes_seg_to_use[, gene := NULL]
+  yes_seg_to_use = unique(yes_seg_to_use)
+  no_seg_to_use[, gene := NULL]
+  no_seg_to_use = unique(no_seg_to_use)
+  
+  no_event = casted[no_seg_to_use, on = names(no_seg_to_use)]
+  yes_event = casted[yes_seg_to_use, on = names(yes_seg_to_use)]
+
   
   yes_event[bin_rates, neutral_rate := seg_rate, on = c('sample', 'size_range')]
   no_event[total_rates, neutral_rate := seg_rate, on = 'sample']
   
+  original_yes_event = copy(yes_event)
+  original_no_event = copy(no_event)
   yes_event = yes_event[, .SD, .SDcols = c('sample', 'neutral_rate', gene_names)]
   no_event = no_event[, .SD, .SDcols = c('sample', 'neutral_rate', gene_names)]
   
@@ -1479,6 +1511,11 @@ run_seg_multi = function(selection_loci, cna_calls = NULL, event_type = 'increas
   }
   selection_loci[, num_samples_used := num_samples_used]
   
+  if(debug == TRUE) {
+     return(list(si = selection_loci[],
+                 yes = original_yes_event,
+                 no = original_no_event))
+  }
   return(selection_loci[])
 }
 
