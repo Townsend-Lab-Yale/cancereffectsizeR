@@ -1502,7 +1502,6 @@ run_seg_multi = function(selection_loci, cna_calls = NULL, event_type = 'increas
     bbmle::parnames(lik) = gene_names
     par_init = setNames(formals(lik)[["si"]], gene_names)
   }
-  
   fit = bbmle::mle2(lik, start = par_init, vecpar = T, lower = 1e-6, upper = 1e9, method = 'L-BFGS-B')
   if(length(coef(fit)) == 1) {
     selection_loci[, si := coef(fit)['si']]
@@ -1514,7 +1513,8 @@ run_seg_multi = function(selection_loci, cna_calls = NULL, event_type = 'increas
   if(debug == TRUE) {
      return(list(si = selection_loci[],
                  yes = original_yes_event,
-                 no = original_no_event))
+                 no = original_no_event,
+                 fit = fit))
   }
   return(selection_loci[])
 }
