@@ -1303,32 +1303,52 @@ cn_signature_extraction = function(sig_def, cna_segments) {
   return(list(reconstruction = recon, mp_out = mp_out))
 }
 
-get_seg_increase_rates = function(cna_calls, increase_burden) {
+get_segmentation_rates = function(cna_calls, cna_burdens) {
+  stopifnot(is.list(cna_burdens))
+  increase_burden = copy(cna_burdens$increase_burden)
+  decrease_burden = copy(cna_burdens$decrease_burden)
+  stopifnot(is.data.table(increase_burden), is.data.table(decrease_burden))
+  
   # For each size bin, get the median size event for each sample.
   typical_increase_sizes = cna_calls[nMajor + nMinor > exp_total_copy, .(typical_size = floor(median(end - start))), by = c('sample', 'size_range')]
+  typical_decrease_sizes = cna_calls[nMajor + nMinor < exp_total_copy, .(typical_size = floor(median(end - start))), by = c('sample', 'size_range')]
   
   avg_typical_increase = typical_increase_sizes[, .(typical_size = floor(mean(typical_size))), by = 'size_range']
+  avg_typical_decrease = typical_decrease_sizes[, .(typical_size = floor(mean(typical_size))), by = 'size_range']
   
   # Rate over a 100kb window that events of a given size range hit that sample.
   increase_burden[typical_increase_sizes, typical_size := typical_size, on = c('sample', 'size_range')]
+  decrease_burden[typical_decrease_sizes, typical_size := typical_size, on = c('sample', 'size_range')]
+  
   
   # Some NAs in typical_size because some samples have no gains over ploidy for some size ranges. Plug in the averages.
   increase_burden[is.na(typical_size), typical_size := avg_typical_increase[size_range, typical_size, on = 'size_range']]
+  decrease_burden[is.na(typical_size), typical_size := avg_typical_decrease[size_range, typical_size, on = 'size_range']]
+  
   
   # Note these are all nearly the same, ~2.9 Gb
   covered_size_by_sample = cna_calls[, .(cov_size = sum(end - start + 1)), by = 'sample']
   increase_burden[covered_size_by_sample, cov_size := cov_size, on = 'sample']
+  decrease_burden[covered_size_by_sample, cov_size := cov_size, on = 'sample']
   
   # Ignoring window size because 1e5 << 2.9e9. Is that okay?
   # Note some unrealistic values for the >40Mb size range.
   increase_burden[, seg_rate := b * (typical_size/cov_size)]
+  decrease_burden[, seg_rate := b * (typical_size/cov_size)]
+  
+  seg_rates = merge.data.table(increase_burden[, .(sample, size_range, increase_rate = seg_rate)],
+                               decrease_burden[, .(sample, size_range, decrease_rate = seg_rate)],
+                               by = c('sample', 'size_range'))
   
   
-  seg_rates = increase_burden[, .(sample, size_range, seg_rate)]
-  total_rates = seg_rates[, .(seg_rate = sum(seg_rate)), by = 'sample']
+  total_rates = seg_rates[, .(seg_increase_rate = sum(increase_rate),
+                              seg_decrease_rate = sum(decrease_rate)), by = 'sample']
   
   return(list(seg_rates = seg_rates, total_rates = total_rates))
 }
+
+
+
 
 
 get_disjoint_gene_coord = function(gene_coord) {
@@ -1363,8 +1383,9 @@ run_seg_multi = function(selection_loci, cna_calls = NULL, event_type = 'increas
   if(is.null(cna_calls)) {
     stop('Need cna_calls.')
   }
-  if(! identical(event_type, 'increase')) {
-    stop('Currently, must have event_type = "increase".')
+  
+  if(! identical(event_type, 'increase') && ! identical(event_type, 'decrease')) {
+    stop('Currently, must have event_type = "increase" or "decrease".')
   }
   if(! is.data.table(selection_loci)) {
     stop('selection_loci should be data.table.')
@@ -1385,7 +1406,7 @@ run_seg_multi = function(selection_loci, cna_calls = NULL, event_type = 'increas
   
   groups = sr_info$cosmic_label # size ranges
   
-  stopifnot(all(c('sample', 'size_range', 'seg_rate') %in% names(bin_rates)))
+  stopifnot(all(c('sample', 'size_range', 'increase_rate', 'decrease_rate') %in% names(bin_rates)))
   curr_rates = bin_rates[size_range %in% groups]
   
   if(curr_rates[, .N] == 0) {
@@ -1412,7 +1433,8 @@ run_seg_multi = function(selection_loci, cna_calls = NULL, event_type = 'increas
   num_samples_used = uniqueN(curr_ol$sample)
   
   
-  casted = dcast(curr_ol[, .(chr, i.start, i.end, size_range, gene, sample, is_inc = nMajor + nMinor > exp_total_copy)], 
+  casted = dcast(curr_ol[, .(chr, i.start, i.end, size_range, gene, sample, is_inc = nMajor + nMinor > exp_total_copy,
+                             is_dec = nMajor + nMinor < exp_total_copy)], 
                  ... ~ gene, value.var = 'gene', fun.aggregate = length)
   gene_names = gr$gene
   
@@ -1426,12 +1448,20 @@ run_seg_multi = function(selection_loci, cna_calls = NULL, event_type = 'increas
   
   # To-do: We could choose the smallest event, due to its rarity
   melted = melt(casted, measure.vars = gene_names, variable.name = 'gene')[value == 1]
-  
   melted[sr_info, bin_order := bin_order, on = c(size_range = 'cosmic_label')]
   
-  yes_seg_to_use = melted[is_inc == T, .SD[which.max(bin_order)], 
+  if(event_type == 'increase') {
+   setnames(melted, 'is_inc', 'is_curr_event_type')
+   setnames(bin_rates, 'increase_rate', 'rate')
+   setnames(total_rates, 'seg_increase_rate', 'rate')
+  } else if(event_type == 'decrease') {
+    setnames(melted, 'is_dec', 'is_curr_event_type')
+    setnames(bin_rates, 'decrease_rate', 'rate')
+    setnames(total_rates, 'seg_decrease_rate', 'rate')
+  }
+  yes_seg_to_use = melted[is_curr_event_type == TRUE, .SD[which.max(bin_order)], 
                           by = c('sample', 'gene')][, .(sample, chr, i.start, i.end, gene)]
-  no_seg_to_use = melted[is_inc == F, .SD[which.max(bin_order)], 
+  no_seg_to_use = melted[is_curr_event_type == FALSE, .SD[which.max(bin_order)], 
                          by = c('sample', 'gene')][, .(sample, chr, i.start, i.end, gene)]
   
   # Might have a situation where yes/no segments both cover the gene
@@ -1448,9 +1478,8 @@ run_seg_multi = function(selection_loci, cna_calls = NULL, event_type = 'increas
   no_event = casted[no_seg_to_use, on = names(no_seg_to_use)]
   yes_event = casted[yes_seg_to_use, on = names(yes_seg_to_use)]
 
-  
-  yes_event[bin_rates, neutral_rate := seg_rate, on = c('sample', 'size_range')]
-  no_event[total_rates, neutral_rate := seg_rate, on = 'sample']
+  yes_event[bin_rates, neutral_rate := rate, on = c('sample', 'size_range')]
+  no_event[total_rates, neutral_rate := rate, on = 'sample']
   
   original_yes_event = copy(yes_event)
   original_no_event = copy(no_event)
@@ -1458,7 +1487,6 @@ run_seg_multi = function(selection_loci, cna_calls = NULL, event_type = 'increas
   no_event = no_event[, .SD, .SDcols = c('sample', 'neutral_rate', gene_names)]
   
   lik = function(si) {
-    
     if(length(si) > 1) {
       yes_event[, r := 1]
       no_event[, r := 1]
