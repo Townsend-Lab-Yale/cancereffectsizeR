@@ -1063,11 +1063,7 @@ cna_class_relative_rates = function(cna_calls, cna_recon, ploidy_calls) {
   
   diploid_samples = ploidy_calls[simple_ploidy == 2, sample]
   
-  # This will be moved into CES internal data later.
-  sr_info = data.table(pretty_label = c('L < 100 kb', '100 kb < L < 1 Mb', '1 Mb < L < 10 Mb', '10 Mb < L < 40 Mb', '40 Mb < L'),
-                       cosmic_label = c('0-100kb', '100kb-1Mb', '1Mb-10Mb', '10Mb-40Mb', '>40Mb'),
-                       bin_id = c('r1', 'r2', 'r3', 'r4', 'r5'),
-                       bin_order = 1:5)
+  sr_info = copy(cna_size_bins) # From CES internal
   
   
   for_burden_calc = cna_recon[size_range %in% sr_info$cosmic_label & het != 'homdel']
@@ -1128,12 +1124,7 @@ prep_gene_probability_model = function(gene_name, event_type = 'increase',
   event_type = tolower(event_type)
   stopifnot(event_type %in% c('decrease', 'increase'))
   
-  # This will be moved into CES internal data later.
-  sr_info = data.table(pretty_label = c('L < 100 kb', '100 kb < L < 1 Mb', '1 Mb < L < 10 Mb', '10 Mb < L < 40 Mb', '40 Mb < L'),
-                       cosmic_label = c('0-100kb', '100kb-1Mb', '1Mb-10Mb', '10Mb-40Mb', '>40Mb'),
-                       bin_id = c('r1', 'r2', 'r3', 'r4', 'r5'),
-                       bin_order = 1:5)
-  
+  sr_info = copy(cna_size_bins)
   groups = sr_info$cosmic_label # size ranges
   gene_prob = rates[gene == gene_name]
   
@@ -1347,9 +1338,94 @@ get_segmentation_rates = function(cna_calls, cna_burdens) {
   return(list(seg_rates = seg_rates, total_rates = total_rates))
 }
 
-
-
-
+get_cna_rates = function(chr, cna_calls, seg_rates, rate_intervals = NULL) {
+  curr_chr = chr
+  
+  total_rates = copy(seg_rates$total_rates)
+  setnames(total_rates, c('seg_increase_rate', 'seg_decrease_rate'),
+           c('total_increase_rate', 'total_decrease_rate'))
+  bin_rates = copy(seg_rates$seg_rates)
+  setnames(bin_rates, c('increase_rate', 'decrease_rate'),
+           c('bin_increase_rate', 'bin_decrease_rate'))
+  
+  curr_calls = cna_calls[chr == curr_chr]
+  setkey(curr_calls, start, end)
+  
+  if(is.null(rate_intervals)) {
+    stop('Must supply rate_intervals.')
+  }
+  if(! is.data.table(rate_intervals)) {
+    stop('rate_intervals must be data.table.')
+  }
+  if(! all(c('chr', 'start', 'end') %in% names(rate_intervals))) {
+    stop('rate_intervals must have chr/start/end fields.')
+  }
+  gw = copy(rate_intervals[chr == curr_chr])
+  if(gw[, .N] == 0) {
+    stop('No intervals for the current chromosome within input rate_intervals.')
+  }
+  
+  gw[, range_id := 1:.N]
+  setkey(gw, start, end)
+  
+  curr_ol = curr_calls[, foverlaps(gw, .SD, nomatch = NA)[, -c('i.start', 'i.end')],
+                       .SDcols = c('start', 'end'),
+                       by = 'sample']
+  
+  uncovered_regions = curr_ol[is.na(start), .(sample, range_id)]
+  curr_ol = curr_ol[! is.na(start)]
+  segments = curr_ol[, .(rstart = min(range_id), rend = max(range_id)), by = c('sample', 'start')]
+  segments[curr_calls, let(is_inc = nMajor + nMinor > exp_total_copy,
+                           is_dec = nMajor + nMinor < exp_total_copy,
+                           size_range = size_range),
+           on = c('sample', 'start')]
+  segments[cna_size_bins, bin_order := bin_order, on = c(size_range = 'cosmic_label')]
+  segments[, seg_id := 1:.N, by = 'sample']
+  
+  # Some windows are afflicted by multiple segment types.
+  # We need increase rates for all segments that have at least 1 increase event. We'll use the smallest
+  # applicable size for each.
+  to_resolve = melt(segments, id.vars = c('sample', 'size_range', 'is_inc', 'is_dec', 'bin_order', 'seg_id'), 
+                    measure.vars = c('rstart', 'rend'),
+                    variable.factor = FALSE)
+  
+  
+  outer_for_inc = to_resolve[, .(is_event = is_inc, any_event = is_inc | any(is_dec), bin_order, size_range, seg_id), 
+                             by = c(range_id = 'value', 'sample')][order(range_id, -is_event, bin_order),
+                                                                   .SD[1, -"bin_order"], by = c('sample', 'range_id')]
+  outer_for_dec = to_resolve[, .(is_event = is_dec, any_event = is_dec | any(is_inc), bin_order, size_range, seg_id), 
+                             by = c(range_id = 'value', 'sample')][order(range_id, -is_event, bin_order),
+                                                                   .SD[1, -"bin_order"], by = c('sample', 'range_id')]
+  
+  for_inner = segments[rend - rstart > 1]
+  for_inner[, let(rstart = rstart + 1, rend = rend - 1)]
+  inner = for_inner[, .(range_id = seq(rstart, rend)), 
+                    by = c('sample', 'is_dec', 'size_range', 'is_inc', 'rstart', 'seg_id')][, -"rstart"]
+  
+  segments_for_dec = rbind(outer_for_dec, inner[, .(sample, range_id, size_range, is_event = is_dec,
+                                                    any_event = is_dec | is_inc, seg_id)])
+  segments_for_inc = rbind(outer_for_inc, inner[, .(sample, range_id, size_range, is_event = is_inc,
+                                                    any_event = is_inc | is_dec, seg_id)])
+  
+  segments_for_inc[total_rates, total_rate := total_increase_rate, on = 'sample']
+  segments_for_inc[bin_rates, bin_rate := bin_increase_rate, on = c('sample', 'size_range')]
+  
+  segments_for_dec[total_rates, total_rate := total_decrease_rate, on = 'sample']
+  segments_for_dec[bin_rates, bin_rate := bin_decrease_rate, on = c('sample', 'size_range')]
+  
+  
+  # Combine increase/decrease rates
+  all_segments = rbindlist(list(increase = segments_for_inc, decrease = segments_for_dec), idcol = 'event_type')
+  
+  # Convert range_id to character all around
+  range_prefix = ifelse(curr_chr %like% '^chr', curr_chr, paste0('chr', curr_chr))
+  all_segments[, range_id := paste(range_prefix, range_id, sep = '.')]
+  gw[, range_id := paste(range_prefix, range_id, sep = '.')]
+  uncovered_regions[, range_id := paste(range_prefix, range_id, sep = '.')]
+  return(list(rates = all_segments,
+              intervals = gw,
+              uncovered = uncovered_regions))
+}
 
 get_disjoint_gene_coord = function(gene_coord) {
   gene_coord = copy(gene_coord)[, .(gene, cancer_anno, chr, 
@@ -1375,176 +1451,119 @@ get_disjoint_gene_coord = function(gene_coord) {
   return(gene_coord[])
 }
 
-run_seg_multi = function(selection_loci, cna_calls = NULL, event_type = 'increase',
-                         seg_rates = NULL, debug = FALSE) {
-  if(is.null(seg_rates)) {
-    stop('Need seg_rates (from get_seg_increase_rates(), for example).')
-  }
-  if(is.null(cna_calls)) {
-    stop('Need cna_calls.')
+run_seg_multi = function(events_to_test = list(), rates = NULL, debug = FALSE) {
+  if(is.null(rates)) {
+    stop('Need rates.')
   }
   
-  if(! identical(event_type, 'increase') && ! identical(event_type, 'decrease')) {
-    stop('Currently, must have event_type = "increase" or "decrease".')
-  }
-  if(! is.data.table(selection_loci)) {
-    stop('selection_loci should be data.table.')
-  }
-  if(! all(c('gene', 'chr', 'start', 'end') %in% names(selection_loci))) {
-    stop('selection_loci must have fields gene, chr, start, end.')
+  if(! is.list(events_to_test)) {
+    stop('events_to_test should be a named list.')
   }
   
-  total_rates = copy(seg_rates$total_rates)
-  bin_rates = copy(seg_rates$seg_rates)
-  setkey(cna_calls, chr, start, end)
-  
-  # This will be moved into CES internal data later.
-  sr_info = data.table(pretty_label = c('L < 100 kb', '100 kb < L < 1 Mb', '1 Mb < L < 10 Mb', '10 Mb < L < 40 Mb', '40 Mb < L'),
-                       cosmic_label = c('0-100kb', '100kb-1Mb', '1Mb-10Mb', '10Mb-40Mb', '>40Mb'),
-                       bin_id = c('r1', 'r2', 'r3', 'r4', 'r5'),
-                       bin_order = 1:5)
-  
-  groups = sr_info$cosmic_label # size ranges
-  
-  stopifnot(all(c('sample', 'size_range', 'increase_rate', 'decrease_rate') %in% names(bin_rates)))
-  curr_rates = bin_rates[size_range %in% groups]
-  
-  if(curr_rates[, .N] == 0) {
-    warning('No rates found; returning empty table')
-    return(NULL)
+  all_event_types = unique(rates$rates$event_type)
+  if(is.null(all_event_types)) {
+    stop('Improper rates input, likely (rates$rates$event_type is NULL).')
+  }
+  used_event_types = names(events_to_test)
+  if(length(used_event_types) == 0) {
+    stop('events_to_test should be a named list with at least one element.')
+  }
+  if(uniqueN(used_event_types) != length(used_event_types)) {
+    stop('Repeated names in list events_to_test.')
+  }
+  bad_event_types = setdiff(used_event_types, all_event_types)
+  if(length(bad_event_types) > 0) {
+    stop('events_to_test has event types not present in input rates.')
   }
   
-  # To-do: Insert check that loci are non-overlapping.
-  gr = selection_loci
-  stopifnot(uniqueN(gr$gene) == gr[, .N])
-  setkey(gr, chr, start, end)
-  curr_ol = foverlaps(cna_calls, gr, nomatch = NULL)
-  
-  num_genes = gr[, .N]
-  incomplete_cov = curr_ol[, .(N = uniqueN(gene)), by = 'sample'][N < num_genes, sample]
-  
-  # To-do: implement better handling of incomplete coverage
-  if(length(incomplete_cov) > 0) {
-    curr_ol = curr_ol[! sample %in% incomplete_cov]
+  if(! all(sapply(events_to_test, is.character))) {
+    stop('All elements of events_to_test must be type character.')
   }
-  if(curr_ol[, .N] == 0) {
-    stop('There are no samples with segments covering all loci!')
+  
+  # To-do: more validation that all events_to_test are valid ranges, etc.
+  
+  curr_rates = rbindlist(lapply(used_event_types,
+                                function(x) {
+                                  return(rates$rates[event_type == x & range_id %in% events_to_test[[x]]])
+                                  }))
+  if(any(curr_rates[, uniqueN(event_type) > 1, by = 'range_id'][, V1])) {
+    stop("The same interval can't be used in multiple tested event types (e.g., increase and decrease).")
   }
-  num_samples_used = uniqueN(curr_ol$sample)
   
   
-  casted = dcast(curr_ol[, .(chr, i.start, i.end, size_range, gene, sample, is_inc = nMajor + nMinor > exp_total_copy,
-                             is_dec = nMajor + nMinor < exp_total_copy)], 
-                 ... ~ gene, value.var = 'gene', fun.aggregate = length)
-  gene_names = gr$gene
+  # if(! is.data.table(selection_intervals)) {
+  #   stop('selection_intervals should be data.table.')
+  # }
+  # if(! all(c('chr', 'start', 'end', 'range_id') %in% names(selection_intervals))) {
+  #   stop('selection_intervals must have fields chr, start, end, range_id')
+  # }
+  # 
+  curr_range_id = unique(curr_rates$range_id)
+  sample_exclusions = rates$uncovered[range_id %in% curr_range_id, unique(sample)]
+  curr_rates = curr_rates[! sample %in% sample_exclusions]
+  samples_used = unique(curr_rates$sample)
   
-  # length() in dcast made columns integer; need numeric.
-  casted[, names(.SD) := lapply(.SD, as.numeric), .SDcols = gene_names]
+  curr_rates[, full_id := paste(sample, seg_id, sep = '.')]
+  curr_rates[, si_index := match(range_id, curr_range_id)] # for speedy indexing in lik()
   
-  
-  # What do to when a sample both has and doesn't have an increase/decrease? That is, there is at
-  # least one increase/decrease segment overlapping the gr, and some other segment(s).
-  # For now, we'll say that yes, we have an event. And we'll use just the largest segment of that class.
-  
-  # To-do: We could choose the smallest event, due to its rarity
-  melted = melt(casted, measure.vars = gene_names, variable.name = 'gene')[value == 1]
-  melted[sr_info, bin_order := bin_order, on = c(size_range = 'cosmic_label')]
-  
-  if(event_type == 'increase') {
-   setnames(melted, 'is_inc', 'is_curr_event_type')
-   setnames(bin_rates, 'increase_rate', 'rate')
-   setnames(total_rates, 'seg_increase_rate', 'rate')
-  } else if(event_type == 'decrease') {
-    setnames(melted, 'is_dec', 'is_curr_event_type')
-    setnames(bin_rates, 'decrease_rate', 'rate')
-    setnames(total_rates, 'seg_decrease_rate', 'rate')
-  }
-  yes_seg_to_use = melted[is_curr_event_type == TRUE, .SD[which.max(bin_order)], 
-                          by = c('sample', 'gene')][, .(sample, chr, i.start, i.end, gene)]
-  no_seg_to_use = melted[is_curr_event_type == FALSE, .SD[which.max(bin_order)], 
-                         by = c('sample', 'gene')][, .(sample, chr, i.start, i.end, gene)]
-  
-  # Might have a situation where yes/no segments both cover the gene
-  no_seg_to_use = no_seg_to_use[! yes_seg_to_use, on = c('sample', 'gene')]
-  
-  ## Use this in unit testing
-  #stopifnot((no_seg_to_use[, .N] + yes_seg_to_use[, .N]) / 4 == num_samples_used)
-  
-  yes_seg_to_use[, gene := NULL]
-  yes_seg_to_use = unique(yes_seg_to_use)
-  no_seg_to_use[, gene := NULL]
-  no_seg_to_use = unique(no_seg_to_use)
-  
-  no_event = casted[no_seg_to_use, on = names(no_seg_to_use)]
-  yes_event = casted[yes_seg_to_use, on = names(yes_seg_to_use)]
+  yes_rates = curr_rates[is_event == TRUE, .(neutral_rate = bin_rate, si_index, full_id)]
+  no_rates = curr_rates[is_event == FALSE, .(neutral_rate = total_rate, si_index, full_id)]
+  setkey(yes_rates, 'full_id')
+  setkey(no_rates, 'full_id')
 
-  yes_event[bin_rates, neutral_rate := rate, on = c('sample', 'size_range')]
-  no_event[total_rates, neutral_rate := rate, on = 'sample']
-  
-  original_yes_event = copy(yes_event)
-  original_no_event = copy(no_event)
-  yes_event = yes_event[, .SD, .SDcols = c('sample', 'neutral_rate', gene_names)]
-  no_event = no_event[, .SD, .SDcols = c('sample', 'neutral_rate', gene_names)]
-  
   lik = function(si) {
-    if(length(si) > 1) {
-      yes_event[, r := 1]
-      no_event[, r := 1]
-      for(locus in names(si)) {
-        setnames(yes_event, locus, 'curr_locus')
-        setnames(no_event, locus, 'curr_locus')
-        yes_event[, curr_r := fcase(curr_locus == 0, 1,
-                                    default = si[locus])]
-        no_event[, curr_r := fcase(curr_locus == 0, 1,
-                                   default = si[locus])]
-        setnames(yes_event, 'curr_locus', locus)
-        setnames(no_event, 'curr_locus', locus)
-        yes_event[, r := r * curr_r]
-        no_event[, r := r * curr_r]
-      }
+    if(length(si) == 1) {
+      yes_rates[, multiplier := si]
+      no_rates[, multiplier := si]
     } else {
-      yes_event[, r := si]
-      no_event[, r := si]
+      tmp = unname(si) # for speed
+      yes_rates[, multiplier := tmp[si_index]]
+      no_rates[, multiplier := tmp[si_index]]
     }
-
     
-    # Note: log(-1 * expm1(-1 * r * neutral_rate))] is equivalent to 
-    # log(1 - exp(-1 * r * neutral_rate))], and necessary to evaluate exp(x) when x 
+    yes_rates = yes_rates[, .(prod(multiplier), neutral_rate[1]), by = 'full_id'][, V1 * V2]
+    no_rates = no_rates[, .(prod(multiplier), neutral_rate[1]), by = 'full_id'][, V1 * V2]
+    
+    # a * s1 
+    
+    # Note: log(-1 * expm1(-1 * r))] is equivalent to 
+    # log(1 - exp(-1 * r)], and necessary to evaluate exp(x) when x 
     # is very close to 0.
-    ll_yes = yes_event[, sum(log(-1 * expm1(-1 * r * neutral_rate)))]
-    ll_no = no_event[, -1 * sum(r * neutral_rate)]
-    # if(is.nan(ll_no + ll_yes) | is.infinite(ll_no + ll_yes)) {
+    ll_yes = sum(log(-1 * expm1(-1 * yes_rates)))
+    ll_no = -1 * sum(no_rates)
+    # if(is.nan(ll_no + ll_yes) || is.infinite(ll_no + ll_yes)) {
     #   browser()
     # }
-    yes_event[, r := NULL]
-    no_event[, r := NULL]
     return(-1 * (ll_no + ll_yes))
   }
-  formals(lik)[["si"]] = rep(1.0, length(gene_names))
   
-  if(length(gene_names) == 1) {
+  formals(lik)[["si"]] = rep(1.0, length(curr_range_id))
+
+  if(length(curr_range_id) == 1) {
     bbmle::parnames(lik) = 'si'
     par_init = formals(lik)
     names(par_init) = bbmle::parnames(lik)
   } else {
-    bbmle::parnames(lik) = gene_names
-    par_init = setNames(formals(lik)[["si"]], gene_names)
+    bbmle::parnames(lik) = curr_range_id
+    par_init = setNames(formals(lik)[["si"]], curr_range_id)
   }
   fit = bbmle::mle2(lik, start = par_init, vecpar = T, lower = 1e-6, upper = 1e9, method = 'L-BFGS-B')
-  if(length(coef(fit)) == 1) {
-    selection_loci[, si := coef(fit)['si']]
-  } else {
-    selection_loci[, si := coef(fit)[gene]]
-  }
-  selection_loci[, num_samples_used := num_samples_used]
   
-  if(debug == TRUE) {
-     return(list(si = selection_loci[],
-                 yes = original_yes_event,
-                 no = original_no_event,
-                 fit = fit))
+  selection_intervals = rbindlist(lapply(events_to_test, function(x) data.table(range_id = x)), idcol = 'event_type')
+  if(length(coef(fit)) == 1) {
+    selection_intervals[, si := coef(fit)['si']]
+  } else {
+    selection_intervals[, si := coef(fit)[range_id]]
   }
-  return(selection_loci[])
+  
+  selection_intervals = merge.data.table(selection_intervals, rates$intervals, by = 'range_id')
+  output = list(si = selection_intervals[],
+                info = list(loglik = as.numeric(logLik(fit)), included_samples = samples_used)
+            )
+  if(debug == TRUE) {
+    output = c(output, list(fit = fit, rates = curr_rates))
+  }
+  return(output)
 }
 
 ## Deprecated

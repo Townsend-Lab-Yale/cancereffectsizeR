@@ -7,21 +7,22 @@
 get_genomic_windows(
   refset,
   window_size = 1e+05,
-  ranges = NULL,
   exclude_ENCODE_blacklist = TRUE,
-  exclude_non_PAR = TRUE
+  exclude_Y = TRUE,
+  annotate_intervals = FALSE
 )
 }
 \arguments{
-\item{window_size}{Integer size of windows. Will be a little slow if windows are very small.}
+\item{window_size}{Integer size of windows (default 100,000 bp). This function will be slow if
+window_size is unexpectedly small.}
 
-\item{ranges}{If supplied, will only split up the input GRanges, as opposed to the full primary assembly reference ranges.}
+\item{exclude_ENCODE_blacklist}{TRUE/FALSE on filtering out windows in which at least 50% of
+bases are within ENCODE blacklist regions (default TRUE).}
 
-\item{exclude_ENCODE_blacklist}{TRUE/FALSE on filtering out windows that overlap large (> .5 * window_size)
-regions flagged in ENCODE blacklist v2 (default TRUE).}
+\item{exclude_Y}{TRUE/FALSE on whether to exclude chrY from output ranges; default TRUE.}
 
-\item{exclude_non_PAR}{TRUE/FALSE on removing windows that overlap non-pseudoautosomal regions of chrX/chrY (default TRUE).}
+\item{annotate_intervals}{Add some gene-based annotation columns (default FALSE).}
 }
 \description{
-## TO-DO: change to excluding windows that are >50% blacklisted, instead of the weird criteria here.
+Split genome into same-width ranges.
 }

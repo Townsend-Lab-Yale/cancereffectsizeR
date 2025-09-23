@@ -98,10 +98,16 @@ cosmic_dbs_classes = c(
   "TT>GG"
 )
 
+cna_size_bins = data.table(pretty_label = c('L < 100 kb', '100 kb < L < 1 Mb', '1 Mb < L < 10 Mb', '10 Mb < L < 40 Mb', '40 Mb < L'),
+                           cosmic_label = c('0-100kb', '100kb-1Mb', '1Mb-10Mb', '10Mb-40Mb', '>40Mb'),
+                           bin_id = c('r1', 'r2', 'r3', 'r4', 'r5'),
+                           bin_order = 1:5)
+
 
 usethis::use_data(deconstructSigs_trinuc_string, 
                   deconstructSigs_notations, codon_sbs_to_aa, codon_dbs_to_aa,
                   two_codon_dbs_key,
                   cosmic_dbs_classes, cosmic_sbs_signature_etiology,
+                  cna_size_bins,
                   internal = TRUE, overwrite = TRUE)
 setwd(prev_dir)
