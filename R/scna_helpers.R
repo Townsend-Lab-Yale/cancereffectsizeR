@@ -1455,14 +1455,13 @@ run_seg_multi = function(events_to_test = list(), rates = NULL, debug = FALSE) {
   if(is.null(rates)) {
     stop('Need rates.')
   }
-  
   if(! is.list(events_to_test)) {
     stop('events_to_test should be a named list.')
   }
   
   all_event_types = unique(rates$rates$event_type)
   if(is.null(all_event_types)) {
-    stop('Improper rates input, likely (rates$rates$event_type is NULL).')
+    stop('Improper rates input; likely rates$rates$event_type is NULL.')
   }
   used_event_types = names(events_to_test)
   if(length(used_event_types) == 0) {
@@ -1481,55 +1480,89 @@ run_seg_multi = function(events_to_test = list(), rates = NULL, debug = FALSE) {
   }
   
   # To-do: more validation that all events_to_test are valid ranges, etc.
-  
-  curr_rates = rbindlist(lapply(used_event_types,
+  # To-do: Fix call so that unique() isn't needed
+  curr_segment_rates = unique(rbindlist(lapply(used_event_types,
                                 function(x) {
-                                  return(rates$rates[event_type == x & range_id %in% events_to_test[[x]]])
-                                  }))
-  if(any(curr_rates[, uniqueN(event_type) > 1, by = 'range_id'][, V1])) {
-    stop("The same interval can't be used in multiple tested event types (e.g., increase and decrease).")
-  }
+                                  return(rates$rates[range_id %in% events_to_test[[x]]])
+                                  })))
   
-  
-  # if(! is.data.table(selection_intervals)) {
-  #   stop('selection_intervals should be data.table.')
-  # }
-  # if(! all(c('chr', 'start', 'end', 'range_id') %in% names(selection_intervals))) {
-  #   stop('selection_intervals must have fields chr, start, end, range_id')
-  # }
-  # 
-  curr_range_id = unique(curr_rates$range_id)
-  sample_exclusions = rates$uncovered[range_id %in% curr_range_id, unique(sample)]
-  curr_rates = curr_rates[! sample %in% sample_exclusions]
-  samples_used = unique(curr_rates$sample)
-  
-  curr_rates[, full_id := paste(sample, seg_id, sep = '.')]
-  curr_rates[, si_index := match(range_id, curr_range_id)] # for speedy indexing in lik()
-  
-  yes_rates = curr_rates[is_event == TRUE, .(neutral_rate = bin_rate, si_index, full_id)]
-  no_rates = curr_rates[is_event == FALSE, .(neutral_rate = total_rate, si_index, full_id)]
-  setkey(yes_rates, 'full_id')
-  setkey(no_rates, 'full_id')
+  has_excessive_segments = curr_segment_rates[is_event == TRUE, .N, by = c('sample', 'range_id')][N > 1, sample]
 
+  si_with_type = unlist(sapply(names(events_to_test),
+                        function(x) paste(events_to_test[[x]], x, sep = '.')), use.names = FALSE)
+  
+  curr_range_id = unique(curr_segment_rates$range_id)
+  
+  sample_exclusions = unique(c(rates$uncovered[range_id %in% curr_range_id, unique(sample)], 
+                               has_excessive_segments))
+  curr_segment_rates = curr_segment_rates[! sample %in% sample_exclusions]
+  samples_used = unique(curr_segment_rates$sample)
+  
+  #curr_rates[, full_id := paste(sample, seg_id, event_type, sep = '.')]
+  curr_segment_rates[, range_and_type := paste(range_id, event_type, sep = '.')]
+  curr_segment_rates[, si_index := match(range_and_type, si_with_type)] # for speedy indexing in lik()
+  
+  si_by_segment = unique(curr_segment_rates[, .(sample, range_and_type, si_index)])
+  all_combined_rates = curr_segment_rates[, .(sample, range_and_type, total_rate, seg_id, si_index, event_type)]
+  
+  # Segments appear once per matching range_and_type.
+  yes_segments = curr_segment_rates[is_event == TRUE & ! is.na(si_index)]
+  no_segments = curr_segment_rates[is_event == FALSE & ! is.na(si_index)]
+  no_segments = no_segments[! yes_segments[, .(sample, range_id)], on = c('sample', 'range_id')]
+  setkey(yes_segments, sample, range_and_type)
+  setkey(no_segments, sample, range_and_type)
+  setkey(all_combined_rates, sample, range_and_type)
+  
+  curr_segment_rates = rbind(yes_segments, no_segments)
+  setkey(si_by_segment, sample, range_and_type)
+  # curr_segment_rates = curr_segment_rates[, .(curr_bin_rate = bin_rate, curr_total = total_rate, 
+  #                                             event_type, sample, seg_id, is_event, si_index,
+  #                                        range_id, range_and_type), by = c('range_and_type', 'sample')]
+  # 
+  
+  # setkey(yes_rates, 'full_id')
+  # setkey(no_rates, 'full_id')
+  
+  #si_by_full_id = curr_rates[, .(si_index, full_id)]
+  #setkey(si_by_full_id, 'full_id')
+  
+
+  #setkey(rates_by_type, 'full_id')
+  
+  # yes_rates = rates_by_type[is_event == T & ! is.na(si_index)]
+  # no_rates = rates_by_type[is_event == F & ! is.na(si_index)]
+  # no_rates = no_rates[! yes_rates[, .(sample, seg_id)], on = c('sample', 'seg_id')]
+  # rates_by_type = rates_by_type[full_id %in% c(yes_rates$full_id, no_rates$full_id)]
   lik = function(si) {
     if(length(si) == 1) {
-      yes_rates[, multiplier := si]
-      no_rates[, multiplier := si]
+      si_by_segment[, multiplier := fcase(is.na(si_index), 1, default = si)] # other event types get 1
     } else {
       tmp = unname(si) # for speed
-      yes_rates[, multiplier := tmp[si_index]]
-      no_rates[, multiplier := tmp[si_index]]
+      si_by_segment[, multiplier := fcase(is.na(si_index), 1, default = tmp[si_index])]
     }
+    stopifnot(! anyNA(si_by_segment$multiplier))
+    # if(si[1] > 1.5) {
+    #   browser()
+    # }
+    yes_segments[si_by_segment, curr_si := multiplier]
+    final_yes = yes_segments[, .(curr_si = prod(curr_si), curr_bin_rate = bin_rate[1]), by = c('sample', 'seg_id')]
+    no_segments[si_by_segment, curr_si := multiplier]
+    final_no = no_segments[, .(curr_si = prod(curr_si)), by = c('sample', 'seg_id')]
     
-    yes_rates = yes_rates[, .(prod(multiplier), neutral_rate[1]), by = 'full_id'][, V1 * V2]
-    no_rates = no_rates[, .(prod(multiplier), neutral_rate[1]), by = 'full_id'][, V1 * V2]
+    all_combined_rates[si_by_segment, curr_si := multiplier]
+    by_event_type = all_combined_rates[, .(rate = prod(curr_si) * total_rate[1]), by = c('sample', 'seg_id', 'event_type')]
+    total_event_rates = by_event_type[, .(total_rate = sum(rate)), by = c('sample', 'seg_id')]
+
+    yes_rates = final_yes[, .(curr_flux = curr_bin_rate * curr_si, seg_id, sample)]
+    yes_rates[total_event_rates, total_rate := total_rate, on = c('sample', 'seg_id')]
+    yes_rates[, rel_prob := curr_flux / total_rate]
     
-    # a * s1 
+    no_rates = total_event_rates[final_no, total_rate, on = c('sample', 'seg_id')]
     
-    # Note: log(-1 * expm1(-1 * r))] is equivalent to 
-    # log(1 - exp(-1 * r)], and necessary to evaluate exp(x) when x 
+    # Note: -1 * expm1(-1 * r) is equivalent to 
+    # 1 - exp(-1 * r), and necessary to evaluate exp(x) when x 
     # is very close to 0.
-    ll_yes = sum(log(-1 * expm1(-1 * yes_rates)))
+    ll_yes = sum(log(-1 * expm1(-1 * yes_rates$total_rate) * yes_rates$rel_prob))
     ll_no = -1 * sum(no_rates)
     # if(is.nan(ll_no + ll_yes) || is.infinite(ll_no + ll_yes)) {
     #   browser()
@@ -1537,31 +1570,33 @@ run_seg_multi = function(events_to_test = list(), rates = NULL, debug = FALSE) {
     return(-1 * (ll_no + ll_yes))
   }
   
-  formals(lik)[["si"]] = rep(1.0, length(curr_range_id))
+  formals(lik)[["si"]] = rep(1.0, length(si_with_type))
 
-  if(length(curr_range_id) == 1) {
+  if(length(si_with_type) == 1) {
     bbmle::parnames(lik) = 'si'
     par_init = formals(lik)
     names(par_init) = bbmle::parnames(lik)
   } else {
-    bbmle::parnames(lik) = curr_range_id
-    par_init = setNames(formals(lik)[["si"]], curr_range_id)
+    bbmle::parnames(lik) = si_with_type
+    par_init = setNames(formals(lik)[["si"]], si_with_type)
   }
   fit = bbmle::mle2(lik, start = par_init, vecpar = T, lower = 1e-6, upper = 1e9, method = 'L-BFGS-B')
   
   selection_intervals = rbindlist(lapply(events_to_test, function(x) data.table(range_id = x)), idcol = 'event_type')
+  selection_intervals[, range_with_type := paste(range_id, event_type, sep = '.')]
   if(length(coef(fit)) == 1) {
     selection_intervals[, si := coef(fit)['si']]
   } else {
-    selection_intervals[, si := coef(fit)[range_id]]
+    selection_intervals[, si := coef(fit)[range_with_type]]
   }
   
   selection_intervals = merge.data.table(selection_intervals, rates$intervals, by = 'range_id')
+  setnames(selection_intervals, 'range_with_type', 'event_id')
   output = list(si = selection_intervals[],
-                info = list(loglik = as.numeric(logLik(fit)), included_samples = samples_used)
+                info = list(loglik = as.numeric(logLik(fit)), n_samples = length(samples_used))
             )
   if(debug == TRUE) {
-    output = c(output, list(fit = fit, rates = curr_rates))
+    output = c(output, list(fit = fit, rates = curr_segment_rates))
   }
   return(output)
 }
