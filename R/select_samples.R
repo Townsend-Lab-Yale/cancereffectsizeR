@@ -52,6 +52,10 @@ samples_with = function(cesa, any_of = NULL) {
   if(! is(cesa, "CESAnalysis")) {
     stop("cesa expected to be CESAnalysis.")
   }
+  
+  if(is(any_of, 'VariantSetList')) {
+    stop('any_of should be type character. For a VariantSetList, use [VariantSetList]$samples_with.')
+  }
   variants_by_type = sort_and_validate_variant_ids(cesa = cesa, input_ids = any_of, drop_unannotated = TRUE)
   
   sbs_ids = variants_by_type[['sbs_id']]

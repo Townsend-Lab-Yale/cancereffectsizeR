@@ -1,19 +1,19 @@
-#' Create CompoundVariantSet from variant IDs
+#' Create VariantSetList from variant IDs
 #'
-#' A CompoundVariantSet is a collection of "compound variants". A compound variant is an arbitrary
+#' A VariantSetList is a collection of "compound variants". A compound variant is an arbitrary
 #' group of variants that have sequencing coverage across some set of samples. (Any of these samples
 #' with one or more of the constituent SBS "has the compound variant"--samples with coverage at
-#' only some of the sites are not considered.) The compound variants within a CompoundVariantSet are
+#' only some of the sites are not considered.) The compound variants within a VariantSetList are
 #' always disjoint: that is, no individual variant appears in more than one of the compound
 #' variants.
 #' 
-#' Example: \code{CompoundVariantSet(cesa, variant_id = list(kras12 = c("KRAS G12C", "KRAS G12D",
-#' "KRAS G12V")))} creates a CompoundVariantSet containing one compound variant. To create
-#' a large set, it's usually easier to use define_compound_variants(), which calls this
+#' Example: \code{VariantSetList(cesa, variant_id = list(kras12 = c("KRAS G12C", "KRAS G12D",
+#' "KRAS G12V")))} creates a VariantSetList containing one compound variant. To create
+#' a large set, it's usually easier to use define_variant_sets(), which calls this
 #' function internally to define compound variants from an input variant table.
 #' 
 #' If you're using this function because you have a complex use case that
-#' define_compound_variants() can't handle, please let us know so we can try to make
+#' define_variant_sets() can't handle, please let us know so we can try to make
 #' improvements!
 #' 
 #' @param cesa CESAnalysis (used to access variant annotations)
@@ -21,7 +21,7 @@
 #'   vectors, each of which defines a separate compound variant. If the vector or list is
 #'   named, names will be kept. Otherwise, compound variants will be named sequentially.
 #' @export
-CompoundVariantSet = function(cesa, variant_id) {
+VariantSetList = function(cesa, variant_id) {
   if(! is(cesa, "CESAnalysis")) {
     stop("cesa should be a CESAnalysis.")
   }
@@ -35,7 +35,7 @@ CompoundVariantSet = function(cesa, variant_id) {
   if (is(variant_id, "character")) {
     comp_name = names(variant_id)
     if(is.null(comp_name)) {
-      comp_name = 'compound.1'
+      comp_name = 'vs1.1'
     }
     variant_id = list(unname(variant_id))
     names(variant_id) = comp_name
@@ -54,12 +54,12 @@ CompoundVariantSet = function(cesa, variant_id) {
   if (! all(sapply(variant_id, length) > 0)) {
     stop("All elements of variant_id list must have nonzero length")
   }
-  compound_names = names(variant_id)
+  set_ids = names(variant_id)
   
   # Name compound variants sequentially when the user supplied an unnamed list.
-  if(is.null(compound_names)) {
-    compound_names = paste0('compound.', 1:length(variant_id))
-    names(variant_id) = compound_names
+  if(is.null(set_ids)) {
+    set_ids = paste0('vs.', 1:length(variant_id))
+    names(variant_id) = set_ids
   }
   
   # first check that no variants overlap (will need to check again after breaking down AACs)
@@ -168,9 +168,9 @@ CompoundVariantSet = function(cesa, variant_id) {
   variants = lapply(compound_variants, "[[", 1)
   coverage = lapply(compound_variants, "[[", 2)
   
-  compound_sbs = data.table(compound_name = names(compound_variants), variants = variants)
-  compound_sbs = compound_sbs[, .(sbs_id = unlist(variants)), by = "compound_name"]
-  compound_sbs[, shared_cov := coverage[compound_name]]
+  compound_sbs = data.table(set_id = names(compound_variants), variants = variants)
+  compound_sbs = compound_sbs[, .(sbs_id = unlist(variants)), by = "set_id"]
+  compound_sbs[, shared_cov := coverage[set_id]]
   
   # add in simplified AAC/gene annotations
   aac_anno = cesa@mutations$aac_sbs_key[compound_sbs$sbs_id, on = 'sbs_id', nomatch = NULL]
@@ -182,7 +182,7 @@ CompoundVariantSet = function(cesa, variant_id) {
 
   sample_table = cesa@maf[compound_sbs$sbs_id, patient_id, on = "variant_id", by = "variant_id", nomatch = NULL]
   sample_table[cesa@samples, covered_regions := covered_regions, on = "patient_id"]
-  sample_table[compound_sbs, c("compound_name", "shared_cov") := list(compound_name, shared_cov), on = c(variant_id = "sbs_id")]
+  sample_table[compound_sbs, c("set_id", "shared_cov") := list(set_id, shared_cov), on = c(variant_id = "sbs_id")]
   sample_table[, compound_covered := covered_regions == "genome" | covered_regions %in% unlist(shared_cov), by = "variant_id"]
   total_freq = sample_table[, .(total_maf_freq = .N), by = "variant_id"]
   
@@ -198,44 +198,44 @@ CompoundVariantSet = function(cesa, variant_id) {
   
   # also create a table summarizing each compound variant; also drop shared_cov from compound_sbs
   compound_stats = compound_sbs[, .(num_sbs = .N, shared_cov = shared_cov[1], shared_cov_subvariant_freq = sum(shared_cov_maf_freq),
-                                    total_subvariant_freq = sum(total_maf_freq)), by = "compound_name"]
+                                    total_subvariant_freq = sum(total_maf_freq)), by = "set_id"]
   compound_sbs[, shared_cov := NULL]
   
   # shared_cov_freq is the number of samples that have one or more of a compound variant, within samples that have coverage
   # at all compound variant sites
   compound_counts_cov = unique(covered_sample_table, by = c("variant_id", "patient_id"))
-  compound_counts_cov = compound_counts_cov[, .(shared_cov_freq = uniqueN(patient_id)), by = "compound_name"]
-  compound_stats = compound_stats[compound_counts_cov, on = "compound_name"]
+  compound_counts_cov = compound_counts_cov[, .(shared_cov_freq = uniqueN(patient_id)), by = "set_id"]
+  compound_stats = compound_stats[compound_counts_cov, on = "set_id"]
   compound_counts_total = unique(sample_table, by = c("variant_id", "patient_id"))
   
   # Record which samples (including those outside shared coverage) have the variant
-  samples_by_variant = compound_counts_total[, .(samples = list(unique(patient_id))), by = "compound_name"]
-  samples_with = stats::setNames(samples_by_variant$samples, samples_by_variant$compound_name)
-  compound_counts_total = samples_by_variant[, .(total_freq = length(samples[[1]])), by = "compound_name"]
-  compound_stats = compound_stats[compound_counts_total, on = "compound_name"]
-  setcolorder(compound_stats, c("compound_name", "num_sbs", "shared_cov", "shared_cov_freq", "total_freq"))
+  samples_by_variant = compound_counts_total[, .(samples = list(unique(patient_id))), by = "set_id"]
+  samples_with = stats::setNames(samples_by_variant$samples, samples_by_variant$set_id)
+  compound_counts_total = samples_by_variant[, .(total_freq = length(samples[[1]])), by = "set_id"]
+  compound_stats = compound_stats[compound_counts_total, on = "set_id"]
+  setcolorder(compound_stats, c("set_id", "num_sbs", "shared_cov", "shared_cov_freq", "total_freq"))
 
   # For simplicity, we don't want this variant set to be used after adding new samples,
   # even if there aren't new covered_regions
   num_samples = cesa@samples[, .N]
   
-  setkey(compound_stats, "compound_name")
-  setkey(compound_sbs, "compound_name", physical = FALSE)
-  comp = new("CompoundVariantSet", sbs = compound_sbs, compounds = compound_stats, sample_calls = samples_with,
+  setkey(compound_stats, "set_id")
+  setkey(compound_sbs, "set_id", physical = FALSE)
+  comp = new("VariantSetList", sbs = compound_sbs, compounds = compound_stats, sample_calls = samples_with,
              cesa_uid = cesa@advanced$uid, cesa_num_samples = num_samples)
-  return(comp[compound_names]) # Make order match input
+  return(comp[set_ids]) # Make order match input
 }
 
 
-#' Divide batches of variants into a CompoundVariantSet
+#' Divide batches of variants into a VariantSetList
 #'
-#' A CompoundVariantSet is a collection of "compound variants". A compound variant is an arbitrary
+#' A VariantSetList is a collection of "compound variants". A compound variant is an arbitrary
 #' group of variants that have sequencing coverage across some set of samples. (Any of these samples
 #' with one or more of the constituent SBS "has the compound variant"--samples with coverage at only
-#' some of the sites are not considered.) The compound variants within a CompoundVariantSet are
+#' some of the sites are not considered.) The compound variants within a VariantSetList are
 #' always disjoint: that is, no individual variant appears in more than one of the compound
 #' variants. After collecting variants of interest into a table using select_variants()--and further
-#' subsetting or annotating the table as desired--use this function to produce a CompoundVariantSet
+#' subsetting or annotating the table as desired--use this function to produce a VariantSetList
 #' that combines variants into distinct compound variants based on your criteria.
 #' 
 #' This function works first by splitting the input table by the columns given in
@@ -259,7 +259,7 @@ CompoundVariantSet = function(cesa, variant_id) {
 #'   variant in compound variant for the variant to variant to be merged into the compound
 #'   variant (as opposed to being assigned to its own compound variant).
 #' @export
-define_compound_variants = function(cesa, variant_table, by = NULL, merge_distance = 0) {
+define_variant_sets = function(cesa, variant_table, by = NULL, merge_distance = 0) {
   if (! is(cesa, "CESAnalysis")) {
     stop("cesa should be a CESAnalysis.")
   }
@@ -284,7 +284,7 @@ define_compound_variants = function(cesa, variant_table, by = NULL, merge_distan
   which_doublet = variant_table[variant_type %in% c('dbs', 'dbs_aac'), which = TRUE]
   if(length(which_doublet) > 0) {
     variant_table = variant_table[! which_doublet]
-    message('FYI, DBS mutations are not yet supported in CompoundVariantSets and have been excluded.')
+    message('FYI, DBS mutations are not yet supported in VariantSetLists and have been excluded.')
   }
   
   by_cols = by
@@ -383,5 +383,5 @@ define_compound_variants = function(cesa, variant_table, by = NULL, merge_distan
   if(identical(split_group_names, sub('\\.1', '', names(variant_chunks)))) {
     names(variant_chunks) = split_group_names
   }
-  return(CompoundVariantSet(cesa, variant_id = variant_chunks))
+  return(VariantSetList(cesa, variant_id = variant_chunks))
 }

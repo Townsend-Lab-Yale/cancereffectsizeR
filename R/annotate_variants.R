@@ -210,7 +210,8 @@ annotate_dbs = function(dbs, refset) {
       codon_change[, short_alt := aa_alt]
       codon_change[, aa_alt := seqinr::aaa(aa_alt)]
       codon_change[aa_alt == 'Stp', aa_alt := 'STOP']
-      codon_change[, dbs_aac_id := paste0(gene, '_', aachange, '_', pid)]
+      
+      codon_change[, dbs_aac_id := paste0(gene, '_', aachange, '.dbs_', pid)]
       
       # left_coding[, c(aac_cols_to_fill) := .SD, .SDcols =  aac_source_cols]
       # 
@@ -311,13 +312,13 @@ annotate_dbs = function(dbs, refset) {
   # Don't need these (will be absent anyway when there are no single-codon DBS).
   suppressWarnings(final_codon_change[, c('nt1_pos', 'nt2_pos', 'nt3_pos') := NULL])
   
-  final_codon_change[, variant_name := paste0(gene, '_', aachange)]
+  final_codon_change[, variant_name := paste0(gene, '_', aachange, '.dbs')] #.dbs
   setcolorder(final_codon_change, 'variant_name')
   
+  # BRAF_V600E.dbs ()
   if(! is.null(refset$transcripts)) {
     final_codon_change[refset$transcripts, is_mane := is_mane, on = c(pid = 'protein_id')]
-    final_codon_change[is_mane == TRUE, variant_name := gsub('_', ' ', variant_name)]
-    final_codon_change[is_mane == FALSE, variant_name := paste0(gene, ' ', aachange, ' (', pid, ')')]
+    final_codon_change[is_mane == FALSE, variant_name := paste0(variant_name, ' (', pid, ')')]
     final_codon_change[, is_mane := NULL]
   }
   setkey(final_dbs, 'dbs_id')

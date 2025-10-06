@@ -23,7 +23,7 @@ ces_epistasis(
 
 \item{variants}{To test pairs of variants, supply a list where each element is a
 2-length vector of CES-style variant IDs. Alternatively (and often more usefully),
-supply a CompoundVariantSet (see \code{define_compound_variants()}) to test all pairs
+supply a VariantSetList (see \code{define_variant_sets()}) to test all pairs
 of compound variants in the set.}
 
 \item{samples}{Which samples to include in inference. Defaults to all samples.
@@ -90,5 +90,5 @@ CESAnalysis with a table of epistatic inferences appended to list \code{[CESAnal
 }
 \description{
 Calculate selection intensity under an assumption of pairwise epistasis between pairs of variants.
-CompoundVariantSets are supported.
+VariantSetLists are supported.
 }

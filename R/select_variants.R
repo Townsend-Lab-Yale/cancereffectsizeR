@@ -288,7 +288,6 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   combined = data.table()
   if(selected_sbs[, .N] > 0) {
     selected_sbs[, variant_type := "sbs"]
-    selected_sbs[, variant_name := sub('_', ' ', sbs_id)] # SBS IDs are already short and uniquely identifying
     selected_sbs[, strand := NA_integer_] # because AAC table is +1/-1
     selected_sbs[, c("start", "end") := .(pos, pos)]
     selected_sbs[, pos := NULL]
@@ -391,7 +390,6 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
     combined[, (missing_fields) := NA]
   }
   combined = combined[, .SD, .SDcols = expected_fields] # sometimes will have extra fields from reselecting
-  setcolorder(combined, expected_fields)
   
   if(check_for_ref_data(cesa, "transcripts")) {
     transcripts = unique(get_ref_data(cesa, "transcripts")[, .(is_mane, transcript_tags, pid = protein_id)])
@@ -400,6 +398,7 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
                               on = 'pid']
     combined[variant_type %in% c('sbs', 'dbs'), is_MANE_transcript := NA]
   }
+  setcolorder(combined, expected_fields)
 
   setattr(combined, "cesa_id", cesa@advanced$uid)
   setkey(combined, 'variant_id', physical = F)

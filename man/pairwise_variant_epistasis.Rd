@@ -20,11 +20,11 @@ pairwise_variant_epistasis(
 \item{cesa}{CESAnalysis}
 
 \item{variant_pair}{2-length character of variant IDs, or 2-length numeric giving
-indices of CompoundVariantSet for the current two compound variants}
+indices of VariantSetList for the current two compound variants}
 
 \item{samples}{Validated samples data.table (as from select_samples())}
 
-\item{compound_variants}{If testing a pair of compound variants, the CompoundVariantSet defining them}
+\item{compound_variants}{If testing a pair of compound variants, the VariantSetList defining them}
 
 \item{model}{Passed from ces_epistasis or ces_gene_epistasis. Set to "default" to use built-in
 model of epistatic selection, or supply a custom function factory (see details).}

@@ -32,8 +32,8 @@
 #' @param samples Which samples to include in inference. Defaults to all samples. Can be a vector of
 #'   patient_ids, or a data.table containing rows from the CESAnalysis sample table.
 #' @param variants Which variants to estimate effects for, specified with a variant table such as
-#'   from \code{[CESAnalysis]$variants} or \code{select_variants()}, or a \code{CompoundVariantSet}
-#'   from \code{define_compound_variants()}. Defaults to all recurrent mutations; that is,
+#'   from \code{[CESAnalysis]$variants} or \code{select_variants()}, or a \code{VariantSetList}
+#'   from \code{define_variant_sets()}. Defaults to all recurrent mutations; that is,
 #'   \code{[CESAnalysis]$variants[maf_prevalence > 1]}. To include all variants, set to
 #'   \code{[CESAnalysis]$variants}.
 #' @param model Set to "basic" (default) or "sequential" (not yet available) to use built-in
@@ -48,7 +48,7 @@
 #'   or large size. If you run thousands of variants at once, you may exhaust your system memory.
 #' @param hold_out_same_gene_samples When finding likelihood of each variant, hold out samples that
 #'   lack the variant but have any other mutations in the same gene. By default, TRUE when running
-#'   with single variants, FALSE with a CompoundVariantSet.
+#'   with single variants, FALSE with a VariantSetList.
 #' @return CESAnalysis with selection results appended to the selection output list
 #' @export
 ces_variant <- function(cesa = NULL,
@@ -180,26 +180,26 @@ ces_variant <- function(cesa = NULL,
     # re-select variants for maximum safety
     variants = select_variants(cesa, variant_ids = variants$variant_id, type = c('sbs', 'aac'))
     
-  } else if (is(variants, "CompoundVariantSet")) {
+  } else if (is(variants, "VariantSetList")) {
     running_compound = TRUE
     if (cesa@advanced$uid != variants@cesa_uid) {
-      stop("Input CompoundVariantSet does not appear to derive from the input CESAnalysis.")
+      stop("Input VariantSetList does not appear to derive from the input CESAnalysis.")
     }
     if (cesa@samples[, .N] != variants@cesa_num_samples) {
-      stop("The number of samples in the CESAnalysis has changed since the CompoundVariantSet was created. ",
-           "Please re-generate the CompoundVariantSet.")
+      stop("The number of samples in the CESAnalysis has changed since the VariantSetList was created. ",
+           "Please re-generate the VariantSetList.")
     }
     compound_variants = variants
     variants = select_variants(cesa, variant_ids = compound_variants@sbs$sbs_id)
     
     # copy in compound variant names and overwrite covered_in with value of shared_cov
-    variants = variants[compound_variants@sbs, compound_name := compound_name, on = c(variant_id = "sbs_id")]
+    variants = variants[compound_variants@sbs, set_id := set_id, on = c(variant_id = "sbs_id")]
     if(variants[, .N] != compound_variants@sbs[, .N]) {
       stop("Internal error: select_variants() didn't return variant info 1-to-1 with compound input.")
     }
-    variants[compound_variants@compounds, covered_in := shared_cov, on = "compound_name"]
+    variants[compound_variants@compounds, covered_in := shared_cov, on = "set_id"]
   } else {
-    stop("variants expected to be a variant table (from select_variants(), usually) or a CompoundVariantSet")
+    stop("variants expected to be a variant table (from select_variants(), usually) or a VariantSetList")
   }
   if (variants[, .N] == 0) {
     stop("There are no variants in the input!")
@@ -294,7 +294,7 @@ ces_variant <- function(cesa = NULL,
     
     if (running_compound) {
       # can't have subvariants of the same compound variant ending up in different subgroups
-      curr_variants[, subgroup := rep.int(subgroup[1], .N), by = "compound_name"]
+      curr_variants[, subgroup := rep.int(subgroup[1], .N), by = "set_id"]
       num_proc_groups = max(curr_variants$subgroup) # rarely, last subgroup dropped by above
     }
     
@@ -315,7 +315,7 @@ ces_variant <- function(cesa = NULL,
           compound_id = variant_id
           # Important: sample_calls includes samples that are not in shared coverage
           tumors_with_variant = intersect(compound_variants@sample_calls[[compound_id]], covered_samples)
-          current_sbs = compound_variants@sbs[compound_name == compound_id]
+          current_sbs = compound_variants@sbs[set_id == compound_id]
           all_genes = current_sbs[, unique(unlist(genes))]
           variant_id = current_sbs$sbs_id
           rates = baseline_rates[, ..variant_id]
@@ -401,7 +401,7 @@ ces_variant <- function(cesa = NULL,
       }
       
       if (running_compound) {
-        variants_to_run = curr_subgroup[, unique(compound_name)]
+        variants_to_run = curr_subgroup[, unique(set_id)]
       } else {
         variants_to_run = curr_subgroup$variant_id
       }
@@ -429,7 +429,7 @@ ces_variant <- function(cesa = NULL,
   if (running_compound) {
     selection_results[, variant_type := "compound"]
     setnames(selection_results, "variant_id", "variant_name")
-    selection_results = selection_results[compound_variants@compounds, on = c(variant_name = "compound_name")]
+    selection_results = selection_results[compound_variants@compounds, on = c(variant_name = "set_id")]
     setattr(selection_results, "is_compound", TRUE)
     setcolorder(selection_results, c("variant_name", "variant_type"))
   } else {

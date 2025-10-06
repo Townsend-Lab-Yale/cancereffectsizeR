@@ -137,46 +137,45 @@ setMethod("show", "CESAnalysis",
   }
 )
 
-setClass("CompoundVariantSet", representation(sbs = "data.table", compounds = "data.table", sample_calls = "list",
+setClass("VariantSetList", representation(sbs = "data.table", compounds = "data.table", sample_calls = "list",
                                               cesa_uid = "numeric", cesa_num_samples = "integer"))
-setMethod("show", "CompoundVariantSet", function(object) {
+setMethod("show", "VariantSetList", function(object) {
   num_compound = object@compounds[, .N]
   num_sbs = object@sbs[, .N]
   plural = ifelse(num_compound == 1, '', 's')
   plural2 = ifelse(num_sbs == 1, '', 's')
-  msg = paste0("CompoundVariantSet with ", num_compound, " compound variant", plural, " consisting of ", 
-                num_sbs, " SBS:\n")
+  msg = paste0("VariantSetList with ", num_compound, " variant set", plural, ":\n")
   cat(msg)
   print(object@compounds, topn = 3)
 })
 
-setMethod("length", "CompoundVariantSet", function(x) {
+setMethod("length", "VariantSetList", function(x) {
   return(x@compounds[, .N])
 })
 
-# allow subsetting CompoundVariantSet by index or name (that is, row number/compound_name entry in compound table)
-# returns a new CompoundVariantSet; fine interactively but maybe not efficient enough for high-throughput use
-setMethod("[", "CompoundVariantSet", function(x, i , j, ..., drop) {
+# allow subsetting VariantSetList by index or name (that is, row number/set_id entry in compound table)
+# returns a new VariantSetList; fine interactively but maybe not efficient enough for high-throughput use
+setMethod("[", "VariantSetList", function(x, i , j, ..., drop) {
   compounds = `[`(x@compounds, i, j, nomatch = NULL, ...)
-  sample_calls = x@sample_calls[compounds$compound_name]
-  sbs = x@sbs[compounds$compound_name, on = 'compound_name']
-  return(new("CompoundVariantSet", compounds = compounds, sbs = sbs, sample_calls = sample_calls,
+  sample_calls = x@sample_calls[compounds$set_id]
+  sbs = x@sbs[compounds$set_id, on = 'set_id']
+  return(new("VariantSetList", compounds = compounds, sbs = sbs, sample_calls = sample_calls,
              cesa_uid = x@cesa_uid, cesa_num_samples = x@cesa_num_samples))
 })
 
-setMethod("[[", "CompoundVariantSet", function(x, i , j, ..., drop) {
+setMethod("[[", "VariantSetList", function(x, i , j, ..., drop) {
   compounds = `[`(x@compounds, i, j, nomatch = NULL, ...)
-  sample_calls = x@sample_calls[compounds$compound_name]
-  sbs = x@sbs[compounds$compound_name, on = 'compound_name']
-  return(new("CompoundVariantSet", compounds = compounds, sbs = sbs, sample_calls = sample_calls,
+  sample_calls = x@sample_calls[compounds$set_id]
+  sbs = x@sbs[compounds$set_id, on = 'set_id']
+  return(new("VariantSetList", compounds = compounds, sbs = sbs, sample_calls = sample_calls,
              cesa_uid = x@cesa_uid, cesa_num_samples = x@cesa_num_samples))
 })
 
-setMethod('names', "CompoundVariantSet", function(x) {
-  return(x@compounds$compound_name)
+setMethod('names', "VariantSetList", function(x) {
+  return(x@compounds$set_id)
 })
 
-setMethod('names<-', "CompoundVariantSet", function(x, value) {
+setMethod('names<-', "VariantSetList", function(x, value) {
   if(length(x) != length(value)) {
     stop('Length mismatch on name assignment.')
   }
@@ -192,34 +191,34 @@ setMethod('names<-', "CompoundVariantSet", function(x, value) {
   if(any(sapply(value, nchar) < 1)) {
     stop('Names cannot have zero characters.')
   }
-  x@compounds[, old_name := compound_name]
-  x@compounds[, compound_name := value]
+  x@compounds[, old_name := set_id]
+  x@compounds[, set_id := value]
   
-  for_sbs = x@compounds[x@sbs$compound_name, compound_name, on = 'old_name']
-  x@sbs[, compound_name := for_sbs]
+  for_sbs = x@compounds[x@sbs$set_id, set_id, on = 'old_name']
+  x@sbs[, set_id := for_sbs]
   
-  for_sample_calls = x@compounds[names(x@sample_calls), compound_name, on = 'old_name']
+  for_sample_calls = x@compounds[names(x@sample_calls), set_id, on = 'old_name']
   names(x@sample_calls) = for_sample_calls
   x@compounds$old_name = NULL
-  setcolorder(x@compounds, 'compound_name')
+  setcolorder(x@compounds, 'set_id')
   return(x)
 })
 
 
 # thanks to https://stackoverflow.com/a/26080137
-as.list.CompoundVariantSet <-function(x) {
+as.list.VariantSetList <-function(x) {
   lapply(seq_along(x), function(i) x[i])
 }
-setMethod("as.list", "CompoundVariantSet", as.list.CompoundVariantSet)
+setMethod("as.list", "VariantSetList", as.list.VariantSetList)
 
 
 #' @export
-.DollarNames.CompoundVariantSet <- function(x, pattern = "") {
+.DollarNames.VariantSetList <- function(x, pattern = "") {
   features = c("compounds", "sbs_info", "samples_with", "definitions")
   grep(pattern, features, value=TRUE)
 }
 
-setMethod("$", "CompoundVariantSet",
+setMethod("$", "VariantSetList",
   function(x, name)
   {
     if(name == "sbs_info") {
@@ -229,8 +228,8 @@ setMethod("$", "CompoundVariantSet",
     } else if (name == "samples_with") {
       return(x@sample_calls)
     }else if (name == "definitions") {
-      tmp = x@sbs[, .(sbs = list(sbs_id)), by = "compound_name"]
-      return(stats::setNames(tmp$sbs, tmp$compound_name))
+      tmp = x@sbs[, .(sbs = list(sbs_id)), by = "set_id"]
+      return(stats::setNames(tmp$sbs, tmp$set_id))
     }
   }
 )

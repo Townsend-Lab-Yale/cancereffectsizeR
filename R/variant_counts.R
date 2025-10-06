@@ -98,7 +98,6 @@ variant_counts = function(cesa, variant_ids = character(), by = character()) {
     maf = data.table(patient_id = character(), variant_id = character())
   }
   
-  
   # Get counts by by_cols, with 0-count combinations also listed
   get_complete_counts = function(dt) {
     final_counts = setDT(samples[, expand.grid(c(list(variant_id = unique(dt$variant_id)), 

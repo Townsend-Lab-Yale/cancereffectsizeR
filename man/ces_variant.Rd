@@ -23,8 +23,8 @@ ces_variant(
 \item{cesa}{CESAnalysis object}
 
 \item{variants}{Which variants to estimate effects for, specified with a variant table such as
-from \code{[CESAnalysis]$variants} or \code{select_variants()}, or a \code{CompoundVariantSet}
-from \code{define_compound_variants()}. Defaults to all recurrent mutations; that is,
+from \code{[CESAnalysis]$variants} or \code{select_variants()}, or a \code{VariantSetList}
+from \code{define_variant_sets()}. Defaults to all recurrent mutations; that is,
 \code{[CESAnalysis]$variants[maf_prevalence > 1]}. To include all variants, set to
 \code{[CESAnalysis]$variants}.}
 
@@ -48,7 +48,7 @@ or large size. If you run thousands of variants at once, you may exhaust your sy
 
 \item{hold_out_same_gene_samples}{When finding likelihood of each variant, hold out samples that
 lack the variant but have any other mutations in the same gene. By default, TRUE when running
-with single variants, FALSE with a CompoundVariantSet.}
+with single variants, FALSE with a VariantSetList.}
 
 \item{cores}{Number of cores to use for processing variants in parallel (not useful for Windows
 systems).}

@@ -242,12 +242,12 @@ ces_gene_epistasis = function(cesa = NULL,
     }
   }
 
-  # use separate CompoundVariantSets for each pair to avoid possible gene-overlap issues
+  # use separate VariantSetLists for each pair to avoid possible gene-overlap issues
   setkey(variants_to_use, 'gene')
   results = pbapply::pblapply(X = gene_pairs, FUN = 
     function(x) {
       variant_ids = setNames(list(variants_to_use[x[1], variant_id], variants_to_use[x[2], variant_id]), x)
-      comp = CompoundVariantSet(cesa, variant_ids)
+      comp = VariantSetList(cesa, variant_ids)
       tmp = pairwise_variant_epistasis(cesa = cesa, variant_pair = c(1, 2), samples = samples, compound_variants = comp, conf = conf, 
                                        model = model, lik_args = lik_args, pval_calc_fn = pval_calc_fn,
                                        optimizer_args = optimizer_args)
@@ -280,12 +280,12 @@ ces_gene_epistasis = function(cesa = NULL,
 #' Variant-level pairwise epistasis
 #' 
 #' Calculate selection intensity under an assumption of pairwise epistasis between pairs of variants.
-#' CompoundVariantSets are supported.
+#' VariantSetLists are supported.
 #' 
 #' @param cesa CESAnalysis
 #' @param variants To test pairs of variants, supply a list where each element is a
 #'   2-length vector of CES-style variant IDs. Alternatively (and often more usefully),
-#'   supply a CompoundVariantSet (see \code{define_compound_variants()}) to test all pairs
+#'   supply a VariantSetList (see \code{define_variant_sets()}) to test all pairs
 #'   of compound variants in the set.
 #' @param samples Which samples to include in inference. Defaults to all samples.
 #'   Can be a vector of patient_ids, or a data.table containing rows from
@@ -385,7 +385,7 @@ ces_epistasis = function(cesa = NULL, variants = NULL, samples = character(), ru
     }
   }
   
-  if(is(variants, "CompoundVariantSet")) {
+  if(is(variants, "VariantSetList")) {
     index_pairs = utils::combn(1:length(variants), 2, simplify = F)
     results = pbapply::pblapply(X = index_pairs, FUN = pairwise_variant_epistasis, samples = samples, compound_variants = variants, cesa=cesa, conf = conf, cl = cores, model = model, lik_args = lik_args)
   } else if (is(variants, "list")) {
@@ -426,7 +426,7 @@ ces_epistasis = function(cesa = NULL, variants = NULL, samples = character(), ru
                                 cl = cores, model = model, lik_args = lik_args, optimizer_args = optimizer_args,
                                 pval_calc_fn = pval_calc_fn)
   } else {
-    stop("variants should be of type list or CompoundVariantSet")
+    stop("variants should be of type list or VariantSetList")
   }
   fits = lapply(results, '[[', 'fit')
   results = rbindlist(lapply(results, '[[', 'summary'), fill = TRUE)

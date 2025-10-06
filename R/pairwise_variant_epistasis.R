@@ -3,8 +3,8 @@
 #' @param cesa CESAnalysis
 #' @param samples Validated samples data.table (as from select_samples())
 #' @param variant_pair 2-length character of variant IDs, or 2-length numeric giving
-#'   indices of CompoundVariantSet for the current two compound variants
-#' @param compound_variants If testing a pair of compound variants, the CompoundVariantSet defining them
+#'   indices of VariantSetList for the current two compound variants
+#' @param compound_variants If testing a pair of compound variants, the VariantSetList defining them
 #' @param model Passed from ces_epistasis or ces_gene_epistasis. Set to "default" to use built-in
 #'   model of epistatic selection, or supply a custom function factory (see details).
 #' @param lik_args Extra arguments, given as a list, passed from ces_epistasis or ces_gene_epistasis
@@ -17,14 +17,14 @@ pairwise_variant_epistasis = function(cesa, variant_pair, samples, conf, compoun
                                       lik_args = list(), optimizer_args = list(), pval_calc_fn = NULL) {
   
   running_compound = FALSE
-  if (is(compound_variants, "CompoundVariantSet")) {
+  if (is(compound_variants, "VariantSetList")) {
     running_compound = TRUE
     compound_variants = compound_variants[variant_pair]
     joint_coverage = c("genome", intersect(compound_variants@compounds$shared_cov[[1]], compound_variants@compounds$shared_cov[[2]]))
-    v1 = compound_variants@compounds$compound_name[[1]]
-    v2 = compound_variants@compounds$compound_name[[2]]
-    v1_ids = compound_variants@sbs[compound_name == v1, sbs_id]
-    v2_ids = compound_variants@sbs[compound_name == v2, sbs_id]
+    v1 = compound_variants@compounds$set_id[[1]]
+    v2 = compound_variants@compounds$set_id[[2]]
+    v1_ids = compound_variants@sbs[set_id == v1, sbs_id]
+    v2_ids = compound_variants@sbs[set_id == v2, sbs_id]
     variant_ids = c(v1_ids, v2_ids)
   } else {
     v1 = variant_pair[1]

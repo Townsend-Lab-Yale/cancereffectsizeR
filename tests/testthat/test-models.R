@@ -159,7 +159,7 @@ test_that("Gene-level SBS epistasis analysis", {
                                           xor(ces_B_null < ces_B0, ces_B_null < ces_B_on_A)]))
   
   # now simulate with compound variants, should get almost same results
-  comp = define_compound_variants(cesa, 
+  comp = define_variant_sets(cesa, 
                                   variant_table = select_variants(cesa, genes = c("EGFR", "KRAS", "TP53"))[samples_covering == cesa$samples[, .N]],
                                   by = "gene", merge_distance = Inf)
   cesa = ces_epistasis(cesa, comp, conf = .95)
@@ -199,26 +199,26 @@ test_that("Compound variant creation", {
   # Should recapitulate single variant results with 1-SBS-size compound variants
   # Note, though, that compound variant mutation rates get calculated via the SBS method, which 
   # averages any overlapping gene rates, so sometimes rates will vary between a one-SBS AAC and the equivalent compound variant.
-  single_sbs_comp = define_compound_variants(cesa, all_kras_12_13, by = c("gene", "aa_alt"), merge_distance = 0)
+  single_sbs_comp = define_variant_sets(cesa, all_kras_12_13, by = c("gene", "aa_alt"), merge_distance = 0)
   expect_equal(length(single_sbs_comp), 6)
   results = ces_variant(cesa, variants = single_sbs_comp, hold_out_same_gene_samples = T)
   same_results = ces_variant(cesa, variants = single_sbs_comp, hold_out_same_gene_samples = T)
   expect_equal(same_results@selection_results, results@selection_results)
 
   # this time, do per position
-  pos_comp = define_compound_variants(cesa, all_kras_12_13, merge_distance = 0)
+  pos_comp = define_variant_sets(cesa, all_kras_12_13, merge_distance = 0)
   expect_equal(length(pos_comp), 2)
   expect_equal(pos_comp$sbs_info[, .N], 6)
   results = ces_variant(cesa, variants = pos_comp, hold_out_same_gene_samples = T, conf = NULL)$selection[[1]]
   expect_equal(results$selection_intensity, c(3254, 6890), tolerance = 1e-3)
   
-  expect_equal(length(define_compound_variants(cesa, recurrents, merge_distance = 1000)), 52)
-  expect_equal(length(define_compound_variants(cesa, recurrents, merge_distance = 1e9)), 15)
-  expect_equal(length(suppressWarnings(define_compound_variants(cesa, recurrents, merge_distance = Inf))), 1)
-  expect_equal(length(define_compound_variants(cesa, recurrents, by = "aa_alt", merge_distance = Inf)), 22)
+  expect_equal(length(define_variant_sets(cesa, recurrents, merge_distance = 1000)), 52)
+  expect_equal(length(define_variant_sets(cesa, recurrents, merge_distance = 1e9)), 15)
+  expect_equal(length(suppressWarnings(define_variant_sets(cesa, recurrents, merge_distance = Inf))), 1)
+  expect_equal(length(define_variant_sets(cesa, recurrents, by = "aa_alt", merge_distance = Inf)), 22)
   
   # causes some but not all same-gene mutations to get merged
-  expect_equal(length(define_compound_variants(cesa, recurrents, by = c("gene","aa_ref"), merge_distance = 1000)), 97)
+  expect_equal(length(define_variant_sets(cesa, recurrents, by = c("gene","aa_ref"), merge_distance = 1000)), 97)
 })
 
 test_that("Attribution to mutational sources", {

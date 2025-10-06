@@ -193,16 +193,6 @@ load_cesa = function(file) {
   } else {
     cesa@mutations$sbs = setDT(cesa@mutations$sbs, key = "sbs_id")
     
-    # If there is no variant_name column, the analysis came from before v2.9, when better variant
-    # names (and the refsets they require) were implemented. Therefore, continue to use the less
-    # ideal variant naming.
-    if(! 'variant_name' %in% names(cesa@mutations$amino_acid_change)) {
-      cesa@mutations$amino_acid_change[, variant_name := paste0(gene, '_', aachange)]
-      setcolorder(cesa@mutations$amino_acid_change, 'variant_name')
-      cesa@mutations$sbs[, variant_name := gsub('_', ' ', sbs_id)]
-      setcolorder(cesa@mutations$sbs, 'variant_name')
-    }
-    
     if (! is.null(cesa@mutations$aac_sbs_key)) {
       # if it is NULL, gets handled later
       cesa@mutations$aac_sbs_key = setDT(cesa@mutations$aac_sbs_key, key = "aac_id")
