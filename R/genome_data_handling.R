@@ -90,13 +90,20 @@ preload_ref_data = function(data_dir) {
     # new versions complain about not all seqlevels being switchable
     suppressWarnings({GenomeInfoDb::seqlevelsStyle(bsg) = seqlevelsStyle(ref[["gr_genes"]])}),
     error = function(e) {
-      if(conditionMessage(e) %like% "cannot open URL.*chromInfo" && 
+      if(conditionMessage(e) %like% "cannot open URL" && 
          check_for_ref_data(data_dir, 'cached_chromInfo')) {
         cached_chromInfo = get_ref_data(data_dir, "cached_chromInfo")
         ucsc_info = cached_chromInfo$UCSC
         ncbi_info = cached_chromInfo$NCBI
         assign(ucsc_info$name, ucsc_info$value, envir = get(".UCSC_cached_chrom_info", envir = asNamespace('GenomeInfoDb')))
-        assign(ncbi_info$name, ncbi_info$value, envir = get(".NCBI_cached_chrom_info", envir = asNamespace('GenomeInfoDb')))
+        if(identical(names(ncbi_info), c('name', 'value'))) {
+          assign(ncbi_info$name, ncbi_info$value, envir = get(".NCBI_cached_chrom_info", envir = asNamespace('GenomeInfoDb')))
+        } else {
+          for(i in 1:length(ncbi_info)) {
+            assign(ncbi_info[[i]]$name, ncbi_info[[i]]$value, envir = get(".NCBI_cached_chrom_info", envir = asNamespace('GenomeInfoDb')))
+          }
+        }
+        
         suppressWarnings({GenomeInfoDb::seqlevelsStyle(bsg) = seqlevelsStyle(ref[["gr_genes"]])})
       } else {
         stop(e)
