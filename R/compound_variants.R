@@ -75,6 +75,14 @@ VariantSetList = function(cesa, variant_id) {
   # Want to get all IDs, plus SBS corresponding to selected AACs
   all_ids = unique(c(all_ids, cesa@mutations$aac_sbs_key[all_ids, sbs_id, on = 'aac_id', nomatch = NULL]))
   selected = select_variants(cesa, variant_ids = all_ids)
+  
+  # Any non-SBS-related variants will get excluded with a warning, for now
+  not_sbs = selected[! variant_type %in% c('sbs', 'aac'), variant_id]
+  
+  if(length(not_sbs) > 0) {
+    warning("Non-SBS mutations (e.g., DBS) supplied to VariantSetList(); these will be ignored.")
+  }
+  
   selected_sbs = selected[variant_type == "sbs"]
   setkey(selected_sbs, "variant_id")
   selected_aacs = selected[variant_type == "aac"]
@@ -90,7 +98,7 @@ VariantSetList = function(cesa, variant_id) {
   num_coverages_with_sample = cesa@samples[covered_regions != "genome", length(unique(covered_regions))]
   compound_variants = list()
   for (i in 1:length(variant_id)) {
-    current_ids = variant_id[[i]]
+    current_ids = setdiff(variant_id[[i]], not_sbs)
     current_sbs = selected_sbs[current_ids, nomatch = NULL]
     current_sbs_ids = current_sbs$variant_id
     current_coverage = cesa@mutations$variants_to_cov[current_sbs_ids]
@@ -98,18 +106,6 @@ VariantSetList = function(cesa, variant_id) {
       remaining_ids = setdiff(current_ids, current_sbs$variant_id)
       current_aacs = selected_aacs[remaining_ids, nomatch = NULL]
       remaining_ids = setdiff(remaining_ids, current_aacs$variant_id)
-      
-      # handle user input of variant names (in place of IDs)
-      if (length(remaining_ids) > 0) {
-        more_aac = selected_aacs[remaining_ids, nomatch = NULL, on = "variant_name"]
-        remaining_ids = setdiff(remaining_ids, more_aac$variant_id)
-        if(length(remaining_ids) > 0) {
-          # In older refsets, variant_name had underscores.
-          remaining_ids = gsub(" ", "_", remaining_ids)
-          more_aac = rbind(more_aac, selected_aacs[remaining_ids, nomatch = NULL, on = "variant_name"])
-        }
-        current_aacs = rbind(current_aacs, more)
-      }
       
       if (current_aacs[, .N] + current_sbs[, .N] != length(current_ids)) {
         stop("Problem finding unique and complete annotations for variant ", i, " in set.")
@@ -120,7 +116,7 @@ VariantSetList = function(cesa, variant_id) {
       }
       current_sbs_ids = c(current_sbs_ids, sbs_ids_from_aac)
       if (any(duplicated(current_sbs_ids))) {
-        stop("Item ", i, " of input has overlapping sbs/AAC IDs.")
+        stop("Item ", i, " of input has overlapping SBS/AAC IDs.")
       }
       current_coverage = c(current_coverage, cesa@mutations$variants_to_cov[current_aacs$variant_id])
     }

@@ -672,7 +672,7 @@ trinuc_sbs_counts = function(maf,
     }
     
     maf = identify_maf_variants(maf)[variant_type == 'sbs']
-    validate_sbs_ids(maf$variant_id, bsg = bsg)
+    validate_nt_change(maf$variant_id, bsg = bsg)
   }
   
   if(! is.logical(exclude_recurrent) || length(exclude_recurrent) != 1) {

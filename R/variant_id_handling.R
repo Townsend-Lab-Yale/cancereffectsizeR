@@ -1,14 +1,14 @@
-#' validate_sbs_ids
+#' validate_nt_change
 #' 
-#' Ensures SBS IDs are valid for the given genome
+#' Ensures non-indel nucleotide changes are valid for the given genome.
+#' Inputting indel IDs will give an error.
 #' 
-#' @param sbs_ids character vector of sbs_ids
+#' @param variant_ids character vector of variant_ids (SBS, DBS, or similar)
 #' @param bsg BSgenome for getting reference sequence
 #' @keywords internal
-validate_sbs_ids = function(sbs_ids, bsg) {
-  dt = as.data.table(tstrsplit(sbs_ids, split = '[:_>]'))
-  nt = c("A", "C", "G", "T")
-  if(length(dt) != 4 | anyNA(dt)) {
+validate_nt_change = function(variant_ids, bsg) {
+  dt = as.data.table(tstrsplit(variant_ids, split = '[:_>]'))
+  if(length(dt) != 4 || anyNA(dt)) {
     stop("One of the input IDs does not match sbs_id format (e.g., 1:100_A>G)")
   }
   names(dt) = c("chr", "start", "ref", "alt")
@@ -16,12 +16,14 @@ validate_sbs_ids = function(sbs_ids, bsg) {
   if (! all(grepl('^[1-9][0-9]*$', dt$start))) {
     stop("Some sbs IDs have illegal positions (watch out for mistakes like \"2:1e+06_A>C\").")
   }
+  dt[, start := as.numeric(start)]
+  dt[, end := start + nchar(ref) - 1]
   
   
   fail_msg = "Check that chromosome names and genome assembly match the CESAnalysis.\nOriginal error/warning:"
   tryCatch(
     {
-      seqs = as.character(getSeq(bsg, makeGRangesFromDataFrame(dt, start.field = "start", end.field = "start")))
+      seqs = as.character(getSeq(bsg, makeGRangesFromDataFrame(dt, start.field = "start", end.field = "end")))
     },
     error = function(e) {
       stop(paste(fail_msg, e, sep = "\n"), call. = F)
@@ -32,14 +34,14 @@ validate_sbs_ids = function(sbs_ids, bsg) {
   )
   
   if(! all(seqs == dt$ref)) {
-    stop("Incorrect reference allele in one or more sbs IDs.")
+    stop("Incorrect reference allele in one or more variant IDs.")
   }
   
-  if(! all(dt$alt %in% nt)) {
-    stop("sbs alt alleles are not all single DNA bases")
+  if(! all(dt$alt %like% '^[ACTG]+$')) {
+    stop("Variant ID alt sequences do not only contain [ACTG].")
   }
-  if (! all(dt$alt != dt$ref)) {
-    stop("Some sbs alt alleles match the ref alleles.")
+  if (any(dt$alt == dt$ref)) {
+    stop("Some alt alleles match the ref alleles.")
   }
 }
 

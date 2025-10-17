@@ -48,25 +48,38 @@ variant_counts = function(cesa, variant_ids = character(), by = character()) {
     noncoding_sbs_id = variants[variant_type == 'sbs', variant_id]
     aac_ids = variants[variant_type == 'aac', variant_id]
     sbs_from_aac = cesa@mutations$aac_sbs_key[aac_ids, .(aac_id, sbs_id), on = 'aac_id']
+    
+    noncoding_dbs_id = variants[variant_type == 'dbs', variant_id]
+    dbs_aac_ids = variants[variant_type == 'dbs_aac', variant_id]
+    dbs_from_aac = cesa@mutations$aac_dbs_key[dbs_aac_ids, .(dbs_aac_id, dbs_id), on = 'dbs_aac_id']
   } else {
     variants = sort_and_validate_variant_ids(cesa, variant_ids)
     noncoding_sbs_id = variants[['sbs_id']]
     aac_ids = variants[['aac_id']]
+    noncoding_dbs_id = variants[['dbs_id']]
+    dbs_aac_ids = variants[['dbs_aac_id']]
     unannotated = c(setdiff(aac_ids, cesa@mutations$amino_acid_change$aac_id),
-                    setdiff(noncoding_sbs_id, cesa@mutations$sbs$sbs_id))
+                    setdiff(noncoding_sbs_id, cesa@mutations$sbs$sbs_id),
+                    setdiff(noncoding_dbs_id, cesa@mutations$dbs$dbs_id),
+                    setdiff(dbs_aac_ids, cesa@mutations$dbs_codon_change$dbs_aac_id))
     if (length(unannotated) > 0) {
       pretty_message(paste0(length(unannotated), " input variants are being left out of output ",
                             "because they're not annotated in the analysis. (Their MAF prevalence ",
                             "is zero, but samples covering hasn't been calculated.)"))
       aac_ids = setdiff(aac_ids, unannotated)
       noncoding_sbs_id = setdiff(noncoding_sbs_id, unannotated)
+      noncoding_dbs_id = setdiff(noncoding_dbs_id, unannotated)
+      dbs_aac_ids = setdiff(dbs_aac_ids, unannotated)
     }
     sbs_from_aac = cesa@mutations$aac_sbs_key[aac_ids, .(aac_id, sbs_id), on = 'aac_id']
+    dbs_from_aac = cesa@mutations$aac_dbs_key[dbs_aac_ids, .(dbs_aac_id, dbs_id), on = 'dbs_aac_id']
   }
   
   # call internal function
   counts = .variant_counts(cesa, samples = samples_with_by_cols, 
-                           sbs_from_aac = sbs_from_aac, noncoding_sbs_id = noncoding_sbs_id, by_cols = by_cols)
+                           sbs_from_aac = sbs_from_aac, noncoding_sbs_id = noncoding_sbs_id, 
+                           dbs_from_aac = dbs_from_aac, noncoding_dbs_id = noncoding_dbs_id,
+                           by_cols = by_cols)
   setnames(counts, 'cr_copy_for_by', 'covered_regions', skip_absent = TRUE) # in case covered_regions got renamed
   return(counts)
 }
@@ -223,6 +236,8 @@ sort_and_validate_variant_ids = function(cesa, input_ids, drop_unannotated = FAL
   dbs_aac_ids = intersect(input_ids, cesa@mutations$dbs_codon_change$dbs_aac_id)
   input_ids = setdiff(input_ids, dbs_aac_ids)
   
+  other_nt_change = character()
+  
   
   if(length(input_ids) > 0) {
     input_ids = sub(' ', '_', input_ids)
@@ -235,12 +250,16 @@ sort_and_validate_variant_ids = function(cesa, input_ids, drop_unannotated = FAL
   
   # Keep going if all unmatched IDs look valid. (Presumably, these are absent from annotations.)
   if(length(input_ids) > 0) {
-    apparent_sbs = input_ids[grepl(':\\d+_[ACTG]>[ACGT]$', input_ids)]
-    if(length(apparent_sbs) > 0) {
-      validate_sbs_ids(apparent_sbs, get_cesa_bsg(cesa))
+    apparent_nt_change = input_ids[grepl(':\\d+_[ACTG]+>[ACGT]+$', input_ids)]
+    if(length(apparent_nt_change) > 0) {
+      validate_nt_change(apparent_nt_change, get_cesa_bsg(cesa))
     }
     if(! drop_unannotated) {
+      apparent_sbs = apparent_nt_change[apparent_nt_change %like% ':\\d+_[ACTG]>[ACTG]$']
       sbs_ids = union(sbs_ids, apparent_sbs)
+      apparent_dbs = apparent_nt_change[apparent_nt_change %like% ':\\d+_[ACTG][ACTG]>[ACTG][ACTG]$']
+      dbs_ids = union(dbs_ids, apparent_dbs)
+      other_nt_change = setdiff(apparent_nt_change, c(apparent_dbs, apparent_sbs))
     }
     # insert more indel/dbs logic
     apparent_aac = setdiff(input_ids, apparent_sbs)
@@ -255,6 +274,7 @@ sort_and_validate_variant_ids = function(cesa, input_ids, drop_unannotated = FAL
     }
   }
   
-  return(list(sbs_id = sbs_ids, aac_id = aac_ids))
+  return(list(sbs_id = sbs_ids, aac_id = aac_ids, dbs_id = dbs_ids, dbs_aac_id = dbs_aac_ids,
+              other_id = other_nt_change))
 }
 

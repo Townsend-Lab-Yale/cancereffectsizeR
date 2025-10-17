@@ -50,7 +50,8 @@ fwrite(cesa@selection_results[[1]], "default_model_effects_brca_hg38.txt", sep =
 
 
 
-variants_to_use = cesa$variants[gene %in% c('EGFR', 'KRAS', 'TP53') & samples_covering == cesa$samples[, .N]]
+variants_to_use = cesa$variants[gene %in% c('EGFR', 'KRAS', 'TP53') & samples_covering == cesa$samples[, .N] &
+                                  variant_type %in% c('sbs', 'aac')]
 cesa = ces_gene_epistasis(cesa, genes = c("EGFR", "KRAS", "TP53"), variants = variants_to_use, conf = .95)
 saveRDS(cesa$epistasis[[1]], "epistatic_effects.rds")
 

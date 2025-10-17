@@ -1,17 +1,23 @@
 # will use pre-annotated CESAnalysis
 cesa = load_cesa(get_test_file("cesa_hg38_for_test.rds"))
-suppressWarnings({
-  cesa@mutations$dbs_codon_change[, c('nt1_pos', 'nt2_pos', 'nt3_pos') := NULL]
-  cesa@mutations$aac_sbs_key$multi_anno_site = NULL
-  cesa@mutations$aac_dbs_key$multi_anno_site = NULL
-  
-  cesa@mutations$dbs_codon_change[, variant_name := paste0(gene, '_', aachange)]
-  cesa@mutations$dbs_codon_change[ces.refset.hg38$transcripts, is_mane := is_mane, on = c(pid = 'protein_id')]
-  cesa@mutations$dbs_codon_change[is_mane == TRUE, variant_name := gsub('_', ' ', variant_name)]
-  cesa@mutations$dbs_codon_change[is_mane == FALSE, variant_name := paste0(gene, ' ', aachange, ' (', pid, ')')]
-  cesa@mutations$dbs_codon_change[, is_mane := NULL]
-  
-})
+
+# # Temporary fixes (remove later)
+# suppressWarnings({
+#   cesa@mutations$dbs_codon_change[, c('nt1_pos', 'nt2_pos', 'nt3_pos') := NULL]
+#   cesa@mutations$aac_sbs_key$multi_anno_site = NULL
+#   cesa@mutations$aac_dbs_key$multi_anno_site = NULL
+#   
+#   cesa@mutations$dbs_codon_change[, variant_name := paste0(gene, '_', aachange)]
+#   cesa@mutations$dbs_codon_change[ces.refset.hg38$transcripts, is_mane := is_mane, on = c(pid = 'protein_id')]
+#   cesa@mutations$dbs_codon_change[is_mane == TRUE, variant_name := gsub('_', ' ', variant_name)]
+#   cesa@mutations$dbs_codon_change[is_mane == FALSE, variant_name := paste0(gene, ' ', aachange, ' (', pid, ')')]
+#   cesa@mutations$dbs_codon_change[, is_mane := NULL]
+#   cesa@mutations$dbs_codon_change[, essential_splice := as.logical(essential_splice)]
+#   cesa@mutations$dbs_codon_change[, let(start = 5, end = 6)]
+#   cesa@mutations$dbs[, let(essential_splice = as.logical(essential_splice),
+#                            intergenic = as.logical(intergenic))]
+#   cesa@advanced$cached_variants = select_variants(cesa)
+# })
 
 # Make sure baseline_mutation_rates is working (requires full mutation ID)
 # Try taking just one AAC rate in one sample
@@ -142,7 +148,8 @@ test_that("Variant-level epistasis", {
 
 test_that("Gene-level SBS epistasis analysis", {
   variants_to_use = cesa$variants[gene %in% c('EGFR', 'KRAS', 'TP53') & samples_covering == cesa$samples[, .N]]
-  cesa = ces_gene_epistasis(cesa, genes = c("EGFR", "KRAS", "TP53"), variants = variants_to_use, conf = .95)
+  cesa = expect_warning(ces_gene_epistasis(cesa, genes = c("EGFR", "KRAS", "TP53"), variants = variants_to_use, conf = .95),
+                        'Non-SBS') # VariantSetList() will complain about the DBS in variants_to_use.
   results_ak = get_test_data("epistatic_effects.rds")
   # change in optimization control since generating test data has changed output, but still within this tolerance
   setcolorder(cesa@epistasis[[1]], neworder = names(results_ak))

@@ -113,6 +113,14 @@ annotate_dbs = function(dbs, refset) {
     dbs_anno[, intergenic := intergenic.sbs1 == TRUE & intergenic.sbs2 == TRUE]
     dbs_anno[, essential_splice := essential_splice.sbs1 == TRUE | essential_splice.sbs2 == TRUE]
     
+    # Codon (or codon pair) genomic start/end. NA when there is no codon.
+    dbs_anno[! (is.na(aac_id.sbs1) & is.na(aac_id.sbs2)), start := apply(.SD, 1, min, na.rm = TRUE),
+             .SDcols = c("nt1_pos.sbs1", "nt2_pos.sbs1", "nt3_pos.sbs1", "nt1_pos.sbs2", 
+                                                      "nt2_pos.sbs2", "nt3_pos.sbs2")]
+    dbs_anno[! (is.na(aac_id.sbs1) & is.na(aac_id.sbs2)), end := apply(.SD, 1, max, na.rm = TRUE),
+             .SDcols = c("nt1_pos.sbs1", "nt2_pos.sbs1", "nt3_pos.sbs1", "nt1_pos.sbs2", 
+                         "nt2_pos.sbs2", "nt3_pos.sbs2")]
+    
     # DBS table is for non-AAC information (analogous to the sbs annotation table)
     # cosmic_dbs_class will get filled it later
     final_dbs = unique(rbind(final_dbs, dbs_anno[, .(dbs_id, chr, pos, ref, alt, intergenic, essential_splice)]))
@@ -151,7 +159,7 @@ annotate_dbs = function(dbs, refset) {
       
       # Use the two_codon_dbs_key to get all dinucleotides that produce the aa_alt given the aa_alt and enclosing_seq
       double_codon_change = two_codon[, .(chr, pid, essential_splice, strand = strand.sbs1, gene = gene.sbs1, aa_ref, 
-                                          aa_pos = aa_pos, coding_seq, pos, ref,
+                                          aa_pos = aa_pos, coding_seq, pos, start, end, ref,
                                           aa_alt = aa_alt, alt = two_codon_dbs_key[[enclosing_seq]][[aa_alt]]), by = .I]
       
       # For negative-stranded coding sequence, reverse compelement to get genomic alt allele
@@ -186,7 +194,7 @@ annotate_dbs = function(dbs, refset) {
     
     if(codon_change[, .N] > 0) {
       # Reduce codon_change to what's needed.
-      codon_change = codon_change[, .(dbs_id, chr, pos, ref, alt, pid, essential_splice, intergenic, 
+      codon_change = codon_change[, .(dbs_id, chr, start, end, pos, ref, alt, pid, essential_splice, intergenic, 
                                       strand = strand.sbs1, gene = gene.sbs1, aa_ref = aa_ref.sbs1,
                                       aa_pos = aa_pos.sbs1, nt1_pos = nt1_pos.sbs1, nt2_pos = nt2_pos.sbs1,
                                       nt3_pos = nt3_pos.sbs1, coding_seq = coding_seq.sbs1)]

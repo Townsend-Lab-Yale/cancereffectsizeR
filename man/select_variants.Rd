@@ -68,7 +68,8 @@ Definitions of some less self-explanatory columns:
   (ces.refset.hg19, versions of ces.refset.hg38 < 1.3, and any custom reference data set that
   doesn't have complete information on canonical transcripts), the variant name is a 
   shortening of the variant_id.
-  \item start/end: lowest/highest genomic positions overlapping variant
+  \item start/end: Lowest/highest genomic positions of the nucleotide change, or of the codon(s) for 
+  codon-changing variants.
   \item variant_id: unique IDs for variants given the associated genome assembly version and the transcript data
   \item ref/alt: genomic reference and alternate alleles (for genomic
   variants; NA for AACs) 

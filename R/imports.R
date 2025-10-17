@@ -36,11 +36,12 @@ aac_sbs_key_template = data.table(aac_id = character(), sbs_id = character(), ke
 
 
 dbs_annotation_template = data.table(dbs_id = character(), chr = character(), pos = numeric(), ref = character(), 
-                                     alt = character(), intergenic = character(), essential_splice = character(),
+                                     alt = character(), intergenic = logical(), essential_splice = logical(),
                                      cosmic_dbs_class = character())
 
-dbs_codon_change_template = data.table(variant_name = character(), chr = character(), pid = character(), 
-                                       essential_splice = character(), strand = character(), gene = character(), 
+dbs_codon_change_template = data.table(variant_name = character(), chr = character(), start = numeric(),
+                                       end = numeric(), pid = character(), 
+                                       essential_splice = logical(), strand = character(), gene = character(), 
                                        aa_ref = character(), aa_pos = character(), coding_seq = character(), 
                                        aa_alt = character(), aachange = character(), dbs_aac_id = character())
 

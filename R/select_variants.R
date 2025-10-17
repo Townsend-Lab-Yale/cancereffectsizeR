@@ -22,7 +22,8 @@
 #'   (ces.refset.hg19, versions of ces.refset.hg38 < 1.3, and any custom reference data set that
 #'   doesn't have complete information on canonical transcripts), the variant name is a 
 #'   shortening of the variant_id.
-#'   \item start/end: lowest/highest genomic positions overlapping variant
+#'   \item start/end: Lowest/highest genomic positions of the nucleotide change, or of the codon(s) for 
+#'   codon-changing variants.
 #'   \item variant_id: unique IDs for variants given the associated genome assembly version and the transcript data
 #'   \item ref/alt: genomic reference and alternate alleles (for genomic
 #'   variants; NA for AACs) 
@@ -192,11 +193,11 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
     matching_aac_ids = cesa@mutations$amino_acid_change[variant_ids, aac_id, nomatch = NULL]
     matching_dbs_ids = cesa@mutations$dbs[variant_ids, dbs_id, on = 'dbs_id', nomatch = NULL]
     matching_dbs_aac_ids = cesa@mutations$dbs_codon_change[variant_ids, dbs_aac_id, on = 'dbs_aac_id', nomatch = NULL]
+  
     
-    # KNOWN ISSUE: spaces should be accepted in SBS/DBS ID
     missing_ids = setdiff(variant_ids, c(matching_sbs_ids, matching_aac_ids, matching_dbs_ids, matching_dbs_aac_ids))
     
-    # if any IDs are missing, try to interpret them as "short" AAC names (i.e., without protein ID)
+    # if any IDs are missing, try to interpret them as variant_name
     if (length(missing_ids) > 0) {
       aac_matches = cesa@mutations$amino_acid_change[missing_ids, on = "variant_name"]
       
@@ -204,6 +205,13 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
       
       dbs_aac_matches = cesa@mutations$dbs_codon_change[missing_ids, on = 'variant_name']
       missing_ids = dbs_aac_matches[is.na(dbs_aac_id), variant_name]
+      
+      sbs_matches = cesa@mutations$sbs[missing_ids, on = "variant_name"]
+      missing_ids = sbs_matches[is.na(sbs_id), variant_name]
+      
+      tmp = copy(cesa@mutations$dbs)[, variant_name := sub('_', ' ', dbs_id)]
+      dbs_matches = tmp[missing_ids, on = 'variant_name']
+      missing_ids = dbs_matches[is.na(dbs_id), variant_name]
       
       if (length(missing_ids) > 0) {
         num_missing = length(missing_ids)
@@ -213,7 +221,9 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
       }
       matching_aac_ids = c(matching_aac_ids, aac_matches$aac_id)
       matching_dbs_aac_ids = c(matching_dbs_aac_ids, dbs_aac_matches$dbs_aac_id)
-      if (any(duplicated(aac_matches$variant_name) || any(duplicated(dbs_aac_matches$variant_name)))) {
+      matching_sbs_ids = c(matching_sbs_ids, sbs_matches$sbs_id)
+      matching_dbs_ids = c(matching_dbs_ids, dbs_matches$dbs_id)
+      if (any(duplicated(aac_matches$variant_name)) || any(duplicated(dbs_aac_matches$variant_name))) {
         msg = paste0("Amino acid changes with no protein ID (styled like \"KRAS G12C\") were recognized and matched ",
                      "with specific variant IDs. However, some of your variant names matched more than ",
                      "one aac_id (i.e., the same amino acid change is possible on multiple protein isoforms, and both are present ",
@@ -319,10 +329,14 @@ select_variants = function(cesa, genes = NULL, min_freq = 0, variant_ids = NULL,
   }
   
   if(selected_dbs_aac[, .N] > 0) {
-    # KNOWN ISSUE: start/end NA
-    selected_dbs_aac[, let(variant_type = 'dbs_aac', intergenic = FALSE,
-                           start = NA, end = NA)]
+    for_merge = cesa@mutations$aac_dbs_key[selected_dbs_aac$dbs_aac_id, .(dbs_aac_id, dbs_id), on = 'dbs_aac_id']
+    for_merge[cesa@mutations$dbs, let(pos = pos, intergenic = intergenic, essential_splice = essential_splice),
+              on = 'dbs_id']
+    for_merge = for_merge[, .(start = min(pos), end = max(pos), intergenic = all(intergenic), 
+                              essential_splice = any(essential_splice)), by = 'dbs_aac_id']
+    # To-do: Merge in the content
     setnames(selected_dbs_aac, 'dbs_aac_id', 'variant_id')
+    selected_dbs_aac[, let(variant_type = 'dbs_aac', intergenic = FALSE)]
     combined = rbind(combined, selected_dbs_aac, fill = TRUE, use.names = T)
   }
   

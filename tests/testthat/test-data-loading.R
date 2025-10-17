@@ -166,7 +166,7 @@ test_that('Noncoding DBS MAF annotates', {
   anno = annotate_variants(ces.refset.hg38, dbs_maf)
   expected_anno = list(list(c("13:112091000_TC>AA", "8:85401532_TT>CC"),
                             c("13", "8"), c(112091000, 85401532), c("TC", "TT"), c("AA", "CC"), 
-                            c("TRUE", "TRUE"), c("FALSE", "FALSE"), c("TC>AA", "TT>CC")), 
+                            c(TRUE, TRUE), c(FALSE, FALSE), c("TC>AA", "TT>CC")), 
                        dbs_codon_change_template)
   expect_equivalent(anno[c('dbs', 'dbs_codon_change')], expected_anno)
 })

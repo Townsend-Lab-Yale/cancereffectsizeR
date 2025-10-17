@@ -6,12 +6,14 @@
 #' @param variants MAF-like data.table of SBS.
 #' @keywords internal
 annotate_sbs = function(sbs, refset) {
-  
   output = list(amino_acid_change = aac_annotation_template, sbs = sbs_annotation_template,
                 aac_sbs_key = aac_sbs_key_template)
   if(sbs[, .N] == 0) {
     return(output)
   }
+  
+  sbs = sbs[! duplicated(variant_id), .(Chromosome, Start_Position, Reference_Allele, Tumor_Allele, 
+                                        variant_id, variant_type)]
   RefCDS = refset$RefCDS
   gr_cds = refset$gr_genes
   bsg = refset$genome

@@ -155,7 +155,7 @@ add_variants = function(target_cesa = NULL, variant_table = NULL, sbs_id = NULL,
       stop("Expected sbs_id to be character vector of sbs_ids (e.g., 1:100_A>G", call. = F)
     }
     # will stop with errror if any IDs fail validation
-    validate_sbs_ids(sbs_id, get_cesa_bsg(target_cesa))
+    validate_nt_change(sbs_id, get_cesa_bsg(target_cesa))
     sbs_to_annotate = sbs_id
   }
   
