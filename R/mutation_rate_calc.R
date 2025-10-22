@@ -75,14 +75,14 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, sbs_ids = NULL, variant
   }
   
   # Let user specify a subset of samples to calculate rates (or, by default, use all samples)
-  mutations = copy(cesa@mutations)
+  mutations = list()
   sbs_needed = sbs_ids
   
   # can drop AAC mutations not requested
   if(length(aac_ids) > 0) {
-    mutations$amino_acid_change = mutations$amino_acid_change[aac_ids]
+    mutations$amino_acid_change = copy(cesa@mutations$amino_acid_change[aac_ids])
     setkey(mutations$amino_acid_change, "aac_id")
-    sbs_needed = union(sbs_needed, mutations$aac_sbs_key[aac_ids, sbs_id, on = 'aac_id'])
+    sbs_needed = union(sbs_needed, cesa@mutations$aac_sbs_key[aac_ids, sbs_id, on = 'aac_id'])
   } else {
     mutations$amino_acid_change = data.table()
   }
@@ -95,9 +95,9 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, sbs_ids = NULL, variant
   }
   
   if(is.null(sbs_needed)) {
-    mutations$sbs = mutations$sbs[0]
+    mutations$sbs = cesa@mutations$sbs[0]
   } else {
-    mutations$sbs = mutations$sbs[sbs_needed, on = 'sbs_id']
+    mutations$sbs = copy(cesa@mutations$sbs[sbs_needed, on = 'sbs_id'])
   }
   setkey(mutations$sbs, 'sbs_id')
   
@@ -170,9 +170,9 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, sbs_ids = NULL, variant
   sample_region_rates[, aggregate_rate := raw_rate / sum(cds_trinuc_comp[[region]] * trinuc_rates[[patient_id]]), by = c("region", "patient_id")]
   setkey(sample_region_rates, "region")
   
-  if(length(aac_ids > 0)) {
-    mutations$aac_sbs_key[mutations$sbs, trinuc_mut := trinuc_mut, on = 'sbs_id']
-    trinuc_mut_by_aac = mutations$aac_sbs_key[aac_ids, .(aac_id, trinuc_mut), on = 'aac_id']
+  if(length(aac_ids) > 0) {
+    for_trinuc = cesa@mutations$aac_sbs_key[mutations$sbs, .(aac_id, trinuc_mut, sbs_id), on = 'sbs_id']
+    trinuc_mut_by_aac = for_trinuc[aac_ids, .(aac_id, trinuc_mut), on = 'aac_id']
 
     if (using_pid) {
       mutations$amino_acid_change[, region := pid]
@@ -192,7 +192,6 @@ baseline_mutation_rates = function(cesa, aac_ids = NULL, sbs_ids = NULL, variant
   } else {
     final_aac_rates = data.table(patient_id = samples$patient_id)
   }
-
   # repeat with SBS (slightly different handling since SBS can have more than one gene/pid associated)
   if (length(sbs_ids) > 0) {
     if(length(sbs_ids) > 1000) {

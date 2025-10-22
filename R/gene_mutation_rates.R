@@ -79,12 +79,24 @@ gene_mutation_rates <- function(cesa, covariates = NULL, samples = character(), 
     warning("Calculating gene mutation rates with no covariate data; stop and re-run with covariates if available.\n",
             "(Check with list_ces_covariates(); for hg19 only, you can also specify \"default\" for dNdScv default\n",
             "covariates.)", call. = F, immediate. = T)
-  } else if (is(covariates, "character") && (covariates[1] == "default" || covariates[1] == "hg19")) {
+  } else if (is(covariates, "character") && (covariates[1] == "default" || covariates[1] %in% c("hg19", "hg38"))) {
     skip_covariate_validation = ! using_cds_rates # will need to handle gene/CDS issue if using gene-based dNdScv covariates with CDS-based refset
     if(cesa@advanced$genome_info$build_name == 'hg19') {
       pretty_message("Loading dNdScv default covariates for hg19 (stop and re-run with tissue-specific covariates if available)...")
       data("covariates_hg19", package = "dndscv", envir = environment())
       cv = covs # dNdScv object from data() call
+      genes_in_pca <- rownames(cv)
+    } else if(cesa@advanced$genome_info$build_name == 'hg38') {
+      withCallingHandlers(
+        data("covariates_hg19_hg38_epigenome_pcawg", package = "dndscv", envir = environment()),
+        warning = function(w) {
+          if (conditionMessage(w) %ilike% 'data set.* not found') {
+            stop('Could not find dNdScv\'s hg38 covariates. Try re-installing dNdScv.', call. = FALSE)
+          }
+        }
+      )
+      pretty_message("Loaded dNdScv default covariates for hg38. (Stop and re-run with tissue-specific covariates if available.)")
+      cv = covs[rownames(covs) %in% names(RefCDS),] # dNdScv object from data() call, subsetted to annotated genes
       genes_in_pca <- rownames(cv)
     } else {
       stop("There is no default covariates data for this genome build, so you'll need to supply your own\n",

@@ -6,7 +6,7 @@
 \usage{
 ces_variant(
   cesa = NULL,
-  variants = select_variants(cesa, min_freq = 2),
+  variants = NULL,
   samples = character(),
   model = "default",
   run_name = "auto",
@@ -24,9 +24,7 @@ ces_variant(
 
 \item{variants}{Which variants to estimate effects for, specified with a variant table such as
 from \code{[CESAnalysis]$variants} or \code{select_variants()}, or a \code{VariantSetList}
-from \code{define_variant_sets()}. Defaults to all recurrent mutations; that is,
-\code{[CESAnalysis]$variants[maf_prevalence > 1]}. To include all variants, set to
-\code{[CESAnalysis]$variants}.}
+from \code{define_variant_sets()}.}
 
 \item{samples}{Which samples to include in inference. Defaults to all samples. Can be a vector of
 patient_ids, or a data.table containing rows from the CESAnalysis sample table.}

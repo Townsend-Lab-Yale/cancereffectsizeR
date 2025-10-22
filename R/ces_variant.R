@@ -33,9 +33,7 @@
 #'   patient_ids, or a data.table containing rows from the CESAnalysis sample table.
 #' @param variants Which variants to estimate effects for, specified with a variant table such as
 #'   from \code{[CESAnalysis]$variants} or \code{select_variants()}, or a \code{VariantSetList}
-#'   from \code{define_variant_sets()}. Defaults to all recurrent mutations; that is,
-#'   \code{[CESAnalysis]$variants[maf_prevalence > 1]}. To include all variants, set to
-#'   \code{[CESAnalysis]$variants}.
+#'   from \code{define_variant_sets()}.
 #' @param model Set to "basic" (default) or "sequential" (not yet available) to use built-in
 #'   models of selection, or supply a custom function factory (see details).
 #' @param run_name Optionally, a name to identify the current run.
@@ -52,7 +50,7 @@
 #' @return CESAnalysis with selection results appended to the selection output list
 #' @export
 ces_variant <- function(cesa = NULL,
-                        variants = select_variants(cesa, min_freq = 2),
+                        variants = NULL,
                         samples = character(),
                         model = "default",
                         run_name = "auto",
@@ -172,6 +170,9 @@ ces_variant <- function(cesa = NULL,
   
   # If an input variant table came directly from select_variants() and the variants are non-overlapping,
   # just accept the table. Otherwise, re-select the variants with the variant_id field.
+  if(is.null(variants)) {
+    stop('Use the argument \"variants\" to specify variants for cancer effect inference.')
+  }
   if (is(variants, "data.table")) {
     if(! "variant_id" %in% names(variants)) {
       stop("variants table is missing a variant_id column. Typically, variants is generated using select_variants().")
@@ -268,156 +269,152 @@ ces_variant <- function(cesa = NULL,
   setkey(maf, "variant_id")
   setkey(variants, "variant_id")
   
-  selection_results = lapply(1:length(coverage_groups), function(i) {
+  sample_by_cov_group = list()
+  for(i in 1:length(coverage_groups)) {
     coverage_group = coverage_groups[[i]]
-    # one coverage group may be NA, for variants that are not covered by any specific covered_regions
-    if(length(coverage_group) == 1 && is.na(coverage_group)) {
-      curr_variants = variants[which(sapply(variants$covered_in, function(x) identical(x, NA_character_)))]
-    } else {
-      curr_variants = variants[which(sapply(variants$covered_in, function(x) identical(x, coverage_group)))]
-    }
-    message(sprintf("Preparing to calculate cancer effects (batch %i of %i)...", i, num_coverage_groups))
     covered_samples = c(samples[coverage_group, patient_id, nomatch = NULL], genome_wide_cov_samples)
-    variants[curr_variants$variant_id, num_covered_and_in_samples := length(covered_samples), on = 'variant_id']
-    
-    # When not all samples are used, it's possible that no sampels will have coverage at the input variants.
-    if(length(covered_samples) == 0) {
-      # message("Skipped batch ", i, " because no samples had coverage at the variant sites in the batch.")
-      return(list(data.table(), NULL))
+    sample_by_cov_group[[i]] = covered_samples
+    if(length(coverage_group) == 1 && is.na(coverage_group)) {
+      variants[which(sapply(variants$covered_in, function(x) identical(x, NA_character_))), cov_grp := i]
+    } else {
+      variants[which(sapply(variants$covered_in, function(x) identical(x, coverage_group))), cov_grp := i]
     }
-    # rough size of baseline rates data.table in bytes, if all included in one table
-    work_size = length(covered_samples) * curr_variants[,.N] * 8
+    variants[cov_grp == i, num_covered_and_in_samples := length(covered_samples), on = 'variant_id']
+  }
+  
+  
+  # work_size = length(covered_samples) * curr_variants[,.N] * 8
+  
+  # In general, let's have no more than 100 variants per group (for a buttery progress bar).
+  num_cov_groups = unique(variants$cov_grp)
+  num_proc_groups = ceiling(variants[, .N] / 100)
+  variants = variants[order(cov_grp)]
+  variants[, tmp1 := ceiling(num_proc_groups * 1:.N / .N)]
+  variants[, tmp2 := paste0(cov_grp, '.', tmp1)]
+  variants[, subgroup := .GRP, by = 'tmp2']
+  variants[, let(tmp1 = NULL, tmp2 = NULL)]
+  num_proc_groups = max(variants$subgroup)
+  
+  # Exception: All variants within a variant set must be processed together.
+  if (running_compound) {
+    # can't have subvariants of the same compound variant ending up in different subgroups
+    variants[, subgroup := rep.int(subgroup[1], .N), by = "set_id"]
+    num_proc_groups = uniqueN(variants$subgroup) # some subgroups may have been dropped
+  }
+  message("Calculating mutation rates and fitting cancer effect models...")
+  curr_results = pbapply::pblapply(unique(variants$subgroup), function(j) {
+    curr_subgroup = variants[subgroup == j]
     
-    # we divide into subgroups to cap baseline rates table at around 1 GB
-    num_proc_groups = ceiling(work_size / 1e9)
-    curr_variants[, subgroup := ceiling(num_proc_groups * 1:.N / .N)]
+    aac_ids = curr_subgroup[variant_type == "aac", variant_id]
+    sbs_ids = curr_subgroup[variant_type == "sbs", variant_id]
     
-    if (running_compound) {
-      # can't have subvariants of the same compound variant ending up in different subgroups
-      curr_variants[, subgroup := rep.int(subgroup[1], .N), by = "set_id"]
-      num_proc_groups = max(curr_variants$subgroup) # rarely, last subgroup dropped by above
-    }
+    covered_samples = sample_by_cov_group[[curr_subgroup$cov_grp[1]]]
+    baseline_rates = baseline_mutation_rates(cesa, aac_ids = aac_ids, sbs_ids = sbs_ids, samples = covered_samples)
     
-    
-    curr_results = lapply(1:num_proc_groups, function(j) {
-      if (num_proc_groups > 1) {
-        message(sprintf("Working on sub-batch %i of %i...", j, num_proc_groups))
+    # function to run MLE on given variant_id (vector of IDs for compound variants)
+    process_variant = function(variant_id) {
+      if(running_compound) {
+        compound_id = variant_id
+        # Important: sample_calls includes samples that are not in shared coverage
+        tumors_with_variant = intersect(compound_variants@sample_calls[[compound_id]], covered_samples)
+        current_sbs = compound_variants@sbs[set_id == compound_id]
+        all_genes = current_sbs[, unique(unlist(genes))]
+        variant_id = current_sbs$sbs_id
+        rates = baseline_rates[, ..variant_id]
+        # Sum Poisson rates across variants
+        rates = rowSums(rates)
+      } else {
+        tumors_with_variant = samples_by_variant[[variant_id]]
+        all_genes = get0(variant_id, envir = gene_lookup, ifnotfound = NA_character_)
+        rates = baseline_rates[, ..variant_id][[1]]
       }
-      curr_subgroup = curr_variants[subgroup == j]
-      aac_ids = curr_subgroup[variant_type == "aac", variant_id]
-      sbs_ids = curr_subgroup[variant_type == "sbs", variant_id]
+      names(rates) = baseline_rates[, patient_id]
       
-      baseline_rates = baseline_mutation_rates(cesa, aac_ids = aac_ids, sbs_ids = sbs_ids, samples = covered_samples)
-      
-      # function to run MLE on given variant_id (vector of IDs for compound variants)
-      process_variant = function(variant_id) {
-        if(running_compound) {
-          compound_id = variant_id
-          # Important: sample_calls includes samples that are not in shared coverage
-          tumors_with_variant = intersect(compound_variants@sample_calls[[compound_id]], covered_samples)
-          current_sbs = compound_variants@sbs[set_id == compound_id]
-          all_genes = current_sbs[, unique(unlist(genes))]
-          variant_id = current_sbs$sbs_id
-          rates = baseline_rates[, ..variant_id]
-          # Sum Poisson rates across variants
-          rates = rowSums(rates)
-        } else {
-          tumors_with_variant = samples_by_variant[[variant_id]]
-          all_genes = get0(variant_id, envir = gene_lookup, ifnotfound = NA_character_)
-          rates = baseline_rates[, ..variant_id][[1]]
-        }
-        names(rates) = baseline_rates[, patient_id]
-        
-        # usually but not always just 1 gene when not compound (when compound, anything possible)
-        if (hold_out_same_gene_samples) {
-          if (length(all_genes) == 1) {
-            if(is.na(all_genes)) {
-              tumors_with_gene_mutated = tumors_with_variant
-            } else {
-              tumors_with_gene_mutated = tumors_with_variants_by_gene[[all_genes]]
-            }
+      # usually but not always just 1 gene when not compound (when compound, anything possible)
+      if (hold_out_same_gene_samples) {
+        if (length(all_genes) == 1) {
+          if(is.na(all_genes)) {
+            tumors_with_gene_mutated = tumors_with_variant
           } else {
-            tumors_with_gene_mutated = unique(unlist(sapply(all_genes, function(x) tumors_with_variants_by_gene[[x]])))
+            tumors_with_gene_mutated = tumors_with_variants_by_gene[[all_genes]]
           }
-          tumors_without = setdiff(covered_samples, tumors_with_gene_mutated)
         } else {
-          tumors_without = setdiff(covered_samples, tumors_with_variant)
+          tumors_with_gene_mutated = unique(unlist(sapply(all_genes, function(x) tumors_with_variants_by_gene[[x]])))
         }
-        rates_tumors_with = rates[tumors_with_variant]
-        rates_tumors_without = rates[tumors_without]
-        
-        
-        lik_args = c(list(rates_tumors_with = rates_tumors_with, rates_tumors_without = rates_tumors_without), 
-                     lik_args)
-        fn = do.call(lik_factory, lik_args)
-        par_init = formals(fn)[[1]]
-        names(par_init) = bbmle::parnames(fn)
-        # find optimized selection intensities
-        # the selection intensity for any stage that has 0 variants will be on the lower boundary; will muffle the associated warning
-        final_optimizer_args = c(list(minuslogl = fn, start = par_init, vecpar = T), optimizer_args)
-
-        withCallingHandlers(
-          {
-            fit = do.call(bbmle::mle2, final_optimizer_args)
-          },
-          warning = function(w) {
-            if (startsWith(conditionMessage(w), "some parameters are on the boundary")) {
-              invokeRestart("muffleWarning")
-            }
-            if (grepl(x = conditionMessage(w), pattern = "convergence failure")) {
-              # a little dangerous to muffle, but so far these warnings are
-              # quite rare and have been harmless
-              invokeRestart("muffleWarning") 
-            }
-          }
-        )
-        
-        selection_intensity = bbmle::coef(fit)
-        loglikelihood = as.numeric(bbmle::logLik(fit))
-        
-        if (running_compound) {
-          variant_id = compound_id
-        }
-        variant_output = c(list(variant_id = variant_id), 
-                           as.list(selection_intensity),
-                           list(loglikelihood = loglikelihood))
-        
-        # Record counts of total samples included in inference and included samples with the variant.
-        # This may vary from the naive output of variant_counts() due to issues of sample coverage and 
-        # (by default) the use of hold_out_same_gene_samples = TRUE.
-        
-        num_samples_with = length(tumors_with_variant)
-        num_samples_total = num_samples_with + length(tumors_without)
-        variant_output = c(variant_output, list(included_with_variant = num_samples_with,
-                                                included_total = num_samples_total))
-
-        if(! is.null(conf)) {
-          min_value = ifelse(is.null(final_optimizer_args$lower), -Inf, final_optimizer_args$lower)
-          max_value = ifelse(is.null(final_optimizer_args$upper), Inf, final_optimizer_args$upper)
-          variant_output = c(variant_output, 
-                             univariate_si_conf_ints(fit, fn, min_value, max_value, conf))
-        }
-        return(list(summary = variant_output, fit = if (return_fit) fit else NULL))
+        tumors_without = setdiff(covered_samples, tumors_with_gene_mutated)
+      } else {
+        tumors_without = setdiff(covered_samples, tumors_with_variant)
       }
+      rates_tumors_with = rates[tumors_with_variant]
+      rates_tumors_without = rates[tumors_without]
+      
+      
+      lik_args = c(list(rates_tumors_with = rates_tumors_with, rates_tumors_without = rates_tumors_without), 
+                   lik_args)
+      fn = do.call(lik_factory, lik_args)
+      par_init = formals(fn)[[1]]
+      names(par_init) = bbmle::parnames(fn)
+      # find optimized selection intensities
+      # the selection intensity for any stage that has 0 variants will be on the lower boundary; will muffle the associated warning
+      final_optimizer_args = c(list(minuslogl = fn, start = par_init, vecpar = T), optimizer_args)
+      
+      withCallingHandlers(
+        {
+          fit = do.call(bbmle::mle2, final_optimizer_args)
+        },
+        warning = function(w) {
+          if (startsWith(conditionMessage(w), "some parameters are on the boundary")) {
+            invokeRestart("muffleWarning")
+          }
+          if (grepl(x = conditionMessage(w), pattern = "convergence failure")) {
+            # a little dangerous to muffle, but so far these warnings are
+            # quite rare and have been harmless
+            invokeRestart("muffleWarning") 
+          }
+        }
+      )
+      
+      selection_intensity = bbmle::coef(fit)
+      loglikelihood = as.numeric(bbmle::logLik(fit))
       
       if (running_compound) {
-        variants_to_run = curr_subgroup[, unique(set_id)]
-      } else {
-        variants_to_run = curr_subgroup$variant_id
+        variant_id = compound_id
       }
-      message("Calculating cancer effects...")
-      subgroup_results = pbapply::pblapply(variants_to_run, process_variant, cl = cores)
-      subgroup_selection = rbindlist(lapply(subgroup_results, '[[', 1))
-      subgroup_fit = lapply(subgroup_results, '[[', 2)
-      return(list(subgroup_selection, subgroup_fit))
-    })
-    group_selection = rbindlist(lapply(curr_results, '[[', 1))
-    group_fit = lapply(curr_results, '[[', 2)
-    return(list(group_selection, group_fit))
-  })
-  
-  fits = unlist(lapply(selection_results, '[[', 2))
-  selection_results = rbindlist(lapply(selection_results, '[[', 1))
+      variant_output = c(list(variant_id = variant_id), 
+                         as.list(selection_intensity),
+                         list(loglikelihood = loglikelihood))
+      
+      # Record counts of total samples included in inference and included samples with the variant.
+      # This may vary from the naive output of variant_counts() due to issues of sample coverage and 
+      # (by default) the use of hold_out_same_gene_samples = TRUE.
+      
+      num_samples_with = length(tumors_with_variant)
+      num_samples_total = num_samples_with + length(tumors_without)
+      variant_output = c(variant_output, list(included_with_variant = num_samples_with,
+                                              included_total = num_samples_total))
+      
+      if(! is.null(conf)) {
+        min_value = ifelse(is.null(final_optimizer_args$lower), -Inf, final_optimizer_args$lower)
+        max_value = ifelse(is.null(final_optimizer_args$upper), Inf, final_optimizer_args$upper)
+        variant_output = c(variant_output, 
+                           univariate_si_conf_ints(fit, fn, min_value, max_value, conf))
+      }
+      return(list(summary = variant_output, fit = if (return_fit) fit else NULL))
+    }
+    
+    if (running_compound) {
+      variants_to_run = curr_subgroup[, unique(set_id)]
+    } else {
+      variants_to_run = curr_subgroup$variant_id
+    }
+    subgroup_results = lapply(variants_to_run, process_variant)
+    subgroup_selection = rbindlist(lapply(subgroup_results, '[[', 1))
+    subgroup_fit = lapply(subgroup_results, '[[', 2)
+    return(list(subgroup_selection, subgroup_fit))
+  }, cl = cores)
+    
+  selection_results = rbindlist(lapply(curr_results, '[[', 1))
+  fits = lapply(curr_results, '[[', 2)
   
   if(selection_results[, .N] == 0) {
     msg = paste0("No selection inference was performed, so returning CESAnalysis unaltered without selection output. ", 
