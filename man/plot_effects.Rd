@@ -22,7 +22,8 @@ plot_effects(
   label_individual_variants = TRUE,
   order_by_effect = TRUE,
   prevalence_method = "auto",
-  show_ci = TRUE
+  show_ci = TRUE,
+  seed = NULL
 )
 }
 \arguments{
@@ -83,6 +84,9 @@ a percentage of samples with sequencing coverage at the site ("percent"). If the
 has the same number of samples covering every inference, you can choose "both".}
 
 \item{show_ci}{TRUE/FALSE to depict confidence intervals in plot (default TRUE).}
+
+\item{seed}{Specify an integer seed for reproducible output. Tweak if you don't like label or
+point placements.}
 }
 \value{
 A ggplot
