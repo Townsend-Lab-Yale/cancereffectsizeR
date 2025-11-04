@@ -20,6 +20,7 @@ plot_effects(
   viridis_option = "cividis",
   legend_size_breaks = "auto",
   label_individual_variants = TRUE,
+  label_text_size = NULL,
   order_by_effect = TRUE,
   prevalence_method = "auto",
   show_ci = TRUE,
@@ -75,6 +76,9 @@ name that supplies a label for each row in the effects table. By default, varian
 used for labels. If group_by is exactly "gene", labels will be shortened to just the amino acid
 changes. Some labels will be omitted (with a warning) if it seems there are too many to display
 in the plot space.}
+
+\item{label_text_size}{Manually specify (scalar numeric) size of individual variant labels. When NULL, 
+size is determined via an internal algorithm.}
 
 \item{order_by_effect}{When TRUE (default), variants are plotted in order of effect. When FALSE,
 variants are plotted top-down in the order they are supplied.}

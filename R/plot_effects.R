@@ -36,6 +36,8 @@
 #'   used for labels. If group_by is exactly "gene", labels will be shortened to just the amino acid
 #'   changes. Some labels will be omitted (with a warning) if it seems there are too many to display
 #'   in the plot space.
+#' @param label_text_size Manually specify (scalar numeric) size of individual variant labels. When NULL, 
+#' size is determined via an internal algorithm.
 #' @param order_by_effect When TRUE (default), variants are plotted in order of effect. When FALSE,
 #'   variants are plotted top-down in the order they are supplied.
 #' @param show_ci TRUE/FALSE to depict confidence intervals in plot (default TRUE).
@@ -57,6 +59,7 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
                         viridis_option = 'cividis',
                         legend_size_breaks = 'auto', 
                         label_individual_variants = TRUE,
+                        label_text_size = NULL,
                         order_by_effect = TRUE,
                         prevalence_method = 'auto',
                         show_ci = TRUE,
@@ -148,7 +151,7 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
       effects = effects[! is.na(variant_group)]
       msg = paste0('Some variants in effects table have NA values in group_by column ', group_by, '. ',
                    'These variants have been filtered out. If you want to include these in the plot, ',
-                   'assign them non-NA.')
+                   'assign them non-NA values.')
       warning(pretty_message(msg, emit = F))
     }
     effects[, top_by_group := max(selection_intensity, na.rm = T), by = 'variant_group']
@@ -505,12 +508,19 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
       stop('label_individual_variants should be TRUE/FALSE or the name of a column in the effects table.')
   }
     
+  if(! is.null(label_text_size)) {
+    if(! is.numeric(label_text_size) || length(label_text_size) != 1 || label_text_size <= 0) {
+      stop('label_text_size should be scalar positive value, or left NULL.')
+    }
+  }
   if(label_individual_variants) {
     # To-do: remove some labels when it seems like there will be way to many
     num_variant_groups = uniqueN(effects$variant_group)
     effects[, si_group_rank := frank(-selection_intensity), by = 'variant_group']
     give_warning = FALSE
-    if(num_variant_groups > 25) {
+    if(! is.null(label_text_size)) {
+      # Do nothing
+    } else if(num_variant_groups > 25) {
       label_text_size = 2
       #effects[si_group_rank > 3, individual_label := NA]
       #give_warning = max(effects$si_group_rank) > 3
