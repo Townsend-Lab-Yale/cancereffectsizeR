@@ -36,12 +36,16 @@
 #'   used for labels. If group_by is exactly "gene", labels will be shortened to just the amino acid
 #'   changes. Some labels will be omitted (with a warning) if it seems there are too many to display
 #'   in the plot space.
+#' @param label_text_size Manually specify (scalar numeric) size of individual variant labels. When NULL, 
+#' size is determined via an internal algorithm.
 #' @param order_by_effect When TRUE (default), variants are plotted in order of effect. When FALSE,
 #'   variants are plotted top-down in the order they are supplied.
 #' @param show_ci TRUE/FALSE to depict confidence intervals in plot (default TRUE).
 #' @param title Main title for the plot (by default, no title)
 #' @param x_title Text for the X-axis label.
 #' @param y_title Text for the Y-axis label.
+#' @param seed Specify an integer seed for reproducible output. Tweak if you don't like label or
+#'   point placements.
 #' @return A ggplot
 #' @export
 plot_effects = function(effects, topn = 30, group_by = 'variant',
@@ -55,9 +59,11 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
                         viridis_option = 'cividis',
                         legend_size_breaks = 'auto', 
                         label_individual_variants = TRUE,
+                        label_text_size = NULL,
                         order_by_effect = TRUE,
                         prevalence_method = 'auto',
-                        show_ci = TRUE) {
+                        show_ci = TRUE,
+                        seed = NULL) {
   # Verify ggplot2/ggrepel are installed, since they are not package dependencies
   if (! require("ggplot2") || ! require("ggrepel")) {
     stop("Packages needed for plotting are not installed. Run install.packages(c('ggplot2', 'ggrepel')).")
@@ -145,7 +151,7 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
       effects = effects[! is.na(variant_group)]
       msg = paste0('Some variants in effects table have NA values in group_by column ', group_by, '. ',
                    'These variants have been filtered out. If you want to include these in the plot, ',
-                   'assign them non-NA.')
+                   'assign them non-NA values.')
       warning(pretty_message(msg, emit = F))
     }
     effects[, top_by_group := max(selection_intensity, na.rm = T), by = 'variant_group']
@@ -353,10 +359,25 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
     }
   }
   
+  if(! is.null(seed)) {
+    if(! rlang::is_scalar_integerish(seed)) {
+      stop('seed should be scalar integer or left NULL.')
+    }
+    set.seed(seed)
+  }
+  
   # When there are multiple variants with same y-position (that is, multiple variants in a variant
   # group), nudge y-position so that points/CIs don't overlap.
-  effects[, y_nudge := scale((1:.N)/.N, center = T, scale = F), by = 'variant_group']
-  effects[y_nudge != 0, y_nudge := (y_nudge * .15) / max(y_nudge), by = 'variant_group']
+  # effects[, y_nudge := scale((1:.N)/.N, center = T, scale = F), by = 'variant_group']
+  # effects[, grp_count := 1:.N, by = 'variant_group']
+  # effects[y_nudge != 0, y_nudge := fcase(grp_count %% 2 == 0, 
+  #                                        (y_nudge * .3) / max(y_nudge),
+  #                                        default = -(y_nudge * .3) / max(y_nudge)), by = 'variant_group']
+  effects[, y_orig := .GRP, by = 'variant_group']
+  
+  groups_needing_jitter = effects[, .N, by = y_orig][N > 1, y_orig]
+  effects[y_orig %in% groups_needing_jitter, y := jitter(y_orig, amount = .3), by = 'variant_group']
+  effects[is.na(y), y := y_orig]
   
   if(show_ci) {
     x_limits = c(min(effects$ci_low_95, na.rm = T), max(effects$ci_high_95, na.rm = T))
@@ -394,17 +415,16 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
     return(x)
   }
   
-  gg = ggplot(effects, aes(x = selection_intensity, y = variant_group)) +
-    geom_segment(aes(x = x_limits[1], xend = dash_end, y = variant_group, yend = variant_group), 
+  gg = ggplot(effects, aes(x = selection_intensity, y = y)) +
+    geom_segment(aes(x = x_limits[1], xend = dash_end, y = y_orig, yend = y_orig), 
                  color = effects$line_color, linetype = 'dotted', na.rm = T)
   if(show_ci) {
     gg = gg + geom_errorbar(aes(xmin = ci_low_95, xmax = ci_high_95), color = "azure4", na.rm = T, 
-                            position = position_nudge(x = 0, y = effects$y_nudge), width = effects$ci_width, linewidth = .25)
+                            width = effects$ci_width, linewidth = .25)
   }
-  gg = gg + geom_point(shape = 21, color = 'gray20', aes(size = prevalence, fill = point_fill), na.rm = T,
-               position = position_nudge(x = 0, y = effects$y_nudge)) + 
+  gg = gg + geom_point(shape = 21, color = 'gray20', aes(size = prevalence, fill = point_fill), na.rm = T) + 
     scale_x_log10(expand = expansion(mult = c(.01, .05)), labels = x_labeler) + 
-    scale_y_discrete(limits = unique(effects$variant_group), labels = unique(effects$variant_group_label),
+    scale_y_continuous(breaks = unique(effects$y_orig), labels = unique(effects$variant_group_label),
                      expand = expansion(add = 1))  +
     labs(title = title, x = x_axis_title, y = y_axis_title) +
     theme(axis.title.x = element_text(margin = margin(6, 0, 6, 0)),
@@ -418,13 +438,15 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
           panel.background = element_blank(),
           legend.position = legend.position,
           legend.direction = 'vertical',
-          legend.title = element_text(size = 7), legend.text = element_text(size = 7),
+          legend.title = element_text(size = 8), legend.text = element_text(size = 7),
           plot.margin = margin(l = 6, r = 15, b = 6, unit = 'pt'),
           plot.title = element_text(margin = margin(t = 6, b = 6)))
   
   # Put a border around the legend if it's within the plot space
   if(is.numeric(legend.position) && all(legend.position > 0) && all(legend.position < 1)) {
-    gg = gg + theme(legend.background = element_rect(fill = alpha(c("white"), 0.9), linewidth = .2, color = 'gray20'))
+    gg = gg + theme(legend.background = element_blank(), 
+                    legend.box.background = element_rect(fill = alpha(c("white"), 0.9),
+                                                         linewidth = .2, color = 'gray20'))
   }
   
   if(length(size_breaks) > 1) {
@@ -486,22 +508,29 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
       stop('label_individual_variants should be TRUE/FALSE or the name of a column in the effects table.')
   }
     
+  if(! is.null(label_text_size)) {
+    if(! is.numeric(label_text_size) || length(label_text_size) != 1 || label_text_size <= 0) {
+      stop('label_text_size should be scalar positive value, or left NULL.')
+    }
+  }
   if(label_individual_variants) {
     # To-do: remove some labels when it seems like there will be way to many
     num_variant_groups = uniqueN(effects$variant_group)
     effects[, si_group_rank := frank(-selection_intensity), by = 'variant_group']
     give_warning = FALSE
-    if(num_variant_groups > 25) {
+    if(! is.null(label_text_size)) {
+      # Do nothing
+    } else if(num_variant_groups > 25) {
       label_text_size = 2
-      effects[si_group_rank > 3, individual_label := NA]
-      give_warning = max(effects$si_group_rank) > 3
+      #effects[si_group_rank > 3, individual_label := NA]
+      #give_warning = max(effects$si_group_rank) > 3
     } else if(num_variant_groups > 10) {
       label_text_size = 2.25
-      effects[si_group_rank > 6, individual_label := NA]
-      give_warning = max(effects$si_group_rank) > 6
+      #effects[si_group_rank > 6, individual_label := NA]
+      #give_warning = max(effects$si_group_rank) > 6
     } else {
-      effects[si_group_rank > 15, individual_label := NA]
-      give_warning = max(effects$si_group_rank) > 15
+      #effects[si_group_rank > 15, individual_label := NA]
+      #give_warning = max(effects$si_group_rank) > 15
       effects[, individual_label_sizes := 2.5]
       effects[si_group_rank > 6, individual_label_sizes := 2.25]
       effects[si_group_rank > 10, individual_label_sizes := 2]
@@ -513,11 +542,10 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
       msg = paste0('Some variant labels have been omitted due to the density of variants in the plot space.')
       warning(pretty_message(msg, emit = F))
     }
-    
     gg = gg + geom_label_repel(aes(label = individual_label), size = label_text_size, box.padding = .3, label.r = .2,
                                fill = alpha(c("white"), 0.9), label.size = .1, label.padding = .15,
-                               segment.color = 'grey20', segment.size = .4,
-                               position = position_nudge(x = 0, y = effects$y_nudge), na.rm = TRUE)
+                               segment.color = 'grey20', segment.size = .4, min.segment.length = .2,
+                               na.rm = TRUE)
   }
   
   # Change axis label using group_by when not "variant" (unless user already explicitly specified
@@ -566,7 +594,8 @@ plot_effects = function(effects, topn = 30, group_by = 'variant',
       if(is.numeric(effects$point_fill)) {
         gg  = gg + scale_fill_viridis_c(name = legend_color_name, option = viridis_option)
       } else {
-        gg  = gg + scale_fill_viridis_d(name = legend_color_name, begin = .2, end = .9, option = viridis_option)
+        gg  = gg + scale_fill_viridis_d(name = legend_color_name, begin = .2, end = .9, option = viridis_option) +
+          guides(fill = guide_legend(override.aes = list(size = 2.5)))
       }
     } else {
       unique_colors = unique(effects[, .(point_fill, fill_label)])

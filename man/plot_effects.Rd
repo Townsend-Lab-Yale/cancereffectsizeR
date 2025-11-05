@@ -20,9 +20,11 @@ plot_effects(
   viridis_option = "cividis",
   legend_size_breaks = "auto",
   label_individual_variants = TRUE,
+  label_text_size = NULL,
   order_by_effect = TRUE,
   prevalence_method = "auto",
-  show_ci = TRUE
+  show_ci = TRUE,
+  seed = NULL
 )
 }
 \arguments{
@@ -75,6 +77,9 @@ used for labels. If group_by is exactly "gene", labels will be shortened to just
 changes. Some labels will be omitted (with a warning) if it seems there are too many to display
 in the plot space.}
 
+\item{label_text_size}{Manually specify (scalar numeric) size of individual variant labels. When NULL, 
+size is determined via an internal algorithm.}
+
 \item{order_by_effect}{When TRUE (default), variants are plotted in order of effect. When FALSE,
 variants are plotted top-down in the order they are supplied.}
 
@@ -83,6 +88,9 @@ a percentage of samples with sequencing coverage at the site ("percent"). If the
 has the same number of samples covering every inference, you can choose "both".}
 
 \item{show_ci}{TRUE/FALSE to depict confidence intervals in plot (default TRUE).}
+
+\item{seed}{Specify an integer seed for reproducible output. Tweak if you don't like label or
+point placements.}
 }
 \value{
 A ggplot
