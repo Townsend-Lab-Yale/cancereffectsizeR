@@ -1478,92 +1478,63 @@ run_seg_multi = function(events_to_test = list(), rates = NULL, debug = FALSE) {
   if(! all(sapply(events_to_test, is.character))) {
     stop('All elements of events_to_test must be type character.')
   }
-  
-  # To-do: more validation that all events_to_test are valid ranges, etc.
-  # To-do: Fix call so that unique() isn't needed
-  curr_segment_rates = unique(rbindlist(lapply(used_event_types,
-                                function(x) {
-                                  return(rates$rates[range_id %in% events_to_test[[x]]])
-                                  })))
-  
-  has_excessive_segments = curr_segment_rates[is_event == TRUE, .N, by = c('sample', 'range_id')][N > 1, sample]
+  all_regions = unique(unlist(events_to_test))
+  curr_segment_rates = copy(rates$rates[range_id %in% all_regions])
+  more_rates =  copy(rates$rates[! range_id %in% all_regions])
+  more_rates = unique(more_rates, by = c('sample', 'event_type', 'seg_id')) # just need 1 record per segment/event_type
+  curr_segment_rates = rbind(curr_segment_rates, more_rates)
 
   si_with_type = unlist(sapply(names(events_to_test),
                         function(x) paste(events_to_test[[x]], x, sep = '.')), use.names = FALSE)
   
   curr_range_id = unique(curr_segment_rates$range_id)
   
-  sample_exclusions = unique(c(rates$uncovered[range_id %in% curr_range_id, unique(sample)], 
-                               has_excessive_segments))
-  curr_segment_rates = curr_segment_rates[! sample %in% sample_exclusions]
   samples_used = unique(curr_segment_rates$sample)
   
-  #curr_rates[, full_id := paste(sample, seg_id, event_type, sep = '.')]
   curr_segment_rates[, range_and_type := paste(range_id, event_type, sep = '.')]
   curr_segment_rates[, si_index := match(range_and_type, si_with_type)] # for speedy indexing in lik()
   
-  si_by_segment = unique(curr_segment_rates[, .(sample, range_and_type, si_index)])
-  all_combined_rates = curr_segment_rates[, .(sample, range_and_type, total_rate, seg_id, si_index, event_type)]
+  # No longer need since curr_segment_rates contains unique segments to use
+  all_combined_rates = unique(curr_segment_rates[, .(sample, bin_rate, total_rate, seg_id, si_index, event_type, is_event)])
+  setkey(all_combined_rates, sample, seg_id, event_type)
   
-  # Segments appear once per matching range_and_type.
-  yes_segments = curr_segment_rates[is_event == TRUE & ! is.na(si_index)]
-  no_segments = curr_segment_rates[is_event == FALSE & ! is.na(si_index)]
-  no_segments = no_segments[! yes_segments[, .(sample, range_id)], on = c('sample', 'range_id')]
-  setkey(yes_segments, sample, range_and_type)
-  setkey(no_segments, sample, range_and_type)
-  setkey(all_combined_rates, sample, range_and_type)
+  # TO-DO: why do some sample-ranges have just 1 segment? (Probably, their other segments conflicted on another range)
+  # What, if anything, should be done?
+  # curr_segment_rates[, .N, by = c('sample', 'range_id')][N == 1]
+  # sample range_id     N
+  # <char>   <char> <int>
+  #   1: TCGA-24-1435  chr7.66     1
+  # 2: TCGA-ED-A7XO  chr7.82     1
+  # 3: TCGA-AF-3400 chr7.180     1
+  # 4: TCGA-24-1604 chr7.180     1
+  # 5: TCGA-NI-A8LF chr7.125     1
+  # 6: TCGA-ZN-A9VP chr7.168     1
   
-  curr_segment_rates = rbind(yes_segments, no_segments)
-  setkey(si_by_segment, sample, range_and_type)
-  # curr_segment_rates = curr_segment_rates[, .(curr_bin_rate = bin_rate, curr_total = total_rate, 
-  #                                             event_type, sample, seg_id, is_event, si_index,
-  #                                        range_id, range_and_type), by = c('range_and_type', 'sample')]
-  # 
-  
-  # setkey(yes_rates, 'full_id')
-  # setkey(no_rates, 'full_id')
-  
-  #si_by_full_id = curr_rates[, .(si_index, full_id)]
-  #setkey(si_by_full_id, 'full_id')
-  
-
-  #setkey(rates_by_type, 'full_id')
-  
-  # yes_rates = rates_by_type[is_event == T & ! is.na(si_index)]
-  # no_rates = rates_by_type[is_event == F & ! is.na(si_index)]
-  # no_rates = no_rates[! yes_rates[, .(sample, seg_id)], on = c('sample', 'seg_id')]
-  # rates_by_type = rates_by_type[full_id %in% c(yes_rates$full_id, no_rates$full_id)]
   lik = function(si) {
     if(length(si) == 1) {
-      si_by_segment[, multiplier := fcase(is.na(si_index), 1, default = si)] # other event types get 1
+      all_combined_rates[, multiplier := fcase(is.na(si_index), 1, default = si)] # other event types get 1
     } else {
       tmp = unname(si) # for speed
-      si_by_segment[, multiplier := fcase(is.na(si_index), 1, default = tmp[si_index])]
+      all_combined_rates[, multiplier := fcase(is.na(si_index), 1, default = tmp[si_index])]
     }
-    stopifnot(! anyNA(si_by_segment$multiplier))
-    # if(si[1] > 1.5) {
-    #   browser()
-    # }
-    yes_segments[si_by_segment, curr_si := multiplier]
-    final_yes = yes_segments[, .(curr_si = prod(curr_si), curr_bin_rate = bin_rate[1]), by = c('sample', 'seg_id')]
-    no_segments[si_by_segment, curr_si := multiplier]
-    final_no = no_segments[, .(curr_si = prod(curr_si)), by = c('sample', 'seg_id')]
-    
-    all_combined_rates[si_by_segment, curr_si := multiplier]
-    by_event_type = all_combined_rates[, .(rate = prod(curr_si) * total_rate[1]), by = c('sample', 'seg_id', 'event_type')]
-    total_event_rates = by_event_type[, .(total_rate = sum(rate)), by = c('sample', 'seg_id')]
 
-    yes_rates = final_yes[, .(curr_flux = curr_bin_rate * curr_si, seg_id, sample)]
-    yes_rates[total_event_rates, total_rate := total_rate, on = c('sample', 'seg_id')]
+    by_event_type = all_combined_rates[, .(curr_si = prod(multiplier), bin_rate = bin_rate[1], total_rate = total_rate[1],
+                                           is_event = is_event[1]),
+                                       by = c('sample', 'seg_id', 'event_type')]
+    
+
+    
+    total_event_rates = by_event_type[, .(total_rate = sum(curr_si * total_rate)), by = c('sample', 'seg_id')]
+    by_event_type[total_event_rates, summed_total := i.total_rate, on = c('sample', 'seg_id')]
+    yes_rates = by_event_type[is_event == TRUE, .(curr_flux = bin_rate * curr_si, seg_id, sample, total_rate = summed_total)]
+    no_rates = by_event_type[is_event == FALSE, .(seg_id, sample, total_rate = summed_total)]
     yes_rates[, rel_prob := curr_flux / total_rate]
-    
-    no_rates = total_event_rates[final_no, total_rate, on = c('sample', 'seg_id')]
-    
+
     # Note: -1 * expm1(-1 * r) is equivalent to 
     # 1 - exp(-1 * r), and necessary to evaluate exp(x) when x 
     # is very close to 0.
     ll_yes = sum(log(-1 * expm1(-1 * yes_rates$total_rate) * yes_rates$rel_prob))
-    ll_no = -1 * sum(no_rates)
+    ll_no = -1 * sum(no_rates$total_rate)
     # if(is.nan(ll_no + ll_yes) || is.infinite(ll_no + ll_yes)) {
     #   browser()
     # }
@@ -1596,9 +1567,26 @@ run_seg_multi = function(events_to_test = list(), rates = NULL, debug = FALSE) {
                 info = list(loglik = as.numeric(logLik(fit)), n_samples = length(samples_used))
             )
   if(debug == TRUE) {
-    output = c(output, list(fit = fit, rates = curr_segment_rates))
+    output = c(output, list(fit = fit, rates = curr_segment_rates, num_segments = uniqueN(curr_segment_rates[, .(sample, seg_id)])))
   }
   return(output)
+}
+
+# Clean rates for use in current implementation of model
+clean_rates = function(unclean_rates) {
+  unclean_rates = copy(unclean_rates)
+  # Hacking for new approach:
+  incomplete_cov_ranges = unique(unclean_rates$uncovered$range_id)
+  unclean_rates$rates = unclean_rates$rates[! range_id %in% incomplete_cov_ranges]
+  
+  # Identify sample/ranges where there is more than one qualifying segment.
+  # Currently (as increase/decrease are the two event types), this means sample has an increase and a decrease.
+  has_excessive_segments = unclean_rates$rates[is_event == TRUE, .N, by = c('sample', 'range_id')][N > 1, .(sample, range_id)]
+  
+  # For simplicity, remove all segments.
+  to_remove = unique(unclean_rates$rates[has_excessive_segments, .(sample, seg_id), on = c('sample', 'range_id')])
+  unclean_rates$rates = unclean_rates$rates[! to_remove, on = c('sample', 'seg_id')]
+  return(unclean_rates[]) # they're clean now
 }
 
 ## Deprecated
