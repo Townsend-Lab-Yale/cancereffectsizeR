@@ -5,6 +5,7 @@
 #' @importFrom methods is new
 #' @importFrom stats na.omit predict setNames dist window
 
+.SCNA_BETA_WARNING = 0
 .datatable.aware = TRUE
 .ces_ref_data = new.env()
 options(datatable.prettyprint.char = 40) 

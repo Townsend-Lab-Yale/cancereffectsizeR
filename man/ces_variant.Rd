@@ -29,8 +29,8 @@ from \code{define_variant_sets()}.}
 \item{samples}{Which samples to include in inference. Defaults to all samples. Can be a vector of
 patient_ids, or a data.table containing rows from the CESAnalysis sample table.}
 
-\item{model}{Set to "basic" (default) or "sequential" (not yet available) to use built-in
-models of selection, or supply a custom function factory (see details).}
+\item{model}{The default model of selection ("default"), or a custom model likelihood function
+factory (see details).}
 
 \item{run_name}{Optionally, a name to identify the current run.}
 

@@ -34,8 +34,8 @@
 #' @param variants Which variants to estimate effects for, specified with a variant table such as
 #'   from \code{[CESAnalysis]$variants} or \code{select_variants()}, or a \code{VariantSetList}
 #'   from \code{define_variant_sets()}.
-#' @param model Set to "basic" (default) or "sequential" (not yet available) to use built-in
-#'   models of selection, or supply a custom function factory (see details).
+#' @param model The default model of selection ("default"), or a custom model likelihood function
+#'   factory (see details).
 #' @param run_name Optionally, a name to identify the current run.
 #' @param lik_args Extra arguments, given as a list, to pass to custom likelihood functions.
 #' @param optimizer_args Named list of arguments to pass to the optimizer, bbmle::mle2. Use, for example,

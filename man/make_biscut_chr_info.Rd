@@ -15,7 +15,7 @@ make_biscut_chr_info(
 \item{acrocentromeric_chr}{character vector with the names of chromosomes that are acrocentromeric}
 }
 \value{
-description
+A data.frame of the sort favored by BISCUT::validate_chr_coordinates().
 }
 \description{
 Make a BISCUT-style chromosome info data.frame

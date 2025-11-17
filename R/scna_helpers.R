@@ -1,3 +1,23 @@
+#' SCNA beta warning
+#' 
+#' Warn that SCNA functions are in beta
+#' 
+#' Warns once per day
+#' @keywords internal
+scna_warning = function() {
+  last_warning_time = get('.SCNA_BETA_WARNING', pos = 'package:cancereffectsizeR')
+  curr_time = as.numeric(Sys.time())
+  if((curr_time - last_warning_time)/3600 > 3) {
+    assign('.SCNA_BETA_WARNING', curr_time, pos = 'package:cancereffectsizeR')
+    msg = paste0('Functions related to analysis of SCNAs (somatic copy number alterations) ',
+                 'are in beta. The underlying methodologies are still in development, ', 
+                 'and documentation is incomplete. Please proceed with caution. (This warning appears ',
+                 'every few hours.)')
+    warning(pretty_message(msg, emit = F), call. = FALSE)
+  }
+}
+
+
 #' Determine even integer ploidy (2x, 4x, 8x)
 #' 
 #' Applies the approach used in Steele et al. to call sample ploidy.
@@ -97,9 +117,10 @@ annotate_copy_change_consequence = function(cna_calls) {
 }
 
 #' Make a BISCUT-style chromosome info data.frame
+#' 
 #' @param arm_coordinates data.table that defines the p/q arms of each chromosome.
 #' @param acrocentromeric_chr character vector with the names of chromosomes that are acrocentromeric
-#' @return description
+#' @return A data.frame of the sort favored by BISCUT::validate_chr_coordinates().
 make_biscut_chr_info = function(arm_coordinates, acrocentromeric_chr = c('13', '14', '15', '21', '22')) {
   
   if (! require("BISCUT")) {
@@ -141,45 +162,27 @@ make_biscut_chr_info = function(arm_coordinates, acrocentromeric_chr = c('13', '
   return(biscut_style_chr_info)
 }
 
-# BISCUT README:
-# "If you have your data in absolute allelic copy number format, to obtain Segment_Mean for each
-# segment, simply add the allelic copy numbers and then divide that by the ploidy of the sample and
-# take log2."
-# (README also says to set Num_Probes to 10 for non-probe data.)
-#
-# We're not going to do ploidy correction. It causes neutral segments to get called as deletions/amplifications!
-prep_for_biscut_preprocess = function(calls) {
+
+#' Convert SCNA calls into BISCUT's format.
+#'
+#'  As stated in the BISCUT REAMDE: "If you have your data in absolute allelic copy number format, to
+#'  obtain Segment_Mean for each segment, simply add the allelic copy numbers and then divide that by
+#'  the ploidy of the sample and take log2."
+#'  
+#'  @param calls SCNA segment calls, as formatted by prep_ASCAT3_segments()
+#'  @return Data.table suitable for use with BISCUT::calculate_breakpoints(). Note that chrY is
+#'    excluded, and chrX is relabeled as "23". The Num_Probes field is set to 10 for non-probe data,
+#'    as instructed in BISCUT documentation.
+#'  @export
+make_biscut_input = function(calls) {
+  if(! is.data.table(calls)) {
+    stop('calls should be a data.table (as formatted by prep_ASCAT3_segments()).')
+  }
   calls = calls[, .(Sample = sample, Chromosome = chr, Start = start, End = end,
                     Num_Probes = 10, Segment_Mean = log2(total_copy/exp_total_copy))]
-  
-  
-  #calls[, Segment_Mean := log2(total_copy/ploidy)]
-  #calls[, c('total_copy', 'ploidy') := NULL]
   calls[Chromosome == 'X', Chromosome := '23']
   calls[, Chromosome := as.numeric(Chromosome)]
   return(calls[])
-}
-
-# Assumes we want telcent_thres = .001; assumes existence of coordinates table (created above)
-read_in_biscut_preprocess = function(file_prefix) {
-  bp_files = list.files(paste0(file_prefix, '/'), full.names = T)
-  bp = rbindlist(lapply(bp_files, fread), idcol = 'file')
-  setnames(bp, 'Sample', 'sample') # BISCUT uses Sample; this script uses sample
-  bp[, file := basename(bp_files[file])]
-  bp[, file := sub('\\.txt', '', file)]
-  bp[, c('arm', 'ampdel', 'telcent') := tstrsplit(sub(paste0(basename(file_prefix), '_'), '', file), '_')]
-  bp[, chr := sub('[pq]', '', arm)]
-  bp[, pq := gsub('[^pq]', '', arm)]
-  bp[nchar(pq) == 0, pq := 'q'] # deal with BISCUT acrocentromeric style
-  
-  # BISCUT recommends filtering out the very largest events as likely whole-arm. For now, we'll
-  # also get rid of the very smallest events, as BISCUT suggests they could represent "noise."
-  bp = bp[percent >= .001]
-  which_whole_arm = bp[percent > .999, which = TRUE]
-  
-  bp_whole_arm = bp[which_whole_arm]
-  bp = bp[! which_whole_arm]
-  return(bp[])
 }
 
 find_consensus_changes = function(calls, region_col, region_frac_col, threshold = .99) {
@@ -476,10 +479,21 @@ find_consensus_changes = function(calls, region_col, region_frac_col, threshold 
               genome_build = genome_build))
 }
 
+#' Identify chromosome, arm, and anchored copy changes
+#' 
+#' @param prepped_calls As from prep_ASCAT3_segments()
+#' @param arm_chr_threshold Proportion of region that must agree for a consensus copy change to be called.
+#' @param ignore_centromeres_for_chr Whether to ignore centromeric regions when assessing chromosome-level
+#' @param account_biscut_regions Use the BISCUT package to identify centromere- and
+#'   telomere-anchored SCNAs, and then assess consensus copy changes in the same manner as
+#'   chromosome and arm changes.
+#' @param run_biscut Whether to go ahead and run the BISCUT peak-finding algorithm to identify
+#' regions where anchored SCNAs suggests selection for copy changes (default FALSE).
 call_large_events = function(prepped_calls, arm_chr_threshold = .99,
                                 ignore_centromeres_for_chr = FALSE,
-                                account_biscut_regions = TRUE, biscut_dir = NULL,
-                                run_biscut = FALSE, cores = parallel::detectCores()) {
+                                account_biscut_regions = TRUE,
+                                run_biscut = FALSE, cores = floor(parallel::detectCores()/2)) {
+  scna_warning()
   threshold = arm_chr_threshold
   
   # Fields for output events table, in a carefully chosen order
@@ -492,17 +506,13 @@ call_large_events = function(prepped_calls, arm_chr_threshold = .99,
   if(! is(prepped_calls, 'list') ||
      uniqueN(names(prepped_calls)) != length(prepped_calls) ||
      ! all(c('calls', 'effective_coordinates', 'genome_build') %in% names(prepped_calls))) {
-    stop('prepped_calls should be a list as outputted by prep_ascat_segments().')
+    stop('prepped_calls should be a list as outputted by prep_ASCAT3_segments().')
   }
   
   if(! rlang::is_scalar_integerish(cores) || cores < 1) {
     stop('cores should be 1-length positive integer.')
   }
   
-  
-  if(is.null(biscut_dir) && account_biscut_regions == TRUE) {
-    stop('You must specify a BISCUT directory (for BISCUT-related output files) unless account_biscut_regions = FALSE.')
-  }
   
   if(! rlang::is_bool(account_biscut_regions)) {
     stop('account_biscut_regions must be TRUE/FALSE.')
@@ -513,19 +523,6 @@ call_large_events = function(prepped_calls, arm_chr_threshold = .99,
   
   if(account_biscut_regions == FALSE && run_biscut == TRUE) {
     stop('Incompatible arguments: When run_biscut = TRUE, must have account_biscut_regions = TRUE.')
-  }
-  
-  if(! is.null(biscut_dir) && account_biscut_regions == FALSE) {
-    stop('A biscut_dir was specified even though account_biscut_regions was set FALSE')
-  }
-  
-  if(! is.null(biscut_dir)) {
-    if(! rlang::is_scalar_character(biscut_dir) || nchar(biscut_dir) < 1) {
-      stop('biscut_dir should be type character (directory name/path)')
-    }
-    if(dir.exists(biscut_dir)) {
-      stop('Specified directory for BISCUT files already exists.')
-    }
   }
   
   if(! rlang::is_bool(ignore_centromeres_for_chr)) {
@@ -663,30 +660,32 @@ call_large_events = function(prepped_calls, arm_chr_threshold = .99,
   calls_for_biscut = calls[, .(sample, chr, start, end, nMajor = nMajor - accounted_nMajor_change,
                                nMinor = nMinor - accounted_nMinor_change, exp_total_copy)]
   calls_for_biscut[, let(total_copy = nMajor + nMinor, nMinor = NULL, nMajor = NULL)]
-  for_biscut_input = prep_for_biscut_preprocess(calls_for_biscut)
+  biscut_input = make_biscut_input(calls_for_biscut)
   
-  if(! dir.create(biscut_dir)) {
-    stop('Unable to create BISCUT directory.')
-  }
-  biscut_input = paste0(biscut_dir, '/', 'BISCUT_preprocess_input.txt')
-  fwrite(for_biscut_input, biscut_input, sep = "\t")
-  biscut_breakpoint_dir = paste0(biscut_dir, '/', 'BISCUT_breakpoint_dir')
-  message('Calling BISCUT telomeric and centromeric regions...')
-  suppressMessages(BISCUT::make_breakpoint_files(segment_file = biscut_input, output_dir = biscut_breakpoint_dir,
-                                                 chromosome_coordinates = biscut_style_chr_info, cores = cores))
-  biscut_bp = read_in_biscut_preprocess(biscut_breakpoint_dir)
-  biscut_bp = biscut_bp[, .SD, .SDcols = c('chr', setdiff(names(biscut_bp), names(coordinates)))]
+
+  message('Calling centromere- and telomere-anchored changes with BISCUT...')
+  biscut_bp = BISCUT::calculate_breakpoints(segment_file = biscut_input, chromosome_coordinates = biscut_style_chr_info, 
+                                            cores = cores)
+  
+  # Save original version in case actually running BISCUT peak finding
+  for_biscut_run = copy(biscut_bp)
+  
+  biscut_bp = rbindlist(biscut_bp, idcol = 'telcent')
+  biscut_bp = biscut_bp[, .(sample = Sample, telcent, ampdel = amp_del, chr = sub('[pq]', '', arm),
+                            arm, pq = gsub('[^pq]', '', arm),
+                            percent, startpos, endpos)]
+  
+  # BISCUT omits q on acrocentromeric chromosomes
+  biscut_bp[! arm %like% '[pq]$', arm := paste0(arm, 'q')]
+  biscut_bp[nchar(pq) == 0, pq := 'q'] 
   
   biscut_bp[, sample_region_id := paste(sample, ampdel, telcent, arm, sep = '.')]
   stopifnot(uniqueN(biscut_bp$sample_region_id) == biscut_bp[, .N])
   setnames(biscut_bp, c('startpos', 'endpos'), c('biscut_bp_start', 'biscut_bp_end'))
   
-  # In our calls tables, start/end refer to ASCAT segments. Remove the name-conflicting columns
-  # from BISCUT regions. (These BISCUT start/end are in fractional arm units and aren't needed.)
-  biscut_bp[, c('start', 'end') := NULL] 
-  
-  # BISCUT omits q on acrocentromeric chromosomes
-  biscut_bp[! arm %like% '[pq]$', arm := paste0(arm, 'q')]
+  # BISCUT recommends filtering out the very largest events as likely whole-arm. For now, we'll
+  # also get rid of the very smallest events, as BISCUT suggests they could represent "noise."
+  biscut_bp = biscut_bp[percent >= .001 & percent <= .999]
   
   # Find and subtract consensus BISCUT changes within accounted_calls
   # ?foverlap: "Let [a,b] and [c,d] be intervals in x and y [...]. For type='within', the intervals
@@ -856,11 +855,10 @@ call_large_events = function(prepped_calls, arm_chr_threshold = .99,
   large_events[sex == 'M' & chr == 'X', exp_total_copy := exp_total_copy / 2]
   large_events = large_events[, .SD, .SDcols = final_event_cols]
   
-  fwrite(biscut_style_chr_info, paste0(biscut_dir, '/BISCUT_style_chr_info_', prepped_calls$genome_build, '.txt'), sep = "\t")
   output = list(calls = biscut_accounted, events = large_events, biscut_regions = biscut_bp)
   if(run_biscut) {
-    biscut_out = do_biscut(breakpoint_file_dir = biscut_breakpoint_dir, 
-                           results_dir = paste0(biscut_dir, '/biscut-out'), cores = cores, 
+    biscut_out = do_biscut(breakpoints = for_biscut_run,
+                           cores = cores,
                            chromosome_coordinates = biscut_style_chr_info)
     output = c(output, list(biscut_output = biscut_out))
   }
@@ -1113,6 +1111,7 @@ prep_gene_probability_model = function(gene_name, event_type = 'increase',
                                        rates,
                                        gene_coord = ces.refset.hg38$cancer_gene_coord,
                                        project_by_sample, r1_info = NULL) {
+  scna_warning()
   cna_calls = prepped_data$prepped_calls$calls
   cna_burdens = prepped_data$cna_burdens
   segment_prop = copy(prepped_data$prepped_calls$segment_proportions[[event_type]])
@@ -1295,6 +1294,7 @@ cn_signature_extraction = function(sig_def, cna_segments) {
 }
 
 get_segmentation_rates = function(cna_calls, cna_burdens) {
+  scna_warning()
   stopifnot(is.list(cna_burdens))
   increase_burden = copy(cna_burdens$increase_burden)
   decrease_burden = copy(cna_burdens$decrease_burden)
@@ -1339,6 +1339,7 @@ get_segmentation_rates = function(cna_calls, cna_burdens) {
 }
 
 get_cna_rates = function(chr, cna_calls, seg_rates, rate_intervals = NULL) {
+  scna_warning()
   curr_chr = chr
   
   total_rates = copy(seg_rates$total_rates)
@@ -1452,6 +1453,7 @@ get_disjoint_gene_coord = function(gene_coord) {
 }
 
 run_seg_multi = function(events_to_test = list(), rates = NULL, debug = FALSE) {
+  scna_warning()
   if(is.null(rates)) {
     stop('Need rates.')
   }

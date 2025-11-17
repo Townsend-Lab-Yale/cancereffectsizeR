@@ -4,6 +4,7 @@
 #' @param refset reference data package (or custom reference data)
 #' @export
 prep_ASCAT3_segments = function(segments, refset) {
+  scna_warning()
   if(is.data.frame(segments)) {
     segments = as.data.table(segments)
   } else if(rlang::is_scalar_character(segments)) {
