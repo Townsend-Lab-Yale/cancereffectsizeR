@@ -5,10 +5,10 @@
 #' Warns once per day
 #' @keywords internal
 scna_warning = function() {
-  last_warning_time = get('.SCNA_BETA_WARNING', pos = 'package:cancereffectsizeR')
+  last_warning_time = .SCNA_BETA_WARNING
   curr_time = as.numeric(Sys.time())
   if((curr_time - last_warning_time)/3600 > 3) {
-    assign('.SCNA_BETA_WARNING', curr_time, pos = 'package:cancereffectsizeR')
+    assignInMyNamespace('.SCNA_BETA_WARNING', curr_time)
     msg = paste0('Functions related to analysis of SCNAs (somatic copy number alterations) ',
                  'are in beta. The underlying methodologies are still in development, ', 
                  'and documentation is incomplete. Please proceed with caution. (This warning appears ',
@@ -483,12 +483,16 @@ find_consensus_changes = function(calls, region_col, region_frac_col, threshold 
 #' 
 #' @param prepped_calls As from prep_ASCAT3_segments()
 #' @param arm_chr_threshold Proportion of region that must agree for a consensus copy change to be called.
-#' @param ignore_centromeres_for_chr Whether to ignore centromeric regions when assessing chromosome-level
+#' @param ignore_centromeres_for_chr Whether to ignore centromeric regions when assessing
+#'   whole-chromosome copy changes; default FALSE. Should be set to TRUE if your segment data has
+#'   had centromeric regions excluded.
 #' @param account_biscut_regions Use the BISCUT package to identify centromere- and
 #'   telomere-anchored SCNAs, and then assess consensus copy changes in the same manner as
 #'   chromosome and arm changes.
 #' @param run_biscut Whether to go ahead and run the BISCUT peak-finding algorithm to identify
 #' regions where anchored SCNAs suggests selection for copy changes (default FALSE).
+#' @param cores How many cores to use for anchored SCNA identification (and BISCUT peak-finding, if running).
+#' @export
 call_large_events = function(prepped_calls, arm_chr_threshold = .99,
                                 ignore_centromeres_for_chr = FALSE,
                                 account_biscut_regions = TRUE,
@@ -1293,6 +1297,9 @@ cn_signature_extraction = function(sig_def, cna_segments) {
   return(list(reconstruction = recon, mp_out = mp_out))
 }
 
+#' Docs coming
+#' 
+#' @export
 get_segmentation_rates = function(cna_calls, cna_burdens) {
   scna_warning()
   stopifnot(is.list(cna_burdens))
@@ -1338,6 +1345,8 @@ get_segmentation_rates = function(cna_calls, cna_burdens) {
   return(list(seg_rates = seg_rates, total_rates = total_rates))
 }
 
+#' Docs coming
+#' @export
 get_cna_rates = function(chr, cna_calls, seg_rates, rate_intervals = NULL) {
   scna_warning()
   curr_chr = chr
@@ -1428,6 +1437,8 @@ get_cna_rates = function(chr, cna_calls, seg_rates, rate_intervals = NULL) {
               uncovered = uncovered_regions))
 }
 
+#' Docs coming
+#' @export
 get_disjoint_gene_coord = function(gene_coord) {
   gene_coord = copy(gene_coord)[, .(gene, cancer_anno, chr, 
                                     start = fcase(is.na(mane_start), start, 
@@ -1452,6 +1463,10 @@ get_disjoint_gene_coord = function(gene_coord) {
   return(gene_coord[])
 }
 
+#' Run SCNA effects inference
+#' 
+#' Documentation coming
+#' @export
 run_seg_multi = function(events_to_test = list(), rates = NULL, debug = FALSE) {
   scna_warning()
   if(is.null(rates)) {
@@ -1574,7 +1589,10 @@ run_seg_multi = function(events_to_test = list(), rates = NULL, debug = FALSE) {
   return(output)
 }
 
-# Clean rates for use in current implementation of model
+#' Clean rates for use in current implementation of model
+#' 
+#' This function will eventually be removed (or at least, not exported)
+#' @export
 clean_rates = function(unclean_rates) {
   unclean_rates = copy(unclean_rates)
   # Hacking for new approach:

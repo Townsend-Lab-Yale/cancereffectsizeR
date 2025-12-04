@@ -18,7 +18,9 @@ call_large_events(
 
 \item{arm_chr_threshold}{Proportion of region that must agree for a consensus copy change to be called.}
 
-\item{ignore_centromeres_for_chr}{Whether to ignore centromeric regions when assessing chromosome-level}
+\item{ignore_centromeres_for_chr}{Whether to ignore centromeric regions when assessing
+whole-chromosome copy changes; default FALSE. Should be set to TRUE if your segment data has
+had centromeric regions excluded.}
 
 \item{account_biscut_regions}{Use the BISCUT package to identify centromere- and
 telomere-anchored SCNAs, and then assess consensus copy changes in the same manner as
@@ -26,6 +28,8 @@ chromosome and arm changes.}
 
 \item{run_biscut}{Whether to go ahead and run the BISCUT peak-finding algorithm to identify
 regions where anchored SCNAs suggests selection for copy changes (default FALSE).}
+
+\item{cores}{How many cores to use for anchored SCNA identification (and BISCUT peak-finding, if running).}
 }
 \description{
 Identify chromosome, arm, and anchored copy changes
