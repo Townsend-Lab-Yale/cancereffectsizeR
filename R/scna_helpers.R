@@ -1329,6 +1329,13 @@ get_segmentation_rates = function(cna_calls, cna_burdens) {
   increase_burden[covered_size_by_sample, cov_size := cov_size, on = 'sample']
   decrease_burden[covered_size_by_sample, cov_size := cov_size, on = 'sample']
   
+  # Not allowing burdens of zero.
+  lowest_nonzero_inc = increase_burden[b != 0, min(b)]
+  increase_burden[b == 0, b := lowest_nonzero_inc]
+  
+  lowest_nonzero_dec = decrease_burden[b != 0, min(b)]
+  decrease_burden[b == 0, b := lowest_nonzero_dec]
+  
   # Ignoring window size because 1e5 << 2.9e9. Is that okay?
   # Note some unrealistic values for the >40Mb size range.
   increase_burden[, seg_rate := b * (typical_size/cov_size)]
