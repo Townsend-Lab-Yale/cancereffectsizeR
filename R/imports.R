@@ -5,7 +5,7 @@
 #' @importFrom methods is new
 #' @importFrom stats na.omit predict setNames dist window
 
-.SCNA_BETA_WARNING = 0
+.SCNA_BETA_WARNING = 0 # epoch time of last beta warning emitted in current session
 .datatable.aware = TRUE
 .ces_ref_data = new.env()
 options(datatable.prettyprint.char = 40) 

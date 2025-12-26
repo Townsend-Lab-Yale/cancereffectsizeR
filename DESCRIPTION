@@ -18,7 +18,7 @@ Imports:
 	Biostrings,
 	BSgenome,
 	crayon,
-	data.table (>= 1.15.0),
+	data.table (>= 1.16.0),
 	dndscv,
 	GenomeInfoDb,
 	GenomicRanges,
