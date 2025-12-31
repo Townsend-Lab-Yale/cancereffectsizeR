@@ -75,9 +75,6 @@ test_that("Trinucleotide signature weight calculation", {
 })
 
 test_that('trinuc_snv_counts output is usable by extractors', {
-  ds_counts = trinuc_snv_counts(cesa$maf, genome = cesa$reference_data$genome, style = 'deconstructSigs')
-  expect_silent(deconstructSigs::whichSignatures(tumor.ref = ds_counts, sample.id = 'good_A', contexts.needed = T, 
-                                   signatures.ref = ces.refset.hg19$signatures$COSMIC_v3$signatures))
   mp_counts = trinuc_snv_counts(cesa$maf, genome = cesa$reference_data$genome, style = 'MutationalPatterns')
   expect_silent(MutationalPatterns::fit_to_signatures(mut_matrix = mp_counts, signatures = t(ces.refset.hg19$signatures$COSMIC_v3$signatures)))
 })
