@@ -15,7 +15,7 @@ stage_mutation_proportions(
 \arguments{
 \item{cesa}{CESAnalysis object with gene rates already calculated once per stage, via repeated
 calls to \code{gene_mutation_rates()} (or \code{set_gene_rates()}), each restricted to the
-samples that have reached at least that stage.}
+samples at that stage.}
 
 \item{rate_cols}{Character vector of column names in \code{get_gene_rates(cesa)}, one per
 stage, in earliest-to-latest order (for example, \code{c("rate_grp_1", "rate_grp_2")}).
@@ -41,7 +41,7 @@ A data.table with a gene (or pid) identifier column, then one proportion column 
 \description{
 For use with \code{step_selection_lik()}/\code{ces_variant_step()}. Takes cumulative per-gene
 mutation rates estimated separately for each ordered progression stage (each from a
-\code{gene_mutation_rates()} call restricted to samples that have reached at least that stage;
+\code{gene_mutation_rates()} call restricted to the samples at that stage;
 see the step-specific selection vignette) and converts them into the proportion of a gene's
 total mutation rate that is estimated to accumulate during each stage.
 }

@@ -68,7 +68,8 @@ step_selection_LRT = function(cesa = NULL, step_run_name = NULL, simple_run_name
   lrt_table[loglik_simple > max_loglik, loglik_simple := NA_real_]
 
   lrt_table[, df := df]
-  lrt_table[, LRT_stat := -2 * (loglik_simple - loglik_step)]
+  # the step model nests the simple model, so a (tiny) negative statistic is optimizer tolerance
+  lrt_table[, LRT_stat := pmax(-2 * (loglik_simple - loglik_step), 0)]
   lrt_table[, p_value := stats::pchisq(LRT_stat, df = df, lower.tail = FALSE)]
 
   return(lrt_table[])

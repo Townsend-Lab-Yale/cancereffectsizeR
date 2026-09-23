@@ -100,8 +100,8 @@ The output selection table has one selection intensity column per stage, named
 \code{si_<stage name>} (and, when \code{conf} is set, matching \code{ci_low_<conf*100>_si_<stage
 name>}/\code{ci_high_<conf*100>_si_<stage name>} columns), rather than the single
 \code{selection_intensity} column of \code{ces_variant()}. It does not include
-\code{included_with_variant}, \code{included_total}, \code{held_out}, or \code{uncovered}
-columns, since sample accounting is inherently stage-specific here. Use \code{step_selection_LRT()}
+\code{included_with_variant}, \code{included_total}, or \code{uncovered} columns, since
+sample accounting is inherently stage-specific here. Use \code{step_selection_LRT()}
 to test whether a step-specific model fits significantly better than a plain \code{ces_variant()}
 run, and \code{plot_effects_step()} to visualize output.
 }

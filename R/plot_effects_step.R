@@ -119,8 +119,9 @@ plot_effects_step = function(effects, group_by = 'variant_name', stage_order = N
   p = p + ggplot2::facet_wrap(facet_formula, ncol = ncol, scales = 'free_y')
 
   if (! is.null(lrt)) {
-    label_data = long[, .(y = max(c(ci_high, selection_intensity), na.rm = TRUE) * 1.05,
-                          label = as.character(significance[1])), by = group_by]
+    top_vals = if (has_ci) c('ci_high', 'selection_intensity') else 'selection_intensity'
+    label_data = long[, .(y = max(unlist(.SD), na.rm = TRUE) * 1.05,
+                          label = as.character(significance[1])), by = group_by, .SDcols = top_vals]
     label_data[, stage := stage_order[1]]
     p = p + ggplot2::geom_text(data = label_data, ggplot2::aes(x = stage, y = y, label = label),
                                inherit.aes = FALSE, size = 5)
