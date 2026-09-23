@@ -316,6 +316,50 @@ plot_effects(cesa$selection$recurrents, group_by = 'gene', topn = 10,
 readRDS(paste0(tutorial_dir, '/BRCA_effects_in_top_genes.rds'))
 ```
 
+### Step-specific selection
+The default model assumes that each variant has a single cancer effect across all samples. When samples represent an ordered sequence of progression stages (for example, normal tissue and primary tumor, or primary tumor and metastasis), `ces_variant_step()` instead estimates one selection intensity per stage, jointly under a single likelihood model. This assumes that samples at each later stage passed through every earlier stage, and each variant analyzed must belong to exactly one gene. If your sample groups are independent subgroups rather than a progression, run `ces_variant()` separately on each group instead (see the `samples` argument, below).
+
+The example output in this section comes from a separate analysis of esophageal squamous cell carcinoma (ESCC), not the breast cancer data used in the rest of this tutorial. Suppose `cesa` holds somatic variants from normal esophageal epithelium and from primary ESCC tumors, with a sample-level column `Pre_or_Pri` marking each sample as normal (`"Pre"`) or tumor (`"Pri"`).
+
+First, assign samples to ordered stages, and estimate gene mutation rates at each stage. Because later-stage samples have passed through earlier stages, each stage's rate is cumulative; `stage_mutation_proportions()` converts these into the proportion of each gene's mutation rate that accumulates during each stage.
+```{r}
+sample_index = assign_stage_index(cesa, stage_col = "Pre_or_Pri", stage_order = c("Pre", "Pri"))
+
+# One gene_mutation_rates() call per stage (creates rate_grp_1, rate_grp_2)
+cesa = gene_mutation_rates(cesa, covariates = "ESCA", save_all_dndscv_output = TRUE,
+                           samples = cesa$samples[Pre_or_Pri == "Pre"])
+cesa = gene_mutation_rates(cesa, covariates = "ESCA", save_all_dndscv_output = TRUE,
+                           samples = cesa$samples[Pre_or_Pri == "Pri"])
+stage_mut_prop = stage_mutation_proportions(cesa, rate_cols = c("rate_grp_1", "rate_grp_2"),
+                                            stage_names = c("Pre", "Pri"))
+```
+
+The model divides each gene's final-stage (total) mutation rate among stages, so assign that rate to all samples before running `ces_variant_step()`. Here, we estimate gene-level effects by combining each gene's variants into a single compound variant (see [CompoundVariantSets](#epistasis-and-compoundvariantsets), below). Then, we test whether stage-specific effects fit better than a single shared effect with `step_selection_LRT()`, and plot the results.
+```{r}
+cesa = clear_gene_rates(cesa)
+cesa = set_gene_rates(cesa, rates = stage_mut_prop[, .(gene, rate = rate_Pri)],
+                      missing_genes_take_nearest = TRUE)
+
+# One compound variant per gene. (The output shown used a curated set of
+# recurrent and nonsense variants for each gene.)
+for_comp = select_variants(cesa, genes = c("NOTCH1", "TP53", "PIK3CA"), min_freq = 2)
+gene_variants = define_compound_variants(cesa, variant_table = for_comp, by = "gene",
+                                         merge_distance = Inf)
+
+cesa = ces_variant_step(cesa, variants = gene_variants, stage_mut_prop = stage_mut_prop,
+                        sample_index = sample_index, run_name = "step_effects", conf = 0.95)
+
+lrt = step_selection_LRT(cesa, step_run_name = "step_effects")
+plot_effects_step(cesa$selection$step_effects, group_by = "variant_name", lrt = lrt,
+                  stage_order = c("Pre", "Pri"), stage_labels = c(Pre = "Normal", Pri = "Tumor"))
+```
+
+```{r eval = T, echo = F, out.width = "100%"}
+knitr::include_graphics(system.file("step_selection_tutorial/escc_step_plot.png", package = "cancereffectsizeR"))
+```
+
+See the [step-specific selection](step_specific_selection.html) article for more detail, including analyses with more than two stages and how noisy (non-monotonic) stage rate estimates are handled.
+
 ### More options
 By default, all recurrent variants (variants that appear at least twice in MAF data) are included in a `ces_variant()` run. As demonstrated, the `variants` argument can be used to specify which variants to test. Variants with prevalences of 1 or even 0 (perhaps helpful to establish an effect ceiling) can be included: `variants = cesa$variants` will include all annotated mutations in the analysis. Note that most single-hit variants will have over-estimated effects because most are probably neutral passengers, and the occurrence of any non-selected variant is inherently improbable.
 

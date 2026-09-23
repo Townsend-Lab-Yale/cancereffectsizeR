@@ -27,9 +27,10 @@ calculating each gene's per-stage mutation rate proportions, running the model, 
 step-specific model actually fits better than a plain `ces_variant()` run, and plotting the
 results.
 
-The output shown below comes from a small example: the package's test data, arbitrarily split
-into "Normal" and "Tumor" halves, with made-up gene mutation rates. It illustrates the workflow
-and output format only; the numbers carry no biological meaning.
+The output shown below comes from an analysis of esophageal squamous cell carcinoma (ESCC). The
+`CESAnalysis` holds somatic variants from normal esophageal epithelium and from primary ESCC
+tumors, with a sample-level column, `Pre_or_Pri`, marking each sample as normal (`"Pre"`) or
+tumor (`"Pri"`). Results are shown for three genes: NOTCH1, TP53, and PIK3CA.
 
 This is a substantial modeling exercise, so it's worth restating the core assumption plainly: your
 samples must represent a real, ordered progression (each later stage having passed through every
@@ -44,8 +45,7 @@ The first ingredient is a `sample_index` table associating every sample with an 
 `load_sample_data()`) and a description of stage order:
 
 ```{r}
-sample_index = assign_stage_index(cesa, stage_col = "tissue_type",
-                                  stage_order = c("Normal", "Tumor"))
+sample_index = assign_stage_index(cesa, stage_col = "Pre_or_Pri", stage_order = c("Pre", "Pri"))
 ```
 
 `stage_order` just needs to be in earliest-to-latest order. For more than two stages, or when
@@ -71,9 +71,9 @@ through every earlier stage first, each stage's rate is a cumulative total:
 
 ```{r}
 cesa = gene_mutation_rates(cesa, covariates = "ESCA", save_all_dndscv_output = TRUE,
-                           samples = cesa$samples[tissue_type == "Normal"])
+                           samples = cesa$samples[Pre_or_Pri == "Pre"])
 cesa = gene_mutation_rates(cesa, covariates = "ESCA", save_all_dndscv_output = TRUE,
-                           samples = cesa$samples[tissue_type == "Tumor"])
+                           samples = cesa$samples[Pre_or_Pri == "Pri"])
 ```
 
 Each call creates a new gene rate group (`rate_grp_1`, `rate_grp_2`, ...). `stage_mutation_proportions()`
@@ -81,11 +81,11 @@ converts the cumulative, per-stage rates into per-gene proportions:
 
 ```{r}
 stage_mut_prop = stage_mutation_proportions(cesa, rate_cols = c("rate_grp_1", "rate_grp_2"),
-                                            stage_names = c("Normal", "Tumor"))
+                                            stage_names = c("Pre", "Pri"))
 ```
 
 ```{r, echo=FALSE, eval=TRUE}
-stage_mut_prop = readRDS(system.file("step_selection_tutorial/kras_stage_mut_prop.rds", package = "cancereffectsizeR"))
+stage_mut_prop = readRDS(system.file("step_selection_tutorial/escc_stage_mut_prop.rds", package = "cancereffectsizeR"))
 ```
 ```{r, eval=TRUE}
 stage_mut_prop
@@ -120,7 +120,7 @@ with the final-stage cumulative rate for every sample:
 
 ```{r}
 cesa = clear_gene_rates(cesa)
-cesa = set_gene_rates(cesa, rates = stage_mut_prop[, .(gene, rate = rate_Tumor)],
+cesa = set_gene_rates(cesa, rates = stage_mut_prop[, .(gene, rate = rate_Pri)],
                       missing_genes_take_nearest = TRUE)
 ```
 
@@ -132,8 +132,12 @@ With `sample_index` and `stage_mut_prop` in hand, `ces_variant_step()` works muc
 `ces_variant()`:
 
 ```{r}
-kras_variants = select_variants(cesa, genes = "KRAS", min_freq = 2)
-cesa = ces_variant_step(cesa, variants = kras_variants, stage_mut_prop = stage_mut_prop,
+# One compound variant per gene, to estimate gene-level effects (see define_compound_variants()).
+# The output shown used a curated set of recurrent and nonsense variants for each gene.
+for_comp = select_variants(cesa, genes = c("NOTCH1", "TP53", "PIK3CA"), min_freq = 2)
+gene_variants = define_compound_variants(cesa, variant_table = for_comp, by = "gene",
+                                         merge_distance = Inf)
+cesa = ces_variant_step(cesa, variants = gene_variants, stage_mut_prop = stage_mut_prop,
                         sample_index = sample_index, run_name = "step_effects",
                         return_fit = TRUE, conf = 0.95)
 ```
@@ -147,7 +151,7 @@ model in which all stages share one selection intensity (`selection_intensity_co
 `loglikelihood_constant`):
 
 ```{r, echo=FALSE, eval=TRUE}
-step_effects = readRDS(system.file("step_selection_tutorial/kras_step_effects.rds", package = "cancereffectsizeR"))
+step_effects = readRDS(system.file("step_selection_tutorial/escc_step_effects.rds", package = "cancereffectsizeR"))
 ```
 ```{r, eval=TRUE}
 step_effects
@@ -175,7 +179,7 @@ accepts one via `simple_run_name`, but only use this when each sample's rate is 
 for its own stage.)
 
 ```{r, echo=FALSE, eval=TRUE}
-lrt = readRDS(system.file("step_selection_tutorial/kras_step_lrt.rds", package = "cancereffectsizeR"))
+lrt = readRDS(system.file("step_selection_tutorial/escc_step_lrt.rds", package = "cancereffectsizeR"))
 ```
 ```{r, eval=TRUE}
 lrt
@@ -190,14 +194,14 @@ annotation to each panel.
 
 ```{r}
 plot_effects_step(step_effects, group_by = "variant_name", lrt = lrt,
-                  stage_order = c("Normal", "Tumor"))
+                  stage_order = c("Pre", "Pri"), stage_labels = c(Pre = "Normal", Pri = "Tumor"))
 ```
 
 ```{r, echo=FALSE, eval=TRUE, out.width="100%"}
-knitr::include_graphics(system.file("step_selection_tutorial/kras_step_plot.png", package = "cancereffectsizeR"))
+knitr::include_graphics(system.file("step_selection_tutorial/escc_step_plot.png", package = "cancereffectsizeR"))
 ```
 
 Note that a confidence limit comes out `NA` when it would fall outside the optimizer's bounds
 (by default, 0.001 to 1e9). This is common for the lower limit when an estimate is at or near the
-0.001 floor (for example, KRAS G12D's `Normal`-stage estimate above). `plot_effects_step()` simply
+0.001 floor (for example, NOTCH1's tumor-stage estimate above). `plot_effects_step()` simply
 omits that side of the error bar.

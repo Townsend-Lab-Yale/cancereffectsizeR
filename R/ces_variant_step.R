@@ -9,7 +9,7 @@
 #' \code{ces_variant()} is unaffected by anything here): the underlying model of selection is
 #' fundamentally different (multiple stage-specific selection coefficients, rather than one), so
 #' the mechanics of confidence interval calculation and output differ in ways not supported by
-#' \code{ces_variant()}'s \code{model} argument.
+#' \code{ces_variant()}'s \code{model} argument currently.
 #'
 #' Setting up a run requires two additional pieces of information beyond a normal
 #' \code{ces_variant()} call:
