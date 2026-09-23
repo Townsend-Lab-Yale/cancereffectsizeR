@@ -12,11 +12,12 @@ step_selection_LRT(
 )
 }
 \arguments{
-\item{cesa}{CESAnalysis object containing both selection_results runs.}
+\item{cesa}{CESAnalysis object containing the selection_results run(s).}
 
 \item{step_run_name}{run_name of a previous \code{ces_variant_step()} call.}
 
-\item{simple_run_name}{run_name of a previous \code{ces_variant()} call, over the same variants.}
+\item{simple_run_name}{Optional run_name of a previous \code{ces_variant()} call over the same
+variants, to use instead of the built-in constrained fit (see details).}
 
 \item{max_loglik}{Log-likelihoods above this value (default 1e5) are treated as implausible
 (usually a sign of optimizer non-convergence) and set to NA, along with the LRT statistic and
@@ -28,13 +29,19 @@ A data.table with columns variant_name, loglik_step, loglik_simple, df, LRT_stat
 }
 \description{
 Tests, for each variant (or compound variant), whether a step-specific model of selection (see
-\code{ces_variant_step()}) fits significantly better than a simpler model that assumes one
-constant selection intensity across all stages (a normal \code{ces_variant()} run). Both runs
-must have been performed on the same CESAnalysis, over the same variants, with
-\code{return_fit = TRUE} (so loglikelihoods are available).
+\code{ces_variant_step()}) fits significantly better than the constrained model in which one
+selection intensity is shared across all stages.
 }
 \details{
+By default, the constrained model is the one fit alongside the step-specific model by
+\code{ces_variant_step()} (\code{loglikelihood_constant} column). It uses the same likelihood
+and gene mutation rates, so the two models are nested by construction. Alternatively, supply
+\code{simple_run_name} to compare against a separate \code{ces_variant()} run (with
+\code{return_fit = TRUE}) over the same variants. Only do this if that run's model is nested in
+the step-specific model: each sample's gene mutation rate in the \code{ces_variant()} run must
+equal the cumulative rate for that sample's own stage.
+
 The step-specific model has one additional free parameter per extra stage beyond the first
-(that is, \code{num_stages - 1} more parameters than the simple model's single selection
+(that is, \code{num_stages - 1} more parameters than the constrained model's single selection
 intensity), which sets the test's degrees of freedom.
 }

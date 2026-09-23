@@ -32,17 +32,22 @@ sample_index = data.table(
 )
 setkey(sample_index, "Unique_Patient_Identifier")
 
-# nearest-gene imputation of the genes without made-up rates produces many non-monotonic genes
+# Made-up rates have no dNdScv output, so use rate_source = "gene_rates". Nearest-gene imputation of
+# the genes without made-up rates produces many non-monotonic genes, hence suppressWarnings().
 smp = suppressWarnings(stage_mutation_proportions(cesa, rate_cols = c("rate_grp_1", "rate_grp_2"),
-                                                  stage_names = c("Normal", "Tumor")))
+                                                  stage_names = c("Normal", "Tumor"), rate_source = "gene_rates"))
+
+# every sample gets the final-stage cumulative rate
+cesa = clear_gene_rates(cesa)
+# (in this small test data set, most genes have no rate; drop them)
+cesa = set_gene_rates(cesa, rates = smp[! is.na(rate_Tumor), .(gene, rate = rate_Tumor)], missing_genes_take_nearest = TRUE)
 
 kras_variants = select_variants(cesa, genes = "KRAS", min_freq = 2)
 cesa = ces_variant_step(cesa, variants = kras_variants, stage_mut_prop = smp,
                         sample_index = sample_index, run_name = "step_effects", conf = 0.95)
 step_effects = cesa@selection_results$step_effects
 
-cesa = ces_variant(cesa, variants = kras_variants, run_name = "simple_effects", return_fit = TRUE)
-lrt = step_selection_LRT(cesa, step_run_name = "step_effects", simple_run_name = "simple_effects")
+lrt = step_selection_LRT(cesa, step_run_name = "step_effects")
 
 saveRDS(smp[gene %in% genes], file.path(out_dir, "kras_stage_mut_prop.rds"))
 saveRDS(step_effects, file.path(out_dir, "kras_step_effects.rds"))

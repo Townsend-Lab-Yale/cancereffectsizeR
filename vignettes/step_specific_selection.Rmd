@@ -70,14 +70,14 @@ each time restricted to the samples at that stage. Because samples at a later st
 through every earlier stage first, each stage's rate is a cumulative total:
 
 ```{r}
-cesa = gene_mutation_rates(cesa, covariates = "ESCA",
+cesa = gene_mutation_rates(cesa, covariates = "ESCA", save_all_dndscv_output = TRUE,
                            samples = cesa$samples[tissue_type == "Normal"])
-cesa = gene_mutation_rates(cesa, covariates = "ESCA",
+cesa = gene_mutation_rates(cesa, covariates = "ESCA", save_all_dndscv_output = TRUE,
                            samples = cesa$samples[tissue_type == "Tumor"])
 ```
 
-Each call adds a new `rate_grp_<N>` column to `get_gene_rates(cesa)`. `stage_mutation_proportions()`
-converts these cumulative, per-stage rates into per-gene proportions:
+Each call creates a new gene rate group (`rate_grp_1`, `rate_grp_2`, ...). `stage_mutation_proportions()`
+converts the cumulative, per-stage rates into per-gene proportions:
 
 ```{r}
 stage_mut_prop = stage_mutation_proportions(cesa, rate_cols = c("rate_grp_1", "rate_grp_2"),
@@ -91,6 +91,18 @@ stage_mut_prop = readRDS(system.file("step_selection_tutorial/kras_stage_mut_pro
 stage_mut_prop
 ```
 
+The `p_<stage>` columns are the proportions, and the `rate_<stage>` columns are the cumulative
+rates they were calculated from.
+
+By default, these are uncorrected rates: each gene's expected synonymous mutation count from
+dNdScv's covariate model, divided by its number of synonymous sites and by the number of samples.
+This requires `save_all_dndscv_output = TRUE` in each `gene_mutation_rates()` call. The rates that
+`gene_mutation_rates()` assigns for `ces_variant()` are instead adjusted toward each gene's
+observed synonymous mutation count. That adjustment is skipped whenever dNdScv's overdispersion
+parameter (theta) is below 1, which is common for sparse early-stage samples, so using
+uncorrected rates at every stage keeps the stage proportions internally consistent. To use the
+rates in `get_gene_rates(cesa)` as they are instead, set `rate_source = "gene_rates"`.
+
 Cumulative rates should never decrease from one stage to the next (a later stage covers at least
 as much mutational time as an earlier one), but dN/dS-based rate estimates are noisy, and a small
 number of genes can come out non-monotonic just from that noise. By default
@@ -99,6 +111,20 @@ contribution floored to a tiny share (`floor_prop`, default 1e-6) of the gene's 
 proportions rescaled to still sum to 1. Set `on_invalid = "NA"` to instead leave those genes' rows
 as `NA` (so you can decide how to handle them, or drop them from `variants` before running
 `ces_variant_step()`), or `on_invalid = "error"` to stop and inspect them yourself.
+
+# Setting mutation rates for the model
+
+The step-specific model starts from each gene's total (final-stage, cumulative) mutation rate and
+divides it among stages using `stage_mut_prop`. So before running it, replace the per-stage rates
+with the final-stage cumulative rate for every sample:
+
+```{r}
+cesa = clear_gene_rates(cesa)
+cesa = set_gene_rates(cesa, rates = stage_mut_prop[, .(gene, rate = rate_Tumor)],
+                      missing_genes_take_nearest = TRUE)
+```
+
+`ces_variant_step()` warns if the included samples still belong to more than one gene rate group.
 
 # Running the model
 
@@ -116,7 +142,9 @@ cesa = ces_variant_step(cesa, variants = kras_variants, stage_mut_prop = stage_m
 `sample_index`, exactly as with `assign_stage_index()`.)
 
 The output table has one selection intensity column per stage (`si_<stage name>`), and, when
-`conf` is set, matching confidence interval columns:
+`conf` is set, matching confidence interval columns. It also reports the fit of a constrained
+model in which all stages share one selection intensity (`selection_intensity_constant`,
+`loglikelihood_constant`):
 
 ```{r, echo=FALSE, eval=TRUE}
 step_effects = readRDS(system.file("step_selection_tutorial/kras_step_effects.rds", package = "cancereffectsizeR"))
@@ -131,15 +159,20 @@ variant or a compound spanning multiple genes has no single row to use.
 
 # Is the step-specific model actually better?
 
-A step-specific model always fits at least as well as a simple `ces_variant()` model, because it
-has more free parameters (one per stage, instead of one overall). To see whether the improvement
-is more than you'd expect by chance, run the simple model too and compare with a likelihood ratio
-test:
+The step-specific model always fits at least as well as the constrained model with one shared
+selection intensity, because it has more free parameters (one per stage, instead of one overall).
+To see whether the improvement is more than you'd expect by chance, compare the two with a
+likelihood ratio test:
 
 ```{r}
-cesa = ces_variant(cesa, variants = kras_variants, run_name = "simple_effects", return_fit = TRUE)
-lrt = step_selection_LRT(cesa, step_run_name = "step_effects", simple_run_name = "simple_effects")
+lrt = step_selection_LRT(cesa, step_run_name = "step_effects")
 ```
+
+Both models use the same likelihood and the same mutation rates, so they are nested, as a
+likelihood ratio test requires. (A plain `ces_variant()` run on the same `cesa` is *not* nested in
+the step-specific model, because every sample carries the final-stage rate. `step_selection_LRT()`
+accepts one via `simple_run_name`, but only use this when each sample's rate is the cumulative rate
+for its own stage.)
 
 ```{r, echo=FALSE, eval=TRUE}
 lrt = readRDS(system.file("step_selection_tutorial/kras_step_lrt.rds", package = "cancereffectsizeR"))

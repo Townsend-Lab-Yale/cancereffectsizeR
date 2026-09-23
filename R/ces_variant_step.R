@@ -29,9 +29,18 @@
 #' name>}/\code{ci_high_<conf*100>_si_<stage name>} columns), rather than the single
 #' \code{selection_intensity} column of \code{ces_variant()}. It does not include
 #' \code{included_with_variant}, \code{included_total}, or \code{uncovered} columns, since
-#' sample accounting is inherently stage-specific here. Use \code{step_selection_LRT()}
-#' to test whether a step-specific model fits significantly better than a plain \code{ces_variant()}
-#' run, and \code{plot_effects_step()} to visualize output.
+#' sample accounting is inherently stage-specific here.
+#'
+#' Every included sample should carry the same gene mutation rates: the final-stage cumulative
+#' rate, which the model divides among stages using \code{stage_mut_prop} (see
+#' \code{stage_mutation_proportions()}). A warning is issued if included samples belong to more
+#' than one gene rate group.
+#'
+#' Each variant is also fit under the constrained model in which all stages share one selection
+#' intensity (\code{selection_intensity_constant} and \code{loglikelihood_constant} columns). This
+#' constrained model is nested in the step-specific model, using the same rates, so
+#' \code{step_selection_LRT()} can test whether allowing selection to differ across stages
+#' significantly improves fit. Use \code{plot_effects_step()} to visualize output.
 #'
 #' @param cesa CESAnalysis object
 #' @param variants Which variants to estimate effects for, specified with a variant table such as
@@ -150,6 +159,12 @@ ces_variant_step = function(cesa = NULL,
       stop("sample_index should be a data.table with columns Unique_Patient_Identifier, group_index, ",
            "and group_name (see assign_stage_index()).")
     }
+  }
+  if (samples[, uniqueN(gene_rate_grp)] > 1) {
+    warning("Included samples belong to ", samples[, uniqueN(gene_rate_grp)], " gene rate groups. ",
+            "ces_variant_step() expects every sample to carry the final-stage cumulative gene rate ",
+            "(see stage_mutation_proportions()); per-stage rates should be cleared and replaced ",
+            "before running.", call. = FALSE)
   }
   num_stages = sample_index[, uniqueN(group_index)]
   if (num_stages < 2) {
@@ -378,12 +393,36 @@ ces_variant_step = function(cesa = NULL,
         selection_intensity = bbmle::coef(fit)
         loglikelihood = as.numeric(bbmle::logLik(fit))
 
+        # Constrained (nested) model: one selection intensity shared by all stages. Starting value
+        # matches sswm_lik(), so this reproduces ces_variant() on stage-specific cumulative rates.
+        num_pars = length(par_init)
+        fn_constant = function(si_constant) fn(rep.int(si_constant, num_pars))
+        constant_optimizer_args = optimizer_args
+        if (length(constant_optimizer_args$lower) > 1) constant_optimizer_args$lower = max(constant_optimizer_args$lower)
+        if (length(constant_optimizer_args$upper) > 1) constant_optimizer_args$upper = min(constant_optimizer_args$upper)
+        withCallingHandlers(
+          {
+            fit_constant = do.call(bbmle::mle2, c(list(minuslogl = fn_constant, start = list(si_constant = 1)),
+                                                  constant_optimizer_args))
+          },
+          warning = function(w) {
+            if (startsWith(conditionMessage(w), "some parameters are on the boundary")) {
+              invokeRestart("muffleWarning")
+            }
+            if (grepl(x = conditionMessage(w), pattern = "convergence failure")) {
+              invokeRestart("muffleWarning")
+            }
+          }
+        )
+
         if (running_compound) {
           variant_id = compound_id
         }
         variant_output = c(list(variant_id = variant_id),
                            as.list(selection_intensity),
-                           list(loglikelihood = loglikelihood))
+                           list(loglikelihood = loglikelihood,
+                                selection_intensity_constant = unname(bbmle::coef(fit_constant)),
+                                loglikelihood_constant = as.numeric(bbmle::logLik(fit_constant))))
 
         if (! is.null(conf)) {
           min_value = ifelse(is.null(final_optimizer_args$lower), -Inf, final_optimizer_args$lower)

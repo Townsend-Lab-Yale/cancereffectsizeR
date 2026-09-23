@@ -101,7 +101,16 @@ The output selection table has one selection intensity column per stage, named
 name>}/\code{ci_high_<conf*100>_si_<stage name>} columns), rather than the single
 \code{selection_intensity} column of \code{ces_variant()}. It does not include
 \code{included_with_variant}, \code{included_total}, or \code{uncovered} columns, since
-sample accounting is inherently stage-specific here. Use \code{step_selection_LRT()}
-to test whether a step-specific model fits significantly better than a plain \code{ces_variant()}
-run, and \code{plot_effects_step()} to visualize output.
+sample accounting is inherently stage-specific here.
+
+Every included sample should carry the same gene mutation rates: the final-stage cumulative
+rate, which the model divides among stages using \code{stage_mut_prop} (see
+\code{stage_mutation_proportions()}). A warning is issued if included samples belong to more
+than one gene rate group.
+
+Each variant is also fit under the constrained model in which all stages share one selection
+intensity (\code{selection_intensity_constant} and \code{loglikelihood_constant} columns). This
+constrained model is nested in the step-specific model, using the same rates, so
+\code{step_selection_LRT()} can test whether allowing selection to differ across stages
+significantly improves fit. Use \code{plot_effects_step()} to visualize output.
 }

@@ -8,6 +8,7 @@ stage_mutation_proportions(
   cesa = NULL,
   rate_cols = NULL,
   stage_names = NULL,
+  rate_source = "dndscv_expected",
   on_invalid = "floor",
   floor_prop = 1e-06
 )
@@ -17,12 +18,18 @@ stage_mutation_proportions(
 calls to \code{gene_mutation_rates()} (or \code{set_gene_rates()}), each restricted to the
 samples at that stage.}
 
-\item{rate_cols}{Character vector of column names in \code{get_gene_rates(cesa)}, one per
-stage, in earliest-to-latest order (for example, \code{c("rate_grp_1", "rate_grp_2")}).
-Defaults to all \code{rate_grp_*} columns present, in ascending numeric order.}
+\item{rate_cols}{Character vector of gene rate groups, one per stage, in earliest-to-latest
+order (for example, \code{c("rate_grp_1", "rate_grp_2")}). These name dNdScv runs in
+\code{cesa$dNdScv_results} (when \code{rate_source = "dndscv_expected"}) or columns of
+\code{get_gene_rates(cesa)} (when \code{rate_source = "gene_rates"}). Defaults to all
+\code{rate_grp_*} groups present, in ascending numeric order.}
 
 \item{stage_names}{Optional character vector of display names for the stages, in the same
 order as \code{rate_cols}. Defaults to \code{rate_cols}.}
+
+\item{rate_source}{\code{"dndscv_expected"} (default) for uncorrected rates calculated from
+full dNdScv output, or \code{"gene_rates"} to use \code{get_gene_rates(cesa)} as-is. See
+details.}
 
 \item{on_invalid}{What to do when a gene's cumulative rates are not non-decreasing across
 stages: \code{"floor"} (default) floors negative/undefined stage contributions to
@@ -34,8 +41,9 @@ stages: \code{"floor"} (default) floors negative/undefined stage contributions t
 1e-6).}
 }
 \value{
-A data.table with a gene (or pid) identifier column, then one proportion column per
-  stage (named \code{p_<stage_name>}). Each row sums to 1, except rows set to NA under
+A data.table with a gene (or pid) identifier column, one proportion column per stage
+  (named \code{p_<stage_name>}), and one cumulative rate column per stage (named
+  \code{rate_<stage_name>}). Proportions in each row sum to 1, except rows set to NA under
   \code{on_invalid = "NA"}.
 }
 \description{
@@ -46,6 +54,24 @@ see the step-specific selection vignette) and converts them into the proportion 
 total mutation rate that is estimated to accumulate during each stage.
 }
 \details{
+By default (\code{rate_source = "dndscv_expected"}), each stage's cumulative rate is dNdScv's
+covariate-based expected synonymous mutation count for the gene (\code{exp_syn_cv}), divided by
+the gene's number of synonymous sites and by the number of samples in the dNdScv run. These are
+uncorrected rates: unlike the rates that \code{gene_mutation_rates()} assigns, they are not
+adjusted toward each gene's observed synonymous mutation count. Using the same kind of estimate
+at every stage keeps stage proportions internally consistent (the adjustment is skipped
+altogether when dNdScv's overdispersion parameter theta is below 1, which is common for sparse
+early-stage samples). This requires full dNdScv output, so run each stage's
+\code{gene_mutation_rates()} call with \code{save_all_dndscv_output = TRUE}. Alternatively,
+\code{rate_source = "gene_rates"} uses the rates in \code{get_gene_rates(cesa)} as-is (for
+example, rates supplied with \code{set_gene_rates()}).
+
+\code{ces_variant_step()} expects every sample to carry the same, final-stage cumulative gene
+rate, which the step-specific model then divides among stages using these proportions. After
+calculating proportions, clear the per-stage rates with \code{clear_gene_rates()} and assign the
+final-stage cumulative rate (the last \code{rate_<stage name>} column of the output) to all
+samples with \code{set_gene_rates()}.
+
 Cumulative rates should be non-decreasing across stages, since later stages by definition
 cover at least as much mutational "time" as earlier ones. When dN/dS-based rate estimates are
 noisy, a later stage's estimated cumulative rate can come out below an earlier one for a given
