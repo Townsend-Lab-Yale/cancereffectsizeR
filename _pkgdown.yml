@@ -70,6 +70,14 @@ reference:
   - mutational_signature_effects
   - clear_effect_output
   - clear_epistasis_output
+- title: Step-specific selection
+  desc: Quantify selection separately across ordered tumor progression stages
+  contents:
+  - ces_variant_step
+  - assign_stage_index
+  - stage_mutation_proportions
+  - step_selection_LRT
+  - plot_effects_step
 - title: Visualization
   desc: Display and compare variant effect sizes
   contents:
@@ -81,6 +89,7 @@ reference:
   desc: Likelihood function generators for various models of selection
   contents:
   - sswm_lik
+  - step_selection_lik
   - pairwise_epistasis_lik
 - title: Explore reference data
   contents:

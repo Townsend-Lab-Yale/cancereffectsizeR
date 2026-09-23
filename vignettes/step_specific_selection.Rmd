@@ -1,0 +1,167 @@
+---
+title: "Step-specific selection"
+output:
+  html_document:
+    code_folding: show
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE, tidy = 'styler')
+library(data.table)
+library(ggplot2)
+tutorial_dir = system.file("step_selection_tutorial", package = 'cancereffectsizeR')
+```
+
+# Introduction
+
+`ces_variant()` estimates a single scaled selection coefficient for each variant, assuming
+selection is constant across every sample included in the analysis. Sometimes, though, your
+samples represent an ordered sequence of tumor progression stages — normal tissue and primary
+tumor, say, or primary tumor and metastasis, or more than two stages — and you'd like to know
+whether (and how) selection on a variant changes from one stage to the next.
+
+`ces_variant_step()` and its supporting functions extend cancereffectsizeR to this setting: instead
+of one selection intensity per variant, you get one per stage, estimated jointly from a single
+likelihood model. This vignette walks through the workflow: assigning samples to stages,
+calculating each gene's per-stage mutation rate proportions, running the model, testing whether a
+step-specific model actually fits better than a plain `ces_variant()` run, and plotting the
+results.
+
+This is a substantial modeling exercise, so it's worth restating the core assumption plainly: your
+samples must represent a real, ordered progression (each later stage having passed through every
+earlier one), and each variant you analyze must belong to exactly one gene. If your samples are
+better described as independent subgroups (not a progression), a stratified `ces_variant()`
+analysis (running separately per subgroup) is more appropriate.
+
+# Assigning samples to stages
+
+The first ingredient is a `sample_index` table associating every sample with an ordered stage.
+`assign_stage_index()` builds it from a sample-level metadata column (added via `load_maf()` or
+`load_sample_data()`) and a description of stage order:
+
+```{r}
+cesa = assign_stage_index(cesa, stage_col = "tissue_type",
+                          stage_order = c("Normal", "Tumor"))
+```
+
+`stage_order` just needs to be in earliest-to-latest order. For more than two stages, or when
+multiple raw values should be grouped into the same stage, use a named list instead:
+
+```{r}
+sample_index = assign_stage_index(cesa, stage_col = "tissue_type",
+                                  stage_order = list(Normal = "Normal",
+                                                     Primary = "Primary_tumor",
+                                                     Metastasis = c("Lymph_node_met", "Distant_met")))
+```
+
+If you already have a table associating samples with stages, you can build `sample_index` by hand
+instead: it just needs `Unique_Patient_Identifier`, `group_index` (1 = earliest stage), and
+`group_name` columns.
+
+# Calculating stage-specific mutation rate proportions
+
+The model also needs, for each gene, what proportion of its total mutation rate is estimated to
+accumulate during each stage. This comes from running `gene_mutation_rates()` once per stage,
+each time restricted to the samples that have reached at least that stage (so a later stage's
+mutation rate reflects a cumulative total, having passed through every earlier stage first):
+
+```{r}
+cesa = gene_mutation_rates(cesa, covariates = "your_tissue_type",
+                           samples = cesa$samples[tissue_type == "Normal"])
+cesa = gene_mutation_rates(cesa, covariates = "your_tissue_type",
+                           samples = cesa$samples[tissue_type == "Tumor"])
+```
+
+Each call adds a new `rate_grp_<N>` column to `get_gene_rates(cesa)`. `stage_mutation_proportions()`
+converts these cumulative, per-stage rates into per-gene proportions:
+
+```{r}
+stage_mut_prop = stage_mutation_proportions(cesa, rate_cols = c("rate_grp_1", "rate_grp_2"),
+                                            stage_names = c("Normal", "Tumor"))
+```
+
+```{r, echo=FALSE, eval=TRUE}
+stage_mut_prop = readRDS(system.file("step_selection_tutorial/kras_stage_mut_prop.rds", package = "cancereffectsizeR"))
+```
+```{r, eval=TRUE}
+stage_mut_prop
+```
+
+Cumulative rates should never decrease from one stage to the next (a later stage covers at least
+as much mutational time as an earlier one), but dN/dS-based rate estimates are noisy, and a small
+number of genes can come out non-monotonic just from that noise. By default
+(`on_invalid = "floor"`), affected genes get a warning and have their negative/undefined stage
+contribution floored to a tiny share (`floor_prop`, default 1e-6) of the gene's total rate, with
+proportions rescaled to still sum to 1. Set `on_invalid = "NA"` to instead leave those genes' rows
+as `NA` (so you can decide how to handle them, or drop them from `variants` before running
+`ces_variant_step()`), or `on_invalid = "error"` to stop and inspect them yourself.
+
+# Running the model
+
+With `sample_index` and `stage_mut_prop` in hand, `ces_variant_step()` works much like
+`ces_variant()`:
+
+```{r}
+kras_variants = select_variants(cesa, genes = "KRAS", min_freq = 2)
+cesa = ces_variant_step(cesa, variants = kras_variants, stage_mut_prop = stage_mut_prop,
+                        sample_index = sample_index, run_name = "step_effects",
+                        return_fit = TRUE, conf = 0.95)
+```
+
+(You can pass `stage_col`/`stage_order` directly to `ces_variant_step()` instead of a pre-built
+`sample_index`, exactly as with `assign_stage_index()`.)
+
+The output table has one selection intensity column per stage (`si_<stage name>`), and, when
+`conf` is set, matching confidence interval columns:
+
+```{r, echo=FALSE, eval=TRUE}
+step_effects = readRDS(system.file("step_selection_tutorial/kras_step_effects.rds", package = "cancereffectsizeR"))
+```
+```{r, eval=TRUE}
+step_effects
+```
+
+Every variant (or compound variant) passed to `ces_variant_step()` must map to exactly one gene
+present in `stage_mut_prop` — the mutation-rate proportions are gene-level, so an intergenic
+variant or a compound spanning multiple genes has no single row to use.
+
+# Is the step-specific model actually better?
+
+A step-specific model always fits at least as well as a simple `ces_variant()` model, because it
+has more free parameters (one per stage, instead of one overall). To see whether the improvement
+is more than you'd expect by chance, run the simple model too and compare with a likelihood ratio
+test:
+
+```{r}
+cesa = ces_variant(cesa, variants = kras_variants, run_name = "simple_effects", return_fit = TRUE)
+lrt = step_selection_LRT(cesa, step_run_name = "step_effects", simple_run_name = "simple_effects")
+```
+
+```{r, echo=FALSE, eval=TRUE}
+lrt = readRDS(system.file("step_selection_tutorial/kras_step_lrt.rds", package = "cancereffectsizeR"))
+```
+```{r, eval=TRUE}
+lrt
+```
+
+# Plotting results
+
+`plot_effects_step()` visualizes step-specific effects, with one panel per variant (or gene, or
+any other grouping column), stage on the x-axis, and points colored by stage. It works for any
+number of stages. Passing the `step_selection_LRT()` output via `lrt` adds a significance
+annotation to each panel.
+
+```{r}
+plot_effects_step(step_effects, group_by = "variant_name", lrt = lrt,
+                  stage_order = c("Normal", "Tumor"))
+```
+
+```{r, echo=FALSE, eval=TRUE, fig.width=8, fig.height=5}
+readRDS(system.file("step_selection_tutorial/kras_step_plot.rds", package = "cancereffectsizeR"))
+```
+
+Note that a stage's confidence interval can come out `NA` on one side when that stage's fitted
+selection intensity sits right at the optimizer's boundary (as with KRAS G12D's `Normal`-stage
+estimate above, which hit the 0.001 lower bound) — that's an accurate reflection of a genuinely
+undefined bound there, not a bug, and `plot_effects_step()` simply omits that side of the error
+bar.

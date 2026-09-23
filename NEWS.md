@@ -2,6 +2,13 @@
 # <font style = "opacity:0">cancereffectsizeR 3.0.0</font>
 Patch releases (as in, x.y.1 &#8594; x.y.2) have minor bug fixes or small improvements that do not significantly affect the numerical output of cancer effect analyses. Minor/major updates may change some outputs due to bug fixes or methodological tweaks, as described in these version notes.<br><br>
 
+# cancereffectsizeR 2.11.0 (in development, selection_extensions branch)
+* Added step-specific selection: quantify cancer effects separately across an ordered sequence of
+  tumor progression stages (for example, normal tissue and primary tumor), rather than assuming a
+  constant effect across all samples. See `ces_variant_step()`, `assign_stage_index()`,
+  `stage_mutation_proportions()`, `step_selection_LRT()`, `plot_effects_step()`, and the new
+  "Step-specific selection" vignette.
+
 # cancereffectsizeR 2.10.2
 * Expanded support for customized epistatic inference: support for custom likelihood functions and more control over the optimizer.
 * Improvements to epistatic effect plotting; see ?plot_epistasis and ?epistasis_plot_schematic.
