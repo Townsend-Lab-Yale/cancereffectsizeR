@@ -6,15 +6,15 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Generate tissue covariates data • cancereffectsizeR</title>
-<!-- favicons --><link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
-<link rel="icon" type="image/png" sizes="32x32" href="../favicon-32x32.png">
-<link rel="apple-touch-icon" type="image/png" sizes="180x180" href="../apple-touch-icon.png">
-<link rel="apple-touch-icon" type="image/png" sizes="120x120" href="../apple-touch-icon-120x120.png">
-<link rel="apple-touch-icon" type="image/png" sizes="76x76" href="../apple-touch-icon-76x76.png">
-<link rel="apple-touch-icon" type="image/png" sizes="60x60" href="../apple-touch-icon-60x60.png">
-<script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="../favicon-96x96.png">
+<link rel="icon" type="”image/svg+xml”" href="../favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
+<link rel="icon" sizes="any" href="../favicon.ico">
+<link rel="manifest" href="../site.webmanifest">
+<!-- katex math --><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script><script src="../katex-auto.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><link href="../extra.css" rel="stylesheet">
 <meta property="og:title" content="Generate tissue covariates data">
@@ -27,7 +27,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">cancereffectsizeR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.10.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.11.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -45,6 +45,8 @@
     <li><a class="dropdown-item" href="../articles/create_custom_covariates.html">Generate tissue covariates data</a></li>
     <li><a class="dropdown-item" href="../articles/custom_refset_instructions.html">Running with custom reference data</a></li>
     <li><a class="dropdown-item" href="../articles/MAF_filtering_tips.html">MAF filtering and sample validation</a></li>
+    <li><a class="dropdown-item" href="../articles/continuous_covariate_selection.html">Continuous covariate selection</a></li>
+    <li><a class="dropdown-item" href="../articles/step_specific_selection.html">Step-specific selection</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
@@ -148,7 +150,7 @@ attributes file to subset to lung samples.</p>
 <span></span>
 <span><span class="co"># Subset to lung samples</span></span>
 <span><span class="va">gtex_lung_samples</span> <span class="op">=</span> <span class="va">gtex_key</span><span class="op">[</span><span class="va">SMTSD</span> <span class="op">==</span> <span class="st">"Lung"</span>, <span class="va">SAMPID</span><span class="op">]</span></span>
-<span><span class="va">gtex_lung_samples</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/BiocGenerics/man/sets.html" class="external-link">intersect</a></span><span class="op">(</span><span class="va">gtex_lung_samples</span>, <span class="fu"><a href="https://rdrr.io/pkg/BiocGenerics/man/row_colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">gtex</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">gtex_lung_samples</span> <span class="op">=</span> <span class="fu"><a href="https://generics.r-lib.org/reference/setops.html" class="external-link">intersect</a></span><span class="op">(</span><span class="va">gtex_lung_samples</span>, <span class="fu"><a href="https://rdrr.io/pkg/BiocGenerics/man/row_colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">gtex</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">gtex</span> <span class="op">=</span> <span class="va">gtex</span><span class="op">[</span>, <span class="va">.SD</span>, .SDcols <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Name"</span>, <span class="va">gtex_lung_samples</span><span class="op">)</span><span class="op">]</span></span>
 <span></span>
 <span><span class="co"># The GTEx Ensembl gene IDs (in "Name") include version suffixes; strip these for short IDs</span></span>
@@ -187,7 +189,7 @@ with the “.bw” extension. They will be significantly larger than the
 <span>          <span class="st">"GSM910572_UCSD.Lung.H3K4me1.STL002.wig.gz"</span>,</span>
 <span>          <span class="st">"GSM915336_UCSD.Lung.H3K4me3.STL002.wig.gz"</span>,</span>
 <span>          <span class="st">"GSM956014_UCSD.Lung.H3K36me3.STL002.wig.gz"</span><span class="op">)</span></span>
-<span><span class="va">hg19_seqinfo</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/GenomeInfoDb/man/seqinfo.html" class="external-link">seqinfo</a></span><span class="op">(</span><span class="va">BSgenome.Hsapiens.UCSC.hg19</span><span class="op">)</span> <span class="co"># or, whatever genome you're using</span></span>
+<span><span class="va">hg19_seqinfo</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/Seqinfo/man/seqinfo.html" class="external-link">seqinfo</a></span><span class="op">(</span><span class="va">BSgenome.Hsapiens.UCSC.hg19</span><span class="op">)</span> <span class="co"># or, whatever genome you're using</span></span>
 <span></span>
 <span><span class="kw">for</span><span class="op">(</span><span class="va">i</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">marks</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">bw</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/rtracklayer/man/wigToBigWig.html" class="external-link">wigToBigWig</a></span><span class="op">(</span><span class="va">marks</span><span class="op">[</span><span class="va">i</span><span class="op">]</span>, seqinfo <span class="op">=</span> <span class="va">hg19_seqinfo</span><span class="op">)</span></span>
@@ -205,7 +207,7 @@ genomic intervals.</p>
 <code class="sourceCode R"><span><span class="va">marks_by_gene</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a></span><span class="op">(</span>gene_name <span class="op">=</span> <span class="va">refset_genes</span><span class="op">$</span><span class="va">gene_name</span><span class="op">)</span></span>
 <span><span class="kw">for</span> <span class="op">(</span><span class="va">i</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">bw</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">mark_gr</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/rtracklayer/man/BigWigFile.html" class="external-link">import.bw</a></span><span class="op">(</span><span class="va">bw</span><span class="op">[</span><span class="va">i</span><span class="op">]</span><span class="op">)</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/pkg/GenomeInfoDb/man/seqlevelsStyle.html" class="external-link">seqlevelsStyle</a></span><span class="op">(</span><span class="va">mark_gr</span><span class="op">)</span> <span class="op">=</span> <span class="st">"NCBI"</span> <span class="co"># to match ces.refset.hg19's gene_gr</span></span>
+<span>  <span class="fu">seqlevelsStyle</span><span class="op">(</span><span class="va">mark_gr</span><span class="op">)</span> <span class="op">=</span> <span class="st">"NCBI"</span> <span class="co"># to match ces.refset.hg19's gene_gr</span></span>
 <span>  <span class="va">overlaps</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/IRanges/man/findOverlaps-methods.html" class="external-link">findOverlaps</a></span><span class="op">(</span>query <span class="op">=</span> <span class="va">mark_gr</span>, subject <span class="op">=</span> <span class="va">gene_gr</span><span class="op">)</span></span>
 <span>  <span class="va">overlaps_dt</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a></span><span class="op">(</span>chromatin_hits <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/S4Vectors/man/Hits-class.html" class="external-link">queryHits</a></span><span class="op">(</span><span class="va">overlaps</span><span class="op">)</span>,gene_hits <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/S4Vectors/man/Hits-class.html" class="external-link">subjectHits</a></span><span class="op">(</span><span class="va">overlaps</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="va">overlaps_dt</span><span class="op">[</span>, <span class="va">gene_name</span> <span class="op">:=</span> <span class="va">gene_gr</span><span class="op">$</span><span class="va">names</span><span class="op">[</span><span class="va">gene_hits</span><span class="op">]</span><span class="op">]</span></span>
@@ -229,7 +231,7 @@ processed nearly identically:</p>
 <span><span class="va">rt_by_gene</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a></span><span class="op">(</span>gene_name <span class="op">=</span> <span class="va">refset_genes</span><span class="op">$</span><span class="va">gene_name</span><span class="op">)</span></span>
 <span><span class="kw">for</span> <span class="op">(</span><span class="va">i</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">rep_timing</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">rt_gr</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/rtracklayer/man/BEDFile-class.html" class="external-link">import.bedGraph</a></span><span class="op">(</span><span class="va">rep_timing</span><span class="op">[</span><span class="va">i</span><span class="op">]</span><span class="op">)</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/pkg/GenomeInfoDb/man/seqlevelsStyle.html" class="external-link">seqlevelsStyle</a></span><span class="op">(</span><span class="va">rt_gr</span><span class="op">)</span> <span class="op">=</span> <span class="st">"NCBI"</span> <span class="co"># to match ces.refset.hg19's gene_gr</span></span>
+<span>  <span class="fu">seqlevelsStyle</span><span class="op">(</span><span class="va">rt_gr</span><span class="op">)</span> <span class="op">=</span> <span class="st">"NCBI"</span> <span class="co"># to match ces.refset.hg19's gene_gr</span></span>
 <span>  <span class="va">overlaps</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/IRanges/man/findOverlaps-methods.html" class="external-link">findOverlaps</a></span><span class="op">(</span>query <span class="op">=</span> <span class="va">rt_gr</span>, subject <span class="op">=</span> <span class="va">gene_gr</span><span class="op">)</span></span>
 <span>  <span class="va">overlaps_dt</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a></span><span class="op">(</span>rt_hits <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/S4Vectors/man/Hits-class.html" class="external-link">queryHits</a></span><span class="op">(</span><span class="va">overlaps</span><span class="op">)</span>,gene_hits <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/S4Vectors/man/Hits-class.html" class="external-link">subjectHits</a></span><span class="op">(</span><span class="va">overlaps</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="va">overlaps_dt</span><span class="op">[</span>, <span class="va">gene_name</span> <span class="op">:=</span> <span class="va">gene_gr</span><span class="op">$</span><span class="va">names</span><span class="op">[</span><span class="va">gene_hits</span><span class="op">]</span><span class="op">]</span></span>
@@ -302,7 +304,7 @@ directly to <code><a href="../reference/gene_mutation_rates.html">gene_mutation_
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.1.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

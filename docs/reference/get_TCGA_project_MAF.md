@@ -1,0 +1,58 @@
+# Get MAF data from TCGA cohort
+
+This convenience function queries the Genomic Data Commons API to get
+MAF data generated with the Aliquot Ensemble Somatic Variant Merging and
+Masking workflow for the specified project, and writes an MAF file. The
+API always provides data from the latest data release. This function
+might work with non-TCGA MAF data hosted on GDC (e.g., TARGET and
+GENIE-MSK), but it hasn't been tested and users should proceed with
+caution.
+
+## Usage
+
+``` r
+get_TCGA_project_MAF(
+  project = NULL,
+  filename = NULL,
+  test_run = FALSE,
+  exclude_TCGA_nonprimary = TRUE
+)
+```
+
+## Arguments
+
+- project:
+
+  TCGA project name (e.g., "TCGA-BRCA").
+
+- filename:
+
+  Output filename where MAF data should be saved. Must end in '.maf'
+  (plaintext) or '.maf.gz' (gzip compressed).
+
+- test_run:
+
+  Default FALSE. When TRUE, gets MAF data for a few samples instead of
+  the whole cohort.
+
+- exclude_TCGA_nonprimary:
+
+  Default TRUE. For TCGA projects, exclude samples not associated with a
+  patient's initial primary tumor. (In many TCGA projects, a small
+  handful of patients have metastatic, recurrent, or additional primary
+  samples.)
+
+## Details
+
+TCGA cohort MAFs will be structured as downloaded, with a
+Unique_Patient_Identifier column generated from the first 12 characters
+of Tumor_Sample_Barcode. When passed to preload_maf() or load_maf(),
+this column will supersede Tumor_Sample_Barcode. In the handful of
+patients with multiple Tumor_Sample_Barcodes (essentially replicated
+sequencing, with very high variant overlap), these functions will
+effectively take the union of these samples for each patient. Relatedly,
+the small number of TCGA non-primary tumor samples should not be handled
+this way (and such samples are by default removed by this function).
+
+Temporary aliquot MAF files downloaded by this function are deleted
+after they are read.

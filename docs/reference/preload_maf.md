@@ -1,0 +1,123 @@
+# Read and verify MAF somatic mutation data
+
+Reads MAF-formatted data from a text file or data table, checks for
+problems, and provides a few quality check annotations (if available).
+If core MAF columns don't have standard names (Chromosome,
+Start_Position, etc., with Tumor_Sample_Barcode used as the sample ID
+column), you can supply your own column names. If the data you are
+loading is from a different genome build than the chosen reference data
+set (refset) you can use the `chain_file` option to supply a UCSC-style
+chain file, and your MAF coordinates will be automatically converted
+with rtracklayer's version of liftOver.
+
+## Usage
+
+``` r
+preload_maf(
+  maf = NULL,
+  refset = NULL,
+  coverage_intervals_to_check = NULL,
+  chain_file = NULL,
+  sample_col = "Unique_Patient_Identifier",
+  chr_col = "Chromosome",
+  start_col = "Start_Position",
+  ref_col = "Reference_Allele",
+  tumor_allele_col = "guess",
+  keep_extra_columns = FALSE,
+  detect_hidden_mnv = TRUE
+)
+```
+
+## Arguments
+
+- maf:
+
+  Path of tab-delimited text file in MAF format, or a
+  data.table/data.frame with MAF data
+
+- refset:
+
+  name of reference data set (refset) to use; run
+  [`list_ces_refsets()`](https://townsend-lab-yale.github.io/cancereffectsizeR/reference/list_ces_refsets.md)
+  for available refsets. Alternatively, the path to a custom reference
+  data directory.
+
+- coverage_intervals_to_check:
+
+  If available, a BED file or GRanges object represented the expected
+  coverage intervals of the sequencing method used to generate the MAF
+  data. Unless the coverage intervals are incorrect, most records will
+  be covered. Output will show how far away uncovered records are from
+  covered regions, which can inform whether to use the
+  covered_regions_padding option in load_maf(). (For example, some
+  variant callers will identify variants up to 100bp out of the target
+  regions, and you may want to pad the covered intervals to allow these
+  variants to remain in your data. Alternatively, if all records are
+  already covered, then the calls have probably already be trimmed to
+  the coverage intervals, which means no padding should be added.)
+
+- chain_file:
+
+  a LiftOver chain file (text format, name ends in .chain) to convert
+  MAF records to the genome build used in the CESAnalysis.
+
+- sample_col:
+
+  column name with patient ID; defaults to Unique_Patient_Identifier,
+  or, in its absence, Tumor_Sample_Barcode
+
+- chr_col:
+
+  column name with chromosome data (Chromosome)
+
+- start_col:
+
+  column name with start position (Start_Position)
+
+- ref_col:
+
+  column name with reference allele data (Reference_Allele)
+
+- tumor_allele_col:
+
+  column name with alternate allele data; by default, values from
+  Tumor_Seq_Allele2 and Tumor_Seq_Allele1 columns are used
+
+- keep_extra_columns:
+
+  TRUE/FALSE to load data columns not needed by cancereffectsizeR, or a
+  vector of column names to keep.
+
+- detect_hidden_mnv:
+
+  Find same-sample adjacent SNVs and replace these records with DBS
+  (doublet base substitution) records. Also, find groups of same-sample
+  variants within 2 bp of each other and replace these records with MNV
+  (multi-nucleotide variant) records.
+
+## Value
+
+a data.table of MAF data, with any problematic records flagged and a few
+quality-control annotations (if available with the chosen refset data).
+
+## Details
+
+The `ces.refset.hg19` `ces.refset.hg38` refsets provides three
+annotations that you may consider using for quality filtering of MAF
+records:
+
+- cosmic_site_tier Indicates if the variant's position overlaps a
+  mutation in COSMIC v92's Cancer Mutation Census. Mutations are
+  classified as Tier 1, Tier 2, Tier 3, and Other. Note that the MAF
+  mutation itself is not necessarily in the census. See COSMIC's website
+  for tier definitions.
+
+- germline_variant_site The variant's position overlaps a site of common
+  germline variation. Roughly, this means that gnomAD 2.1.1 shows an
+  overlapping germline variant at greater than 1% prevalence in some
+  population.
+
+- repetitive_region The variant overlaps a site marked as repetitive
+  sequence by the RepeatMasker tool (data taken from UCSC Table
+  Browser). Variant calls in repetitive sites frequently reflect
+  sequencing or calling error.

@@ -1,0 +1,76 @@
+# Add variant annotations
+
+Use this function to add variant annotations to your CESAnalysis by
+specifying variants to add in one of five ways: a data.table containing
+genomic coordinates (output from select_variants(), typically), a
+GRanges object, a BED file, another CESAnalysis, or SNV/AAC IDs.
+
+## Usage
+
+``` r
+add_variants(
+  target_cesa = NULL,
+  variant_table = NULL,
+  snv_id = NULL,
+  aac_id = NULL,
+  bed = NULL,
+  gr = NULL,
+  source_cesa = NULL,
+  padding = 0
+)
+```
+
+## Arguments
+
+- target_cesa:
+
+  CESAnalysis to receive variant annotations
+
+- variant_table:
+
+  A data.table with chr/start/end positions (1-based closed coordinates,
+  like MAF format). All possible SNVs overlapping the table's genomic
+  coordinates (within `padding` bases) will be added. The tables
+  returned by select_variants() and (CESAnalysis)\$variants work, and
+  get special handling of amino-acid-change SNVs: only the precise
+  positions in start, end, and center_nt_pos are used. (This avoids
+  adding all variants between start/end, which on splice-site-spanning
+  variants can be many thousands.)
+
+- snv_id:
+
+  Character vector of CES-style SNV IDs to add.
+
+- aac_id:
+
+  Character vector of AAC IDs (or short names, like "KRAS_G12C")
+
+- bed:
+
+  A path to a BED file. All possible SNVs overlapping BED intervals
+  (within `padding` bases) will be added.
+
+- gr:
+
+  A GRanges object. All possible SNVs overlapping the ranges (within
+  `padding` bases) will be added.
+
+- source_cesa:
+
+  Another CESAnalysis from which to copy snv_ids. SNVs will be
+  re-annotated using the target_cesa's associated reference data.
+
+- padding:
+
+  How many bases (default 0) to expand start and end of each gr range
+
+## Details
+
+All methods of adding variants work by identifying which SNVs to add and
+then using the target_cesa's associated reference data to identify
+overlapping amino-acid-change mutations, which are then added as well.
+(You can't add just SNVs or just AACs.) Note that if you try to add far
+more distinct variants than appear in a typical cohort (as in,
+millions), annotation will take a while and the annotation tables in the
+CESAnalysis may take up significant memory. Please contact us if you
+have issues.

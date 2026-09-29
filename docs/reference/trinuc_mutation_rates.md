@@ -1,0 +1,176 @@
+# Calculate relative rates of trinucleotide-context-specific mutations by extracting underlying mutational processes
+
+This function calculates expected relative rates of
+trinucleotide-context-specific SNV mutations within tumors by
+attributing SNVs to mutational processes represented in mutation
+signature sets (such as "COSMIC v3.2"). Signature extraction can be done
+with MutationalPatterns (default) or deconstructSigs. Tumors with
+targeted sequencing data are assigned the average trinucleotide mutation
+rates calculated across all exome/genome data, which means that you need
+at least some exome or genome data to run.
+
+## Usage
+
+``` r
+trinuc_mutation_rates(
+  cesa,
+  signature_set = NULL,
+  signature_exclusions = character(),
+  samples = character(),
+  cores = 1,
+  signature_extractor = "MutationalPatterns",
+  mp_strict_args = list(),
+  bootstrap_mutations = FALSE,
+  assume_identical_mutational_processes = FALSE,
+  sample_group = NULL,
+  sig_averaging_threshold = 50,
+  signatures_to_remove = NULL
+)
+```
+
+## Arguments
+
+- cesa:
+
+  CESAnalysis object
+
+- signature_set:
+
+  Name of built-in signature set (see
+  [`list_ces_signature_sets()`](https://townsend-lab-yale.github.io/cancereffectsizeR/reference/list_ces_signature_sets.md)),
+  or a custom signature set (see details)
+
+- signature_exclusions:
+
+  Specify any signatures to exclude from analysis; use
+  [`suggest_cosmic_signature_exclusions()`](https://townsend-lab-yale.github.io/cancereffectsizeR/reference/suggest_cosmic_signature_exclusions.md)
+  for advice on COSMIC signatures
+
+- samples:
+
+  Which samples to include in the current run. Defaults to all samples.
+  Can be a vector of Unique_Patient_Identifiers, or a data.table
+  containing rows from the CESAnalysis sample table.
+
+- cores:
+
+  How many cores to use for processing tumors in parallel.
+
+- signature_extractor:
+
+  The signature extraction package to use. The default and recommended
+  package is "MutationalPatterns". The other supported extractor is
+  "deconstructSigs", but that package is apparently no longer being
+  maintained, so you may encounter errors if attempting to use it.
+
+- mp_strict_args:
+
+  Named list of arguments to pass to MutationalPatterns'
+  fit_to_signatures_strict function. Note that mut_matrix and signatures
+  arguments are generated automatically, and that if you'd rather not
+  use the strict method, you can emulate fit_to_signatures() by setting
+  max_delta = 0.
+
+- bootstrap_mutations:
+
+  T/F (default FALSE). Instead of using actual SNV counts for the
+  samples, do a single bootstrap sampling of each sample (in other
+  words, run MutationalPatterns::fit_to_signatures_bootstrapped() with
+  `n_boot=1`). This can be useful if you intend to run this function
+  multiple times to get a distribution of signature attributions and
+  trinuc rates (and downstream cancer effect sizes). This option may be
+  replaced with more thorough support for bootstrapping in the future.
+
+- assume_identical_mutational_processes:
+
+  use well-mutated tumors (those with number of eligible mutations
+  meeting sig_averaging_threshold) to calculate group average signature
+  weights, and assign these (and implied trinucleotide mutation rates)
+  to all tumors
+
+- sig_averaging_threshold:
+
+  Mutation prevalence threshold (default 50) that determines which
+  tumors inform the calculation of group-average signature weights. When
+  assume_identical_mutational_processes == FALSE (the default), these
+  group averages are blended into the signature weights of sub-threshold
+  tumors.
+
+- signatures_to_remove:
+
+  Deprecated; use the renamed argument signature_exclusions.
+
+## Value
+
+CESAnalysis with sample-specific signature weights and inferred
+trinucleotide-context-specific relative mutation rates. The snv_counts
+matrix gives the counts of SNVs in each trinucleotide context for all
+samples in the CESAnalysis. (While recurrent mutations are excluded from
+signature analysis in trinuc_mutation_rates(), they are present in
+snv_counts for completeness.) The snv_counts matrix, produced by
+\`trinuc_snv_counts()\`, can be fed directly into MutationalPatterns if
+you wish to run your own extended signature analysis.
+
+The raw_attributions table contains signature attributions as produced
+by MutationalPatterns or deconstructSigs. The biological_weights table
+has several differences:
+
+- Weights for signatures associated with artifactual (as opposed to
+  biological) processes are set to zero.
+
+- The remaining weights are normalized to sum to 1.
+
+- Tumors with few mutations (defined by \`sig_averaging_threshold\`,
+  default = 50) have their weights redefined using a blend of their
+  original weights and weights derived from running signature extraction
+  en masse on tumors with above-threshold mutation counts. These samples
+  are identifiable by filtering the table on \`group_avg_blended ==
+  TRUE\`, and we recommend excluding them from most downstream signature
+  analysis. (These weights are useful as a best guess of mutational
+  processes, but they shouldn't be reported in any way that implies
+  their independence from the group-average weights.)
+
+  Biological weights can be interpreted as follows: Out of all the
+  mutations caused by biological processes represented in the
+  signatures, the proportion of mutations attributed to given signature
+  is its weight.
+
+  Either signature attributions table can be converted into the matrix
+  format used by MutationalPatterns with
+  \`convert_signature_weights_for_mp()\`.
+
+## Details
+
+To reduce the influence of selection on the estimation of relative
+trinucleotide mutation rates, only non-recurrent SNVs (those that do not
+appear in more than one sample in the current run) are used.
+
+A custom signature set should be given as a named three-item list, where
+"signatures" is a pure data.frame with signature definitions, "name" is
+a 1-length character naming the set, and "metadata" is a data.table with
+a name column that matches rownames in the signature definitions. The
+following columns allow special functionality:
+
+- Likely_Artifact (logical T/F): Marks signatures that are believed to
+  derive from sample processing, sequencing, calling error, or other
+  non-biological sources. cancereffectsizeR adjusts for artifact
+  signatures when inferring relative trinucleotide mutation rates.
+
+- Exome_Min: Minimum number of mutations a WES sample must have for the
+  presence of the signature to be plausible. This information is used to
+  prevent hypermutation signatures from being found in tumors with few
+  mutations. Can be left NA or 0 for non-hypermutation signatures. If
+  this column is present, Genome_Min must be present and always greater
+  than or equal to Exome_Min.
+
+- Genome_Min: Minimum number of mutations a WGS sample must have for the
+  presence of the signature to be plausible. This information is used to
+  prevent hypermutation signatures from being found in tumors with few
+  mutations. Can be left NA or 0 for non-hypermutation signatures. If
+  this column is present, Exome_Min must be present and always less than
+  or equal to Genome_Min.
+
+If you don't have any metadata available for your signature set, an
+empty data table can also be supplied. For a template signature set
+object, run
+`sig_set = get_ces_signature_set("ces.refset.hg19", "COSMIC_v3.2")`.

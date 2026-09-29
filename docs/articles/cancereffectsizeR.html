@@ -6,15 +6,15 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Tutorial • cancereffectsizeR</title>
-<!-- favicons --><link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
-<link rel="icon" type="image/png" sizes="32x32" href="../favicon-32x32.png">
-<link rel="apple-touch-icon" type="image/png" sizes="180x180" href="../apple-touch-icon.png">
-<link rel="apple-touch-icon" type="image/png" sizes="120x120" href="../apple-touch-icon-120x120.png">
-<link rel="apple-touch-icon" type="image/png" sizes="76x76" href="../apple-touch-icon-76x76.png">
-<link rel="apple-touch-icon" type="image/png" sizes="60x60" href="../apple-touch-icon-60x60.png">
-<script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="../favicon-96x96.png">
+<link rel="icon" type="”image/svg+xml”" href="../favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
+<link rel="icon" sizes="any" href="../favicon.ico">
+<link rel="manifest" href="../site.webmanifest">
+<!-- katex math --><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script><script src="../katex-auto.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><link href="../extra.css" rel="stylesheet">
 <meta property="og:title" content="Tutorial">
@@ -27,7 +27,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">cancereffectsizeR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.10.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.11.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -45,6 +45,8 @@
     <li><a class="dropdown-item" href="../articles/create_custom_covariates.html">Generate tissue covariates data</a></li>
     <li><a class="dropdown-item" href="../articles/custom_refset_instructions.html">Running with custom reference data</a></li>
     <li><a class="dropdown-item" href="../articles/MAF_filtering_tips.html">MAF filtering and sample validation</a></li>
+    <li><a class="dropdown-item" href="../articles/continuous_covariate_selection.html">Continuous covariate selection</a></li>
+    <li><a class="dropdown-item" href="../articles/step_specific_selection.html">Step-specific selection</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
@@ -189,7 +191,7 @@ large selective effects.</p>
 <span><span class="fu"><a href="../reference/plot_signature_effects.html">plot_signature_effects</a></span><span class="op">(</span><span class="va">mut_effects</span>, viridis_option <span class="op">=</span> <span class="st">"F"</span>, num_sig_groups <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># See the full tutorial for more details and a broader view of functionality!</span></span></code></pre></div>
-<p><img src="cancereffectsizeR_files/figure-html/unnamed-chunk-6-1.png" width="700"><img src="cancereffectsizeR_files/figure-html/unnamed-chunk-6-2.png" width="700"></p>
+<p><img src="cancereffectsizeR_files/figure-html/unnamed-chunk-6-1.png" class="r-plt" alt="" width="700"><img src="cancereffectsizeR_files/figure-html/unnamed-chunk-6-2.png" class="r-plt" alt="" width="700"></p>
 </details>
 </div>
 </div>
@@ -1048,7 +1050,7 @@ selection with ces_variant():</p>
 <code><a href="../reference/plot_effects.html">plot_effects()</a></code>.</p>
 <div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_effects.html">plot_effects</a></span><span class="op">(</span>effects <span class="op">=</span> <span class="va">cesa</span><span class="op">$</span><span class="va">selection</span><span class="op">$</span><span class="va">recurrents</span><span class="op">)</span></span></code></pre></div>
-<p><img src="cancereffectsizeR_files/figure-html/unnamed-chunk-27-1.png" width="700"></p>
+<p><img src="cancereffectsizeR_files/figure-html/unnamed-chunk-27-1.png" class="r-plt" alt="" width="700"></p>
 <p><em>PIK3CA</em> and <em>ESR1</em> variants take many of the top
 spots. The deconvolution of mutation rate from selection has revealed
 that some relatively low-prevalence variants have high effects.
@@ -1064,7 +1066,86 @@ the highest-effect genes.</p>
 <span>  group_by <span class="op">=</span> <span class="st">"gene"</span>, topn <span class="op">=</span> <span class="fl">10</span>,</span>
 <span>  label_individual_variants <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p><img src="cancereffectsizeR_files/figure-html/unnamed-chunk-29-1.png" width="700"></p>
+<p><img src="cancereffectsizeR_files/figure-html/unnamed-chunk-29-1.png" class="r-plt" alt="" width="700"></p>
+</div>
+<div class="section level3">
+<h3 id="step-specific-selection">Step-specific selection<a class="anchor" aria-label="anchor" href="#step-specific-selection"></a>
+</h3>
+<p>The default model assumes that each variant has a single cancer
+effect across all samples. When samples represent an ordered sequence of
+progression stages (for example, normal tissue and primary tumor, or
+primary tumor and metastasis), <code><a href="../reference/ces_variant_step.html">ces_variant_step()</a></code> instead
+estimates one selection intensity per stage, jointly under a single
+likelihood model. This assumes that samples at each later stage passed
+through every earlier stage, and each variant analyzed must belong to
+exactly one gene. If your sample groups are independent subgroups rather
+than a progression, run <code><a href="../reference/ces_variant.html">ces_variant()</a></code> separately on each
+group instead (see the <code>samples</code> argument, below).</p>
+<p>The example output in this section comes from a separate analysis of
+esophageal squamous cell carcinoma (ESCC), not the breast cancer data
+used in the rest of this tutorial. Suppose <code>cesa</code> holds
+somatic variants from normal esophageal epithelium and from primary ESCC
+tumors, with a sample-level column <code>Pre_or_Pri</code> marking each
+sample as normal (<code>"Pre"</code>) or tumor (<code>"Pri"</code>).</p>
+<p>First, assign samples to ordered stages, and estimate gene mutation
+rates at each stage. Because later-stage samples have passed through
+earlier stages, each stage’s rate is cumulative;
+<code><a href="../reference/stage_mutation_proportions.html">stage_mutation_proportions()</a></code> converts these into the
+proportion of each gene’s mutation rate that accumulates during each
+stage.</p>
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">sample_index</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/assign_stage_index.html">assign_stage_index</a></span><span class="op">(</span><span class="va">cesa</span>, stage_col <span class="op">=</span> <span class="st">"Pre_or_Pri"</span>, stage_order <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Pre"</span>, <span class="st">"Pri"</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># One gene_mutation_rates() call per stage (creates rate_grp_1, rate_grp_2)</span></span>
+<span><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gene_mutation_rates.html">gene_mutation_rates</a></span><span class="op">(</span><span class="va">cesa</span>,</span>
+<span>  covariates <span class="op">=</span> <span class="st">"ESCA"</span>, save_all_dndscv_output <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  samples <span class="op">=</span> <span class="va">cesa</span><span class="op">$</span><span class="va">samples</span><span class="op">[</span><span class="va">Pre_or_Pri</span> <span class="op">==</span> <span class="st">"Pre"</span><span class="op">]</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gene_mutation_rates.html">gene_mutation_rates</a></span><span class="op">(</span><span class="va">cesa</span>,</span>
+<span>  covariates <span class="op">=</span> <span class="st">"ESCA"</span>, save_all_dndscv_output <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  samples <span class="op">=</span> <span class="va">cesa</span><span class="op">$</span><span class="va">samples</span><span class="op">[</span><span class="va">Pre_or_Pri</span> <span class="op">==</span> <span class="st">"Pri"</span><span class="op">]</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">stage_mut_prop</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/stage_mutation_proportions.html">stage_mutation_proportions</a></span><span class="op">(</span><span class="va">cesa</span>,</span>
+<span>  rate_cols <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"rate_grp_1"</span>, <span class="st">"rate_grp_2"</span><span class="op">)</span>,</span>
+<span>  stage_names <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Pre"</span>, <span class="st">"Pri"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>The model divides each gene’s final-stage (total) mutation rate among
+stages, so assign that rate to all samples before running
+<code><a href="../reference/ces_variant_step.html">ces_variant_step()</a></code>. Here, we estimate gene-level effects by
+combining each gene’s variants into a single compound variant (see <a href="#epistasis-and-compoundvariantsets">CompoundVariantSets</a>,
+below). Then, we test whether stage-specific effects fit better than a
+single shared effect with <code><a href="../reference/step_selection_LRT.html">step_selection_LRT()</a></code>, and plot
+the results.</p>
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/clear_gene_rates.html">clear_gene_rates</a></span><span class="op">(</span><span class="va">cesa</span><span class="op">)</span></span>
+<span><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_gene_rates.html">set_gene_rates</a></span><span class="op">(</span><span class="va">cesa</span>,</span>
+<span>  rates <span class="op">=</span> <span class="va">stage_mut_prop</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span><span class="va">gene</span>, rate <span class="op">=</span> <span class="va">rate_Pri</span><span class="op">)</span><span class="op">]</span>,</span>
+<span>  missing_genes_take_nearest <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># One compound variant per gene. (The output shown used a curated set of</span></span>
+<span><span class="co"># recurrent and nonsense variants for each gene.)</span></span>
+<span><span class="va">for_comp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/select_variants.html">select_variants</a></span><span class="op">(</span><span class="va">cesa</span>, genes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"NOTCH1"</span>, <span class="st">"TP53"</span>, <span class="st">"PIK3CA"</span><span class="op">)</span>, min_freq <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="va">gene_variants</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/define_compound_variants.html">define_compound_variants</a></span><span class="op">(</span><span class="va">cesa</span>,</span>
+<span>  variant_table <span class="op">=</span> <span class="va">for_comp</span>, by <span class="op">=</span> <span class="st">"gene"</span>,</span>
+<span>  merge_distance <span class="op">=</span> <span class="cn">Inf</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">cesa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ces_variant_step.html">ces_variant_step</a></span><span class="op">(</span><span class="va">cesa</span>,</span>
+<span>  variants <span class="op">=</span> <span class="va">gene_variants</span>, stage_mut_prop <span class="op">=</span> <span class="va">stage_mut_prop</span>,</span>
+<span>  sample_index <span class="op">=</span> <span class="va">sample_index</span>, run_name <span class="op">=</span> <span class="st">"step_effects"</span>, conf <span class="op">=</span> <span class="fl">0.95</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">lrt</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/step_selection_LRT.html">step_selection_LRT</a></span><span class="op">(</span><span class="va">cesa</span>, step_run_name <span class="op">=</span> <span class="st">"step_effects"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/plot_effects_step.html">plot_effects_step</a></span><span class="op">(</span><span class="va">cesa</span><span class="op">$</span><span class="va">selection</span><span class="op">$</span><span class="va">step_effects</span>,</span>
+<span>  group_by <span class="op">=</span> <span class="st">"variant_name"</span>, lrt <span class="op">=</span> <span class="va">lrt</span>,</span>
+<span>  stage_order <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Pre"</span>, <span class="st">"Pri"</span><span class="op">)</span>, stage_labels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>Pre <span class="op">=</span> <span class="st">"Normal"</span>, Pri <span class="op">=</span> <span class="st">"Tumor"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p><img src="figures/escc_step_plot.png" class="r-plt" alt="" width="100%"></p>
+<p>See the <a href="step_specific_selection.html">step-specific
+selection</a> article for more detail, including analyses with more than
+two stages and how noisy (non-monotonic) stage rate estimates are
+handled.</p>
 </div>
 <div class="section level3">
 <h3 id="more-options">More options<a class="anchor" aria-label="anchor" href="#more-options"></a>
@@ -1110,7 +1191,7 @@ depending on the state of the other site.</p>
 <p>Let’s try two prevalent BRCA mutations, PIK3CA E545K (n=159) and AKT1
 E17K (n=82). Let’s also test E545K with a nearby PIK3CA variant, E542K
 (n=93).</p>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Start by pulling full variant IDs (with protein identifier) from variants table</span></span>
 <span><span class="va">group1</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"PIK3CA E545K"</span>, <span class="st">"AKT1 E17K"</span><span class="op">)</span>, <span class="va">variant_id</span>, on <span class="op">=</span> <span class="st">"variant_name"</span><span class="op">]</span></span>
 <span><span class="va">group2</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"PIK3CA E545K"</span>, <span class="st">"PIK3CA E542K"</span><span class="op">)</span>, <span class="va">variant_id</span>, on <span class="op">=</span> <span class="st">"variant_name"</span><span class="op">]</span></span>
@@ -1400,7 +1481,7 @@ variant.”) Below, we define a CompoundVariantSet with two compound
 variants: All <em>PIK3CA</em> variants with MAF prevalence &gt; 1, and
 AKT E17K. We then pass the CompoundVariantSet to ces_epistasis(), which
 will test all pairs of compound variants (here, just the one pair).</p>
-<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Collect all the variants that we want in the CompoundVariantSet into a table</span></span>
 <span><span class="va">top_PIK3CA</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="va">gene</span> <span class="op">==</span> <span class="st">"PIK3CA"</span> <span class="op">&amp;</span> <span class="va">maf_prevalence</span> <span class="op">&gt;</span> <span class="fl">1</span><span class="op">]</span></span>
 <span><span class="va">top_akt1</span> <span class="op">&lt;-</span> <span class="va">cesa</span><span class="op">$</span><span class="va">variants</span><span class="op">[</span><span class="va">variant_name</span> <span class="op">==</span> <span class="st">"AKT1 E17K"</span><span class="op">]</span></span>
@@ -1596,7 +1677,7 @@ alternatively, supply a custom table of variants. In order to take
 advantage of the targeted sequencing data (which doesn’t quite cover all
 mutated sites in these genes), we will supply a custom table of variants
 that are covered across all samples.</p>
-<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">genes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"AKT1"</span>, <span class="st">"PIK3CA"</span>, <span class="st">"TP53"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Get consensus covered regions</span></span>
@@ -1957,7 +2038,7 @@ gene pairs do show significant epistatic effects. Asterisks indicate
 significant changes in selection for individual genes. Estimates/CIs
 depicted on the dashed gray line are at the floor of the inference; such
 estimates are consistent with low or negative selection.</p>
-<p><img src="cancereffectsizeR_files/figure-html/unnamed-chunk-36-1.png" width="700"></p>
+<p><img src="cancereffectsizeR_files/figure-html/unnamed-chunk-39-1.png" class="r-plt" alt="" width="700"></p>
 <p>Even when epistatic effects are significant, it’s not uncommon for
 gene-specific changes in selection to be insignificant. The reason is
 that patterns of co-occurrence can often be explained by a strong enough
@@ -1972,7 +2053,7 @@ why confidence intervals on the parameters are typically wide.)</p>
 want to take a break–you can save a commemorative (and space-efficient)
 copy of your CESAnalysis using <code><a href="../reference/save_cesa.html">save_cesa()</a></code>. You can reload
 the analysis anytime with <code><a href="../reference/load_cesa.html">load_cesa()</a></code>.</p>
-<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/save_cesa.html">save_cesa</a></span><span class="op">(</span>cesa <span class="op">=</span> <span class="va">cesa</span>, <span class="st">"cancerffectsizeR_tutorial_analysis.rds"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># In some future R session...</span></span>
@@ -1990,7 +2071,7 @@ the analysis anytime with <code><a href="../reference/load_cesa.html">load_cesa(
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.1.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

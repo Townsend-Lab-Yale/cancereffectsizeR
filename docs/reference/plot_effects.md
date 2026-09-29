@@ -1,0 +1,151 @@
+# Plot cancer effects
+
+Visualize and compare cancer effects for variants of interest.
+
+## Usage
+
+``` r
+plot_effects(
+  effects,
+  topn = 30,
+  group_by = "variant",
+  title = "",
+  x_title = NULL,
+  y_title = NULL,
+  y_label = "auto",
+  color_by = "darkseagreen4",
+  color_label = NULL,
+  legend.position = "right",
+  legend_size_name = "auto",
+  legend_color_name = NULL,
+  viridis_option = "cividis",
+  legend_size_breaks = "auto",
+  label_individual_variants = TRUE,
+  label_text_size = NULL,
+  order_by_effect = TRUE,
+  prevalence_method = "auto",
+  show_ci = TRUE,
+  seed = NULL
+)
+```
+
+## Arguments
+
+- effects:
+
+  Cancer effects table, as produced by
+  [`ces_variant()`](https://townsend-lab-yale.github.io/cancereffectsizeR/reference/ces_variant.md).
+  You can combine multiple tables via rbind() to plot multiple effects
+  per variant, such as to compare effects across subgroups.
+
+- topn:
+
+  Include up to this many variants. The highest-effect variants are
+  plotted. (Or, if `group_by` is gene, include up to this many groups.
+  Groups are ranked by their highest-effect variants.)
+
+- group_by:
+
+  If 'variant' (the default), one variant per row in the plot. If "gene"
+  or some other column name, variants will be plotted together
+  accordingly.
+
+- title:
+
+  Main title for the plot (by default, no title)
+
+- x_title:
+
+  Text for the X-axis label.
+
+- y_title:
+
+  Text for the Y-axis label.
+
+- y_label:
+
+  Y-axis labels for each group of variants. By default ("auto"), will be
+  variant names when `group_by = "variant"`, and the values in the
+  group_by column otherwise.
+
+- color_by:
+
+  A single color to use for geom_point fill (default "darkseagreen4").
+  Or, the name of a column that specifies color groupings. Can be used
+  to distinguish points when multiple effects are plotted per variant
+  (for example, when comparing effects between subgroups), or to
+  highlight related groups of variants. A viridis color scale will be
+  applied, unless ever single value in the color column is interpretable
+  as an R color, in which case the given colors will be used.
+
+- color_label:
+
+  If color_by is supplying color names for scale_color_identity(),
+  optionally include color_label so that colors can be labeled in the
+  plot legend.
+
+- legend.position:
+
+  Passed to ggplot's legend.position (none, left, right, top, bottom, or
+  coordinates). Use "none" to eliminate the legend. Defaults to "right".
+
+- legend_size_name:
+
+  The title for the point size scale (larger points = more prevalent
+  variants).
+
+- legend_color_name:
+
+  The title for the point fill color scale.
+
+- viridis_option:
+
+  If using `color_by`, this argument specifies which viridis color map
+  to use. Ignored if you specify your own colors.
+
+- legend_size_breaks:
+
+  Vector of specific mutation counts (or percentages) to depict in the
+  point size legend. Specify numeric values if you don't like what gets
+  produced by the default ("auto"). Set to FALSE or to a single desired
+  point size to turn of size scaling.
+
+- label_individual_variants:
+
+  When TRUE (default), individual variants within groups will be labeled
+  when group_by is not 'variant'. Set FALSE to not label variants, or
+  specify a column name that supplies a label for each row in the
+  effects table. By default, variant names will be used for labels. If
+  group_by is exactly "gene", labels will be shortened to just the amino
+  acid changes. Some labels will be omitted (with a warning) if it seems
+  there are too many to display in the plot space.
+
+- label_text_size:
+
+  Manually specify (scalar numeric) size of individual variant labels.
+  When NULL, size is determined via an internal algorithm.
+
+- order_by_effect:
+
+  When TRUE (default), variants are plotted in order of effect. When
+  FALSE, variants are plotted top-down in the order they are supplied.
+
+- prevalence_method:
+
+  Show each variant's prevalence as a raw mutation count ("count", the
+  default), or as a percentage of samples with sequencing coverage at
+  the site ("percent"). If the effects table has the same number of
+  samples covering every inference, you can choose "both".
+
+- show_ci:
+
+  TRUE/FALSE to depict confidence intervals in plot (default TRUE).
+
+- seed:
+
+  Specify an integer seed for reproducible output. Tweak if you don't
+  like label or point placements.
+
+## Value
+
+A ggplot

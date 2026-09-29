@@ -1,0 +1,169 @@
+# Gene-level epistasis
+
+Calculate selection intensity under an assumption of pairwise gene-level
+epistasis. Selection at the gene level is assumed to act through all
+specified variants (see options), with the selection for each gene's
+variants allowed to vary based on the mutational status of the other
+gene's variants.
+
+## Usage
+
+``` r
+ces_gene_epistasis(
+  cesa = NULL,
+  genes = NULL,
+  variants = NULL,
+  samples = character(),
+  model = "default",
+  run_name = "auto",
+  cores = 1,
+  conf = 0.95,
+  lik_args = list(),
+  optimizer_args = list(),
+  pval_calc_fn = NULL,
+  return_fit = FALSE
+)
+```
+
+## Arguments
+
+- cesa:
+
+  CESAnalysis object
+
+- genes:
+
+  Vector of gene names; SIs will be calculated for all gene pairs.
+  Alternatively, a list of gene pairs (2-length character vectors) to
+  run just the given pairings.
+
+- variants:
+
+  Which variants to include in inference for each gene. Either
+  "recurrent" for all variants present in two or more samples (across
+  all MAF data), "nonsilent" for nonsynonymous coding variants and
+  variants in essential splice sites, or a data.table containing all
+  variants to include (as returned by
+  [`select_variants()`](https://townsend-lab-yale.github.io/cancereffectsizeR/reference/select_variants.md)
+  or by subsetting`[CESAnalysis\]$variants`). For noncoding variants
+  with multiple gene annotations, the one listed in the "gene" column is
+  used. In the recurrent method, nearby noncoding variants may be
+  included.
+
+- samples:
+
+  Which samples to include in inference. Can be a vector of
+  Unique_Patient_Identifiers, or a data.table containing rows from the
+  CESAnalysis sample table. Samples that do not have coverage at all
+  variant sites in a given inference will be set aside.
+
+- model:
+
+  Set to "default" to use built-in model of epistatic selection, or
+  supply a custom function factory (see details).
+
+- run_name:
+
+  Optionally, a name to identify the current run.
+
+- cores:
+
+  Number of cores for parallel processing of gene pairs.
+
+- conf:
+
+  Confidence interval size from 0 to 1 (.95 -\> 95%). NULL skips
+  calculation, which may be helpful to reduce runtime when analyzing
+  many gene pairs.
+
+- lik_args:
+
+  Extra arguments, given as a list, to pass to custom likelihood
+  functions.
+
+- optimizer_args:
+
+  optimizer_args List of arguments to pass to the optimizer
+  (bbmle::mle2).
+
+- pval_calc_fn:
+
+  For use with custom models; optional. A function that takes an
+  epistasis model fit as input and returns p-values and other
+  descriptives.
+
+- return_fit:
+
+  TRUE/FALSE (default FALSE): Embed epistatic model fits for each gene
+  pair in a "fit" attribute of the epistasis results table. Use
+  `attr(my_results, 'fit')` to access the list of fitted models.
+
+## Value
+
+CESAnalysis with a table of epistatic inferences appended to list
+`[CESAnalysis]$epistasis`. Some column definitions:
+
+- variant_A, variant_B: Gene names. Specifically, A and B refer to the
+  merged sets of included variants from each gene.
+
+- ces_A0: Cancer effect (scaled selection coefficient) of variant A that
+  acts in the absence of variant B.
+
+- ces_B0: Cancer effect of variant B that acts in the absence of variant
+  A.
+
+- ces_A_on_B: Cancer effect of variant A that acts when a sample already
+  has variant B.
+
+- ces_B_on_A: Cancer effect of variant B that acts when a sample already
+  has variant A.
+
+- p_A_change: P-value of likelihood ratio test (LRT) that informs
+  whether selection for variant A significantly changes after acquiring
+  variant B. The LRT compares the likelihood of the full epistatic model
+  to that of a reduced model in which ces_A0 and ces_A_on_B are set
+  equal. The p-value is the probability, under the reduced model, of the
+  likelihood ratio being greater than or equal to the ratio observed.
+
+- p_B_change: P-value of likelihood ratio test (LRT) that informs
+  whether selection for variant B significantly changes after acquiring
+  variant A. The LRT compares the likelihood of the full epistatic model
+  to that of a reduced model in which ces_B0 and ces_B_on_A are set
+  equal. The p-value is the probability, under the reduced model, of the
+  likelihood ratio being greater than or equal to the ratio observed.
+
+- p_epistasis: P-value of likelihood ratio test that informs whether the
+  epistatic model better explains the mutation data than a non-epistatic
+  model in which selection for mutations in each gene are independent of
+  the mutation status in the other gene. Quite often, p_epistasis will
+  suggest a significant epistatic effect even though p_A_change and
+  p_B_change do not suggest significant changes in selection for either
+  gene individually. This is because the degree of co-occurrence can
+  often be explained equally well by a strong change in selection for
+  either gene.
+
+- expected_nAB_epistasis: The expected number of samples with both A and
+  B mutated under the fitted epistatic model. Typically, this will be
+  very close to the actual number of AB samples (nAB).
+
+- expected_nAB_null: The expected number of samples with both A and B
+  mutated under a no-epistasis model.
+
+- AB_epistatic_ratio: The ratio
+  `expected_nAB_epistasis/expected_nAB_null`. Useful to gauge the
+  overall impact of epistatic interactions on the co-occurrence of
+  variants A and B. Since the expectations take mutation rates into
+  account, this ratio is a better indicator than the relative
+  frequencies of A0, B0, AB, 00 in the data set.
+
+- nA0, nB0, nAB, n00: Number of (included) samples with mutations in
+  just A, just B, both A and B, and neither.
+
+- ces_A_null, ces_B_null: Cancer effects of A and B when estimated
+  independently; that is, effects under a no-epistasis model.
+
+## Details
+
+Only samples that have coverage at all included sites in both genes can
+be included in the inference since samples lacking full coverage may or
+may not have mutations at the uncovered sites.
