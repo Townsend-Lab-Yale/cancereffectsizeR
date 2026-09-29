@@ -1,7 +1,7 @@
 Package: cancereffectsizeR
 Type: Package
 Title: Calculate Cancer Effect Size
-Version: 2.10.2
+Version: 2.11.0
 Authors@R: c(person("Vincent L.", "Cannataro", email = "cannatarov@emmanuel.edu", role = c("aut"),
              comment = c(ORCID = "0000-0002-6364-7747")),
              person("Jeff", "Mandell", email = "jeff.mandell@yale.edu", role = c("aut", "cre"),
@@ -9,11 +9,11 @@ Authors@R: c(person("Vincent L.", "Cannataro", email = "cannatarov@emmanuel.edu"
 Description: cancereffectsizeR quantifies selection for somatic variants in cancer from tumor sequencing data.
     See the package website for more information.
 URL: https://townsend-lab-yale.github.io/cancereffectsizeR, https://github.com/Townsend-Lab-Yale/cancereffectsizeR
-Depends: 
+Depends:
   R (>= 3.5.0)
 biocViews:
 Remotes: im3sanger/dndscv
-Imports: 
+Imports:
 	bbmle,
 	Biostrings,
 	BSgenome,
@@ -24,18 +24,20 @@ Imports:
 	GenomicRanges,
 	methods,
 	MutationalPatterns (>= 2.99.4),
+	nloptr,
 	IRanges,
 	pbapply,
 	rtracklayer,
 	S4Vectors,
 	seqinr,
 	stringi
-Suggests: 
+Suggests:
     formattable,
     ggplot2,
     ggrepel,
     knitr,
     mockr,
+    patchwork,
     rmarkdown,
     styler,
     testthat (>= 3.0.0)

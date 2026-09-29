@@ -198,7 +198,7 @@ plot_effects_step(step_effects, group_by = "variant_name", lrt = lrt,
 ```
 
 ```{r, echo=FALSE, eval=TRUE, out.width="100%"}
-knitr::include_graphics(system.file("step_selection_tutorial/escc_step_plot.png", package = "cancereffectsizeR"))
+knitr::include_graphics("figures/escc_step_plot.png")
 ```
 
 Note that a confidence limit comes out `NA` when it would fall outside the optimizer's bounds

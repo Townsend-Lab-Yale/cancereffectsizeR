@@ -3,6 +3,9 @@
 Patch releases (as in, x.y.1 &#8594; x.y.2) have minor bug fixes or small improvements that do not significantly affect the numerical output of cancer effect analyses. Minor/major updates may change some outputs due to bug fixes or methodological tweaks, as described in these version notes.<br><br>
 
 # cancereffectsizeR 2.11.0 (in development, selection_extensions branch)
+* Added continuous covariate selection: estimate selection intensity as a function of a numeric sample-level covariate. See `ces_variant_linear()`,
+`ces_variant_logistic()`, `ces_variant_sigmoid()`, `sswm_age_lik()`, `sswm_age_lik_logistic()`, `sswm_age_lik_sigmoid()`,
+`plot_effects_continuous()`, and the continuous-covariate selection tutorial.
 * Added step-specific selection: quantify cancer effects separately across an ordered sequence of
   tumor progression stages (for example, normal tissue and primary tumor), rather than assuming a
   constant effect across all samples. See `ces_variant_step()`, `assign_stage_index()`,
@@ -101,7 +104,7 @@ option in ces_epistasis() and ces_gene_epistasis().
 * Load sample-level data into a CESAnalysis sample table using add_sample_data(), or during load_maf() with the new sample_data_cols argument.
 * trinuc_mutation_rates(), gene_mutation_rates(), and selection inference functions can be run on arbitrary subsets of samples. The less-flexible CESAnalysis "sample_groups" functionality has been deprecated.
 * samples_with() makes it easy to see which samples have various mutations.
-* variant_counts() provides variant prevalence and coverage information, with the option to break counts down into groups based on sample table columns.  
+* variant_counts() provides variant prevalence and coverage information, with the option to break counts down into groups based on sample table columns.
 * check_sample_overlap() now accepts a list of MAFs.
 * In loaded MAF data, columns top_consequence and top_gene give the most significant annotated coding changes for each mutation record. Annotation precedence is determined by MAF prevalence (usually equal), essential splice status, premature stop codon, nonsilent status, MAF mutation prevalence across the transcript (often favors longer transcripts), and finally alphabetical order. The columns are recalculated when more data is loaded, so changes in MAF prevalence can change which variants appear.
 * Because ces.refset.hg38 is now available, CESAnalysis() and preload_maf() now require reference data sets to be specified by the user (formerly, they defaulted to ces.refset.hg19).

@@ -7,6 +7,7 @@ template:
   bslib:
     pkgdown-nav-height: 78px
     heading_font: avenir
+  math-rendering: katex
 repo:
   branch: main
 
@@ -70,6 +71,16 @@ reference:
   - mutational_signature_effects
   - clear_effect_output
   - clear_epistasis_output
+- title: Continuous covariate selection
+  desc: Functions for estimating and visualizing selection as a function of a continuous sample-level covariate.
+  contents:
+  - ces_variant_linear
+  - ces_variant_logistic
+  - ces_variant_sigmoid
+  - plot_effects_continuous
+  - sswm_age_lik
+  - sswm_age_lik_logistic
+  - sswm_age_lik_sigmoid
 - title: Step-specific selection
   desc: Quantify selection separately across ordered tumor progression stages
   contents:
@@ -116,6 +127,17 @@ reference:
   - get_gene_rates
   - snv_results
   - epistasis_results
+
+articles:
+- title: Tutorials
+  navbar: ~
+  contents:
+  - cosmic_cancer_type_note
+  - create_custom_covariates
+  - custom_refset_instructions
+  - MAF_filtering_tips
+  - continuous_covariate_selection
+  - step_specific_selection
 
 home:
   strip_header: true
