@@ -1,6 +1,6 @@
 # Generates the pre-computed step-specific selection output shown in vignettes/step_specific_selection.Rmd
 # and in the "Step-specific selection" section of vignettes/cancereffectsizeR.Rmd, saved to
-# inst/step_selection_tutorial/.
+# inst/step_selection_tutorial/ (plot to vignettes/figures/). Run from the package root.
 #
 # Data: esophageal squamous cell carcinoma (ESCC) analysis, normal esophageal epithelium ("Pre")
 # vs. primary ESCC ("Pri"), with gene-level compound variants. The input CESAnalysis and
@@ -8,11 +8,12 @@
 # and are not distributed with the package. Only results for NOTCH1, TP53, and PIK3CA are saved.
 # Needs ~100 GB of memory.
 suppressMessages(library(ces.refset.hg19))
-devtools::load_all("/gpfs/gibbs/project/townsend/kag227/escc_notch/cancereffectsizeR")
+devtools::load_all(".")
 library(ggplot2)
 
+# Location of cesa_ready.rds and compound.rds from the ESCC analysis (not distributed)
 in_dir = "/gpfs/gibbs/project/townsend/kag227/escc_notch/.step_selection_slurm/"
-out_dir = "/gpfs/gibbs/project/townsend/kag227/escc_notch/cancereffectsizeR/inst/step_selection_tutorial"
+out_dir = "inst/step_selection_tutorial"
 genes = c("NOTCH1", "TP53", "PIK3CA")
 
 cesa = readRDS(paste0(in_dir, "cesa_ready.rds"))
@@ -43,7 +44,7 @@ saveRDS(lrt, file.path(out_dir, "escc_step_lrt.rds"))
 
 p = plot_effects_step(step_effects, group_by = "variant_name", lrt = lrt, stage_order = c("Pre", "Pri"),
                       stage_labels = c(Pre = "Normal", Pri = "Tumor"))
-ggsave(file.path(out_dir, "escc_step_plot.png"), p, width = 8, height = 4, dpi = 150)
+ggsave("vignettes/figures/escc_step_plot.png", p, width = 8, height = 4, dpi = 150)
 
 print(smp[gene %in% genes])
 print(step_effects)
