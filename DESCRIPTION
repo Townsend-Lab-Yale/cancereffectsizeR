@@ -5,7 +5,11 @@ Version: 2.11.0
 Authors@R: c(person("Vincent L.", "Cannataro", email = "cannatarov@emmanuel.edu", role = c("aut"),
              comment = c(ORCID = "0000-0002-6364-7747")),
              person("Jeff", "Mandell", email = "jeff.mandell@yale.edu", role = c("aut", "cre"),
-             comment = c(ORCID = "0000-0002-3839-2543")))
+             comment = c(ORCID = "0000-0002-3839-2543")),
+             person("Yihan", "Liu", email = "yihan.liu.yl2548@yale.edu", role = c("aut"),
+             comment = c(ORCID = "0009-0003-0386-9908")),
+             person("Kira A.", "Glasmacher", email = "kira.glasmacher@yale.edu", role = c("aut"),
+             comment = c(ORCID = "0009-0004-6300-3812")))
 Description: cancereffectsizeR quantifies selection for somatic variants in cancer from tumor sequencing data.
     See the package website for more information.
 URL: https://townsend-lab-yale.github.io/cancereffectsizeR, https://github.com/Townsend-Lab-Yale/cancereffectsizeR

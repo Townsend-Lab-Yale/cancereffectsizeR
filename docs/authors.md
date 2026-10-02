@@ -8,6 +8,11 @@
 - **Jeff Mandell**. Author, maintainer.
   [](https://orcid.org/0000-0002-3839-2543)
 
+- **Yihan Liu**. Author. [](https://orcid.org/0009-0003-0386-9908)
+
+- **Kira A. Glasmacher**. Author.
+  [](https://orcid.org/0009-0004-6300-3812)
+
 ## Citation
 
 Source:

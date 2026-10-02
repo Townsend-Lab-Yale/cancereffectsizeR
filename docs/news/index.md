@@ -9,7 +9,7 @@ to bug fixes or methodological tweaks, as described in these version
 notes.  
   
 
-## cancereffectsizeR 2.11.0 (in development, selection_extensions branch)
+## cancereffectsizeR 2.11.0
 
 - Added continuous covariate selection: estimate selection intensity as
   a function of a numeric sample-level covariate. See

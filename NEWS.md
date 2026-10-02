@@ -2,7 +2,7 @@
 # <font style = "opacity:0">cancereffectsizeR 3.0.0</font>
 Patch releases (as in, x.y.1 &#8594; x.y.2) have minor bug fixes or small improvements that do not significantly affect the numerical output of cancer effect analyses. Minor/major updates may change some outputs due to bug fixes or methodological tweaks, as described in these version notes.<br><br>
 
-# cancereffectsizeR 2.11.0 (in development, selection_extensions branch)
+# cancereffectsizeR 2.11.0
 * Added continuous covariate selection: estimate selection intensity as a function of a numeric sample-level covariate. See `ces_variant_linear()`,
 `ces_variant_logistic()`, `ces_variant_sigmoid()`, `sswm_age_lik()`, `sswm_age_lik_logistic()`, `sswm_age_lik_sigmoid()`,
 `plot_effects_continuous()`, and the continuous-covariate selection tutorial.
