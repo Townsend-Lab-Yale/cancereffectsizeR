@@ -545,6 +545,27 @@ plot_effects_continuous <- function(
         )
     }
 
+    # ggplot2 >= 3.5.0 deprecated numeric values for theme(legend.position).
+    # Preserve the existing public API, where a numeric c(x, y) value means
+    # "place the legend inside the panel", while remaining compatible with
+    # older ggplot2 versions.
+    if (is.numeric(legend.position) && length(legend.position) == 2L) {
+      if (utils::packageVersion("ggplot2") >= "3.5.0") {
+        legend_theme <- ggplot2::theme(
+          legend.position = "inside",
+          legend.position.inside = legend.position
+        )
+      } else {
+        legend_theme <- ggplot2::theme(
+          legend.position = legend.position
+        )
+      }
+    } else {
+      legend_theme <- ggplot2::theme(
+        legend.position = legend.position
+      )
+    }
+
     gg_cont <- gg_cont +
       ggplot2::scale_color_manual(
         values = model_colors,
@@ -573,13 +594,13 @@ plot_effects_continuous <- function(
         axis.text = ggplot2::element_text(size = 15),
         plot.title = ggplot2::element_text(size = 15),
         text = ggplot2::element_text(size = 15),
-        legend.position = legend.position,
         legend.justification = c(0, 0.5),
         legend.background = ggplot2::element_blank(),
         legend.key = ggplot2::element_blank(),
         legend.title = ggplot2::element_blank(),
         legend.text = ggplot2::element_text(size = 15)
-      )
+      ) +
+      legend_theme
 
     if (output == "continuous") {
       attr(gg_cont, "best_model") <- best_model

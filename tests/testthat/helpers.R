@@ -1,7 +1,7 @@
 
 
 get_test_data = function(filename) {
-  file = system.file(paste0("tests/test_data/", filename), package = "cancereffectsizeR")
+  file = testthat::test_path("..", "test_data", filename)
   
   # for compatibility with R 3.5, ignore the (harmless, so far) warning that comes with reading in newer RDS files
   withCallingHandlers(
@@ -17,6 +17,6 @@ get_test_data = function(filename) {
 }
 
 get_test_file = function(filename) {
-  path = system.file(paste0("tests/test_data/", filename), package = "cancereffectsizeR")
+  path = testthat::test_path("..", "test_data", filename)
   return(path)
 }
