@@ -1,13 +1,15 @@
-pandoc: '3.2'
-pkgdown: 2.1.1
+pandoc: 3.6.3
+pkgdown: 2.2.1
 pkgdown_sha: ~
 articles:
   cancereffectsizeR: cancereffectsizeR.html
+  continuous_covariate_selection: continuous_covariate_selection.html
   cosmic_cancer_type_note: cosmic_cancer_type_note.html
   create_custom_covariates: create_custom_covariates.html
   custom_refset_instructions: custom_refset_instructions.html
   MAF_filtering_tips: MAF_filtering_tips.html
-last_built: 2025-02-14T21:22Z
+  step_specific_selection: step_specific_selection.html
+last_built: 2026-09-29T00:56Z
 urls:
   reference: https://townsend-lab-yale.github.io/cancereffectsizeR/reference
   article: https://townsend-lab-yale.github.io/cancereffectsizeR/articles

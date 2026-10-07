@@ -1,0 +1,41 @@
+# Create CompoundVariantSet from variant IDs
+
+A CompoundVariantSet is a collection of "compound variants". A compound
+variant is an arbitrary group of variants that have sequencing coverage
+across some set of samples. (Any of these samples with one or more of
+the constituent SNVs "has the compound variant"–samples with coverage at
+only some of the sites are not considered.) The compound variants within
+a CompoundVariantSet are always disjoint: that is, no individual variant
+appears in more than one of the compound variants.
+
+## Usage
+
+``` r
+CompoundVariantSet(cesa, variant_id)
+```
+
+## Arguments
+
+- cesa:
+
+  CESAnalysis (used to access variant annotations)
+
+- variant_id:
+
+  Vector of variant IDs to include in one compound variant, or a list of
+  vectors, each of which defines a separate compound variant. If the
+  vector or list is named, names will be kept. Otherwise, compound
+  variants will be named sequentially.
+
+## Details
+
+Example:
+`CompoundVariantSet(cesa, variant_id = list(kras12 = c("KRAS G12C", "KRAS G12D", "KRAS G12V")))`
+creates a CompoundVariantSet containing one compound variant. To create
+a large set, it's usually easier to use define_compound_variants(),
+which calls this function internally to define compound variants from an
+input variant table.
+
+If you're using this function because you have a complex use case that
+define_compound_variants() can't handle, please let us know so we can
+try to make improvements!

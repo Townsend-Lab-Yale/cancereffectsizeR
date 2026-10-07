@@ -1,0 +1,37 @@
+# Get table of signature attributions
+
+View SNV signature attributions associated with CESAnalysis samples.
+
+## Usage
+
+``` r
+get_signature_weights(cesa = NULL, raw = F, artifacts_zeroed = NULL)
+```
+
+## Arguments
+
+- cesa:
+
+  CESAnalysis object
+
+- raw:
+
+  Default FALSE. When TRUE, return raw signature attributions as found
+  by the signature extraction tool. Format may vary by tool.
+
+- artifacts_zeroed:
+
+  Deprecated.
+
+## Value
+
+A data.table of signature attributions for each sample. By default,
+these are estimated relative weights of biologically-associated
+signatures (i.e., non-artifact signatures) that sum to 1.
+
+## Details
+
+Use raw = TRUE to get signature attributions as produced by the
+signature extraction tool (or as provided by the user with
+set_signature_weights()), without any of the adjustments that are made
+by cancereffectsizeR's trinuc_mutation_rates().

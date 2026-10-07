@@ -1,0 +1,30 @@
+# Skip mutational signature analysis and assign group average relative trinucleotide-context-specific mutation rates to all samples
+
+This function calculates the relative rates of
+trinucleotide-context-specific mutations across all SNV records from
+whole-exome and whole-genome MAF data and naively assigns these rates to
+all samples. This can be helpful if you do not have SNV mutational
+signatures available for your species, or if you want to assume that all
+samples share the same SNV mutational processes without relying on
+signatures. Normally, if mutational signatures are available, it is
+better to use trinuc_snv_mutation_rates().
+
+## Usage
+
+``` r
+assign_group_average_trinuc_rates(cesa)
+```
+
+## Arguments
+
+- cesa:
+
+  CESAnalysis object
+
+## Details
+
+To reduce the influence of selection, only non-recurrent mutations
+(i.e., mutations that occur in just one sample) are used to calculate
+the rates. Targeted sequencing data is excluded for the same reason, and
+also because the trinucleotide composition of targeted regions could be
+very different from that of the exome/genome.

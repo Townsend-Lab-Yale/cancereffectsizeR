@@ -1,0 +1,62 @@
+# Running with custom reference data
+
+A refset is a collection of all the reference data required to run a
+cancereffectsizeR analysis. Currently, refsets for the hg38 and hg19
+human genome builds are available in the form as
+[ces.refset.hg38](https://github.com/Townsend-Lab-Yale/ces.refset.hg38)
+and
+[ces.refset.hg19](https://github.com/Townsend-Lab-Yale/ces.refset.hg19)
+data packages. It’s possible to generate your own reference data for
+pretty much any species or genome build. Here is the general method:
+
+1.  Find a GTF file containing coding sequence (CDS) definitions, filter
+    to high-quality and desired CDS regions, and run
+    [`build_RefCDS()`](https://townsend-lab-yale.github.io/cancereffectsizeR/reference/build_RefCDS.md)
+    to get a collection of gene/transcript/CDS information.
+
+2.  Run
+    [`create_refset()`](https://townsend-lab-yale.github.io/cancereffectsizeR/reference/create_refset.md),
+    which will require your RefCDS output and some additional
+    information, to save reference data to an output directory.
+
+The output of `create_refset` is usable with cancereffectsizeR, but
+there are two additional sources of data that you will probably want to
+either add to your refset directory, or at least have available to
+supply to cancereffectsizeR functions:
+
+3.  A CES Signature Set, containing SNV signature definitions and
+    metadata, is required for mutational signature extraction. As long
+    as you have a matrix of signature definitions (e.g., see those
+    published by COSMIC), you can create your own set. You can include
+    one or more signature set in your refset, or you can pass a
+    signature set as an argument to
+    [`trinuc_mutation_rates()`](https://townsend-lab-yale.github.io/cancereffectsizeR/reference/trinuc_mutation_rates.md).
+    (In either case, you can also copy a signature set from an existing
+    refset if the genome build is compatible.) See the details in
+    [`trinuc_mutation_rates()`](https://townsend-lab-yale.github.io/cancereffectsizeR/reference/trinuc_mutation_rates.md)
+    for how to make a signature set, then validate with
+    [`validate_signature_set()`](https://townsend-lab-yale.github.io/cancereffectsizeR/reference/validate_signature_set.md).
+    Finally, to save with your refset, create a subdirectory called
+    “signatures” in your refset directory, and then use `saveRDS` to
+    save your signature set with the name
+    “\[set_name\]\_signatures.rds”.
+
+4.  Tissue covariates data inform the calculation of gene mutation rates
+    when cancereffectsizeR calls dNdScv. Covariates data can be saved in
+    a refset subdirectory called “covariates”, or you can supply them as
+    an argument to
+    [`gene_mutation_rates()`](https://townsend-lab-yale.github.io/cancereffectsizeR/reference/gene_mutation_rates.md).
+    (Example: “covariates/lung.rds” can be specified with
+    `covariates = "lung"`.) [This
+    guide](https://townsend-lab-yale.github.io/cancereffectsizeR/articles/create_custom_covariates.md)
+    shows how to generate covariates data by combining and processing
+    tissue-specific experimental data from several sources. As a last
+    resort, `gene_mutation_rates` can be run without covariates, but
+    it’s best to use them if available.
+
+For an example refset, see the ces.refset.hg38 data package’s refset
+directory
+[here](https://github.com/Townsend-Lab-Yale/ces.refset.hg38/tree/main/inst/refset).
+If your refset also uses the hg19 or hg38, you can copy signatures and
+covariates from the refset packages into your own refset directory if
+desired.
